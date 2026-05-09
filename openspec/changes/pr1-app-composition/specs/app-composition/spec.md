@@ -71,7 +71,7 @@ The system SHALL expose `a2web.server.main()` as the single entrypoint registere
 #### Scenario: Stub fetch invocation succeeds
 
 - **WHEN** the user runs `a2web web fetch --url=https://example.com`
-- **THEN** the command exits 0 and prints a `FetchResponse` (TOON by default) with `tier="stub"`, `status="ok"`, and a non-null `started_at`
+- **THEN** the command exits 0 and prints a `FetchResponse` (JSON, since a2kit v0.23 routes single `BaseModel` returns to JSON) with `tier="stub"`, `status="ok"`, and a non-null `started_at`
 
 ### Requirement: Configuration via single YAML file plus env vars
 

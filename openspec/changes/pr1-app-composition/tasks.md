@@ -51,7 +51,7 @@
 ## 7. Verification
 
 - [x] 7.1 `uv run a2web --help` exits 0 and shows `web` and `serve` subcommands; does NOT show `connections`
-- [x] 7.2 `uv run a2web web fetch --url=https://example.com` exits 0 and prints a TOON-formatted `FetchResponse` with `tier="stub"`
+- [x] 7.2 `uv run a2web web fetch --url=https://example.com` exits 0 and prints a JSON-formatted `FetchResponse` with `tier="stub"` (a2kit v0.23 routes single `BaseModel` returns to JSON)
 - [x] 7.3 `uv run a2web serve --transport=stdio` starts (sanity: send `initialize` and confirm a `fetch` tool is listed)
 - [x] 7.4 With `HOME` pointed at an empty temp dir (no `~/.a2web/config.yaml`), the fetch command still exits 0
 
@@ -79,4 +79,4 @@
 - [x] 10.1 Update `CLAUDE.md`: replace the `connection.py` description with `settings.py`, remove references to `connections_cli`, mention the YAML config path
 - [x] 10.2 Update `README.md` quick-start to show `~/.a2web/config.yaml` and env var examples (no `a2web connections` mentions)
 - [x] 10.3 Single commit "PR1: a2kit App composition + stub fetch tool + YAML config"
-- [ ] 10.4 Hand off to PR2 (AppState + lifespan)
+- [x] 10.4 Hand off to PR2 (AppState + lifespan) — PR1 marked complete; PR2 will be created as its own openspec change

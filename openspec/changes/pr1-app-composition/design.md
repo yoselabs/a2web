@@ -74,7 +74,7 @@ The fetch tool MUST work zero-config: when no file exists, `AppSettings` returns
 
 Following `v0.1-response-format.md` §2, the envelope fields are: `url`, `status`, `tier`, `confidence`, `title`, `byline`, `published`, `started_at`, `total_ms`, `tokens` (full + fit), `cache`, `narrative`, `diagnostics`, `meta`, `links`, `headings`, `content_md`, `fit_md`, `operator_hints`. All of these land in PR1 even though most are unused; renaming after MCP clients exist is breaking. Subsidiary types (`Verdict`, `FetchStatus`, `Confidence`, `CacheState`, `Diagnostic`, `Heading`, `Link`, `OperatorHint`, `TokenCounts`) all live at module scope in `models.py`.
 
-The TOON-flavored markdown serializer ships in PR2 or PR3; PR1's stub tool returns the model and lets a2kit's default formatter handle it (likely as TOON of the pydantic shape). The custom renderer is a *renderer* over this fixed model, not a different envelope.
+The TOON-flavored markdown serializer (a2web's *custom* human-friendly renderer) ships in PR2 or PR3; PR1's stub tool returns the model and lets a2kit's default formatter handle it as JSON — a2kit v0.23 routes single `BaseModel` returns to JSON via type-driven format inference. The custom renderer is a *renderer* over this fixed model, not a different envelope, and is unrelated to a2kit's wire-format menu (which is JSON / TSV / page-tsv since v0.23).
 
 ## Risks / Trade-offs
 
