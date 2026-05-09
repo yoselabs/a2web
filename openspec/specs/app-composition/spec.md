@@ -10,27 +10,29 @@ The system SHALL expose a single `fetch` tool whose return type is a module-scop
 - **Top scalars**: `url: str`, `status: FetchStatus`, `tier: str`, `confidence: Confidence`, `title: str | None`, `byline: str | None`, `published: date | None`, `started_at: datetime`, `total_ms: int`, `tokens: TokenCounts | None`, `cache: CacheState`.
 - **Sections**: `narrative: str`, `diagnostics: list[Diagnostic]`, `meta: dict[str, str]`, `links: list[Link]`, `headings: list[Heading]`, `content_md: str`, `fit_md: str | None`, `operator_hints: list[OperatorHint]`.
 
-The tool function signature SHALL declare `state: AppState` as a DI kwarg. The `state` kwarg SHALL NOT appear in the MCP wire schema. The tool SHALL invoke the orchestrator at `a2web.fetcher.fetch(url, state=state)` and return its result. The placeholder narrative ("PR2 stub …") SHALL be removed; the narrative SHALL describe what the orchestrator did (which tier produced content, cache state, total duration formatted via `fmt_dur`).
+The tool function signature SHALL declare `state: AppState` as a DI kwarg. The `state` kwarg SHALL NOT appear in the MCP wire schema. The tool SHALL invoke the orchestrator at `a2web.fetcher.fetch(url, state=state)` and return its result.
 
-#### Scenario: Real content_md on a generic blog URL
+After PR4, every successful or failed fetch SHALL produce exactly one `LogRecord` entry on disk via `state.log_writer.write_record(...)` — unless `state.settings.log_enabled is False`, in which case the writer is a no-op. A log write failure SHALL NOT cause the fetch to fail; it SHALL append an `OperatorHint(code="log_write_failed", ...)` to the response and continue.
 
-- **WHEN** the `fetch` tool is invoked with the canned blog-post HTML fixture (or a network-marked test URL)
-- **THEN** the returned `FetchResponse.content_md` is non-empty markdown, `tier == "raw"`, `status == FetchStatus.ok`, `cache == "miss"`, and `total_ms > 0`
+#### Scenario: Successful fetch produces one log record
 
-#### Scenario: Cache hit on second call
+- **WHEN** `fetch` is invoked against a mock tier returning a usable body and `log_enabled=True`
+- **THEN** the configured log file gains exactly one new line, parseable as JSON, with `status="ok"`, `tier`, `verdict="ok"`, `total_ms`, and the fetched `url`
 
-- **WHEN** the same URL is fetched twice in succession (with the cache enabled and the URL not in `live_only_hosts`)
-- **THEN** the second response has `cache == "hit"` and `total_ms < 50` (no network)
+#### Scenario: Failed fetch also produces a log record
 
-#### Scenario: Failed fetch on block page
+- **WHEN** `fetch` is invoked against a mock tier returning a block-page body
+- **THEN** the configured log file gains exactly one new line with `status="failed"` and `verdict="block_page_detected"`
 
-- **WHEN** the fetch produces a body matching one of the block-page regexes
-- **THEN** `status == FetchStatus.failed`, the diagnostics list contains a row with `verdict == Verdict.block_page_detected`, and no cache row exists for the URL
+#### Scenario: Disabled log writer produces no file output
 
-#### Scenario: state kwarg is hidden from the wire schema
+- **WHEN** `fetch` is invoked with `state.settings.log_enabled=False`
+- **THEN** no files are created under the log directory
 
-- **WHEN** an MCP client requests the `fetch` tool's input schema
-- **THEN** the schema's required/optional parameters list `url` only and SHALL NOT include `state`
+#### Scenario: Log write failure surfaces as operator hint
+
+- **WHEN** the writer raises during a fetch (e.g. unwritable directory)
+- **THEN** the `FetchResponse.operator_hints` includes one entry with `code == "log_write_failed"` and the response otherwise reflects the underlying fetch outcome (not the log failure)
 
 ### Requirement: Closed-enum diagnostic verdicts
 
