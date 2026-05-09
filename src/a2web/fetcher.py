@@ -20,8 +20,10 @@ from .cache.sqlite_cache import (
     compute_profile_hash,
     is_live_only,
 )
+from .events import EventBus, StageEnded, StageStarted, TierEnded, TierStarted
 from .extract.htmldate_ext import find_published
 from .extract.metadata import parse_metadata
+from .extract.pruning_filter import prune_markdown
 from .extract.trafilatura_ext import extract_markdown
 from .gate.block_detector import evaluate
 from .log.record import from_response as record_from_response
@@ -32,6 +34,7 @@ from .models import (
     FetchResponse,
     FetchStatus,
     OperatorHint,
+    TokenCounts,
     Verdict,
 )
 from .state import AppState, open_sqlite
@@ -59,13 +62,12 @@ def _confidence_for(verdict: Verdict, content_md: str) -> Confidence:
 _LOG = structlog.get_logger("a2web")
 
 
-async def fetch(url: str, *, state: AppState) -> FetchResponse:
+async def fetch(url: str, *, state: AppState, bus: EventBus | None = None) -> FetchResponse:
     """Run the v0.1 cascade for one URL.
 
-    PR3 ships only the raw tier; later PRs prepend/insert tiers in
-    `TIER_ORDER` and the orchestrator picks them up automatically.
-    Each fetch emits one NDJSON record via `state.log_writer` (best
-    effort — write failures append an `operator_hint` and continue).
+    `bus` is opt-in: when supplied, the orchestrator publishes phase
+    boundary events (TierStarted/Ended, StageStarted/Ended) for live
+    streaming. Without one, behavior matches PR5.
     """
     start_perf = time.perf_counter()
     started_at = datetime.now(UTC)
@@ -87,6 +89,7 @@ async def fetch(url: str, *, state: AppState) -> FetchResponse:
             start_perf=start_perf,
             started_at=started_at,
             diagnostics=diagnostics,
+            bus=bus,
         )
     finally:
         if sqlite_conn is not None:
@@ -102,6 +105,11 @@ async def fetch(url: str, *, state: AppState) -> FetchResponse:
     return response
 
 
+async def _publish(bus: EventBus | None, event) -> None:
+    if bus is not None:
+        await bus.publish(event)
+
+
 async def _run_pipeline(
     *,
     url: str,
@@ -113,6 +121,7 @@ async def _run_pipeline(
     start_perf: float,
     started_at: datetime,
     diagnostics: list[Diagnostic],
+    bus: EventBus | None = None,
 ) -> FetchResponse:
     cached_row = None
     if sqlite_conn is not None:
@@ -141,6 +150,8 @@ async def _run_pipeline(
             if cached_row.last_modified:
                 conditional_extras["last_modified"] = cached_row.last_modified
 
+        await _publish(bus, TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(url)))
+
         if isinstance(tier, RawTier):
             tier_result = await tier.fetch(url, state=state, conditional_extras=conditional_extras)
         else:
@@ -151,6 +162,18 @@ async def _run_pipeline(
         # site_handler "no match" — silent skip, no diagnostic row
         if tier_result.tier_extras.get("no_match"):
             continue
+
+        await _publish(
+            bus,
+            TierEnded(
+                t_ms=tier_start_ms,
+                step=tier_result.tier_extras.get("handler_name") or tier_name,
+                engine="curl_cffi" if tier_name == "raw" else None,
+                verdict=tier_result.verdict,
+                dur_ms=tier_dur_ms,
+                extra={"status_code": tier_result.status_code},
+            ),
+        )
 
         # Conditional 304 → reuse cached body
         if tier_result.status_code == 304 and cached_row is not None and tier_result.tier_extras.get("conditional_hit"):
@@ -223,6 +246,7 @@ async def _run_pipeline(
         headings = pre_rendered_payload.get("headings", [])
         # links/meta intentionally empty for handler results in PR5; PR8 may revisit.
     elif body and final_verdict == Verdict.ok:
+        await _publish(bus, StageStarted(t_ms=extract_dur_start, step="extract"))
         extract_result = await extract_markdown(raw_html, final_url)
         content_md = extract_result.content_md
         title = extract_result.title
@@ -231,7 +255,7 @@ async def _run_pipeline(
         links = extract_result.links
         meta_dict = parse_metadata(raw_html)
         published = await find_published(raw_html, final_url)
-        # `find_updated` available for PR4 logging; not yet surfaced in the envelope.
+        extract_dur_ms = int((time.perf_counter() - start_perf) * 1000) - extract_dur_start
         diagnostics.append(
             Diagnostic(
                 t_ms=extract_dur_start,
@@ -240,9 +264,19 @@ async def _run_pipeline(
                 host=None,
                 proxy=None,
                 verdict=Verdict.ok,
-                dur_ms=int((time.perf_counter() - start_perf) * 1000) - extract_dur_start,
+                dur_ms=extract_dur_ms,
                 extra={"chars": len(content_md)},
             )
+        )
+        await _publish(
+            bus,
+            StageEnded(
+                t_ms=extract_dur_start,
+                step="extract",
+                verdict=Verdict.ok,
+                dur_ms=extract_dur_ms,
+                extra={"chars": len(content_md)},
+            ),
         )
 
     # Phase 4 — gate
@@ -250,6 +284,7 @@ async def _run_pipeline(
     gate_verdict = Verdict.ok
     gate_subsystem: str | None = None
     if body and final_verdict == Verdict.ok:
+        await _publish(bus, StageStarted(t_ms=gate_dur_start, step="gate"))
         # Pre-rendered handler results carry application/json bodies; skip the
         # html/content-type guard for them — block-page regexes still run on the
         # rendered markdown and length floor catches truly empty results.
@@ -262,6 +297,7 @@ async def _run_pipeline(
         )
         gate_verdict = gate_result.verdict
         gate_subsystem = gate_result.subsystem
+        gate_dur_ms = int((time.perf_counter() - start_perf) * 1000) - gate_dur_start
         diagnostics.append(
             Diagnostic(
                 t_ms=gate_dur_start,
@@ -271,15 +307,47 @@ async def _run_pipeline(
                 proxy=None,
                 verdict=gate_verdict,
                 subsystem=gate_subsystem,
-                dur_ms=int((time.perf_counter() - start_perf) * 1000) - gate_dur_start,
+                dur_ms=gate_dur_ms,
                 extra={},
             )
+        )
+        await _publish(
+            bus,
+            StageEnded(t_ms=gate_dur_start, step="gate", verdict=gate_verdict, dur_ms=gate_dur_ms),
         )
         if gate_verdict != Verdict.ok:
             final_verdict = gate_verdict
 
+    # Phase 4.5 — fit_md (pruning filter for non-handler results)
+    fit_md: str | None = None
+    if final_verdict == Verdict.ok and content_md:
+        if pre_rendered_payload is not None:
+            # Handler results are already minimal; keep fit_md == content_md.
+            fit_md = content_md
+        else:
+            fit_dur_start = int((time.perf_counter() - start_perf) * 1000)
+            await _publish(bus, StageStarted(t_ms=fit_dur_start, step="fit"))
+            try:
+                pruned = await prune_markdown(raw_html, final_url)
+            except Exception:
+                pruned = ""
+            fit_md = pruned if pruned else content_md
+            fit_dur_ms = int((time.perf_counter() - start_perf) * 1000) - fit_dur_start
+            await _publish(
+                bus,
+                StageEnded(
+                    t_ms=fit_dur_start,
+                    step="fit",
+                    verdict=Verdict.ok,
+                    dur_ms=fit_dur_ms,
+                    extra={"chars": len(fit_md)},
+                ),
+            )
+
     # Phase 5 — cache write (gate-passed, non-hit only, non-bypass)
     if sqlite_conn is not None and not bypass_cache and cache_state != CacheState.hit and final_verdict == Verdict.ok and body:
+        cache_dur_start = int((time.perf_counter() - start_perf) * 1000)
+        await _publish(bus, StageStarted(t_ms=cache_dur_start, step="cache_write"))
         await cache_put(
             sqlite_conn,
             url,
@@ -290,6 +358,11 @@ async def _run_pipeline(
             content_type=content_type,
             body=body,
             ttl_s=_ttl_for(content_type, state.settings),
+        )
+        cache_dur_ms = int((time.perf_counter() - start_perf) * 1000) - cache_dur_start
+        await _publish(
+            bus,
+            StageEnded(t_ms=cache_dur_start, step="cache_write", verdict=Verdict.ok, dur_ms=cache_dur_ms),
         )
 
     total_ms = int((time.perf_counter() - start_perf) * 1000)
@@ -303,6 +376,7 @@ async def _run_pipeline(
         gate_subsystem=gate_subsystem,
     )
 
+    tokens = TokenCounts(full=len(content_md), fit=len(fit_md or "")) if final_verdict == Verdict.ok and content_md else None
     return FetchResponse(
         url=final_url,
         status=status,
@@ -313,6 +387,7 @@ async def _run_pipeline(
         published=published,
         started_at=started_at,
         total_ms=total_ms,
+        tokens=tokens,
         cache=cache_state,
         narrative=narrative,
         diagnostics=diagnostics,
@@ -320,6 +395,7 @@ async def _run_pipeline(
         links=links,
         headings=headings,
         content_md=content_md,
+        fit_md=fit_md,
         operator_hints=[],
     )
 

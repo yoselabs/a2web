@@ -1,9 +1,18 @@
-"""a2web routers — single `WebRouter` exposing the `fetch` tool."""
+"""a2web routers — single `WebRouter` exposing the `fetch` tool.
+
+The router builds a per-call `EventBus`, attaches the MCP progress sink
+under an `anyio.create_task_group`, and threads the bus into the
+orchestrator. CLI invocation routes through a `StderrToolContext` (per
+a2kit), so streaming events surface as stderr lines; MCP routes them as
+`notifications/progress`.
+"""
 
 from __future__ import annotations
 
 import a2kit
+import anyio
 
+from .events import EventBus, mcp_progress_sink
 from .fetcher import fetch as orchestrate
 from .models import FetchResponse
 from .state import AppState
@@ -13,11 +22,15 @@ class WebRouter(a2kit.Router):
     """Routes web-fetch tools. CLI surface: `a2web web <tool>`."""
 
     @a2kit.read()
-    async def fetch(self, *, url: str, state: AppState) -> FetchResponse:
-        """Fetch content from a URL.
+    async def fetch(self, *, url: str, state: AppState, ctx: a2kit.ToolContext) -> FetchResponse:
+        """Fetch content from a URL."""
+        bus = EventBus()
+        recv = bus.subscribe()
 
-        One call runs the full v0.1 cascade — cache check, tier loop,
-        extraction, quality gate, cache write — and returns the best
-        content obtainable plus a structured diagnostic trace.
-        """
-        return await orchestrate(url, state=state)
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(mcp_progress_sink, ctx, recv)
+            try:
+                response = await orchestrate(url, state=state, bus=bus)
+            finally:
+                await bus.aclose()
+        return response

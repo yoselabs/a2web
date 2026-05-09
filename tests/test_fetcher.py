@@ -268,3 +268,116 @@ async def test_no_match_handler_emits_no_diagnostic(monkeypatch: pytest.MonkeyPa
     steps = [d.step for d in result.diagnostics]
     assert "site_handler" not in steps
     assert "raw" in steps[0]  # first row is the raw tier
+
+
+@pytest.mark.asyncio
+async def test_successful_fetch_populates_fit_md_and_tokens(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    body = (_FIX / "blog.html").read_bytes()
+    monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
+
+    state = _make_state()
+    result = await fetch("https://example.org/post", state=state)
+
+    assert result.status == FetchStatus.ok
+    assert result.fit_md is not None
+    assert result.tokens is not None
+    assert result.tokens.full == len(result.content_md)
+    assert result.tokens.fit == len(result.fit_md)
+    # fit_md is at most as long as content_md (often shorter)
+    assert len(result.fit_md) <= len(result.content_md)
+
+
+@pytest.mark.asyncio
+async def test_failed_fetch_leaves_fit_md_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = (_FIX / "cloudflare_block.html").read_bytes()
+    monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
+
+    state = _make_state()
+    result = await fetch("https://blocked.example/page", state=state)
+
+    assert result.status == FetchStatus.failed
+    assert result.fit_md is None
+    assert result.tokens is None
+
+
+@pytest.mark.asyncio
+async def test_pre_rendered_handler_keeps_fit_md_equal_to_content_md(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from a2web.models import Heading
+
+    class _PreRendered:
+        name = "site_handler:reddit"
+
+        async def fetch(self, url: str, *, state: AppState) -> TierResult:
+            return TierResult(
+                body=b"{}",
+                content_type="application/json",
+                status_code=200,
+                final_url=url,
+                tier_extras={
+                    "handler_name": "site_handler:reddit",
+                    "pre_rendered": {
+                        "content_md": "# Pre-rendered\n\n" + ("Body line. " * 80),
+                        "title": "Pre-rendered",
+                        "byline": "u/x",
+                        "headings": [Heading(level=1, text="Pre-rendered")],
+                    },
+                },
+            )
+
+    monkeypatch.setitem(REGISTRY, "site_handler", _PreRendered())
+    state = _make_state()
+    result = await fetch("https://www.reddit.com/r/x/comments/abc/", state=state)
+
+    assert result.status == FetchStatus.ok
+    assert result.fit_md == result.content_md
+
+
+@pytest.mark.asyncio
+async def test_bus_publishes_chronological_events(monkeypatch: pytest.MonkeyPatch) -> None:
+    from a2web.events import EventBus, TierEnded, TierStarted
+
+    body = (_FIX / "blog.html").read_bytes()
+    monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
+
+    bus = EventBus()
+    recv = bus.subscribe()
+
+    state = _make_state()
+
+    received: list[object] = []
+
+    async def consume() -> None:
+        async for ev in recv:
+            received.append(ev)
+
+    import anyio
+
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(consume)
+        await fetch("https://example.org/post", state=state, bus=bus)
+        await bus.aclose()
+
+    # First event is a TierStarted; t_ms is monotonically non-decreasing.
+    assert isinstance(received[0], TierStarted)
+    t_values = [getattr(e, "t_ms", 0) for e in received]
+    assert t_values == sorted(t_values)
+    # End events must follow Start events for tier "raw"
+    tier_started = [i for i, e in enumerate(received) if isinstance(e, TierStarted)]
+    tier_ended = [i for i, e in enumerate(received) if isinstance(e, TierEnded)]
+    assert tier_started and tier_ended
+    assert tier_started[0] < tier_ended[0]
+
+
+@pytest.mark.asyncio
+async def test_bus_none_preserves_pr5_behavior(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No bus → no events published, no orchestrator-side overhead."""
+    body = (_FIX / "blog.html").read_bytes()
+    monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
+
+    state = _make_state()
+    result = await fetch("https://example.org/post", state=state)
+    assert result.status == FetchStatus.ok
