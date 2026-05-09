@@ -97,6 +97,7 @@ class AppSettings(BaseSettings):
     log_enabled: bool = True
 
     jina_key: str = ""
+    jina_deny_hosts: list[str] = Field(default_factory=list)
 
     @classmethod
     def settings_customise_sources(

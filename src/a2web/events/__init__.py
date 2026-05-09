@@ -9,7 +9,7 @@ PR7 will add an OTel sink subscribed to the same bus.
 from __future__ import annotations
 
 from .bus import EventBus
-from .sinks import mcp_progress_sink
+from .sinks import mcp_progress_sink, otel_sink
 from .types import Event, StageEnded, StageStarted, TierEnded, TierStarted
 
 __all__ = [
@@ -20,4 +20,5 @@ __all__ = [
     "TierEnded",
     "TierStarted",
     "mcp_progress_sink",
+    "otel_sink",
 ]

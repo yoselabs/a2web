@@ -1,12 +1,13 @@
 """Event sinks — consumers of the diagnostic event bus.
 
-PR6 ships the MCP progress sink. PR7 will add an OTel sink subscribed to
-the same bus.
+PR6 ships the MCP progress sink. PR7a adds an OTel sink subscribed to
+the same bus; the sink lazy-imports `opentelemetry.trace` and degrades
+to a stream-drain when the SDK is absent.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from ..utils.time import fmt_dur
 from .types import Event, StageEnded, TierEnded
@@ -58,6 +59,38 @@ def _payload(event: Event) -> dict[str, object]:
         out["verdict"] = event.verdict.value
         out["dur_ms"] = event.dur_ms
     return out
+
+
+def _load_tracer() -> Any | None:
+    """Lazy-import OTel tracer; return None when SDK absent."""
+    try:
+        from opentelemetry import trace  # type: ignore[import-not-found]
+    except ImportError:
+        return None
+    return trace.get_tracer("a2web")
+
+
+async def otel_sink(recv: MemoryObjectReceiveStream[Event]) -> None:
+    """Forward end-of-phase events to OTel as one span per phase.
+
+    Drains the stream regardless of OTel availability so the producer
+    never blocks. When OTel is missing, this is effectively a no-op
+    consumer.
+    """
+    tracer = _load_tracer()
+    async for event in recv:
+        if tracer is None:
+            continue
+        if not isinstance(event, TierEnded | StageEnded):
+            continue
+        span = tracer.start_span(f"a2web.{event.step}")
+        try:
+            span.set_attribute("a2web.step", event.step)
+            span.set_attribute("a2web.verdict", event.verdict.value)
+            span.set_attribute("a2web.dur_ms", event.dur_ms)
+            span.set_attribute("a2web.t_ms", event.t_ms)
+        finally:
+            span.end()
 
 
 async def mcp_progress_sink(ctx: _ProgressCtx, recv: MemoryObjectReceiveStream[Event]) -> None:

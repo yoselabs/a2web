@@ -12,7 +12,7 @@ from __future__ import annotations
 import a2kit
 import anyio
 
-from .events import EventBus, mcp_progress_sink
+from .events import EventBus, mcp_progress_sink, otel_sink
 from .fetcher import fetch as orchestrate
 from .models import FetchResponse
 from .state import AppState
@@ -25,10 +25,12 @@ class WebRouter(a2kit.Router):
     async def fetch(self, *, url: str, state: AppState, ctx: a2kit.ToolContext) -> FetchResponse:
         """Fetch content from a URL."""
         bus = EventBus()
-        recv = bus.subscribe()
+        mcp_recv = bus.subscribe()
+        otel_recv = bus.subscribe()
 
         async with anyio.create_task_group() as tg:
-            tg.start_soon(mcp_progress_sink, ctx, recv)
+            tg.start_soon(mcp_progress_sink, ctx, mcp_recv)
+            tg.start_soon(otel_sink, otel_recv)
             try:
                 response = await orchestrate(url, state=state, bus=bus)
             finally:

@@ -37,7 +37,7 @@ from .models import (
     TokenCounts,
     Verdict,
 )
-from .state import AppState, open_sqlite
+from .state import AppState, ensure_sqlite
 from .tiers import REGISTRY, TIER_ORDER
 from .tiers.raw import RawTier
 from .utils.time import fmt_dur
@@ -77,23 +77,19 @@ async def fetch(url: str, *, state: AppState, bus: EventBus | None = None) -> Fe
     bypass_cache = is_live_only(url, state.settings)
     cache_state = CacheState.bypass if bypass_cache else CacheState.miss
 
-    sqlite_conn = None if bypass_cache else await open_sqlite(state)
-    try:
-        response = await _run_pipeline(
-            url=url,
-            state=state,
-            sqlite_conn=sqlite_conn,
-            profile_hash=profile_hash,
-            bypass_cache=bypass_cache,
-            cache_state=cache_state,
-            start_perf=start_perf,
-            started_at=started_at,
-            diagnostics=diagnostics,
-            bus=bus,
-        )
-    finally:
-        if sqlite_conn is not None:
-            await sqlite_conn.close()
+    sqlite_conn = None if bypass_cache else await ensure_sqlite(state)
+    response = await _run_pipeline(
+        url=url,
+        state=state,
+        sqlite_conn=sqlite_conn,
+        profile_hash=profile_hash,
+        bypass_cache=bypass_cache,
+        cache_state=cache_state,
+        start_perf=start_perf,
+        started_at=started_at,
+        diagnostics=diagnostics,
+        bus=bus,
+    )
 
     if state.log_writer is not None:
         try:
@@ -159,8 +155,8 @@ async def _run_pipeline(
 
         tier_dur_ms = int((time.perf_counter() - start_perf) * 1000) - tier_start_ms
 
-        # site_handler "no match" — silent skip, no diagnostic row
-        if tier_result.tier_extras.get("no_match"):
+        # site_handler "no match" / jina deny-list "skipped" — silent skip, no diagnostic row
+        if tier_result.tier_extras.get("no_match") or tier_result.tier_extras.get("skipped"):
             continue
 
         await _publish(
