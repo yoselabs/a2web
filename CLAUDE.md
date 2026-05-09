@@ -13,7 +13,7 @@ a2web owns the web-fetching domain:
 - `src/a2web/settings.py` — `AppSettings(BaseSettings)` loaded from env (`A2WEB_*`) + optional YAML at `$A2WEB_CONFIG` or `~/.a2web/config.yaml`. Holds proxy pool, route rules, default UA, stealth toggle, diagnostics default, cache TTLs, `jina_key` (env-only secret). No paid-tier keys in v0.1.
 - `src/a2web/server.py` — `a2kit.App` composition; `main()`. No connections CLI.
 - `src/a2web/routers.py` — `WebRouter` (single tool: `fetch(url)`). CLI surface: `a2web web fetch --url=...`.
-- `src/a2web/state.py` — `AppState` dataclass: browser pool, proxy pool, sqlite cache, breaker registry. Provided via `app.provide(AppState)`. (PR2)
+- `src/a2web/state.py` — `AppState` `@dataclass(slots=True)`: settings + typed `Optional` placeholders for sqlite, log_writer, proxy_pool, breakers, browser_pool. Per-App singleton via `register_state(app, *, settings=None)` closure (NOT process-wide `lru_cache` — would break the two-App canary). Tools resolve via `state: AppState` kwarg.
 - `src/a2web/models.py` — `FetchResponse`, `Diagnostic`, `Verdict` (closed enum), `Heading`, `Link`, `OperatorHint`, `TokenCounts`. All at module scope (a2kit antipattern #2). pydantic at boundaries; `dataclass(slots=True)` internally for the pipeline.
 - `src/a2web/fetcher.py` — orchestrator (`select_next` policy + lifecycle loop, ≤400 lines)
 - `src/a2web/tiers/` — Strategy + Registry: `raw.py` (curl_cffi), `jina.py`, `archive.py` (CDX + archive.ph hedged), `browser.py` (Camoufox lazy), `paid.py` (Firecrawl env-gated)

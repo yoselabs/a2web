@@ -13,17 +13,19 @@ from datetime import UTC, datetime
 import a2kit
 
 from .models import CacheState, Confidence, FetchResponse, FetchStatus
+from .state import AppState
 
 
 class WebRouter(a2kit.Router):
     """Routes web-fetch tools. CLI surface: `a2web web <tool>`."""
 
     @a2kit.read()
-    async def fetch(self, *, url: str) -> FetchResponse:
+    async def fetch(self, *, url: str, state: AppState) -> FetchResponse:
         """Fetch content from a URL.
 
-        PR1 stub. Returns a placeholder envelope without any I/O so the
-        public shape is wire-visible end-to-end.
+        PR2 stub. Reads `state.settings.diagnostics_default` to confirm the
+        DI wire is alive but otherwise returns a placeholder envelope. Real
+        fetching arrives in PR3.
         """
         start = time.perf_counter()
         started_at = datetime.now(UTC)
@@ -36,6 +38,9 @@ class WebRouter(a2kit.Router):
             started_at=started_at,
             total_ms=elapsed_ms,
             cache=CacheState.miss,
-            narrative="PR1 stub — no fetching implemented yet.",
+            narrative=(
+                f"PR2 stub — no fetching implemented yet. "
+                f"diagnostics_default={state.settings.diagnostics_default}"
+            ),
             content_md="",
         )

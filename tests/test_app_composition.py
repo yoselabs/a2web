@@ -7,6 +7,8 @@ import pytest
 from a2web.models import CacheState, Confidence, FetchResponse, FetchStatus
 from a2web.routers import WebRouter
 from a2web.server import app, main
+from a2web.settings import AppSettings
+from a2web.state import AppState
 
 
 def test_web_router_registers_one_tool() -> None:
@@ -26,7 +28,8 @@ def test_app_has_no_connections_subcommand() -> None:
 async def test_fetch_stub_returns_typed_envelope() -> None:
     """Stub returns a populated `FetchResponse` with `tier='stub'`."""
     router = WebRouter()
-    result = await router.fetch(url="https://example.com")
+    state = AppState(settings=AppSettings())
+    result = await router.fetch(url="https://example.com", state=state)
 
     assert isinstance(result, FetchResponse)
     assert result.url == "https://example.com"
@@ -35,6 +38,20 @@ async def test_fetch_stub_returns_typed_envelope() -> None:
     assert result.confidence == Confidence.low
     assert result.cache == CacheState.miss
     assert result.started_at is not None
+
+
+@pytest.mark.asyncio
+async def test_fetch_narrative_includes_diagnostics_default() -> None:
+    """Narrative reads `state.settings.diagnostics_default` to confirm DI."""
+    router = WebRouter()
+    state = AppState(settings=AppSettings())  # default: "off"
+    result = await router.fetch(url="https://example.com", state=state)
+    assert "diagnostics_default=off" in result.narrative
+
+
+def test_server_app_has_appstate_provider() -> None:
+    """Server composition registers AppState via `register_state`."""
+    assert app.has_provider(AppState) is True
 
 
 def test_main_entrypoint_exists_and_callable() -> None:
