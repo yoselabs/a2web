@@ -5,34 +5,31 @@ TBD - created by archiving change pr1-app-composition. Update Purpose after arch
 ## Requirements
 ### Requirement: Public fetch tool envelope
 
-The system SHALL expose a single `fetch` tool whose return type is a module-scope pydantic model named `FetchResponse`. The tool SHALL NOT return `str`, `dict`, or any nested-class type. The envelope SHALL include all fields specified in `v0.1-response-format.md` §2:
+The system SHALL expose a single `fetch` tool whose return type is a module-scope pydantic model named `FetchResponse`. The tool SHALL NOT return `str`, `dict`, or any nested-class type. The envelope SHALL include all fields specified in `v0.1-response-format.md` §2.
 
-- **Top scalars**: `url: str`, `status: FetchStatus`, `tier: str`, `confidence: Confidence`, `title: str | None`, `byline: str | None`, `published: date | None`, `started_at: datetime`, `total_ms: int`, `tokens: TokenCounts | None`, `cache: CacheState`.
-- **Sections**: `narrative: str`, `diagnostics: list[Diagnostic]`, `meta: dict[str, str]`, `links: list[Link]`, `headings: list[Heading]`, `content_md: str`, `fit_md: str | None`, `operator_hints: list[OperatorHint]`.
+The tool function signature SHALL declare `state: AppState` and `ctx: a2kit.ToolContext` as DI kwargs. Neither SHALL appear in the MCP wire schema. The tool SHALL build an `EventBus` per call, attach the MCP progress sink, invoke the orchestrator with the bus, and return the populated `FetchResponse`. Successful fetches SHALL populate `fit_md` and `tokens`.
 
-The tool function signature SHALL declare `state: AppState` as a DI kwarg. The `state` kwarg SHALL NOT appear in the MCP wire schema. The tool SHALL invoke the orchestrator at `a2web.fetcher.fetch(url, state=state)` and return its result.
+After PR4, every successful or failed fetch SHALL produce exactly one `LogRecord` entry on disk via `state.log_writer.write_record(...)`. Log write failures append `OperatorHint(code="log_write_failed", ...)`.
 
-After PR4, every successful or failed fetch SHALL produce exactly one `LogRecord` entry on disk via `state.log_writer.write_record(...)` — unless `state.settings.log_enabled is False`, in which case the writer is a no-op. A log write failure SHALL NOT cause the fetch to fail; it SHALL append an `OperatorHint(code="log_write_failed", ...)` to the response and continue.
+#### Scenario: state and ctx kwargs are hidden from the wire schema
 
-#### Scenario: Successful fetch produces one log record
+- **WHEN** an MCP client requests the `fetch` tool's input schema
+- **THEN** the schema's required/optional parameters list `url` only — neither `state` nor `ctx` appears
 
-- **WHEN** `fetch` is invoked against a mock tier returning a usable body and `log_enabled=True`
-- **THEN** the configured log file gains exactly one new line, parseable as JSON, with `status="ok"`, `tier`, `verdict="ok"`, `total_ms`, and the fetched `url`
+#### Scenario: Successful fetch populates fit_md and tokens
 
-#### Scenario: Failed fetch also produces a log record
+- **WHEN** a successful fetch returns a `FetchResponse` against the blog fixture
+- **THEN** `response.fit_md is not None`, `response.tokens.full == len(response.content_md)`, `response.tokens.fit == len(response.fit_md)`
 
-- **WHEN** `fetch` is invoked against a mock tier returning a block-page body
-- **THEN** the configured log file gains exactly one new line with `status="failed"` and `verdict="block_page_detected"`
+#### Scenario: Failed fetch leaves fit_md None
 
-#### Scenario: Disabled log writer produces no file output
+- **WHEN** a fetch fails the gate
+- **THEN** `response.fit_md is None` and `response.tokens is None`
 
-- **WHEN** `fetch` is invoked with `state.settings.log_enabled=False`
-- **THEN** no files are created under the log directory
+#### Scenario: MCP progress notifications fire per phase
 
-#### Scenario: Log write failure surfaces as operator hint
-
-- **WHEN** the writer raises during a fetch (e.g. unwritable directory)
-- **THEN** the `FetchResponse.operator_hints` includes one entry with `code == "log_write_failed"` and the response otherwise reflects the underlying fetch outcome (not the log failure)
+- **WHEN** the `fetch` tool is invoked through the App pipeline with a mock `ToolContext`
+- **THEN** the context records at least one `ctx.event` call per tier/stage boundary and `ctx.report_progress` calls only on End events
 
 ### Requirement: Closed-enum diagnostic verdicts
 
