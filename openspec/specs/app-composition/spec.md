@@ -10,17 +10,22 @@ The system SHALL expose a single `fetch` tool whose return type is a module-scop
 - **Top scalars**: `url: str`, `status: FetchStatus`, `tier: str`, `confidence: Confidence`, `title: str | None`, `byline: str | None`, `published: date | None`, `started_at: datetime`, `total_ms: int`, `tokens: TokenCounts | None`, `cache: CacheState`.
 - **Sections**: `narrative: str`, `diagnostics: list[Diagnostic]`, `meta: dict[str, str]`, `links: list[Link]`, `headings: list[Heading]`, `content_md: str`, `fit_md: str | None`, `operator_hints: list[OperatorHint]`.
 
-The tool function signature SHALL declare `state: AppState` as a DI kwarg. The `state` kwarg SHALL NOT appear in the MCP wire schema (it is resolved via the a2kit container, not supplied by the caller).
+The tool function signature SHALL declare `state: AppState` as a DI kwarg. The `state` kwarg SHALL NOT appear in the MCP wire schema. The tool SHALL invoke the orchestrator at `a2web.fetcher.fetch(url, state=state)` and return its result. The placeholder narrative ("PR2 stub …") SHALL be removed; the narrative SHALL describe what the orchestrator did (which tier produced content, cache state, total duration formatted via `fmt_dur`).
 
-#### Scenario: Tool returns a typed envelope
+#### Scenario: Real content_md on a generic blog URL
 
-- **WHEN** the `fetch` tool is invoked with any URL in PR2
-- **THEN** the return value is an instance of `FetchResponse` with all required fields populated (placeholder values acceptable in PR2)
+- **WHEN** the `fetch` tool is invoked with the canned blog-post HTML fixture (or a network-marked test URL)
+- **THEN** the returned `FetchResponse.content_md` is non-empty markdown, `tier == "raw"`, `status == FetchStatus.ok`, `cache == "miss"`, and `total_ms > 0`
 
-#### Scenario: All return types at module scope
+#### Scenario: Cache hit on second call
 
-- **WHEN** a static analysis pass walks `src/a2web/models.py`
-- **THEN** `FetchResponse`, `Diagnostic`, `Heading`, `Link`, `OperatorHint`, `TokenCounts`, `Verdict`, `FetchStatus`, `Confidence`, `CacheState` are defined at module scope and importable as `from a2web.models import ...`
+- **WHEN** the same URL is fetched twice in succession (with the cache enabled and the URL not in `live_only_hosts`)
+- **THEN** the second response has `cache == "hit"` and `total_ms < 50` (no network)
+
+#### Scenario: Failed fetch on block page
+
+- **WHEN** the fetch produces a body matching one of the block-page regexes
+- **THEN** `status == FetchStatus.failed`, the diagnostics list contains a row with `verdict == Verdict.block_page_detected`, and no cache row exists for the URL
 
 #### Scenario: state kwarg is hidden from the wire schema
 

@@ -5,41 +5,36 @@ TBD - created by archiving change pr2-appstate-lifespan. Update Purpose after ar
 ## Requirements
 ### Requirement: AppState is a dataclass holding shared resources
 
-The system SHALL define `AppState` in `src/a2web/state.py` as `@dataclass(slots=True)`. The dataclass SHALL hold a non-optional `settings: AppSettings` field plus `Optional`-typed placeholder fields for `sqlite`, `log_writer`, `proxy_pool`, `breakers`, `browser_pool`. Placeholder fields default to `None`. Pydantic SHALL NOT be used for `AppState`.
+The system SHALL define `AppState` in `src/a2web/state.py` as `@dataclass(slots=True)`. The dataclass SHALL hold a non-optional `settings: AppSettings` field plus typed placeholder fields for `sqlite`, `log_writer`, `proxy_pool`, `breakers`, `browser_pool`. In PR3, `sqlite` SHALL hold a live `aiosqlite.Connection` (not `None`) once `register_state` has run; `breakers` SHALL hold a populated registry of per-host purgatory circuit breakers. The remaining fields (`log_writer`, `proxy_pool`, `browser_pool`) SHALL still default to `None`.
 
-#### Scenario: AppState is module-scope and slots-enabled
+#### Scenario: AppState carries a live sqlite connection after registration
 
-- **WHEN** `from a2web.state import AppState` is executed
-- **THEN** `AppState` is importable, `AppState.__slots__` is non-empty, and `dataclasses.is_dataclass(AppState)` is `True`
+- **WHEN** `register_state(app)` returns
+- **THEN** `state.sqlite` is a non-None `aiosqlite.Connection` whose underlying database file is at `~/.a2web/cache.sqlite` (or `$A2WEB_CACHE_DIR/cache.sqlite` when set)
 
-#### Scenario: AppState carries settings
+#### Scenario: AppState carries a breaker registry
 
-- **WHEN** `AppState(settings=AppSettings())` is constructed
-- **THEN** `state.settings` is the provided `AppSettings` instance and all placeholder resource fields are `None`
+- **WHEN** `register_state(app)` returns
+- **THEN** `state.breakers` is a non-None object exposing `get(host: str) -> AsyncCircuitBreaker`
 
-#### Scenario: Unknown attributes are rejected
+#### Scenario: Other resource fields remain None in PR3
 
-- **WHEN** code attempts `state.bogus = 1` on an `AppState` instance
-- **THEN** Python raises `AttributeError` (slots enforcement)
+- **WHEN** `register_state(app)` returns
+- **THEN** `state.log_writer is None`, `state.proxy_pool is None`, `state.browser_pool is None` (filled in PR4 / PR7)
 
 ### Requirement: Per-App singleton registration
 
-The system SHALL provide a `register_state(app, *, settings=None)` helper in `a2web.state` that registers a typed provider with the given `App` such that every dispatch on that App returns the same `AppState` instance.
+The system SHALL provide a `register_state(app, *, settings=None)` helper in `a2web.state` that registers a typed provider with the given `App` such that every dispatch on that App returns the same `AppState` instance. The helper SHALL open the sqlite connection (creating the schema if absent), build the breaker registry, and register an `atexit` hook that closes the sqlite connection cleanly on process exit.
 
-#### Scenario: Single App, repeated dispatches see one state
+#### Scenario: atexit hook closes sqlite
 
-- **WHEN** `register_state(app)` is called once and the `fetch` tool is dispatched twice
-- **THEN** both dispatches receive the same `AppState` object (identity equality)
+- **WHEN** the Python process terminates normally after `register_state` was called
+- **THEN** the sqlite connection is closed (no open file descriptor; the WAL is checkpointed)
 
-#### Scenario: Two Apps each get their own state (canary)
+#### Scenario: Two Apps each get their own state and sqlite connection (canary)
 
 - **WHEN** two independent `App` instances are constructed and `register_state` is called on each
-- **THEN** dispatching `fetch` through each App yields two `AppState` instances that are not identity-equal and whose `settings` attributes are independent objects
-
-#### Scenario: Custom settings injection
-
-- **WHEN** `register_state(app, settings=custom_settings)` is called
-- **THEN** the resolved `AppState.settings` is `custom_settings` (identity equality), bypassing the cached `get_settings()`
+- **THEN** the resolved `AppState` instances are not identity-equal AND `state1.sqlite is not state2.sqlite`
 
 ### Requirement: fetch tool resolves AppState via DI
 
