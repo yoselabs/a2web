@@ -14,6 +14,8 @@ The system SHALL expose `TIER_ORDER: tuple[str, ...]` and `REGISTRY: dict[str, T
 - **WHEN** the orchestrator runs against a URL no handler matches
 - **THEN** the resulting `FetchResponse.diagnostics` contains no entry with `step == "site_handler"`; the first diagnostic row is from `raw` (or whichever next tier ran)
 
+## ADDED Requirements
+
 ### Requirement: Pre-rendered handler results bypass extraction
 
 The orchestrator SHALL check `tier_result.tier_extras` for a `"pre_rendered"` dict. When present, the orchestrator SHALL use its `content_md`, `title`, `byline`, and `headings` directly and SHALL NOT invoke `extract_markdown`, `find_published`/`find_updated`, or `parse_metadata`. The quality gate SHALL still run on the rendered markdown; the cache write proceeds with the original `body` (typically JSON for handlers).
