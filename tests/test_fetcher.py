@@ -1,0 +1,146 @@
+"""Fetcher integration tests — using a mock Tier feeding canned HTML."""
+
+from __future__ import annotations
+
+import sqlite3
+from pathlib import Path
+
+import pytest
+from purgatory import AsyncCircuitBreakerFactory
+
+from a2web.cache.sqlite_cache import cache_dir
+from a2web.fetcher import fetch
+from a2web.models import CacheState, FetchStatus, Verdict
+from a2web.settings import AppSettings
+from a2web.state import AppState
+from a2web.tiers import REGISTRY, TIER_ORDER, TierResult
+
+_FIX = Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture(autouse=True)
+def _isolate_cache_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("A2WEB_CACHE_DIR", str(tmp_path))
+
+
+class _MockTier:
+    """In-memory tier that returns a fixed body and headers."""
+
+    name: str = "mock"
+
+    def __init__(self, body: bytes, *, content_type: str = "text/html") -> None:
+        self._body = body
+        self._content_type = content_type
+
+    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+        return TierResult(
+            body=self._body,
+            content_type=self._content_type,
+            status_code=200,
+            final_url=url,
+            headers={"etag": '"v1"'},
+        )
+
+
+def _make_state() -> AppState:
+    return AppState(
+        settings=AppSettings(),
+        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
+    )
+
+
+def _swap_tier(monkeypatch: pytest.MonkeyPatch, tier: object) -> None:
+    """Replace the raw tier in the registry for a single test."""
+    monkeypatch.setitem(REGISTRY, "raw", tier)
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+
+
+@pytest.mark.asyncio
+async def test_blog_fixture_yields_real_envelope(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = (_FIX / "blog.html").read_bytes()
+    _swap_tier(monkeypatch, _MockTier(body))
+
+    state = _make_state()
+    result = await fetch("https://example.org/post", state=state)
+
+    assert result.status == FetchStatus.ok
+    assert result.tier == "raw"
+    assert result.cache == CacheState.miss
+    assert result.title is not None
+    assert "adaptive" in result.title.lower()
+    assert len(result.content_md) > 500
+    assert result.meta.get("og.type") == "article"
+    assert any(h.text.startswith("Why one fetch") for h in result.headings)
+
+
+@pytest.mark.asyncio
+async def test_block_page_fails_and_does_not_cache(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    body = (_FIX / "cloudflare_block.html").read_bytes()
+    _swap_tier(monkeypatch, _MockTier(body))
+
+    state = _make_state()
+    result = await fetch("https://blocked.example/page", state=state)
+
+    assert result.status == FetchStatus.failed
+    verdicts = [d.verdict for d in result.diagnostics]
+    assert Verdict.block_page_detected in verdicts
+
+    # No row landed in the cache
+    db_path = cache_dir() / "cache.sqlite"
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute("SELECT COUNT(*) FROM cache").fetchone()
+    assert row[0] == 0
+
+
+@pytest.mark.asyncio
+async def test_cache_hit_on_second_call(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = (_FIX / "blog.html").read_bytes()
+
+    # First call: real "fetch" via mock; should write cache
+    first_tier = _MockTier(body)
+    _swap_tier(monkeypatch, first_tier)
+    state = _make_state()
+    first = await fetch("https://example.org/post", state=state)
+    assert first.cache == CacheState.miss
+    assert first.status == FetchStatus.ok
+
+    # Second call: tier returns 304 to confirm conditional GET → cached body
+    class _NotModifiedTier:
+        name = "raw"
+
+        async def fetch(self, url: str, *, state: AppState, conditional_extras=None):
+            return TierResult(
+                body=b"",
+                content_type="text/html",
+                status_code=304,
+                final_url=url,
+                headers={"etag": '"v1"'},
+                tier_extras={"conditional_hit": True},
+            )
+
+    _swap_tier(monkeypatch, _NotModifiedTier())
+    second = await fetch("https://example.org/post", state=state)
+    assert second.cache == CacheState.hit
+    assert second.status == FetchStatus.ok
+    assert second.title is not None
+    assert second.content_md == first.content_md
+
+
+@pytest.mark.asyncio
+async def test_live_only_host_bypass(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = (_FIX / "blog.html").read_bytes()
+    _swap_tier(monkeypatch, _MockTier(body))
+
+    settings = AppSettings(live_only_hosts=["live.example"])
+    state = AppState(
+        settings=settings,
+        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
+    )
+    result = await fetch("https://live.example/article", state=state)
+
+    assert result.cache == CacheState.bypass
+    db_path = cache_dir() / "cache.sqlite"
+    if db_path.exists():
+        with sqlite3.connect(db_path) as conn:
+            count = conn.execute("SELECT COUNT(*) FROM cache").fetchone()[0]
+        assert count == 0

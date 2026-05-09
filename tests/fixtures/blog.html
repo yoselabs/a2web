@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How adaptive web fetching saves agent tokens</title>
+<meta property="og:type" content="article">
+<meta property="og:title" content="How adaptive web fetching saves agent tokens">
+<meta property="og:image" content="https://example.org/cover.jpg">
+<meta property="og:url" content="https://example.org/post/adaptive-fetching">
+<meta property="article:published_time" content="2026-04-01T09:00:00Z">
+<meta property="article:author" content="Jane Doe">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@example">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Article","headline":"How adaptive web fetching saves agent tokens","author":{"@type":"Person","name":"Jane Doe"},"datePublished":"2026-04-01T09:00:00Z","articleSection":"Engineering"}
+</script>
+</head>
+<body>
+<article>
+<h1>How adaptive web fetching saves agent tokens</h1>
+<p class="byline">By Jane Doe — Apr 1, 2026</p>
+<h2>Why one fetch matters</h2>
+<p>When AI agents fetch URLs naively, they pay for every redirect, every block page, every JavaScript challenge that returns nothing useful. The agent's context window fills with garbage HTML or worse, with their own follow-up retries that double the token cost without recovering the missing content. Adaptive fetching means the calling agent makes one decision: <em>get me the best content available at this URL</em>, and lets the fetch service handle every routing question.</p>
+<h2>The cascade in three layers</h2>
+<p>The first layer is a per-domain handler — Reddit, HN, Wikipedia, GitHub each have their own canonical APIs that return cleaner data faster than scraping the rendered page. The second layer is a TLS-impersonating raw fetch with a real browser fingerprint; this carries roughly 80 percent of the long tail. The third layer is escalation: archive fallbacks for paywalled origins, headless browsers for genuine JavaScript challenges, and paid services for the small set of sites that defeat everything else.</p>
+<h2>Quality gates do the heavy lifting</h2>
+<p>The crucial machinery isn't the fetch itself — it's the post-fetch quality gate that decides whether the result is worth caching. Block pages, anti-bot interstitials, and "are you human" challenges all carry distinctive fingerprints. A regex set plus a length floor catches most of them; an Anubis script-src marker catches the rest. Anything that fails the gate gets surfaced as a structured diagnostic and never enters the cache to corrupt later reads.</p>
+<h2>Why the cache is profile-scoped</h2>
+<p>A single URL can return different content depending on the user-agent, the proxy, the geographic region, and a half-dozen other request-shape variables. Caching by URL alone gives wrong answers as soon as you switch profiles. Hashing the relevant settings into a profile key keeps the cache safe across stealth toggles, paid-tier escalations, and per-host route rules. The cost is a few bytes per row; the benefit is correctness.</p>
+<p>Read more about <a href="https://example.org/cascade-deep-dive">the cascade deep dive</a> or the <a href="https://example.org/quality-gate">quality gate internals</a>. The full repo lives at <a href="https://github.com/example/a2web">github.com/example/a2web</a>.</p>
+</article>
+</body>
+</html>
