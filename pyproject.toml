@@ -35,6 +35,7 @@ dependencies = [
     # config
     "pydantic-settings>=2.5,<3",
     "PyYAML>=6,<7",
+    "aiofiles>=25.1.0",
 ]
 
 [project.optional-dependencies]

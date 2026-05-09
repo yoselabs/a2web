@@ -10,6 +10,7 @@ from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.cache.sqlite_cache import cache_dir
 from a2web.fetcher import fetch
+from a2web.log.writer import LogWriter
 from a2web.models import CacheState, FetchStatus, Verdict
 from a2web.settings import AppSettings
 from a2web.state import AppState
@@ -19,8 +20,9 @@ _FIX = Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture(autouse=True)
-def _isolate_cache_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def _isolate_dirs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("A2WEB_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("A2WEB_LOG_DIR", str(tmp_path / "logs"))
 
 
 class _MockTier:
@@ -42,10 +44,12 @@ class _MockTier:
         )
 
 
-def _make_state() -> AppState:
+def _make_state(*, settings: AppSettings | None = None) -> AppState:
+    resolved = settings or AppSettings()
     return AppState(
-        settings=AppSettings(),
+        settings=resolved,
         breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
+        log_writer=LogWriter(disabled=not resolved.log_enabled),
     )
 
 
@@ -132,10 +136,7 @@ async def test_live_only_host_bypass(monkeypatch: pytest.MonkeyPatch) -> None:
     _swap_tier(monkeypatch, _MockTier(body))
 
     settings = AppSettings(live_only_hosts=["live.example"])
-    state = AppState(
-        settings=settings,
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-    )
+    state = _make_state(settings=settings)
     result = await fetch("https://live.example/article", state=state)
 
     assert result.cache == CacheState.bypass
@@ -144,3 +145,80 @@ async def test_live_only_host_bypass(monkeypatch: pytest.MonkeyPatch) -> None:
         with sqlite3.connect(db_path) as conn:
             count = conn.execute("SELECT COUNT(*) FROM cache").fetchone()[0]
         assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_successful_fetch_appends_log_record(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    body = (_FIX / "blog.html").read_bytes()
+    _swap_tier(monkeypatch, _MockTier(body))
+
+    state = _make_state()
+    await fetch("https://example.org/post", state=state)
+    await state.log_writer.aclose()  # type: ignore[union-attr]
+
+    log_files = list((tmp_path / "logs").glob("fetches-*.ndjson"))
+    assert len(log_files) == 1
+    import json
+
+    lines = [line for line in log_files[0].read_text().splitlines() if line]
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["status"] == "ok"
+    assert record["tier"] == "raw"
+    assert record["url"] == "https://example.org/post"
+
+
+@pytest.mark.asyncio
+async def test_failed_fetch_also_logs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    body = (_FIX / "cloudflare_block.html").read_bytes()
+    _swap_tier(monkeypatch, _MockTier(body))
+
+    state = _make_state()
+    await fetch("https://blocked.example/page", state=state)
+    await state.log_writer.aclose()  # type: ignore[union-attr]
+
+    log_files = list((tmp_path / "logs").glob("fetches-*.ndjson"))
+    assert len(log_files) == 1
+    import json
+
+    record = json.loads(log_files[0].read_text().splitlines()[0])
+    assert record["status"] == "failed"
+    assert record["verdict"] == "block_page_detected"
+
+
+@pytest.mark.asyncio
+async def test_disabled_log_writer_creates_no_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    body = (_FIX / "blog.html").read_bytes()
+    _swap_tier(monkeypatch, _MockTier(body))
+
+    state = _make_state(settings=AppSettings(log_enabled=False))
+    await fetch("https://example.org/post", state=state)
+
+    log_root = tmp_path / "logs"
+    if log_root.exists():
+        assert list(log_root.glob("fetches-*.ndjson")) == []
+
+
+@pytest.mark.asyncio
+async def test_log_write_failure_appends_operator_hint(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    body = (_FIX / "blog.html").read_bytes()
+    _swap_tier(monkeypatch, _MockTier(body))
+
+    class _BrokenWriter:
+        async def write_record(self, _record: object) -> None:
+            raise OSError("disk on fire")
+
+    state = _make_state()
+    state.log_writer = _BrokenWriter()  # type: ignore[assignment]
+
+    response = await fetch("https://example.org/post", state=state)
+    codes = [hint.code for hint in response.operator_hints]
+    assert "log_write_failed" in codes

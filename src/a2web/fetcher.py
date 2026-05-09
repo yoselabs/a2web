@@ -12,6 +12,7 @@ import time
 from datetime import UTC, datetime
 
 import aiosqlite
+import structlog
 
 from .cache.sqlite_cache import (
     cache_get,
@@ -23,12 +24,14 @@ from .extract.htmldate_ext import find_published
 from .extract.metadata import parse_metadata
 from .extract.trafilatura_ext import extract_markdown
 from .gate.block_detector import evaluate
+from .log.record import from_response as record_from_response
 from .models import (
     CacheState,
     Confidence,
     Diagnostic,
     FetchResponse,
     FetchStatus,
+    OperatorHint,
     Verdict,
 )
 from .state import AppState, open_sqlite
@@ -53,11 +56,16 @@ def _confidence_for(verdict: Verdict, content_md: str) -> Confidence:
     return Confidence.medium
 
 
+_LOG = structlog.get_logger("a2web")
+
+
 async def fetch(url: str, *, state: AppState) -> FetchResponse:
     """Run the v0.1 cascade for one URL.
 
     PR3 ships only the raw tier; later PRs prepend/insert tiers in
     `TIER_ORDER` and the orchestrator picks them up automatically.
+    Each fetch emits one NDJSON record via `state.log_writer` (best
+    effort — write failures append an `operator_hint` and continue).
     """
     start_perf = time.perf_counter()
     started_at = datetime.now(UTC)
@@ -69,7 +77,7 @@ async def fetch(url: str, *, state: AppState) -> FetchResponse:
 
     sqlite_conn = None if bypass_cache else await open_sqlite(state)
     try:
-        return await _run_pipeline(
+        response = await _run_pipeline(
             url=url,
             state=state,
             sqlite_conn=sqlite_conn,
@@ -83,6 +91,17 @@ async def fetch(url: str, *, state: AppState) -> FetchResponse:
     finally:
         if sqlite_conn is not None:
             await sqlite_conn.close()
+
+    if state.log_writer is not None:
+        try:
+            await state.log_writer.write_record(record_from_response(response, input_url=url))
+        except Exception as exc:
+            response.operator_hints.append(
+                OperatorHint(code="log_write_failed", message=str(exc))
+            )
+            _LOG.warning("log_write_failed", error=str(exc), url=url)
+
+    return response
 
 
 async def _run_pipeline(

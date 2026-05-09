@@ -22,6 +22,7 @@ import aiosqlite
 from purgatory import AsyncCircuitBreakerFactory
 
 from .cache.sqlite_cache import open_sqlite_with_schema
+from .log.writer import LogWriter
 from .settings import AppSettings, get_settings
 
 
@@ -38,7 +39,7 @@ class AppState:
     settings: AppSettings
     sqlite: aiosqlite.Connection | None = None
     breakers: AsyncCircuitBreakerFactory | None = None
-    log_writer: Any | None = None
+    log_writer: LogWriter | None = None
     proxy_pool: Any | None = None
     browser_pool: Any | None = None
     extras: dict[str, Any] = field(default_factory=dict)
@@ -55,6 +56,7 @@ def register_state(app: a2kit.App, *, settings: AppSettings | None = None) -> a2
     state = AppState(
         settings=resolved,
         breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
+        log_writer=LogWriter(disabled=not resolved.log_enabled),
     )
     app.provide(AppState, lambda: state)
     return app

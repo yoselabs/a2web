@@ -99,6 +99,8 @@ class AppSettings(BaseSettings):
         default_factory=lambda: ["reddit.com", "news.ycombinator.com"]
     )
 
+    log_enabled: bool = True
+
     jina_key: str = ""
 
     @classmethod

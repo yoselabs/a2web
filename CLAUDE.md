@@ -24,7 +24,7 @@ a2web owns the web-fetching domain:
 - `src/a2web/proxy/` — `pool.py` (per-host/per-tier routing, health-check loop), `policy.py` (route table parser).
 - `src/a2web/browser/` — Camoufox pool (lazy, lifespan-managed, sticky-per-host).
 - `src/a2web/actions/` — `playbook.py` (autonomous-action table: paywall→archive, arxiv-pdf→html, etc.)
-- `src/a2web/log/` — NDJSON request log with rotation; `a2web logs tail/grep/stats/replay`.
+- `src/a2web/log/` — NDJSON request log with size-based rotation + gzip on rollover. One record per fetch. Lazy-open writer, best-effort writes (failures append `operator_hints[code=log_write_failed]`, never propagate). No bundled CLI: use `tail`, `grep`, `jq`. `a2web logs replay` lands in PR10.
 
 ## Dev Commands
 
