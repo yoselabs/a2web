@@ -78,5 +78,5 @@
 
 - [x] 10.1 Update `CLAUDE.md`: replace the `connection.py` description with `settings.py`, remove references to `connections_cli`, mention the YAML config path
 - [x] 10.2 Update `README.md` quick-start to show `~/.a2web/config.yaml` and env var examples (no `a2web connections` mentions)
-- [ ] 10.3 Single commit "PR1: a2kit App composition + stub fetch tool + YAML config" (workspace is not a git repo yet — `git init` first or skip)
+- [x] 10.3 Single commit "PR1: a2kit App composition + stub fetch tool + YAML config"
 - [ ] 10.4 Hand off to PR2 (AppState + lifespan)
