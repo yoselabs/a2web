@@ -1,0 +1,32 @@
+{
+  "id": 12345,
+  "title": "Show HN: a2web — adaptive web fetching for AI agents",
+  "author": "denis",
+  "url": "https://example.org/a2web",
+  "text": "<p>One <code>fetch(url)</code> call runs a tier cascade and returns the best content.</p><p>Curious for feedback.</p>",
+  "type": "story",
+  "children": [
+    {
+      "id": 12346,
+      "author": "alice",
+      "text": "<p>Top-level comment from alice.</p><p>Nice idea, but how does it handle <a href=\"https://reddit.com/x\">Reddit</a>?</p>",
+      "type": "comment",
+      "children": [
+        {
+          "id": 12347,
+          "author": "denis",
+          "text": "<p>The Reddit handler hits <code>.json?limit=500</code> and renders the full tree.</p>",
+          "type": "comment",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": 12348,
+      "author": "bob",
+      "text": "<p>What about anti-bot pages?</p>",
+      "type": "comment",
+      "children": []
+    }
+  ]
+}

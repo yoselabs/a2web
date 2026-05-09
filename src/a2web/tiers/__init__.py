@@ -41,9 +41,13 @@ class Tier(Protocol):
 
 
 from .raw import RawTier  # noqa: E402 — circular import avoidance
+from .site_handler import SiteHandlerTier  # noqa: E402
 
-TIER_ORDER: tuple[str, ...] = ("raw",)
-REGISTRY: dict[str, Tier] = {"raw": RawTier()}
+TIER_ORDER: tuple[str, ...] = ("site_handler", "raw")
+REGISTRY: dict[str, Tier] = {
+    "site_handler": SiteHandlerTier(),
+    "raw": RawTier(),
+}
 
 
-__all__ = ["REGISTRY", "TIER_ORDER", "Tier", "TierResult"]
+__all__ = ["REGISTRY", "TIER_ORDER", "RawTier", "SiteHandlerTier", "Tier", "TierResult"]

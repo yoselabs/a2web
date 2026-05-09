@@ -80,10 +80,7 @@ class AppSettings(BaseSettings):
         case_sensitive=False,
     )
 
-    default_ua: str = (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) "
-        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
-    )
+    default_ua: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
     stealth: bool = False
 
     proxies: dict[str, ProxyEntry] = Field(default_factory=dict)
@@ -95,9 +92,7 @@ class AppSettings(BaseSettings):
     log_retention_days: int = 30
 
     diagnostics_default: Literal["off", "brief", "full"] = "off"
-    live_only_hosts: list[str] = Field(
-        default_factory=lambda: ["reddit.com", "news.ycombinator.com"]
-    )
+    live_only_hosts: list[str] = Field(default_factory=lambda: ["reddit.com", "news.ycombinator.com"])
 
     log_enabled: bool = True
 

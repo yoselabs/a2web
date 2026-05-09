@@ -77,9 +77,7 @@ def compute_profile_hash(settings: AppSettings) -> str:
     return hashlib.sha256(payload).hexdigest()[:16]
 
 
-async def cache_get(
-    conn: aiosqlite.Connection, url: str, profile_hash: str
-) -> CacheRow | None:
+async def cache_get(conn: aiosqlite.Connection, url: str, profile_hash: str) -> CacheRow | None:
     """Return a non-expired row for (url, profile_hash) or None."""
     async with conn.execute(
         "SELECT url, profile_hash, etag, last_modified, fetched_at, expires_at, "

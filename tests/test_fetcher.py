@@ -68,7 +68,7 @@ async def test_blog_fixture_yields_real_envelope(monkeypatch: pytest.MonkeyPatch
     result = await fetch("https://example.org/post", state=state)
 
     assert result.status == FetchStatus.ok
-    assert result.tier == "raw"
+    assert result.tier == "mock"
     assert result.cache == CacheState.miss
     assert result.title is not None
     assert "adaptive" in result.title.lower()
@@ -148,9 +148,7 @@ async def test_live_only_host_bypass(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_successful_fetch_appends_log_record(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_successful_fetch_appends_log_record(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     body = (_FIX / "blog.html").read_bytes()
     _swap_tier(monkeypatch, _MockTier(body))
 
@@ -166,14 +164,12 @@ async def test_successful_fetch_appends_log_record(
     assert len(lines) == 1
     record = json.loads(lines[0])
     assert record["status"] == "ok"
-    assert record["tier"] == "raw"
+    assert record["tier"] == "mock"
     assert record["url"] == "https://example.org/post"
 
 
 @pytest.mark.asyncio
-async def test_failed_fetch_also_logs(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_failed_fetch_also_logs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     body = (_FIX / "cloudflare_block.html").read_bytes()
     _swap_tier(monkeypatch, _MockTier(body))
 
@@ -191,9 +187,7 @@ async def test_failed_fetch_also_logs(
 
 
 @pytest.mark.asyncio
-async def test_disabled_log_writer_creates_no_file(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_disabled_log_writer_creates_no_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     body = (_FIX / "blog.html").read_bytes()
     _swap_tier(monkeypatch, _MockTier(body))
 
@@ -206,9 +200,7 @@ async def test_disabled_log_writer_creates_no_file(
 
 
 @pytest.mark.asyncio
-async def test_log_write_failure_appends_operator_hint(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_log_write_failure_appends_operator_hint(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     body = (_FIX / "blog.html").read_bytes()
     _swap_tier(monkeypatch, _MockTier(body))
 
@@ -222,3 +214,57 @@ async def test_log_write_failure_appends_operator_hint(
     response = await fetch("https://example.org/post", state=state)
     codes = [hint.code for hint in response.operator_hints]
     assert "log_write_failed" in codes
+
+
+@pytest.mark.asyncio
+async def test_pre_rendered_handler_skips_extraction(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pre-rendered tier_extras bypasses trafilatura/htmldate/metadata."""
+    from a2web.models import Heading
+
+    class _PreRenderedHandler:
+        name = "site_handler:reddit"
+
+        async def fetch(self, url: str, *, state: AppState) -> TierResult:
+            return TierResult(
+                body=b'{"foo":"bar"}',
+                content_type="application/json",
+                status_code=200,
+                final_url=url,
+                tier_extras={
+                    "handler_name": "site_handler:reddit",
+                    "pre_rendered": {
+                        "content_md": "# Pre-rendered\n\n" + ("Body line. " * 100),
+                        "title": "Pre-rendered",
+                        "byline": "u/somebody",
+                        "headings": [Heading(level=1, text="Pre-rendered")],
+                    },
+                },
+            )
+
+    monkeypatch.setitem(REGISTRY, "site_handler", _PreRenderedHandler())
+    state = _make_state()
+    result = await fetch("https://www.reddit.com/r/x/comments/abc/", state=state)
+
+    assert result.status == FetchStatus.ok
+    assert result.tier == "site_handler:reddit"
+    assert result.title == "Pre-rendered"
+    assert result.content_md.startswith("# Pre-rendered")
+    # No extract diagnostic row when handler pre-renders
+    steps = [d.step for d in result.diagnostics]
+    assert "extract" not in steps
+
+
+@pytest.mark.asyncio
+async def test_no_match_handler_emits_no_diagnostic(monkeypatch: pytest.MonkeyPatch) -> None:
+    """SiteHandlerTier returning no_match must not produce a diagnostic row."""
+    body = (_FIX / "blog.html").read_bytes()
+    # Keep the real SiteHandlerTier; example.org won't match any handler.
+    # Replace `raw` with a mock so we have a deterministic body.
+    monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
+
+    state = _make_state()
+    result = await fetch("https://example.org/post", state=state)
+
+    steps = [d.step for d in result.diagnostics]
+    assert "site_handler" not in steps
+    assert "raw" in steps[0]  # first row is the raw tier

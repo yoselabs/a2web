@@ -33,9 +33,7 @@ async def test_find_published_present() -> None:
 
 @pytest.mark.asyncio
 async def test_find_published_absent() -> None:
-    result = await find_published(
-        "<html><body><p>no date</p></body></html>", "https://x/y"
-    )
+    result = await find_published("<html><body><p>no date</p></body></html>", "https://x/y")
     assert result is None
 
 

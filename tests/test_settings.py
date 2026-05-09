@@ -65,9 +65,7 @@ def test_jina_key_env_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     assert s2.jina_key == "from-env"
 
 
-def test_default_yaml_path_used_when_present(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_default_yaml_path_used_when_present(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """`~/.a2web/config.yaml` is read when no `$A2WEB_CONFIG` is set."""
     home_cfg_dir = tmp_path / ".a2web"
     home_cfg_dir.mkdir()

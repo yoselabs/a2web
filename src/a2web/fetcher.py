@@ -96,9 +96,7 @@ async def fetch(url: str, *, state: AppState) -> FetchResponse:
         try:
             await state.log_writer.write_record(record_from_response(response, input_url=url))
         except Exception as exc:
-            response.operator_hints.append(
-                OperatorHint(code="log_write_failed", message=str(exc))
-            )
+            response.operator_hints.append(OperatorHint(code="log_write_failed", message=str(exc)))
             _LOG.warning("log_write_failed", error=str(exc), url=url)
 
     return response
@@ -128,6 +126,7 @@ async def _run_pipeline(
     final_verdict: Verdict = Verdict.other
     etag: str | None = None
     last_modified: str | None = None
+    pre_rendered_payload: dict | None = None
 
     # Phase 2 — tier loop (with conditional GET when cache row exists)
     for tier_name in TIER_ORDER:
@@ -143,20 +142,18 @@ async def _run_pipeline(
                 conditional_extras["last_modified"] = cached_row.last_modified
 
         if isinstance(tier, RawTier):
-            tier_result = await tier.fetch(
-                url, state=state, conditional_extras=conditional_extras
-            )
+            tier_result = await tier.fetch(url, state=state, conditional_extras=conditional_extras)
         else:
             tier_result = await tier.fetch(url, state=state)
 
         tier_dur_ms = int((time.perf_counter() - start_perf) * 1000) - tier_start_ms
 
+        # site_handler "no match" — silent skip, no diagnostic row
+        if tier_result.tier_extras.get("no_match"):
+            continue
+
         # Conditional 304 → reuse cached body
-        if (
-            tier_result.status_code == 304
-            and cached_row is not None
-            and tier_result.tier_extras.get("conditional_hit")
-        ):
+        if tier_result.status_code == 304 and cached_row is not None and tier_result.tier_extras.get("conditional_hit"):
             body = cached_row.body
             content_type = cached_row.content_type or "text/html"
             status_code = 200  # logical hit
@@ -198,10 +195,11 @@ async def _run_pipeline(
             content_type = tier_result.content_type
             status_code = tier_result.status_code
             final_url = tier_result.final_url
-            tier_used = tier_name
+            tier_used = tier_result.tier_extras.get("handler_name") or (tier.name if hasattr(tier, "name") else tier_name)
             final_verdict = Verdict.ok
             etag = tier_result.headers.get("etag")
             last_modified = tier_result.headers.get("last-modified")
+            pre_rendered_payload = tier_result.tier_extras.get("pre_rendered")
             break
 
         # Tier failed; record verdict and (PR3) stop. Later PRs escalate.
@@ -217,7 +215,14 @@ async def _run_pipeline(
     published = None
     raw_html = body.decode("utf-8", errors="replace") if body else ""
 
-    if body and final_verdict == Verdict.ok:
+    if pre_rendered_payload is not None:
+        # Site handler already produced markdown; bypass trafilatura/htmldate/metadata.
+        content_md = pre_rendered_payload.get("content_md", "")
+        title = pre_rendered_payload.get("title")
+        byline = pre_rendered_payload.get("byline")
+        headings = pre_rendered_payload.get("headings", [])
+        # links/meta intentionally empty for handler results in PR5; PR8 may revisit.
+    elif body and final_verdict == Verdict.ok:
         extract_result = await extract_markdown(raw_html, final_url)
         content_md = extract_result.content_md
         title = extract_result.title
@@ -245,10 +250,15 @@ async def _run_pipeline(
     gate_verdict = Verdict.ok
     gate_subsystem: str | None = None
     if body and final_verdict == Verdict.ok:
+        # Pre-rendered handler results carry application/json bodies; skip the
+        # html/content-type guard for them — block-page regexes still run on the
+        # rendered markdown and length floor catches truly empty results.
+        gate_content_type = None if pre_rendered_payload is not None else content_type
+        gate_raw_html = content_md if pre_rendered_payload is not None else raw_html
         gate_result = evaluate(
             content_md=content_md,
-            raw_html=raw_html,
-            content_type=content_type,
+            raw_html=gate_raw_html,
+            content_type=gate_content_type,
         )
         gate_verdict = gate_result.verdict
         gate_subsystem = gate_result.subsystem
@@ -269,13 +279,7 @@ async def _run_pipeline(
             final_verdict = gate_verdict
 
     # Phase 5 — cache write (gate-passed, non-hit only, non-bypass)
-    if (
-        sqlite_conn is not None
-        and not bypass_cache
-        and cache_state != CacheState.hit
-        and final_verdict == Verdict.ok
-        and body
-    ):
+    if sqlite_conn is not None and not bypass_cache and cache_state != CacheState.hit and final_verdict == Verdict.ok and body:
         await cache_put(
             sqlite_conn,
             url,

@@ -30,9 +30,7 @@ def test_length_floor_on_short_extraction() -> None:
 
 
 def test_content_type_mismatch_on_non_html() -> None:
-    result = evaluate(
-        content_md="ignored", raw_html="{}", content_type="application/json"
-    )
+    result = evaluate(content_md="ignored", raw_html="{}", content_type="application/json")
     assert result.verdict == Verdict.content_type_mismatch
 
 

@@ -73,11 +73,7 @@ class RawTier:
         from urllib.parse import urlparse
 
         host = urlparse(url).hostname or ""
-        breaker = (
-            await state.breakers.get_breaker(host)
-            if state.breakers is not None and host
-            else None
-        )
+        breaker = await state.breakers.get_breaker(host) if state.breakers is not None and host else None
 
         async def _do_request() -> TierResult:
             async with curl_requests.AsyncSession(impersonate=_IMPERSONATE) as session:

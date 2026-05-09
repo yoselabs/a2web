@@ -28,14 +28,17 @@ class ExtractResult:
 
 def _extract_sync(html: str, url: str) -> ExtractResult:
     """Blocking extraction — never call from async paths directly."""
-    md = trafilatura.extract(
-        html,
-        url=url,
-        output_format="markdown",
-        include_comments=False,
-        include_tables=True,
-        favor_recall=False,
-    ) or ""
+    md = (
+        trafilatura.extract(
+            html,
+            url=url,
+            output_format="markdown",
+            include_comments=False,
+            include_tables=True,
+            favor_recall=False,
+        )
+        or ""
+    )
 
     title: str | None = None
     byline: str | None = None

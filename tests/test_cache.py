@@ -25,9 +25,7 @@ def _isolate_cache_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 async def test_schema_creation() -> None:
     conn = await open_sqlite_with_schema(AppSettings())
     try:
-        async with conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='cache'"
-        ) as cur:
+        async with conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='cache'") as cur:
             row = await cur.fetchone()
         assert row is not None and row[0] == "cache"
     finally:
