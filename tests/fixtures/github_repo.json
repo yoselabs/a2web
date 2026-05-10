@@ -1,0 +1,9 @@
+{
+  "full_name": "octocat/Hello-World",
+  "description": "My first repo",
+  "stargazers_count": 1234,
+  "forks_count": 56,
+  "language": "Python",
+  "license": {"name": "MIT License", "spdx_id": "MIT"},
+  "owner": {"login": "octocat"}
+}

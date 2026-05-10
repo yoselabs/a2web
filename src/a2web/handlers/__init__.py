@@ -10,8 +10,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
+from .arxiv import ArxivHandler
+from .github import GitHubHandler
 from .hn import HNHandler
 from .reddit import RedditHandler
+from .wikipedia import WikipediaHandler
 
 if TYPE_CHECKING:
     from ..state import AppState
@@ -29,7 +32,13 @@ class Handler(Protocol):
     async def fetch(self, url: str, *, state: AppState) -> TierResult: ...
 
 
-_HANDLERS: tuple[Handler, ...] = (RedditHandler(), HNHandler())
+_HANDLERS: tuple[Handler, ...] = (
+    RedditHandler(),
+    HNHandler(),
+    ArxivHandler(),
+    WikipediaHandler(),
+    GitHubHandler(),
+)
 
 
 def match_handler(url: str) -> Handler | None:
@@ -40,4 +49,12 @@ def match_handler(url: str) -> Handler | None:
     return None
 
 
-__all__ = ["HNHandler", "Handler", "RedditHandler", "match_handler"]
+__all__ = [
+    "ArxivHandler",
+    "GitHubHandler",
+    "HNHandler",
+    "Handler",
+    "RedditHandler",
+    "WikipediaHandler",
+    "match_handler",
+]

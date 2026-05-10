@@ -1,0 +1,7 @@
+{
+  "number": 42,
+  "title": "Fix the thing",
+  "body": "When I do X, the thing breaks. Expected Y.",
+  "state": "open",
+  "user": {"login": "alice"}
+}

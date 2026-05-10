@@ -56,7 +56,7 @@ def _resolve_yaml_path() -> Path | None:
 class _YamlSourceWithoutSecrets(YamlConfigSettingsSource):
     """YAML source that drops fields the user must supply via env only."""
 
-    EXCLUDE: ClassVar[frozenset[str]] = frozenset({"jina_key"})
+    EXCLUDE: ClassVar[frozenset[str]] = frozenset({"jina_key", "github_token"})
 
     def __call__(self) -> dict[str, Any]:
         data = super().__call__()
@@ -98,6 +98,8 @@ class AppSettings(BaseSettings):
 
     jina_key: str = ""
     jina_deny_hosts: list[str] = Field(default_factory=list)
+
+    github_token: str = ""
 
     browser_enabled: bool = True
     browser_max_pool: int = 4
