@@ -10,7 +10,7 @@ a2web is a single tool call (`fetch(url)`) that runs an autonomous tier cascade:
 
 ## Status
 
-v0.1.0.dev0 — scaffolding. Design in `~/Documents/Knowledge/Projects/120-a2web/`.
+v0.1.0 — first tagged release; cascade feature-complete. See [`CHANGELOG.md`](./CHANGELOG.md) for what shipped and [`BACKLOG.md`](./BACKLOG.md) for deferred work. Design in `~/Documents/Knowledge/Projects/120-a2web/`.
 
 ## Install (when published)
 

@@ -57,6 +57,10 @@ a2web owns the web-fetching domain:
 - Never retry the whole flow — retries live at one of 5 specific layers (connection / HTTP / proxy / tier / handler) with circuit breakers.
 - Never add `print()` or sync I/O in async paths. ASYNC lint catches; CI fails.
 
+## Backlog
+
+`BACKLOG.md` (repo root) tracks deferred work. Every change that defers an item adds it; every change that ships one removes it. CHANGELOG.md is the shipped record; BACKLOG.md is the not-yet record.
+
 ## Ask First
 
 - Before changing tool signatures (breaking for MCP clients).
