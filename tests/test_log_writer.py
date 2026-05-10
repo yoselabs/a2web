@@ -75,7 +75,10 @@ async def test_disabled_writer_is_noop(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_rotation_on_size_threshold(tmp_path: Path) -> None:
-    target = tmp_path / "fetches-2026-05-09.ndjson"
+    from datetime import UTC, datetime
+
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
+    target = tmp_path / f"fetches-{today}.ndjson"
     writer = LogWriter(path_factory=lambda: target, threshold_bytes=200)
 
     # Each line ~120 bytes; two writes will cross the 200B threshold.
@@ -83,7 +86,7 @@ async def test_rotation_on_size_threshold(tmp_path: Path) -> None:
         await writer.write_record(_make_record(i))
     await writer.aclose()
 
-    rolled = list(tmp_path.glob("fetches-2026-05-09-*.ndjson.gz"))  # noqa: ASYNC240
+    rolled = list(tmp_path.glob(f"fetches-{today}-*.ndjson.gz"))  # noqa: ASYNC240
     assert len(rolled) >= 1, list(tmp_path.iterdir())  # noqa: ASYNC240
 
     # Decompress and confirm at least one record made it
@@ -94,14 +97,17 @@ async def test_rotation_on_size_threshold(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_multiple_rollovers_increment_sequence(tmp_path: Path) -> None:
-    target = tmp_path / "fetches-2026-05-09.ndjson"
+    from datetime import UTC, datetime
+
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
+    target = tmp_path / f"fetches-{today}.ndjson"
     writer = LogWriter(path_factory=lambda: target, threshold_bytes=120)
 
     for i in range(8):
         await writer.write_record(_make_record(i))
     await writer.aclose()
 
-    rolled = sorted(tmp_path.glob("fetches-2026-05-09-*.ndjson.gz"))  # noqa: ASYNC240
+    rolled = sorted(tmp_path.glob(f"fetches-{today}-*.ndjson.gz"))  # noqa: ASYNC240
     assert len(rolled) >= 2
     seqs = [int(p.stem.split("-")[-1].removesuffix(".ndjson")) for p in rolled]
     assert seqs == sorted(set(seqs))  # unique, monotonic

@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 import aiosqlite
 import structlog
 
+from .actions import RetryViaArchive, next_action_after_gate
 from .cache.sqlite_cache import (
     cache_get,
     cache_put,
@@ -314,6 +315,63 @@ async def _run_pipeline(
         if gate_verdict != Verdict.ok:
             final_verdict = gate_verdict
 
+        # Phase 4.25 — playbook escalation (paywall/block_page → archive)
+        # Cap: 1 archive dispatch per fetch.
+        gate_action = next_action_after_gate(gate_verdict, final_url, state.settings)
+        if isinstance(gate_action, RetryViaArchive):
+            archive_tier = REGISTRY["archive"]
+            arch_start_ms = int((time.perf_counter() - start_perf) * 1000)
+            await _publish(bus, TierStarted(t_ms=arch_start_ms, step="archive", host=_host(gate_action.url)))
+            archive_result = await archive_tier.fetch(gate_action.url, state=state)
+            arch_dur_ms = int((time.perf_counter() - start_perf) * 1000) - arch_start_ms
+            await _publish(
+                bus,
+                TierEnded(
+                    t_ms=arch_start_ms,
+                    step="archive",
+                    engine=str(archive_result.tier_extras.get("source", "archive")),
+                    verdict=archive_result.verdict,
+                    dur_ms=arch_dur_ms,
+                    extra={"status_code": archive_result.status_code},
+                ),
+            )
+            archive_pre = archive_result.tier_extras.get("pre_rendered")
+            if archive_result.verdict == Verdict.ok and isinstance(archive_pre, dict):
+                # Only record a diagnostic when archive recovers — a failed
+                # escalation is "tried, didn't help" and should not displace
+                # the original gate verdict in dominant-verdict logic.
+                diagnostics.append(
+                    Diagnostic(
+                        t_ms=arch_start_ms,
+                        step="archive",
+                        engine=str(archive_result.tier_extras.get("source", "archive")),
+                        host=_host(gate_action.url),
+                        proxy=None,
+                        verdict=archive_result.verdict,
+                        dur_ms=arch_dur_ms,
+                        extra={"status_code": archive_result.status_code},
+                    )
+                )
+                # Replace state with archive's pre-rendered content; re-gate.
+                content_md = archive_pre.get("content_md", "") or ""
+                title = archive_pre.get("title")
+                byline = archive_pre.get("byline")
+                headings = archive_pre.get("headings", [])
+                body = archive_result.body
+                content_type = archive_result.content_type
+                final_url = archive_result.final_url
+                tier_used = "archive"
+                pre_rendered_payload = archive_pre
+                # Re-gate on archive content; no second escalation (cap=1).
+                regate = evaluate(content_md=content_md, raw_html=content_md, content_type=None)
+                if regate.verdict == Verdict.ok:
+                    final_verdict = Verdict.ok
+                    gate_verdict = Verdict.ok
+                else:
+                    final_verdict = regate.verdict
+                    gate_verdict = regate.verdict
+                    gate_subsystem = regate.subsystem
+
     # Phase 4.5 — fit_md (pruning filter for non-handler results)
     fit_md: str | None = None
     if final_verdict == Verdict.ok and content_md:
@@ -340,8 +398,17 @@ async def _run_pipeline(
                 ),
             )
 
-    # Phase 5 — cache write (gate-passed, non-hit only, non-bypass)
-    if sqlite_conn is not None and not bypass_cache and cache_state != CacheState.hit and final_verdict == Verdict.ok and body:
+    # Phase 5 — cache write (gate-passed, non-hit only, non-bypass, non-archive)
+    is_archive_result = tier_used == "archive"
+    should_cache = (
+        sqlite_conn is not None
+        and not bypass_cache
+        and cache_state != CacheState.hit
+        and final_verdict == Verdict.ok
+        and body
+        and not is_archive_result
+    )
+    if should_cache:
         cache_dur_start = int((time.perf_counter() - start_perf) * 1000)
         await _publish(bus, StageStarted(t_ms=cache_dur_start, step="cache_write"))
         await cache_put(

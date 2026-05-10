@@ -40,16 +40,20 @@ class Tier(Protocol):
     async def fetch(self, url: str, *, state: AppState) -> TierResult: ...
 
 
+from .archive import ArchiveTier  # noqa: E402
 from .jina import JinaTier  # noqa: E402
 from .raw import RawTier  # noqa: E402 — circular import avoidance
 from .site_handler import SiteHandlerTier  # noqa: E402
 
+# Archive tier is registered but NOT in TIER_ORDER — orchestrator dispatches
+# it out-of-band when the playbook returns RetryViaArchive.
 TIER_ORDER: tuple[str, ...] = ("site_handler", "raw", "jina")
 REGISTRY: dict[str, Tier] = {
     "site_handler": SiteHandlerTier(),
     "raw": RawTier(),
     "jina": JinaTier(),
+    "archive": ArchiveTier(),
 }
 
 
-__all__ = ["REGISTRY", "TIER_ORDER", "JinaTier", "RawTier", "SiteHandlerTier", "Tier", "TierResult"]
+__all__ = ["REGISTRY", "TIER_ORDER", "ArchiveTier", "JinaTier", "RawTier", "SiteHandlerTier", "Tier", "TierResult"]
