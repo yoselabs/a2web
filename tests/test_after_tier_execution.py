@@ -44,18 +44,24 @@ class _CountingRawTier:
 
 @pytest.mark.asyncio
 async def test_arxiv_pdf_rewritten_to_abs(monkeypatch: pytest.MonkeyPatch) -> None:
-    """next_action_after_tier returns RewriteUrl for arxiv pdf URLs."""
+    """next_action_after_tier returns RewriteUrl for arxiv pdf URLs.
+
+    After PR8, the abs URL matches `ArxivHandler` (site_handler tier),
+    so we stub that handler to keep this test focused on rewrite logic.
+    """
     raw = _CountingRawTier()
     monkeypatch.setitem(REGISTRY, "raw", raw)
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    # Disable arxiv handler so the rewritten /abs/ URL falls through to raw.
+    from a2web.handlers import _HANDLERS, ArxivHandler
+    filtered = tuple(h for h in _HANDLERS if not isinstance(h, ArxivHandler))
+    monkeypatch.setattr("a2web.handlers._HANDLERS", filtered)
 
     result = await fetch("https://arxiv.org/pdf/2401.12345", state=_make_state())
 
     assert result.status == FetchStatus.ok
-    # Original URL was called, then rewritten URL was called.
     assert raw.calls[0].endswith("/pdf/2401.12345")
     assert any("/abs/2401.12345" in c for c in raw.calls)
-    # Final URL reflects the rewrite.
     assert "/abs/2401.12345" in result.url
 
 
@@ -66,13 +72,13 @@ async def test_rewrite_capped_at_one(monkeypatch: pytest.MonkeyPatch) -> None:
     raw = _CountingRawTier()
     monkeypatch.setitem(REGISTRY, "raw", raw)
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    from a2web.handlers import _HANDLERS, ArxivHandler
+    filtered = tuple(h for h in _HANDLERS if not isinstance(h, ArxivHandler))
+    monkeypatch.setattr("a2web.handlers._HANDLERS", filtered)
 
-    # arxiv pdf rewrites to abs once. The abs URL doesn't match the pdf
-    # rewrite rule, so no further rewrite. Verify via call count.
     result = await fetch("https://arxiv.org/pdf/2401.99999", state=_make_state())
     assert result.status == FetchStatus.ok
-    # Calls: original pdf URL + one rewrite to abs = 2.
-    assert len(raw.calls) == 2
+    assert len(raw.calls) == 2  # original pdf + rewrite to abs
 
 
 class _CloudflareBlockedRawTier:

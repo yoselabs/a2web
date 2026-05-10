@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import a2kit
 
-from .routers import WebRouter
+from .routers import LogsRouter, WebRouter
 from .state import register_state
 
-app = register_state(a2kit.App("a2web").add_router(WebRouter()))
+app = register_state(
+    a2kit.App("a2web").add_router(WebRouter()).add_router(LogsRouter())
+)
 
 
 def main() -> None:
