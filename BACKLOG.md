@@ -8,6 +8,12 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 > by any future OpenSpec change whose proposal carries an "Out of Scope"
 > deferral. Keep this file current — every change that defers adds, every
 > change that ships removes.
+>
+> **Single source of truth.** This file consolidates every known
+> deferral. Upstream context: `~/Documents/Knowledge/Projects/120-a2web/v0.1-engineering.md`
+> §10 (original v0.2/v0.3 deferrals); §9 (build order) is fully shipped
+> and lives in `openspec/changes/archive/`. New deferrals land here, not
+> in design docs.
 
 ---
 
@@ -73,19 +79,22 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   engineering.md §10. *Why deferred:* requires the browser tier to
   emit screenshots and a response-shape change; v0.2 contract decision.
   Scope: L.
-- **Browser-as-a-service remote CDP.** Source: engineering.md §10. *Why
-  deferred:* removes the local Camoufox dep at the cost of a network
-  hop and a service to operate; v0.2+. Scope: L.
-
 ## v0.3+
 
+- **Browser-as-a-service remote CDP.** Source: engineering.md §10. *Why
+  deferred:* removes the local Camoufox dep at the cost of a network
+  hop and a service to operate. Scope: L.
 - **VLM image captioning.** Source: engineering.md §10. *Why deferred:*
   vision pipeline. Scope: L.
 - **Distributed cache (remote backend).** Source: engineering.md §10.
   *Why deferred:* sqlite is sufficient for single-operator use. Scope: L.
-- **Webhook callbacks for slow fetches.** Source: engineering.md §10.
-  *Why deferred:* event-sink pattern, not yet needed. Scope: M.
-- **LLM-emitted hints.** Source: engineering.md §10. *Why deferred:*
-  needs an evaluation harness first. Scope: L.
-- **Search aggregation as primary surface.** Source: engineering.md §10.
-  *Why deferred:* a separate product surface, not a tier. Scope: L.
+- **Webhook callbacks for slow fetches.** Source: engineering.md §10
+  (vision). *Why deferred:* event-sink pattern, not yet needed. Scope: M.
+- **LLM-emitted hints.** Source: engineering.md §10 (vision). *Why
+  deferred:* needs an evaluation harness first. Scope: L.
+
+## v1.0 / vision
+
+- **Search aggregation as primary surface.** Source: engineering.md §10
+  (v1.0). *Why deferred:* a separate product surface, not a tier in
+  the cascade. Scope: L.
