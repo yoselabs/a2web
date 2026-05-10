@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Orchestrator dispatches browser tier on gate suggested_tier
 
