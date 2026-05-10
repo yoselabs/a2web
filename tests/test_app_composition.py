@@ -12,10 +12,10 @@ from a2web.server import app, main
 from a2web.state import AppState
 
 
-def test_routers_register_expected_tools() -> None:
-    """`WebRouter.fetch` + `LogsRouter.{replay,tail,grep}` (PR10)."""
+def test_web_router_registers_one_tool() -> None:
+    """`WebRouter.fetch` is the sole tool."""
     names = {tool.__name__ for tool in app.tools()}
-    assert {"fetch", "replay", "tail", "grep"}.issubset(names)
+    assert names == {"fetch"}
 
 
 def test_app_has_no_connections_subcommand() -> None:
