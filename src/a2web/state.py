@@ -39,6 +39,7 @@ class AppState:
     browser_pool: Any | None = None
     sqlite_lock: asyncio.Lock | None = None
     browser_lock: asyncio.Lock | None = None
+    proxy_lock: asyncio.Lock | None = None
     extras: dict[str, Any] = field(default_factory=dict)
 
 
@@ -52,6 +53,23 @@ async def ensure_sqlite(state: AppState) -> aiosqlite.Connection:
         if state.sqlite is None:
             state.sqlite = await open_sqlite_with_schema(state.settings)
     return state.sqlite
+
+
+async def ensure_proxy_pool(state: AppState) -> Any:
+    """Open ProxyPool on first call; return cached pool thereafter.
+
+    Pure resolution does not need the pool (it's stateless), but the
+    health/quarantine state is per-AppState and lives here.
+    """
+    if state.proxy_pool is not None:
+        return state.proxy_pool
+    if state.proxy_lock is None:
+        state.proxy_lock = asyncio.Lock()
+    async with state.proxy_lock:
+        if state.proxy_pool is None:
+            from .proxy.pool import ProxyPool
+            state.proxy_pool = ProxyPool(settings=state.settings)
+    return state.proxy_pool
 
 
 async def ensure_browser_pool(state: AppState) -> Any:

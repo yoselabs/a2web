@@ -39,6 +39,18 @@ def _verdict_for_status(status: int, content_type: str) -> Verdict:
     return Verdict.ok
 
 
+def _is_proxy_error(exc: BaseException) -> bool:
+    """Heuristic: curl_cffi surfaces proxy failures via generic RequestException.
+
+    The error message contains "proxy" or "SOCKS" in practice; lacking a
+    typed exception we string-match. Conservative: false negatives just
+    yield connection_error (current behavior); never confuses non-proxy
+    failures with proxy failures.
+    """
+    msg = str(exc).lower()
+    return "proxy" in msg or "socks" in msg or "tunnel" in msg
+
+
 def _conditional_headers(extras: dict[str, Any]) -> dict[str, str]:
     """Build conditional-GET headers from an optional cached row."""
     headers: dict[str, str] = {}
@@ -62,6 +74,7 @@ class RawTier:
         *,
         state: AppState,
         conditional_extras: dict[str, Any] | None = None,
+        proxy_url: str | None = None,
     ) -> TierResult:
         from . import TierResult
 
@@ -76,14 +89,17 @@ class RawTier:
         breaker = await state.breakers.get_breaker(host) if state.breakers is not None and host else None
 
         async def _do_request() -> TierResult:
-            async with curl_requests.AsyncSession(impersonate=_IMPERSONATE) as session:
+            session_kwargs: dict[str, Any] = {"impersonate": _IMPERSONATE}
+            request_kwargs: dict[str, Any] = {
+                "headers": request_headers,
+                "timeout": _DEFAULT_TIMEOUT_S,
+                "allow_redirects": True,
+            }
+            if proxy_url:
+                request_kwargs["proxies"] = {"http": proxy_url, "https": proxy_url}
+            async with curl_requests.AsyncSession(**session_kwargs) as session:
                 try:
-                    response = await session.get(
-                        url,
-                        headers=request_headers,
-                        timeout=_DEFAULT_TIMEOUT_S,
-                        allow_redirects=True,
-                    )
+                    response = await session.get(url, **request_kwargs)
                 except curl_exceptions.Timeout:
                     return TierResult(
                         body=b"",
@@ -92,7 +108,16 @@ class RawTier:
                         final_url=url,
                         verdict=Verdict.timeout,
                     )
-                except curl_exceptions.RequestException:
+                except curl_exceptions.RequestException as exc:
+                    if proxy_url and _is_proxy_error(exc):
+                        return TierResult(
+                            body=b"",
+                            content_type="",
+                            status_code=0,
+                            final_url=url,
+                            tier_extras={"proxy_url": proxy_url},
+                            verdict=Verdict.proxy_unavailable,
+                        )
                     return TierResult(
                         body=b"",
                         content_type="",

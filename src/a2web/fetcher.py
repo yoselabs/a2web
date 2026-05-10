@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 import aiosqlite
 import structlog
 
-from .actions import RetryViaArchive, next_action_after_gate
+from .actions import RetryViaArchive, RewriteUrl, next_action_after_gate, next_action_after_tier
 from .cache.sqlite_cache import (
     cache_get,
     cache_put,
@@ -38,8 +38,9 @@ from .models import (
     TokenCounts,
     Verdict,
 )
-from .state import AppState, ensure_sqlite
+from .state import AppState, ensure_proxy_pool, ensure_sqlite
 from .tiers import REGISTRY, TIER_ORDER
+from .tiers.jina import JinaTier
 from .tiers.raw import RawTier
 from .utils.time import fmt_dur
 
@@ -134,96 +135,213 @@ async def _run_pipeline(
     last_modified: str | None = None
     pre_rendered_payload: dict | None = None
 
-    # Phase 2 — tier loop (with conditional GET when cache row exists)
-    for tier_name in TIER_ORDER:
-        tier = REGISTRY[tier_name]
-        tier_start_ms = int((time.perf_counter() - start_perf) * 1000)
+    # Per-fetch action caps (PR7d).
+    url_rewrites = 0
+    archive_dispatches = 0
 
-        conditional_extras: dict[str, str] | None = None
-        if cached_row is not None:
-            conditional_extras = {}
-            if cached_row.etag:
-                conditional_extras["etag"] = cached_row.etag
-            if cached_row.last_modified:
-                conditional_extras["last_modified"] = cached_row.last_modified
+    # Lazy proxy pool — only opened when first non-direct route resolves.
+    proxy_pool = await ensure_proxy_pool(state)
 
-        await _publish(bus, TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(url)))
+    # Phase 2 — tier loop, wrapped to support after-tier RewriteUrl (cap=1).
+    while True:
+        restart_loop = False
+        archive_break_payload: dict | None = None
+        for tier_name in TIER_ORDER:
+            tier = REGISTRY[tier_name]
+            tier_start_ms = int((time.perf_counter() - start_perf) * 1000)
 
-        if isinstance(tier, RawTier):
-            tier_result = await tier.fetch(url, state=state, conditional_extras=conditional_extras)
-        else:
-            tier_result = await tier.fetch(url, state=state)
+            conditional_extras: dict[str, str] | None = None
+            if cached_row is not None:
+                conditional_extras = {}
+                if cached_row.etag:
+                    conditional_extras["etag"] = cached_row.etag
+                if cached_row.last_modified:
+                    conditional_extras["last_modified"] = cached_row.last_modified
 
-        tier_dur_ms = int((time.perf_counter() - start_perf) * 1000) - tier_start_ms
+            # Resolve proxy for this (host, tier).
+            handle = proxy_pool.acquire(_host(url) or "", tier_name)
+            if handle is None:
+                # All proxies dead AND proxy_required=true → skip this tier.
+                diagnostics.append(
+                    Diagnostic(
+                        t_ms=tier_start_ms,
+                        step=tier_name,
+                        engine=None,
+                        host=_host(url),
+                        proxy=None,
+                        verdict=Verdict.proxy_unavailable,
+                        dur_ms=0,
+                        extra={"reason": "all_proxies_dead_required"},
+                    )
+                )
+                final_verdict = Verdict.proxy_unavailable
+                continue
+            proxy_url_for_tier = handle.proxy_url
+            proxy_id_for_diag = handle.proxy_id
 
-        # site_handler "no match" / jina deny-list "skipped" — silent skip, no diagnostic row
-        if tier_result.tier_extras.get("no_match") or tier_result.tier_extras.get("skipped"):
-            continue
+            await _publish(bus, TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(url)))
 
-        await _publish(
-            bus,
-            TierEnded(
-                t_ms=tier_start_ms,
-                step=tier_result.tier_extras.get("handler_name") or tier_name,
-                engine="curl_cffi" if tier_name == "raw" else None,
-                verdict=tier_result.verdict,
-                dur_ms=tier_dur_ms,
-                extra={"status_code": tier_result.status_code},
-            ),
-        )
+            if isinstance(tier, RawTier):
+                tier_result = await tier.fetch(
+                    url,
+                    state=state,
+                    conditional_extras=conditional_extras,
+                    proxy_url=proxy_url_for_tier,
+                )
+            elif isinstance(tier, JinaTier):
+                tier_result = await tier.fetch(url, state=state, proxy_url=proxy_url_for_tier)
+            else:
+                tier_result = await tier.fetch(url, state=state)
 
-        # Conditional 304 → reuse cached body
-        if tier_result.status_code == 304 and cached_row is not None and tier_result.tier_extras.get("conditional_hit"):
-            body = cached_row.body
-            content_type = cached_row.content_type or "text/html"
-            status_code = 200  # logical hit
-            cache_state = CacheState.hit
-            etag = cached_row.etag
-            last_modified = cached_row.last_modified
-            final_url = url
-            tier_used = tier_name
-            final_verdict = Verdict.ok
+            tier_dur_ms = int((time.perf_counter() - start_perf) * 1000) - tier_start_ms
+
+            # site_handler "no match" / jina deny-list "skipped" — silent skip, no diagnostic row
+            if tier_result.tier_extras.get("no_match") or tier_result.tier_extras.get("skipped"):
+                continue
+
+            # Report proxy health.
+            proxy_pool.report(
+                handle,
+                success=tier_result.verdict not in (Verdict.proxy_unavailable, Verdict.connection_error, Verdict.timeout),
+                ms=tier_dur_ms,
+            )
+
+            await _publish(
+                bus,
+                TierEnded(
+                    t_ms=tier_start_ms,
+                    step=tier_result.tier_extras.get("handler_name") or tier_name,
+                    engine="curl_cffi" if tier_name == "raw" else None,
+                    verdict=tier_result.verdict,
+                    dur_ms=tier_dur_ms,
+                    extra={
+                        "status_code": tier_result.status_code,
+                        "route.proxy_id": proxy_id_for_diag,
+                        "route.matched_rule": str(handle.matched_rule_index) if handle.matched_rule_index is not None else "none",
+                    },
+                ),
+            )
+
+            # Conditional 304 → reuse cached body
+            if tier_result.status_code == 304 and cached_row is not None and tier_result.tier_extras.get("conditional_hit"):
+                body = cached_row.body
+                content_type = cached_row.content_type or "text/html"
+                status_code = 200  # logical hit
+                cache_state = CacheState.hit
+                etag = cached_row.etag
+                last_modified = cached_row.last_modified
+                final_url = url
+                tier_used = tier_name
+                final_verdict = Verdict.ok
+                diagnostics.append(
+                    Diagnostic(
+                        t_ms=tier_start_ms,
+                        step=tier_name,
+                        engine="curl_cffi",
+                        host=_host(url),
+                        proxy=proxy_id_for_diag,
+                        verdict=Verdict.ok,
+                        dur_ms=tier_dur_ms,
+                        extra={"conditional_hit": "true"},
+                    )
+                )
+                break
+
             diagnostics.append(
                 Diagnostic(
                     t_ms=tier_start_ms,
                     step=tier_name,
-                    engine="curl_cffi",
-                    host=_host(url),
-                    proxy=None,
-                    verdict=Verdict.ok,
+                    engine="curl_cffi" if tier_name == "raw" else None,
+                    host=_host(tier_result.final_url),
+                    proxy=proxy_id_for_diag,
+                    verdict=tier_result.verdict,
                     dur_ms=tier_dur_ms,
-                    extra={"conditional_hit": "true"},
+                    extra={"status_code": tier_result.status_code},
                 )
             )
-            break
 
-        diagnostics.append(
-            Diagnostic(
-                t_ms=tier_start_ms,
-                step=tier_name,
-                engine="curl_cffi" if tier_name == "raw" else None,
-                host=_host(tier_result.final_url),
-                proxy=None,
-                verdict=tier_result.verdict,
-                dur_ms=tier_dur_ms,
-                extra={"status_code": tier_result.status_code},
-            )
-        )
+            # After-tier action (PR7d — closes PR7b's deferred stub).
+            tier_action = next_action_after_tier(tier_result, url, state.settings)
+            if isinstance(tier_action, RewriteUrl) and url_rewrites < 1:
+                url_rewrites += 1
+                url = tier_action.new_url
+                final_url = url
+                # Reset cached_row — new URL likely has its own cache entry.
+                if sqlite_conn is not None:
+                    cached_row = await cache_get(sqlite_conn, url, profile_hash)
+                else:
+                    cached_row = None
+                restart_loop = True
+                break  # break inner for; while True continues
+            if isinstance(tier_action, RetryViaArchive) and archive_dispatches < 1:
+                archive_dispatches += 1
+                archive_tier = REGISTRY["archive"]
+                arch_start_ms = int((time.perf_counter() - start_perf) * 1000)
+                await _publish(bus, TierStarted(t_ms=arch_start_ms, step="archive", host=_host(tier_action.url)))
+                archive_result = await archive_tier.fetch(tier_action.url, state=state)
+                arch_dur_ms = int((time.perf_counter() - start_perf) * 1000) - arch_start_ms
+                await _publish(
+                    bus,
+                    TierEnded(
+                        t_ms=arch_start_ms,
+                        step="archive",
+                        engine=str(archive_result.tier_extras.get("source", "archive")),
+                        verdict=archive_result.verdict,
+                        dur_ms=arch_dur_ms,
+                        extra={"status_code": archive_result.status_code},
+                    ),
+                )
+                archive_pre = archive_result.tier_extras.get("pre_rendered")
+                if archive_result.verdict == Verdict.ok and isinstance(archive_pre, dict):
+                    diagnostics.append(
+                        Diagnostic(
+                            t_ms=arch_start_ms,
+                            step="archive",
+                            engine=str(archive_result.tier_extras.get("source", "archive")),
+                            host=_host(tier_action.url),
+                            proxy=None,
+                            verdict=archive_result.verdict,
+                            dur_ms=arch_dur_ms,
+                            extra={"status_code": archive_result.status_code},
+                        )
+                    )
+                    archive_break_payload = {
+                        "body": archive_result.body,
+                        "content_type": archive_result.content_type,
+                        "final_url": archive_result.final_url,
+                        "pre_rendered": archive_pre,
+                        "status_code": archive_result.status_code,
+                    }
+                    break
+                # Archive failed — keep trying tiers (no continue; fallthrough).
 
-        if tier_result.verdict == Verdict.ok:
-            body = tier_result.body
-            content_type = tier_result.content_type
-            status_code = tier_result.status_code
-            final_url = tier_result.final_url
-            tier_used = tier_result.tier_extras.get("handler_name") or (tier.name if hasattr(tier, "name") else tier_name)
+            if tier_result.verdict == Verdict.ok:
+                body = tier_result.body
+                content_type = tier_result.content_type
+                status_code = tier_result.status_code
+                final_url = tier_result.final_url
+                tier_used = tier_result.tier_extras.get("handler_name") or (tier.name if hasattr(tier, "name") else tier_name)
+                final_verdict = Verdict.ok
+                etag = tier_result.headers.get("etag")
+                last_modified = tier_result.headers.get("last-modified")
+                pre_rendered_payload = tier_result.tier_extras.get("pre_rendered")
+                break
+
+            # Tier failed; record verdict and continue.
+            final_verdict = tier_result.verdict
+
+        # If after-tier dispatch landed archive content, install it.
+        if archive_break_payload is not None:
+            body = archive_break_payload["body"]
+            content_type = archive_break_payload["content_type"]
+            final_url = archive_break_payload["final_url"]
+            tier_used = "archive"
+            pre_rendered_payload = archive_break_payload["pre_rendered"]
+            status_code = archive_break_payload["status_code"]
             final_verdict = Verdict.ok
-            etag = tier_result.headers.get("etag")
-            last_modified = tier_result.headers.get("last-modified")
-            pre_rendered_payload = tier_result.tier_extras.get("pre_rendered")
-            break
 
-        # Tier failed; record verdict and (PR3) stop. Later PRs escalate.
-        final_verdict = tier_result.verdict
+        if not restart_loop:
+            break
 
     # Phase 3 — extraction (only when we have a body)
     extract_dur_start = int((time.perf_counter() - start_perf) * 1000)
@@ -382,9 +500,10 @@ async def _run_pipeline(
                     browser_unavailable_hint = hint
 
         # Phase 4.25 — playbook escalation (paywall/block_page → archive)
-        # Cap: 1 archive dispatch per fetch.
+        # Cap: 1 archive dispatch per fetch (shared with after-tier).
         gate_action = next_action_after_gate(gate_verdict, final_url, state.settings)
-        if isinstance(gate_action, RetryViaArchive):
+        if isinstance(gate_action, RetryViaArchive) and archive_dispatches < 1:
+            archive_dispatches += 1
             archive_tier = REGISTRY["archive"]
             arch_start_ms = int((time.perf_counter() - start_perf) * 1000)
             await _publish(bus, TierStarted(t_ms=arch_start_ms, step="archive", host=_host(gate_action.url)))

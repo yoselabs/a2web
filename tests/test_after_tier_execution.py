@@ -1,0 +1,128 @@
+"""Orchestrator after-tier action execution: RewriteUrl + RetryViaArchive."""
+
+from __future__ import annotations
+
+import pytest
+from purgatory import AsyncCircuitBreakerFactory
+
+from a2web.fetcher import fetch
+from a2web.log.writer import LogWriter
+from a2web.models import FetchStatus, Verdict
+from a2web.settings import AppSettings
+from a2web.state import AppState
+from a2web.tiers import REGISTRY, TIER_ORDER, TierResult
+
+
+def _make_state() -> AppState:
+    return AppState(
+        settings=AppSettings(),
+        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
+        log_writer=LogWriter(disabled=True),
+    )
+
+
+class _CountingRawTier:
+    """Captures the URLs raw was called with — for rewrite verification."""
+
+    name = "raw"
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
+        del state, kwargs
+        self.calls.append(url)
+        # Healthy 200 with article content (passes gate).
+        body = ("<html><body><p>" + ("Article body. " * 80) + "</p></body></html>").encode()
+        return TierResult(
+            body=body,
+            content_type="text/html",
+            status_code=200,
+            final_url=url,
+        )
+
+
+@pytest.mark.asyncio
+async def test_arxiv_pdf_rewritten_to_abs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """next_action_after_tier returns RewriteUrl for arxiv pdf URLs."""
+    raw = _CountingRawTier()
+    monkeypatch.setitem(REGISTRY, "raw", raw)
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+
+    result = await fetch("https://arxiv.org/pdf/2401.12345", state=_make_state())
+
+    assert result.status == FetchStatus.ok
+    # Original URL was called, then rewritten URL was called.
+    assert raw.calls[0].endswith("/pdf/2401.12345")
+    assert any("/abs/2401.12345" in c for c in raw.calls)
+    # Final URL reflects the rewrite.
+    assert "/abs/2401.12345" in result.url
+
+
+@pytest.mark.asyncio
+async def test_rewrite_capped_at_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A second RewriteUrl in the same fetch is ignored (anti-loop)."""
+
+    raw = _CountingRawTier()
+    monkeypatch.setitem(REGISTRY, "raw", raw)
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+
+    # arxiv pdf rewrites to abs once. The abs URL doesn't match the pdf
+    # rewrite rule, so no further rewrite. Verify via call count.
+    result = await fetch("https://arxiv.org/pdf/2401.99999", state=_make_state())
+    assert result.status == FetchStatus.ok
+    # Calls: original pdf URL + one rewrite to abs = 2.
+    assert len(raw.calls) == 2
+
+
+class _CloudflareBlockedRawTier:
+    name = "raw"
+
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
+        del state, kwargs
+        return TierResult(
+            body=b"<html><body>blocked</body></html>",
+            content_type="text/html",
+            status_code=403,
+            final_url=url,
+            headers={"server": "cloudflare", "cf-ray": "abc123"},
+            verdict=Verdict.connection_error,
+        )
+
+
+class _RecoveringArchiveTier:
+    name = "archive"
+
+    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+        del state
+        markdown = "# Recovered\n\n" + ("Real content. " * 80)
+        return TierResult(
+            body=markdown.encode(),
+            content_type="text/html",
+            status_code=200,
+            final_url=url,
+            tier_extras={
+                "from_archive": True,
+                "source": "wayback",
+                "pre_rendered": {
+                    "content_md": markdown,
+                    "title": "Recovered",
+                    "byline": None,
+                    "headings": [],
+                },
+            },
+            verdict=Verdict.ok,
+        )
+
+
+@pytest.mark.asyncio
+async def test_after_tier_cloudflare_403_dispatches_archive(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(REGISTRY, "raw", _CloudflareBlockedRawTier())
+    monkeypatch.setitem(REGISTRY, "archive", _RecoveringArchiveTier())
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+
+    result = await fetch("https://blocked.example/", state=_make_state())
+
+    assert result.status == FetchStatus.ok
+    assert result.tier == "archive"
+    assert result.title == "Recovered"

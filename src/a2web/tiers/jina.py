@@ -53,7 +53,7 @@ class JinaTier:
 
     name: str = "jina"
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, proxy_url: str | None = None) -> TierResult:
         from . import TierResult  # local import — avoid circular at module load
 
         if _is_denied(url, state.settings.jina_deny_hosts):
@@ -72,8 +72,22 @@ class JinaTier:
 
         target = _BASE_URL + url
         try:
-            async with httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True) as client:
+            client = (
+                httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True, proxy=proxy_url)
+                if proxy_url
+                else httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True)
+            )
+            async with client:
                 resp = await client.get(target, headers=headers)
+        except httpx.ProxyError:
+            return TierResult(
+                body=b"",
+                content_type="text/markdown",
+                status_code=0,
+                final_url=url,
+                tier_extras={"proxy_url": proxy_url} if proxy_url else {},
+                verdict=Verdict.proxy_unavailable,
+            )
         except httpx.TimeoutException:
             return TierResult(
                 body=b"",
