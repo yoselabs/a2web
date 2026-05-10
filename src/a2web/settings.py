@@ -99,6 +99,11 @@ class AppSettings(BaseSettings):
     jina_key: str = ""
     jina_deny_hosts: list[str] = Field(default_factory=list)
 
+    browser_enabled: bool = True
+    browser_max_pool: int = 4
+    browser_idle_timeout_s: int = 300
+    browser_page_budget_s: int = 30
+
     @classmethod
     def settings_customise_sources(
         cls,

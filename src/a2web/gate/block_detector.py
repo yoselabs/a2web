@@ -32,11 +32,20 @@ _BLOCK_PATTERNS = (
 
 _ANUBIS_MARKER = re.compile(r"anubis", re.IGNORECASE)
 
+# Anti-bot system fingerprints → suggested escalation tier.
+# Mappings come from engineering.md §2; conservative, only updated with cause.
+_TURNSTILE_MARKER = re.compile(r"cf-turnstile|turnstile-callback|challenges\.cloudflare\.com/turnstile", re.IGNORECASE)
+_AKAMAI_BMP_MARKER = re.compile(r"_abck=|bm_sz=|akam/\d+/[0-9a-f]{6,}", re.IGNORECASE)
+_CF_INTERSTITIAL_MARKER = re.compile(r"\bcf-chl-bypass\b|\bJust a moment\b", re.IGNORECASE)
+_NOSCRIPT_SHELL_MARKER = re.compile(r"<noscript>[^<]*(?:enable JavaScript|requires JavaScript)", re.IGNORECASE)
+_SCRIPT_TAG_RE = re.compile(r"<script\b", re.IGNORECASE)
+
 
 @dataclass(slots=True)
 class GateResult:
     verdict: Verdict
     subsystem: str | None = None
+    suggested_tier: str | None = None
 
 
 def evaluate(
@@ -57,12 +66,28 @@ def evaluate(
         # caller can decide whether to escalate.
         return GateResult(Verdict.content_type_mismatch)
 
+    # Specific anti-bot families first — they carry suggested_tier hints
+    # the orchestrator uses to smart-skip intermediate tiers.
+    if _TURNSTILE_MARKER.search(raw_html):
+        return GateResult(Verdict.anti_bot, subsystem="turnstile", suggested_tier="browser")
+    if _AKAMAI_BMP_MARKER.search(raw_html):
+        return GateResult(Verdict.anti_bot, subsystem="akamai_bmp", suggested_tier="browser")
+    if _ANUBIS_MARKER.search(raw_html) and len(content_md) < LENGTH_FLOOR:
+        return GateResult(Verdict.anti_bot, subsystem="anubis", suggested_tier="browser")
+
+    if _CF_INTERSTITIAL_MARKER.search(raw_html):
+        return GateResult(Verdict.block_page_detected, subsystem="cf_iuam", suggested_tier="tls_impersonate")
+
     for pattern in _BLOCK_PATTERNS:
         if pattern.search(raw_html):
             return GateResult(Verdict.block_page_detected)
 
-    if _ANUBIS_MARKER.search(raw_html) and len(content_md) < LENGTH_FLOOR:
-        return GateResult(Verdict.anti_bot, subsystem="anubis")
+    if (
+        _NOSCRIPT_SHELL_MARKER.search(raw_html)
+        and len(content_md) < LENGTH_FLOOR
+        and len(_SCRIPT_TAG_RE.findall(raw_html)) >= 3
+    ):
+        return GateResult(Verdict.length_floor, subsystem="js_required", suggested_tier="browser")
 
     if len(content_md) < LENGTH_FLOOR:
         return GateResult(Verdict.length_floor)

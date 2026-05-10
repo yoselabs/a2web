@@ -38,6 +38,7 @@ class AppState:
     proxy_pool: Any | None = None
     browser_pool: Any | None = None
     sqlite_lock: asyncio.Lock | None = None
+    browser_lock: asyncio.Lock | None = None
     extras: dict[str, Any] = field(default_factory=dict)
 
 
@@ -53,20 +54,49 @@ async def ensure_sqlite(state: AppState) -> aiosqlite.Connection:
     return state.sqlite
 
 
+async def ensure_browser_pool(state: AppState) -> Any:
+    """Open Camoufox pool on first call; return cached pool thereafter.
+
+    Imports Camoufox lazily so the optional dep is only paid when the
+    browser tier is actually invoked. On ImportError, raises so the
+    caller (BrowserTier) can translate to a graceful operator hint.
+    """
+    if state.browser_pool is not None:
+        return state.browser_pool
+    if state.browser_lock is None:
+        state.browser_lock = asyncio.Lock()
+    async with state.browser_lock:
+        if state.browser_pool is None:
+            from .browser.pool import BrowserPool  # local — optional dep
+            pool = BrowserPool(
+                max_pool=state.settings.browser_max_pool,
+                idle_timeout_s=state.settings.browser_idle_timeout_s,
+                page_budget_s=state.settings.browser_page_budget_s,
+            )
+            await pool.start()
+            state.browser_pool = pool
+    return state.browser_pool
+
+
 def _atexit_close(state: AppState) -> None:
-    """Best-effort sqlite close at process exit."""
+    """Best-effort resource close at process exit (sqlite + browser pool)."""
     conn = state.sqlite
-    if conn is None:
+    pool = state.browser_pool
+    if conn is None and pool is None:
         return
     try:
         loop = asyncio.new_event_loop()
         try:
-            loop.run_until_complete(conn.close())
+            if conn is not None:
+                loop.run_until_complete(conn.close())
+            if pool is not None:
+                loop.run_until_complete(pool.close())
         finally:
             loop.close()
     except Exception:  # best-effort; WAL is durable on disk
         return
     state.sqlite = None
+    state.browser_pool = None
 
 
 def register_state(app: a2kit.App, *, settings: AppSettings | None = None) -> a2kit.App:
@@ -95,7 +125,10 @@ async def bootstrap_state_for_test(settings: AppSettings | None = None) -> AppSt
 
 
 async def teardown_state_for_test(state: AppState) -> None:
-    """Test fixture: close sqlite cleanly."""
+    """Test fixture: close sqlite + browser pool cleanly."""
     if state.sqlite is not None:
         await state.sqlite.close()
         state.sqlite = None
+    if state.browser_pool is not None:
+        await state.browser_pool.close()
+        state.browser_pool = None

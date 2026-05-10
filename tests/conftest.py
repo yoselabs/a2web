@@ -36,6 +36,31 @@ class _NotFoundArchiveTier:
         )
 
 
+class _UnavailableBrowserTier:
+    """Default browser stub: never launch Camoufox in unit tests."""
+
+    name: str = "browser"
+
+    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+        del state
+        return TierResult(
+            body=b"",
+            content_type="text/html",
+            status_code=0,
+            final_url=url,
+            tier_extras={
+                "from_browser": True,
+                "operator_hint": {
+                    "code": "browser_unavailable",
+                    "message": "test stub",
+                    "fix": "n/a",
+                },
+            },
+            verdict=Verdict.connection_error,
+        )
+
+
 @pytest.fixture(autouse=True)
 def _stub_archive_tier(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(REGISTRY, "archive", _NotFoundArchiveTier())
+    monkeypatch.setitem(REGISTRY, "browser", _UnavailableBrowserTier())

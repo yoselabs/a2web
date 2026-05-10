@@ -280,6 +280,8 @@ async def _run_pipeline(
     gate_dur_start = int((time.perf_counter() - start_perf) * 1000)
     gate_verdict = Verdict.ok
     gate_subsystem: str | None = None
+    browser_dispatches = 0
+    browser_unavailable_hint: dict | None = None
     if body and final_verdict == Verdict.ok:
         await _publish(bus, StageStarted(t_ms=gate_dur_start, step="gate"))
         # Pre-rendered handler results carry application/json bodies; skip the
@@ -314,6 +316,70 @@ async def _run_pipeline(
         )
         if gate_verdict != Verdict.ok:
             final_verdict = gate_verdict
+
+        # Phase 4.2 — browser escalation on gate suggested_tier == "browser"
+        # Cap: 1 browser dispatch per fetch. tls_impersonate is a no-op
+        # (raw already uses curl_cffi).
+        if (
+            gate_result.suggested_tier == "browser"
+            and browser_dispatches < 1
+            and gate_verdict != Verdict.ok
+        ):
+            browser_tier = REGISTRY["browser"]
+            br_start_ms = int((time.perf_counter() - start_perf) * 1000)
+            await _publish(bus, TierStarted(t_ms=br_start_ms, step="browser", host=_host(final_url)))
+            browser_result = await browser_tier.fetch(final_url, state=state)
+            br_dur_ms = int((time.perf_counter() - start_perf) * 1000) - br_start_ms
+            browser_dispatches += 1
+            await _publish(
+                bus,
+                TierEnded(
+                    t_ms=br_start_ms,
+                    step="browser",
+                    engine="camoufox",
+                    verdict=browser_result.verdict,
+                    dur_ms=br_dur_ms,
+                    extra={"status_code": browser_result.status_code},
+                ),
+            )
+            diagnostics.append(
+                Diagnostic(
+                    t_ms=br_start_ms,
+                    step="browser",
+                    engine="camoufox",
+                    host=_host(final_url),
+                    proxy=None,
+                    verdict=browser_result.verdict,
+                    dur_ms=br_dur_ms,
+                    extra={"status_code": browser_result.status_code},
+                )
+            )
+            browser_pre = browser_result.tier_extras.get("pre_rendered")
+            if browser_result.verdict == Verdict.ok and isinstance(browser_pre, dict):
+                content_md = browser_pre.get("content_md", "") or ""
+                title = browser_pre.get("title")
+                byline = browser_pre.get("byline")
+                headings = browser_pre.get("headings", [])
+                body = browser_result.body
+                content_type = browser_result.content_type
+                final_url = browser_result.final_url
+                tier_used = "browser"
+                pre_rendered_payload = browser_pre
+                status_code = browser_result.status_code
+                # Re-gate on browser content; cap=1 prevents loops.
+                regate = evaluate(content_md=content_md, raw_html=content_md, content_type=None)
+                if regate.verdict == Verdict.ok:
+                    final_verdict = Verdict.ok
+                    gate_verdict = Verdict.ok
+                    gate_subsystem = None
+                else:
+                    final_verdict = regate.verdict
+                    gate_verdict = regate.verdict
+                    gate_subsystem = regate.subsystem
+            else:
+                hint = browser_result.tier_extras.get("operator_hint")
+                if isinstance(hint, dict):
+                    browser_unavailable_hint = hint
 
         # Phase 4.25 — playbook escalation (paywall/block_page → archive)
         # Cap: 1 archive dispatch per fetch.
@@ -440,6 +506,14 @@ async def _run_pipeline(
     )
 
     tokens = TokenCounts(full=len(content_md), fit=len(fit_md or "")) if final_verdict == Verdict.ok and content_md else None
+    op_hints: list[OperatorHint] = []
+    if browser_unavailable_hint is not None:
+        op_hints.append(
+            OperatorHint(
+                code=str(browser_unavailable_hint.get("code", "browser_unavailable")),
+                message=str(browser_unavailable_hint.get("message", "")),
+            )
+        )
     return FetchResponse(
         url=final_url,
         status=status,
@@ -459,7 +533,7 @@ async def _run_pipeline(
         headings=headings,
         content_md=content_md,
         fit_md=fit_md,
-        operator_hints=[],
+        operator_hints=op_hints,
     )
 
 
