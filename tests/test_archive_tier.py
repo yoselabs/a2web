@@ -128,3 +128,153 @@ def test_snapshot_age_days_invalid() -> None:
     from a2web.tiers.archive import _snapshot_age_days
 
     assert _snapshot_age_days("not-a-timestamp") is None
+
+
+# --------------------------------------------------------------------- #
+# _wayback_lookup error branches (lines 68-69, 71, 74-75, 82-83, 85)
+# --------------------------------------------------------------------- #
+
+
+def _patch_httpx(monkeypatch: pytest.MonkeyPatch, handler) -> None:  # type: ignore[no-untyped-def]
+    transport = httpx.MockTransport(handler)
+    real_cls = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+
+
+@pytest.mark.asyncio
+async def test_wayback_cdx_http_error_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    from a2web.tiers.archive import _wayback_lookup
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("DNS failure")
+
+    _patch_httpx(monkeypatch, handler)
+    assert await _wayback_lookup("https://example.com/x") is None
+
+
+@pytest.mark.asyncio
+async def test_wayback_cdx_non_200_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    from a2web.tiers.archive import _wayback_lookup
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, text="upstream down")
+
+    _patch_httpx(monkeypatch, handler)
+    assert await _wayback_lookup("https://example.com/x") is None
+
+
+@pytest.mark.asyncio
+async def test_wayback_cdx_invalid_json_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    from a2web.tiers.archive import _wayback_lookup
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="this is not json")
+
+    _patch_httpx(monkeypatch, handler)
+    assert await _wayback_lookup("https://example.com/x") is None
+
+
+@pytest.mark.asyncio
+async def test_wayback_cdx_header_only_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CDX returns header row only when no snapshots exist for the URL."""
+    from a2web.tiers.archive import _wayback_lookup
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        # Just the header row, no data rows.
+        return httpx.Response(200, json=[["timestamp", "original"]])
+
+    _patch_httpx(monkeypatch, handler)
+    assert await _wayback_lookup("https://example.com/x") is None
+
+
+@pytest.mark.asyncio
+async def test_wayback_snapshot_http_error_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CDX succeeds, snapshot fetch raises."""
+    from a2web.tiers.archive import _wayback_lookup
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "cdx" in str(request.url):
+            return httpx.Response(200, json=[["timestamp", "original"], ["20240101000000", "https://example.com/x"]])
+        raise httpx.ConnectError("snapshot host down")
+
+    _patch_httpx(monkeypatch, handler)
+    assert await _wayback_lookup("https://example.com/x") is None
+
+
+@pytest.mark.asyncio
+async def test_wayback_snapshot_non_200_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CDX succeeds, snapshot returns 404."""
+    from a2web.tiers.archive import _wayback_lookup
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "cdx" in str(request.url):
+            return httpx.Response(200, json=[["timestamp", "original"], ["20240101000000", "https://example.com/x"]])
+        return httpx.Response(404, text="not found")
+
+    _patch_httpx(monkeypatch, handler)
+    assert await _wayback_lookup("https://example.com/x") is None
+
+
+# --------------------------------------------------------------------- #
+# _archive_ph_sync (lines 91-102) + _archive_ph_lookup (line 106)
+# --------------------------------------------------------------------- #
+
+
+class _FakeArchiveResp:
+    def __init__(self, *, status_code: int, text: str = "") -> None:
+        self.status_code = status_code
+        self.text = text
+
+
+def test_archive_ph_sync_request_exception_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    from curl_cffi.requests import exceptions as curl_exceptions
+
+    from a2web.tiers.archive import _archive_ph_sync
+
+    def boom(*args: object, **kwargs: object) -> object:
+        raise curl_exceptions.RequestException("connection refused")
+
+    monkeypatch.setattr("a2web.tiers.archive.curl_requests.get", boom)
+    assert _archive_ph_sync("https://example.com/x") is None
+
+
+def test_archive_ph_sync_oserror_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    """OSError is the other branch of the except clause."""
+    from a2web.tiers.archive import _archive_ph_sync
+
+    def boom(*args: object, **kwargs: object) -> object:
+        raise OSError("network unreachable")
+
+    monkeypatch.setattr("a2web.tiers.archive.curl_requests.get", boom)
+    assert _archive_ph_sync("https://example.com/x") is None
+
+
+def test_archive_ph_sync_non_200_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    from a2web.tiers.archive import _archive_ph_sync
+
+    monkeypatch.setattr(
+        "a2web.tiers.archive.curl_requests.get",
+        lambda *a, **kw: _FakeArchiveResp(status_code=503, text="down"),
+    )
+    assert _archive_ph_sync("https://example.com/x") is None
+
+
+def test_archive_ph_sync_200_returns_text(monkeypatch: pytest.MonkeyPatch) -> None:
+    from a2web.tiers.archive import _archive_ph_sync
+
+    monkeypatch.setattr(
+        "a2web.tiers.archive.curl_requests.get",
+        lambda *a, **kw: _FakeArchiveResp(status_code=200, text="<html>archived</html>"),
+    )
+    assert _archive_ph_sync("https://example.com/x") == "<html>archived</html>"
+
+
+@pytest.mark.asyncio
+async def test_archive_ph_lookup_wraps_sync(monkeypatch: pytest.MonkeyPatch) -> None:
+    from a2web.tiers.archive import _archive_ph_lookup
+
+    monkeypatch.setattr(
+        "a2web.tiers.archive.curl_requests.get",
+        lambda *a, **kw: _FakeArchiveResp(status_code=200, text="<html>x</html>"),
+    )
+    assert await _archive_ph_lookup("https://example.com/x") == "<html>x</html>"
