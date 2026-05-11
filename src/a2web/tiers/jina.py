@@ -62,7 +62,7 @@ class JinaTier:
                 content_type="text/markdown",
                 status_code=0,
                 final_url=url,
-                tier_extras={"skipped": True, "reason": "deny-list"},
+                skipped=True,
                 verdict=Verdict.other,
             )
 
@@ -85,7 +85,6 @@ class JinaTier:
                 content_type="text/markdown",
                 status_code=0,
                 final_url=url,
-                tier_extras={"proxy_url": proxy_url} if proxy_url else {},
                 verdict=Verdict.proxy_unavailable,
             )
         except httpx.TimeoutException:
@@ -107,20 +106,15 @@ class JinaTier:
 
         verdict = _verdict_for_status(resp.status_code)
         markdown = resp.text if verdict == Verdict.ok else ""
-        extras: dict[str, object] = {}
-        if verdict == Verdict.ok and markdown:
-            extras["pre_rendered"] = {
-                "content_md": markdown,
-                "title": None,
-                "byline": None,
-                "headings": [],
-            }
+        from . import Rendered  # local — avoid circular
+
+        pre_rendered = Rendered(content_md=markdown) if (verdict == Verdict.ok and markdown) else None
         return TierResult(
             body=markdown.encode("utf-8"),
             content_type="text/markdown",
             status_code=resp.status_code,
             final_url=str(resp.url) or url,
             headers={k.lower(): v for k, v in resp.headers.items()},
-            tier_extras=extras,
+            pre_rendered=pre_rendered,
             verdict=verdict,
         )

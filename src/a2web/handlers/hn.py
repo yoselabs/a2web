@@ -67,6 +67,7 @@ class HNHandler:
             return _empty_result(url, Verdict.content_type_mismatch)
 
         rendered = _render_item(payload)
+        from ..tiers import Rendered
 
         return TierResult(
             body=response.content,
@@ -74,7 +75,7 @@ class HNHandler:
             status_code=response.status_code,
             final_url=url,
             headers=dict(response.headers),
-            tier_extras={"pre_rendered": rendered},
+            pre_rendered=Rendered.from_dict(rendered),
             verdict=Verdict.ok,
         )
 

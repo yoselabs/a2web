@@ -115,7 +115,6 @@ class RawTier:
                             content_type="",
                             status_code=0,
                             final_url=url,
-                            tier_extras={"proxy_url": proxy_url},
                             verdict=Verdict.proxy_unavailable,
                         )
                     return TierResult(
@@ -137,7 +136,7 @@ class RawTier:
                     status_code=304,
                     final_url=str(response.url),
                     headers=response_headers,
-                    tier_extras={"conditional_hit": True},
+                    conditional_hit=True,
                     verdict=Verdict.ok,
                 )
 

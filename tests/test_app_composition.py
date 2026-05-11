@@ -12,10 +12,11 @@ from a2web.server import app, main
 from a2web.state import AppState
 
 
-def test_web_router_registers_one_tool() -> None:
-    """`WebRouter.fetch` is the sole tool."""
+def test_web_router_registers_fetch_tool() -> None:
+    """`WebRouter.fetch` is the sole user-facing tool (plus a2kit's _meta.health)."""
     names = {tool.__name__ for tool in app.tools()}
-    assert names == {"fetch"}
+    # _meta.health (aggregated_health) is auto-registered when health_tool=True
+    assert "fetch" in names
 
 
 def test_app_has_no_connections_subcommand() -> None:
@@ -24,9 +25,9 @@ def test_app_has_no_connections_subcommand() -> None:
     assert all(getattr(extra, "name", "") != "connections" for extra in extras)
 
 
-def test_server_app_has_appstate_provider() -> None:
-    """Server composition registers AppState via `register_state`."""
-    assert app.has_provider(AppState) is True
+def test_server_app_has_appstate_singleton() -> None:
+    """Server composition registers AppState via `app.singleton`."""
+    assert app.has_singleton(AppState) is True
 
 
 def test_main_entrypoint_exists_and_callable() -> None:

@@ -85,13 +85,15 @@ class ArxivHandler:
             return _empty_result(url, Verdict.not_found)
 
         rendered = _render_entry(entry)
+        from ..tiers import Rendered
+
         return TierResult(
             body=response.content,
             content_type="application/atom+xml",
             status_code=response.status_code,
             final_url=url,
             headers=dict(response.headers),
-            tier_extras={"pre_rendered": rendered},
+            pre_rendered=Rendered.from_dict(rendered),
             verdict=Verdict.ok,
         )
 

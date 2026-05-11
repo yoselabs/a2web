@@ -6,13 +6,12 @@ import httpx
 import pytest
 
 from a2web.models import Verdict
-from a2web.settings import AppSettings
-from a2web.state import AppState
+from a2web.state import AppState, build_state
 from a2web.tiers.archive import ArchiveTier
 
 
 def _state() -> AppState:
-    return AppState(settings=AppSettings())
+    return build_state()
 
 
 @pytest.fixture(autouse=True)
@@ -52,15 +51,16 @@ async def test_wayback_hit(monkeypatch: pytest.MonkeyPatch) -> None:
     result = await ArchiveTier().fetch("https://x.com/", state=_state())
 
     assert result.verdict == Verdict.ok
-    assert result.tier_extras["from_archive"] is True
-    assert result.tier_extras["source"] == "wayback"
-    assert "snapshot_age_days" in result.tier_extras
-    assert "Snap" in result.tier_extras["pre_rendered"]["content_md"]
+    assert result.from_archive is True
+    assert result.archive_source == "wayback"
+    assert result.snapshot_age_days is not None
+    assert "Snap" in result.pre_rendered.content_md
 
 
 @pytest.mark.asyncio
 async def test_archive_ph_hit(monkeypatch: pytest.MonkeyPatch) -> None:
     """archive.ph wins over an empty Wayback."""
+
     def httpx_handler(request: httpx.Request) -> httpx.Response:
         if "cdx/search" in request.url.path:
             return httpx.Response(200, json=[["timestamp", "original"]])  # no rows
@@ -79,8 +79,8 @@ async def test_archive_ph_hit(monkeypatch: pytest.MonkeyPatch) -> None:
     result = await ArchiveTier().fetch("https://x.com/", state=_state())
 
     assert result.verdict == Verdict.ok
-    assert result.tier_extras["source"] == "archive.ph"
-    assert "Mirror" in result.tier_extras["pre_rendered"]["content_md"]
+    assert result.archive_source == "archive.ph"
+    assert "Mirror" in result.pre_rendered.content_md
 
 
 @pytest.mark.asyncio
@@ -103,8 +103,8 @@ async def test_both_miss(monkeypatch: pytest.MonkeyPatch) -> None:
     result = await ArchiveTier().fetch("https://x.com/", state=_state())
 
     assert result.verdict == Verdict.not_found
-    assert result.tier_extras["from_archive"] is True
-    assert "pre_rendered" not in result.tier_extras
+    assert result.from_archive is True
+    assert result.pre_rendered is None
 
 
 def test_strip_wayback_chrome_removes_div() -> None:

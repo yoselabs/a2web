@@ -31,6 +31,7 @@ class _Winner:
     html: str
     timestamp: str | None = None
 
+
 if TYPE_CHECKING:
     from ..state import AppState
     from . import TierResult
@@ -163,33 +164,27 @@ class ArchiveTier:
                 content_type="text/html",
                 status_code=404,
                 final_url=url,
-                tier_extras={"from_archive": True},
+                from_archive=True,
                 verdict=Verdict.not_found,
             )
 
         cleaned = _strip_wayback_chrome(winner.html) if winner.source == "wayback" else winner.html
         markdown = _to_markdown(cleaned, url)
 
-        extras: dict[str, object] = {
-            "from_archive": True,
-            "source": winner.source,
-            "pre_rendered": {
-                "content_md": markdown,
-                "title": None,
-                "byline": None,
-                "headings": [],
-            },
-        }
+        from . import Rendered  # local — avoid circular
+
+        snapshot_age_days: int | None = None
         if winner.source == "wayback" and winner.timestamp:
-            age = _snapshot_age_days(winner.timestamp)
-            if age is not None:
-                extras["snapshot_age_days"] = age
+            snapshot_age_days = _snapshot_age_days(winner.timestamp)
 
         return TierResult(
             body=cleaned.encode("utf-8"),
             content_type="text/html",
             status_code=200,
             final_url=url,
-            tier_extras=extras,
+            from_archive=True,
+            archive_source=winner.source,
+            snapshot_age_days=snapshot_age_days,
+            pre_rendered=Rendered(content_md=markdown),
             verdict=Verdict.ok if markdown else Verdict.length_floor,
         )

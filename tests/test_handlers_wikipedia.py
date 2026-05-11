@@ -10,14 +10,13 @@ import pytest
 
 from a2web.handlers import WikipediaHandler, match_handler
 from a2web.models import Verdict
-from a2web.settings import AppSettings
-from a2web.state import AppState
+from a2web.state import AppState, build_state
 
 _FIX = Path(__file__).parent / "fixtures"
 
 
 def _state() -> AppState:
-    return AppState(settings=AppSettings())
+    return build_state()
 
 
 def test_match_handler_returns_wikipedia() -> None:
@@ -53,9 +52,9 @@ async def test_wikipedia_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.verdict == Verdict.ok
     assert "/api/rest_v1/page/html/Octopus" in captured["url"]
     assert "en.wikipedia.org" in captured["url"]
-    pre = result.tier_extras["pre_rendered"]
-    assert pre["title"] == "Octopus"
-    assert "octopus" in pre["content_md"].lower()
+    pre = result.pre_rendered
+    assert pre.title == "Octopus"
+    assert "octopus" in pre.content_md.lower()
 
 
 @pytest.mark.asyncio

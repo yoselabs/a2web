@@ -87,6 +87,7 @@ class OperatorHint(BaseModel):
 
     code: str
     message: str
+    fix: str | None = None
 
 
 class TokenCounts(BaseModel):

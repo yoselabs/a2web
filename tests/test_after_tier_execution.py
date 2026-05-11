@@ -3,22 +3,15 @@
 from __future__ import annotations
 
 import pytest
-from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.fetcher import fetch
-from a2web.log.writer import LogWriter
 from a2web.models import FetchStatus, Verdict
-from a2web.settings import AppSettings
-from a2web.state import AppState
-from a2web.tiers import REGISTRY, TIER_ORDER, TierResult
+from a2web.state import AppState, build_state
+from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult
 
 
 def _make_state() -> AppState:
-    return AppState(
-        settings=AppSettings(),
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        log_writer=LogWriter(disabled=True),
-    )
+    return build_state()
 
 
 class _CountingRawTier:
@@ -54,6 +47,7 @@ async def test_arxiv_pdf_rewritten_to_abs(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
     # Disable arxiv handler so the rewritten /abs/ URL falls through to raw.
     from a2web.handlers import _HANDLERS, ArxivHandler
+
     filtered = tuple(h for h in _HANDLERS if not isinstance(h, ArxivHandler))
     monkeypatch.setattr("a2web.handlers._HANDLERS", filtered)
 
@@ -73,6 +67,7 @@ async def test_rewrite_capped_at_one(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(REGISTRY, "raw", raw)
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
     from a2web.handlers import _HANDLERS, ArxivHandler
+
     filtered = tuple(h for h in _HANDLERS if not isinstance(h, ArxivHandler))
     monkeypatch.setattr("a2web.handlers._HANDLERS", filtered)
 
@@ -107,16 +102,9 @@ class _RecoveringArchiveTier:
             content_type="text/html",
             status_code=200,
             final_url=url,
-            tier_extras={
-                "from_archive": True,
-                "source": "wayback",
-                "pre_rendered": {
-                    "content_md": markdown,
-                    "title": "Recovered",
-                    "byline": None,
-                    "headings": [],
-                },
-            },
+            from_archive=True,
+            archive_source="wayback",
+            pre_rendered=Rendered(content_md=markdown, title="Recovered"),
             verdict=Verdict.ok,
         )
 

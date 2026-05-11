@@ -6,6 +6,63 @@ All notable changes to **a2web** are recorded here. The format follows
 
 > First tagged release; entries summarize the full PR1–PR10 build.
 
+## [0.2.0] - 2026-05-11
+
+### Changed (internal architecture; wire surface unchanged)
+
+- Migrated to a2kit v0.26: imperative `App` composition (no fluent
+  builder chain), typed `app.singleton(T, factory=...)` DI,
+  `@app.on_startup` / `@app.on_shutdown` / `@app.health_check`
+  decorators replace the bespoke lazy+`atexit` lifecycle pattern.
+- Typed LDD event registry — emit via `a2kit.ldd.event(PayloadType(...))`
+  / `a2kit.ldd.report(...)` from anywhere in the pipeline; subscribe
+  external consumers (OTel exporter, etc.) via `app.ldd.add_sink(...)`.
+  The custom `anyio.MemoryObjectStream` fan-out bus and
+  `mcp_progress_sink` helper are removed; `events/sinks.py` shrinks to
+  the OTel forwarder.
+- `TierResult` is now a typed `dataclass(slots=True)` with named fields
+  (`pre_rendered: Rendered`, `from_archive`, `from_browser`,
+  `js_executed`, `browser_wall_ms`, `browser_bytes`,
+  `snapshot_age_days`, `operator_hint`, `no_match`, `skipped`,
+  `handler_name`, `conditional_hit`, `archive_source`). The
+  `tier_extras: dict[str, Any]` bag is removed across all call sites.
+- Orchestrator (`fetcher.py`) split into a 12-line `_run_pipeline`
+  coordinator + six named phase functions (`_phase_cache_check`,
+  `_phase_tier_loop`, `_phase_extract`, `_phase_gate_and_escalate`,
+  `_phase_cache_write`) with a single `FetchContext`
+  `dataclass(slots=True)` threading state instead of 20+ locals.
+- Tests use a2kit's in-process client (`a2kit.testing.client(app)` +
+  `a2kit.testing.peek`) instead of the prior `bootstrap_state_for_test`
+  / `teardown_state_for_test` helpers.
+
+### Added
+
+- Architecture retrospective at
+  `openspec/changes/archive/2026-05-11-migrate-to-a2kit-v026-and-simplify/retrospective.md`
+  capturing the four OSS swaps researched-but-deferred (hishel,
+  aiometer, purgatory-for-proxy, stdlib-RotatingFileHandler) and the
+  lesson: hand-rolled async tends to beat sync-wrapped stdlib even when
+  the library nominally covers the use case.
+
+### Removed
+
+- `htmldate` dependency — `trafilatura.extract_metadata()` now returns
+  the published date alongside title/author in one call.
+- `src/a2web/extract/pruning_filter.py` (in-tree block-density `fit_md`
+  builder) — the `FetchResponse.fit_md` field remains for forward-compat
+  but is now always `None` until a replacement ships in v0.3.
+- `src/a2web/events/bus.py`, the `mcp_progress_sink` helper, and the
+  `bootstrap_state_for_test` / `teardown_state_for_test` test helpers —
+  all superseded by a2kit v0.26 surface.
+
+### Deferred (see `BACKLOG.md`)
+
+- Phase D workspace packaging (proxy-pool, browser-pool, block-detector).
+  All three are sensible extraction candidates but no external reuse
+  signal yet justifies the mechanical cost.
+- Four OSS swaps (above) — each documented with the specific
+  API/semantic mismatch that killed it.
+
 ## [0.1.0] - 2026-05-10
 
 ### Added

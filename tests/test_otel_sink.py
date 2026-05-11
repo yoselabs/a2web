@@ -1,97 +1,66 @@
-"""OTel sink tests — span emission, lazy import drain."""
+"""otel_sink unit tests — feed synthetic LddEmission, assert span behavior."""
 
 from __future__ import annotations
 
-import sys
 from typing import Any
+from unittest.mock import MagicMock
 
-import anyio
 import pytest
 
-from a2web.events import EventBus, otel_sink
-from a2web.events.types import StageEnded, StageStarted, TierEnded, TierStarted
-from a2web.models import Verdict
+from a2web.events import otel_sink
 
 
-class _FakeSpan:
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.attrs: dict[str, Any] = {}
-        self.ended = False
-
-    def set_attribute(self, key: str, value: Any) -> None:
-        self.attrs[key] = value
-
-    def end(self) -> None:
-        self.ended = True
-
-
-class _FakeTracer:
-    def __init__(self) -> None:
-        self.spans: list[_FakeSpan] = []
-
-    def start_span(self, name: str) -> _FakeSpan:
-        span = _FakeSpan(name)
-        self.spans.append(span)
-        return span
+def _make_emission(name: str, payload: dict[str, Any]) -> Any:
+    """Build a duck-typed LddEmission with the fields otel_sink reads."""
+    e = MagicMock()
+    e.name = name
+    e.payload = payload
+    return e
 
 
 @pytest.mark.asyncio
-async def test_otel_sink_emits_span_per_end_event(monkeypatch: pytest.MonkeyPatch) -> None:
-    tracer = _FakeTracer()
-    monkeypatch.setattr("a2web.events.sinks._load_tracer", lambda: tracer)
+async def test_ended_event_creates_span(monkeypatch: pytest.MonkeyPatch) -> None:
+    span = MagicMock()
+    tracer = MagicMock()
+    tracer.start_span.return_value = span
+    monkeypatch.setattr("a2web.events.sinks._TRACER", tracer)
 
-    bus = EventBus()
-    recv = bus.subscribe()
+    emission = _make_emission("TierEnded", {"step": "raw", "verdict": "ok", "dur_ms": 420, "t_ms": 0})
+    await otel_sink(emission)
 
-    async with anyio.create_task_group() as tg:
-        tg.start_soon(otel_sink, recv)
-        await bus.publish(TierStarted(t_ms=0, step="raw", host="example.com"))
-        await bus.publish(TierEnded(t_ms=10, step="raw", engine="curl_cffi", verdict=Verdict.ok, dur_ms=10))
-        await bus.publish(StageStarted(t_ms=15, step="extract"))
-        await bus.publish(StageEnded(t_ms=20, step="extract", verdict=Verdict.ok, dur_ms=5))
-        await bus.aclose()
-
-    assert [s.name for s in tracer.spans] == ["a2web.raw", "a2web.extract"]
-    assert tracer.spans[0].attrs == {
-        "a2web.step": "raw",
-        "a2web.verdict": "ok",
-        "a2web.dur_ms": 10,
-        "a2web.t_ms": 10,
-    }
-    assert all(s.ended for s in tracer.spans)
+    tracer.start_span.assert_called_once_with("a2web.raw")
+    span.set_attribute.assert_any_call("a2web.step", "raw")
+    span.set_attribute.assert_any_call("a2web.verdict", "ok")
+    span.set_attribute.assert_any_call("a2web.dur_ms", 420)
+    span.set_attribute.assert_any_call("a2web.t_ms", 0)
+    span.end.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_otel_sink_drains_when_sdk_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    """When `_load_tracer` returns None, sink consumes the stream silently."""
-    monkeypatch.setattr("a2web.events.sinks._load_tracer", lambda: None)
+async def test_started_event_does_not_create_span(monkeypatch: pytest.MonkeyPatch) -> None:
+    tracer = MagicMock()
+    monkeypatch.setattr("a2web.events.sinks._TRACER", tracer)
 
-    bus = EventBus()
-    recv = bus.subscribe()
+    emission = _make_emission("TierStarted", {"step": "raw", "t_ms": 0})
+    await otel_sink(emission)
 
-    async with anyio.create_task_group() as tg:
-        tg.start_soon(otel_sink, recv)
-        await bus.publish(TierEnded(t_ms=0, step="raw", engine="curl_cffi", verdict=Verdict.ok, dur_ms=10))
-        await bus.aclose()
+    tracer.start_span.assert_not_called()
 
 
-def test_load_tracer_returns_none_when_module_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Force ImportError on `from opentelemetry import trace` and ensure None."""
-    real_import = __builtins__["__import__"] if isinstance(__builtins__, dict) else __builtins__.__import__
+@pytest.mark.asyncio
+async def test_heartbeat_does_not_create_span(monkeypatch: pytest.MonkeyPatch) -> None:
+    tracer = MagicMock()
+    monkeypatch.setattr("a2web.events.sinks._TRACER", tracer)
 
-    def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "opentelemetry" or name.startswith("opentelemetry."):
-            raise ImportError("forced")
-        return real_import(name, *args, **kwargs)
+    emission = _make_emission("TierHeartbeat", {"step": "browser", "elapsed_in_tier_ms": 2000, "t_ms": 2000})
+    await otel_sink(emission)
 
-    # Pop cached module so the import inside _load_tracer re-runs.
-    for mod in list(sys.modules):
-        if mod == "opentelemetry" or mod.startswith("opentelemetry."):
-            monkeypatch.delitem(sys.modules, mod, raising=False)
+    tracer.start_span.assert_not_called()
 
-    monkeypatch.setattr("builtins.__import__", fake_import)
 
-    from a2web.events.sinks import _load_tracer
+@pytest.mark.asyncio
+async def test_no_tracer_drains_silently(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("a2web.events.sinks._TRACER", None)
 
-    assert _load_tracer() is None
+    emission = _make_emission("TierEnded", {"step": "raw", "verdict": "ok", "dur_ms": 1, "t_ms": 0})
+    await otel_sink(emission)  # no exception, returns None

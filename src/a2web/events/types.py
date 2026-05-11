@@ -1,4 +1,9 @@
-"""Phase-boundary events emitted by the fetch orchestrator."""
+"""Phase-boundary events emitted by the fetch orchestrator.
+
+These types are registered on `app.ldd.events` in `server.py` so a2kit can
+route them through the typed-emit path. Sinks (OTel + the wire bridge that
+a2kit owns) receive them as `LddEmission` payloads.
+"""
 
 from __future__ import annotations
 
@@ -41,4 +46,20 @@ class StageEnded:
     extra: dict[str, str | int] = field(default_factory=dict)
 
 
-Event = TierStarted | TierEnded | StageStarted | StageEnded
+@dataclass(slots=True)
+class TierHeartbeat:
+    """Mid-tier liveness pulse from inside slow tiers (browser, archive).
+
+    Browser tier emits every 2s during page-load wait. Archive tier emits per
+    hedged-request boundary. Closes the "silent until timeout" diagnostic
+    blind spot — both OTel and humans see "still alive at 22s, 24s..." when
+    a tier is taking its time.
+    """
+
+    t_ms: int
+    step: str  # "browser" | "archive"
+    elapsed_in_tier_ms: int
+    detail: dict[str, str] = field(default_factory=dict)
+
+
+Event = TierStarted | TierEnded | StageStarted | StageEnded | TierHeartbeat

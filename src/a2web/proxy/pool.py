@@ -84,6 +84,7 @@ class ProxyPool:
             if entry is None:
                 continue
             from .policy import _resolve_env  # type: ignore[attr-defined]
+
             chain.append((fb_id, _resolve_env(entry.url)))
 
         now = time.monotonic()

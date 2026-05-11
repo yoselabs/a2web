@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from a2web.models import Verdict
+from a2web.models import OperatorHint, Verdict
 from a2web.tiers import REGISTRY, TierResult
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ class _NotFoundArchiveTier:
             content_type="text/html",
             status_code=404,
             final_url=url,
-            tier_extras={"from_archive": True},
+            from_archive=True,
             verdict=Verdict.not_found,
         )
 
@@ -48,14 +48,8 @@ class _UnavailableBrowserTier:
             content_type="text/html",
             status_code=0,
             final_url=url,
-            tier_extras={
-                "from_browser": True,
-                "operator_hint": {
-                    "code": "browser_unavailable",
-                    "message": "test stub",
-                    "fix": "n/a",
-                },
-            },
+            from_browser=True,
+            operator_hint=OperatorHint(code="browser_unavailable", message="test stub", fix="n/a"),
             verdict=Verdict.connection_error,
         )
 

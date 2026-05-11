@@ -8,8 +8,8 @@ resolution-markers = [
 
 [[package]]
 name = "a2kit"
-version = "0.23.0"
-source = { git = "https://github.com/yoselabs/a2kit.git?tag=v0.23.0#ddcef3f138b47659348ee573470788e1ed678efb" }
+version = "0.26.0"
+source = { git = "https://github.com/yoselabs/a2kit.git?tag=v0.26.0#9472247a479d4762d5b01f3819a47cfdbd4a9794" }
 dependencies = [
     { name = "anyio" },
     { name = "cel-python" },
@@ -30,7 +30,6 @@ dependencies = [
     { name = "aiosqlite" },
     { name = "anyio" },
     { name = "curl-cffi" },
-    { name = "htmldate" },
     { name = "httpx" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
@@ -64,14 +63,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "a2kit", git = "https://github.com/yoselabs/a2kit.git?tag=v0.23.0" },
+    { name = "a2kit", git = "https://github.com/yoselabs/a2kit.git?tag=v0.26.0" },
     { name = "aiofiles", specifier = ">=25.1.0" },
     { name = "aiosqlite", specifier = ">=0.20,<1" },
     { name = "anyio", specifier = ">=4,<5" },
     { name = "camoufox", marker = "extra == 'browser'", specifier = ">=0.4,<1" },
     { name = "curl-cffi", specifier = ">=0.7,<1" },
     { name = "firecrawl-py", marker = "extra == 'paid'", specifier = ">=1,<2" },
-    { name = "htmldate", specifier = ">=1.8,<2" },
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "opentelemetry-api", specifier = ">=1.25,<2" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.25,<2" },

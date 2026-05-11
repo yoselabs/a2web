@@ -82,11 +82,7 @@ def evaluate(
         if pattern.search(raw_html):
             return GateResult(Verdict.block_page_detected)
 
-    if (
-        _NOSCRIPT_SHELL_MARKER.search(raw_html)
-        and len(content_md) < LENGTH_FLOOR
-        and len(_SCRIPT_TAG_RE.findall(raw_html)) >= 3
-    ):
+    if _NOSCRIPT_SHELL_MARKER.search(raw_html) and len(content_md) < LENGTH_FLOOR and len(_SCRIPT_TAG_RE.findall(raw_html)) >= 3:
         return GateResult(Verdict.length_floor, subsystem="js_required", suggested_tier="browser")
 
     if len(content_md) < LENGTH_FLOOR:

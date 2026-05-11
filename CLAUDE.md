@@ -1,69 +1,77 @@
 # a2web — Agent-to-Web
 
-CLI and MCP server for AI agents to fetch web content adaptively. Built on `a2kit` (which handles MCP, CLI, DI, ConnectionStore, formatter, LDD, schema, testing).
+CLI and MCP server for AI agents to fetch web content adaptively. Built on `a2kit` v0.26+ (which handles MCP, CLI, DI, lifecycle, formatter, LDD typed events, schema discovery, in-process testing).
 
-Design lives in `~/Documents/Knowledge/Projects/120-a2web/`. Read `handover.md` first.
+Design lives in `~/Documents/Knowledge/Projects/120-a2web/`. Read `handover.md` first. Migration story for v0.2 lives in `openspec/changes/archive/2026-05-11-migrate-to-a2kit-v026-and-simplify/` and `docs/history/A2KIT_FEEDBACK.md`.
 
-## Architecture (a2kit-mediated)
+## Architecture (a2kit v0.26 mediated)
 
-a2kit owns: `App`, `Router`, `ToolContext` (4-channel logging/progress/events/reports), formatter (TOON), schema discovery, MCP server build, CLI build, testing fixtures, LDD kill-switches, lint. a2web does NOT use `connections_cli` / `ConnectionConfig` — see `settings.py` below.
+a2kit owns: `App`, `Router`, `ToolContext`, `app.singleton(T, factory=...)`, `@app.on_startup` / `@app.on_shutdown` / `@app.health_check`, `app.ldd.events.register(T)` + `a2kit.ldd.event(...)` / `a2kit.ldd.report(...)` free-function emit, `app.ldd.add_sink(sink)`, in-process `a2kit.testing.client(app)` + `a2kit.testing.peek`, formatter (type-driven JSON/TSV/page-tsv routing), `a2kit.Param` for arg metadata, MCP server build, CLI build, lint.
 
-a2web owns the web-fetching domain:
+a2web owns the web-fetching domain. Composition is **imperative** (per a2kit v0.26 README) — no fluent builder chain:
 
-- `src/a2web/settings.py` — `AppSettings(BaseSettings)` loaded from env (`A2WEB_*`) + optional YAML at `$A2WEB_CONFIG` or `~/.a2web/config.yaml`. Holds proxy pool, route rules, default UA, stealth toggle, diagnostics default, cache TTLs, `jina_key` (env-only secret). No paid-tier keys in v0.1.
-- `src/a2web/server.py` — `a2kit.App` composition; `main()`. No connections CLI.
-- `src/a2web/routers.py` — `WebRouter` (single tool: `fetch(url)`). CLI surface: `a2web web fetch --url=...`.
-- `src/a2web/state.py` — `AppState` `@dataclass(slots=True)`: settings + typed `Optional` placeholders for sqlite, log_writer, proxy_pool, breakers, browser_pool. Per-App singleton via `register_state(app, *, settings=None)` closure (NOT process-wide `lru_cache` — would break the two-App canary). Tools resolve via `state: AppState` kwarg. PR7a: sqlite is opened **lazily** by `ensure_sqlite(state)` on first fetch under an `asyncio.Lock`, cached on `state.sqlite`, closed by an `atexit` hook on a fresh loop. a2kit v0.23 has no lifespan hook to forward FastMCP's `lifespan=`, so this lazy+atexit pattern owns the lifecycle for both CLI and MCP entry paths. Tests use `bootstrap_state_for_test()` / `teardown_state_for_test()`.
-- `src/a2web/models.py` — `FetchResponse`, `Diagnostic`, `Verdict` (closed enum), `Heading`, `Link`, `OperatorHint`, `TokenCounts`. All at module scope (a2kit antipattern #2). pydantic at boundaries; `dataclass(slots=True)` internally for the pipeline.
-- `src/a2web/fetcher.py` — orchestrator (`select_next` policy + lifecycle loop, ≤400 lines)
-- `src/a2web/tiers/` — Strategy + Registry: `raw.py` (curl_cffi), `jina.py` (PR7a, r.jina.ai reader, bearer-optional, deny-list short-circuit), `archive.py` (PR7b, Wayback CDX + archive.ph hedged via anyio task group, Wayback chrome stripped before trafilatura), `browser.py` (PR7c, Camoufox lazy via `BrowserPool`, page-per-fetch, persistent per-host context, 30s page budget), `paid.py` (Firecrawl env-gated). `TIER_ORDER = ("site_handler", "raw", "jina")`; archive **and** browser are in REGISTRY but **not** in TIER_ORDER — orchestrator dispatches them out-of-band (archive on playbook `RetryViaArchive`; browser on gate `suggested_tier == "browser"`, capped at 1 dispatch/fetch). Archive results carry `tier_extras["from_archive"]=True`, skip cache write, and may carry `snapshot_age_days`. Browser results carry `tier_extras["from_browser"]=True` + `js_executed=True` + `browser_wall_ms`/`browser_bytes`; **cache normally** (live page, unlike archive). Camoufox is an optional dep group `[browser]`; missing → graceful `connection_error` + `operator_hints[code=browser_unavailable]`, never a crash.
-- `src/a2web/handlers/` — site-specific tier-0 (Handler protocol = Tier + `matches(url)`). PR5 shipped `reddit.py` (`.json?limit=500`), `hn.py` (Algolia). PR8 adds `arxiv.py` (export.arxiv.org Atom), `wikipedia.py` (REST `page/html/<title>` + trafilatura), `github.py` (REST API for repo/issue/pull; optional `A2WEB_GITHUB_TOKEN` raises rate limit 60→5000/hr). PR8 deferred: `youtube.py` (needs browser tier or `yt-dlp` opt-in), `substack.py` (auto-detection complexity; trafilatura already handles articles), `twitter.py` (auth-gated, no clean v0.1 path). The `SiteHandlerTier` dispatcher sits at `tiers/site_handler.py`. Handlers populate `tier_extras["pre_rendered"] = {content_md, title, byline, headings}` so the orchestrator skips trafilatura/htmldate/metadata; the gate still runs on the rendered markdown. No-match URLs return `tier_extras["no_match"]=True` and are skipped silently (no diagnostic row).
-- `src/a2web/extract/` — `trafilatura_ext.py`, `htmldate_ext.py`, `metadata.py` (OG/JSON-LD), `pruning_filter.py` (fit_md, in-tree block-density algorithm — no crawl4ai dep). Sync; pipeline wrapped in `asyncio.to_thread` once.
-- `src/a2web/events/` — diagnostic event bus (anyio MemoryObjectStream fan-out). One producer (orchestrator), pluggable sinks. PR6 ships `mcp_progress_sink` (forwards events as `ctx.event` + `ctx.report_progress`); PR7a adds `otel_sink` (lazy-imports `opentelemetry.trace`, emits one span per `*Ended` event, drains stream silently when SDK absent). The bus is opt-in via `fetcher.fetch(url, *, state, bus=...)`; without one, behavior is unchanged.
-- `src/a2web/gate/` — `block_detector.py` (closed-enum verdicts + `suggested_tier` hint), `quality_score.py`. Pure functions, unit-testable without I/O. PR7c: `GateResult.suggested_tier` carries `"browser"` (anubis/turnstile/akamai_bmp/js_required) or `"tls_impersonate"` (cf_iuam) per engineering.md §2 signal table; orchestrator (not gate) acts on it.
-- `src/a2web/cache/` — `sqlite_cache.py` (etag/last-modified, content-hash dedup, conditional GET).
-- `src/a2web/proxy/` — PR7d: `policy.py` (pure `resolve_route(host, tier, settings)` → `ResolvedRoute`; first-match-wins, host glob, tier match, AND-composition, `${ENV_VAR}` resolution, explicit `direct`, default-direct fallthrough); `pool.py` (`ProxyPool` with health states alive/quarantined/dead, 3-failure→600s quarantine, `acquire(host, tier)` walks primary+fallback chain, `report(handle, success, ms)`). Lazy via `state.ensure_proxy_pool`. Health is in-memory only (PR7e adds disk persistence + background health-check). No CLI yet (PR7e+). Browser/archive proxy plumbing deferred to PR7e.
-- `src/a2web/browser/` — PR7c: `BrowserPool` (Camoufox via playwright async API). Lazy: `state.ensure_browser_pool` opens it under an `asyncio.Lock` on first dispatch; atexit hook closes on a fresh loop (mirrors PR7a sqlite). Persistent contexts keyed by host (cookie jar warm same-host); page-per-fetch (1:1 to avoid state leak); LRU eviction at `browser_max_pool` (default 4); idle eviction at `browser_idle_timeout_s` (default 300s); fire-and-forget eviction tasks tracked in `_eviction_tasks` set so they aren't GC'd mid-close. Settings: `browser_enabled`, `browser_max_pool`, `browser_idle_timeout_s`, `browser_page_budget_s`.
-- `src/a2web/actions/` — `playbook.py` (PR7b, autonomous-action table: paywall→archive, block-page→archive, cloudflare-403→archive, arxiv-pdf→abs). Pure deterministic functions: `next_action_after_gate`, `next_action_after_tier`. PR7d closes the after-tier no-op: `RewriteUrl` (cap 1; restarts the tier loop with the new URL, anti-loop) and after-tier `RetryViaArchive` (shares `archive_dispatches` cap of 1 with after-gate — they're mutually exclusive paths to the same archive recovery). Per-fetch counters: `url_rewrites`, `archive_dispatches`, `browser_dispatches`.
-- `src/a2web/log/` — NDJSON request log with size-based rotation + gzip on rollover. One record per fetch. Lazy-open writer, best-effort writes (failures append `operator_hints[code=log_write_failed]`, never propagate). No bundled CLI: use `tail`, `grep`, `jq` directly against the NDJSON files. Replay-from-cache (`a2web fetch --replay <ts>`) is deferred — see `BACKLOG.md` (PR10b).
+- `src/a2web/settings.py` — `AppSettings(BaseSettings)` from env (`A2WEB_*`) + optional YAML at `$A2WEB_CONFIG` or `~/.a2web/config.yaml`. Holds proxy pool, route rules, default UA, stealth toggle, diagnostics default, cache TTLs, `jina_key` (env-only secret). `${ENV_VAR}` references inside YAML resolve at load time.
+- `src/a2web/server.py` — imperative `a2kit.App` composition; registers `AppState` singleton, typed event payloads, OTel sink; `@app.on_startup` opens sqlite, `@app.on_shutdown` closes sqlite + browser pool, `@app.health_check` probes both. `main()` dispatches to MCP/CLI.
+- `src/a2web/routers.py` — `WebRouter` exposes one tool `fetch(url)` via `@a2kit.read(idempotent=True, open_world=True, ...)`. CLI surface: `a2web web fetch --url=...`. Tool args use `Annotated[str, a2kit.Param(description=...)]`.
+- `src/a2web/state.py` — `AppState` `@dataclass(slots=True)` with **typed (non-Optional) fields** for settings/breakers/log_writer/proxy_pool created in `build_state()`; `sqlite` and `browser_pool` remain Optional because they need an event loop (assigned by the startup hook / first browser dispatch). `build_state()` is the factory used by `app.singleton(...)` AND by tests (`bootstrap_state_for_test` is gone — tests just call `build_state()`).
+- `src/a2web/models.py` — `FetchResponse`, `Diagnostic`, `Verdict`, `Heading`, `Link`, `OperatorHint`, `TokenCounts`. All at module scope (a2kit antipattern #2). pydantic at boundaries; `dataclass(slots=True)` internally.
+- `src/a2web/fetcher.py` — orchestrator. `_run_pipeline` is a 12-line coordinator calling six named phases: `_phase_cache_check`, `_phase_tier_loop`, `_phase_extract`, `_phase_gate_and_escalate` (which calls `_escalate_browser` / `_dispatch_archive`), `_phase_cache_write`. State flows through a single `FetchContext` `dataclass(slots=True)` instead of 20+ parameters.
+- `src/a2web/tiers/` — Strategy + Registry. `raw.py` (curl_cffi), `jina.py` (r.jina.ai reader), `archive.py` (Wayback CDX + archive.ph hedged via anyio task group), `browser.py` (Camoufox via `BrowserPool`), `paid.py` (Firecrawl env-gated). `TIER_ORDER = ("site_handler", "raw", "jina")`; archive + browser are in REGISTRY but **not** in TIER_ORDER — orchestrator dispatches them out-of-band (archive on playbook `RetryViaArchive`; browser on gate `suggested_tier == "browser"`, capped at 1/fetch). **`TierResult` is a typed dataclass with named fields** (`pre_rendered: Rendered | None`, `from_archive`, `from_browser`, `js_executed`, `browser_wall_ms`, `browser_bytes`, `snapshot_age_days`, `operator_hint`, `no_match`, `skipped`, `handler_name`, `conditional_hit`, `archive_source`) — the `tier_extras: dict[str, Any]` bag is gone.
+- `src/a2web/handlers/` — site-specific tier-0 (Handler protocol = Tier + `matches(url)`). `reddit.py`, `hn.py`, `arxiv.py`, `wikipedia.py`, `github.py` (optional `A2WEB_GITHUB_TOKEN` raises rate limit 60→5000/hr). Handlers populate `TierResult.pre_rendered: Rendered` (typed: `content_md`, `title`, `byline`, `headings`) so the orchestrator skips trafilatura/metadata; gate still runs. No-match URLs return `TierResult(no_match=True)` and are skipped silently.
+- `src/a2web/extract/` — `trafilatura_ext.py` (returns content + title + author + published date in one call via `trafilatura.extract` + `extract_metadata` — `htmldate_ext.py` is gone), `metadata.py` (OG/JSON-LD). `pruning_filter.py` (fit_md) is gone in v0.2 — the model carries `fit_md: str | None` for forward-compat, populated only if a future filter ships.
+- `src/a2web/events/` — `types.py` (typed event payloads: `TierStarted`, `TierEnded`, `StageStarted`, `StageEnded`, `TierHeartbeat`), `sinks.py` (`otel_sink(emission: LddEmission)` — one span per `*Ended` event, no-op when SDK absent). a2kit owns the bus; the custom `MemoryObjectStream` fan-out is gone. Emit via `a2kit.ldd.event(StageStarted(...))` from anywhere in the pipeline; `app.ldd.add_sink(otel_sink)` subscribes the OTel half.
+- `src/a2web/gate/` — `block_detector.py` (closed-enum verdicts + `suggested_tier` hint), `quality_score.py`. Pure functions. Orchestrator (not gate) acts on `suggested_tier`.
+- `src/a2web/cache/` — `sqlite_cache.py` (etag/last-modified, content-hash dedup, conditional GET). Block pages never enter cache.
+- `src/a2web/proxy/` — `policy.py` (`resolve_route(host, tier, settings)`) + `pool.py` (`ProxyPool` health states alive/quarantined/dead, 3-failure→600s quarantine). In-memory only; disk persistence + background probe deferred.
+- `src/a2web/browser/` — `BrowserPool` (Camoufox via playwright async API). Lazy open under `state.browser_lock` on first dispatch — Camoufox is optional dep group `[browser]`; missing → graceful `connection_error` + operator hint. Closed by `@app.on_shutdown`.
+- `src/a2web/actions/` — `playbook.py` (pure deterministic `next_action_after_gate` / `next_action_after_tier`). Per-fetch counters in `FetchContext`: `url_rewrites`, `archive_dispatches`, `browser_dispatches`.
+- `src/a2web/log/` — NDJSON request log with size-based rotation + gzip on rollover; lazy-open writer; best-effort writes (failures append `operator_hints[code=log_write_failed]`).
+
+## Testing
+
+a2kit's in-process test client is the default: `client = a2kit.testing.client(app); await client.call("WebRouter.fetch", url=...)`. Use `a2kit.testing.peek(app)` for resource inspection. Unit tests construct `FetchContext` directly and invoke a single phase function in isolation.
 
 ## Dev Commands
 
-- Full gate: `make check` (lint + ty + test)
-- Lint: `make lint` (ruff check); auto-fix: `make fix`
+- Full gate: `make check` (lint + ty + test, coverage ≥85%)
+- Lint: `make lint`; auto-fix: `make fix`
 - Type check: `make ty` (Astral `ty`)
-- Tests: `make test` (pytest, asyncio_mode=auto, coverage ≥85%)
+- Tests: `make test` (pytest, asyncio_mode=auto)
 - Local MCP: `make dev`
 - Bootstrap: `make bootstrap` (uv sync --all-extras)
 
 ## Conventions
 
-- `dataclass(slots=True)` for internal pipeline objects; pydantic only at API boundaries (tool inputs/returns, profile schema).
-- `asyncio.to_thread` chokepoint per sync module (trafilatura, sqlite, htmldate). Ruff `ASYNC100/210/230` enforces.
-- All shared state hangs off `AppState`; tools resolve via a2kit DI (`store: AppState` kwarg). No globals.
+- `dataclass(slots=True)` for internal pipeline objects; pydantic only at API boundaries.
+- `asyncio.to_thread` chokepoint per sync module (trafilatura, sqlite). Ruff `ASYNC100/210/230` enforces.
+- All shared state hangs off `AppState`; tools resolve via `state: AppState` kwarg (a2kit DI). No globals, no module-level lazy caches.
+- Lifecycle: `@app.on_startup` opens, `@app.on_shutdown` closes. No `atexit` hooks.
+- Events: emit via `a2kit.ldd.event(PayloadType(...))`; subscribe additional consumers via `app.ldd.add_sink(...)`.
 - Structured logging via `structlog` + `bind_contextvars`; OTel `trace_id` is the correlation ID.
-- Single `anyio.MemoryObjectStream` as the diagnostic event bus; sinks: OTel events, NDJSON writer, `ctx.event(...)` and `ctx.report_progress(...)`.
 - `purgatory` for circuit breakers (per-host, per-proxy, global).
-- Closed-enum verdicts for diagnostics (`ok`, `paywall`, `block_page_detected`, `anti_bot:<system>`, `length_floor`, `content_type_mismatch`, `connection_error`, `timeout`, `not_found`, `rate_limited`, `proxy_unavailable`, `other`).
-- `fmt_dur(ms)` helper for every duration string. Adaptive: `<1s`→`Xms`, `1-7s`→`X.Xs`, `7-60s`→`Xs`, `≥60s`→`MmSs`.
-- Don't return `-> str` from a tool (a2kit antipattern #1). Return dict / pydantic model. Wrap markdown bodies in a typed envelope.
-- All return-type pydantic models at module scope (a2kit antipattern #2).
+- Closed-enum verdicts for diagnostics.
+- `fmt_dur(ms)` helper for every duration string.
+- Don't return `-> str` from a tool. Return dict / pydantic model.
+- All return-type pydantic models at module scope.
 
 ## Never
 
-- Never commit credentials. Secrets (`jina_key`, paid-tier API keys) are env-only via `A2WEB_*` vars — never written to the YAML config. `${ENV_VAR}` references inside the YAML resolve at `AppSettings()` load.
+- Never commit credentials. Secrets are env-only (`A2WEB_*`).
 - Never bypass the quality gate when writing to cache (block pages must never enter cache).
 - Never silently drop a fetch — `status: failed` + populated `diagnostics` + `narrative` + `operator_hints` is the floor.
 - Never retry the whole flow — retries live at one of 5 specific layers (connection / HTTP / proxy / tier / handler) with circuit breakers.
-- Never add `print()` or sync I/O in async paths. ASYNC lint catches; CI fails.
+- Never add `print()` or sync I/O in async paths.
+- Never reintroduce `tier_extras: dict[str, Any]` — add a typed field on `TierResult` instead.
+- Never reintroduce a module-level `atexit` resource-close hook — use `@app.on_shutdown`.
 
 ## Backlog
 
-`BACKLOG.md` (repo root) tracks deferred work. Every change that defers an item adds it; every change that ships one removes it. CHANGELOG.md is the shipped record; BACKLOG.md is the not-yet record.
+`BACKLOG.md` tracks deferred work (Phase D workspace packaging, OSS swaps that turned out to be wrong fit, post-v0.1 features). CHANGELOG.md is the shipped record.
 
 ## Ask First
 
 - Before changing tool signatures (breaking for MCP clients).
 - Before adding new top-level dependencies.
 - Before changing the response envelope shape (breaking for parsers).
-- Before introducing a new tier or handler that doesn't fit the existing Strategy + Registry.
+- Before introducing a new tier or handler that doesn't fit Strategy + Registry.
+- Before reintroducing a `dict[str, Any]` bag on a typed pipeline object.

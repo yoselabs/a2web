@@ -9,7 +9,7 @@ import pytest
 
 from a2web.models import Verdict
 from a2web.settings import AppSettings
-from a2web.state import AppState
+from a2web.state import AppState, build_state
 from a2web.tiers import REGISTRY
 
 
@@ -22,7 +22,7 @@ def _restore_real_browser(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _make_state() -> AppState:
-    return AppState(settings=AppSettings())
+    return build_state()
 
 
 @pytest.mark.asyncio
@@ -32,8 +32,8 @@ async def test_disabled_returns_unavailable() -> None:
     tier = REGISTRY["browser"]
     result = await tier.fetch("https://example.com/", state=state)
     assert result.verdict == Verdict.connection_error
-    hint = result.tier_extras["operator_hint"]
-    assert hint["code"] == "browser_unavailable"
+    hint = result.operator_hint
+    assert hint.code == "browser_unavailable"
 
 
 @pytest.mark.asyncio
@@ -52,8 +52,8 @@ async def test_import_error_yields_unavailable(monkeypatch: pytest.MonkeyPatch) 
     tier = REGISTRY["browser"]
     result = await tier.fetch("https://example.com/", state=state)
     assert result.verdict == Verdict.connection_error
-    assert result.tier_extras["operator_hint"]["code"] == "browser_unavailable"
-    assert "camoufox" in result.tier_extras["operator_hint"]["message"].lower()
+    assert result.operator_hint.code == "browser_unavailable"
+    assert "camoufox" in result.operator_hint.message.lower()
 
 
 @pytest.mark.asyncio
@@ -103,9 +103,9 @@ async def test_successful_fetch_via_stub_pool(monkeypatch: pytest.MonkeyPatch) -
     result = await tier.fetch("https://example.com/", state=state)
 
     assert result.verdict == Verdict.ok
-    assert result.tier_extras["from_browser"] is True
-    assert result.tier_extras["js_executed"] is True
-    assert "Body content" in result.tier_extras["pre_rendered"]["content_md"]
+    assert result.from_browser is True
+    assert result.js_executed is True
+    assert "Body content" in result.pre_rendered.content_md
     assert result.final_url == "https://example.com/final"
 
 
@@ -153,7 +153,7 @@ async def test_navigation_timeout_yields_timeout_verdict(monkeypatch: pytest.Mon
     result = await tier.fetch("https://slow.example/", state=state)
 
     assert result.verdict == Verdict.timeout
-    assert result.tier_extras["js_executed"] is True
+    assert result.js_executed is True
 
 
 def test_browser_in_registry_not_in_tier_order() -> None:

@@ -10,14 +10,13 @@ import pytest
 
 from a2web.handlers import ArxivHandler, match_handler
 from a2web.models import Verdict
-from a2web.settings import AppSettings
-from a2web.state import AppState
+from a2web.state import AppState, build_state
 
 _FIX = Path(__file__).parent / "fixtures"
 
 
 def _state() -> AppState:
-    return AppState(settings=AppSettings())
+    return build_state()
 
 
 def test_match_handler_returns_arxiv() -> None:
@@ -49,12 +48,12 @@ async def test_arxiv_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
 
     result = await ArxivHandler().fetch("https://arxiv.org/abs/2401.12345", state=_state())
     assert result.verdict == Verdict.ok
-    pre = result.tier_extras["pre_rendered"]
-    assert pre["title"].startswith("A Study of Concurrent Coffee")
-    assert "Alice Example" in pre["byline"]
-    assert "Bob Example" in pre["byline"]
-    assert "cs.DC" in pre["content_md"]
-    assert "Categories" in pre["content_md"]
+    pre = result.pre_rendered
+    assert pre.title.startswith("A Study of Concurrent Coffee")
+    assert "Alice Example" in pre.byline
+    assert "Bob Example" in pre.byline
+    assert "cs.DC" in pre.content_md
+    assert "Categories" in pre.content_md
 
 
 @pytest.mark.asyncio

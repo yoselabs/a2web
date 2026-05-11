@@ -7,12 +7,12 @@ import pytest
 
 from a2web.models import Verdict
 from a2web.settings import AppSettings
-from a2web.state import AppState
+from a2web.state import AppState, build_state
 from a2web.tiers.jina import JinaTier
 
 
 def _state(**kwargs: object) -> AppState:
-    return AppState(settings=AppSettings(**kwargs))
+    return build_state(settings=AppSettings(**kwargs))
 
 
 @pytest.mark.asyncio
@@ -31,7 +31,7 @@ async def test_free_tier_omits_auth(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert "authorization" not in {k.lower() for k in captured["headers"]}
     assert result.verdict == Verdict.ok
-    assert result.tier_extras["pre_rendered"]["content_md"] == "# Hello\n\nbody"
+    assert result.pre_rendered.content_md == "# Hello\n\nbody"
 
 
 @pytest.mark.asyncio
@@ -68,7 +68,7 @@ async def test_deny_list_short_circuits(monkeypatch: pytest.MonkeyPatch) -> None
     result = await JinaTier().fetch("https://wiki.intranet.example.com/page", state=state)
 
     assert called["hit"] is False
-    assert result.tier_extras.get("skipped") is True
+    assert result.skipped is True
     assert result.verdict == Verdict.other
 
 
@@ -81,7 +81,7 @@ async def test_429_maps_to_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None
     result = await JinaTier().fetch("https://example.com/", state=_state())
 
     assert result.verdict == Verdict.rate_limited
-    assert "pre_rendered" not in result.tier_extras
+    assert result.pre_rendered is None
 
 
 @pytest.mark.asyncio

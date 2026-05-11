@@ -67,6 +67,7 @@ class RedditHandler:
 
         rendered = _render_thread(payload)
         body_bytes = response.content
+        from ..tiers import Rendered  # local — avoid circular
 
         return TierResult(
             body=body_bytes,
@@ -74,10 +75,7 @@ class RedditHandler:
             status_code=response.status_code,
             final_url=url,
             headers=dict(response.headers),
-            tier_extras={
-                "pre_rendered": rendered,
-                "more_stubs": rendered.pop("more_stubs", 0),
-            },
+            pre_rendered=Rendered.from_dict(rendered),
             verdict=Verdict.ok,
         )
 

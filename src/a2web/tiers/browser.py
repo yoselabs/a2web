@@ -1,10 +1,7 @@
-"""Browser tier - Camoufox-rendered HTML for JS-gated sites.
+"""Browser tier — Camoufox-rendered fetch for JS-required pages.
 
 Out-of-band tier: registered but NOT in `TIER_ORDER`. The orchestrator
-dispatches it only when the gate sets `suggested_tier == "browser"`
-(Anubis, Turnstile, Akamai BMP, JS-required SPA shells).
-
-Cost: 2-4s cold-start, 1-3s warm. Never invoked on the happy path.
+dispatches it only when the gate sets `suggested_tier == "browser"`.
 """
 
 from __future__ import annotations
@@ -15,11 +12,13 @@ from typing import TYPE_CHECKING
 
 import trafilatura
 
-from ..models import Verdict
+from ..models import OperatorHint, Verdict
 
 if TYPE_CHECKING:
     from ..state import AppState
     from . import TierResult
+
+_FIX_HINT = "pip install a2web[browser] && playwright install firefox && camoufox fetch"
 
 
 def _to_markdown(html: str, url: str) -> str:
@@ -35,14 +34,8 @@ def _unavailable_result(url: str, message: str) -> TierResult:
         content_type="text/html",
         status_code=0,
         final_url=url,
-        tier_extras={
-            "from_browser": True,
-            "operator_hint": {
-                "code": "browser_unavailable",
-                "message": message,
-                "fix": "pip install a2web[browser] && playwright install firefox && camoufox fetch",
-            },
-        },
+        from_browser=True,
+        operator_hint=OperatorHint(code="browser_unavailable", message=message, fix=_FIX_HINT),
         verdict=Verdict.connection_error,
     )
 
@@ -54,7 +47,7 @@ class BrowserTier:
 
     async def fetch(self, url: str, *, state: AppState) -> TierResult:
         from ..state import ensure_browser_pool
-        from . import TierResult  # local - circular with package init
+        from . import Rendered, TierResult  # local - circular with package init
 
         if not state.settings.browser_enabled:
             return _unavailable_result(url, "browser tier disabled (A2WEB_BROWSER_ENABLED=false)")
@@ -82,11 +75,9 @@ class BrowserTier:
                         content_type="text/html",
                         status_code=0,
                         final_url=url,
-                        tier_extras={
-                            "from_browser": True,
-                            "js_executed": True,
-                            "browser_wall_ms": wall_ms,
-                        },
+                        from_browser=True,
+                        js_executed=True,
+                        browser_wall_ms=wall_ms,
                         verdict=Verdict.timeout,
                     )
 
@@ -94,18 +85,16 @@ class BrowserTier:
                 final_url = page.url or url
                 html = await page.content()
         except Exception as exc:  # navigation/network errors
+            del exc  # error string was unused upstream
             wall_ms = int((time.perf_counter() - wall_start) * 1000)
             return TierResult(
                 body=b"",
                 content_type="text/html",
                 status_code=0,
                 final_url=url,
-                tier_extras={
-                    "from_browser": True,
-                    "js_executed": True,
-                    "browser_wall_ms": wall_ms,
-                    "error": str(exc),
-                },
+                from_browser=True,
+                js_executed=True,
+                browser_wall_ms=wall_ms,
                 verdict=Verdict.connection_error,
             )
 
@@ -118,17 +107,10 @@ class BrowserTier:
             content_type="text/html",
             status_code=status_code,
             final_url=final_url,
-            tier_extras={
-                "from_browser": True,
-                "js_executed": True,
-                "browser_wall_ms": wall_ms,
-                "browser_bytes": len(html),
-                "pre_rendered": {
-                    "content_md": markdown,
-                    "title": None,
-                    "byline": None,
-                    "headings": [],
-                },
-            },
+            from_browser=True,
+            js_executed=True,
+            browser_wall_ms=wall_ms,
+            browser_bytes=len(html),
+            pre_rendered=Rendered(content_md=markdown),
             verdict=verdict,
         )

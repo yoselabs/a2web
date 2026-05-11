@@ -13,13 +13,13 @@ import pytest
 from a2web.handlers import GitHubHandler, match_handler
 from a2web.models import Verdict
 from a2web.settings import AppSettings
-from a2web.state import AppState
+from a2web.state import AppState, build_state
 
 _FIX = Path(__file__).parent / "fixtures"
 
 
 def _state(token: str = "") -> AppState:
-    return AppState(settings=AppSettings(github_token=token))
+    return build_state(settings=AppSettings(github_token=token))
 
 
 def test_match_handler_returns_github_for_repo() -> None:
@@ -70,11 +70,11 @@ async def test_github_repo_renders_metadata_and_readme(monkeypatch: pytest.Monke
 
     result = await GitHubHandler().fetch("https://github.com/octocat/Hello-World", state=_state())
     assert result.verdict == Verdict.ok
-    pre = result.tier_extras["pre_rendered"]
-    assert pre["title"] == "octocat/Hello-World"
-    assert "1234" in pre["content_md"]  # stars
-    assert "MIT License" in pre["content_md"]
-    assert "Welcome to my repo" in pre["content_md"]
+    pre = result.pre_rendered
+    assert pre.title == "octocat/Hello-World"
+    assert "1234" in pre.content_md  # stars
+    assert "MIT License" in pre.content_md
+    assert "Welcome to my repo" in pre.content_md
     assert any("/repos/octocat/Hello-World" in u for u in captured_urls)
     assert any("/readme" in u for u in captured_urls)
 
@@ -96,11 +96,11 @@ async def test_github_issue_renders_threaded_comments(monkeypatch: pytest.Monkey
 
     result = await GitHubHandler().fetch("https://github.com/octocat/Hello-World/issues/42", state=_state())
     assert result.verdict == Verdict.ok
-    pre = result.tier_extras["pre_rendered"]
-    assert "Issue #42: Fix the thing" in pre["title"]
-    assert "alice" in pre["content_md"]
-    assert "bob" in pre["content_md"]
-    assert "carol" in pre["content_md"]
+    pre = result.pre_rendered
+    assert "Issue #42: Fix the thing" in pre.title
+    assert "alice" in pre.content_md
+    assert "bob" in pre.content_md
+    assert "carol" in pre.content_md
 
 
 @pytest.mark.asyncio
@@ -119,10 +119,10 @@ async def test_github_pull_renders_reviews(monkeypatch: pytest.MonkeyPatch) -> N
 
     result = await GitHubHandler().fetch("https://github.com/octocat/Hello-World/pull/7", state=_state())
     assert result.verdict == Verdict.ok
-    pre = result.tier_extras["pre_rendered"]
-    assert "Pull #7: Add feature" in pre["title"]
-    assert "Reviews" in pre["content_md"]
-    assert "APPROVED" in pre["content_md"]
+    pre = result.pre_rendered
+    assert "Pull #7: Add feature" in pre.title
+    assert "Reviews" in pre.content_md
+    assert "APPROVED" in pre.content_md
 
 
 @pytest.mark.asyncio

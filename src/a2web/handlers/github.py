@@ -95,7 +95,7 @@ class GitHubHandler:
 
 
 async def _fetch_repo(client: httpx.AsyncClient, url: str, parts: tuple[str, ...]) -> TierResult:
-    from ..tiers import TierResult
+    from ..tiers import Rendered, TierResult
 
     owner, repo = parts
     repo_resp = await client.get(f"{_API_BASE}/repos/{owner}/{repo}")
@@ -120,13 +120,13 @@ async def _fetch_repo(client: httpx.AsyncClient, url: str, parts: tuple[str, ...
         status_code=200,
         final_url=url,
         headers=dict(repo_resp.headers),
-        tier_extras={"pre_rendered": rendered},
+        pre_rendered=Rendered.from_dict(rendered),
         verdict=Verdict.ok,
     )
 
 
 async def _fetch_issue(client: httpx.AsyncClient, url: str, parts: tuple[str, ...]) -> TierResult:
-    from ..tiers import TierResult
+    from ..tiers import Rendered, TierResult
 
     owner, repo, number = parts
     issue_resp = await client.get(f"{_API_BASE}/repos/{owner}/{repo}/issues/{number}")
@@ -148,13 +148,13 @@ async def _fetch_issue(client: httpx.AsyncClient, url: str, parts: tuple[str, ..
         status_code=200,
         final_url=url,
         headers=dict(issue_resp.headers),
-        tier_extras={"pre_rendered": rendered},
+        pre_rendered=Rendered.from_dict(rendered),
         verdict=Verdict.ok,
     )
 
 
 async def _fetch_pull(client: httpx.AsyncClient, url: str, parts: tuple[str, ...]) -> TierResult:
-    from ..tiers import TierResult
+    from ..tiers import Rendered, TierResult
 
     owner, repo, number = parts
     pr_resp = await client.get(f"{_API_BASE}/repos/{owner}/{repo}/pulls/{number}")
@@ -179,7 +179,7 @@ async def _fetch_pull(client: httpx.AsyncClient, url: str, parts: tuple[str, ...
         status_code=200,
         final_url=url,
         headers=dict(pr_resp.headers),
-        tier_extras={"pre_rendered": rendered},
+        pre_rendered=Rendered.from_dict(rendered),
         verdict=Verdict.ok,
     )
 

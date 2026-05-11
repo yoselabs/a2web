@@ -1,4 +1,4 @@
-"""Extraction tests — trafilatura + htmldate against the blog fixture."""
+"""Extraction tests — trafilatura with bundled metadata + date."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from a2web.extract.htmldate_ext import find_published, find_updated
 from a2web.extract.trafilatura_ext import extract_markdown
 
 _FIX = Path(__file__).parent / "fixtures"
@@ -25,20 +24,13 @@ async def test_extract_blog_markdown() -> None:
 
 
 @pytest.mark.asyncio
-async def test_find_published_present() -> None:
+async def test_extract_returns_published_date() -> None:
     html = (_FIX / "blog.html").read_text()
-    result = await find_published(html, "https://example.org/post/x")
-    assert result == datetime.date(2026, 4, 1)
+    result = await extract_markdown(html, "https://example.org/post/x")
+    assert result.published == datetime.date(2026, 4, 1)
 
 
 @pytest.mark.asyncio
-async def test_find_published_absent() -> None:
-    result = await find_published("<html><body><p>no date</p></body></html>", "https://x/y")
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_find_updated_returns_date_or_none() -> None:
-    html = (_FIX / "blog.html").read_text()
-    result = await find_updated(html, "https://example.org/post/x")
-    assert result is None or isinstance(result, datetime.date)
+async def test_extract_no_date_yields_none() -> None:
+    result = await extract_markdown("<html><body><p>no date</p></body></html>", "https://x/y")
+    assert result.published is None

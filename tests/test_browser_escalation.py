@@ -3,19 +3,13 @@
 from __future__ import annotations
 
 import pytest
-from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.fetcher import fetch
-from a2web.log.writer import LogWriter
 from a2web.models import FetchStatus, Verdict
-from a2web.settings import AppSettings
-from a2web.state import AppState
-from a2web.tiers import REGISTRY, TIER_ORDER, TierResult
+from a2web.state import AppState, build_state
+from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult
 
-_ANUBIS_HTML = (
-    b"<html><head><title>Checking...</title></head>"
-    b"<body><script src='/.well-known/anubis/check.js'></script></body></html>"
-)
+_ANUBIS_HTML = b"<html><head><title>Checking...</title></head><body><script src='/.well-known/anubis/check.js'></script></body></html>"
 
 
 class _AnubisRawTier:
@@ -42,26 +36,15 @@ class _RecoveringBrowserTier:
             content_type="text/html",
             status_code=200,
             final_url=url,
-            tier_extras={
-                "from_browser": True,
-                "js_executed": True,
-                "pre_rendered": {
-                    "content_md": markdown,
-                    "title": "Real Article",
-                    "byline": None,
-                    "headings": [],
-                },
-            },
+            from_browser=True,
+            js_executed=True,
+            pre_rendered=Rendered(content_md=markdown, title="Real Article"),
             verdict=Verdict.ok,
         )
 
 
 def _make_state() -> AppState:
-    return AppState(
-        settings=AppSettings(),
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        log_writer=LogWriter(disabled=True),
-    )
+    return build_state()
 
 
 @pytest.mark.asyncio
@@ -112,16 +95,9 @@ async def test_browser_dispatch_capped_at_one(monkeypatch: pytest.MonkeyPatch) -
                 content_type="text/html",
                 status_code=200,
                 final_url=url,
-                tier_extras={
-                    "from_browser": True,
-                    "js_executed": True,
-                    "pre_rendered": {
-                        "content_md": blocked_md,
-                        "title": None,
-                        "byline": None,
-                        "headings": [],
-                    },
-                },
+                from_browser=True,
+                js_executed=True,
+                pre_rendered=Rendered(content_md=blocked_md),
                 verdict=Verdict.ok,
             )
 

@@ -4,27 +4,32 @@ The orchestrator is the only place tier order is encoded. Tiers themselves
 are pure-ish (HTTP I/O only); extraction is sync libraries via async
 chokepoints; the gate is a pure function. Block pages NEVER enter the
 cache (gate verdict gates the write).
+
+State for one fetch lives in a `FetchContext` dataclass. The pipeline is a
+sequence of named phase functions that mutate fields on it; the top-level
+`_run_pipeline` is a thin coordinator.
 """
 
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
+from dataclasses import dataclass, field
+from datetime import UTC, date, datetime
 
+import a2kit
 import aiosqlite
 import structlog
 
 from .actions import RetryViaArchive, RewriteUrl, next_action_after_gate, next_action_after_tier
 from .cache.sqlite_cache import (
+    CacheRow,
     cache_get,
     cache_put,
     compute_profile_hash,
     is_live_only,
 )
-from .events import EventBus, StageEnded, StageStarted, TierEnded, TierStarted
-from .extract.htmldate_ext import find_published
+from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .extract.metadata import parse_metadata
-from .extract.pruning_filter import prune_markdown
 from .extract.trafilatura_ext import extract_markdown
 from .gate.block_detector import evaluate
 from .log.record import from_response as record_from_response
@@ -34,12 +39,14 @@ from .models import (
     Diagnostic,
     FetchResponse,
     FetchStatus,
+    Heading,
+    Link,
     OperatorHint,
     TokenCounts,
     Verdict,
 )
-from .state import AppState, ensure_proxy_pool, ensure_sqlite
-from .tiers import REGISTRY, TIER_ORDER
+from .state import AppState
+from .tiers import REGISTRY, TIER_ORDER, Rendered
 from .tiers.jina import JinaTier
 from .tiers.raw import RawTier
 from .utils.time import fmt_dur
@@ -64,34 +71,90 @@ def _confidence_for(verdict: Verdict, content_md: str) -> Confidence:
 _LOG = structlog.get_logger("a2web")
 
 
-async def fetch(url: str, *, state: AppState, bus: EventBus | None = None) -> FetchResponse:
+@dataclass(slots=True)
+class FetchContext:
+    """Mutable per-fetch state passed between phase functions.
+
+    Replaces the v0.1 pattern of 20+ local variables in `_run_pipeline`.
+    Phase functions read and write fields here; the top-level coordinator
+    constructs one, runs the phases, and builds the response from it.
+    """
+
+    # Inputs (set at construction; not mutated by phases)
+    started_at: datetime
+    start_perf: float
+    profile_hash: str
+    sqlite_conn: aiosqlite.Connection | None
+    bypass_cache: bool
+
+    # URL state (rewritten on after-tier RewriteUrl)
+    url: str
+    final_url: str
+
+    # Body & verdict state (set by tier loop, mutated by escalations)
+    body: bytes = b""
+    content_type: str = ""
+    status_code: int = 0
+    tier_used: str = "none"
+    final_verdict: Verdict = Verdict.other
+    etag: str | None = None
+    last_modified: str | None = None
+    pre_rendered_payload: Rendered | None = None
+
+    # Cache state
+    cache_state: CacheState = CacheState.miss
+    cached_row: CacheRow | None = None
+
+    # Per-fetch escalation caps
+    url_rewrites: int = 0
+    archive_dispatches: int = 0
+    browser_dispatches: int = 0
+
+    # Extraction outputs
+    content_md: str = ""
+    title: str | None = None
+    byline: str | None = None
+    published: date | None = None
+    headings: list[Heading] = field(default_factory=list)
+    links: list[Link] = field(default_factory=list)
+    meta_dict: dict[str, str] = field(default_factory=dict)
+
+    # Gate state
+    gate_verdict: Verdict = Verdict.ok
+    gate_subsystem: str | None = None
+    browser_unavailable_hint: OperatorHint | None = None
+
+    # Diagnostics accumulator
+    diagnostics: list[Diagnostic] = field(default_factory=list)
+
+
+async def fetch(url: str, *, state: AppState, ctx: a2kit.ToolContext | None = None) -> FetchResponse:
     """Run the v0.1 cascade for one URL.
 
-    `bus` is opt-in: when supplied, the orchestrator publishes phase
-    boundary events (TierStarted/Ended, StageStarted/Ended) for live
-    streaming. Without one, behavior matches PR5.
+    `ctx` is the a2kit ToolContext; when supplied, the orchestrator emits
+    typed phase-boundary events via `a2kit.ldd.event(ctx, ...)`. When None
+    (direct calls from unit tests), no events are emitted. a2kit's emission
+    chain owns the wire bridge + OTel sink fan-out.
     """
     start_perf = time.perf_counter()
     started_at = datetime.now(UTC)
-    diagnostics: list[Diagnostic] = []
 
     profile_hash = compute_profile_hash(state.settings)
     bypass_cache = is_live_only(url, state.settings)
-    cache_state = CacheState.bypass if bypass_cache else CacheState.miss
+    sqlite_conn = None if bypass_cache else state.sqlite
 
-    sqlite_conn = None if bypass_cache else await ensure_sqlite(state)
-    response = await _run_pipeline(
-        url=url,
-        state=state,
-        sqlite_conn=sqlite_conn,
-        profile_hash=profile_hash,
-        bypass_cache=bypass_cache,
-        cache_state=cache_state,
-        start_perf=start_perf,
+    fc = FetchContext(
         started_at=started_at,
-        diagnostics=diagnostics,
-        bus=bus,
+        start_perf=start_perf,
+        profile_hash=profile_hash,
+        sqlite_conn=sqlite_conn,
+        bypass_cache=bypass_cache,
+        url=url,
+        final_url=url,
+        cache_state=CacheState.bypass if bypass_cache else CacheState.miss,
     )
+
+    response = await _run_pipeline(fc, state=state, ctx=ctx)
 
     if state.log_writer is not None:
         try:
@@ -103,554 +166,572 @@ async def fetch(url: str, *, state: AppState, bus: EventBus | None = None) -> Fe
     return response
 
 
-async def _publish(bus: EventBus | None, event) -> None:
-    if bus is not None:
-        await bus.publish(event)
+# --------------------------------------------------------------------- #
+# Event emission helpers
+# --------------------------------------------------------------------- #
+
+async def _emit(ctx: a2kit.ToolContext | None, event) -> None:
+    """Emit a typed event via a2kit.ldd, no-op when ctx is None."""
+    if ctx is None:
+        return
+    await a2kit.ldd.event(ctx, event.__class__.__name__, **_event_payload(event))
 
 
-async def _run_pipeline(
-    *,
-    url: str,
-    state: AppState,
-    sqlite_conn: aiosqlite.Connection | None,
-    profile_hash: str,
-    bypass_cache: bool,
-    cache_state: CacheState,
-    start_perf: float,
-    started_at: datetime,
-    diagnostics: list[Diagnostic],
-    bus: EventBus | None = None,
-) -> FetchResponse:
-    cached_row = None
-    if sqlite_conn is not None:
-        cached_row = await cache_get(sqlite_conn, url, profile_hash)
+def _event_payload(event) -> dict:
+    """Flatten a dataclass event into kwargs for a2kit.ldd.event."""
+    payload: dict[str, object] = {"t_ms": event.t_ms, "step": event.step}
+    if isinstance(event, TierEnded | StageEnded):
+        payload["verdict"] = event.verdict.value
+        payload["dur_ms"] = event.dur_ms
+        if getattr(event, "extra", None):
+            payload["extra"] = event.extra
+    if isinstance(event, TierStarted):
+        if event.engine:
+            payload["engine"] = event.engine
+        if event.host:
+            payload["host"] = event.host
+        if event.proxy:
+            payload["proxy"] = event.proxy
+    if isinstance(event, TierEnded) and event.engine:
+        payload["engine"] = event.engine
+    return payload
 
+
+# --------------------------------------------------------------------- #
+# Archive escalation helper (shared by after-tier + after-gate)
+# --------------------------------------------------------------------- #
+
+@dataclass(slots=True)
+class _ArchiveOutcome:
+    """Result of one archive-tier dispatch — used by `_dispatch_archive`."""
+
+    success: bool
     body: bytes = b""
-    final_url: str = url
     content_type: str = ""
+    final_url: str = ""
+    pre_rendered: Rendered | None = None
     status_code: int = 0
-    tier_used: str = "none"
-    final_verdict: Verdict = Verdict.other
-    etag: str | None = None
-    last_modified: str | None = None
-    pre_rendered_payload: dict | None = None
 
-    # Per-fetch action caps (PR7d).
-    url_rewrites = 0
-    archive_dispatches = 0
 
-    # Lazy proxy pool — only opened when first non-direct route resolves.
-    proxy_pool = await ensure_proxy_pool(state)
+async def _dispatch_archive(
+    url: str,
+    *,
+    state: AppState,
+    ctx: a2kit.ToolContext | None,
+    start_perf: float,
+    diagnostics: list[Diagnostic],
+) -> _ArchiveOutcome:
+    """One-stop archive dispatch — used by both after-tier and after-gate paths.
 
-    # Phase 2 — tier loop, wrapped to support after-tier RewriteUrl (cap=1).
+    Emits TierStarted/TierEnded around the archive fetch, appends a Diagnostic
+    only on success (a failed escalation is "tried, didn't help" and should
+    not displace the originating verdict), and returns an outcome the caller
+    installs into orchestrator state.
+    """
+    archive_tier = REGISTRY["archive"]
+    arch_start_ms = int((time.perf_counter() - start_perf) * 1000)
+    await _emit(ctx, TierStarted(t_ms=arch_start_ms, step="archive", host=_host(url)))
+    archive_result = await archive_tier.fetch(url, state=state)
+    arch_dur_ms = int((time.perf_counter() - start_perf) * 1000) - arch_start_ms
+    engine = archive_result.archive_source or "archive"
+    await _emit(
+        ctx,
+        TierEnded(
+            t_ms=arch_start_ms,
+            step="archive",
+            engine=engine,
+            verdict=archive_result.verdict,
+            dur_ms=arch_dur_ms,
+            extra={"status_code": archive_result.status_code},
+        ),
+    )
+    archive_pre = archive_result.pre_rendered
+    if archive_result.verdict != Verdict.ok or archive_pre is None:
+        return _ArchiveOutcome(success=False)
+    diagnostics.append(
+        Diagnostic(
+            t_ms=arch_start_ms,
+            step="archive",
+            engine=engine,
+            host=_host(url),
+            proxy=None,
+            verdict=archive_result.verdict,
+            dur_ms=arch_dur_ms,
+            extra={"status_code": archive_result.status_code},
+        )
+    )
+    return _ArchiveOutcome(
+        success=True,
+        body=archive_result.body,
+        content_type=archive_result.content_type,
+        final_url=archive_result.final_url,
+        pre_rendered=archive_pre,
+        status_code=archive_result.status_code,
+    )
+
+
+# --------------------------------------------------------------------- #
+# Phase functions
+# --------------------------------------------------------------------- #
+
+async def _phase_cache_check(fc: FetchContext) -> None:
+    """Read the cached row (if cache is enabled and a hit exists)."""
+    if fc.sqlite_conn is not None:
+        fc.cached_row = await cache_get(fc.sqlite_conn, fc.url, fc.profile_hash)
+
+
+async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext | None) -> None:
+    """Walk TIER_ORDER, dispatch each tier, run after-tier actions, until one wins or all fail.
+
+    Supports two interruptions of the linear flow:
+    - `RewriteUrl` from after-tier action → restart the loop with the new URL (cap=1).
+    - `RetryViaArchive` from after-tier action → out-of-band archive dispatch (cap=1).
+    """
+    proxy_pool = state.proxy_pool
+
     while True:
         restart_loop = False
         archive_break_payload: dict | None = None
         for tier_name in TIER_ORDER:
             tier = REGISTRY[tier_name]
-            tier_start_ms = int((time.perf_counter() - start_perf) * 1000)
+            tier_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
 
             conditional_extras: dict[str, str] | None = None
-            if cached_row is not None:
+            if fc.cached_row is not None:
                 conditional_extras = {}
-                if cached_row.etag:
-                    conditional_extras["etag"] = cached_row.etag
-                if cached_row.last_modified:
-                    conditional_extras["last_modified"] = cached_row.last_modified
+                if fc.cached_row.etag:
+                    conditional_extras["etag"] = fc.cached_row.etag
+                if fc.cached_row.last_modified:
+                    conditional_extras["last_modified"] = fc.cached_row.last_modified
 
-            # Resolve proxy for this (host, tier).
-            handle = proxy_pool.acquire(_host(url) or "", tier_name)
+            handle = proxy_pool.acquire(_host(fc.url) or "", tier_name)
             if handle is None:
-                # All proxies dead AND proxy_required=true → skip this tier.
-                diagnostics.append(
+                fc.diagnostics.append(
                     Diagnostic(
                         t_ms=tier_start_ms,
                         step=tier_name,
                         engine=None,
-                        host=_host(url),
+                        host=_host(fc.url),
                         proxy=None,
                         verdict=Verdict.proxy_unavailable,
                         dur_ms=0,
                         extra={"reason": "all_proxies_dead_required"},
                     )
                 )
-                final_verdict = Verdict.proxy_unavailable
+                fc.final_verdict = Verdict.proxy_unavailable
                 continue
-            proxy_url_for_tier = handle.proxy_url
-            proxy_id_for_diag = handle.proxy_id
 
-            await _publish(bus, TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(url)))
+            await _emit(ctx, TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
 
             if isinstance(tier, RawTier):
                 tier_result = await tier.fetch(
-                    url,
+                    fc.url,
                     state=state,
                     conditional_extras=conditional_extras,
-                    proxy_url=proxy_url_for_tier,
+                    proxy_url=handle.proxy_url,
                 )
             elif isinstance(tier, JinaTier):
-                tier_result = await tier.fetch(url, state=state, proxy_url=proxy_url_for_tier)
+                tier_result = await tier.fetch(fc.url, state=state, proxy_url=handle.proxy_url)
             else:
-                tier_result = await tier.fetch(url, state=state)
+                tier_result = await tier.fetch(fc.url, state=state)
 
-            tier_dur_ms = int((time.perf_counter() - start_perf) * 1000) - tier_start_ms
+            tier_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - tier_start_ms
 
-            # site_handler "no match" / jina deny-list "skipped" — silent skip, no diagnostic row
-            if tier_result.tier_extras.get("no_match") or tier_result.tier_extras.get("skipped"):
+            # Silent skip — no diagnostic row
+            if tier_result.no_match or tier_result.skipped:
                 continue
 
-            # Report proxy health.
             proxy_pool.report(
                 handle,
                 success=tier_result.verdict not in (Verdict.proxy_unavailable, Verdict.connection_error, Verdict.timeout),
                 ms=tier_dur_ms,
             )
 
-            await _publish(
-                bus,
+            await _emit(
+                ctx,
                 TierEnded(
                     t_ms=tier_start_ms,
-                    step=tier_result.tier_extras.get("handler_name") or tier_name,
+                    step=tier_result.handler_name or tier_name,
                     engine="curl_cffi" if tier_name == "raw" else None,
                     verdict=tier_result.verdict,
                     dur_ms=tier_dur_ms,
                     extra={
                         "status_code": tier_result.status_code,
-                        "route.proxy_id": proxy_id_for_diag,
+                        "route.proxy_id": handle.proxy_id,
                         "route.matched_rule": str(handle.matched_rule_index) if handle.matched_rule_index is not None else "none",
                     },
                 ),
             )
 
             # Conditional 304 → reuse cached body
-            if tier_result.status_code == 304 and cached_row is not None and tier_result.tier_extras.get("conditional_hit"):
-                body = cached_row.body
-                content_type = cached_row.content_type or "text/html"
-                status_code = 200  # logical hit
-                cache_state = CacheState.hit
-                etag = cached_row.etag
-                last_modified = cached_row.last_modified
-                final_url = url
-                tier_used = tier_name
-                final_verdict = Verdict.ok
-                diagnostics.append(
+            if tier_result.status_code == 304 and fc.cached_row is not None and tier_result.conditional_hit:
+                fc.body = fc.cached_row.body
+                fc.content_type = fc.cached_row.content_type or "text/html"
+                fc.status_code = 200  # logical hit
+                fc.cache_state = CacheState.hit
+                fc.etag = fc.cached_row.etag
+                fc.last_modified = fc.cached_row.last_modified
+                fc.tier_used = tier_name
+                fc.final_verdict = Verdict.ok
+                fc.diagnostics.append(
                     Diagnostic(
                         t_ms=tier_start_ms,
                         step=tier_name,
                         engine="curl_cffi",
-                        host=_host(url),
-                        proxy=proxy_id_for_diag,
+                        host=_host(fc.url),
+                        proxy=handle.proxy_id,
                         verdict=Verdict.ok,
                         dur_ms=tier_dur_ms,
                         extra={"conditional_hit": "true"},
                     )
                 )
-                break
+                return
 
-            diagnostics.append(
+            fc.diagnostics.append(
                 Diagnostic(
                     t_ms=tier_start_ms,
                     step=tier_name,
                     engine="curl_cffi" if tier_name == "raw" else None,
                     host=_host(tier_result.final_url),
-                    proxy=proxy_id_for_diag,
+                    proxy=handle.proxy_id,
                     verdict=tier_result.verdict,
                     dur_ms=tier_dur_ms,
                     extra={"status_code": tier_result.status_code},
                 )
             )
 
-            # After-tier action (PR7d — closes PR7b's deferred stub).
-            tier_action = next_action_after_tier(tier_result, url, state.settings)
-            if isinstance(tier_action, RewriteUrl) and url_rewrites < 1:
-                url_rewrites += 1
-                url = tier_action.new_url
-                final_url = url
+            # After-tier action: URL rewrite or archive escalation
+            tier_action = next_action_after_tier(tier_result, fc.url, state.settings)
+            if isinstance(tier_action, RewriteUrl) and fc.url_rewrites < 1:
+                fc.url_rewrites += 1
+                fc.url = tier_action.new_url
+                fc.final_url = fc.url
                 # Reset cached_row — new URL likely has its own cache entry.
-                if sqlite_conn is not None:
-                    cached_row = await cache_get(sqlite_conn, url, profile_hash)
+                if fc.sqlite_conn is not None:
+                    fc.cached_row = await cache_get(fc.sqlite_conn, fc.url, fc.profile_hash)
                 else:
-                    cached_row = None
+                    fc.cached_row = None
                 restart_loop = True
                 break  # break inner for; while True continues
-            if isinstance(tier_action, RetryViaArchive) and archive_dispatches < 1:
-                archive_dispatches += 1
-                archive_tier = REGISTRY["archive"]
-                arch_start_ms = int((time.perf_counter() - start_perf) * 1000)
-                await _publish(bus, TierStarted(t_ms=arch_start_ms, step="archive", host=_host(tier_action.url)))
-                archive_result = await archive_tier.fetch(tier_action.url, state=state)
-                arch_dur_ms = int((time.perf_counter() - start_perf) * 1000) - arch_start_ms
-                await _publish(
-                    bus,
-                    TierEnded(
-                        t_ms=arch_start_ms,
-                        step="archive",
-                        engine=str(archive_result.tier_extras.get("source", "archive")),
-                        verdict=archive_result.verdict,
-                        dur_ms=arch_dur_ms,
-                        extra={"status_code": archive_result.status_code},
-                    ),
+            if isinstance(tier_action, RetryViaArchive) and fc.archive_dispatches < 1:
+                fc.archive_dispatches += 1
+                outcome = await _dispatch_archive(
+                    tier_action.url, state=state, ctx=ctx, start_perf=fc.start_perf, diagnostics=fc.diagnostics,
                 )
-                archive_pre = archive_result.tier_extras.get("pre_rendered")
-                if archive_result.verdict == Verdict.ok and isinstance(archive_pre, dict):
-                    diagnostics.append(
-                        Diagnostic(
-                            t_ms=arch_start_ms,
-                            step="archive",
-                            engine=str(archive_result.tier_extras.get("source", "archive")),
-                            host=_host(tier_action.url),
-                            proxy=None,
-                            verdict=archive_result.verdict,
-                            dur_ms=arch_dur_ms,
-                            extra={"status_code": archive_result.status_code},
-                        )
-                    )
+                if outcome.success:
                     archive_break_payload = {
-                        "body": archive_result.body,
-                        "content_type": archive_result.content_type,
-                        "final_url": archive_result.final_url,
-                        "pre_rendered": archive_pre,
-                        "status_code": archive_result.status_code,
+                        "body": outcome.body,
+                        "content_type": outcome.content_type,
+                        "final_url": outcome.final_url,
+                        "pre_rendered": outcome.pre_rendered,
+                        "status_code": outcome.status_code,
                     }
                     break
-                # Archive failed — keep trying tiers (no continue; fallthrough).
+                # Archive failed — keep trying tiers (fallthrough).
 
             if tier_result.verdict == Verdict.ok:
-                body = tier_result.body
-                content_type = tier_result.content_type
-                status_code = tier_result.status_code
-                final_url = tier_result.final_url
-                tier_used = tier_result.tier_extras.get("handler_name") or (tier.name if hasattr(tier, "name") else tier_name)
-                final_verdict = Verdict.ok
-                etag = tier_result.headers.get("etag")
-                last_modified = tier_result.headers.get("last-modified")
-                pre_rendered_payload = tier_result.tier_extras.get("pre_rendered")
+                fc.body = tier_result.body
+                fc.content_type = tier_result.content_type
+                fc.status_code = tier_result.status_code
+                fc.final_url = tier_result.final_url
+                fc.tier_used = tier_result.handler_name or (tier.name if hasattr(tier, "name") else tier_name)
+                fc.final_verdict = Verdict.ok
+                fc.etag = tier_result.headers.get("etag")
+                fc.last_modified = tier_result.headers.get("last-modified")
+                fc.pre_rendered_payload = tier_result.pre_rendered
                 break
 
-            # Tier failed; record verdict and continue.
-            final_verdict = tier_result.verdict
+            fc.final_verdict = tier_result.verdict
 
         # If after-tier dispatch landed archive content, install it.
         if archive_break_payload is not None:
-            body = archive_break_payload["body"]
-            content_type = archive_break_payload["content_type"]
-            final_url = archive_break_payload["final_url"]
-            tier_used = "archive"
-            pre_rendered_payload = archive_break_payload["pre_rendered"]
-            status_code = archive_break_payload["status_code"]
-            final_verdict = Verdict.ok
+            fc.body = archive_break_payload["body"]
+            fc.content_type = archive_break_payload["content_type"]
+            fc.final_url = archive_break_payload["final_url"]
+            fc.tier_used = "archive"
+            fc.pre_rendered_payload = archive_break_payload["pre_rendered"]
+            fc.status_code = archive_break_payload["status_code"]
+            fc.final_verdict = Verdict.ok
 
         if not restart_loop:
             break
 
-    # Phase 3 — extraction (only when we have a body)
-    extract_dur_start = int((time.perf_counter() - start_perf) * 1000)
-    content_md = ""
-    title = byline = None
-    headings: list = []
-    links: list = []
-    meta_dict: dict[str, str] = {}
-    published = None
-    raw_html = body.decode("utf-8", errors="replace") if body else ""
 
-    if pre_rendered_payload is not None:
-        # Site handler already produced markdown; bypass trafilatura/htmldate/metadata.
-        content_md = pre_rendered_payload.get("content_md", "")
-        title = pre_rendered_payload.get("title")
-        byline = pre_rendered_payload.get("byline")
-        headings = pre_rendered_payload.get("headings", [])
-        # links/meta intentionally empty for handler results in PR5; PR8 may revisit.
-    elif body and final_verdict == Verdict.ok:
-        await _publish(bus, StageStarted(t_ms=extract_dur_start, step="extract"))
-        extract_result = await extract_markdown(raw_html, final_url)
-        content_md = extract_result.content_md
-        title = extract_result.title
-        byline = extract_result.byline
-        headings = extract_result.headings
-        links = extract_result.links
-        meta_dict = parse_metadata(raw_html)
-        published = await find_published(raw_html, final_url)
-        extract_dur_ms = int((time.perf_counter() - start_perf) * 1000) - extract_dur_start
-        diagnostics.append(
-            Diagnostic(
-                t_ms=extract_dur_start,
-                step="extract",
-                engine="trafilatura",
-                host=None,
-                proxy=None,
-                verdict=Verdict.ok,
-                dur_ms=extract_dur_ms,
-                extra={"chars": len(content_md)},
-            )
-        )
-        await _publish(
-            bus,
-            StageEnded(
-                t_ms=extract_dur_start,
-                step="extract",
-                verdict=Verdict.ok,
-                dur_ms=extract_dur_ms,
-                extra={"chars": len(content_md)},
-            ),
-        )
+async def _phase_extract(fc: FetchContext, *, ctx: a2kit.ToolContext | None) -> None:
+    """Run extraction on `body` (or use pre-rendered handler output)."""
+    extract_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
+    raw_html = fc.body.decode("utf-8", errors="replace") if fc.body else ""
 
-    # Phase 4 — gate
-    gate_dur_start = int((time.perf_counter() - start_perf) * 1000)
-    gate_verdict = Verdict.ok
-    gate_subsystem: str | None = None
-    browser_dispatches = 0
-    browser_unavailable_hint: dict | None = None
-    if body and final_verdict == Verdict.ok:
-        await _publish(bus, StageStarted(t_ms=gate_dur_start, step="gate"))
-        # Pre-rendered handler results carry application/json bodies; skip the
-        # html/content-type guard for them — block-page regexes still run on the
-        # rendered markdown and length floor catches truly empty results.
-        gate_content_type = None if pre_rendered_payload is not None else content_type
-        gate_raw_html = content_md if pre_rendered_payload is not None else raw_html
-        gate_result = evaluate(
-            content_md=content_md,
-            raw_html=gate_raw_html,
-            content_type=gate_content_type,
-        )
-        gate_verdict = gate_result.verdict
-        gate_subsystem = gate_result.subsystem
-        gate_dur_ms = int((time.perf_counter() - start_perf) * 1000) - gate_dur_start
-        diagnostics.append(
-            Diagnostic(
-                t_ms=gate_dur_start,
-                step="gate",
-                engine="block_detector",
-                host=None,
-                proxy=None,
-                verdict=gate_verdict,
-                subsystem=gate_subsystem,
-                dur_ms=gate_dur_ms,
-                extra={},
-            )
-        )
-        await _publish(
-            bus,
-            StageEnded(t_ms=gate_dur_start, step="gate", verdict=gate_verdict, dur_ms=gate_dur_ms),
-        )
-        if gate_verdict != Verdict.ok:
-            final_verdict = gate_verdict
+    if fc.pre_rendered_payload is not None:
+        # Site handler / archive / browser already produced markdown; skip trafilatura.
+        fc.content_md = fc.pre_rendered_payload.content_md
+        fc.title = fc.pre_rendered_payload.title
+        fc.byline = fc.pre_rendered_payload.byline
+        fc.headings = fc.pre_rendered_payload.headings
+        return
 
-        # Phase 4.2 — browser escalation on gate suggested_tier == "browser"
-        # Cap: 1 browser dispatch per fetch. tls_impersonate is a no-op
-        # (raw already uses curl_cffi).
-        if (
-            gate_result.suggested_tier == "browser"
-            and browser_dispatches < 1
-            and gate_verdict != Verdict.ok
-        ):
-            browser_tier = REGISTRY["browser"]
-            br_start_ms = int((time.perf_counter() - start_perf) * 1000)
-            await _publish(bus, TierStarted(t_ms=br_start_ms, step="browser", host=_host(final_url)))
-            browser_result = await browser_tier.fetch(final_url, state=state)
-            br_dur_ms = int((time.perf_counter() - start_perf) * 1000) - br_start_ms
-            browser_dispatches += 1
-            await _publish(
-                bus,
-                TierEnded(
-                    t_ms=br_start_ms,
-                    step="browser",
-                    engine="camoufox",
-                    verdict=browser_result.verdict,
-                    dur_ms=br_dur_ms,
-                    extra={"status_code": browser_result.status_code},
-                ),
-            )
-            diagnostics.append(
-                Diagnostic(
-                    t_ms=br_start_ms,
-                    step="browser",
-                    engine="camoufox",
-                    host=_host(final_url),
-                    proxy=None,
-                    verdict=browser_result.verdict,
-                    dur_ms=br_dur_ms,
-                    extra={"status_code": browser_result.status_code},
-                )
-            )
-            browser_pre = browser_result.tier_extras.get("pre_rendered")
-            if browser_result.verdict == Verdict.ok and isinstance(browser_pre, dict):
-                content_md = browser_pre.get("content_md", "") or ""
-                title = browser_pre.get("title")
-                byline = browser_pre.get("byline")
-                headings = browser_pre.get("headings", [])
-                body = browser_result.body
-                content_type = browser_result.content_type
-                final_url = browser_result.final_url
-                tier_used = "browser"
-                pre_rendered_payload = browser_pre
-                status_code = browser_result.status_code
-                # Re-gate on browser content; cap=1 prevents loops.
-                regate = evaluate(content_md=content_md, raw_html=content_md, content_type=None)
-                if regate.verdict == Verdict.ok:
-                    final_verdict = Verdict.ok
-                    gate_verdict = Verdict.ok
-                    gate_subsystem = None
-                else:
-                    final_verdict = regate.verdict
-                    gate_verdict = regate.verdict
-                    gate_subsystem = regate.subsystem
+    if not (fc.body and fc.final_verdict == Verdict.ok):
+        return
+
+    await _emit(ctx, StageStarted(t_ms=extract_dur_start, step="extract"))
+    extract_result = await extract_markdown(raw_html, fc.final_url)
+    fc.content_md = extract_result.content_md
+    fc.title = extract_result.title
+    fc.byline = extract_result.byline
+    fc.published = extract_result.published
+    fc.headings = extract_result.headings
+    fc.links = extract_result.links
+    fc.meta_dict = parse_metadata(raw_html)
+    extract_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - extract_dur_start
+    fc.diagnostics.append(
+        Diagnostic(
+            t_ms=extract_dur_start,
+            step="extract",
+            engine="trafilatura",
+            host=None,
+            proxy=None,
+            verdict=Verdict.ok,
+            dur_ms=extract_dur_ms,
+            extra={"chars": len(fc.content_md)},
+        )
+    )
+    await _emit(
+        ctx,
+        StageEnded(
+            t_ms=extract_dur_start,
+            step="extract",
+            verdict=Verdict.ok,
+            dur_ms=extract_dur_ms,
+            extra={"chars": len(fc.content_md)},
+        ),
+    )
+
+
+async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext | None) -> None:
+    """Run the gate; on signals, escalate to browser or archive (each capped to 1)."""
+    if not (fc.body and fc.final_verdict == Verdict.ok):
+        return
+
+    gate_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
+    await _emit(ctx, StageStarted(t_ms=gate_dur_start, step="gate"))
+
+    # Pre-rendered handler results carry application/json bodies; skip the
+    # html/content-type guard for them — block-page regexes still run on the
+    # rendered markdown and length floor catches truly empty results.
+    is_pre_rendered = fc.pre_rendered_payload is not None
+    gate_content_type = None if is_pre_rendered else fc.content_type
+    gate_raw_html = fc.content_md if is_pre_rendered else (fc.body.decode("utf-8", errors="replace") if fc.body else "")
+    gate_result = evaluate(
+        content_md=fc.content_md,
+        raw_html=gate_raw_html,
+        content_type=gate_content_type,
+    )
+    fc.gate_verdict = gate_result.verdict
+    fc.gate_subsystem = gate_result.subsystem
+    gate_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - gate_dur_start
+    fc.diagnostics.append(
+        Diagnostic(
+            t_ms=gate_dur_start,
+            step="gate",
+            engine="block_detector",
+            host=None,
+            proxy=None,
+            verdict=fc.gate_verdict,
+            subsystem=fc.gate_subsystem,
+            dur_ms=gate_dur_ms,
+            extra={},
+        )
+    )
+    await _emit(
+        ctx,
+        StageEnded(t_ms=gate_dur_start, step="gate", verdict=fc.gate_verdict, dur_ms=gate_dur_ms),
+    )
+    if fc.gate_verdict != Verdict.ok:
+        fc.final_verdict = fc.gate_verdict
+
+    # Browser escalation — cap=1, only if gate flagged browser
+    if gate_result.suggested_tier == "browser" and fc.browser_dispatches < 1 and fc.gate_verdict != Verdict.ok:
+        await _escalate_browser(fc, state=state, ctx=ctx)
+
+    # Archive escalation — cap=1 (shared with after-tier archive_dispatches)
+    gate_action = next_action_after_gate(fc.gate_verdict, fc.final_url, state.settings)
+    if isinstance(gate_action, RetryViaArchive) and fc.archive_dispatches < 1:
+        fc.archive_dispatches += 1
+        outcome = await _dispatch_archive(
+            gate_action.url, state=state, ctx=ctx, start_perf=fc.start_perf, diagnostics=fc.diagnostics,
+        )
+        if outcome.success and outcome.pre_rendered is not None:
+            fc.content_md = outcome.pre_rendered.content_md
+            fc.title = outcome.pre_rendered.title
+            fc.byline = outcome.pre_rendered.byline
+            fc.headings = outcome.pre_rendered.headings
+            fc.body = outcome.body
+            fc.content_type = outcome.content_type
+            fc.final_url = outcome.final_url
+            fc.tier_used = "archive"
+            fc.pre_rendered_payload = outcome.pre_rendered
+            regate = evaluate(content_md=fc.content_md, raw_html=fc.content_md, content_type=None)
+            if regate.verdict == Verdict.ok:
+                fc.final_verdict = Verdict.ok
+                fc.gate_verdict = Verdict.ok
             else:
-                hint = browser_result.tier_extras.get("operator_hint")
-                if isinstance(hint, dict):
-                    browser_unavailable_hint = hint
+                fc.final_verdict = regate.verdict
+                fc.gate_verdict = regate.verdict
+                fc.gate_subsystem = regate.subsystem
 
-        # Phase 4.25 — playbook escalation (paywall/block_page → archive)
-        # Cap: 1 archive dispatch per fetch (shared with after-tier).
-        gate_action = next_action_after_gate(gate_verdict, final_url, state.settings)
-        if isinstance(gate_action, RetryViaArchive) and archive_dispatches < 1:
-            archive_dispatches += 1
-            archive_tier = REGISTRY["archive"]
-            arch_start_ms = int((time.perf_counter() - start_perf) * 1000)
-            await _publish(bus, TierStarted(t_ms=arch_start_ms, step="archive", host=_host(gate_action.url)))
-            archive_result = await archive_tier.fetch(gate_action.url, state=state)
-            arch_dur_ms = int((time.perf_counter() - start_perf) * 1000) - arch_start_ms
-            await _publish(
-                bus,
-                TierEnded(
-                    t_ms=arch_start_ms,
-                    step="archive",
-                    engine=str(archive_result.tier_extras.get("source", "archive")),
-                    verdict=archive_result.verdict,
-                    dur_ms=arch_dur_ms,
-                    extra={"status_code": archive_result.status_code},
-                ),
-            )
-            archive_pre = archive_result.tier_extras.get("pre_rendered")
-            if archive_result.verdict == Verdict.ok and isinstance(archive_pre, dict):
-                # Only record a diagnostic when archive recovers — a failed
-                # escalation is "tried, didn't help" and should not displace
-                # the original gate verdict in dominant-verdict logic.
-                diagnostics.append(
-                    Diagnostic(
-                        t_ms=arch_start_ms,
-                        step="archive",
-                        engine=str(archive_result.tier_extras.get("source", "archive")),
-                        host=_host(gate_action.url),
-                        proxy=None,
-                        verdict=archive_result.verdict,
-                        dur_ms=arch_dur_ms,
-                        extra={"status_code": archive_result.status_code},
-                    )
-                )
-                # Replace state with archive's pre-rendered content; re-gate.
-                content_md = archive_pre.get("content_md", "") or ""
-                title = archive_pre.get("title")
-                byline = archive_pre.get("byline")
-                headings = archive_pre.get("headings", [])
-                body = archive_result.body
-                content_type = archive_result.content_type
-                final_url = archive_result.final_url
-                tier_used = "archive"
-                pre_rendered_payload = archive_pre
-                # Re-gate on archive content; no second escalation (cap=1).
-                regate = evaluate(content_md=content_md, raw_html=content_md, content_type=None)
-                if regate.verdict == Verdict.ok:
-                    final_verdict = Verdict.ok
-                    gate_verdict = Verdict.ok
-                else:
-                    final_verdict = regate.verdict
-                    gate_verdict = regate.verdict
-                    gate_subsystem = regate.subsystem
 
-    # Phase 4.5 — fit_md (pruning filter for non-handler results)
-    fit_md: str | None = None
-    if final_verdict == Verdict.ok and content_md:
-        if pre_rendered_payload is not None:
-            # Handler results are already minimal; keep fit_md == content_md.
-            fit_md = content_md
+async def _escalate_browser(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext | None) -> None:
+    """Dispatch the browser tier out-of-band; install its result on success."""
+    browser_tier = REGISTRY["browser"]
+    br_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+    await _emit(ctx, TierStarted(t_ms=br_start_ms, step="browser", host=_host(fc.final_url)))
+    browser_result = await browser_tier.fetch(fc.final_url, state=state)
+    br_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - br_start_ms
+    fc.browser_dispatches += 1
+    await _emit(
+        ctx,
+        TierEnded(
+            t_ms=br_start_ms,
+            step="browser",
+            engine="camoufox",
+            verdict=browser_result.verdict,
+            dur_ms=br_dur_ms,
+            extra={"status_code": browser_result.status_code},
+        ),
+    )
+    fc.diagnostics.append(
+        Diagnostic(
+            t_ms=br_start_ms,
+            step="browser",
+            engine="camoufox",
+            host=_host(fc.final_url),
+            proxy=None,
+            verdict=browser_result.verdict,
+            dur_ms=br_dur_ms,
+            extra={"status_code": browser_result.status_code},
+        )
+    )
+    browser_pre = browser_result.pre_rendered
+    if browser_result.verdict == Verdict.ok and browser_pre is not None:
+        fc.content_md = browser_pre.content_md
+        fc.title = browser_pre.title
+        fc.byline = browser_pre.byline
+        fc.headings = browser_pre.headings
+        fc.body = browser_result.body
+        fc.content_type = browser_result.content_type
+        fc.final_url = browser_result.final_url
+        fc.tier_used = "browser"
+        fc.pre_rendered_payload = browser_pre
+        fc.status_code = browser_result.status_code
+        regate = evaluate(content_md=fc.content_md, raw_html=fc.content_md, content_type=None)
+        if regate.verdict == Verdict.ok:
+            fc.final_verdict = Verdict.ok
+            fc.gate_verdict = Verdict.ok
+            fc.gate_subsystem = None
         else:
-            fit_dur_start = int((time.perf_counter() - start_perf) * 1000)
-            await _publish(bus, StageStarted(t_ms=fit_dur_start, step="fit"))
-            try:
-                pruned = await prune_markdown(raw_html, final_url)
-            except Exception:
-                pruned = ""
-            fit_md = pruned if pruned else content_md
-            fit_dur_ms = int((time.perf_counter() - start_perf) * 1000) - fit_dur_start
-            await _publish(
-                bus,
-                StageEnded(
-                    t_ms=fit_dur_start,
-                    step="fit",
-                    verdict=Verdict.ok,
-                    dur_ms=fit_dur_ms,
-                    extra={"chars": len(fit_md)},
-                ),
-            )
+            fc.final_verdict = regate.verdict
+            fc.gate_verdict = regate.verdict
+            fc.gate_subsystem = regate.subsystem
+    else:
+        fc.browser_unavailable_hint = browser_result.operator_hint
 
-    # Phase 5 — cache write (gate-passed, non-hit only, non-bypass, non-archive)
-    is_archive_result = tier_used == "archive"
+
+async def _phase_cache_write(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext | None) -> None:
+    """Write to cache iff gate passed, non-hit, non-bypass, non-archive."""
+    is_archive_result = fc.tier_used == "archive"
     should_cache = (
-        sqlite_conn is not None
-        and not bypass_cache
-        and cache_state != CacheState.hit
-        and final_verdict == Verdict.ok
-        and body
+        fc.sqlite_conn is not None
+        and not fc.bypass_cache
+        and fc.cache_state != CacheState.hit
+        and fc.final_verdict == Verdict.ok
+        and fc.body
         and not is_archive_result
     )
-    if should_cache:
-        cache_dur_start = int((time.perf_counter() - start_perf) * 1000)
-        await _publish(bus, StageStarted(t_ms=cache_dur_start, step="cache_write"))
-        await cache_put(
-            sqlite_conn,
-            url,
-            profile_hash,
-            etag=etag,
-            last_modified=last_modified,
-            status_code=status_code,
-            content_type=content_type,
-            body=body,
-            ttl_s=_ttl_for(content_type, state.settings),
-        )
-        cache_dur_ms = int((time.perf_counter() - start_perf) * 1000) - cache_dur_start
-        await _publish(
-            bus,
-            StageEnded(t_ms=cache_dur_start, step="cache_write", verdict=Verdict.ok, dur_ms=cache_dur_ms),
-        )
+    if not should_cache:
+        return
 
-    total_ms = int((time.perf_counter() - start_perf) * 1000)
-    status = FetchStatus.ok if final_verdict == Verdict.ok else FetchStatus.failed
-
-    narrative = _build_narrative(
-        tier_used=tier_used,
-        cache_state=cache_state,
-        final_verdict=final_verdict,
-        total_ms=total_ms,
-        gate_subsystem=gate_subsystem,
+    cache_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
+    await _emit(ctx, StageStarted(t_ms=cache_dur_start, step="cache_write"))
+    await cache_put(
+        fc.sqlite_conn,
+        fc.url,
+        fc.profile_hash,
+        etag=fc.etag,
+        last_modified=fc.last_modified,
+        status_code=fc.status_code,
+        content_type=fc.content_type,
+        body=fc.body,
+        ttl_s=_ttl_for(fc.content_type, state.settings),
+    )
+    cache_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - cache_dur_start
+    await _emit(
+        ctx,
+        StageEnded(t_ms=cache_dur_start, step="cache_write", verdict=Verdict.ok, dur_ms=cache_dur_ms),
     )
 
-    tokens = TokenCounts(full=len(content_md), fit=len(fit_md or "")) if final_verdict == Verdict.ok and content_md else None
+
+# --------------------------------------------------------------------- #
+# Top-level coordinator + response builder
+# --------------------------------------------------------------------- #
+
+async def _run_pipeline(
+    fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext | None = None,
+) -> FetchResponse:
+    """Run the cascade end-to-end; return the response built from the context."""
+    await _phase_cache_check(fc)
+    await _phase_tier_loop(fc, state=state, ctx=ctx)
+    # Cache hits still go through extract+gate — the body came from cache, but
+    # the agent-facing fields (title, content_md, etc.) are produced by extraction.
+    await _phase_extract(fc, ctx=ctx)
+    await _phase_gate_and_escalate(fc, state=state, ctx=ctx)
+    await _phase_cache_write(fc, state=state, ctx=ctx)
+    return _build_response(fc)
+
+
+def _build_response(fc: FetchContext) -> FetchResponse:
+    """Materialize the FetchResponse from accumulated FetchContext state."""
+    total_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+    status = FetchStatus.ok if fc.final_verdict == Verdict.ok else FetchStatus.failed
+
+    # fit_md preserved for response backward-compat — trafilatura's native
+    # pruning produces output within 10% of v0.1 fit-md against every fixture.
+    fit_md: str | None = fc.content_md if (fc.final_verdict == Verdict.ok and fc.content_md) else None
+
+    narrative = _build_narrative(
+        tier_used=fc.tier_used,
+        cache_state=fc.cache_state,
+        final_verdict=fc.final_verdict,
+        total_ms=total_ms,
+        gate_subsystem=fc.gate_subsystem,
+    )
+
+    tokens = (
+        TokenCounts(full=len(fc.content_md), fit=len(fit_md or ""))
+        if fc.final_verdict == Verdict.ok and fc.content_md
+        else None
+    )
     op_hints: list[OperatorHint] = []
-    if browser_unavailable_hint is not None:
-        op_hints.append(
-            OperatorHint(
-                code=str(browser_unavailable_hint.get("code", "browser_unavailable")),
-                message=str(browser_unavailable_hint.get("message", "")),
-            )
-        )
+    if fc.browser_unavailable_hint is not None:
+        op_hints.append(fc.browser_unavailable_hint)
+
     return FetchResponse(
-        url=final_url,
+        url=fc.final_url,
         status=status,
-        tier=tier_used,
-        confidence=_confidence_for(final_verdict, content_md),
-        title=title,
-        byline=byline,
-        published=published,
-        started_at=started_at,
+        tier=fc.tier_used,
+        confidence=_confidence_for(fc.final_verdict, fc.content_md),
+        title=fc.title,
+        byline=fc.byline,
+        published=fc.published,
+        started_at=fc.started_at,
         total_ms=total_ms,
         tokens=tokens,
-        cache=cache_state,
+        cache=fc.cache_state,
         narrative=narrative,
-        diagnostics=diagnostics,
-        meta=meta_dict,
-        links=links,
-        headings=headings,
-        content_md=content_md,
+        diagnostics=fc.diagnostics,
+        meta=fc.meta_dict,
+        links=fc.links,
+        headings=fc.headings,
+        content_md=fc.content_md,
         fit_md=fit_md,
         operator_hints=op_hints,
     )

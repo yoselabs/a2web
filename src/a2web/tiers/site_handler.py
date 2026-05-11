@@ -1,8 +1,7 @@
 """Site-handler dispatch tier — calls `match_handler(url)` and forwards.
 
-Returns a sentinel TierResult with `tier_extras["no_match"]=True` when no
-handler claims the URL; the orchestrator skips the diagnostic row and
-falls through to the next tier.
+Returns a sentinel `TierResult(no_match=True)` when no handler claims the
+URL; the orchestrator skips the diagnostic row and falls through.
 """
 
 from __future__ import annotations
@@ -32,10 +31,10 @@ class SiteHandlerTier:
                 content_type="",
                 status_code=0,
                 final_url=url,
-                tier_extras={"no_match": True},
+                no_match=True,
                 verdict=Verdict.other,
             )
         result = await handler.fetch(url, state=state)
-        # Surface the specific handler name (e.g. "site_handler:reddit") for diagnostics
-        result.tier_extras.setdefault("handler_name", handler.name)
+        if result.handler_name is None:
+            result.handler_name = handler.name
         return result

@@ -81,30 +81,29 @@ class WikipediaHandler:
             return _empty_result(url, Verdict.length_floor)
 
         title = unquote(slug).replace("_", " ")
-        markdown = trafilatura.extract(
-            html,
-            url=url,
-            output_format="markdown",
-            include_comments=False,
-            include_tables=True,
-        ) or ""
+        markdown = (
+            trafilatura.extract(
+                html,
+                url=url,
+                output_format="markdown",
+                include_comments=False,
+                include_tables=True,
+            )
+            or ""
+        )
 
         if not markdown:
             return _empty_result(url, Verdict.length_floor)
 
-        rendered = {
-            "content_md": markdown,
-            "title": title,
-            "byline": None,
-            "headings": [],
-        }
+        from ..tiers import Rendered
+
         return TierResult(
             body=html.encode("utf-8"),
             content_type="text/html",
             status_code=response.status_code,
             final_url=url,
             headers=dict(response.headers),
-            tier_extras={"pre_rendered": rendered},
+            pre_rendered=Rendered(content_md=markdown, title=title),
             verdict=Verdict.ok,
         )
 

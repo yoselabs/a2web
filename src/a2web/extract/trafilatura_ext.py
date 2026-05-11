@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+from datetime import date, datetime
 
 import trafilatura
 from selectolax.parser import HTMLParser
@@ -21,13 +22,29 @@ class ExtractResult:
     content_md: str
     title: str | None = None
     byline: str | None = None
+    published: date | None = None
     headings: list[Heading] = field(default_factory=list)
     links: list[Link] = field(default_factory=list)
     score: float | None = None
 
 
+def _parse_date(value: str | None) -> date | None:
+    """Parse trafilatura's date field (YYYY-MM-DD or ISO timestamp) → date."""
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
 def _extract_sync(html: str, url: str) -> ExtractResult:
-    """Blocking extraction — never call from async paths directly."""
+    """Blocking extraction — never call from async paths directly.
+
+    `trafilatura.extract_metadata(html)` provides title / author / date /
+    image / pagetype / sitename in a single pass — replaces the prior
+    separate `htmldate.find_date()` call.
+    """
     md = (
         trafilatura.extract(
             html,
@@ -42,10 +59,12 @@ def _extract_sync(html: str, url: str) -> ExtractResult:
 
     title: str | None = None
     byline: str | None = None
+    published: date | None = None
     metadata = trafilatura.extract_metadata(html)
     if metadata is not None:
         title = metadata.title or None
         byline = metadata.author or None
+        published = _parse_date(getattr(metadata, "date", None))
 
     headings: list[Heading] = []
     links: list[Link] = []
@@ -69,6 +88,7 @@ def _extract_sync(html: str, url: str) -> ExtractResult:
         content_md=md,
         title=title,
         byline=byline,
+        published=published,
         headings=headings,
         links=links,
         score=None,

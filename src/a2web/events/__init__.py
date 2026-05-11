@@ -1,24 +1,26 @@
-"""Diagnostic event bus — single producer (orchestrator), pluggable sinks.
+"""Event types + OTel sink for the fetch orchestrator.
 
-The bus is opt-in: when `fetcher.fetch(url, *, state)` is called without a
-`bus=` kwarg, no events are published. The router builds a bus per call,
-attaches the MCP progress sink, and threads it into the orchestrator.
-PR7 will add an OTel sink subscribed to the same bus.
+Emissions go through a2kit.ldd (`await a2kit.ldd.event(ctx, name, **payload)`)
+from the orchestrator; a2kit fans them out to subscribed sinks (the FastMCP
+wire bridge plus our `otel_sink` registered via `app.ldd.add_sink`).
 """
 
-from __future__ import annotations
-
-from .bus import EventBus
-from .sinks import mcp_progress_sink, otel_sink
-from .types import Event, StageEnded, StageStarted, TierEnded, TierStarted
+from .sinks import otel_sink
+from .types import (
+    Event,
+    StageEnded,
+    StageStarted,
+    TierEnded,
+    TierHeartbeat,
+    TierStarted,
+)
 
 __all__ = [
     "Event",
-    "EventBus",
     "StageEnded",
     "StageStarted",
     "TierEnded",
+    "TierHeartbeat",
     "TierStarted",
-    "mcp_progress_sink",
     "otel_sink",
 ]

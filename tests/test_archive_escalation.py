@@ -5,22 +5,18 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.fetcher import fetch
-from a2web.log.writer import LogWriter
 from a2web.models import FetchStatus, Verdict
-from a2web.settings import AppSettings
-from a2web.state import AppState
-from a2web.tiers import REGISTRY, TIER_ORDER, TierResult
+from a2web.state import AppState, build_state
+from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult
 
 if TYPE_CHECKING:
     pass
 
 
 _BLOCK_HTML = (
-    b"<html><head><title>Just a moment...</title></head>"
-    b"<body><h1>Just a moment...</h1><noscript>cf-chl-bypass</noscript></body></html>"
+    b"<html><head><title>Just a moment...</title></head><body><h1>Just a moment...</h1><noscript>cf-chl-bypass</noscript></body></html>"
 )
 
 
@@ -48,28 +44,16 @@ class _RecoveringArchiveTier:
             content_type="text/html",
             status_code=200,
             final_url=url,
-            tier_extras={
-                "from_archive": True,
-                "source": "wayback",
-                "snapshot_age_days": 5,
-                "pre_rendered": {
-                    "content_md": markdown,
-                    "title": "Recovered Article",
-                    "byline": None,
-                    "headings": [],
-                },
-            },
+            from_archive=True,
+            archive_source="wayback",
+            snapshot_age_days=5,
+            pre_rendered=Rendered(content_md=markdown, title="Recovered Article"),
             verdict=Verdict.ok,
         )
 
 
 def _make_state() -> AppState:
-    settings = AppSettings()
-    return AppState(
-        settings=settings,
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        log_writer=LogWriter(disabled=True),
-    )
+    return build_state()
 
 
 @pytest.mark.asyncio
