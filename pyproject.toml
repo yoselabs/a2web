@@ -49,6 +49,10 @@ llm = [
     # markdownify is the Python equivalent of WebFetch's Turndown — used by
     # WebFetchBaseline to keep HTML→markdown behavior close to Claude Code's.
     "markdownify>=0.13,<2",
+    # claude-agent-sdk lets a2web piggyback on the user's Claude Code OS
+    # session (OAuth subscription or whichever auth `claude` CLI is logged
+    # into) — no separate API key required when this is preferred.
+    "claude-agent-sdk>=0.1.80,<1",
 ]
 
 [dependency-groups]

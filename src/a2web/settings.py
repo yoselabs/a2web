@@ -116,7 +116,13 @@ class AppSettings(BaseSettings):
     # v0.4: optional LLM-backed extraction. Activated by the `ask=` param on
     # the fetch tool. Requires the `[llm]` install extra. Default model
     # matches Claude Code's WebFetch sub-call (research/123).
-    llm_provider: Literal["anthropic"] = "anthropic"
+    #
+    # `auto`         — prefer ClaudeCodeProvider if `claude-agent-sdk` + the
+    #                  `claude` CLI are available (uses the OS session, no
+    #                  API key needed); fall back to AnthropicProvider.
+    # `anthropic`    — direct Anthropic Messages API; requires API key.
+    # `claude-code`  — Claude Code OS session via `claude-agent-sdk` only.
+    llm_provider: Literal["auto", "anthropic", "claude-code"] = "auto"
     llm_model: str = "claude-haiku-4-5-20251001"
     llm_api_key_env: str = "ANTHROPIC_API_KEY"
     extraction_max_chars: int = 100_000  # matches WebFetch's BD_ constant

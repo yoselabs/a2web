@@ -6,6 +6,32 @@ All notable changes to **a2web** are recorded here. The format follows
 
 > First tagged release; entries summarize the full PR1–PR10 build.
 
+## [Unreleased]
+
+### Added
+
+- **`ClaudeCodeProvider`** — runs prompts through the user's Claude Code
+  OS session via `claude-agent-sdk`. No `ANTHROPIC_API_KEY` required:
+  inherits whatever the local `claude` CLI is logged into (OAuth
+  subscription or API key). Implements the same `Provider` Protocol as
+  `AnthropicProvider`, so the Extractor and Judge accept it
+  transparently. Tools are disabled and `max_turns=1` so the model
+  produces a single text completion — no file edits or MCP calls.
+
+- **`llm_provider="auto"` default** — `AppState.ensure_llm_extractor`
+  now tries `ClaudeCodeProvider` first and falls back to
+  `AnthropicProvider` when the SDK or CLI is missing. Set
+  `A2WEB_LLM_PROVIDER=anthropic` to skip the OS-session path and use
+  the API key directly, or `A2WEB_LLM_PROVIDER=claude-code` to require
+  it.
+
+- **`claude-agent-sdk` added to the `[llm]` extra.** Installing
+  `a2web[llm]` now ships both `anthropic` (for the API-key path) and
+  `claude-agent-sdk` (for the OS-session path).
+
+- **`benchmarks/.../judge.py`** prefers `ClaudeCodeProvider` by default;
+  set `A2WEB_BENCH_PROVIDER=anthropic` to force the API-key path.
+
 ## [0.4.0] - 2026-05-11
 
 The `a2web.llm` module — optional server-side LLM extraction +

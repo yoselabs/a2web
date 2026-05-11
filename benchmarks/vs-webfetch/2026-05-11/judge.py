@@ -33,7 +33,9 @@ from a2web.llm import (
     ModelSpec,
     PromptTemplate,
 )
+from a2web.llm.errors import LLMNotAvailable
 from a2web.llm.providers.anthropic import AnthropicProvider
+from a2web.llm.providers.claude_code import ClaudeCodeProvider
 
 HERE = Path(__file__).parent
 RUNS = HERE / "runs"
@@ -130,19 +132,40 @@ async def _process_one(
     return result
 
 
+def _pick_provider() -> tuple[Any, str]:
+    """Prefer Claude Code's OS session (OAuth subscription) over API key.
+
+    Falls back to AnthropicProvider only if claude-agent-sdk / CLI is
+    unavailable. Caller controls via `A2WEB_BENCH_PROVIDER=anthropic`.
+    """
+    import os
+
+    forced_name = os.environ.get("A2WEB_BENCH_PROVIDER", "").strip().lower()
+    if forced_name == "anthropic":
+        return AnthropicProvider(), "anthropic"
+    if forced_name == "claude-code":
+        return ClaudeCodeProvider(), "claude-code"
+    try:
+        return ClaudeCodeProvider(), "claude-code"
+    except LLMNotAvailable as exc:
+        print(f"  [info] claude-code provider unavailable ({exc}); falling back to AnthropicProvider")
+        return AnthropicProvider(), "anthropic"
+
+
 async def _amain() -> int:
     corpus = yaml.safe_load(CORPUS.read_text())
-    provider = AnthropicProvider()
+    provider, provider_id = _pick_provider()
+    print(f"  [info] provider={provider_id}")
     reader = Extractor(
         provider=provider,
-        model=ModelSpec("anthropic", READER_MODEL),
+        model=ModelSpec(provider_id, READER_MODEL),
         template=READER_TEMPLATE,
         max_content_chars=200_000,
         max_tokens=1024,
     )
     judge = Judge(
         provider=provider,
-        model=ModelSpec("anthropic", JUDGE_MODEL),
+        model=ModelSpec(provider_id, JUDGE_MODEL),
     )
 
     sem = asyncio.Semaphore(4)

@@ -113,17 +113,34 @@ async def ensure_llm_extractor(state: AppState):
             from .llm import ExtractionCache, Extractor, ModelSpec
             from .llm.errors import LLMNotAvailable
             from .llm.providers.anthropic import AnthropicProvider
+            from .llm.providers.claude_code import ClaudeCodeProvider
 
             s = state.settings
-            if s.llm_provider != "anthropic":
+            provider_id = s.llm_provider
+            provider: AnthropicProvider | ClaudeCodeProvider | None = None
+            attempt_errors: list[str] = []
+
+            if provider_id in ("claude-code", "auto"):
+                try:
+                    provider = ClaudeCodeProvider()
+                    provider_id = "claude-code"
+                except LLMNotAvailable as exc:
+                    if s.llm_provider == "claude-code":
+                        state.llm_unavailable_reason = str(exc)
+                        return None
+                    attempt_errors.append(f"claude-code: {exc}")
+
+            if provider is None and provider_id in ("anthropic", "auto"):
+                try:
+                    provider = AnthropicProvider(api_key_env=s.llm_api_key_env)
+                    provider_id = "anthropic"
+                except LLMNotAvailable as exc:
+                    attempt_errors.append(f"anthropic: {exc}")
+
+            if provider is None:
                 state.llm_unavailable_reason = (
-                    f"llm_provider={s.llm_provider!r} not supported in v0.4 (only 'anthropic'; OpenRouter lands in v0.5)"
+                    "no LLM provider available. " + "; ".join(attempt_errors)
                 )
-                return None
-            try:
-                provider = AnthropicProvider(api_key_env=s.llm_api_key_env)
-            except LLMNotAvailable as exc:
-                state.llm_unavailable_reason = str(exc)
                 return None
 
             # Hook the extraction cache into the same sqlite file as the
@@ -135,7 +152,7 @@ async def ensure_llm_extractor(state: AppState):
 
             state.llm_extractor = Extractor(
                 provider=provider,
-                model=ModelSpec(s.llm_provider, s.llm_model),
+                model=ModelSpec(provider_id, s.llm_model),
                 max_content_chars=s.extraction_max_chars,
                 cache=cache,
             )
