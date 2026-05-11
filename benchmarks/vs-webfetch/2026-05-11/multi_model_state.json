@@ -21,7 +21,17 @@
     "cohere/command-r-plus-08-2024",
     "x-ai/grok-2-1212",
     "amazon/nova-pro-v1",
-    "microsoft/phi-4"
+    "microsoft/phi-4",
+    "llama3.2:3b",
+    "qwen2.5:3b",
+    "phi3.5:3.8b",
+    "gemma2:2b",
+    "nemotron-mini:4b",
+    "llama3.1:8b",
+    "qwen2.5:7b",
+    "qwen3:8b",
+    "mistral:7b",
+    "phi4"
   ],
   "survivors": {
     "stage1": [
@@ -34,21 +44,32 @@
       "google/gemini-2.5-flash",
       "google/gemini-2.5-pro",
       "moonshotai/kimi-k2",
+      "z-ai/glm-4.6",
+      "minimax/minimax-m2",
       "nvidia/nemotron-nano-9b-v2:free",
       "openai/gpt-4o-mini",
       "openai/gpt-4.1-mini-2025-04-14",
       "anthropic/claude-4.5-haiku-20251001",
+      "mistralai/mistral-large-2411",
       "meta-llama/llama-3.3-70b-instruct",
       "cohere/command-r-plus-08-2024",
       "amazon/nova-pro-v1",
-      "microsoft/phi-4"
+      "microsoft/phi-4",
+      "llama3.2:3b",
+      "phi3.5:3.8b",
+      "gemma2:2b",
+      "llama3.1:8b",
+      "qwen2.5:7b",
+      "qwen3:8b",
+      "mistral:7b",
+      "phi4"
     ],
     "stage2": [
+      "minimax/minimax-m2",
       "microsoft/phi-4",
       "deepseek/deepseek-chat-v3.1",
       "google/gemini-2.5-flash",
-      "qwen/qwen3-30b-a3b-04-28",
-      "openai/gpt-4.1-mini-2025-04-14"
+      "mistral:7b"
     ]
   },
   "eliminated": {
@@ -56,6 +77,14 @@
     "minimax/minimax-m2": "stage0: errors=0 empty=1 ok=1",
     "tencent/hunyuan-large": "stage0: errors=0 empty=1 ok=1",
     "mistralai/mistral-large-2411": "stage0: errors=0 empty=1 ok=1",
-    "x-ai/grok-2-1212": "stage0: errors=0 empty=1 ok=1"
+    "x-ai/grok-2-1212": "stage0: errors=0 empty=1 ok=1",
+    "qwen2.5:3b": "stage0: errors=0 empty=1 ok=1",
+    "phi3.5:3.8b": "stage0: errors=0 empty=1 ok=1",
+    "nemotron-mini:4b": "stage0: errors=0 empty=1 ok=1",
+    "llama3.1:8b": "stage0: errors=0 empty=1 ok=1",
+    "qwen2.5:7b": "stage0: errors=0 empty=1 ok=1",
+    "qwen3:8b": "stage0: errors=0 empty=1 ok=1",
+    "mistral:7b": "stage0: errors=0 empty=1 ok=1",
+    "phi4": "stage0: errors=0 empty=1 ok=1"
   }
 }

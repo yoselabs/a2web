@@ -1,0 +1,3 @@
+Framework-defined infrastructure automates IaC for serverless apps, mapping framework concepts to needed infra with no explicit config; promotes local dev ease via same tooling as production.
+
+(125 characters)

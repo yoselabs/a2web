@@ -1,0 +1,5 @@
+Based on the content, the company sells Linear, a product development/management SaaS platform.
+
+The primary headline on the landing page is: "A new species of product tool."
+
+The main value proposition is that Linear is "Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products." It's essentially a product operations tool that combines issue tracking, roadmapping, AI agent integration, and code review features into one platform designed for the AI era.

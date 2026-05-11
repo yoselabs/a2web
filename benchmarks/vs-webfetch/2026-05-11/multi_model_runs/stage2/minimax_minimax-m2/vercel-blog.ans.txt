@@ -1,0 +1,1 @@
+Framework-defined infrastructure is an evolution of IaC where a build-time program parses source code written to a framework, understands the intent, and automatically generates the IaC configuration needed to run the software. It "automatically map[s] framework concepts onto the appropriate infrastructure without the need for explicit declaration or configuration."

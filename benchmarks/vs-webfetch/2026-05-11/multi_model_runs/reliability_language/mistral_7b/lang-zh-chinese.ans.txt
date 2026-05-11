@@ -1,0 +1,1 @@
+ Graydon Hoare, a software engineer, created Rust in 2006 at Mozilla.

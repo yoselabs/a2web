@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer clearly defines FDI as build-time generation of IaC from framework source code, covers the core idea in substantive sentences, and explicitly names the framework as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0086115,
+  "latency_ms": 8895,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 67
+  }
+}

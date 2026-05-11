@@ -57,6 +57,7 @@ from a2web.llm import Extractor, Judge, JudgeParseError, ModelSpec, PromptTempla
 from a2web.llm.errors import LLMNotAvailable  # noqa: E402
 from a2web.llm.providers.anthropic import AnthropicProvider  # noqa: E402
 from a2web.llm.providers.claude_code import ClaudeCodeProvider  # noqa: E402
+from a2web.llm.providers.ollama import OllamaProvider  # noqa: E402
 from a2web.llm.providers.openrouter import OpenRouterProvider  # noqa: E402
 
 # --- Model roster --------------------------------------------------------
@@ -88,11 +89,54 @@ CANDIDATE_MODELS: list[str] = [
     "x-ai/grok-2-1212",
     "amazon/nova-pro-v1",
     "microsoft/phi-4",
+    # Local via Ollama — only run if pulled. Stage 0 eliminates cleanly
+    # if Ollama is not running.
+    "llama3.2:3b",
+    "qwen2.5:3b",
+    "phi3.5:3.8b",
+    "gemma2:2b",
+    "nemotron-mini:4b",
+    "llama3.1:8b",
+    "qwen2.5:7b",
+    "qwen3:8b",
+    "mistral:7b",
+    "phi4",
 ]
 
 # Anchors: Haiku/Sonnet numbers already exist in phase 3/4 data — referenced
 # in the final report, not re-run here (avoids needing ANTHROPIC_API_KEY).
 ANCHOR_MODELS: dict[str, str] = {}
+
+# Local models via Ollama. Each fits comfortably on a 16GB MacBook without
+# unloading other apps (≤6GB peak RAM). Pull with `ollama pull <id>`.
+#
+# RAM budget (Q4_K_M quant, approximate active memory):
+#   llama3.2:3b         ~2.5 GB
+#   qwen2.5:3b          ~2.0 GB
+#   phi3.5:3.8b         ~2.5 GB
+#   gemma2:2b           ~1.8 GB
+#   nemotron-mini:4b    ~2.7 GB
+#   llama3.1:8b         ~5.0 GB     ← upper end
+#   qwen2.5:7b          ~4.7 GB     ← upper end
+#   mistral:7b          ~4.1 GB     ← upper end
+#
+# These run through OllamaProvider; if Ollama isn't running OR the model
+# isn't pulled, stage 0 eliminates them gracefully.
+LOCAL_MODELS: set[str] = {
+    # 3-4B class (small, MacBook-comfortable):
+    "llama3.2:3b",
+    "qwen2.5:3b",
+    "phi3.5:3.8b",
+    "gemma2:2b",
+    "nemotron-mini:4b",
+    # 7-8B class (still fits, slightly heavier RAM):
+    "llama3.1:8b",
+    "qwen2.5:7b",
+    "qwen3:8b",
+    "mistral:7b",
+    # 14B class (peak ~9GB RAM — close apps if other things are running):
+    "phi4",
+}
 
 # --- Prompt: same as WebFetch parity template ----------------------------
 from a2web.llm.prompts import WEBFETCH_DEFAULT_V1  # noqa: E402
@@ -120,9 +164,11 @@ def _safe(name: str) -> str:
 
 
 def _build_provider_for(model: str) -> tuple[Any, str]:
-    """Anchor models → AnthropicProvider; everything else → OpenRouter."""
+    """Route by model id: anchors→Anthropic, local→Ollama, else→OpenRouter."""
     if model in ANCHOR_MODELS:
         return AnthropicProvider(), "anthropic"
+    if model in LOCAL_MODELS:
+        return OllamaProvider(), "ollama"
     return OpenRouterProvider(), "openrouter"
 
 
@@ -268,12 +314,21 @@ async def _run_stage(stage: int, models: list[str], slugs: list[str], use_judge:
     async def _cell(model: str, slug: str) -> dict[str, Any]:
         # Idempotency: skip cells with existing meta.json (re-running stage 0
         # after adding new models should NOT re-charge for completed cells).
+        # BUT: an empty cached answer is treated as a miss — local models
+        # that weren't pulled yet should get a real run once they are.
         existing_meta = stage_dir / _safe(model) / f"{slug}.meta.json"
         existing_score = stage_dir / _safe(model) / f"{slug}.score.json"
-        if existing_meta.exists() and (not use_judge or existing_score.exists()):
+        existing_ans = stage_dir / _safe(model) / f"{slug}.ans.txt"
+        cached_answer_ok = (
+            existing_meta.exists()
+            and existing_ans.exists()
+            and existing_ans.read_text().strip()
+            and (not use_judge or existing_score.exists())
+        )
+        if cached_answer_ok:
             try:
                 m = json.loads(existing_meta.read_text())
-                ans = (stage_dir / _safe(model) / f"{slug}.ans.txt").read_text()
+                ans = existing_ans.read_text()
                 entry_local = by_slug[slug]
                 row: dict[str, Any] = {
                     "model": model,

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    0,
+    3
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "Correctly identifies Graydon Hoare but gives 2006 (creation) instead of 2010 (first appearance/release) for the year criterion, and describes memory safety benefits without naming the ownership/borrow checker mechanism specifically.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04132215,
+  "latency_ms": 11677,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 77
+  }
+}

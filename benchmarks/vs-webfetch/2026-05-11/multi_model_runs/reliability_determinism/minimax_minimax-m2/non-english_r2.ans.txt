@@ -1,0 +1,1 @@
+This article demonstrates building an inverted pendulum control system in Simulink using PID controllers and Multibody library blocks, without any physics or math calculations. It shows automatic PID tuning, adding noise and Kalman filtering for realism, and implementing a swing-up mechanism to raise the pendulum before stabilization.

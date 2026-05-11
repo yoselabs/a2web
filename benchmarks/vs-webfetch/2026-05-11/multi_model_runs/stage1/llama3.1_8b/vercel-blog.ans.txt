@@ -1,0 +1,3 @@
+Here is the core idea of "framework-defined infrastructure" in 2 sentences:
+
+Framework-defined infrastructure automatically provisions infrastructure derived from a framework and its applications, eliminating the need for explicit declaration or configuration. It maps framework concepts onto appropriate infrastructure without manual intervention, making it easier to develop and deploy applications with predictable, lower-cost, and lower-risk DevOps.

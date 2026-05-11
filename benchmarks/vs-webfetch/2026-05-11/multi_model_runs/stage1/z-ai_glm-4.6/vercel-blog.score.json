@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer precisely captures FDI's core idea with a direct quote and mechanistic explanation, satisfying all three criteria fully.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039118349999999996,
+  "latency_ms": 11184,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 51
+  }
+}

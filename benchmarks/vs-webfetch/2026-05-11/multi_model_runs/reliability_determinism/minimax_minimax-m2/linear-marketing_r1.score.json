@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a product development/issue tracking tool for software teams, provides a substantive and specific headline from the landing page, and goes well beyond navigation or cookie banner text.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0399846,
+  "latency_ms": 11506,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

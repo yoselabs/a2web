@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a precise, substantive English summary mentioning specific concepts (Simulink, Multibody libraries, inverted pendulum, PID regulators, automated tuning) drawn clearly from the article body, with no navigation or cookie-banner filler.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04129965,
+  "latency_ms": 10376,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 81
+  }
+}

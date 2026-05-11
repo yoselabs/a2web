@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer precisely defines FDI, provides a substantive two-sentence summary covering the core mechanism, and explicitly names the framework as the source driving infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04113839999999999,
+  "latency_ms": 9193,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 58
+  }
+}

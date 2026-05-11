@@ -1,0 +1,1 @@
+Framework-defined infrastructure uses frameworks to automatically map framework concepts onto infrastructure, simplifying local development and enabling serverless deployments. This approach eliminates the need for manual configuration and allows for predictable, scalable, and cost-effective infrastructure provisioning. 

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    4,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately defines a Notion database as a collection of pages with properties, contrasts it with regular pages (free-form vs. structured), and explicitly mentions views, properties, and structural features like tables, calendars, and boards.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0419859,
+  "latency_ms": 10871,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 74
+  }
+}

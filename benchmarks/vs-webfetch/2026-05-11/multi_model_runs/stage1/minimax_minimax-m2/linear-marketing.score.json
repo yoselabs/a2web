@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a product development/issue tracking system for software teams and AI agents, and accurately captures the primary headline and tagline from the landing page.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03724065,
+  "latency_ms": 16660,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
+}

@@ -10,14 +10,25 @@
     "google/gemini-2.5-flash",
     "google/gemini-2.5-pro",
     "moonshotai/kimi-k2",
+    "z-ai/glm-4.6",
+    "minimax/minimax-m2",
     "nvidia/nemotron-nano-9b-v2:free",
     "openai/gpt-4o-mini",
     "openai/gpt-4.1-mini-2025-04-14",
     "anthropic/claude-4.5-haiku-20251001",
+    "mistralai/mistral-large-2411",
     "meta-llama/llama-3.3-70b-instruct",
     "cohere/command-r-plus-08-2024",
     "amazon/nova-pro-v1",
-    "microsoft/phi-4"
+    "microsoft/phi-4",
+    "llama3.2:3b",
+    "phi3.5:3.8b",
+    "gemma2:2b",
+    "llama3.1:8b",
+    "qwen2.5:7b",
+    "qwen3:8b",
+    "mistral:7b",
+    "phi4"
   ],
   "slugs": [
     "wikipedia-rust",
@@ -26,8 +37,8 @@
     "github-issue",
     "non-english"
   ],
-  "wall_seconds": 135,
-  "n_rows": 85,
+  "wall_seconds": 128,
+  "n_rows": 140,
   "per_model": {
     "deepseek/deepseek-v3.2-exp": {
       "cells_ok": 5,
@@ -101,6 +112,22 @@
       "total_cost_usd": 0.008741,
       "mean_latency_ms": 3368
     },
+    "z-ai/glm-4.6": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": 4.6,
+      "total_cost_usd": 0.009211,
+      "mean_latency_ms": 20846
+    },
+    "minimax/minimax-m2": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 1,
+      "mean_overall": 5.0,
+      "total_cost_usd": 0.006496,
+      "mean_latency_ms": 5573
+    },
     "nvidia/nemotron-nano-9b-v2:free": {
       "cells_ok": 5,
       "errors": 0,
@@ -133,6 +160,14 @@
       "total_cost_usd": 0.019402,
       "mean_latency_ms": 2591
     },
+    "mistralai/mistral-large-2411": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": 4.6,
+      "total_cost_usd": 0.03866,
+      "mean_latency_ms": 3301
+    },
     "meta-llama/llama-3.3-70b-instruct": {
       "cells_ok": 5,
       "errors": 0,
@@ -164,6 +199,70 @@
       "mean_overall": 4.8,
       "total_cost_usd": 0.001147,
       "mean_latency_ms": 4157
+    },
+    "llama3.2:3b": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": 4.4,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 2597
+    },
+    "phi3.5:3.8b": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": 3.8,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 16993
+    },
+    "gemma2:2b": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": 3.8,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 4754
+    },
+    "llama3.1:8b": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": 4.4,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 43567
+    },
+    "qwen2.5:7b": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": 4.2,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 4918
+    },
+    "qwen3:8b": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": 4.4,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 111379
+    },
+    "mistral:7b": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": 4.6,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 45563
+    },
+    "phi4": {
+      "cells_ok": 5,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": 4.4,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 77007
     }
   },
   "rows": [
@@ -933,6 +1032,175 @@
       }
     },
     {
+      "model": "z-ai/glm-4.6",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9816,
+      "completion_tokens": 320,
+      "cost_usd": 0.00443624,
+      "latency_ms": 18972,
+      "cache_hit": false,
+      "answer_chars": 263,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "z-ai/glm-4.6",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 349,
+      "completion_tokens": 358,
+      "cost_usd": 0.00081631,
+      "latency_ms": 20164,
+      "cache_hit": false,
+      "answer_chars": 270,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "z-ai/glm-4.6",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2611,
+      "completion_tokens": 434,
+      "cost_usd": 0.00184289,
+      "latency_ms": 23712,
+      "cache_hit": false,
+      "answer_chars": 428,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "z-ai/glm-4.6",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 449,
+      "completion_tokens": 441,
+      "cost_usd": 0.00101301,
+      "latency_ms": 22664,
+      "cache_hit": false,
+      "answer_chars": 324,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "z-ai/glm-4.6",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1006,
+      "completion_tokens": 398,
+      "cost_usd": 0.0011027,
+      "latency_ms": 18719,
+      "cache_hit": false,
+      "answer_chars": 449,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9708,
+      "completion_tokens": 1024,
+      "cost_usd": 0.0041412,
+      "latency_ms": 6898,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true,
+      "judge": {
+        "error": "empty answer"
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 380,
+      "completion_tokens": 226,
+      "cost_usd": 0.00032742,
+      "latency_ms": 4561,
+      "cache_hit": false,
+      "answer_chars": 274,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2593,
+      "completion_tokens": 255,
+      "cost_usd": 0.000921315,
+      "latency_ms": 5188,
+      "cache_hit": false,
+      "answer_chars": 341,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 474,
+      "completion_tokens": 316,
+      "cost_usd": 0.0005214,
+      "latency_ms": 5786,
+      "cache_hit": false,
+      "answer_chars": 449,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1182,
+      "completion_tokens": 283,
+      "cost_usd": 0.00058441,
+      "latency_ms": 5432,
+      "cache_hit": false,
+      "answer_chars": 499,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
       "model": "nvidia/nemotron-nano-9b-v2:free",
       "slug": "wikipedia-rust",
       "class": "A_clean",
@@ -1273,6 +1541,91 @@
       }
     },
     {
+      "model": "mistralai/mistral-large-2411",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 12239,
+      "completion_tokens": 74,
+      "cost_usd": 0.024922,
+      "latency_ms": 3320,
+      "cache_hit": false,
+      "answer_chars": 292,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "mistralai/mistral-large-2411",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 411,
+      "completion_tokens": 100,
+      "cost_usd": 0.001422,
+      "latency_ms": 2387,
+      "cache_hit": false,
+      "answer_chars": 500,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "mistralai/mistral-large-2411",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3032,
+      "completion_tokens": 99,
+      "cost_usd": 0.006658,
+      "latency_ms": 3126,
+      "cache_hit": false,
+      "answer_chars": 499,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "mistralai/mistral-large-2411",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 532,
+      "completion_tokens": 171,
+      "cost_usd": 0.00209,
+      "latency_ms": 4977,
+      "cache_hit": false,
+      "answer_chars": 740,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "mistralai/mistral-large-2411",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1472,
+      "completion_tokens": 104,
+      "cost_usd": 0.003568,
+      "latency_ms": 2697,
+      "cache_hit": false,
+      "answer_chars": 517,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
       "model": "meta-llama/llama-3.3-70b-instruct",
       "slug": "wikipedia-rust",
       "class": "A_clean",
@@ -1606,6 +1959,686 @@
       "latency_ms": 3028,
       "cache_hit": false,
       "answer_chars": 612,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "llama3.2:3b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9829,
+      "completion_tokens": 51,
+      "cost_usd": 0.0,
+      "latency_ms": 1996,
+      "cache_hit": false,
+      "answer_chars": 219,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "llama3.2:3b",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 369,
+      "completion_tokens": 46,
+      "cost_usd": 0.0,
+      "latency_ms": 1065,
+      "cache_hit": false,
+      "answer_chars": 250,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "llama3.2:3b",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2631,
+      "completion_tokens": 63,
+      "cost_usd": 0.0,
+      "latency_ms": 3751,
+      "cache_hit": false,
+      "answer_chars": 437,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "llama3.2:3b",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 467,
+      "completion_tokens": 68,
+      "cost_usd": 0.0,
+      "latency_ms": 3865,
+      "cache_hit": false,
+      "answer_chars": 317,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "llama3.2:3b",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1126,
+      "completion_tokens": 68,
+      "cost_usd": 0.0,
+      "latency_ms": 2311,
+      "cache_hit": false,
+      "answer_chars": 356,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "phi3.5:3.8b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 12194,
+      "completion_tokens": 79,
+      "cost_usd": 0.0,
+      "latency_ms": 36425,
+      "cache_hit": false,
+      "answer_chars": 352,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "phi3.5:3.8b",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 426,
+      "completion_tokens": 61,
+      "cost_usd": 0.0,
+      "latency_ms": 7340,
+      "cache_hit": false,
+      "answer_chars": 253,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "phi3.5:3.8b",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3096,
+      "completion_tokens": 48,
+      "cost_usd": 0.0,
+      "latency_ms": 5878,
+      "cache_hit": false,
+      "answer_chars": 209,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "phi3.5:3.8b",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 546,
+      "completion_tokens": 56,
+      "cost_usd": 0.0,
+      "latency_ms": 11043,
+      "cache_hit": false,
+      "answer_chars": 233,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "phi3.5:3.8b",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1392,
+      "completion_tokens": 179,
+      "cost_usd": 0.0,
+      "latency_ms": 24283,
+      "cache_hit": false,
+      "answer_chars": 869,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "gemma2:2b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 8192,
+      "completion_tokens": 56,
+      "cost_usd": 0.0,
+      "latency_ms": 8742,
+      "cache_hit": false,
+      "answer_chars": 221,
+      "empty": false,
+      "judge": {
+        "overall": 2,
+        "reached": true
+      }
+    },
+    {
+      "model": "gemma2:2b",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 375,
+      "completion_tokens": 31,
+      "cost_usd": 0.0,
+      "latency_ms": 5865,
+      "cache_hit": false,
+      "answer_chars": 148,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "gemma2:2b",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2738,
+      "completion_tokens": 48,
+      "cost_usd": 0.0,
+      "latency_ms": 4501,
+      "cache_hit": false,
+      "answer_chars": 323,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "gemma2:2b",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 490,
+      "completion_tokens": 72,
+      "cost_usd": 0.0,
+      "latency_ms": 3073,
+      "cache_hit": false,
+      "answer_chars": 358,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "gemma2:2b",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 989,
+      "completion_tokens": 69,
+      "cost_usd": 0.0,
+      "latency_ms": 1590,
+      "cache_hit": false,
+      "answer_chars": 398,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "llama3.1:8b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9814,
+      "completion_tokens": 73,
+      "cost_usd": 0.0,
+      "latency_ms": 48144,
+      "cache_hit": false,
+      "answer_chars": 311,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "llama3.1:8b",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 354,
+      "completion_tokens": 25,
+      "cost_usd": 0.0,
+      "latency_ms": 8187,
+      "cache_hit": false,
+      "answer_chars": 118,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "llama3.1:8b",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2616,
+      "completion_tokens": 71,
+      "cost_usd": 0.0,
+      "latency_ms": 46304,
+      "cache_hit": false,
+      "answer_chars": 453,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "llama3.1:8b",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 452,
+      "completion_tokens": 82,
+      "cost_usd": 0.0,
+      "latency_ms": 50280,
+      "cache_hit": false,
+      "answer_chars": 403,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "llama3.1:8b",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1111,
+      "completion_tokens": 66,
+      "cost_usd": 0.0,
+      "latency_ms": 64920,
+      "cache_hit": false,
+      "answer_chars": 346,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen2.5:7b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10447,
+      "completion_tokens": 50,
+      "cost_usd": 0.0,
+      "latency_ms": 1811,
+      "cache_hit": false,
+      "answer_chars": 200,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen2.5:7b",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 375,
+      "completion_tokens": 26,
+      "cost_usd": 0.0,
+      "latency_ms": 1846,
+      "cache_hit": false,
+      "answer_chars": 145,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen2.5:7b",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2641,
+      "completion_tokens": 48,
+      "cost_usd": 0.0,
+      "latency_ms": 7898,
+      "cache_hit": false,
+      "answer_chars": 315,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen2.5:7b",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 488,
+      "completion_tokens": 57,
+      "cost_usd": 0.0,
+      "latency_ms": 6366,
+      "cache_hit": false,
+      "answer_chars": 285,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen2.5:7b",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1223,
+      "completion_tokens": 37,
+      "cost_usd": 0.0,
+      "latency_ms": 6673,
+      "cache_hit": false,
+      "answer_chars": 225,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen3:8b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10463,
+      "completion_tokens": 887,
+      "cost_usd": 0.0,
+      "latency_ms": 85994,
+      "cache_hit": false,
+      "answer_chars": 236,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen3:8b",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 356,
+      "completion_tokens": 646,
+      "cost_usd": 0.0,
+      "latency_ms": 106673,
+      "cache_hit": false,
+      "answer_chars": 296,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen3:8b",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2624,
+      "completion_tokens": 326,
+      "cost_usd": 0.0,
+      "latency_ms": 136618,
+      "cache_hit": false,
+      "answer_chars": 341,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen3:8b",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 469,
+      "completion_tokens": 326,
+      "cost_usd": 0.0,
+      "latency_ms": 133986,
+      "cache_hit": false,
+      "answer_chars": 291,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen3:8b",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1204,
+      "completion_tokens": 237,
+      "cost_usd": 0.0,
+      "latency_ms": 93626,
+      "cache_hit": false,
+      "answer_chars": 328,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "mistral:7b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 12239,
+      "completion_tokens": 69,
+      "cost_usd": 0.0,
+      "latency_ms": 46666,
+      "cache_hit": false,
+      "answer_chars": 282,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "mistral:7b",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 411,
+      "completion_tokens": 67,
+      "cost_usd": 0.0,
+      "latency_ms": 44407,
+      "cache_hit": false,
+      "answer_chars": 296,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "mistral:7b",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3032,
+      "completion_tokens": 104,
+      "cost_usd": 0.0,
+      "latency_ms": 57839,
+      "cache_hit": false,
+      "answer_chars": 531,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "mistral:7b",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 532,
+      "completion_tokens": 70,
+      "cost_usd": 0.0,
+      "latency_ms": 58083,
+      "cache_hit": false,
+      "answer_chars": 343,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "mistral:7b",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1472,
+      "completion_tokens": 117,
+      "cost_usd": 0.0,
+      "latency_ms": 20824,
+      "cache_hit": false,
+      "answer_chars": 564,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "phi4",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9815,
+      "completion_tokens": 113,
+      "cost_usd": 0.0,
+      "latency_ms": 84931,
+      "cache_hit": false,
+      "answer_chars": 536,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "phi4",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 354,
+      "completion_tokens": 112,
+      "cost_usd": 0.0,
+      "latency_ms": 93296,
+      "cache_hit": false,
+      "answer_chars": 602,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "phi4",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2616,
+      "completion_tokens": 64,
+      "cost_usd": 0.0,
+      "latency_ms": 18687,
+      "cache_hit": false,
+      "answer_chars": 405,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "phi4",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 452,
+      "completion_tokens": 152,
+      "cost_usd": 0.0,
+      "latency_ms": 98725,
+      "cache_hit": false,
+      "answer_chars": 785,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "phi4",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1525,
+      "completion_tokens": 93,
+      "cost_usd": 0.0,
+      "latency_ms": 89397,
+      "cache_hit": false,
+      "answer_chars": 506,
       "empty": false,
       "judge": {
         "overall": 5,

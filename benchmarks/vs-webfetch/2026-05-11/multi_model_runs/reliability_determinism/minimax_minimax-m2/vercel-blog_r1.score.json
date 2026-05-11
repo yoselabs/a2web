@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer precisely defines FDI as build-time inference of infrastructure from framework code/intent, covers both the mechanism and the mapping of framework patterns to infra primitives in exactly two substantive sentences.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039887099999999995,
+  "latency_ms": 12819,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 67
+  }
+}

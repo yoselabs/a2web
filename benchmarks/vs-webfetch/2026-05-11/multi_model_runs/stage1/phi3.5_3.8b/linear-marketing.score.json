@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a product planning/building tool for software teams, captures a specific headline from the page, and provides substantive value proposition content rather than nav/cookie text.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03918585,
+  "latency_ms": 12399,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
+}

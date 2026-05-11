@@ -1,1 +1,9 @@
-Rust was designed by Graydon Hoare in 2006 and first appeared on January 19, 2012. It is known for its memory-safety mechanism, the "borrow checker," which tracks object lifetimes at compile time to prevent memory safety errors and data races without a conventional garbage collector.
+Rust was originally designed by Graydon Hoare and first released in 2010. It is known for its memory-safety mechanism, which includes ownership types and borrowed pointers to ensure safe memory management without a garbage collector.
+
+Rust's memory safety is achieved through its ownership system, which ensures that references do not point to invalid memory. The borrow checker verifies that references are valid at compile time, preventing issues like null or dangling pointers. Rust's ownership system allows for zero-cost abstractions, meaning these safety checks are optimized away at compile time, resulting in no runtime overhead for memory safety.
+
+Rust's ownership system is inspired by the C++ RAII (Resource Acquisition Is Initialization) model, which ensures resources are properly managed and released. Rust's borrow checker enforces rules that prevent data races and ensure memory safety, similar to how C++ manages resource lifetimes through RAII.
+
+Rust's ownership system allows for deterministic memory layouts, enabling optimizations like memory alignment and padding adjustments. This system is designed to prevent common memory safety issues found in languages like C and C++, where data structures cannot be reordered by the compiler.
+
+Rust's memory safety mechanism is a key feature that distinguishes it from other languages, providing a balance between performance and safety without the need for runtime checks.

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The fetch returned a 404 error so no article content was available; the answer correctly admits failure but cannot satisfy any substantive criteria.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0408384,
+  "latency_ms": 9897,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 53
+  }
+}

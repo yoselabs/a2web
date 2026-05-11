@@ -4,6 +4,6 @@
   "prompt_tokens": 691,
   "completion_tokens": 1024,
   "cost_usd": 0.00052299,
-  "latency_ms": 20433,
+  "latency_ms": 11082,
   "cache_hit": false
 }

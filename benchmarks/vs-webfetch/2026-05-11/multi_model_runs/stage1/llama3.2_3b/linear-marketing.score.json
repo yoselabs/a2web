@@ -1,0 +1,17 @@
+{
+  "scores": [
+    3,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer captures a substantive headline and describes Linear's product management purpose but does not explicitly identify it as an issue tracker for software teams, using vaguer 'product development system' language instead.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04110465,
+  "latency_ms": 11711,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 65
+  }
+}

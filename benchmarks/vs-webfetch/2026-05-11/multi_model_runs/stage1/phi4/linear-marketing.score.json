@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer captures a strong headline and value proposition with good detail on features, and correctly identifies a product management/development tool, though it underemphasizes the issue tracker/project management for software teams aspect in favor of AI framing.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04150215,
+  "latency_ms": 8307,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 73
+  }
+}

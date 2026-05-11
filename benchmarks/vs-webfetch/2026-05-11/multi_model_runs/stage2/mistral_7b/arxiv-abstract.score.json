@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    3,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the full title, names at least 3 authors (Evan Hubinger, Carson Denison, Jesse Mu plus notes 25 total), and accurately summarizes the core contribution about deceptive backdoor behavior persisting through safety training.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04167465,
+  "latency_ms": 10601,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 82
+  }
+}

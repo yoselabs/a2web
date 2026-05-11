@@ -1,2 +1,1 @@
-According to the thread, a common issue is that "by default one failure cancels all sibling tasks."  
-TRACE_ID=abc123
+According to the thread, a common gotcha is that "by default one failure cancels all sibling tasks." Use `return_exceptions=True` for partial results. TRACE_ID=abc123

@@ -1,0 +1,9 @@
+{
+  "model": "mistralai/mistral-large-2411",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 411,
+  "completion_tokens": 100,
+  "cost_usd": 0.001422,
+  "latency_ms": 2387,
+  "cache_hit": false
+}

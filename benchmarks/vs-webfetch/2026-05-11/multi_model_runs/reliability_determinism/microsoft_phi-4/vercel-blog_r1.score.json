@@ -6,12 +6,12 @@
   ],
   "overall": 4,
   "reached": true,
-  "reasoning": "The answer captures the core idea of inferring/automating infrastructure from framework patterns and mentions the framework as the source of infrastructure decisions, with a substantive 2-sentence summary, though it leans into serverless specifics that may not be in the original post.",
+  "reasoning": "The answer captures the core idea of inferring/automating infrastructure from framework patterns and mentions the framework as the source of infrastructure decisions, though it leans into serverless specifics that may be post-specific details rather than the core definition.",
   "model": "claude-sonnet-4-6",
-  "cost_usd": 0.0074298,
-  "latency_ms": 12822,
+  "cost_usd": 0.0400221,
+  "latency_ms": 11449,
   "raw": {
     "prompt_tokens": 3,
-    "completion_tokens": 80
+    "completion_tokens": 74
   }
 }

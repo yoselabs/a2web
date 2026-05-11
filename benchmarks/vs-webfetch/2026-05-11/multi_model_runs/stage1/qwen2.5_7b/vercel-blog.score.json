@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately captures FDI's core idea\u2014inferring/mapping infrastructure from framework code rather than manual configuration\u2014in a concise two-sentence summary that satisfies all three criteria.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041164650000000004,
+  "latency_ms": 9416,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

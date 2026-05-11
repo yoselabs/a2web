@@ -1,1 +1,1 @@
-根据网页内容，Ryst 由 Graydon Hoare 创建，时间是 2006 年，当时他任职于 Mozilla 公司。
+根据网页内容，Rust 由 Graydon Hoare 创建，时间是 2006 年，当时他“在 Mozilla 公司工作”。

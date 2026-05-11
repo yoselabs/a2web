@@ -1,0 +1,8 @@
+{
+  "model": "mistral:7b",
+  "prompt_tokens": 233,
+  "completion_tokens": 44,
+  "cost_usd": 0.0,
+  "latency_ms": 19239,
+  "cache_hit": false
+}

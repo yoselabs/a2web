@@ -1,0 +1,1 @@
+Framework-defined infrastructure (FdI) is an evolution of IaC where the deployment environment automatically provisions infrastructure by analyzing framework code to understand its intent, then generating the necessary IaC configuration. It maps framework concepts onto appropriate infrastructure primitives without requiring explicit declaration or configuration.

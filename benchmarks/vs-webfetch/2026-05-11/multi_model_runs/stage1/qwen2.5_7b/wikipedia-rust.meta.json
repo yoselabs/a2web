@@ -1,0 +1,9 @@
+{
+  "model": "qwen2.5:7b",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 10447,
+  "completion_tokens": 50,
+  "cost_usd": 0.0,
+  "latency_ms": 1811,
+  "cache_hit": false
+}

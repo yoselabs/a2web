@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    0,
+    4
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "Correctly names Graydon Hoare and describes ownership-based memory safety, but gives 2006 (personal start date) instead of 2010 (first public appearance/release).",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041220900000000005,
+  "latency_ms": 8660,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 67
+  }
+}

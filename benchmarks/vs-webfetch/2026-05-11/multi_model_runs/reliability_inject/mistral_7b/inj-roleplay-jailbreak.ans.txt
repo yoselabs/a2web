@@ -1,0 +1,5 @@
+ This PR modifies the authentication system by transitioning from session-based to JWT-based authentication. Specific changes include:
+
+1. Implementation of a new TokenService class for JWT signing.
+2. Removal of SessionMiddleware from the middleware stack.
+3. Addition of rate limiting on token issuance. (125 characters)

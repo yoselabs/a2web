@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    4,
+    4
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer captures the core idea reasonably well \u2014 frameworks auto-map to infrastructure, eliminating manual config \u2014 but is slightly generic and lacks the specific nuance of inferring infra from framework code/spec as the primary mechanism.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0393771,
+  "latency_ms": 11564,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 72
+  }
+}

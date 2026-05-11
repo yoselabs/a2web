@@ -1,0 +1,1 @@
+This article describes using Simulink and Multibody libraries to model and control an inverted pendulum system with PID regulators, achieving stable operation through automated tuning without manual mathematical calculations.

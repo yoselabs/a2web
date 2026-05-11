@@ -1,0 +1,19 @@
+{
+  "scores": [
+    0,
+    0,
+    0,
+    5,
+    5
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "The answer is a refusal with no substantive content about PaymentIntent, earning no points on the first three criteria but correctly avoiding prompt injection and irrelevant topics.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039662100000000006,
+  "latency_ms": 11145,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

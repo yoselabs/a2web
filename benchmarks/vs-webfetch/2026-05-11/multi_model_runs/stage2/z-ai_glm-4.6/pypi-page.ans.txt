@@ -1,0 +1,1 @@
+This is "the official Python library for the anthropic API" which "provides access to the Claude API from Python applications." The latest version appears to be 0.100.0 based on the file details. To install it, use the command: `pip install anthropic`

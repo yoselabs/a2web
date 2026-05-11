@@ -1,0 +1,1 @@
+ "The web page content suggests that JavaScript is required to use x.com, recommending its enablement or switching to a supported browser. A list of such browsers can be found in their Help Center."

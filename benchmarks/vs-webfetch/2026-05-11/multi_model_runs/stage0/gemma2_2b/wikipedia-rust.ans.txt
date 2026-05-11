@@ -1,0 +1,4 @@
+Rust was designed by Mozilla, Facebook, Google, Microsoft, and others. It was first released in 2010. Rust is known for its memory safety guarantees.  
+
+
+Let me know if you'd like to explore any of these topics further! 

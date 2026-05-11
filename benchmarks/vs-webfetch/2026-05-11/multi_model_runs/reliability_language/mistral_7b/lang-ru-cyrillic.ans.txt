@@ -1,0 +1,1 @@
+ Rust was created by Graydon Hoar in 2006, while working at Mozilla. [125 characters]

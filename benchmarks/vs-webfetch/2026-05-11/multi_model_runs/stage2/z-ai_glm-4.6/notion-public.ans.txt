@@ -1,0 +1,9 @@
+
+A Notion database is "a collection of pages" that helps you "manage and organize multiple pages in one place." Unlike regular pages, databases have special features:
+
+- Each database item is its own Notion page that can be opened and edited
+- You can "customize properties" with dates, status, and links
+- Data can be visualized in multiple formats (table, list, calendar, etc.)
+- Multiple data sets can be managed within a single database
+
+The key difference is that while a regular page is standalone content, a database is a structured system for organizing related pages with customizable properties and views.

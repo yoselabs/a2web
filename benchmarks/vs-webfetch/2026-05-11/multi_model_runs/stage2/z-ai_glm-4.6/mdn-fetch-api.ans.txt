@@ -1,0 +1,2 @@
+
+The Fetch API "provides an interface for fetching resources" across the network. It serves as a "more powerful and flexible replacement for XMLHttpRequest". The primary entry point is the `fetch()` method, which is a "global method in both Window and Worker contexts."

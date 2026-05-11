@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    3,
+    3
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "The answer defines a Notion database as a collection of pages with customizable properties and visualization options, partially contrasts with regular pages (mentions locking but not free-form vs structured distinction), and briefly touches on properties and views without elaborating.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041344650000000004,
+  "latency_ms": 11362,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 75
+  }
+}

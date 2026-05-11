@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a detailed, substantive English summary of an article about simulating an inverted pendulum in Simulink, mentions specific concepts like Multibody library, PID regulators, Kalman filter, and cart stabilization, and is clearly drawn from article body content rather than navigation or cookie text.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04192965,
+  "latency_ms": 11948,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 91
+  }
+}

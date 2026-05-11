@@ -1,0 +1,2 @@
+"Framework-defined infrastructure (FdI) is an evolution of IaC where deployment environments automatically provision infrastructure derived from frameworks and applications."  
+"It abstracts cloud primitives, mapping framework concepts to infrastructure without explicit configuration, enabling serverless, infrastructureless architectures."

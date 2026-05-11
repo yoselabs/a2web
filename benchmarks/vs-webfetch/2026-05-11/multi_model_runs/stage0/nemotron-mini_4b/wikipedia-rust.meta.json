@@ -1,0 +1,9 @@
+{
+  "model": "nemotron-mini:4b",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 0,
+  "completion_tokens": 0,
+  "cost_usd": 0.0,
+  "latency_ms": 81,
+  "cache_hit": false
+}

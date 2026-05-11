@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    0,
+    0
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer correctly identifies React as Facebook/Meta's UI library but fails to provide any version number or weekly download count, which were explicitly required criteria.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04102215,
+  "latency_ms": 7947,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 55
+  }
+}

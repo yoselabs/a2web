@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    4,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer clearly defines FDI as auto-generating IaC from framework source code at build time, covers the core idea accurately across two substantive sentences, and explicitly identifies the framework as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0414384,
+  "latency_ms": 10763,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 70
+  }
+}

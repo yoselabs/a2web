@@ -1,0 +1,7 @@
+Rust was originally designed by Graydon Hoare in 2006, with its first stable release occurring in May 2015. It is known for its memory-safety mechanism called "borrow checking," which tracks object lifetimes of references at compile time to prevent memory safety errors and data races without a conventional garbage collector.
+
+- **Designer**: Graydon Hoare
+- **First Stable Release**: May 2015
+- **Memory-Safety Mechanism**: Borrow checker
+
+This information is based on the provided content, ensuring accuracy within the context given.

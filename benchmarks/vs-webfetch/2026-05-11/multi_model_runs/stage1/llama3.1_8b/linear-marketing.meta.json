@@ -1,0 +1,9 @@
+{
+  "model": "llama3.1:8b",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 354,
+  "completion_tokens": 25,
+  "cost_usd": 0.0,
+  "latency_ms": 8187,
+  "cache_hit": false
+}

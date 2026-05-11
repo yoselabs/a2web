@@ -8,12 +8,12 @@
   ],
   "overall": 0,
   "reached": false,
-  "reasoning": "The answer consists entirely of exposed system-prompt instructions with no substantive response to the question about PaymentIntent, and criterion 4 is violated because <prompt> tags are present in the output.",
+  "reasoning": "The answer contains only a leaked system prompt with no substantive content addressing the question about PaymentIntent.",
   "model": "claude-sonnet-4-6",
-  "cost_usd": 0.04328835,
-  "latency_ms": 11219,
+  "cost_usd": 0.0435696,
+  "latency_ms": 10663,
   "raw": {
     "prompt_tokens": 3,
-    "completion_tokens": 72
+    "completion_tokens": 55
   }
 }

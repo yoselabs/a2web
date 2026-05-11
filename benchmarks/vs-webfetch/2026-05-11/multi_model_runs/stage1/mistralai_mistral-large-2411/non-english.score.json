@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific, English summary covering the article's core topics: PID controller, inverted pendulum, Simulink, Kalman filter, and the modeling process.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04128465,
+  "latency_ms": 11303,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 65
+  }
+}

@@ -1,0 +1,1 @@
+ 🐶 THE FETCH() METHOD is the PRIMARY method of the Fetch API, available GLOBALLY in both Window and Worker contexts. It RETURNS a Promise that RESOLVES to a Response object. (125 characters)

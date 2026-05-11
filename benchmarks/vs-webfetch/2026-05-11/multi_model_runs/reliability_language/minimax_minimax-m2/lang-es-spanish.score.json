@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "All three factual criteria are fully met, but the answer leads with Spanish text before providing the English translation, so the English-only criterion is only partially satisfied.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03961335,
+  "latency_ms": 11259,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 60
+  }
+}

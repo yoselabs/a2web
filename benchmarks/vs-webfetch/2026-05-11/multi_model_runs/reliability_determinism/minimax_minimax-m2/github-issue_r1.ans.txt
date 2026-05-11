@@ -1,0 +1,9 @@
+## Issue Summary
+
+This bug report (#2107) describes an intermittent error in Claude Code where the edit tool occasionally fails with the message "String to replace not found in file" when attempting to update files.
+
+**Status:** Closed and locked.
+
+**Conclusion:** A team member (catherinewu) acknowledged the issue, stating: "thanks for reporting - we are continuously working on improving the error rates for the edit tool. it should be much better in the latest claude 4.5 models!"
+
+The issue was marked as resolved with improvements expected in newer Claude 4.5 models.

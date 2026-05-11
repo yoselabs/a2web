@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer precisely captures the core FDI concept \u2014 infra inferred from framework code rather than hand-configured \u2014 in exactly two substantive sentences that satisfy all three criteria.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0397671,
+  "latency_ms": 10853,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 61
+  }
+}

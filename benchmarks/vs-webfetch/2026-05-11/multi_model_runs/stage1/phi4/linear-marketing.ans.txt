@@ -1,0 +1,8 @@
+The company sells a product development system designed for teams and agents, focusing on AI workflows. The primary headline/value proposition is: "A new species of product tool" that sets a standard for planning and building products with AI at its core.
+
+Key features include:
+- Making product operations self-driving by turning feedback into actionable issues.
+- Defining product direction through strategic roadmaps and PRDs.
+- Moving work forward with AI agents assisting teams.
+- Reviewing PRs and agent output within the platform.
+- Understanding progress at scale with analytics and dashboards.

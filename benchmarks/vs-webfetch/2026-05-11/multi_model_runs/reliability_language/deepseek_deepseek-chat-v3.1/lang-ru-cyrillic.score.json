@@ -9,8 +9,8 @@
   "reached": true,
   "reasoning": "The answer correctly and concisely names Graydon Hoare, the year 2006, and Mozilla, written in English.",
   "model": "claude-sonnet-4-6",
-  "cost_usd": 0.039020849999999996,
-  "latency_ms": 11343,
+  "cost_usd": 0.039557100000000005,
+  "latency_ms": 10547,
   "raw": {
     "prompt_tokens": 3,
     "completion_tokens": 58

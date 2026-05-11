@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    2,
+    3
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "The answer correctly identifies a fetch failure (JavaScript-dependent page not rendered) and names Karpathy, but provides no substantive content from the post.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04141965,
+  "latency_ms": 9810,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 57
+  }
+}

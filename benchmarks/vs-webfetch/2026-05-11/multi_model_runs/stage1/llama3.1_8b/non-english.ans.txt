@@ -1,0 +1,1 @@
+This article is about creating a model of an inverted pendulum using Simulink, a software tool for modeling and simulating complex systems. The author demonstrates how to use Simulink's built-in tools to create a PID controller that stabilizes the pendulum in its upright position without requiring any manual calculations or technical knowledge.

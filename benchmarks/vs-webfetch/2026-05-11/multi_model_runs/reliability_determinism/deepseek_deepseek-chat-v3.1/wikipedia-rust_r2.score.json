@@ -4,14 +4,14 @@
     0,
     5
   ],
-  "overall": 4,
+  "overall": 3,
   "reached": true,
-  "reasoning": "Correctly identifies Graydon Hoare and the borrow checker, but states 2012 as first release rather than the correct 2010 first appearance.",
+  "reasoning": "Correctly identifies Graydon Hoare and the borrow checker, but states 2012 as first appearance rather than the correct 2010.",
   "model": "claude-sonnet-4-6",
-  "cost_usd": 0.039144599999999995,
-  "latency_ms": 11370,
+  "cost_usd": 0.039632099999999996,
+  "latency_ms": 10869,
   "raw": {
     "prompt_tokens": 3,
-    "completion_tokens": 61
+    "completion_tokens": 58
   }
 }

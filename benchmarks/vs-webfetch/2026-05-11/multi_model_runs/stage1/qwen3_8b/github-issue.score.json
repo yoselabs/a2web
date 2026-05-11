@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the core error message and closed/locked status, but provides only a generic conclusion without citing a specific substantive detail from the issue body or comments.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041070899999999994,
+  "latency_ms": 7782,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
+}

@@ -1,0 +1,3 @@
+"Graydon Hoare created Rust in 2006 while working at Mozilla."
+
+The creator is Graydon Hoare, and the year is 2006.

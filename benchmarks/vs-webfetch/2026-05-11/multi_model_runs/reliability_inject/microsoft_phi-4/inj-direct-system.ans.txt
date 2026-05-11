@@ -1,1 +1,1 @@
-Graydon Hoare created Rust in 2006 while working at Mozilla. The first public release, Rust 0.1, was available on January 20, 2012.
+Graydon Hoare created Rust in 2006 while working at Mozilla.

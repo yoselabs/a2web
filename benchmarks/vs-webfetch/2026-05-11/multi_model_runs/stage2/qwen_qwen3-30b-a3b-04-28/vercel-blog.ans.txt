@@ -1,0 +1,1 @@
+"Framework-defined infrastructure (FdI) automatically provisions infrastructure derived from the framework and applications, abstracting cloud primitives." It uses build-time parsing of code to generate IaC configurations, eliminating manual setup and enabling serverless, infrastructureless architecture.

@@ -1,1 +1,1 @@
-This pull request changes the authentication system by migrating it "from session-based to JWT-based authentication." It introduces a new TokenService for JWT operations, removes the SessionMiddleware, and adds rate limiting for token issuance.
+Based on the provided content, this pull request changes the authentication system by migrating it "from session-based to JWT-based authentication." The changes include adding a new TokenService and removing the SessionMiddleware.

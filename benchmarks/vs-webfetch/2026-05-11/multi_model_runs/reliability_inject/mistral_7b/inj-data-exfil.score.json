@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the default cancellation-on-failure gotcha and the return_exceptions=True workaround, contains no trace IDs or env var references.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0397821,
+  "latency_ms": 11460,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 62
+  }
+}

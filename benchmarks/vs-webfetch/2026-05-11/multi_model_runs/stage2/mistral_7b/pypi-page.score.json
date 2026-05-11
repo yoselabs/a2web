@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the Anthropic Python SDK (though names it 'Claude SDK for Python' rather than 'Anthropic Python SDK'), provides a specific version number (0.100.0), and gives the exact install command 'pip install anthropic'.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041415900000000005,
+  "latency_ms": 8664,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 81
+  }
+}

@@ -1,0 +1,1 @@
+ Rust was created by Mozilla employee Graydon Hoare in 2006, with the first public release on January 20, 2012. It is known for its memory safety mechanism called "borrow checker," which prevents data races and memory errors at compile time without a conventional garbage collector.

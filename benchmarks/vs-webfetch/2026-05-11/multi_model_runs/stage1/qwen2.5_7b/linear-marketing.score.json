@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    4,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a project/product development tool for modern teams and captures a substantive value proposition about AI workflows and self-driving product operations, though it omits the exact headline verbatim.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0410709,
+  "latency_ms": 10462,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 68
+  }
+}

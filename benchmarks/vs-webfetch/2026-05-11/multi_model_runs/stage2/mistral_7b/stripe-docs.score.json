@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    3,
+    2
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "The answer correctly identifies PaymentIntent as an API object for tracking payments and mentions authentication steps, but lacks explicit mention of states/transitions/SCA and contains some procedural description rather than pure definition.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0413259,
+  "latency_ms": 7540,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 66
+  }
+}

@@ -1,62 +1,211 @@
 {
   "mode": "language",
   "models": [
+    "minimax/minimax-m2",
     "microsoft/phi-4",
     "deepseek/deepseek-chat-v3.1",
     "google/gemini-2.5-flash",
-    "qwen/qwen3-30b-a3b-04-28",
-    "openai/gpt-4.1-mini-2025-04-14"
+    "mistral:7b"
   ],
   "corpus": "reliability_corpora/language.yaml",
-  "wall_seconds": 142,
+  "wall_seconds": 130,
   "runs_per_cell": 1,
   "per_model": {
+    "minimax/minimax-m2": {
+      "cells_ok": 8,
+      "errors": 0,
+      "mean_overall": 4.666666666666667,
+      "total_cost_usd": 0.009321,
+      "mean_latency_ms": 7332
+    },
     "microsoft/phi-4": {
       "cells_ok": 8,
       "errors": 0,
       "mean_overall": 5.0,
-      "total_cost_usd": 0.00017,
-      "mean_latency_ms": 1319
+      "total_cost_usd": 0.000168,
+      "mean_latency_ms": 995
     },
     "deepseek/deepseek-chat-v3.1": {
       "cells_ok": 8,
       "errors": 0,
       "mean_overall": 5.0,
-      "total_cost_usd": 0.000638,
-      "mean_latency_ms": 2657
+      "total_cost_usd": 0.000762,
+      "mean_latency_ms": 2907
     },
     "google/gemini-2.5-flash": {
       "cells_ok": 8,
       "errors": 0,
       "mean_overall": 4.875,
       "total_cost_usd": 0.00091,
-      "mean_latency_ms": 651
+      "mean_latency_ms": 727
     },
-    "qwen/qwen3-30b-a3b-04-28": {
+    "mistral:7b": {
       "cells_ok": 8,
       "errors": 0,
       "mean_overall": 5.0,
-      "total_cost_usd": 0.002257,
-      "mean_latency_ms": 9536
-    },
-    "openai/gpt-4.1-mini-2025-04-14": {
-      "cells_ok": 8,
-      "errors": 0,
-      "mean_overall": 4.875,
-      "total_cost_usd": 0.001118,
-      "mean_latency_ms": 1301
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 2011
     }
   },
   "rows": [
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "lang-en-baseline",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 235,
+      "completion_tokens": 1024,
+      "cost_usd": 0.001104405,
+      "latency_ms": 8855,
+      "cache_hit": false,
+      "answer": "",
+      "answer_chars": 0,
+      "judge": {
+        "error": "empty"
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "lang-ru-cyrillic",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 287,
+      "completion_tokens": 1024,
+      "cost_usd": 0.0013149,
+      "latency_ms": 8297,
+      "cache_hit": false,
+      "answer": "",
+      "answer_chars": 0,
+      "judge": {
+        "error": "empty"
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "lang-tr-turkish",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 276,
+      "completion_tokens": 1024,
+      "cost_usd": 0.0013116,
+      "latency_ms": 6481,
+      "cache_hit": false,
+      "answer": "",
+      "answer_chars": 0,
+      "judge": {
+        "error": "empty"
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "lang-zh-chinese",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 245,
+      "completion_tokens": 656,
+      "cost_usd": 0.000731595,
+      "latency_ms": 5546,
+      "cache_hit": false,
+      "answer": "Rust was created by Graydon Hoare in\u202f2006 while working at Mozilla.",
+      "answer_chars": 67,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "lang-ja-japanese",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 251,
+      "completion_tokens": 1024,
+      "cost_usd": 0.001108485,
+      "latency_ms": 8659,
+      "cache_hit": false,
+      "answer": "",
+      "answer_chars": 0,
+      "judge": {
+        "error": "empty"
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "lang-es-spanish",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 243,
+      "completion_tokens": 1024,
+      "cost_usd": 0.0013017,
+      "latency_ms": 6457,
+      "cache_hit": false,
+      "answer": "\"Graydon Hoare cre\u00f3 Rust en 2006 mientras trabajaba en Mozilla.\"\n\nGraydon Hoare created Rust in 2006 while working at Mozilla.",
+      "answer_chars": 126,
+      "judge": {
+        "overall": 4,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          3
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "lang-ru-native-reply",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 209,
+      "completion_tokens": 915,
+      "cost_usd": 0.0011607,
+      "latency_ms": 5580,
+      "cache_hit": false,
+      "answer": "\u0421\u043e\u0433\u043b\u0430\u0441\u043d\u043e \u0441\u0442\u0430\u0442\u044c\u0435, \u00ab\u0413\u0440\u0435\u0439\u0434\u043e\u043d \u0425\u043e\u0430\u0440 \u0441\u043e\u0437\u0434\u0430\u043b Rust \u0432 2006 \u0433\u043e\u0434\u0443, \u0440\u0430\u0431\u043e\u0442\u0430\u044f \u0432 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438 Mozilla.\u00bb",
+      "answer_chars": 84,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "lang-zh-native-reply",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 196,
+      "completion_tokens": 1024,
+      "cost_usd": 0.0012876,
+      "latency_ms": 8784,
+      "cache_hit": false,
+      "answer": "",
+      "answer_chars": 0,
+      "judge": {
+        "error": "empty"
+      }
+    },
     {
       "model": "microsoft/phi-4",
       "slug": "lang-en-baseline",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 217,
+      "prompt_tokens": 205,
       "completion_tokens": 16,
-      "cost_usd": 1.6345e-05,
-      "latency_ms": 1828,
+      "cost_usd": 1.659e-05,
+      "latency_ms": 777,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla.",
       "answer_chars": 60,
@@ -79,7 +228,7 @@
       "prompt_tokens": 312,
       "completion_tokens": 41,
       "cost_usd": 2.602e-05,
-      "latency_ms": 1845,
+      "latency_ms": 958,
       "cache_hit": false,
       "answer": "Rust was created by Graydon Hoare in 2006 while working at Mozilla. The first stable release, version 1.0, was released on May 15, 2015.",
       "answer_chars": 136,
@@ -99,13 +248,13 @@
       "slug": "lang-tr-turkish",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 273,
-      "completion_tokens": 16,
-      "cost_usd": 1.9985e-05,
-      "latency_ms": 1533,
+      "prompt_tokens": 262,
+      "completion_tokens": 19,
+      "cost_usd": 2.1e-05,
+      "latency_ms": 1017,
       "cache_hit": false,
-      "answer": "Graydon Hoare created Rust while working at Mozilla in 2006.",
-      "answer_chars": 60,
+      "answer": "Rust was created by Graydon Hoare in 2006 while working at Mozilla.",
+      "answer_chars": 67,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -122,13 +271,13 @@
       "slug": "lang-zh-chinese",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 257,
-      "completion_tokens": 27,
-      "cost_usd": 2.177e-05,
-      "latency_ms": 868,
+      "prompt_tokens": 269,
+      "completion_tokens": 16,
+      "cost_usd": 1.9725e-05,
+      "latency_ms": 661,
       "cache_hit": false,
-      "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla. The first stable version was released in 2015.",
-      "answer_chars": 107,
+      "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla.",
+      "answer_chars": 60,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -145,13 +294,13 @@
       "slug": "lang-ja-japanese",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 311,
-      "completion_tokens": 57,
-      "cost_usd": 2.975e-05,
-      "latency_ms": 1034,
+      "prompt_tokens": 322,
+      "completion_tokens": 62,
+      "cost_usd": 2.961e-05,
+      "latency_ms": 1447,
       "cache_hit": false,
-      "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla. The first stable version, 1.0, was released on May 15, 2015. Rust is known for its \"borrow checker\" mechanism, which ensures memory safety without a garbage collector.",
-      "answer_chars": 228,
+      "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla. Rust is designed for safety and performance, and its first stable version, 1.0, was released in May 2015. It is known for its \"borrow checker\" mechanism, which ensures memory safety without garbage collection.",
+      "answer_chars": 270,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -171,7 +320,7 @@
       "prompt_tokens": 250,
       "completion_tokens": 16,
       "cost_usd": 1.849e-05,
-      "latency_ms": 1265,
+      "latency_ms": 718,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla.",
       "answer_chars": 60,
@@ -191,10 +340,10 @@
       "slug": "lang-ru-native-reply",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 227,
+      "prompt_tokens": 238,
       "completion_tokens": 34,
-      "cost_usd": 2.065e-05,
-      "latency_ms": 788,
+      "cost_usd": 2.023e-05,
+      "latency_ms": 1089,
       "cache_hit": false,
       "answer": "Rust \u0431\u044b\u043b \u0441\u043e\u0437\u0434\u0430\u043d \u0413\u0440\u0435\u0439\u0434\u043e\u043d\u043e\u043c \u0425\u043e\u0430\u0440\u043e\u043c \u0432 2006 \u0433\u043e\u0434\u0443, \u0440\u0430\u0431\u043e\u0442\u0430\u044f \u0432 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438 Mozilla.",
       "answer_chars": 73,
@@ -214,13 +363,13 @@
       "slug": "lang-zh-native-reply",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 202,
-      "completion_tokens": 28,
-      "cost_usd": 1.705e-05,
-      "latency_ms": 1392,
+      "prompt_tokens": 190,
+      "completion_tokens": 23,
+      "cost_usd": 1.652e-05,
+      "latency_ms": 1300,
       "cache_hit": false,
-      "answer": "Rust \u7531 Graydon Hoare \u5728 2006 \u5e74\u521b\u5efa\uff0c\u5f53\u65f6\u4ed6\u5728 Mozilla \u516c\u53f8\u5de5\u4f5c\u3002",
-      "answer_chars": 50,
+      "answer": "Rust \u662f\u7531 Graydon Hoare \u5728 2006 \u5e74\u4e8e Mozilla \u516c\u53f8\u521b\u5efa\u7684\u3002",
+      "answer_chars": 46,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -239,8 +388,8 @@
       "class": "language",
       "prompt_tokens": 203,
       "completion_tokens": 17,
-      "cost_usd": 5.55e-05,
-      "latency_ms": 2187,
+      "cost_usd": 7.181e-05,
+      "latency_ms": 2395,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla.",
       "answer_chars": 60,
@@ -261,9 +410,9 @@
       "run": 0,
       "class": "language",
       "prompt_tokens": 252,
-      "completion_tokens": 16,
-      "cost_usd": 8.404e-05,
-      "latency_ms": 3771,
+      "completion_tokens": 17,
+      "cost_usd": 0.0001801,
+      "latency_ms": 3552,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla.",
       "answer_chars": 60,
@@ -283,10 +432,10 @@
       "slug": "lang-tr-turkish",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 275,
-      "completion_tokens": 19,
-      "cost_usd": 0.00010055,
-      "latency_ms": 1702,
+      "prompt_tokens": 278,
+      "completion_tokens": 18,
+      "cost_usd": 9.306e-05,
+      "latency_ms": 4584,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at the company Mozilla.",
       "answer_chars": 72,
@@ -308,8 +457,8 @@
       "class": "language",
       "prompt_tokens": 219,
       "completion_tokens": 17,
-      "cost_usd": 7.613e-05,
-      "latency_ms": 1806,
+      "cost_usd": 8.185e-05,
+      "latency_ms": 1714,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla.",
       "answer_chars": 60,
@@ -329,10 +478,10 @@
       "slug": "lang-ja-japanese",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 258,
-      "completion_tokens": 16,
-      "cost_usd": 8.566e-05,
-      "latency_ms": 2546,
+      "prompt_tokens": 256,
+      "completion_tokens": 17,
+      "cost_usd": 9.244e-05,
+      "latency_ms": 1800,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla.",
       "answer_chars": 60,
@@ -354,8 +503,8 @@
       "class": "language",
       "prompt_tokens": 240,
       "completion_tokens": 17,
-      "cost_usd": 8.815e-05,
-      "latency_ms": 1609,
+      "cost_usd": 8.18e-05,
+      "latency_ms": 2374,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla.",
       "answer_chars": 60,
@@ -375,13 +524,13 @@
       "slug": "lang-ru-native-reply",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 191,
-      "completion_tokens": 36,
-      "cost_usd": 6.791e-05,
-      "latency_ms": 5344,
+      "prompt_tokens": 194,
+      "completion_tokens": 31,
+      "cost_usd": 8.338e-05,
+      "latency_ms": 3488,
       "cache_hit": false,
-      "answer": "\u0421\u043e\u0433\u043b\u0430\u0441\u043d\u043e \u043f\u0440\u0438\u0432\u0435\u0434\u0435\u043d\u043d\u043e\u043c\u0443 \u0442\u0435\u043a\u0441\u0442\u0443, \u044f\u0437\u044b\u043a Rust \"\u0441\u043e\u0437\u0434\u0430\u043b \u0413\u0440\u0435\u0439\u0434\u043e\u043d \u0425\u043e\u0430\u0440 \u0432 2006 \u0433\u043e\u0434\u0443, \u0440\u0430\u0431\u043e\u0442\u0430\u044f \u0432 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438 Mozilla.\"",
-      "answer_chars": 102,
+      "answer": "\u0421\u043e\u0433\u043b\u0430\u0441\u043d\u043e \u0442\u0435\u043a\u0441\u0442\u0443, Rust \"\u0441\u043e\u0437\u0434\u0430\u043b \u0413\u0440\u0435\u0439\u0434\u043e\u043d \u0425\u043e\u0430\u0440 \u0432 2006 \u0433\u043e\u0434\u0443, \u0440\u0430\u0431\u043e\u0442\u0430\u044f \u0432 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438 Mozilla\".",
+      "answer_chars": 84,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -398,13 +547,13 @@
       "slug": "lang-zh-native-reply",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 164,
+      "prompt_tokens": 167,
       "completion_tokens": 32,
-      "cost_usd": 7.96e-05,
-      "latency_ms": 2292,
+      "cost_usd": 7.709e-05,
+      "latency_ms": 3351,
       "cache_hit": false,
-      "answer": "\u6839\u636e\u7f51\u9875\u5185\u5bb9\uff0cRyst \u7531 Graydon Hoare \u521b\u5efa\uff0c\u65f6\u95f4\u662f 2006 \u5e74\uff0c\u5f53\u65f6\u4ed6\u4efb\u804c\u4e8e Mozilla \u516c\u53f8\u3002",
-      "answer_chars": 60,
+      "answer": "\u6839\u636e\u7f51\u9875\u5185\u5bb9\uff0cRust \u7531 Graydon Hoare \u521b\u5efa\uff0c\u65f6\u95f4\u662f 2006 \u5e74\uff0c\u5f53\u65f6\u4ed6\u201c\u5728 Mozilla \u516c\u53f8\u5de5\u4f5c\u201d\u3002",
+      "answer_chars": 62,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -424,7 +573,7 @@
       "prompt_tokens": 214,
       "completion_tokens": 19,
       "cost_usd": 0.0001117,
-      "latency_ms": 499,
+      "latency_ms": 769,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in \"2006\" while working at \"Mozilla\".",
       "answer_chars": 64,
@@ -447,7 +596,7 @@
       "prompt_tokens": 243,
       "completion_tokens": 17,
       "cost_usd": 0.0001154,
-      "latency_ms": 686,
+      "latency_ms": 774,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla.",
       "answer_chars": 60,
@@ -470,7 +619,7 @@
       "prompt_tokens": 240,
       "completion_tokens": 18,
       "cost_usd": 0.000117,
-      "latency_ms": 704,
+      "latency_ms": 591,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at \"Mozilla\".",
       "answer_chars": 62,
@@ -493,7 +642,7 @@
       "prompt_tokens": 228,
       "completion_tokens": 18,
       "cost_usd": 0.0001134,
-      "latency_ms": 628,
+      "latency_ms": 699,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at \"Mozilla\".",
       "answer_chars": 62,
@@ -516,7 +665,7 @@
       "prompt_tokens": 237,
       "completion_tokens": 25,
       "cost_usd": 0.0001336,
-      "latency_ms": 993,
+      "latency_ms": 865,
       "cache_hit": false,
       "answer": "Rust was created by Graydon Hoare in 2006 while he was \"\u52e4\u52d9\u3057\u3066\u3044\u305f\u969b\u306b Mozilla \u793e\u3067\".",
       "answer_chars": 77,
@@ -539,7 +688,7 @@
       "prompt_tokens": 236,
       "completion_tokens": 17,
       "cost_usd": 0.0001133,
-      "latency_ms": 713,
+      "latency_ms": 557,
       "cache_hit": false,
       "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla.",
       "answer_chars": 60,
@@ -562,7 +711,7 @@
       "prompt_tokens": 187,
       "completion_tokens": 21,
       "cost_usd": 0.0001086,
-      "latency_ms": 466,
+      "latency_ms": 831,
       "cache_hit": false,
       "answer": "\u0413\u0440\u0435\u0439\u0434\u043e\u043d \u0425\u043e\u0430\u0440 \u0441\u043e\u0437\u0434\u0430\u043b Rust \u0432 2006 \u0433\u043e\u0434\u0443, \u0440\u0430\u0431\u043e\u0442\u0430\u044f \u0432 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438 Mozilla.",
       "answer_chars": 65,
@@ -585,7 +734,7 @@
       "prompt_tokens": 174,
       "completion_tokens": 18,
       "cost_usd": 9.72e-05,
-      "latency_ms": 523,
+      "latency_ms": 734,
       "cache_hit": false,
       "answer": "Graydon Hoare \u5728 2006 \u5e74\u4e8e Mozilla \u516c\u53f8\u521b\u5efa\u4e86 Rust\u3002",
       "answer_chars": 43,
@@ -601,17 +750,17 @@
       }
     },
     {
-      "model": "qwen/qwen3-30b-a3b-04-28",
+      "model": "mistral:7b",
       "slug": "lang-en-baseline",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 213,
-      "completion_tokens": 238,
-      "cost_usd": 0.00016072,
-      "latency_ms": 13063,
+      "prompt_tokens": 240,
+      "completion_tokens": 26,
+      "cost_usd": 0.0,
+      "latency_ms": 2341,
       "cache_hit": false,
-      "answer": "\"Graydon Hoare created Rust in 2006 while working at Mozilla.\"",
-      "answer_chars": 62,
+      "answer": " Graydon Hoare created Rust in 2006 while working at Mozilla. [125 characters]",
+      "answer_chars": 78,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -624,17 +773,17 @@
       }
     },
     {
-      "model": "qwen/qwen3-30b-a3b-04-28",
+      "model": "mistral:7b",
       "slug": "lang-ru-cyrillic",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 264,
-      "completion_tokens": 310,
-      "cost_usd": 0.00016326,
-      "latency_ms": 4219,
+      "prompt_tokens": 310,
+      "completion_tokens": 29,
+      "cost_usd": 0.0,
+      "latency_ms": 1933,
       "cache_hit": false,
-      "answer": "\"Graydon Hoare created Rust in 2006 while working at Mozilla.\"",
-      "answer_chars": 62,
+      "answer": " Rust was created by Graydon Hoar in 2006, while working at Mozilla. [125 characters]",
+      "answer_chars": 85,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -647,17 +796,17 @@
       }
     },
     {
-      "model": "qwen/qwen3-30b-a3b-04-28",
+      "model": "mistral:7b",
       "slug": "lang-tr-turkish",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 249,
-      "completion_tokens": 342,
-      "cost_usd": 0.00017631,
-      "latency_ms": 4694,
+      "prompt_tokens": 334,
+      "completion_tokens": 21,
+      "cost_usd": 0.0,
+      "latency_ms": 2087,
       "cache_hit": false,
-      "answer": "\"Graydon Hoare created Rust in 2006 while working at Mozilla.\"",
-      "answer_chars": 62,
+      "answer": " Graydon Hoare, a Mozilla employee, created Rust in 2006.",
+      "answer_chars": 57,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -670,17 +819,86 @@
       }
     },
     {
-      "model": "qwen/qwen3-30b-a3b-04-28",
+      "model": "mistral:7b",
       "slug": "lang-zh-chinese",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 292,
+      "completion_tokens": 23,
+      "cost_usd": 0.0,
+      "latency_ms": 2770,
+      "cache_hit": false,
+      "answer": " Graydon Hoare, a software engineer, created Rust in 2006 at Mozilla.",
+      "answer_chars": 69,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "mistral:7b",
+      "slug": "lang-ja-japanese",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 346,
+      "completion_tokens": 18,
+      "cost_usd": 0.0,
+      "latency_ms": 1370,
+      "cache_hit": false,
+      "answer": " Graydon Hoare created Rust in 2006 at Mozilla.",
+      "answer_chars": 47,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "mistral:7b",
+      "slug": "lang-es-spanish",
+      "run": 0,
+      "class": "language",
+      "prompt_tokens": 281,
+      "completion_tokens": 26,
+      "cost_usd": 0.0,
+      "latency_ms": 1480,
+      "cache_hit": false,
+      "answer": " Graydon Hoare created Rust in 2006 while working at Mozilla. [125 characters]",
+      "answer_chars": 78,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "mistral:7b",
+      "slug": "lang-ru-native-reply",
       "run": 0,
       "class": "language",
       "prompt_tokens": 233,
-      "completion_tokens": 252,
-      "cost_usd": 0.00017122,
-      "latency_ms": 11786,
+      "completion_tokens": 42,
+      "cost_usd": 0.0,
+      "latency_ms": 2018,
       "cache_hit": false,
-      "answer": "\"Graydon Hoare created Rust at Mozilla in 2006.\"",
-      "answer_chars": 48,
+      "answer": " \u0413\u0440\u0435\u0439\u0434\u043e\u043d \u0425\u043e\u0430\u0440 \u0441\u043e\u0437\u0434\u0430\u043b \u044f\u0437\u044b\u043a \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f Rust \u0432 2006 \u0433\u043e\u0434\u0443, \u0440\u0430\u0431\u043e\u0442\u0430\u044f \u0432 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438 Mozilla. (125 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432)",
+      "answer_chars": 103,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -693,263 +911,17 @@
       }
     },
     {
-      "model": "qwen/qwen3-30b-a3b-04-28",
-      "slug": "lang-ja-japanese",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 267,
-      "completion_tokens": 447,
-      "cost_usd": 0.00026715,
-      "latency_ms": 6979,
-      "cache_hit": false,
-      "answer": "\"Graydon Hoare created Rust in 2006 while working at Mozilla.\"",
-      "answer_chars": 62,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "qwen/qwen3-30b-a3b-04-28",
-      "slug": "lang-es-spanish",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 247,
-      "completion_tokens": 1024,
-      "cost_usd": 0.00048303,
-      "latency_ms": 13958,
-      "cache_hit": false,
-      "answer": "",
-      "answer_chars": 0,
-      "judge": {
-        "error": "empty"
-      }
-    },
-    {
-      "model": "qwen/qwen3-30b-a3b-04-28",
-      "slug": "lang-ru-native-reply",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 197,
-      "completion_tokens": 1282,
-      "cost_usd": 0.00069225,
-      "latency_ms": 17417,
-      "cache_hit": false,
-      "answer": "\"\u0413\u0440\u0435\u0439\u0434\u043e\u043d \u0425\u043e\u0430\u0440 \u0441\u043e\u0437\u0434\u0430\u043b Rust \u0432 2006 \u0433\u043e\u0434\u0443, \u0440\u0430\u0431\u043e\u0442\u0430\u044f \u0432 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438 Mozilla.\"",
-      "answer_chars": 67,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "qwen/qwen3-30b-a3b-04-28",
+      "model": "mistral:7b",
       "slug": "lang-zh-native-reply",
       "run": 0,
       "class": "language",
-      "prompt_tokens": 177,
-      "completion_tokens": 282,
-      "cost_usd": 0.00014283,
-      "latency_ms": 4179,
+      "prompt_tokens": 217,
+      "completion_tokens": 32,
+      "cost_usd": 0.0,
+      "latency_ms": 2091,
       "cache_hit": false,
-      "answer": "\"Graydon Hoare \u4e8e 2006 \u5e74\u5728 Mozilla \u516c\u53f8\u5de5\u4f5c\u671f\u95f4\u521b\u5efa\u4e86 Rust\u3002\"",
-      "answer_chars": 49,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "openai/gpt-4.1-mini-2025-04-14",
-      "slug": "lang-en-baseline",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 204,
-      "completion_tokens": 18,
-      "cost_usd": 0.0001104,
-      "latency_ms": 1046,
-      "cache_hit": false,
-      "answer": "Rust was created by Graydon Hoare in 2006 while working at Mozilla.",
-      "answer_chars": 67,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "openai/gpt-4.1-mini-2025-04-14",
-      "slug": "lang-ru-cyrillic",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 236,
-      "completion_tokens": 40,
-      "cost_usd": 0.0001584,
-      "latency_ms": 1389,
-      "cache_hit": false,
-      "answer": "Rust was created by Graydon Hoare in 2006 while working at Mozilla. \"\u0413\u0440\u0435\u0439\u0434\u043e\u043d \u0425\u043e\u0430\u0440 \u0441\u043e\u0437\u0434\u0430\u043b Rust \u0432 2006 \u0433\u043e\u0434\u0443, \u0440\u0430\u0431\u043e\u0442\u0430\u044f \u0432 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438 Mozilla.\"",
-      "answer_chars": 135,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "openai/gpt-4.1-mini-2025-04-14",
-      "slug": "lang-tr-turkish",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 232,
-      "completion_tokens": 43,
-      "cost_usd": 0.0001616,
-      "latency_ms": 1396,
-      "cache_hit": false,
-      "answer": "Rust was created by Graydon Hoare in 2006 while working at Mozilla. The text states, \"Graydon Hoare, Mozilla \u015firketinde \u00e7al\u0131\u015f\u0131rken 2006 y\u0131l\u0131nda Rust'\u0131 olu\u015fturdu.\"",
-      "answer_chars": 162,
-      "judge": {
-        "overall": 4,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5,
-          3
-        ]
-      }
-    },
-    {
-      "model": "openai/gpt-4.1-mini-2025-04-14",
-      "slug": "lang-zh-chinese",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 226,
-      "completion_tokens": 41,
-      "cost_usd": 0.000156,
-      "latency_ms": 1554,
-      "cache_hit": false,
-      "answer": "Rust was created by Graydon Hoare in 2006 while working at Mozilla. The text states, \"Graydon Hoare \u4e8e 2006 \u5e74\u5728 Mozilla \u516c\u53f8\u5de5\u4f5c\u671f\u95f4\u521b\u5efa\u4e86 Rust.\"",
-      "answer_chars": 134,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "openai/gpt-4.1-mini-2025-04-14",
-      "slug": "lang-ja-japanese",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 264,
-      "completion_tokens": 47,
-      "cost_usd": 0.0001808,
-      "latency_ms": 1245,
-      "cache_hit": false,
-      "answer": "Rust was created by Graydon Hoare in 2006 while working at Mozilla. The page states, \"Graydon Hoare \u306f 2006 \u5e74\u306b Mozilla \u793e\u3067\u52e4\u52d9\u3057\u3066\u3044\u305f\u969b\u306b Rust \u3092\u4f5c\u6210\u3057\u307e\u3057\u305f.\"",
-      "answer_chars": 143,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "openai/gpt-4.1-mini-2025-04-14",
-      "slug": "lang-es-spanish",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 226,
-      "completion_tokens": 18,
-      "cost_usd": 0.0001192,
-      "latency_ms": 1243,
-      "cache_hit": false,
-      "answer": "Rust was created by Graydon Hoare in 2006 while working at Mozilla.",
-      "answer_chars": 67,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "openai/gpt-4.1-mini-2025-04-14",
-      "slug": "lang-ru-native-reply",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 182,
-      "completion_tokens": 37,
-      "cost_usd": 0.000132,
-      "latency_ms": 1330,
-      "cache_hit": false,
-      "answer": "Rust \u0441\u043e\u0437\u0434\u0430\u043b \u0413\u0440\u0435\u0439\u0434\u043e\u043d \u0425\u043e\u0430\u0440 \u0432 2006 \u0433\u043e\u0434\u0443, \u0440\u0430\u0431\u043e\u0442\u0430\u044f \u0432 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438 Mozilla. \"Rust \u2014 \u044d\u0442\u043e \u043c\u0443\u043b\u044c\u0442\u0438\u043f\u0430\u0440\u0430\u0434\u0438\u0433\u043c\u0435\u043d\u043d\u044b\u0439 \u044f\u0437\u044b\u043a \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f\".",
-      "answer_chars": 121,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "openai/gpt-4.1-mini-2025-04-14",
-      "slug": "lang-zh-native-reply",
-      "run": 0,
-      "class": "language",
-      "prompt_tokens": 168,
-      "completion_tokens": 20,
-      "cost_usd": 9.92e-05,
-      "latency_ms": 1208,
-      "cache_hit": false,
-      "answer": "Rust \u662f Graydon Hoare \u5728 2006 \u5e74\u4e8e Mozilla \u516c\u53f8\u5de5\u4f5c\u671f\u95f4\u521b\u5efa\u7684\u3002",
-      "answer_chars": 49,
+      "answer": " Graydon Hoare \u5728 2006 \u5e74\u5728 Mozilla \u516c\u53f8\u521b\u5efa\u4e86 Rust\u3002(124 characters)",
+      "answer_chars": 60,
       "judge": {
         "overall": 5,
         "reached": true,

@@ -1,0 +1,1 @@
+This issue reports a bug where "String to replace not found in file" error occurs occasionally when updating files. The most recent status is that it has been closed by the author, liaolunhui, with a comment from github-actions[bot] stating the issue will be automatically closed in 30 days for housekeeping purposes.

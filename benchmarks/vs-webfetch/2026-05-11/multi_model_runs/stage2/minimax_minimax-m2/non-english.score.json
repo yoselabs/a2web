@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a precise, substantive English summary covering specific concepts (PID controller, inverted pendulum, Simulink Multibody, dual control loops, Kalman filter, swing-up mechanism) with no fabrication or navigation noise.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04203465,
+  "latency_ms": 8518,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 78
+  }
+}

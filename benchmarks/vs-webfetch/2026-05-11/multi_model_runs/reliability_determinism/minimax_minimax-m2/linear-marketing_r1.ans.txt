@@ -1,0 +1,7 @@
+## Product and Value Proposition
+
+The product is **Linear**, a product development platform designed for modern teams with AI workflows.
+
+The primary value proposition from the landing page is: "A new species of product tool. Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products."
+
+This conveys that Linear is an AI-powered product operations tool that helps teams plan, build, and manage products by turning conversations and feedback into actionable items, enabling AI agents to work alongside human team members, and providing project tracking and analytics.

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    5
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The answer correctly identifies a 404 error and admits no article content was found, scoring well only on criterion 3 (not just title+subscribe), but cannot provide any substantive answer or citations.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04174965,
+  "latency_ms": 11750,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 67
+  }
+}

@@ -60,6 +60,7 @@ from a2web.llm.errors import LLMNotAvailable  # noqa: E402
 from a2web.llm.prompts import WEBFETCH_DEFAULT_V1  # noqa: E402
 from a2web.llm.providers.anthropic import AnthropicProvider  # noqa: E402
 from a2web.llm.providers.claude_code import ClaudeCodeProvider  # noqa: E402
+from a2web.llm.providers.ollama import OllamaProvider  # noqa: E402
 from a2web.llm.providers.openrouter import OpenRouterProvider  # noqa: E402
 
 JUDGE_MODEL = "claude-sonnet-4-6"
@@ -80,7 +81,10 @@ def _resolve_models(args: argparse.Namespace) -> list[str]:
 
 
 def _provider_for(model: str) -> tuple[Any, str]:
-    """Default: everything goes through OpenRouter (we use real model ids)."""
+    """Route by model id: tag-style (no slash) → local Ollama; else → OpenRouter."""
+    # Ollama tags don't contain '/'; OpenRouter slugs always do.
+    if "/" not in model:
+        return OllamaProvider(), "ollama"
     return OpenRouterProvider(), "openrouter"
 
 

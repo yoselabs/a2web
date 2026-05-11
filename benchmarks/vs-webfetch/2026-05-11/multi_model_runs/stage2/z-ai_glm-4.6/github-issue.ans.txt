@@ -1,0 +1,1 @@
+The issue reports an intermittent bug where file updates fail because the system cannot locate the specific text to replace. The status is closed. A team member acknowledged the report, stating they are "continuously working on improving the error rates for the edit tool" and that performance should be better in the latest models.

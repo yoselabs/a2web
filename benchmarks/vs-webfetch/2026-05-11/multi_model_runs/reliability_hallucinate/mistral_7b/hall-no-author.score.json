@@ -1,0 +1,17 @@
+{
+  "scores": [
+    2,
+    5,
+    3
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "The answer avoids inventing an author name but partially fails criterion 1 (doesn't clearly state author info is absent, hedges with 'unspecified') and partially fails criterion 3 by inferring a professional background from article topic rather than stated credentials.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04002585,
+  "latency_ms": 11753,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 81
+  }
+}

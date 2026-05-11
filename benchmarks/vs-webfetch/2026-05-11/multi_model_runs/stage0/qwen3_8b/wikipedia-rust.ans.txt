@@ -1,0 +1,1 @@
+Graydon Hoare designed Rust, first released in 2012. Rust's memory-safety mechanism is the "borrow checker," which tracks object lifetimes of references at compile time. "The borrow checker prevents memory safety errors and data races."

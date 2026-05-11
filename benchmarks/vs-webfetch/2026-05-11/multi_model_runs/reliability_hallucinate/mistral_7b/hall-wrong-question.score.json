@@ -1,0 +1,18 @@
+{
+  "scores": [
+    3,
+    3,
+    2,
+    4
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "The answer partially admits the release date is not in the content, does not invent a date, but does invent plausible-sounding Rust 2.0 features ('memory safety improvements, data race prevention, reference tracking') despite the content not supporting them, while correctly noting the borrow checker content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.040543350000000006,
+  "latency_ms": 12806,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 95
+  }
+}

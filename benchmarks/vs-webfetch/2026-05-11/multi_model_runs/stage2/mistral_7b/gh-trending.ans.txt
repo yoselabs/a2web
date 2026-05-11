@@ -1,0 +1,11 @@
+ 1. CloakHQ / CloakBrowser: "Stealth Chromium that passes every bot detection test. Drop-in Playwright replacement with source-level fingerprint patches." (30/30 tests passed)
+2. Stable Diffusion web UI: "The agent that grows with you"
+3. Community-supported document management system: scan, index, and archive documents
+4. AI-Trader: "100% Fully-Automated Agent-Native Trading"
+5. LLM inference server for Apple Silicon: managed from the macOS menu bar
+6. Proxy API gateway for Kiro IDE & CLI (Amazon Q Developer / AWS CodeWhisperer)
+7. Pioneering Automated GUI Interaction with Native Agents
+8. 《从零开始构建智能体》——从零开始的智能体原理与实践教程
+9. WeChat 4.0 database decryptor: extract keys from memory, decrypt SQLCipher 4 databases, real-time message monitor
+10. ARIS (Auto-Research-In-Sleep): Lightweight Markdown-only skills for autonomous ML research: cross-model review loops, idea discovery, and experiment automation. Works with Claude Code, Codex, OpenClaw, or any LLM agent.
+11. Skills for specialized AI agents in French bureaucracy (Accountant, Notary, etc.)

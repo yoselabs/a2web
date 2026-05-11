@@ -1,1 +1,1 @@
-Rust was originally designed by Graydon Hoare and first released publicly in 2012. It is known for its "borrow checker", a compile-time mechanism that "enforces memory safety without using a conventional garbage collector" by tracking object lifetimes.
+Rust was created by Graydon Hoare and first appeared publicly in 2012. It is known for its "borrow checker", which "tracks the object lifetime of references at compile time" to enforce memory safety.

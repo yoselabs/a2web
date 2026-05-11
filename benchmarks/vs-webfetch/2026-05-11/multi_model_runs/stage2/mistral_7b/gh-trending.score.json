@@ -1,0 +1,18 @@
+{
+  "scores": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": true,
+  "reasoning": "The answer lists 11 items with no owner/repo format, no matching trending repo identifiers, and appears to be fabricated or from a completely wrong source rather than GitHub's trending Python page.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.042165900000000006,
+  "latency_ms": 8127,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 68
+  }
+}

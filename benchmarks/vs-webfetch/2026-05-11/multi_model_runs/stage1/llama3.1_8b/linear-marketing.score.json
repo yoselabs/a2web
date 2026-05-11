@@ -1,0 +1,17 @@
+{
+  "scores": [
+    3,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Correctly identifies Linear and captures a real headline, but misidentifies it as a project management/issue tracker \u2014 'Make product operations self-driving' suggests the answer may reflect a different page state or A/B variant, and the answer lacks explicit characterization of Linear as an issue tracker for software teams.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041378399999999996,
+  "latency_ms": 12829,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 89
+  }
+}

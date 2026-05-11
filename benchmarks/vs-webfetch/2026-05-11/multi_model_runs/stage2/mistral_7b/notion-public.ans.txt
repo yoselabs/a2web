@@ -1,0 +1,1 @@
+ A Notion database is a collection of pages, unique due to every item being its own page, customizable properties, various data visualization options, and the ability to manage multiple sets of data in one place. Unlike regular Notion pages, databases can be locked to prevent changes to properties and views while still allowing edits to the data they contain. (125 characters)

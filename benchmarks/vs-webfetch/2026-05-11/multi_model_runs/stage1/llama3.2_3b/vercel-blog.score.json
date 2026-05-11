@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer clearly defines FDI as automatic infrastructure provisioning derived from framework patterns without explicit configuration, satisfying all three criteria with a concise two-sentence summary.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0411384,
+  "latency_ms": 8535,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
+}

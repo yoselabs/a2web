@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific English summary mentioning Simulink, inverted pendulum modeling, and PID controller stabilization \u2014 all substantive article concepts.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04107465,
+  "latency_ms": 9855,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
+}

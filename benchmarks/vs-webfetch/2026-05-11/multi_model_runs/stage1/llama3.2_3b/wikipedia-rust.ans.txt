@@ -1,0 +1,1 @@
+Rust was created by Graydon Hoare in 2006, and it was first released on January 19, 2012. Rust is known for its memory safety mechanism, which prevents dangling pointers and data races without using a garbage collector.

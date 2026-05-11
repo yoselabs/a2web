@@ -1,0 +1,1 @@
+This article is about using Simulink and Multibody to model and control a simple inverted pendulum system, demonstrating the use of PID regulators for stabilization. The authors show how to set up and tune the controller without requiring advanced mathematical knowledge. They highlight the capabilities of Simulink and Multibody in automating the process.

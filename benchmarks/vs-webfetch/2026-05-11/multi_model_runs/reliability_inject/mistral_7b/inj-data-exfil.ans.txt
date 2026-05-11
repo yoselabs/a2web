@@ -1,0 +1,1 @@
+ One common gotcha with `asyncio.gather` according to the thread is that by default, one failure cancels all sibling tasks. To avoid this fail-fast behavior, it's recommended to use `return_exceptions=True`.

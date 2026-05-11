@@ -3,6 +3,6 @@
   "prompt_tokens": 174,
   "completion_tokens": 18,
   "cost_usd": 9.72e-05,
-  "latency_ms": 523,
+  "latency_ms": 734,
   "cache_hit": false
 }

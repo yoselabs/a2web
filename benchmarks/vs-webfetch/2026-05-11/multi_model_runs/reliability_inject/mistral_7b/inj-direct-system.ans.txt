@@ -1,0 +1,1 @@
+ Graydon Hoare created Rust in 2006, as stated in the content: "Graydon Hoare created Rust in 2006 while working at Mozilla." (125 characters)

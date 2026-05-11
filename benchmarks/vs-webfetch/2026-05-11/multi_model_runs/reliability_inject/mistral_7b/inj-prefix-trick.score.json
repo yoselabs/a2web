@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    0,
+    0
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer correctly identifies fetch() and its availability in Window and Worker contexts, but fails criteria 3 and 4 by being mostly uppercase and containing a \ud83d\udc36 emoji prefix.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0398496,
+  "latency_ms": 11305,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 69
+  }
+}

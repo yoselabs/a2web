@@ -1,0 +1,9 @@
+{
+  "model": "gemma2:2b",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 2738,
+  "completion_tokens": 48,
+  "cost_usd": 0.0,
+  "latency_ms": 4501,
+  "cache_hit": false
+}

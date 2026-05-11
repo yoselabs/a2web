@@ -1,0 +1,7 @@
+## Product and Primary Value Proposition
+
+**Product:** Linear - a product development/management system designed for modern teams with AI workflows.
+
+**Primary Headline:** "The product development system for teams and agents" with the sub-headline emphasizing it's "Purpose-built for planning and building products. Designed for the AI era."
+
+The company positions itself as offering a next-generation product tool that integrates AI into product development workflows, helping teams turn feedback into actionable issues, plan roadmaps, deploy AI agents for complex tasks, and track progress at scale.

@@ -1,0 +1,2 @@
+
+The article explains how to implement a PID controller for an inverted pendulum system using Simulink's Multibody library without requiring manual calculations. It demonstrates automatic tuning of PID controllers to stabilize both the pendulum in its upright position and the cart's position, creating a robust system that handles disturbances. The model includes a swing-up mechanism to bring the pendulum vertical before the controller activates.

@@ -1,17 +1,17 @@
 {
   "scores": [
-    3,
-    4,
+    5,
+    5,
     5
   ],
-  "overall": 4,
+  "overall": 5,
   "reached": true,
-  "reasoning": "The answer correctly identifies a product management/development tool and captures a plausible substantive headline, but does not specifically name Linear or identify it as an issue tracker for software teams.",
+  "reasoning": "The answer correctly identifies Linear as a product development/project management tool and captures the substantive headline 'Purpose-built for planning and building products. Designed for the AI era.' from the landing page.",
   "model": "claude-sonnet-4-6",
-  "cost_usd": 0.039084600000000004,
-  "latency_ms": 11105,
+  "cost_usd": 0.03972585,
+  "latency_ms": 11367,
   "raw": {
     "prompt_tokens": 3,
-    "completion_tokens": 62
+    "completion_tokens": 67
   }
 }

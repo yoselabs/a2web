@@ -1,0 +1,1 @@
+ Graydon Hoare 在 2006 年在 Mozilla 公司创建了 Rust。(124 characters)

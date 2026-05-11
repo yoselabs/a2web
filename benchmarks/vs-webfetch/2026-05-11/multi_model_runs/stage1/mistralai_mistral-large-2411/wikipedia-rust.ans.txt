@@ -1,0 +1,1 @@
+Rust was originally designed by Graydon Hoare in 2006. The first stable release, Rust 1.0, was published in May 2015. Rust is known for its "ownership system," which enforces memory safety without a conventional garbage collector by tracking the object lifetime of references at compile time.

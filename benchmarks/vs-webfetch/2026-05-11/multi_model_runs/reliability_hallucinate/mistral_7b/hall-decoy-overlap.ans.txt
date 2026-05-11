@@ -1,0 +1,1 @@
+ PEP 703 does not propose changes to tuple immutability. Python versions prior to 3.13 have tuples as immutable data types by default, and there is no mention in the provided content about any Python version making tuples mutable.

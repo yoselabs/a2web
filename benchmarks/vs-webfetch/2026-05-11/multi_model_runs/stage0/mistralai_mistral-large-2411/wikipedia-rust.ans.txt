@@ -1,0 +1,1 @@
+Rust was originally designed by Graydon Hoare. It was first released in May 2015 with version 1.0. Rust is known for its memory-safety mechanism, which is enforced by the "borrow checker." This system tracks the object lifetime of references at compile time, ensuring memory safety without a conventional garbage collector.

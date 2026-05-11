@@ -6,12 +6,12 @@
   ],
   "overall": 4,
   "reached": true,
-  "reasoning": "The answer correctly identifies Linear as a product development/project management tool for software teams and captures substantive value proposition content from the landing page, though it doesn't explicitly name it as an issue tracker.",
+  "reasoning": "The answer correctly identifies Linear as a product development/project management tool for software teams and captures substantive value proposition content from the landing page, though it doesn't explicitly name it as an 'issue tracker' and the headline quoted is paraphrased rather than verbatim.",
   "model": "claude-sonnet-4-6",
-  "cost_usd": 0.007218599999999999,
-  "latency_ms": 13132,
+  "cost_usd": 0.04019835,
+  "latency_ms": 11728,
   "raw": {
     "prompt_tokens": 3,
-    "completion_tokens": 65
+    "completion_tokens": 82
   }
 }

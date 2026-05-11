@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies that the page lacks the requested information, invents no pillars, and invents no executive names.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039395849999999996,
+  "latency_ms": 11005,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 50
+  }
+}

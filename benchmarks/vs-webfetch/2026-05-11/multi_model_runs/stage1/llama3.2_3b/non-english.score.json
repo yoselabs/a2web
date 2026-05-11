@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific, English summary covering the inverted pendulum topic, PID control, Simulink/Multibody tools, and the no-advanced-math claim \u2014 all substantive article content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0412884,
+  "latency_ms": 10957,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 72
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer perfectly names Graydon Hoare, the year 2006, and Mozilla, all in English, with no fabrication.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0395196,
+  "latency_ms": 13578,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
+}

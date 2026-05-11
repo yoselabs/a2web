@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific English summary of a Simulink/Multibody pendulum simulation article, references concrete concepts (oscillating pendulum, control systems, automation tools), and contains no navigation or cookie text.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0412884,
+  "latency_ms": 10305,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 72
+  }
+}

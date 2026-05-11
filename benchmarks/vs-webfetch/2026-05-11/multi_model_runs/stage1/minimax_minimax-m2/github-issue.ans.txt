@@ -1,0 +1,5 @@
+## Issue Summary
+
+**What it reports:** A bug in Claude CLI's edit tool where the error "String to replace not found in file" occasionally occurs when trying to update files on Windows 11 using the IDEA plugin.
+
+**Status/Conclusion:** The issue was closed. A maintainer (catherinewu) responded that the team is "continuously working on improving the error rates for the edit tool" and noted it "should be much better in the latest Claude 4.5 models."

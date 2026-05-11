@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    3
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "The answer correctly identifies a fetch failure (JavaScript-disabled error page) and names Karpathy, but contains no substantive content from the post.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0390771,
+  "latency_ms": 12010,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 56
+  }
+}

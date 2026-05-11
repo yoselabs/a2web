@@ -1,0 +1,8 @@
+{
+  "model": "minimax/minimax-m2",
+  "prompt_tokens": 287,
+  "completion_tokens": 1024,
+  "cost_usd": 0.0013149,
+  "latency_ms": 8297,
+  "cache_hit": false
+}

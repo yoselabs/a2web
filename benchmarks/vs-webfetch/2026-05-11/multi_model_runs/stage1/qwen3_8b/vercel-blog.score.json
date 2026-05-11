@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "All three criteria fully met: the answer defines FDI as inferring/deriving infra from framework code rather than hand-configuration, provides a substantive 2-sentence summary, and explicitly names the framework as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041367150000000005,
+  "latency_ms": 8297,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 76
+  }
+}

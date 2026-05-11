@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    4
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately describes the Fetch API's purpose, names fetch() as the primary entry point in both Window and Worker contexts, and implicitly references its modern asynchronous nature though does not explicitly mention Promise-based returns.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0393546,
+  "latency_ms": 11669,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 71
+  }
+}

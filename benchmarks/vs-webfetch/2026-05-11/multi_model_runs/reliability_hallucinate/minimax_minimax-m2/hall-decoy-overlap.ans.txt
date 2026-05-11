@@ -1,0 +1,1 @@
+The provided content does not discuss PEP 703’s proposals regarding tuple immutability, nor does it mention any Python version that made tuples mutable.

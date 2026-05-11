@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, substantive English summary mentioning specific concepts (Simulink PID controllers, inverted pendulum, automatic tuning, Multibody, control loops, disturbances) directly from the article body.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04129965,
+  "latency_ms": 8317,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 74
+  }
+}

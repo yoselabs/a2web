@@ -6,12 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "The answer precisely captures FDI as framework-code-driven automatic infra generation, provides a substantive two-sentence summary, and explicitly identifies the framework as the source of infrastructure decisions.",
+  "reasoning": "The answer precisely captures the core FDI concept: automated inference of infrastructure from framework code, eliminating manual IaC configuration, satisfying all three criteria fully.",
   "model": "claude-sonnet-4-6",
-  "cost_usd": 0.03926085,
-  "latency_ms": 10987,
+  "cost_usd": 0.0397446,
+  "latency_ms": 10722,
   "raw": {
     "prompt_tokens": 3,
-    "completion_tokens": 64
+    "completion_tokens": 59
   }
 }

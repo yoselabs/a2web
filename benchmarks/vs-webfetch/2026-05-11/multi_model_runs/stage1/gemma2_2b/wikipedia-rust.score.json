@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    5,
+    3
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "Correctly identifies 2010 as the release year, but wrongly attributes design to multiple companies rather than Graydon Hoare, and only vaguely mentions memory safety without naming the ownership/borrow checker mechanism.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04125465,
+  "latency_ms": 10059,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 73
+  }
+}

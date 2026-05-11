@@ -1,0 +1,9 @@
+{
+  "model": "mistral:7b",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 12239,
+  "completion_tokens": 69,
+  "cost_usd": 0.0,
+  "latency_ms": 46666,
+  "cache_hit": false
+}

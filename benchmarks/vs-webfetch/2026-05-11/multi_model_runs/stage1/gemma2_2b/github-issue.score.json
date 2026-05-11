@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    4,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the reported problem and closed status, and alludes to comment activity, but lacks a specific cited detail from the body or a concrete recent comment.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0410634,
+  "latency_ms": 12479,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 58
+  }
+}

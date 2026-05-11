@@ -1,0 +1,1 @@
+Framework-defined infrastructure (FdI) automatically maps framework concepts to appropriate infrastructure, eliminating manual configuration and enabling truly serverless architecture. It uses IaC to provision infrastructure based on framework code, simplifying local development and allowing immutable deployments.

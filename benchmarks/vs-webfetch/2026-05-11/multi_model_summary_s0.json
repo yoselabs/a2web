@@ -22,13 +22,23 @@
     "cohere/command-r-plus-08-2024",
     "x-ai/grok-2-1212",
     "amazon/nova-pro-v1",
-    "microsoft/phi-4"
+    "microsoft/phi-4",
+    "llama3.2:3b",
+    "qwen2.5:3b",
+    "phi3.5:3.8b",
+    "gemma2:2b",
+    "nemotron-mini:4b",
+    "llama3.1:8b",
+    "qwen2.5:7b",
+    "qwen3:8b",
+    "mistral:7b",
+    "phi4"
   ],
   "slugs": [
     "wikipedia-rust"
   ],
-  "wall_seconds": 13,
-  "n_rows": 22,
+  "wall_seconds": 78,
+  "n_rows": 32,
   "per_model": {
     "deepseek/deepseek-v3.2-exp": {
       "cells_ok": 1,
@@ -105,18 +115,18 @@
     "z-ai/glm-4.6": {
       "cells_ok": 1,
       "errors": 0,
-      "empty": 1,
+      "empty": 0,
       "mean_overall": null,
-      "total_cost_usd": 0.008142,
-      "mean_latency_ms": 15037
+      "total_cost_usd": 0.006833,
+      "mean_latency_ms": 9749
     },
     "minimax/minimax-m2": {
       "cells_ok": 1,
       "errors": 0,
-      "empty": 1,
+      "empty": 0,
       "mean_overall": null,
-      "total_cost_usd": 0.003524,
-      "mean_latency_ms": 10449
+      "total_cost_usd": 0.004428,
+      "mean_latency_ms": 11718
     },
     "tencent/hunyuan-large": {
       "cells_ok": 1,
@@ -124,7 +134,7 @@
       "empty": 1,
       "mean_overall": null,
       "total_cost_usd": 0.0,
-      "mean_latency_ms": 98
+      "mean_latency_ms": 2620
     },
     "nvidia/nemotron-nano-9b-v2:free": {
       "cells_ok": 1,
@@ -161,10 +171,10 @@
     "mistralai/mistral-large-2411": {
       "cells_ok": 1,
       "errors": 0,
-      "empty": 1,
+      "empty": 0,
       "mean_overall": null,
-      "total_cost_usd": 0.0,
-      "mean_latency_ms": 5506
+      "total_cost_usd": 0.02494,
+      "mean_latency_ms": 4564
     },
     "meta-llama/llama-3.3-70b-instruct": {
       "cells_ok": 1,
@@ -188,7 +198,7 @@
       "empty": 1,
       "mean_overall": null,
       "total_cost_usd": 0.0,
-      "mean_latency_ms": 100
+      "mean_latency_ms": 442
     },
     "amazon/nova-pro-v1": {
       "cells_ok": 1,
@@ -205,6 +215,86 @@
       "mean_overall": null,
       "total_cost_usd": 0.000699,
       "mean_latency_ms": 2028
+    },
+    "llama3.2:3b": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 45796
+    },
+    "qwen2.5:3b": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 1,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 83
+    },
+    "phi3.5:3.8b": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 68037
+    },
+    "gemma2:2b": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 22598
+    },
+    "nemotron-mini:4b": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 1,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 81
+    },
+    "llama3.1:8b": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 37356
+    },
+    "qwen2.5:7b": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 48870
+    },
+    "qwen3:8b": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 76534
+    },
+    "mistral:7b": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 76476
+    },
+    "phi4": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 72458
     }
   },
   "rows": [
@@ -331,25 +421,25 @@
       "class": "A_clean",
       "template_name": "webfetch_default_v1",
       "prompt_tokens": 9817,
-      "completion_tokens": 1024,
-      "cost_usd": 0.00814202,
-      "latency_ms": 15037,
+      "completion_tokens": 429,
+      "cost_usd": 0.00683302,
+      "latency_ms": 9749,
       "cache_hit": false,
-      "answer_chars": 0,
-      "empty": true
+      "answer_chars": 351,
+      "empty": false
     },
     {
       "model": "minimax/minimax-m2",
       "slug": "wikipedia-rust",
       "class": "A_clean",
       "template_name": "webfetch_default_v1",
-      "prompt_tokens": 9725,
+      "prompt_tokens": 19128,
       "completion_tokens": 1024,
-      "cost_usd": 0.003524355,
-      "latency_ms": 10449,
+      "cost_usd": 0.00442839,
+      "latency_ms": 11718,
       "cache_hit": false,
-      "answer_chars": 0,
-      "empty": true
+      "answer_chars": 4,
+      "empty": false
     },
     {
       "model": "tencent/hunyuan-large",
@@ -359,7 +449,7 @@
       "prompt_tokens": 0,
       "completion_tokens": 0,
       "cost_usd": 0.0,
-      "latency_ms": 98,
+      "latency_ms": 2620,
       "cache_hit": false,
       "answer_chars": 0,
       "empty": true
@@ -421,13 +511,13 @@
       "slug": "wikipedia-rust",
       "class": "A_clean",
       "template_name": "webfetch_default_v1",
-      "prompt_tokens": 0,
-      "completion_tokens": 0,
-      "cost_usd": 0.0,
-      "latency_ms": 5506,
+      "prompt_tokens": 12239,
+      "completion_tokens": 77,
+      "cost_usd": 0.02494,
+      "latency_ms": 4564,
       "cache_hit": false,
-      "answer_chars": 0,
-      "empty": true
+      "answer_chars": 323,
+      "empty": false
     },
     {
       "model": "meta-llama/llama-3.3-70b-instruct",
@@ -463,7 +553,7 @@
       "prompt_tokens": 0,
       "completion_tokens": 0,
       "cost_usd": 0.0,
-      "latency_ms": 100,
+      "latency_ms": 442,
       "cache_hit": false,
       "answer_chars": 0,
       "empty": true
@@ -492,6 +582,136 @@
       "latency_ms": 2028,
       "cache_hit": false,
       "answer_chars": 425,
+      "empty": false
+    },
+    {
+      "model": "llama3.2:3b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9829,
+      "completion_tokens": 51,
+      "cost_usd": 0.0,
+      "latency_ms": 45796,
+      "cache_hit": false,
+      "answer_chars": 219,
+      "empty": false
+    },
+    {
+      "model": "qwen2.5:3b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "cost_usd": 0.0,
+      "latency_ms": 83,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true
+    },
+    {
+      "model": "phi3.5:3.8b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 12194,
+      "completion_tokens": 79,
+      "cost_usd": 0.0,
+      "latency_ms": 68037,
+      "cache_hit": false,
+      "answer_chars": 352,
+      "empty": false
+    },
+    {
+      "model": "gemma2:2b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 8192,
+      "completion_tokens": 56,
+      "cost_usd": 0.0,
+      "latency_ms": 22598,
+      "cache_hit": false,
+      "answer_chars": 221,
+      "empty": false
+    },
+    {
+      "model": "nemotron-mini:4b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "cost_usd": 0.0,
+      "latency_ms": 81,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true
+    },
+    {
+      "model": "llama3.1:8b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9814,
+      "completion_tokens": 73,
+      "cost_usd": 0.0,
+      "latency_ms": 37356,
+      "cache_hit": false,
+      "answer_chars": 311,
+      "empty": false
+    },
+    {
+      "model": "qwen2.5:7b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10447,
+      "completion_tokens": 50,
+      "cost_usd": 0.0,
+      "latency_ms": 48870,
+      "cache_hit": false,
+      "answer_chars": 200,
+      "empty": false
+    },
+    {
+      "model": "qwen3:8b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10463,
+      "completion_tokens": 887,
+      "cost_usd": 0.0,
+      "latency_ms": 76534,
+      "cache_hit": false,
+      "answer_chars": 236,
+      "empty": false
+    },
+    {
+      "model": "mistral:7b",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 12239,
+      "completion_tokens": 69,
+      "cost_usd": 0.0,
+      "latency_ms": 76476,
+      "cache_hit": false,
+      "answer_chars": 282,
+      "empty": false
+    },
+    {
+      "model": "phi4",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9815,
+      "completion_tokens": 113,
+      "cost_usd": 0.0,
+      "latency_ms": 72458,
+      "cache_hit": false,
+      "answer_chars": 536,
       "empty": false
     }
   ]

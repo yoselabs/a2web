@@ -6,12 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "The answer precisely defines FDI as infra inferred/generated from framework code, provides a substantive 2-sentence summary with a direct quote, and clearly identifies the framework as the source of infrastructure decisions.",
+  "reasoning": "The answer precisely captures the core FDI concept: a build-time program analyzes framework code to automatically generate infrastructure, making infra an implementation detail of the framework rather than hand-configured.",
   "model": "claude-sonnet-4-6",
-  "cost_usd": 0.0393846,
-  "latency_ms": 10741,
+  "cost_usd": 0.04173465,
+  "latency_ms": 8364,
   "raw": {
     "prompt_tokens": 3,
-    "completion_tokens": 69
+    "completion_tokens": 65
   }
 }

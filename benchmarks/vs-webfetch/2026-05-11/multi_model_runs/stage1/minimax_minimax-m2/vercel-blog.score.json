@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer precisely captures the core FDI concept\u2014build-time parsing of framework code to auto-generate IaC\u2014with a concise two-sentence summary that addresses all three criteria.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.037390650000000004,
+  "latency_ms": 16578,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 65
+  }
+}

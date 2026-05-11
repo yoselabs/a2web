@@ -1,0 +1,1 @@
+Rust was originally designed by Graydon Hoare in 2006, first released publicly on January 19, 2012. Rust is known for its ownership system that ensures memory safety without using a garbage collector.

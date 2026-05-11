@@ -1,0 +1,17 @@
+{
+  "scores": [
+    3,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer captures a strong, specific headline verbatim and correctly identifies the product category (product/project management for teams), but doesn't explicitly name Linear or call it an issue tracker for software teams.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0410484,
+  "latency_ms": 9824,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 66
+  }
+}

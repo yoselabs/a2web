@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately captures the core concept of FDI \u2014 automatic infrastructure derivation from framework code/specs without manual configuration \u2014 in two substantive sentences that directly address all three criteria.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041235900000000006,
+  "latency_ms": 9633,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 62
+  }
+}

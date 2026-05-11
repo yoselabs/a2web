@@ -1,0 +1,5 @@
+The company sells a product development system tailored for teams and agents, emphasizing AI workflows. The primary headline and value proposition on the landing page is:
+
+"The product development system for teams and agents. Purpose-built for planning and building products. Designed for the AI era."
+
+This system assists in turning conversations into actionable issues, defining product direction, moving work forward with AI agents, reviewing outputs, and understanding progress through analytics.

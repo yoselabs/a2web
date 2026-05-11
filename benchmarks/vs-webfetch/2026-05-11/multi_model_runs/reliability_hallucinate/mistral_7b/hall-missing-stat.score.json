@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    3
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly states the content lacks international revenue data, invents no percentage, and implicitly signals the content is engineering-focused rather than financial.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0395271,
+  "latency_ms": 11465,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 55
+  }
+}

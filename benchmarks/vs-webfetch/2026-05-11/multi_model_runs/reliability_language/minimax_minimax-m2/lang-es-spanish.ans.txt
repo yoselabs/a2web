@@ -1,0 +1,3 @@
+"Graydon Hoare creó Rust en 2006 mientras trabajaba en Mozilla."
+
+Graydon Hoare created Rust in 2006 while working at Mozilla.

@@ -1,22 +1,34 @@
 {
   "mode": "determinism",
   "models": [
+    "minimax/minimax-m2",
     "microsoft/phi-4",
-    "deepseek/deepseek-chat-v3.1",
-    "google/gemini-2.5-flash"
+    "deepseek/deepseek-chat-v3.1"
   ],
   "corpus": "reliability_corpora/determinism_corpus.yaml",
-  "wall_seconds": 173,
+  "wall_seconds": 174,
   "runs_per_cell": 3,
   "per_model": {
+    "minimax/minimax-m2": {
+      "cells_ok": 15,
+      "errors": 0,
+      "mean_overall": 4.833333333333333,
+      "total_cost_usd": 0.021445,
+      "mean_latency_ms": 5042,
+      "determinism": {
+        "mean_answer_similarity": 0.24161158980474934,
+        "max_score_variance": 0,
+        "n_slugs": 5
+      }
+    },
     "microsoft/phi-4": {
       "cells_ok": 15,
       "errors": 0,
-      "mean_overall": 4.466666666666667,
-      "total_cost_usd": 0.003354,
-      "mean_latency_ms": 3863,
+      "mean_overall": 4.2,
+      "total_cost_usd": 0.003312,
+      "mean_latency_ms": 3003,
       "determinism": {
-        "mean_answer_similarity": 0.5582570874499976,
+        "mean_answer_similarity": 0.6725617032725257,
         "max_score_variance": 2,
         "n_slugs": 5
       }
@@ -24,23 +36,11 @@
     "deepseek/deepseek-chat-v3.1": {
       "cells_ok": 15,
       "errors": 0,
-      "mean_overall": 4.6,
-      "total_cost_usd": 0.010274,
-      "mean_latency_ms": 4273,
+      "mean_overall": 4.533333333333333,
+      "total_cost_usd": 0.012786,
+      "mean_latency_ms": 5039,
       "determinism": {
-        "mean_answer_similarity": 0.5066506779292184,
-        "max_score_variance": 1,
-        "n_slugs": 5
-      }
-    },
-    "google/gemini-2.5-flash": {
-      "cells_ok": 15,
-      "errors": 0,
-      "mean_overall": 4.714285714285714,
-      "total_cost_usd": 0.012625,
-      "mean_latency_ms": 988,
-      "determinism": {
-        "mean_answer_similarity": 1.0,
+        "mean_answer_similarity": 0.5250645715741487,
         "max_score_variance": 1,
         "n_slugs": 5
       }
@@ -48,58 +48,326 @@
   },
   "rows": [
     {
+      "model": "minimax/minimax-m2",
+      "slug": "wikipedia-rust",
+      "run": 0,
+      "class": "A_clean",
+      "prompt_tokens": 19128,
+      "completion_tokens": 1024,
+      "cost_usd": 0.00442839,
+      "latency_ms": 10425,
+      "cache_hit": false,
+      "answer": "",
+      "answer_chars": 0,
+      "judge": {
+        "error": "empty"
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "wikipedia-rust",
+      "run": 1,
+      "class": "A_clean",
+      "prompt_tokens": 19128,
+      "completion_tokens": 268,
+      "cost_usd": 0.00352119,
+      "latency_ms": 2959,
+      "cache_hit": false,
+      "answer": "Rust was originally designed by Graydon Hoare in 2006, with its first public release in 2012. Rust is known for its **borrow checker**, which enforces memory safety at compile time by tracking object lifetimes and references, eliminating the need for a conventional garbage collector.",
+      "answer_chars": 284,
+      "judge": {
+        "overall": 3,
+        "reached": true,
+        "scores": [
+          5,
+          0,
+          3
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "wikipedia-rust",
+      "run": 2,
+      "class": "A_clean",
+      "prompt_tokens": 19128,
+      "completion_tokens": 1024,
+      "cost_usd": 0.00442839,
+      "latency_ms": 10566,
+      "cache_hit": false,
+      "answer": "",
+      "answer_chars": 0,
+      "judge": {
+        "error": "empty"
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "linear-marketing",
+      "run": 0,
+      "class": "C_spa",
+      "prompt_tokens": 380,
+      "completion_tokens": 328,
+      "cost_usd": 0.0005076,
+      "latency_ms": 4309,
+      "cache_hit": false,
+      "answer": "## Product and Primary Value Proposition\n\n**Product:** Linear - a product development/management system designed for modern teams with AI workflows.\n\n**Primary Headline:** \"The product development system for teams and agents\" with the sub-headline emphasizing it's \"Purpose-built for planning and building products. Designed for the AI era.\"\n\nThe company positions itself as offering a next-generation product tool that integrates AI into product development workflows, helping teams turn feedback into actionable issues, plan roadmaps, deploy AI agents for complex tasks, and track progress at scale.",
+      "answer_chars": 601,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "linear-marketing",
+      "run": 1,
+      "class": "C_spa",
+      "prompt_tokens": 380,
+      "completion_tokens": 379,
+      "cost_usd": 0.0004759,
+      "latency_ms": 4300,
+      "cache_hit": false,
+      "answer": "## Product and Value Proposition\n\nThe product is **Linear**, a product development platform designed for modern teams with AI workflows.\n\nThe primary value proposition from the landing page is: \"A new species of product tool. Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products.\"\n\nThis conveys that Linear is an AI-powered product operations tool that helps teams plan, build, and manage products by turning conversations and feedback into actionable items, enabling AI agents to work alongside human team members, and providing project tracking and analytics.",
+      "answer_chars": 632,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "linear-marketing",
+      "run": 2,
+      "class": "C_spa",
+      "prompt_tokens": 380,
+      "completion_tokens": 362,
+      "cost_usd": 0.0005484,
+      "latency_ms": 3324,
+      "cache_hit": false,
+      "answer": "Based on the content, the company sells Linear, a product development/management SaaS platform.\n\nThe primary headline on the landing page is: \"A new species of product tool.\"\n\nThe main value proposition is that Linear is \"Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products.\" It's essentially a product operations tool that combines issue tracking, roadmapping, AI agent integration, and code review features into one platform designed for the AI era.",
+      "answer_chars": 523,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "vercel-blog",
+      "run": 0,
+      "class": "C_spa",
+      "prompt_tokens": 2593,
+      "completion_tokens": 428,
+      "cost_usd": 0.001097775,
+      "latency_ms": 4839,
+      "cache_hit": false,
+      "answer": "Framework-defined infrastructure (FdI) is an evolution of IaC where the deployment environment automatically provisions infrastructure by analyzing framework code to understand its intent, then generating the necessary IaC configuration. It maps framework concepts onto appropriate infrastructure primitives without requiring explicit declaration or configuration.",
+      "answer_chars": 364,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "vercel-blog",
+      "run": 1,
+      "class": "C_spa",
+      "prompt_tokens": 2593,
+      "completion_tokens": 306,
+      "cost_usd": 0.000973335,
+      "latency_ms": 4222,
+      "cache_hit": false,
+      "answer": "Framework-defined infrastructure automatically provisions cloud resources by having a build-time program parse framework source code, understand the developer's intent, and generate the necessary infrastructure configuration without manual setup. It leverages framework patterns to map concepts like routing and data fetching directly to infrastructure primitives such as serverless functions or static file storage.",
+      "answer_chars": 416,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "vercel-blog",
+      "run": 2,
+      "class": "C_spa",
+      "prompt_tokens": 2576,
+      "completion_tokens": 1024,
+      "cost_usd": 0.0020016,
+      "latency_ms": 5168,
+      "cache_hit": false,
+      "answer": "",
+      "answer_chars": 0,
+      "judge": {
+        "error": "empty"
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "github-issue",
+      "run": 0,
+      "class": "D_structured",
+      "prompt_tokens": 474,
+      "completion_tokens": 324,
+      "cost_usd": 0.00044487,
+      "latency_ms": 4165,
+      "cache_hit": false,
+      "answer": "## Summary\n\nThis issue reports a bug in Claude Code where the \"String to replace not found in file\" error occurs occasionally during file updates using the edit tool.\n\n**Status:** Closed\n\n**Resolution/Conclusion:** A team member (catherinewu) acknowledged the issue and stated that \"we are continuously working on improving the error rates for the edit tool\" and that \"it should be much better in the latest claude 4.5 models.\" This indicates the fix was addressed in subsequent Claude 4.5 model updates.",
+      "answer_chars": 504,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "github-issue",
+      "run": 1,
+      "class": "D_structured",
+      "prompt_tokens": 474,
+      "completion_tokens": 353,
+      "cost_usd": 0.00047387,
+      "latency_ms": 4211,
+      "cache_hit": false,
+      "answer": "## Issue Summary\n\nThis bug report (#2107) describes an intermittent error in Claude Code where the edit tool occasionally fails with the message \"String to replace not found in file\" when attempting to update files.\n\n**Status:** Closed and locked.\n\n**Conclusion:** A team member (catherinewu) acknowledged the issue, stating: \"thanks for reporting - we are continuously working on improving the error rates for the edit tool. it should be much better in the latest claude 4.5 models!\"\n\nThe issue was marked as resolved with improvements expected in newer Claude 4.5 models.",
+      "answer_chars": 573,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "github-issue",
+      "run": 2,
+      "class": "D_structured",
+      "prompt_tokens": 476,
+      "completion_tokens": 381,
+      "cost_usd": 0.000395505,
+      "latency_ms": 5231,
+      "cache_hit": false,
+      "answer": "Based on the issue report:\n\n**What it reports**: A bug where file updates occasionally fail with the error \"String to replace not found in file\" when using the edit tool.\n\n**Most recent status/conclusion**: The issue was closed. Maintainer catherinewu acknowledged the problem and stated that error rates for the edit tool are being improved, noting it \"should be much better in the latest claude 4.5 models.\" The issue was automatically closed after 30 days of inactivity.",
+      "answer_chars": 473,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "non-english",
+      "run": 0,
+      "class": "E_edge",
+      "prompt_tokens": 2073,
+      "completion_tokens": 279,
+      "cost_usd": 0.00071613,
+      "latency_ms": 3372,
+      "cache_hit": false,
+      "answer": "The article describes building and controlling an inverted pendulum in Simulink using Multibody library blocks without any mathematical formulas. It uses two PID controllers\u2014one for stabilizing the pendulum angle upward and one for cart position\u2014with automatic tuning features. The complete model includes Kalman filtering, noise injection, and a swing-up mechanism to raise the pendulum from its downward resting position to the inverted position.",
+      "answer_chars": 448,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "non-english",
+      "run": 1,
+      "class": "E_edge",
+      "prompt_tokens": 2073,
+      "completion_tokens": 274,
+      "cost_usd": 0.00071013,
+      "latency_ms": 4363,
+      "cache_hit": false,
+      "answer": "This article demonstrates how to build and control an inverted pendulum using PID controllers in Simulink's Multibody library without any physics formulas or manual calculations. The system uses two control loops\u2014one for stabilizing the pendulum in the upright position and another for positioning the cart\u2014along with automatic PID tuning, a Kalman filter, and a swing-up mechanism to raise the pendulum from its hanging position.",
+      "answer_chars": 430,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "non-english",
+      "run": 2,
+      "class": "E_edge",
+      "prompt_tokens": 2073,
+      "completion_tokens": 284,
+      "cost_usd": 0.00072213,
+      "latency_ms": 4180,
+      "cache_hit": false,
+      "answer": "This article demonstrates building an inverted pendulum control system in Simulink using PID controllers and Multibody library blocks, without any physics or math calculations. It shows automatic PID tuning, adding noise and Kalman filtering for realism, and implementing a swing-up mechanism to raise the pendulum before stabilization.",
+      "answer_chars": 336,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
       "model": "microsoft/phi-4",
       "slug": "wikipedia-rust",
       "run": 0,
       "class": "A_clean",
-      "prompt_tokens": 10813,
-      "completion_tokens": 272,
-      "cost_usd": 0.000740925,
-      "latency_ms": 13023,
-      "cache_hit": false,
-      "answer": "Rust was originally designed by Graydon Hoare and first released in 2010. It is known for its memory-safety mechanism, which includes ownership types and borrowed pointers to ensure safe memory management without a garbage collector.\n\nRust's memory safety is achieved through its ownership system, which ensures that references do not point to invalid memory. The borrow checker verifies that references are valid at compile time, preventing issues like null or dangling pointers. Rust's ownership system allows for zero-cost abstractions, meaning these safety checks are optimized away at compile time, resulting in no runtime overhead for memory safety.\n\nRust's ownership system is inspired by the C++ RAII (Resource Acquisition Is Initialization) model, which ensures resources are properly managed and released. Rust's borrow checker enforces rules that prevent data races and ensure memory safety, similar to how C++ manages resource lifetimes through RAII.\n\nRust's ownership system allows for deterministic memory management, which is optimized at compile time. This system ensures that memory safety is maintained without runtime penalties, except for cases where array indexing bounds checks are necessary, which can incur some overhead.\n\nRust's memory safety mechanism is designed to be efficient and safe, allowing for zero-cost abstractions and minimizing runtime overhead. The ownership and borrowing rules are enforced at compile time, ensuring that memory safety is maintained without runtime costs.",
-      "answer_chars": 1513,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "microsoft/phi-4",
-      "slug": "wikipedia-rust",
-      "run": 1,
-      "class": "A_clean",
-      "prompt_tokens": 10813,
-      "completion_tokens": 272,
-      "cost_usd": 0.000740925,
-      "latency_ms": 12669,
-      "cache_hit": false,
-      "answer": "Rust was originally designed by Graydon Hoare and first released in 2010. It is known for its memory-safety mechanism, which includes ownership types and borrowed pointers to ensure safe memory management without a garbage collector.\n\nRust's memory safety is achieved through its ownership system, which ensures that references do not point to invalid memory. The borrow checker verifies that references are valid at compile time, preventing issues like null or dangling pointers. Rust's ownership system allows for zero-cost abstractions, meaning these safety checks are optimized away at compile time, resulting in no runtime overhead for memory safety.\n\nRust's ownership system is inspired by the C++ RAII (Resource Acquisition Is Initialization) model, which ensures resources are properly managed and released. Rust's borrow checker enforces rules that prevent data races and ensure memory safety, similar to how C++ manages resource lifetimes through RAII.\n\nRust's ownership system allows for deterministic memory management, which is optimized at compile time. This system ensures that memory safety is maintained without runtime penalties, except for cases where array indexing bounds checks are necessary, which can incur some overhead.\n\nRust's memory safety mechanism is designed to be efficient and safe, allowing for zero-cost abstractions and minimizing runtime overhead. The ownership and borrowing rules are enforced at compile time, ensuring that memory safety is maintained without runtime costs.",
-      "answer_chars": 1513,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "microsoft/phi-4",
-      "slug": "wikipedia-rust",
-      "run": 2,
-      "class": "A_clean",
       "prompt_tokens": 9813,
       "completion_tokens": 63,
       "cost_usd": 0.00069573,
-      "latency_ms": 2031,
+      "latency_ms": 3152,
       "cache_hit": false,
       "answer": "Rust was designed by Graydon Hoare in 2006 and first appeared on January 19, 2012. It is known for its memory-safety mechanism, the \"borrow checker,\" which tracks object lifetimes at compile time to prevent memory safety errors and data races without a conventional garbage collector.",
       "answer_chars": 284,
@@ -109,6 +377,50 @@
         "scores": [
           5,
           0,
+          3
+        ]
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "wikipedia-rust",
+      "run": 1,
+      "class": "A_clean",
+      "prompt_tokens": 9812,
+      "completion_tokens": 73,
+      "cost_usd": 0.00069706,
+      "latency_ms": 3797,
+      "cache_hit": false,
+      "answer": "Rust was designed by Graydon Hoare and first appeared on January 19, 2012. It is known for its memory-safety mechanism, the \"borrow checker,\" which tracks object lifetimes at compile time to prevent memory safety errors and data races without a conventional garbage collector. Rust enforces memory safety by ensuring all references point to valid memory.",
+      "answer_chars": 354,
+      "judge": {
+        "overall": 3,
+        "reached": true,
+        "scores": [
+          5,
+          0,
+          3
+        ]
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "wikipedia-rust",
+      "run": 2,
+      "class": "A_clean",
+      "prompt_tokens": 10813,
+      "completion_tokens": 259,
+      "cost_usd": 0.000739105,
+      "latency_ms": 10405,
+      "cache_hit": false,
+      "answer": "Rust was originally designed by Graydon Hoare and first released in 2010. It is known for its memory-safety mechanism, which includes ownership types and borrowed pointers to ensure safe memory management without a garbage collector.\n\nRust's memory safety is achieved through its ownership system, which ensures that references do not point to invalid memory. The borrow checker verifies that references are valid at compile time, preventing issues like null or dangling pointers. Rust's ownership system allows for zero-cost abstractions, meaning these safety checks are optimized away at compile time, resulting in no runtime overhead for memory safety.\n\nRust's ownership system is inspired by the C++ RAII (Resource Acquisition Is Initialization) model, which ensures resources are properly managed and released. Rust's borrow checker enforces rules that prevent data races and ensure memory safety, similar to how C++ manages resource lifetimes through RAII.\n\nRust's ownership system allows for deterministic memory layouts, enabling optimizations like memory alignment and padding adjustments. This system is designed to prevent common memory safety issues found in languages like C and C++, where data structures cannot be reordered by the compiler.\n\nRust's memory safety mechanism is a key feature that distinguishes it from other languages, providing a balance between performance and safety without the need for runtime checks.",
+      "answer_chars": 1436,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
           5
         ]
       }
@@ -121,7 +433,7 @@
       "prompt_tokens": 389,
       "completion_tokens": 101,
       "cost_usd": 3.9425e-05,
-      "latency_ms": 8003,
+      "latency_ms": 3306,
       "cache_hit": false,
       "answer": "The company sells a product development system designed for modern teams, particularly those incorporating AI workflows. The primary value proposition is that Linear sets a new standard for planning and building products, making product operations self-driving by turning conversations and customer feedback into actionable issues. It facilitates defining product direction through strategic roadmaps and PRDs, moving work forward across teams and agents, and reviewing PRs and agent outputs within its platform. Linear also provides project updates, analytics, and dashboards to help understand progress at scale.",
       "answer_chars": 614,
@@ -143,7 +455,7 @@
       "prompt_tokens": 389,
       "completion_tokens": 101,
       "cost_usd": 3.9425e-05,
-      "latency_ms": 2567,
+      "latency_ms": 2694,
       "cache_hit": false,
       "answer": "The company sells a product development system designed for modern teams, particularly those incorporating AI workflows. The primary value proposition is that Linear sets a new standard for planning and building products, making product operations self-driving by turning conversations and customer feedback into actionable issues. It facilitates defining product direction through strategic roadmaps and PRDs, moving work forward across teams and agents, and reviewing PRs and agent outputs within its platform. Linear also provides project updates, analytics, and dashboards to help understand progress at scale.",
       "answer_chars": 614,
@@ -162,19 +474,19 @@
       "slug": "linear-marketing",
       "run": 2,
       "class": "C_spa",
-      "prompt_tokens": 352,
-      "completion_tokens": 57,
-      "cost_usd": 3.262e-05,
-      "latency_ms": 982,
+      "prompt_tokens": 389,
+      "completion_tokens": 101,
+      "cost_usd": 3.9425e-05,
+      "latency_ms": 2208,
       "cache_hit": false,
-      "answer": "The company sells a product development system designed for teams and agents, focusing on AI workflows. The primary headline/value proposition is: \"A new species of product tool. Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products.\"",
-      "answer_chars": 304,
+      "answer": "The company sells a product development system designed for modern teams, particularly those incorporating AI workflows. The primary value proposition is that Linear sets a new standard for planning and building products, making product operations self-driving by turning conversations and customer feedback into actionable issues. It facilitates defining product direction through strategic roadmaps and PRDs, moving work forward across teams and agents, and reviewing PRs and agent outputs within its platform. Linear also provides project updates, analytics, and dashboards to help understand progress at scale.",
+      "answer_chars": 614,
       "judge": {
-        "overall": 5,
+        "overall": 4,
         "reached": true,
         "scores": [
           4,
-          5,
+          4,
           5
         ]
       }
@@ -187,7 +499,7 @@
       "prompt_tokens": 2842,
       "completion_tokens": 68,
       "cost_usd": 0.00019425,
-      "latency_ms": 3568,
+      "latency_ms": 2552,
       "cache_hit": false,
       "answer": "Framework-defined infrastructure automates the provisioning of infrastructure based on a framework's patterns, allowing developers to focus on writing application code rather than managing infrastructure. It leverages serverless architecture to create scalable, cost-effective, and immutable deployments that align with the framework's version control, simplifying local development by mapping framework concepts directly to production infrastructure.",
       "answer_chars": 451,
@@ -209,7 +521,7 @@
       "prompt_tokens": 2842,
       "completion_tokens": 68,
       "cost_usd": 0.00019425,
-      "latency_ms": 2165,
+      "latency_ms": 2066,
       "cache_hit": false,
       "answer": "Framework-defined infrastructure automates the provisioning of infrastructure based on a framework's patterns, allowing developers to focus on writing application code rather than managing infrastructure. It leverages serverless architecture to create scalable, cost-effective, and immutable deployments that align with the framework's version control, simplifying local development by mapping framework concepts directly to production infrastructure.",
       "answer_chars": 451,
@@ -231,7 +543,7 @@
       "prompt_tokens": 2842,
       "completion_tokens": 68,
       "cost_usd": 0.00019425,
-      "latency_ms": 1797,
+      "latency_ms": 1595,
       "cache_hit": false,
       "answer": "Framework-defined infrastructure automates the provisioning of infrastructure based on a framework's patterns, allowing developers to focus on writing application code rather than managing infrastructure. It leverages serverless architecture to create scalable, cost-effective, and immutable deployments that align with the framework's version control, simplifying local development by mapping framework concepts directly to production infrastructure.",
       "answer_chars": 451,
@@ -249,55 +561,11 @@
       "model": "microsoft/phi-4",
       "slug": "github-issue",
       "run": 0,
-      "class": "D_structured",
-      "prompt_tokens": 450,
-      "completion_tokens": 94,
-      "cost_usd": 4.466e-05,
-      "latency_ms": 1655,
-      "cache_hit": false,
-      "answer": "The issue report describes a bug in the Claude CLI version 1.0.24 on Windows 11, where the error \"String to replace not found in file\" occurs occasionally during updates. The expected behavior is successful file updates, but the actual behavior is the error message. The issue was closed, and the latest comment from \"catherinewu\" suggests improvements in the latest models. The issue was automatically locked after being inactive for 7 days.",
-      "answer_chars": 442,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "microsoft/phi-4",
-      "slug": "github-issue",
-      "run": 1,
-      "class": "D_structured",
-      "prompt_tokens": 450,
-      "completion_tokens": 94,
-      "cost_usd": 4.466e-05,
-      "latency_ms": 1425,
-      "cache_hit": false,
-      "answer": "The issue report describes a bug in the Claude CLI version 1.0.24 on Windows 11, where the error \"String to replace not found in file\" occurs occasionally during updates. The expected behavior is successful file updates, but the actual behavior is the error message. The issue was closed, and the latest comment from \"catherinewu\" suggests improvements in the latest models. The issue was automatically locked after being inactive for 7 days.",
-      "answer_chars": 442,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "microsoft/phi-4",
-      "slug": "github-issue",
-      "run": 2,
       "class": "D_structured",
       "prompt_tokens": 493,
       "completion_tokens": 63,
       "cost_usd": 4.0865e-05,
-      "latency_ms": 2036,
+      "latency_ms": 1627,
       "cache_hit": false,
       "answer": "The issue reports a bug where a string intended for replacement is not found in the file, leading to occasional update errors. The issue was closed, with the latest status indicating improvements in error rates with newer models. The issue was automatically locked after 30 days of inactivity, suggesting continued improvements in error handling.",
       "answer_chars": 346,
@@ -313,16 +581,60 @@
     },
     {
       "model": "microsoft/phi-4",
+      "slug": "github-issue",
+      "run": 1,
+      "class": "D_structured",
+      "prompt_tokens": 493,
+      "completion_tokens": 63,
+      "cost_usd": 4.0865e-05,
+      "latency_ms": 1492,
+      "cache_hit": false,
+      "answer": "The issue reports a bug where a string intended for replacement is not found in the file, leading to occasional update errors. The issue was closed, with the latest status indicating improvements in error rates with newer models. The issue was automatically locked after 30 days of inactivity, suggesting continued improvements in error handling.",
+      "answer_chars": 346,
+      "judge": {
+        "overall": 4,
+        "reached": true,
+        "scores": [
+          4,
+          5,
+          4
+        ]
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "github-issue",
+      "run": 2,
+      "class": "D_structured",
+      "prompt_tokens": 450,
+      "completion_tokens": 94,
+      "cost_usd": 4.466e-05,
+      "latency_ms": 2664,
+      "cache_hit": false,
+      "answer": "The issue report describes a bug in the Claude CLI version 1.0.24 on Windows 11, where the error \"String to replace not found in file\" occurs occasionally during updates. The expected behavior is successful file updates, but the actual behavior is the error message. The issue was closed, and the latest comment from \"catherinewu\" suggests improvements in the latest models. The issue was automatically locked after being inactive for 7 days.",
+      "answer_chars": 442,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
       "slug": "non-english",
       "run": 0,
       "class": "E_edge",
       "prompt_tokens": 1523,
-      "completion_tokens": 78,
-      "cost_usd": 0.00011753,
-      "latency_ms": 1280,
+      "completion_tokens": 77,
+      "cost_usd": 0.00011739,
+      "latency_ms": 2544,
       "cache_hit": false,
-      "answer": "The article describes using Simulink and Multibody to model and control an inverted pendulum system with PID controllers. It explains how to set up and tune PID controllers for stabilizing the pendulum and controlling the cart's position without needing deep technical knowledge. The process includes adding noise and a Kalman filter for realism and robustness, and the model is tested with an animation.",
-      "answer_chars": 404,
+      "answer": "The article describes using Simulink and Multibody to model and control an inverted pendulum system with PID controllers. It explains how to set up and tune PID controllers for stabilizing the pendulum and controlling the cart's position without needing deep technical knowledge. The process includes adding noise and a Kalman filter for realism and robustness, and the model is tested with animations.",
+      "answer_chars": 402,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -338,13 +650,13 @@
       "slug": "non-english",
       "run": 1,
       "class": "E_edge",
-      "prompt_tokens": 1523,
-      "completion_tokens": 78,
-      "cost_usd": 0.00011753,
-      "latency_ms": 1617,
+      "prompt_tokens": 1579,
+      "completion_tokens": 112,
+      "cost_usd": 0.000118315,
+      "latency_ms": 2494,
       "cache_hit": false,
-      "answer": "The article describes using Simulink and Multibody to model and control an inverted pendulum system with PID controllers. It explains how to set up and tune PID controllers for stabilizing the pendulum and controlling the cart's position without needing deep technical knowledge. The process includes adding noise and a Kalman filter for realism and robustness, and the model is tested with an animation.",
-      "answer_chars": 404,
+      "answer": "The article discusses using Simulink and Multibody to configure a PID controller for managing an inverted pendulum without requiring technical knowledge. It describes setting up a model with parameters for the pendulum and cart, adding noise, and incorporating a Kalman filter for robustness. The model includes two PID controllers for stabilizing the pendulum's angle and cart position, and a Kalman filter for smoothing disturbances. The article highlights the simplicity and effectiveness of using Simulink for this task, emphasizing the ease of tuning and updating the controller without manual calculations.",
+      "answer_chars": 612,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -360,13 +672,13 @@
       "slug": "non-english",
       "run": 2,
       "class": "E_edge",
-      "prompt_tokens": 1579,
-      "completion_tokens": 99,
-      "cost_usd": 0.000116495,
-      "latency_ms": 3138,
+      "prompt_tokens": 1523,
+      "completion_tokens": 77,
+      "cost_usd": 0.00011739,
+      "latency_ms": 2452,
       "cache_hit": false,
-      "answer": "The article discusses using Simulink and Multibody to configure a PID controller for managing an inverted pendulum without requiring technical knowledge. It describes setting up a model with parameters like mass and friction coefficients, and tuning the PID controller automatically. The model includes a Kalman filter to smooth disturbances and a Kalman filter for state access. The article highlights the simplicity and robustness of the model, which uses Simulink's capabilities to simulate and animate the pendulum's stabilization and movement.",
-      "answer_chars": 548,
+      "answer": "The article describes using Simulink and Multibody to model and control an inverted pendulum system with PID controllers. It explains how to set up and tune PID controllers for stabilizing the pendulum and controlling the cart's position without needing deep technical knowledge. The process includes adding noise and a Kalman filter for realism and robustness, and the model is tested with animations.",
+      "answer_chars": 402,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -382,13 +694,13 @@
       "slug": "wikipedia-rust",
       "run": 0,
       "class": "A_clean",
-      "prompt_tokens": 9908,
-      "completion_tokens": 52,
-      "cost_usd": 0.0021216,
-      "latency_ms": 3386,
+      "prompt_tokens": 9909,
+      "completion_tokens": 47,
+      "cost_usd": 0.00301684,
+      "latency_ms": 3643,
       "cache_hit": false,
-      "answer": "Rust was originally designed by Graydon Hoare and first released publicly in 2012. It is known for its \"borrow checker\", a compile-time mechanism that \"enforces memory safety without using a conventional garbage collector\" by tracking object lifetimes.",
-      "answer_chars": 252,
+      "answer": "Rust was created by Graydon Hoare and first appeared publicly in 2012. It is known for its \"borrow checker\", which \"tracks the object lifetime of references at compile time\" to enforce memory safety.",
+      "answer_chars": 199,
       "judge": {
         "overall": 3,
         "reached": true,
@@ -404,20 +716,20 @@
       "slug": "wikipedia-rust",
       "run": 1,
       "class": "A_clean",
-      "prompt_tokens": 9911,
-      "completion_tokens": 61,
-      "cost_usd": 0.00273697,
-      "latency_ms": 6379,
+      "prompt_tokens": 9908,
+      "completion_tokens": 53,
+      "cost_usd": 0.00272816,
+      "latency_ms": 3181,
       "cache_hit": false,
-      "answer": "Rust was created by Graydon Hoare in 2006 and first publicly released on January 20, 2012. It is known for its \"borrow checker\", which the text describes as a mechanism that \"tracks the object lifetime of references at compile time\" to enforce memory safety.",
-      "answer_chars": 258,
+      "answer": "Rust was originally designed by Graydon Hoare and first released publicly in 2012. It is known for a memory-safety mechanism called the \"borrow checker\", which \"tracks the object lifetime of references at compile time\" to prevent errors.",
+      "answer_chars": 237,
       "judge": {
         "overall": 3,
         "reached": true,
         "scores": [
           5,
           0,
-          4
+          5
         ]
       }
     },
@@ -428,13 +740,13 @@
       "class": "A_clean",
       "prompt_tokens": 9908,
       "completion_tokens": 46,
-      "cost_usd": 0.00132446,
-      "latency_ms": 6470,
+      "cost_usd": 0.00211654,
+      "latency_ms": 4083,
       "cache_hit": false,
-      "answer": "Graydon Hoare created Rust, first released publicly in 2012. It is known for its \"borrow checker\", a mechanism that \"tracks the object lifetime of references at compile time\" to enforce memory safety.",
-      "answer_chars": 200,
+      "answer": "Rust was created by Graydon Hoare and first appeared in 2012. It is known for its \"borrow checker\", which \"tracks the object lifetime of references at compile time\" to enforce memory safety.",
+      "answer_chars": 190,
       "judge": {
-        "overall": 4,
+        "overall": 3,
         "reached": true,
         "scores": [
           5,
@@ -449,53 +761,9 @@
       "run": 0,
       "class": "C_spa",
       "prompt_tokens": 348,
-      "completion_tokens": 32,
-      "cost_usd": 9.812e-05,
-      "latency_ms": 4033,
-      "cache_hit": false,
-      "answer": "The company sells a product development tool called Linear. Its primary value proposition is: \"Purpose-built for planning and building products. Designed for the AI era.\"",
-      "answer_chars": 170,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "deepseek/deepseek-chat-v3.1",
-      "slug": "linear-marketing",
-      "run": 1,
-      "class": "C_spa",
-      "prompt_tokens": 351,
-      "completion_tokens": 32,
-      "cost_usd": 0.000265,
-      "latency_ms": 1907,
-      "cache_hit": false,
-      "answer": "The company sells a product development tool called Linear. Its primary value proposition is: \"Purpose-built for planning and building products. Designed for the AI era.\"",
-      "answer_chars": 170,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "deepseek/deepseek-chat-v3.1",
-      "slug": "linear-marketing",
-      "run": 2,
-      "class": "C_spa",
-      "prompt_tokens": 348,
       "completion_tokens": 30,
       "cost_usd": 0.00012396,
-      "latency_ms": 3715,
+      "latency_ms": 3068,
       "cache_hit": false,
       "answer": "The company sells a product development platform. Its primary value proposition is that it is \"Purpose-built for modern teams with AI workflows at its core.\"",
       "answer_chars": 157,
@@ -511,16 +779,60 @@
     },
     {
       "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "linear-marketing",
+      "run": 1,
+      "class": "C_spa",
+      "prompt_tokens": 351,
+      "completion_tokens": 32,
+      "cost_usd": 0.000265,
+      "latency_ms": 1854,
+      "cache_hit": false,
+      "answer": "The company sells a product development tool called Linear. Its primary value proposition is: \"Purpose-built for planning and building products. Designed for the AI era.\"",
+      "answer_chars": 170,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "linear-marketing",
+      "run": 2,
+      "class": "C_spa",
+      "prompt_tokens": 348,
+      "completion_tokens": 37,
+      "cost_usd": 0.00010159,
+      "latency_ms": 3645,
+      "cache_hit": false,
+      "answer": "Based on the content, the company sells a product development tool named Linear. Its primary value proposition is: \"Purpose-built for planning and building products. Designed for the AI era.\"",
+      "answer_chars": 191,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
       "slug": "vercel-blog",
       "run": 0,
       "class": "C_spa",
       "prompt_tokens": 2625,
-      "completion_tokens": 48,
-      "cost_usd": 0.0008331,
-      "latency_ms": 3403,
+      "completion_tokens": 54,
+      "cost_usd": 0.00178725,
+      "latency_ms": 1613,
       "cache_hit": false,
-      "answer": "Framework-defined infrastructure is an evolution of IaC where a program analyzes framework-based application code to automatically generate the necessary infrastructure configuration. It abstracts cloud primitives, allowing the framework's structure and concepts to dictate the production setup without manual intervention.",
-      "answer_chars": 323,
+      "answer": "Based on the post, 'framework-defined infrastructure' is an evolution of IaC where a program analyzes an application's framework code to understand its intent. It then \"automatically generates the IaC configuration needed to run the software,\" provisioning the correct infrastructure without manual configuration.",
+      "answer_chars": 313,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -537,12 +849,12 @@
       "run": 1,
       "class": "C_spa",
       "prompt_tokens": 2625,
-      "completion_tokens": 64,
-      "cost_usd": 0.00077275,
-      "latency_ms": 3695,
+      "completion_tokens": 53,
+      "cost_usd": 0.00059288,
+      "latency_ms": 5899,
       "cache_hit": false,
-      "answer": "Framework-defined infrastructure is an evolution of IaC where a program analyzes application code written to a specific framework and automatically generates the necessary infrastructure configuration. As the post states, it allows \"the deployment environment [to] automatically provision infrastructure derived from the framework and the applications written in it,\" abstracting over cloud primitives.",
-      "answer_chars": 402,
+      "answer": "Based on this post, 'framework-defined infrastructure' is an evolution of infrastructure as code where a build-time program analyzes framework-based application code. It then automatically generates and provisions the necessary infrastructure configuration, making the underlying infrastructure an implementation detail of the framework's concepts.",
+      "answer_chars": 348,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -559,12 +871,12 @@
       "run": 2,
       "class": "C_spa",
       "prompt_tokens": 2625,
-      "completion_tokens": 52,
-      "cost_usd": 0.00059185,
-      "latency_ms": 6041,
+      "completion_tokens": 46,
+      "cost_usd": 0.00058703,
+      "latency_ms": 6213,
       "cache_hit": false,
-      "answer": "Framework-defined infrastructure is an evolution of infrastructure as code where a program analyzes application source code written in a framework and automatically provisions the necessary infrastructure. This approach abstracts cloud primitives, making them \"mere implementation details\" and eliminates the need for manual infrastructure configuration.",
-      "answer_chars": 354,
+      "answer": "Framework-defined infrastructure is an evolution of Infrastructure as Code where a program analyzes framework-based source code to automatically generate the necessary IaC configuration. This means the deployment environment provisions infrastructure derived from the framework and the applications written in it.",
+      "answer_chars": 313,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -581,12 +893,12 @@
       "run": 0,
       "class": "D_structured",
       "prompt_tokens": 445,
-      "completion_tokens": 55,
-      "cost_usd": 0.00017515,
-      "latency_ms": 2996,
+      "completion_tokens": 90,
+      "cost_usd": 0.00016391,
+      "latency_ms": 8827,
       "cache_hit": false,
-      "answer": "This issue reports a bug where the Claude CLI occasionally fails with \"String to replace not found in file\" during updates. The most recent status is that it was closed after a team member stated they are \"continuously working on improving the error rates for the edit tool.\"",
-      "answer_chars": 275,
+      "answer": "This issue reports a bug where the Claude CLI occasionally fails to update files with the error \"String to replace not found in file.\" The most recent status shows that GitHub user catherinewu acknowledged the report and stated they are \"continuously working on improving the error rates for the edit tool,\" adding that \"it should be much better in the latest claude 4.5 models!\" The issue was automatically closed after 30 days of inactivity.",
+      "answer_chars": 443,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -602,13 +914,13 @@
       "slug": "github-issue",
       "run": 1,
       "class": "D_structured",
-      "prompt_tokens": 445,
-      "completion_tokens": 79,
-      "cost_usd": 0.00019915,
-      "latency_ms": 3575,
+      "prompt_tokens": 448,
+      "completion_tokens": 73,
+      "cost_usd": 0.00019396,
+      "latency_ms": 5373,
       "cache_hit": false,
-      "answer": "This issue reports a bug where the Claude code tool occasionally fails with \"String to replace not found in file\" during updates. The most recent status is that a team member acknowledged the report, stating they are \"continuously working on improving the error rates\" and that it \"should be much better in the latest claude 4.5 models.\" The issue is now closed and locked.",
-      "answer_chars": 373,
+      "answer": "This issue reports a bug where \"String to replace not found in file\" errors occurred occasionally during file updates. The status is that the issue is closed, with a comment from a developer stating they are \"continuously working on improving the error rates for the edit tool\" and that it \"should be much better in the latest claude 4.5 models!\"",
+      "answer_chars": 346,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -625,12 +937,12 @@
       "run": 2,
       "class": "D_structured",
       "prompt_tokens": 445,
-      "completion_tokens": 49,
-      "cost_usd": 0.00018005,
-      "latency_ms": 2423,
+      "completion_tokens": 81,
+      "cost_usd": 0.00015688,
+      "latency_ms": 8410,
       "cache_hit": false,
-      "answer": "This issue reports a bug where the Claude code tool occasionally fails with \"String to replace not found in file.\" The status is closed, with a maintainer noting that \"we are continuously working on improving the error rates for the edit tool.\"",
-      "answer_chars": 244,
+      "answer": "This issue reports a bug where \"String to replace not found in file\" errors occurred occasionally during file updates in Claude CLI version 1.0.24 on Windows 11. The issue was closed, and a representative commented that \"we are continuously working on improving the error rates for the edit tool\" and noted it \"should be much better in the latest claude 4.5 models!\"",
+      "answer_chars": 366,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -647,12 +959,12 @@
       "run": 0,
       "class": "E_edge",
       "prompt_tokens": 1052,
-      "completion_tokens": 61,
-      "cost_usd": 0.00037355,
-      "latency_ms": 2983,
+      "completion_tokens": 87,
+      "cost_usd": 0.00028909,
+      "latency_ms": 8809,
       "cache_hit": false,
-      "answer": "This article describes using Simulink and Multibody libraries to model and control an inverted pendulum \"without a single formula or manual calculation.\" It explains setting up the physical model and then using automated PID controller tuning tools, stating \"modern tuning tools allow solving such tasks by pressing a couple of buttons.\"",
-      "answer_chars": 337,
+      "answer": "This article describes using Simulink and its Multibody library to model and control an inverted pendulum system without manual calculations. It details the process of automatically tuning PID controllers, stating that \"\u0421\u043e\u0432\u0440\u0435\u043c\u0435\u043d\u043d\u044b\u0435 \u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0430 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u043a\u043e\u044d\u0444\u0444\u0438\u0446\u0438\u0435\u043d\u0442\u043e\u0432 PID \u0440\u0435\u0433\u0443\u043b\u044f\u0442\u043e\u0440\u0430 \u043f\u043e\u0437\u0432\u043e\u043b\u044f\u044e\u0442 \u0440\u0435\u0448\u0430\u0442\u044c \u043f\u043e\u0434\u043e\u0431\u043d\u044b\u0435 \u0437\u0430\u0434\u0430\u0447\u0438 \u043d\u0430\u0436\u0430\u0442\u0438\u0435\u043c \u043f\u0430\u0440\u044b \u043a\u043d\u043e\u043f\u043e\u043a.\" The author concludes that the resulting model is stable and was developed without using a single formula.",
+      "answer_chars": 441,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -669,12 +981,12 @@
       "run": 1,
       "class": "E_edge",
       "prompt_tokens": 1052,
-      "completion_tokens": 84,
-      "cost_usd": 0.00028672,
-      "latency_ms": 6109,
+      "completion_tokens": 59,
+      "cost_usd": 0.00037165,
+      "latency_ms": 3302,
       "cache_hit": false,
-      "answer": "This article describes how to build and tune a PID controller for an inverted pendulum model in Simulink without using any mathematical formulas or manual calculations. It details using the Multibody library to construct the plant and Simulink's \"Tune\" button to automatically configure the PID controllers. The author concludes that \"Simulink and Multibody\" handled all the routine work, resulting in a stable model.",
-      "answer_chars": 417,
+      "answer": "This article describes using Simulink and Multibody libraries to model and control an inverted pendulum \"without a single formula or manual calculation.\" It explains using PID controllers tuned automatically within the software to stabilize the pendulum and cart position, concluding that \"the model turned out to be quite stable.\"",
+      "answer_chars": 331,
       "judge": {
         "overall": 5,
         "reached": true,
@@ -691,336 +1003,12 @@
       "run": 2,
       "class": "E_edge",
       "prompt_tokens": 1052,
-      "completion_tokens": 66,
-      "cost_usd": 0.00019114,
-      "latency_ms": 6980,
+      "completion_tokens": 90,
+      "cost_usd": 0.00029146,
+      "latency_ms": 7667,
       "cache_hit": false,
-      "answer": "This article describes using Simulink and its Multibody library to model and control an inverted pendulum system without manual calculations. It details the process of automatically tuning PID controllers, stating that \"modern means of tuning PID controller coefficients\" simplify the task. The author concludes by showcasing a stable model built entirely using these automated tools.",
-      "answer_chars": 384,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "wikipedia-rust",
-      "run": 0,
-      "class": "A_clean",
-      "prompt_tokens": 10975,
-      "completion_tokens": 50,
-      "cost_usd": 0.0034175,
-      "latency_ms": 946,
-      "cache_hit": false,
-      "answer": "Rust was originally designed by Graydon Hoare and first released on \"January 20, 2012\". It is known for its \"borrow checker, which tracks the object lifetime of references at compile time\" to enforce memory safety.",
-      "answer_chars": 214,
-      "judge": {
-        "overall": 4,
-        "reached": true,
-        "scores": [
-          5,
-          2,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "wikipedia-rust",
-      "run": 1,
-      "class": "A_clean",
-      "prompt_tokens": 10975,
-      "completion_tokens": 50,
-      "cost_usd": 0.0034175,
-      "latency_ms": 1268,
-      "cache_hit": false,
-      "answer": "Rust was originally designed by Graydon Hoare and first released on \"January 20, 2012\". It is known for its \"borrow checker, which tracks the object lifetime of references at compile time\" to enforce memory safety.",
-      "answer_chars": 214,
-      "judge": {
-        "overall": 4,
-        "reached": true,
-        "scores": [
-          5,
-          0,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "wikipedia-rust",
-      "run": 2,
-      "class": "A_clean",
-      "prompt_tokens": 10975,
-      "completion_tokens": 50,
-      "cost_usd": 0.00065486,
-      "latency_ms": 1163,
-      "cache_hit": false,
-      "answer": "Rust was originally designed by Graydon Hoare and first released on \"January 20, 2012\". It is known for its \"borrow checker, which tracks the object lifetime of references at compile time\" to enforce memory safety.",
-      "answer_chars": 214,
-      "judge": {
-        "overall": 3,
-        "reached": true,
-        "scores": [
-          5,
-          0,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "linear-marketing",
-      "run": 0,
-      "class": "C_spa",
-      "prompt_tokens": 366,
-      "completion_tokens": 43,
-      "cost_usd": 0.0002173,
-      "latency_ms": 958,
-      "cache_hit": false,
-      "answer": "This company sells a \"product development system for teams and agents.\"\n\nThe primary headline/value proposition is: \"A new species of product tool. Purpose-built for modern teams with AI workflows at its core.\"",
-      "answer_chars": 210,
-      "judge": {
-        "error": "first object substring is not valid JSON: Extra data: line 3 column 1 (char 306)"
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "linear-marketing",
-      "run": 1,
-      "class": "C_spa",
-      "prompt_tokens": 366,
-      "completion_tokens": 43,
-      "cost_usd": 0.0002173,
-      "latency_ms": 699,
-      "cache_hit": false,
-      "answer": "This company sells a \"product development system for teams and agents.\"\n\nThe primary headline/value proposition is: \"A new species of product tool. Purpose-built for modern teams with AI workflows at its core.\"",
-      "answer_chars": 210,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          4,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "linear-marketing",
-      "run": 2,
-      "class": "C_spa",
-      "prompt_tokens": 366,
-      "completion_tokens": 43,
-      "cost_usd": 0.0002173,
-      "latency_ms": 590,
-      "cache_hit": false,
-      "answer": "This company sells a \"product development system for teams and agents.\"\n\nThe primary headline/value proposition is: \"A new species of product tool. Purpose-built for modern teams with AI workflows at its core.\"",
-      "answer_chars": 210,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          4,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "vercel-blog",
-      "run": 0,
-      "class": "C_spa",
-      "prompt_tokens": 2736,
-      "completion_tokens": 51,
-      "cost_usd": 0.0009483,
-      "latency_ms": 695,
-      "cache_hit": false,
-      "answer": "Framework-defined infrastructure (FdI) is an evolution of IaC where \"the deployment environment automatically provisions infrastructure derived from the framework and the applications written in it.\" It parses source code to \"automatically generates the IaC configuration needed to run the software.\"",
-      "answer_chars": 300,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "vercel-blog",
-      "run": 1,
-      "class": "C_spa",
-      "prompt_tokens": 2736,
-      "completion_tokens": 51,
-      "cost_usd": 0.00039696,
-      "latency_ms": 1190,
-      "cache_hit": false,
-      "answer": "Framework-defined infrastructure (FdI) is an evolution of IaC where \"the deployment environment automatically provisions infrastructure derived from the framework and the applications written in it.\" It parses source code to \"automatically generates the IaC configuration needed to run the software.\"",
-      "answer_chars": 300,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "vercel-blog",
-      "run": 2,
-      "class": "C_spa",
-      "prompt_tokens": 2736,
-      "completion_tokens": 51,
-      "cost_usd": 0.00039696,
-      "latency_ms": 690,
-      "cache_hit": false,
-      "answer": "Framework-defined infrastructure (FdI) is an evolution of IaC where \"the deployment environment automatically provisions infrastructure derived from the framework and the applications written in it.\" It parses source code to \"automatically generates the IaC configuration needed to run the software.\"",
-      "answer_chars": 300,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "github-issue",
-      "run": 0,
-      "class": "D_structured",
-      "prompt_tokens": 485,
-      "completion_tokens": 116,
-      "cost_usd": 0.0004355,
-      "latency_ms": 1028,
-      "cache_hit": false,
-      "answer": "This issue, #2107, reports a bug where \"String to replace not found in file\" occasionally occurs when updating files using the IDEA Claude code plugin on Windows 11. The author, liaolunhui, uses Claude CLI version 1.0.24.\n\nThe most recent status is that the issue is \"closed\" and \"automatically locked.\" A comment from catherinewu indicates that improvements to the edit tool's error rates are ongoing and \"it should be much better in the latest claude 4.5 models!\"",
-      "answer_chars": 465,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "github-issue",
-      "run": 1,
-      "class": "D_structured",
-      "prompt_tokens": 485,
-      "completion_tokens": 116,
-      "cost_usd": 0.0004355,
-      "latency_ms": 1154,
-      "cache_hit": false,
-      "answer": "This issue, #2107, reports a bug where \"String to replace not found in file\" occasionally occurs when updating files using the IDEA Claude code plugin on Windows 11. The author, liaolunhui, uses Claude CLI version 1.0.24.\n\nThe most recent status is that the issue is \"closed\" and \"automatically locked.\" A comment from catherinewu indicates that improvements to the edit tool's error rates are ongoing and \"it should be much better in the latest claude 4.5 models!\"",
-      "answer_chars": 465,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "github-issue",
-      "run": 2,
-      "class": "D_structured",
-      "prompt_tokens": 485,
-      "completion_tokens": 116,
-      "cost_usd": 0.0004355,
-      "latency_ms": 1274,
-      "cache_hit": false,
-      "answer": "This issue, #2107, reports a bug where \"String to replace not found in file\" occasionally occurs when updating files using the IDEA Claude code plugin on Windows 11. The author, liaolunhui, uses Claude CLI version 1.0.24.\n\nThe most recent status is that the issue is \"closed\" and \"automatically locked.\" A comment from catherinewu indicates that improvements to the edit tool's error rates are ongoing and \"it should be much better in the latest claude 4.5 models!\"",
-      "answer_chars": 465,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "non-english",
-      "run": 0,
-      "class": "E_edge",
-      "prompt_tokens": 977,
-      "completion_tokens": 74,
-      "cost_usd": 0.0004781,
-      "latency_ms": 956,
-      "cache_hit": false,
-      "answer": "This article describes how to implement and tune a PID controller for an inverted pendulum in Simulink. It demonstrates building the plant model using the Multibody library and then configuring two PID controllers for pendulum stabilization and cart positioning, along with an additional controller for angular velocity. The author emphasizes that \"no formulas or manual calculations were used\" due to Simulink's automation.",
-      "answer_chars": 424,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "non-english",
-      "run": 1,
-      "class": "E_edge",
-      "prompt_tokens": 977,
-      "completion_tokens": 74,
-      "cost_usd": 0.0004781,
-      "latency_ms": 1100,
-      "cache_hit": false,
-      "answer": "This article describes how to implement and tune a PID controller for an inverted pendulum in Simulink. It demonstrates building the plant model using the Multibody library and then configuring two PID controllers for pendulum stabilization and cart positioning, along with an additional controller for angular velocity. The author emphasizes that \"no formulas or manual calculations were used\" due to Simulink's automation.",
-      "answer_chars": 424,
-      "judge": {
-        "overall": 5,
-        "reached": true,
-        "scores": [
-          5,
-          5,
-          5
-        ]
-      }
-    },
-    {
-      "model": "google/gemini-2.5-flash",
-      "slug": "non-english",
-      "run": 2,
-      "class": "E_edge",
-      "prompt_tokens": 977,
-      "completion_tokens": 74,
-      "cost_usd": 0.0004781,
-      "latency_ms": 1113,
-      "cache_hit": false,
-      "answer": "This article describes how to implement and tune a PID controller for an inverted pendulum in Simulink. It demonstrates building the plant model using the Multibody library and then configuring two PID controllers for pendulum stabilization and cart positioning, along with an additional controller for angular velocity. The author emphasizes that \"no formulas or manual calculations were used\" due to Simulink's automation.",
-      "answer_chars": 424,
+      "answer": "This article describes how to use Simulink and its Multibody library to model and control an inverted pendulum system without using any manual calculations or formulas. The author details assembling the plant model and then using Simulink's \"Tune\" feature to automatically configure PID controllers for both the pendulum's angle and the cart's position. The final model, which includes a swing-up mechanism and a disturbance, is shown to be stable and effective.",
+      "answer_chars": 462,
       "judge": {
         "overall": 5,
         "reached": true,

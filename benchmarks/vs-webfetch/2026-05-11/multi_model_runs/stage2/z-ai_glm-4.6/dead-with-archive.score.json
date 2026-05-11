@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    5
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "The page returned a 404 error and the answer correctly acknowledges this, providing no negotiation advice since no content was available.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039155850000000006,
+  "latency_ms": 10831,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 52
+  }
+}

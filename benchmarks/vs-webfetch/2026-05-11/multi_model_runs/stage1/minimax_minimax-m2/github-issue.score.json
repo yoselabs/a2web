@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately captures the reported bug, confirms the issue is closed, and cites a specific maintainer comment referencing Claude 4.5 improvements.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0373719,
+  "latency_ms": 13395,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 57
+  }
+}

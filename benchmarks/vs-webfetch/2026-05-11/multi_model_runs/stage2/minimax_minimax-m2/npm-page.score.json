@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    0,
+    0
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "Correctly identifies React as Facebook/Meta's UI library but provides no version number or weekly download count.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0413409,
+  "latency_ms": 10334,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 46
+  }
+}

@@ -1,0 +1,4 @@
+The package is **React**; the excerpt does not specify its current version or weekly download count.  
+
+“React is a JavaScript library for creating user interfaces.”  
+“The `react` package contains only the functionality necessary to define React components.”

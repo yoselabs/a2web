@@ -9,10 +9,10 @@
   "reached": true,
   "reasoning": "The answer correctly identifies Graydon Hoare as the creator, 2006 as the year, Mozilla as the company, and is written entirely in Chinese.",
   "model": "claude-sonnet-4-6",
-  "cost_usd": 0.039174600000000004,
-  "latency_ms": 10470,
+  "cost_usd": 0.039665849999999996,
+  "latency_ms": 10927,
   "raw": {
     "prompt_tokens": 3,
-    "completion_tokens": 64
+    "completion_tokens": 62
   }
 }

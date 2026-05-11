@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a product development/project management platform for software teams, captures the exact headline and supporting tagline from the landing page, and contains substantive page content rather than navigation or cookie text.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039242099999999995,
+  "latency_ms": 11047,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 68
+  }
+}

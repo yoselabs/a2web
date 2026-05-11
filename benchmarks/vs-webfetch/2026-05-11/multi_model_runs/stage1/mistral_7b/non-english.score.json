@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific English summary covering the PID controller, inverted pendulum, Simulink/Multibody libraries, and key implementation details from the article body.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0413259,
+  "latency_ms": 10941,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

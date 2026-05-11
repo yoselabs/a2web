@@ -1,8 +1,8 @@
 {
   "model": "deepseek/deepseek-chat-v3.1",
-  "prompt_tokens": 258,
-  "completion_tokens": 16,
-  "cost_usd": 8.566e-05,
-  "latency_ms": 2546,
+  "prompt_tokens": 256,
+  "completion_tokens": 17,
+  "cost_usd": 9.244e-05,
+  "latency_ms": 1800,
   "cache_hit": false
 }

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, accurate, English summary of a Simulink PID controller tutorial for an inverted pendulum, correctly identifying the Multibody library, dual control loops, and automated tuning as specific concepts from the article body.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03763815,
+  "latency_ms": 15331,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 78
+  }
+}

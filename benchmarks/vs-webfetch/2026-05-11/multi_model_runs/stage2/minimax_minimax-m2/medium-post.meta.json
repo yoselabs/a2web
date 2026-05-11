@@ -1,0 +1,9 @@
+{
+  "model": "minimax/minimax-m2",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 460,
+  "completion_tokens": 1024,
+  "cost_usd": 0.00116178,
+  "latency_ms": 10416,
+  "cache_hit": false
+}

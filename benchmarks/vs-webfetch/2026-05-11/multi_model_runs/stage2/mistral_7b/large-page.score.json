@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    3
+  ],
+  "overall": 1,
+  "reached": true,
+  "reasoning": "The answer only describes the LWN footer/copyright boilerplate and fails to identify any actual article topic or technical content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0411084,
+  "latency_ms": 7963,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 51
+  }
+}
