@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from .errors import LLMNotAvailable
 from .extractor import ExtractionResult, Extractor, ModelSpec
+from .judge import Judge, JudgeParseError, JudgeVerdict
 from .prompts import (
     JUDGE_V1,
     TERSE_V1,
@@ -33,6 +34,9 @@ __all__ = [
     "WEBFETCH_DEFAULT_V1",
     "ExtractionResult",
     "Extractor",
+    "Judge",
+    "JudgeParseError",
+    "JudgeVerdict",
     "LLMNotAvailable",
     "ModelSpec",
     "PromptTemplate",
