@@ -106,6 +106,13 @@ class AppSettings(BaseSettings):
     browser_idle_timeout_s: int = 300
     browser_page_budget_s: int = 30
 
+    # v0.3: Twitter / X handler via Nitter rotation. Empty list = handler
+    # effectively disabled (`matches` returns False) so the orchestrator
+    # falls through to raw + browser tiers as before. Public Nitter
+    # instances rotate/die constantly — keep this empty until the operator
+    # commits to a maintained list.
+    nitter_instances: list[str] = Field(default_factory=list)
+
     @classmethod
     def settings_customise_sources(
         cls,

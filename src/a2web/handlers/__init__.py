@@ -14,6 +14,7 @@ from .arxiv import ArxivHandler
 from .github import GitHubHandler
 from .hn import HNHandler
 from .reddit import RedditHandler
+from .twitter import TwitterHandler
 from .wikipedia import WikipediaHandler
 
 if TYPE_CHECKING:
@@ -38,6 +39,7 @@ _HANDLERS: tuple[Handler, ...] = (
     ArxivHandler(),
     WikipediaHandler(),
     GitHubHandler(),
+    TwitterHandler(),
 )
 
 
@@ -55,6 +57,7 @@ __all__ = [
     "HNHandler",
     "Handler",
     "RedditHandler",
+    "TwitterHandler",
     "WikipediaHandler",
     "match_handler",
 ]

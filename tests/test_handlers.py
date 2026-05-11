@@ -9,7 +9,7 @@ import httpx
 import pytest
 from purgatory import AsyncCircuitBreakerFactory
 
-from a2web.handlers import HNHandler, RedditHandler, match_handler
+from a2web.handlers import HNHandler, RedditHandler, TwitterHandler, match_handler
 from a2web.handlers.hn import _render_item
 from a2web.handlers.reddit import _fetch_old_reddit, _render_thread, _to_old_reddit_url
 from a2web.log.writer import LogWriter
@@ -288,3 +288,148 @@ async def test_reddit_handler_skips_fallback_when_json_succeeds(
     # Single request — old.reddit not touched.
     assert len(calls) == 1
     assert ".json" in calls[0]
+
+
+# --------------------------------------------------------------------- #
+# v0.3 Twitter / X handler via Nitter rotation
+# --------------------------------------------------------------------- #
+
+
+def _make_state_with_nitter(*instances: str) -> AppState:
+    s = AppSettings(nitter_instances=list(instances))
+    return AppState(
+        settings=s,
+        breakers=AsyncCircuitBreakerFactory(default_threshold=2, default_ttl=30.0),
+        log_writer=LogWriter(disabled=True),
+        proxy_pool=ProxyPool(settings=s),
+    )
+
+
+def test_twitter_handler_matches_x_status_urls() -> None:
+    h = TwitterHandler()
+    assert h.matches("https://x.com/karpathy/status/1759031023815639423")
+    assert h.matches("https://www.x.com/karpathy/status/1759031023815639423")
+    assert h.matches("https://twitter.com/karpathy/status/1759031023815639423")
+    assert h.matches("https://twitter.com/karpathy/status/1759031023815639423/photo/1")
+
+
+def test_twitter_handler_does_not_match_profile_or_home() -> None:
+    h = TwitterHandler()
+    assert not h.matches("https://x.com/karpathy")
+    assert not h.matches("https://x.com/karpathy/")
+    assert not h.matches("https://x.com/home")
+    assert not h.matches("https://x.com/")
+
+
+def test_twitter_handler_does_not_match_other_hosts() -> None:
+    h = TwitterHandler()
+    assert not h.matches("https://example.com/karpathy/status/123")
+    assert not h.matches("https://nitter.net/karpathy/status/123")
+
+
+@pytest.mark.asyncio
+async def test_twitter_handler_no_match_when_no_instances_configured() -> None:
+    """Empty nitter_instances → fetch returns no_match=True silently."""
+    state = _make_state_with_nitter()  # no instances
+    result = await TwitterHandler().fetch(
+        "https://x.com/karpathy/status/1759031023815639423", state=state
+    )
+    assert result.no_match is True
+
+
+@pytest.mark.asyncio
+async def test_twitter_handler_returns_content_from_first_working_instance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One configured Nitter instance returning 200 → handler extracts content."""
+    tweet_html = (
+        "<html><body><article>"
+        "<h1>karpathy</h1>"
+        "<div class='tweet-content'>" + ("substantive tweet body. " * 60) + "</div>"
+        "</article></body></html>"
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "nitter.example.com" in str(request.url)
+        return httpx.Response(200, text=tweet_html)
+
+    transport = httpx.MockTransport(handler)
+    real_cls = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+
+    state = _make_state_with_nitter("https://nitter.example.com")
+    result = await TwitterHandler().fetch(
+        "https://x.com/karpathy/status/1759031023815639423", state=state
+    )
+
+    assert result.verdict == Verdict.ok
+    assert result.pre_rendered is not None
+    assert "substantive" in result.pre_rendered.content_md
+
+
+@pytest.mark.asyncio
+async def test_twitter_handler_rotates_past_failing_instance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """First instance times out / 5xx → handler tries the next one."""
+    tweet_html = (
+        "<html><body><article><div>" + ("recovered body. " * 60) + "</div></article></body></html>"
+    )
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        seen.append(url)
+        # First instance always fails (5xx), second succeeds.
+        if "fail.example.com" in url:
+            return httpx.Response(503)
+        return httpx.Response(200, text=tweet_html)
+
+    transport = httpx.MockTransport(handler)
+    real_cls = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+
+    # Disable shuffle for deterministic order — patch random.shuffle to no-op.
+    monkeypatch.setattr("a2web.handlers.twitter.random.shuffle", lambda _: None)
+
+    state = _make_state_with_nitter(
+        "https://fail.example.com", "https://ok.example.com"
+    )
+    result = await TwitterHandler().fetch(
+        "https://x.com/karpathy/status/123", state=state
+    )
+
+    assert result.verdict == Verdict.ok
+    assert result.pre_rendered is not None
+    # Both instances were probed in order.
+    assert any("fail.example.com" in u for u in seen)
+    assert any("ok.example.com" in u for u in seen)
+
+
+@pytest.mark.asyncio
+async def test_twitter_handler_returns_empty_when_all_instances_fail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """All instances 5xx → handler returns the last verdict (connection_error)."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503)
+
+    transport = httpx.MockTransport(handler)
+    real_cls = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+
+    state = _make_state_with_nitter("https://a.example.com", "https://b.example.com")
+    result = await TwitterHandler().fetch(
+        "https://x.com/karpathy/status/123", state=state
+    )
+
+    assert result.verdict == Verdict.connection_error
+    assert result.pre_rendered is None
+
+
+@pytest.mark.asyncio
+async def test_match_handler_includes_twitter() -> None:
+    """The dispatcher returns TwitterHandler for x.com status URLs."""
+    handler = match_handler("https://x.com/karpathy/status/1759031023815639423")
+    assert isinstance(handler, TwitterHandler)

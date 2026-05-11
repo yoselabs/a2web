@@ -8,9 +8,9 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased] - v0.3 engine improvements (partial)
 
-Driven by `benchmarks/vs-webfetch/2026-05-11/` findings. Four of the seven
-v0.3 sections shipped; remaining sections (Twitter/Nitter handler, v0.4
-prep, verification re-run) tracked in `openspec/changes/v0.3-engine-improvements/`.
+Driven by `benchmarks/vs-webfetch/2026-05-11/` findings. Five of the seven
+v0.3 sections shipped; remaining sections (v0.4 prep, verification re-run)
+tracked in `openspec/changes/v0.3-engine-improvements/`.
 
 ### Changed (response envelope — opt-in for prior defaults)
 
@@ -32,6 +32,22 @@ prep, verification re-run) tracked in `openspec/changes/v0.3-engine-improvements
 - **Net result on the benchmark corpus: 72% fewer tokens per fetch by
   default** (127k → 35.5k across 20 URLs; gh-trending alone dropped from
   27,167 to 1,011 tokens).
+
+### Added
+
+- **Twitter / X handler via Nitter rotation.** New site handler matching
+  `x.com` / `twitter.com` status URLs. Reads `nitter_instances` from
+  `AppSettings` (env `A2WEB_NITTER_INSTANCES`, comma-separated; also from
+  YAML). Empty list = handler effectively disabled (matches the URL but
+  `fetch` returns `no_match=True` so the orchestrator falls through to
+  raw + browser tiers without errors). When configured, the handler
+  shuffles the instance list per fetch and probes in order, with per-
+  instance circuit breakers reusing the existing `purgatory` infra.
+  First HTTP 200 with extractable content wins; all-fail → returns the
+  last verdict (typically `connection_error`) for the orchestrator to
+  escalate. Closes the X auth-wall gap that the gate fix exposed — the
+  browser tier now dispatches on X status URLs but hits the login wall;
+  Nitter sidesteps both problems.
 
 ### Fixed
 
