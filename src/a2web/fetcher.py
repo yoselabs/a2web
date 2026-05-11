@@ -674,14 +674,27 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState, ctx: a2
             fc.final_url = outcome.final_url
             fc.tier_used = "archive"
             fc.pre_rendered_payload = outcome.pre_rendered
-            regate = evaluate(content_md=fc.content_md, raw_html=fc.content_md, content_type=None)
-            if regate.verdict == Verdict.ok:
-                fc.final_verdict = Verdict.ok
-                fc.gate_verdict = Verdict.ok
-            else:
-                fc.final_verdict = regate.verdict
-                fc.gate_verdict = regate.verdict
-                fc.gate_subsystem = regate.subsystem
+            _regate_after_escalation(fc)
+
+
+def _regate_after_escalation(fc: FetchContext) -> None:
+    """Re-evaluate the gate on freshly-installed escalation content.
+
+    Used after both browser and gate-path archive installs. Mutates
+    `fc.gate_verdict` / `fc.final_verdict` / `fc.gate_subsystem`. The
+    pre-rendered markdown plays both the `content_md` and `raw_html`
+    roles — the underlying body is no longer the discriminator at this
+    point in the pipeline.
+    """
+    regate = evaluate(content_md=fc.content_md, raw_html=fc.content_md, content_type=None)
+    if regate.verdict == Verdict.ok:
+        fc.final_verdict = Verdict.ok
+        fc.gate_verdict = Verdict.ok
+        fc.gate_subsystem = None
+    else:
+        fc.final_verdict = regate.verdict
+        fc.gate_verdict = regate.verdict
+        fc.gate_subsystem = regate.subsystem
 
 
 async def _escalate_browser(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext) -> None:
@@ -725,15 +738,7 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, ctx: a2kit.Too
         fc.tier_used = "browser"
         fc.pre_rendered_payload = browser_pre
         fc.status_code = browser_result.status_code
-        regate = evaluate(content_md=fc.content_md, raw_html=fc.content_md, content_type=None)
-        if regate.verdict == Verdict.ok:
-            fc.final_verdict = Verdict.ok
-            fc.gate_verdict = Verdict.ok
-            fc.gate_subsystem = None
-        else:
-            fc.final_verdict = regate.verdict
-            fc.gate_verdict = regate.verdict
-            fc.gate_subsystem = regate.subsystem
+        _regate_after_escalation(fc)
     elif browser_result.operator_hint is not None:
         fc.operator_hints.append(browser_result.operator_hint)
 
