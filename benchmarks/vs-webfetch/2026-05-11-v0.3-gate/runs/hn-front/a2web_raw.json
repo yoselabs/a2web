@@ -1,0 +1,848 @@
+{
+  "url": "https://news.ycombinator.com/",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "high",
+  "title": "Hacker News",
+  "byline": null,
+  "published": "2026-05-11",
+  "started_at": "2026-05-11T18:03:50.480107Z",
+  "total_ms": 2314,
+  "tokens": {
+    "full": 4076,
+    "fit": 0
+  },
+  "cache": "bypass",
+  "narrative": "raw → ok (2.3s).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=2314",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "news.ycombinator.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 834,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 834,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 1478,
+      "extra": {
+        "chars": 4076
+      }
+    },
+    {
+      "t_ms": 2312,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 2,
+      "extra": {}
+    }
+  ],
+  "meta": {},
+  "links": [
+    {
+      "anchor": "Hacker News",
+      "href": "news"
+    },
+    {
+      "anchor": "new",
+      "href": "newest"
+    },
+    {
+      "anchor": "past",
+      "href": "front"
+    },
+    {
+      "anchor": "comments",
+      "href": "newcomments"
+    },
+    {
+      "anchor": "ask",
+      "href": "ask"
+    },
+    {
+      "anchor": "show",
+      "href": "show"
+    },
+    {
+      "anchor": "jobs",
+      "href": "jobs"
+    },
+    {
+      "anchor": "submit",
+      "href": "submit"
+    },
+    {
+      "anchor": "login",
+      "href": "login?goto=news"
+    },
+    {
+      "anchor": "CUDA-oxide: Nvidia's official Rust to CUDA compiler",
+      "href": "https://nvlabs.github.io/cuda-oxide/index.html"
+    },
+    {
+      "anchor": "nvlabs.github.io",
+      "href": "from?site=nvlabs.github.io"
+    },
+    {
+      "anchor": "adamnemecek",
+      "href": "user?id=adamnemecek"
+    },
+    {
+      "anchor": "2 hours ago",
+      "href": "item?id=48096692"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48096692&goto=news"
+    },
+    {
+      "anchor": "34 comments",
+      "href": "item?id=48096692"
+    },
+    {
+      "anchor": "Nullsoft, 1997-2004 AOL kills off the last maverick tech company (2004)",
+      "href": "https://slate.com/technology/2004/11/the-death-of-the-last-maverick-tech-company.html"
+    },
+    {
+      "anchor": "slate.com",
+      "href": "from?site=slate.com"
+    },
+    {
+      "anchor": "downbad_",
+      "href": "user?id=downbad_"
+    },
+    {
+      "anchor": "3 hours ago",
+      "href": "item?id=48060077"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48060077&goto=news"
+    },
+    {
+      "anchor": "23 comments",
+      "href": "item?id=48060077"
+    },
+    {
+      "anchor": "Ratty – A terminal emulator with inline 3D graphics",
+      "href": "https://ratty-term.org/"
+    },
+    {
+      "anchor": "ratty-term.org",
+      "href": "from?site=ratty-term.org"
+    },
+    {
+      "anchor": "orhunp_",
+      "href": "user?id=orhunp_"
+    },
+    {
+      "anchor": "7 hours ago",
+      "href": "item?id=48093100"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48093100&goto=news"
+    },
+    {
+      "anchor": "166 comments",
+      "href": "item?id=48093100"
+    },
+    {
+      "anchor": "Training an LLM in Swift, Part 1: Taking matrix mult from Gflop/s to Tflop/s",
+      "href": "https://www.cocoawithlove.com/blog/matrix-multiplications-swift.html"
+    },
+    {
+      "anchor": "cocoawithlove.com",
+      "href": "from?site=cocoawithlove.com"
+    },
+    {
+      "anchor": "zdw",
+      "href": "user?id=zdw"
+    },
+    {
+      "anchor": "4 hours ago",
+      "href": "item?id=48085685"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48085685&goto=news"
+    },
+    {
+      "anchor": "8 comments",
+      "href": "item?id=48085685"
+    },
+    {
+      "anchor": "Show HN: TikTok but for Scientific Papers",
+      "href": "https://andreaturchet.github.io/website/index.html"
+    },
+    {
+      "anchor": "andreaturchet.github.io",
+      "href": "from?site=andreaturchet.github.io"
+    },
+    {
+      "anchor": "ciwrl",
+      "href": "user?id=ciwrl"
+    },
+    {
+      "anchor": "1 hour ago",
+      "href": "item?id=48096842"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48096842&goto=news"
+    },
+    {
+      "anchor": "21 comments",
+      "href": "item?id=48096842"
+    },
+    {
+      "anchor": "Gmail registration now requires scanning a QR code and sending a text message",
+      "href": "https://discuss.privacyguides.net/t/google-account-registration-now-requires-sending-an-sms-via-phone-instead-of-receiving-an-sms/36082"
+    },
+    {
+      "anchor": "privacyguides.net",
+      "href": "from?site=privacyguides.net"
+    },
+    {
+      "anchor": "negura",
+      "href": "user?id=negura"
+    },
+    {
+      "anchor": "10 hours ago",
+      "href": "item?id=48092028"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48092028&goto=news"
+    },
+    {
+      "anchor": "201 comments",
+      "href": "item?id=48092028"
+    },
+    {
+      "anchor": "Bild AI (YC W25) Is Hiring Founding Product Engineers",
+      "href": "https://bild.ai/jobs"
+    },
+    {
+      "anchor": "bild.ai",
+      "href": "from?site=bild.ai"
+    },
+    {
+      "anchor": "20 minutes ago",
+      "href": "item?id=48098122"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48098122&goto=news"
+    },
+    {
+      "anchor": "AMÁLIA and the future of European Portuguese LLMs",
+      "href": "https://duarteocarmo.com/blog/amalia-and-the-future-of-european-portuguese-llms"
+    },
+    {
+      "anchor": "duarteocarmo.com",
+      "href": "from?site=duarteocarmo.com"
+    },
+    {
+      "anchor": "johnbarron",
+      "href": "user?id=johnbarron"
+    },
+    {
+      "anchor": "4 hours ago",
+      "href": "item?id=48065429"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48065429&goto=news"
+    },
+    {
+      "anchor": "27 comments",
+      "href": "item?id=48065429"
+    },
+    {
+      "anchor": "Interfaze: A new model architecture built for high accuracy at scale",
+      "href": "https://interfaze.ai/blog/interfaze-a-new-model-architecture-built-for-high-accuracy-at-scale"
+    },
+    {
+      "anchor": "interfaze.ai",
+      "href": "from?site=interfaze.ai"
+    },
+    {
+      "anchor": "yoeven",
+      "href": "user?id=yoeven"
+    },
+    {
+      "anchor": "1 hour ago",
+      "href": "item?id=48097078"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48097078&goto=news"
+    },
+    {
+      "anchor": "3 comments",
+      "href": "item?id=48097078"
+    },
+    {
+      "anchor": "Venom and Hot Peppers Offer a Key to Killing Resistant Bacteria",
+      "href": "https://www.wired.com/story/mexican-science-transforms-scorpion-venom-and-habanero-chile-into-antibiotics-against-resistant-bacteria/"
+    },
+    {
+      "anchor": "wired.com",
+      "href": "from?site=wired.com"
+    },
+    {
+      "anchor": "littlexsparkee",
+      "href": "user?id=littlexsparkee"
+    },
+    {
+      "anchor": "8 hours ago",
+      "href": "item?id=48070571"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48070571&goto=news"
+    },
+    {
+      "anchor": "30 comments",
+      "href": "item?id=48070571"
+    },
+    {
+      "anchor": "I'm going back to writing code by hand",
+      "href": "https://blog.k10s.dev/im-going-back-to-writing-code-by-hand/"
+    },
+    {
+      "anchor": "k10s.dev",
+      "href": "from?site=k10s.dev"
+    },
+    {
+      "anchor": "dropbox_miner",
+      "href": "user?id=dropbox_miner"
+    },
+    {
+      "anchor": "16 hours ago",
+      "href": "item?id=48090029"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48090029&goto=news"
+    },
+    {
+      "anchor": "457 comments",
+      "href": "item?id=48090029"
+    },
+    {
+      "anchor": "Should you leave red herrings about yourself online?",
+      "href": "https://blog.alcazarsec.com/posts/should-you-leave-red-herrings-about-yourself-online"
+    },
+    {
+      "anchor": "alcazarsec.com",
+      "href": "from?site=alcazarsec.com"
+    },
+    {
+      "anchor": "alcazar",
+      "href": "user?id=alcazar"
+    },
+    {
+      "anchor": "2 hours ago",
+      "href": "item?id=48096471"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48096471&goto=news"
+    },
+    {
+      "anchor": "13 comments",
+      "href": "item?id=48096471"
+    },
+    {
+      "anchor": "Building a web server in aarch64 assembly to give my life (a lack of) meaning",
+      "href": "https://imtomt.github.io/ymawky/"
+    },
+    {
+      "anchor": "imtomt.github.io",
+      "href": "from?site=imtomt.github.io"
+    },
+    {
+      "anchor": "theanonymousone",
+      "href": "user?id=theanonymousone"
+    },
+    {
+      "anchor": "5 hours ago",
+      "href": "item?id=48062977"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48062977&goto=news"
+    },
+    {
+      "anchor": "19 comments",
+      "href": "item?id=48062977"
+    },
+    {
+      "anchor": "Holding Community Space",
+      "href": "https://supernuclear.substack.com/p/building-a-space-people-never-want"
+    },
+    {
+      "anchor": "supernuclear.substack.com",
+      "href": "from?site=supernuclear.substack.com"
+    },
+    {
+      "anchor": "surprisetalk",
+      "href": "user?id=surprisetalk"
+    },
+    {
+      "anchor": "1 hour ago",
+      "href": "item?id=48062646"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48062646&goto=news"
+    },
+    {
+      "anchor": "3 comments",
+      "href": "item?id=48062646"
+    },
+    {
+      "anchor": "Software engineering may no longer be a lifetime career",
+      "href": "https://www.seangoedecke.com/software-engineering-may-no-longer-be-a-lifetime-career/"
+    },
+    {
+      "anchor": "seangoedecke.com",
+      "href": "from?site=seangoedecke.com"
+    },
+    {
+      "anchor": "movis",
+      "href": "user?id=movis"
+    },
+    {
+      "anchor": "3 hours ago",
+      "href": "item?id=48095550"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48095550&goto=news"
+    },
+    {
+      "anchor": "239 comments",
+      "href": "item?id=48095550"
+    },
+    {
+      "anchor": "Running local models on an M4 with 24GB memory",
+      "href": "https://jola.dev/posts/running-local-models-on-m4"
+    },
+    {
+      "anchor": "jola.dev",
+      "href": "from?site=jola.dev"
+    },
+    {
+      "anchor": "shintoist",
+      "href": "user?id=shintoist"
+    },
+    {
+      "anchor": "18 hours ago",
+      "href": "item?id=48089091"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48089091&goto=news"
+    },
+    {
+      "anchor": "148 comments",
+      "href": "item?id=48089091"
+    },
+    {
+      "anchor": "Guitar tuner that uses phone accelerometer",
+      "href": "https://tautme.github.io/phone-sensors/accel-tuner.html"
+    },
+    {
+      "anchor": "tautme.github.io",
+      "href": "from?site=tautme.github.io"
+    },
+    {
+      "anchor": "adm4",
+      "href": "user?id=adm4"
+    },
+    {
+      "anchor": "11 hours ago",
+      "href": "item?id=48058260"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48058260&goto=news"
+    },
+    {
+      "anchor": "67 comments",
+      "href": "item?id=48058260"
+    },
+    {
+      "anchor": "The greatest shot in television: James Burke had one chance to nail this scene (2024)",
+      "href": "https://www.openculture.com/2024/10/the-greatest-shot-in-television.html"
+    },
+    {
+      "anchor": "openculture.com",
+      "href": "from?site=openculture.com"
+    },
+    {
+      "anchor": "susam",
+      "href": "user?id=susam"
+    },
+    {
+      "anchor": "15 hours ago",
+      "href": "item?id=48090521"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48090521&goto=news"
+    },
+    {
+      "anchor": "173 comments",
+      "href": "item?id=48090521"
+    },
+    {
+      "anchor": "Hardware Attestation as Monopoly Enabler",
+      "href": "https://grapheneos.social/@GrapheneOS/116550899908879585"
+    },
+    {
+      "anchor": "grapheneos.social",
+      "href": "from?site=grapheneos.social"
+    },
+    {
+      "anchor": "ChuckMcM",
+      "href": "user?id=ChuckMcM"
+    },
+    {
+      "anchor": "1 day ago",
+      "href": "item?id=48086190"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48086190&goto=news"
+    },
+    {
+      "anchor": "672 comments",
+      "href": "item?id=48086190"
+    },
+    {
+      "anchor": "Students Boo Commencement Speaker After She Calls AI Next Industrial Revolution",
+      "href": "https://www.404media.co/ucf-ai-commencement-speaker-booed/"
+    },
+    {
+      "anchor": "404media.co",
+      "href": "from?site=404media.co"
+    },
+    {
+      "anchor": "cdrnsf",
+      "href": "user?id=cdrnsf"
+    },
+    {
+      "anchor": "2 hours ago",
+      "href": "item?id=48096674"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48096674&goto=news"
+    },
+    {
+      "anchor": "13 comments",
+      "href": "item?id=48096674"
+    },
+    {
+      "anchor": "An AI coding agent, used to write code, needs to reduce your maintenance costs",
+      "href": "https://www.jamesshore.com/v2/blog/2026/you-need-ai-that-reduces-your-maintenance-costs"
+    },
+    {
+      "anchor": "jamesshore.com",
+      "href": "from?site=jamesshore.com"
+    },
+    {
+      "anchor": "cratermoon",
+      "href": "user?id=cratermoon"
+    },
+    {
+      "anchor": "18 hours ago",
+      "href": "item?id=48089289"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48089289&goto=news"
+    },
+    {
+      "anchor": "90 comments",
+      "href": "item?id=48089289"
+    },
+    {
+      "anchor": "Microsoft Israel chief leaves amid ethical controversy",
+      "href": "https://en.globes.co.il/en/article-microsoft-israel-chief-leaves-amid-ethical-controversy-1001542602"
+    },
+    {
+      "anchor": "globes.co.il",
+      "href": "from?site=globes.co.il"
+    },
+    {
+      "anchor": "bhouston",
+      "href": "user?id=bhouston"
+    },
+    {
+      "anchor": "45 minutes ago",
+      "href": "item?id=48097796"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48097796&goto=news"
+    },
+    {
+      "anchor": "1 comment",
+      "href": "item?id=48097796"
+    },
+    {
+      "anchor": "Why we lose our friends as we age (2023)",
+      "href": "https://www.theatlantic.com/newsletters/archive/2023/02/friendship-aging/673026/"
+    },
+    {
+      "anchor": "theatlantic.com",
+      "href": "from?site=theatlantic.com"
+    },
+    {
+      "anchor": "paulpauper",
+      "href": "user?id=paulpauper"
+    },
+    {
+      "anchor": "1 hour ago",
+      "href": "item?id=48096870"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48096870&goto=news"
+    },
+    {
+      "anchor": "33 comments",
+      "href": "item?id=48096870"
+    },
+    {
+      "anchor": "Local AI needs to be the norm",
+      "href": "https://unix.foo/posts/local-ai-needs-to-be-norm/"
+    },
+    {
+      "anchor": "unix.foo",
+      "href": "from?site=unix.foo"
+    },
+    {
+      "anchor": "cylo",
+      "href": "user?id=cylo"
+    },
+    {
+      "anchor": "1 day ago",
+      "href": "item?id=48085821"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48085821&goto=news"
+    },
+    {
+      "anchor": "648 comments",
+      "href": "item?id=48085821"
+    },
+    {
+      "anchor": "Obsidian plugin was abused to deploy a remote access trojan",
+      "href": "https://cyber.netsecops.io/articles/obsidian-plugin-abused-in-campaign-to-deploy-phantom-pulse-rat/"
+    },
+    {
+      "anchor": "netsecops.io",
+      "href": "from?site=netsecops.io"
+    },
+    {
+      "anchor": "cmbailey",
+      "href": "user?id=cmbailey"
+    },
+    {
+      "anchor": "20 hours ago",
+      "href": "item?id=48088576"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48088576&goto=news"
+    },
+    {
+      "anchor": "190 comments",
+      "href": "item?id=48088576"
+    },
+    {
+      "anchor": "Scaffold a 1990s Geocities-themed static website",
+      "href": "https://pypi.org/project/create-geocities-app/"
+    },
+    {
+      "anchor": "pypi.org",
+      "href": "from?site=pypi.org"
+    },
+    {
+      "anchor": "whatsupdog",
+      "href": "user?id=whatsupdog"
+    },
+    {
+      "anchor": "4 hours ago",
+      "href": "item?id=48094521"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48094521&goto=news"
+    },
+    {
+      "anchor": "15 comments",
+      "href": "item?id=48094521"
+    },
+    {
+      "anchor": "Mythos Finds a Curl Vulnerability",
+      "href": "https://daniel.haxx.se/blog/2026/05/11/mythos-finds-a-curl-vulnerability/"
+    },
+    {
+      "anchor": "haxx.se",
+      "href": "from?site=haxx.se"
+    },
+    {
+      "anchor": "TangerineDream",
+      "href": "user?id=TangerineDream"
+    },
+    {
+      "anchor": "11 hours ago",
+      "href": "item?id=48091737"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48091737&goto=news"
+    },
+    {
+      "anchor": "213 comments",
+      "href": "item?id=48091737"
+    },
+    {
+      "anchor": "Bliss (Photograph)",
+      "href": "https://en.wikipedia.org/wiki/Bliss_(photograph)"
+    },
+    {
+      "anchor": "wikipedia.org",
+      "href": "from?site=wikipedia.org"
+    },
+    {
+      "anchor": "cainxinth",
+      "href": "user?id=cainxinth"
+    },
+    {
+      "anchor": "9 hours ago",
+      "href": "item?id=48057790"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48057790&goto=news"
+    },
+    {
+      "anchor": "39 comments",
+      "href": "item?id=48057790"
+    },
+    {
+      "anchor": "Classification of amino acids",
+      "href": "https://www.khanacademy.org/test-prep/mcat/chemical-processes/amino-acids-peptides-proteins-5d/v/classification-amino-acids"
+    },
+    {
+      "anchor": "khanacademy.org",
+      "href": "from?site=khanacademy.org"
+    },
+    {
+      "anchor": "kamaraju",
+      "href": "user?id=kamaraju"
+    },
+    {
+      "anchor": "7 hours ago",
+      "href": "item?id=48068072"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48068072&goto=news"
+    },
+    {
+      "anchor": "2 comments",
+      "href": "item?id=48068072"
+    },
+    {
+      "anchor": "A.I. note takers are making lawyers nervous",
+      "href": "https://www.nytimes.com/2026/05/09/business/dealbook/ai-notetakers-legal-risk.html"
+    },
+    {
+      "anchor": "nytimes.com",
+      "href": "from?site=nytimes.com"
+    },
+    {
+      "anchor": "JumpCrisscross",
+      "href": "user?id=JumpCrisscross"
+    },
+    {
+      "anchor": "7 hours ago",
+      "href": "item?id=48093043"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48093043&goto=news"
+    },
+    {
+      "anchor": "121 comments",
+      "href": "item?id=48093043"
+    },
+    {
+      "anchor": "More",
+      "href": "?p=2"
+    },
+    {
+      "anchor": "Guidelines",
+      "href": "newsguidelines.html"
+    },
+    {
+      "anchor": "FAQ",
+      "href": "newsfaq.html"
+    },
+    {
+      "anchor": "Lists",
+      "href": "lists"
+    },
+    {
+      "anchor": "API",
+      "href": "https://github.com/HackerNews/API"
+    },
+    {
+      "anchor": "Security",
+      "href": "security.html"
+    },
+    {
+      "anchor": "Legal",
+      "href": "https://www.ycombinator.com/legal/"
+    },
+    {
+      "anchor": "Apply to YC",
+      "href": "https://www.ycombinator.com/apply/"
+    },
+    {
+      "anchor": "Contact",
+      "href": "mailto:hn@ycombinator.com"
+    }
+  ],
+  "headings": [],
+  "content_md": "Hacker News\nnew\n|\npast\n|\ncomments\n|\nask\n|\nshow\n|\njobs\n|\nsubmit\nlogin\n1.\nCUDA-oxide: Nvidia's official Rust to CUDA compiler\n(\nnvlabs.github.io\n)\n136 points\nby\nadamnemecek\n2 hours ago\n|\nhide\n|\n34 comments\n2.\nNullsoft, 1997-2004 AOL kills off the last maverick tech company (2004)\n(\nslate.com\n)\n75 points\nby\ndownbad_\n3 hours ago\n|\nhide\n|\n23 comments\n3.\nRatty – A terminal emulator with inline 3D graphics\n(\nratty-term.org\n)\n486 points\nby\norhunp_\n7 hours ago\n|\nhide\n|\n166 comments\n4.\nTraining an LLM in Swift, Part 1: Taking matrix mult from Gflop/s to Tflop/s\n(\ncocoawithlove.com\n)\n143 points\nby\nzdw\n4 hours ago\n|\nhide\n|\n8 comments\n5.\nShow HN: TikTok but for Scientific Papers\n(\nandreaturchet.github.io\n)\n29 points\nby\nciwrl\n1 hour ago\n|\nhide\n|\n21 comments\n6.\nGmail registration now requires scanning a QR code and sending a text message\n(\nprivacyguides.net\n)\n337 points\nby\nnegura\n10 hours ago\n|\nhide\n|\n201 comments\n7.\nBild AI (YC W25) Is Hiring Founding Product Engineers\n(\nbild.ai\n)\n20 minutes ago\n|\nhide\n8.\nAMÁLIA and the future of European Portuguese LLMs\n(\nduarteocarmo.com\n)\n61 points\nby\njohnbarron\n4 hours ago\n|\nhide\n|\n27 comments\n9.\nInterfaze: A new model architecture built for high accuracy at scale\n(\ninterfaze.ai\n)\n15 points\nby\nyoeven\n1 hour ago\n|\nhide\n|\n3 comments\n10.\nVenom and Hot Peppers Offer a Key to Killing Resistant Bacteria\n(\nwired.com\n)\n117 points\nby\nlittlexsparkee\n8 hours ago\n|\nhide\n|\n30 comments\n11.\nI'm going back to writing code by hand\n(\nk10s.dev\n)\n790 points\nby\ndropbox_miner\n16 hours ago\n|\nhide\n|\n457 comments\n12.\nShould you leave red herrings about yourself online?\n(\nalcazarsec.com\n)\n13 points\nby\nalcazar\n2 hours ago\n|\nhide\n|\n13 comments\n13.\nBuilding a web server in aarch64 assembly to give my life (a lack of) meaning\n(\nimtomt.github.io\n)\n52 points\nby\ntheanonymousone\n5 hours ago\n|\nhide\n|\n19 comments\n14.\nHolding Community Space\n(\nsupernuclear.substack.com\n)\n10 points\nby\nsurprisetalk\n1 hour ago\n|\nhide\n|\n3 comments\n15.\nSoftware engineering may no longer be a lifetime career\n(\nseangoedecke.com\n)\n132 points\nby\nmovis\n3 hours ago\n|\nhide\n|\n239 comments\n16.\nRunning local models on an M4 with 24GB memory\n(\njola.dev\n)\n492 points\nby\nshintoist\n18 hours ago\n|\nhide\n|\n148 comments\n17.\nGuitar tuner that uses phone accelerometer\n(\ntautme.github.io\n)\n123 points\nby\nadm4\n11 hours ago\n|\nhide\n|\n67 comments\n18.\nThe greatest shot in television: James Burke had one chance to nail this scene (2024)\n(\nopenculture.com\n)\n293 points\nby\nsusam\n15 hours ago\n|\nhide\n|\n173 comments\n19.\nHardware Attestation as Monopoly Enabler\n(\ngrapheneos.social\n)\n1994 points\nby\nChuckMcM\n1 day ago\n|\nhide\n|\n672 comments\n20.\nStudents Boo Commencement Speaker After She Calls AI Next Industrial Revolution\n(\n404media.co\n)\n44 points\nby\ncdrnsf\n2 hours ago\n|\nhide\n|\n13 comments\n21.\nAn AI coding agent, used to write code, needs to reduce your maintenance costs\n(\njamesshore.com\n)\n309 points\nby\ncratermoon\n18 hours ago\n|\nhide\n|\n90 comments\n22.\nMicrosoft Israel chief leaves amid ethical controversy\n(\nglobes.co.il\n)\n14 points\nby\nbhouston\n45 minutes ago\n|\nhide\n|\n1 comment\n23.\nWhy we lose our friends as we age (2023)\n(\ntheatlantic.com\n)\n47 points\nby\npaulpauper\n1 hour ago\n|\nhide\n|\n33 comments\n24.\nLocal AI needs to be the norm\n(\nunix.foo\n)\n1654 points\nby\ncylo\n1 day ago\n|\nhide\n|\n648 comments\n25.\nObsidian plugin was abused to deploy a remote access trojan\n(\nnetsecops.io\n)\n317 points\nby\ncmbailey\n20 hours ago\n|\nhide\n|\n190 comments\n26.\nScaffold a 1990s Geocities-themed static website\n(\npypi.org\n)\n37 points\nby\nwhatsupdog\n4 hours ago\n|\nhide\n|\n15 comments\n27.\nMythos Finds a Curl Vulnerability\n(\nhaxx.se\n)\n508 points\nby\nTangerineDream\n11 hours ago\n|\nhide\n|\n213 comments\n28.\nBliss (Photograph)\n(\nwikipedia.org\n)\n85 points\nby\ncainxinth\n9 hours ago\n|\nhide\n|\n39 comments\n29.\nClassification of amino acids\n(\nkhanacademy.org\n)\n51 points\nby\nkamaraju\n7 hours ago\n|\nhide\n|\n2 comments\n30.\nA.I. note takers are making lawyers nervous\n(\nnytimes.com\n)\n165 points\nby\nJumpCrisscross\n7 hours ago\n|\nhide\n|\n121 comments\nMore\nGuidelines\n|\nFAQ\n|\nLists\n|\nAPI\n|\nSecurity\n|\nLegal\n|\nApply to YC\n|\nContact\nSearch:\n",
+  "fit_md": null,
+  "operator_hints": []
+}

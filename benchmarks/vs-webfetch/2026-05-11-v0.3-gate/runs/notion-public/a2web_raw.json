@@ -1,0 +1,1757 @@
+{
+  "url": "https://www.notion.com/help/intro-to-databases",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "high",
+  "title": "Intro to databases – Notion Help Center",
+  "byline": null,
+  "published": "2021-07-20",
+  "started_at": "2026-05-11T18:04:33.098579Z",
+  "total_ms": 4128,
+  "tokens": {
+    "full": 10910,
+    "fit": 0
+  },
+  "cache": "miss",
+  "narrative": "raw → ok (4.1s).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=4128",
+  "diagnostics": [
+    {
+      "t_ms": 4,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "www.notion.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 3814,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 3818,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 172,
+      "extra": {
+        "chars": 10910
+      }
+    },
+    {
+      "t_ms": 3990,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 49,
+      "extra": {}
+    }
+  ],
+  "meta": {
+    "og.url": "https://www.notion.com/help/intro-to-databases",
+    "og.title": "Intro to databases – Notion Help Center",
+    "og.description": "Databases in Notion are collections of pages. Here, we'll introduce you to the general structure of a database, walk you through the different menus and options, and deep dive into how to open and edit pages within a database. 🗃",
+    "og.image": "https://www.notion.comhttps://img.youtube.com/vi/Nx114VWepoI/maxresdefault.jpg",
+    "og.locale": "en-US",
+    "og.site_name": "Notion",
+    "og.type": "website",
+    "twitter.card": "summary_large_image",
+    "twitter.site": "@NotionHQ",
+    "twitter.title": "Intro to databases – Notion Help Center",
+    "twitter.description": "Databases in Notion are collections of pages. Here, we'll introduce you to the general structure of a database, walk you through the different menus and options, and deep dive into how to open and edit pages within a database. 🗃",
+    "twitter.url": "/",
+    "twitter.image": "https://www.notion.comhttps://img.youtube.com/vi/Nx114VWepoI/maxresdefault.jpg",
+    "jsonld[0].@context": "https://schema.org",
+    "jsonld[0].@type": "BreadcrumbList"
+  },
+  "links": [
+    {
+      "anchor": "NotionYour AI workspace",
+      "href": "/product"
+    },
+    {
+      "anchor": "Notion Calendar",
+      "href": "/product/calendar"
+    },
+    {
+      "anchor": "Notion Mail",
+      "href": "/product/mail"
+    },
+    {
+      "anchor": "Notion AIAI tools for work",
+      "href": "/product/ai"
+    },
+    {
+      "anchor": "AgentsAutomate busywork",
+      "href": "/product/agents"
+    },
+    {
+      "anchor": "AI Meeting NotesPerfectly written by AI",
+      "href": "/product/ai-meeting-notes"
+    },
+    {
+      "anchor": "Enterprise SearchFind answers instantly",
+      "href": "/product/enterprise-search"
+    },
+    {
+      "anchor": "Knowledge BaseCentralize your knowledge",
+      "href": "/product/wikis"
+    },
+    {
+      "anchor": "DocsSimple and powerful",
+      "href": "/product/docs"
+    },
+    {
+      "anchor": "ProjectsManage any project",
+      "href": "/product/projects"
+    },
+    {
+      "anchor": "IntegrationsConnect your apps",
+      "href": "/integrations"
+    },
+    {
+      "anchor": "SecuritySafe and scalable",
+      "href": "/security"
+    },
+    {
+      "anchor": "See what’s new→",
+      "href": "/releases"
+    },
+    {
+      "anchor": "Notion App→",
+      "href": "/download"
+    },
+    {
+      "anchor": "Notion AIAI tools for work",
+      "href": "/product/ai"
+    },
+    {
+      "anchor": "AgentsAutomate busywork",
+      "href": "/product/agents"
+    },
+    {
+      "anchor": "AI Meeting NotesPerfectly written by AI",
+      "href": "/product/ai-meeting-notes"
+    },
+    {
+      "anchor": "Enterprise SearchFind answers instantly",
+      "href": "/product/enterprise-search"
+    },
+    {
+      "anchor": "For work",
+      "href": "/product/ai/use-cases?type=work"
+    },
+    {
+      "anchor": "For life",
+      "href": "/product/ai/use-cases?type=life"
+    },
+    {
+      "anchor": "Eng & Product",
+      "href": "/product/notion-for-product-development"
+    },
+    {
+      "anchor": "Design",
+      "href": "/product/notion-for-design"
+    },
+    {
+      "anchor": "Marketing",
+      "href": "/templates/category/marketing"
+    },
+    {
+      "anchor": "IT",
+      "href": "/templates/category/ticketing"
+    },
+    {
+      "anchor": "Startups",
+      "href": "/startups"
+    },
+    {
+      "anchor": "Small businesses",
+      "href": "/teams"
+    },
+    {
+      "anchor": "Enterprise",
+      "href": "/enterprise"
+    },
+    {
+      "anchor": "Education",
+      "href": "/product/notion-for-education"
+    },
+    {
+      "anchor": "Personal",
+      "href": "/personal"
+    },
+    {
+      "anchor": "Professional",
+      "href": "/use-case"
+    },
+    {
+      "anchor": "AI use cases",
+      "href": "/product/ai/use-cases"
+    },
+    {
+      "anchor": "Templates",
+      "href": "/templates"
+    },
+    {
+      "anchor": "Consultants",
+      "href": "/explore-consultants"
+    },
+    {
+      "anchor": "Integrations",
+      "href": "/integrations"
+    },
+    {
+      "anchor": "What's New",
+      "href": "/releases"
+    },
+    {
+      "anchor": "Customer stories",
+      "href": "/customers"
+    },
+    {
+      "anchor": "Blog",
+      "href": "/blog"
+    },
+    {
+      "anchor": "Webinars",
+      "href": "/webinars"
+    },
+    {
+      "anchor": "Academy",
+      "href": "https://academy.notion.com"
+    },
+    {
+      "anchor": "Product tours",
+      "href": "/product/demos"
+    },
+    {
+      "anchor": "Help",
+      "href": "/help"
+    },
+    {
+      "anchor": "Enterprise",
+      "href": "/enterprise"
+    },
+    {
+      "anchor": "Pricing",
+      "href": "/pricing"
+    },
+    {
+      "anchor": "Request a demo",
+      "href": "/contact-sales"
+    },
+    {
+      "anchor": "Get Notion free",
+      "href": "/signup"
+    },
+    {
+      "anchor": "Log in",
+      "href": "/login"
+    },
+    {
+      "anchor": "Help Center",
+      "href": "/help"
+    },
+    {
+      "anchor": "Help Docs",
+      "href": "/help/reference"
+    },
+    {
+      "anchor": "Databases",
+      "href": "/help/category/databases"
+    },
+    {
+      "anchor": "← Databases",
+      "href": "/help/category/databases"
+    },
+    {
+      "anchor": "YouTube",
+      "href": "https://www.youtube.com/watch?v=Nx114VWepoI"
+    },
+    {
+      "anchor": "Learn more about database properties here →",
+      "href": "https://www.notion.so/help/database-properties"
+    },
+    {
+      "anchor": "Learn more about views, filters, and sorts here →",
+      "href": "https://www.notion.so/help/views-filters-and-sorts"
+    },
+    {
+      "anchor": "sources of data",
+      "href": "https://www.notion.com/help/data-sources-and-linked-databases"
+    },
+    {
+      "anchor": "link",
+      "href": "https://www.notion.com/help/data-sources-and-linked-databases"
+    },
+    {
+      "anchor": "Create a database",
+      "href": "/help/intro-to-databases?_ck=6cdbb9ba074a439cd81d89a49a2ff75676bf2f877232a7a4a12af351d4cfa019#create-a-database"
+    },
+    {
+      "anchor": "properties",
+      "href": "https://www.notion.com/help/database-properties"
+    },
+    {
+      "anchor": "Views",
+      "href": "https://www.notion.com/help/views-filters-and-sorts"
+    },
+    {
+      "anchor": "linked view",
+      "href": "https://www.notion.com/help/data-sources-and-linked-databases"
+    },
+    {
+      "anchor": "new data source",
+      "href": "https://www.notion.com/help/data-sources-and-linked-databases"
+    },
+    {
+      "anchor": "Full-page vs. inline databases",
+      "href": "/help/intro-to-databases?_ck=6cdbb9ba074a439cd81d89a49a2ff75676bf2f877232a7a4a12af351d4cfa019#full-page-vs.-inline-databases"
+    },
+    {
+      "anchor": "Duplicate a database",
+      "href": "/help/intro-to-databases?_ck=6cdbb9ba074a439cd81d89a49a2ff75676bf2f877232a7a4a12af351d4cfa019#duplicate-a-database"
+    },
+    {
+      "anchor": "Add and open database pages",
+      "href": "/help/intro-to-databases?_ck=6cdbb9ba074a439cd81d89a49a2ff75676bf2f877232a7a4a12af351d4cfa019#add-and-open-database-pages"
+    },
+    {
+      "anchor": "Collaborating in a database",
+      "href": "/help/intro-to-databases?_ck=6cdbb9ba074a439cd81d89a49a2ff75676bf2f877232a7a4a12af351d4cfa019#collaborating-in-a-database"
+    },
+    {
+      "anchor": "Learn more about sharing and permissions here →",
+      "href": "/help/sharing-and-permissions"
+    },
+    {
+      "anchor": "Learn more about linked databases →",
+      "href": "https://www.notion.so/help/data-sources-and-linked-databases"
+    },
+    {
+      "anchor": "here →",
+      "href": "https://www.notion.so/help/optimize-database-load-times-and-performance"
+    },
+    {
+      "anchor": "Create a database",
+      "href": "#create-a-database"
+    },
+    {
+      "anchor": "Full-page vs. inline databases",
+      "href": "#full-page-vs.-inline-databases"
+    },
+    {
+      "anchor": "Full-page databases",
+      "href": "#full-page-databases"
+    },
+    {
+      "anchor": "Inline databases",
+      "href": "#inline-databases"
+    },
+    {
+      "anchor": "Duplicate a database",
+      "href": "#duplicate-a-database"
+    },
+    {
+      "anchor": "Add and open database pages",
+      "href": "#add-and-open-database-pages"
+    },
+    {
+      "anchor": "Item options",
+      "href": "#item-options"
+    },
+    {
+      "anchor": "Customize database pages",
+      "href": "#customize-database-pages"
+    },
+    {
+      "anchor": "Collaborating in a database",
+      "href": "#collaborating-in-a-database"
+    },
+    {
+      "anchor": "\"Can edit content\" permission level",
+      "href": "#can-edit-content-permission-level"
+    },
+    {
+      "anchor": "Lock views",
+      "href": "#lock-views"
+    },
+    {
+      "anchor": "Up nextIntro to formulasIn a Notion database, you can add a formula property that lets you run all kinds of calculations and functions based on other properties. You can use formulas to manipulate existing data and arrive at many other helpful values 🔮Read more→",
+      "href": "/help/formulas"
+    },
+    {
+      "anchor": "Help Docs",
+      "href": "/help/reference"
+    },
+    {
+      "anchor": "Start here",
+      "href": "/help/start-here"
+    },
+    {
+      "anchor": "Intro to workspaces",
+      "href": "/help/intro-to-workspaces"
+    },
+    {
+      "anchor": "What is a block?",
+      "href": "/help/what-is-a-block"
+    },
+    {
+      "anchor": "Create a page",
+      "href": "/help/create-your-first-page"
+    },
+    {
+      "anchor": "Create a subpage",
+      "href": "/help/create-a-subpage"
+    },
+    {
+      "anchor": "What is a database?",
+      "href": "/help/what-is-a-database"
+    },
+    {
+      "anchor": "Create a database",
+      "href": "/help/create-a-database"
+    },
+    {
+      "anchor": "Start with a template",
+      "href": "/help/start-with-a-template"
+    },
+    {
+      "anchor": "Share your work",
+      "href": "/help/share-your-work"
+    },
+    {
+      "anchor": "Collaborate with people",
+      "href": "/help/collaborate-with-people"
+    },
+    {
+      "anchor": "Badges & certifications",
+      "href": "/help/badges-and-certifications"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/new-to-notion"
+    },
+    {
+      "anchor": "Navigate with the sidebar",
+      "href": "/help/navigate-with-the-sidebar"
+    },
+    {
+      "anchor": "Manage your Library",
+      "href": "/help/manage-your-library"
+    },
+    {
+      "anchor": "Search in your workspace",
+      "href": "/help/search"
+    },
+    {
+      "anchor": "Home & My tasks",
+      "href": "/help/home-and-my-tasks"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/sidebar-navigation"
+    },
+    {
+      "anchor": "Create, join & leave workspaces",
+      "href": "/help/create-delete-and-switch-workspaces"
+    },
+    {
+      "anchor": "Create, join & leave teamspaces",
+      "href": "/help/browse-join-and-create-teamspaces"
+    },
+    {
+      "anchor": "Workspace settings",
+      "href": "/help/workspace-settings"
+    },
+    {
+      "anchor": "Workspaces on mobile",
+      "href": "/help/workspaces-on-mobile"
+    },
+    {
+      "anchor": "Delete a workspace",
+      "href": "/help/delete-a-workspace"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/meet-your-workspace"
+    },
+    {
+      "anchor": "Account settings & preferences",
+      "href": "/help/account-settings"
+    },
+    {
+      "anchor": "Notification settings",
+      "href": "/help/notification-settings"
+    },
+    {
+      "anchor": "Two-step verification",
+      "href": "/help/two-step-verification"
+    },
+    {
+      "anchor": "HIPAA configuration",
+      "href": "/help/hipaa"
+    },
+    {
+      "anchor": "Data access consent",
+      "href": "/help/data-access-consent"
+    },
+    {
+      "anchor": "Delete your account",
+      "href": "/help/delete-your-account"
+    },
+    {
+      "anchor": "Notion Faces",
+      "href": "/help/notion-faces"
+    },
+    {
+      "anchor": "Secondary emails",
+      "href": "/help/secondary-emails"
+    },
+    {
+      "anchor": "Log in & out",
+      "href": "/help/log-in-and-out"
+    },
+    {
+      "anchor": "Change your language",
+      "href": "/help/change-your-language"
+    },
+    {
+      "anchor": "Manage your Mail & Calendar settings",
+      "href": "/help/manage-email-and-calendar-settings"
+    },
+    {
+      "anchor": "Passkeys",
+      "href": "/help/passkeys"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/account-settings-and-privacy"
+    },
+    {
+      "anchor": "Intro to writing & editing",
+      "href": "/help/writing-and-editing-basics"
+    },
+    {
+      "anchor": "Format your page",
+      "href": "/help/columns-headings-and-dividers"
+    },
+    {
+      "anchor": "Style & customize your page",
+      "href": "/help/customize-and-style-your-content"
+    },
+    {
+      "anchor": "Images, files & media",
+      "href": "/help/images-files-and-media"
+    },
+    {
+      "anchor": "Links & backlinks",
+      "href": "/help/create-links-and-backlinks"
+    },
+    {
+      "anchor": "Wikis & verified pages",
+      "href": "/help/wikis-and-verified-pages"
+    },
+    {
+      "anchor": "Move & duplicate content",
+      "href": "/help/transfer-content-to-another-account"
+    },
+    {
+      "anchor": "Delete & restore content",
+      "href": "/help/duplicate-delete-and-restore-content"
+    },
+    {
+      "anchor": "Synced blocks",
+      "href": "/help/synced-blocks"
+    },
+    {
+      "anchor": "Code blocks",
+      "href": "/help/code-blocks"
+    },
+    {
+      "anchor": "Math equations",
+      "href": "/help/math-equations"
+    },
+    {
+      "anchor": "Keyboard shortcuts",
+      "href": "/help/keyboard-shortcuts"
+    },
+    {
+      "anchor": "Use pages offline",
+      "href": "/help/use-pages-offline"
+    },
+    {
+      "anchor": "Duplicate public pages",
+      "href": "/help/duplicate-public-pages"
+    },
+    {
+      "anchor": "Archive pages",
+      "href": "/help/archive-pages"
+    },
+    {
+      "anchor": "Presentation mode",
+      "href": "/help/presentation-mode"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/write-edit-and-customize"
+    },
+    {
+      "anchor": "Intro to databases",
+      "href": "/help/intro-to-databases"
+    },
+    {
+      "anchor": "Intro to formulas",
+      "href": "/help/formulas"
+    },
+    {
+      "anchor": "Formula syntax & functions",
+      "href": "/help/formula-syntax"
+    },
+    {
+      "anchor": "Database properties",
+      "href": "/help/database-properties"
+    },
+    {
+      "anchor": "Relations & rollups",
+      "href": "/help/relations-and-rollups"
+    },
+    {
+      "anchor": "Database settings",
+      "href": "/help/customize-your-database"
+    },
+    {
+      "anchor": "Database templates",
+      "href": "/help/database-templates"
+    },
+    {
+      "anchor": "Sub-items & dependencies",
+      "href": "/help/tasks-and-dependencies"
+    },
+    {
+      "anchor": "Task databases & sprints",
+      "href": "/help/sprints"
+    },
+    {
+      "anchor": "Data sources",
+      "href": "/help/data-sources-and-linked-databases"
+    },
+    {
+      "anchor": "Optimize database load times & performance",
+      "href": "/help/optimize-database-load-times-and-performance"
+    },
+    {
+      "anchor": "Unique ID",
+      "href": "/help/unique-id"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/databases"
+    },
+    {
+      "anchor": "Views, filters, sorts & groups",
+      "href": "/help/views-filters-and-sorts"
+    },
+    {
+      "anchor": "Table view",
+      "href": "/help/tables"
+    },
+    {
+      "anchor": "Board view",
+      "href": "/help/boards"
+    },
+    {
+      "anchor": "Timeline view",
+      "href": "/help/timelines"
+    },
+    {
+      "anchor": "Calendar view",
+      "href": "/help/calendars"
+    },
+    {
+      "anchor": "List view",
+      "href": "/help/lists"
+    },
+    {
+      "anchor": "Dashboards view",
+      "href": "/help/dashboards"
+    },
+    {
+      "anchor": "Gallery view",
+      "href": "/help/galleries"
+    },
+    {
+      "anchor": "Chart view",
+      "href": "/help/charts"
+    },
+    {
+      "anchor": "Layouts",
+      "href": "/help/layouts"
+    },
+    {
+      "anchor": "Feed view",
+      "href": "/help/feeds"
+    },
+    {
+      "anchor": "Map view",
+      "href": "/help/maps"
+    },
+    {
+      "anchor": "Forms",
+      "href": "/help/forms"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/database-views"
+    },
+    {
+      "anchor": "Sharing & permissions",
+      "href": "/help/sharing-and-permissions"
+    },
+    {
+      "anchor": "Manage members & guests",
+      "href": "/help/add-members-admins-guests-and-groups"
+    },
+    {
+      "anchor": "Collaborate in a workspace",
+      "href": "/help/collaborate-within-a-workspace"
+    },
+    {
+      "anchor": "Inbox & notifications",
+      "href": "/help/updates-and-notifications"
+    },
+    {
+      "anchor": "Comments, mentions & reactions",
+      "href": "/help/comments-mentions-and-reminders"
+    },
+    {
+      "anchor": "Reminders",
+      "href": "/help/reminders"
+    },
+    {
+      "anchor": "Suggested edits",
+      "href": "/help/suggested-edits"
+    },
+    {
+      "anchor": "Page analytics",
+      "href": "/help/page-analytics"
+    },
+    {
+      "anchor": "Intro to teamspaces",
+      "href": "/help/intro-to-teamspaces"
+    },
+    {
+      "anchor": "Who’s who in a workspace",
+      "href": "/help/whos-who-in-a-workspace"
+    },
+    {
+      "anchor": "People profiles",
+      "href": "/help/people-profiles"
+    },
+    {
+      "anchor": "People Directory",
+      "href": "/help/people-directory"
+    },
+    {
+      "anchor": "Create & manage groups",
+      "href": "/help/create-and-manage-groups"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/sharing-and-collaboration"
+    },
+    {
+      "anchor": "Publish a Notion Site",
+      "href": "/help/public-pages-and-web-publishing"
+    },
+    {
+      "anchor": "Edit & customize your Notion Sites",
+      "href": "/help/edit-and-customize-your-notion-sites"
+    },
+    {
+      "anchor": "Manage your Notion Sites",
+      "href": "/help/manage-your-notion-sites"
+    },
+    {
+      "anchor": "Connect a custom domain with Notion Sites",
+      "href": "/help/connect-a-custom-domain-with-notion-sites"
+    },
+    {
+      "anchor": "Notion Sites availability & pricing",
+      "href": "/help/notion-sites-availability-and-pricing"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/notion-sites"
+    },
+    {
+      "anchor": "Import data into Notion",
+      "href": "/help/import-data-into-notion"
+    },
+    {
+      "anchor": "Export your content",
+      "href": "/help/export-your-content"
+    },
+    {
+      "anchor": "Back up your data",
+      "href": "/help/back-up-your-data"
+    },
+    {
+      "anchor": "Import from Asana",
+      "href": "/help/asana"
+    },
+    {
+      "anchor": "Import from Confluence",
+      "href": "/help/import-from-confluence"
+    },
+    {
+      "anchor": "Import from Monday.com",
+      "href": "/help/monday"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/import-export-and-integrate"
+    },
+    {
+      "anchor": "Embeds, bookmarks & link mentions",
+      "href": "/help/embed-and-connect-other-apps"
+    },
+    {
+      "anchor": "Add & manage connections",
+      "href": "/help/add-and-manage-connections-with-the-api"
+    },
+    {
+      "anchor": "Notion API integrations",
+      "href": "/help/create-integrations-with-the-notion-api"
+    },
+    {
+      "anchor": "Link previews",
+      "href": "/help/link-previews"
+    },
+    {
+      "anchor": "Synced databases",
+      "href": "/help/synced-databases"
+    },
+    {
+      "anchor": "Connected properties",
+      "href": "/help/connected-properties"
+    },
+    {
+      "anchor": "Connect GitHub",
+      "href": "/help/github"
+    },
+    {
+      "anchor": "Integrate Slack",
+      "href": "/help/slack"
+    },
+    {
+      "anchor": "Connect Jira",
+      "href": "/help/jira"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/connections"
+    },
+    {
+      "anchor": "Buttons",
+      "href": "/help/buttons"
+    },
+    {
+      "anchor": "Database buttons",
+      "href": "/help/database-buttons"
+    },
+    {
+      "anchor": "Database automations",
+      "href": "/help/database-automations"
+    },
+    {
+      "anchor": "Webhook actions",
+      "href": "/help/webhook-actions"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/automations"
+    },
+    {
+      "anchor": "What is Notion AI?",
+      "href": "/help/notion-ai-faqs"
+    },
+    {
+      "anchor": "Notion Agent",
+      "href": "/help/notion-agent"
+    },
+    {
+      "anchor": "Notion AI for databases",
+      "href": "/help/autofill"
+    },
+    {
+      "anchor": "AI Meeting Notes (beta)",
+      "href": "/help/ai-meeting-notes"
+    },
+    {
+      "anchor": "Enterprise Search",
+      "href": "/help/enterprise-search"
+    },
+    {
+      "anchor": "Notion MCP",
+      "href": "/help/notion-mcp"
+    },
+    {
+      "anchor": "Create & edit images with Notion AI",
+      "href": "/help/create-and-edit-images-with-notion-ai"
+    },
+    {
+      "anchor": "Research Mode",
+      "href": "/help/research-mode"
+    },
+    {
+      "anchor": "Instructions for Notion Agent",
+      "href": "/help/instructions-for-notion-agent"
+    },
+    {
+      "anchor": "Skills for Notion Agent",
+      "href": "/help/skills-for-notion-agent"
+    },
+    {
+      "anchor": "Salesforce AI Connector",
+      "href": "/help/salesforce-ai-connector"
+    },
+    {
+      "anchor": "Review & approve plans before Notion AI runs",
+      "href": "/help/review-and-approve-plans-before-notion-ai-runs"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/notion-ai"
+    },
+    {
+      "anchor": "Notion AI Connectors",
+      "href": "/help/notion-ai-connectors"
+    },
+    {
+      "anchor": "GitHub AI Connector",
+      "href": "/help/notion-ai-connector-for-github"
+    },
+    {
+      "anchor": "Google Drive AI Connector",
+      "href": "/help/notion-ai-connectors-for-google-drive"
+    },
+    {
+      "anchor": "Linear AI Connector",
+      "href": "/help/notion-ai-connector-for-linear"
+    },
+    {
+      "anchor": "Jira AI Connector (beta)",
+      "href": "/help/jira-ai-connector"
+    },
+    {
+      "anchor": "Microsoft Teams AI Connector",
+      "href": "/help/notion-ai-connector-for-microsoft-teams"
+    },
+    {
+      "anchor": "Microsoft SharePoint & OneDrive AI Connector",
+      "href": "/help/notion-ai-connector-for-microsoft-sharepoint-and-onedrive"
+    },
+    {
+      "anchor": "Slack AI Connector",
+      "href": "/help/notion-ai-connectors-for-slack"
+    },
+    {
+      "anchor": "Microsoft Outlook AI Connector",
+      "href": "/help/microsoft-outlook-ai-connector"
+    },
+    {
+      "anchor": "Google Calendar AI Connector",
+      "href": "/help/google-calendar-ai-connector"
+    },
+    {
+      "anchor": "Gmail AI Connector (Beta)",
+      "href": "/help/notion-ai-connector-for-gmail"
+    },
+    {
+      "anchor": "Notion Calendar AI Connector (beta)",
+      "href": "/help/notion-calendar-ai-connector"
+    },
+    {
+      "anchor": "Notion Mail AI Connector (beta)",
+      "href": "/help/notion-mail-ai-connector"
+    },
+    {
+      "anchor": "Asana AI Connector",
+      "href": "/help/asana-ai-connector"
+    },
+    {
+      "anchor": "Box AI Connector",
+      "href": "/help/box-ai-connector"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/notion-ai-connectors"
+    },
+    {
+      "anchor": "Custom Agents",
+      "href": "/help/custom-agents"
+    },
+    {
+      "anchor": "Best practices for creating and optimizing a Custom Agent",
+      "href": "/help/best-practices-for-creating-and-optimizing-a-custom-agent"
+    },
+    {
+      "anchor": "MCP connections for Custom Agents",
+      "href": "/help/mcp-connections-for-custom-agents"
+    },
+    {
+      "anchor": "Connect Calendar to Custom Agents",
+      "href": "/help/connect-calendar-to-custom-agents"
+    },
+    {
+      "anchor": "Custom Agents sharing and permissions",
+      "href": "/help/custom-agents-sharing-and-permissions"
+    },
+    {
+      "anchor": "Connect Mail to Custom Agents",
+      "href": "/help/connect-mail-to-custom-agents"
+    },
+    {
+      "anchor": "Mobile Custom Agents",
+      "href": "/help/mobile-custom-agents"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/custom-agents"
+    },
+    {
+      "anchor": "SAML SSO",
+      "href": "/help/saml-sso-configuration"
+    },
+    {
+      "anchor": "Set up Identity Provider (IdP) for SAML SSO",
+      "href": "/help/set-up-identity-provider-for-saml-sso"
+    },
+    {
+      "anchor": "Manage your Enterprise workspace",
+      "href": "/help/enterprise-admins"
+    },
+    {
+      "anchor": "Domain management",
+      "href": "/help/domain-management"
+    },
+    {
+      "anchor": "Provision users & groups with SCIM",
+      "href": "/help/provision-users-and-groups-with-scim"
+    },
+    {
+      "anchor": "Set up Identity Provider (IdP) for SCIM",
+      "href": "/help/set-up-identity-provider-for-scim"
+    },
+    {
+      "anchor": "Content search",
+      "href": "/help/admin-content-search"
+    },
+    {
+      "anchor": "Transfer content from a deprovisioned user",
+      "href": "/help/transfer-content-deprovisioned-user"
+    },
+    {
+      "anchor": "Audit log",
+      "href": "/help/audit-log"
+    },
+    {
+      "anchor": "Add security & compliance integrations",
+      "href": "/help/add-security-and-compliance-integrations"
+    },
+    {
+      "anchor": "Workspace analytics",
+      "href": "/help/workspace-analytics"
+    },
+    {
+      "anchor": "Managed users",
+      "href": "/help/managed-users-dashboard"
+    },
+    {
+      "anchor": "Enterprise connection settings",
+      "href": "/help/enterprise-connection-settings"
+    },
+    {
+      "anchor": "Custom data retention settings",
+      "href": "/help/custom-data-retention-settings"
+    },
+    {
+      "anchor": "Deploy Notion for macOS",
+      "href": "/help/deploy-notion-for-macos"
+    },
+    {
+      "anchor": "Deploy Notion for Windows",
+      "href": "/help/deploy-notion-for-windows"
+    },
+    {
+      "anchor": "IP address restrictions",
+      "href": "/help/ip-address-restrictions"
+    },
+    {
+      "anchor": "Set up Microsoft Intune with Notion (iOS and Android)",
+      "href": "/help/set-up-microsoft-intune-with-notion-ios-and-android"
+    },
+    {
+      "anchor": "Legal holds",
+      "href": "/help/legal-holds"
+    },
+    {
+      "anchor": "Organization level controls",
+      "href": "/help/organization-level-controls"
+    },
+    {
+      "anchor": "Manage teamspaces",
+      "href": "/help/manage-teamspaces"
+    },
+    {
+      "anchor": "Network control",
+      "href": "/help/network-control"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/enterprise-admin"
+    },
+    {
+      "anchor": "Security practices",
+      "href": "/help/security-and-privacy"
+    },
+    {
+      "anchor": "Privacy practices",
+      "href": "/help/privacy"
+    },
+    {
+      "anchor": "GDPR at Notion",
+      "href": "/help/gdpr-at-notion"
+    },
+    {
+      "anchor": "Custom Agents security features",
+      "href": "/help/custom-agents-security-features"
+    },
+    {
+      "anchor": "Security best practices for Agent connections",
+      "href": "/help/security-best-practices-for-agent-connections"
+    },
+    {
+      "anchor": "Notion IP addresses & domains",
+      "href": "/help/allowlist-ip"
+    },
+    {
+      "anchor": "Data accessible by your workspace owner",
+      "href": "/help/data-accessible-by-your-workspace-owner"
+    },
+    {
+      "anchor": "Report inappropriate content",
+      "href": "/help/report-inappropriate-content"
+    },
+    {
+      "anchor": "How to protect yourself from malvertising",
+      "href": "/help/how-to-protect-yourself-from-malvertising"
+    },
+    {
+      "anchor": "How Notion 3.0 protects against prompt injection risks",
+      "href": "/help/how-notion-protects-against-prompt-injection-risks"
+    },
+    {
+      "anchor": "Dormant account policy",
+      "href": "/help/dormant-account-policy"
+    },
+    {
+      "anchor": "Data residency for Notion",
+      "href": "/help/data-residency"
+    },
+    {
+      "anchor": "Shared Responsibilities Model",
+      "href": "/help/shared-responsibilities-model"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/security-and-privacy"
+    },
+    {
+      "anchor": "Notion AI security & privacy practices",
+      "href": "/help/notion-ai-security-practices"
+    },
+    {
+      "anchor": "Notion’s commitment to AI safety",
+      "href": "/help/ai-safety"
+    },
+    {
+      "anchor": "Enterprise Search security & privacy practices",
+      "href": "/help/enterprise-search-security-and-privacy-practices"
+    },
+    {
+      "anchor": "Notion AI complimentary responses",
+      "href": "/help/complimentary-ai-responses"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/notion-ai-security"
+    },
+    {
+      "anchor": "Notion for desktop",
+      "href": "/help/notion-for-desktop"
+    },
+    {
+      "anchor": "Notion for web",
+      "href": "/help/notion-for-web"
+    },
+    {
+      "anchor": "Notion for mobile",
+      "href": "/help/notion-for-mobile"
+    },
+    {
+      "anchor": "System requirements for Notion",
+      "href": "/help/system-requirements-for-notion"
+    },
+    {
+      "anchor": "Notion beta program",
+      "href": "/help/notion-for-mobile-beta-version"
+    },
+    {
+      "anchor": "Mobile widgets",
+      "href": "/help/mobile-widgets"
+    },
+    {
+      "anchor": "Web Clipper",
+      "href": "/help/web-clipper"
+    },
+    {
+      "anchor": "Notion New Tab extension",
+      "href": "/help/notion-new-tab-extension"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/notion-apps"
+    },
+    {
+      "anchor": "Get started with Notion Mail",
+      "href": "/help/get-started-with-notion-mail"
+    },
+    {
+      "anchor": "Navigate your inbox",
+      "href": "/help/navigate-your-inbox"
+    },
+    {
+      "anchor": "Compose an email",
+      "href": "/help/compose-an-email"
+    },
+    {
+      "anchor": "Views, groups, filters & properties",
+      "href": "/help/views-groups-filters-and-properties"
+    },
+    {
+      "anchor": "Schedule meetings with Notion Mail",
+      "href": "/help/schedule-meetings-with-notion-mail"
+    },
+    {
+      "anchor": "Use Notion AI with Notion Mail",
+      "href": "/help/use-notion-ai-with-notion-mail"
+    },
+    {
+      "anchor": "Notion Mail settings",
+      "href": "/help/notion-mail-settings"
+    },
+    {
+      "anchor": "Customize notifications in Notion Mail",
+      "href": "/help/customize-notifications-in-notion-mail"
+    },
+    {
+      "anchor": "Notion Mail keyboard shortcuts",
+      "href": "/help/notion-mail-keyboard-shortcuts"
+    },
+    {
+      "anchor": "Notion Mail security practices",
+      "href": "/help/notion-mail-security-practices"
+    },
+    {
+      "anchor": "Notion Mail for mobile",
+      "href": "/help/notion-mail-for-mobile"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/notion-mail"
+    },
+    {
+      "anchor": "Create a Notion Calendar account",
+      "href": "/help/create-a-notion-calendar-account"
+    },
+    {
+      "anchor": "Manage your calendars & events",
+      "href": "/help/manage-your-calendars-and-events"
+    },
+    {
+      "anchor": "Scheduling & availability",
+      "href": "/help/availability-blocking-and-time-zones"
+    },
+    {
+      "anchor": "Blocking",
+      "href": "/help/blocking"
+    },
+    {
+      "anchor": "Time zones",
+      "href": "/help/time-zones"
+    },
+    {
+      "anchor": "Manage your linked Notion account",
+      "href": "/help/manage-your-google-and-notion-calendar-accounts"
+    },
+    {
+      "anchor": "Notion Calendar settings",
+      "href": "/help/notion-calendar-settings"
+    },
+    {
+      "anchor": "Notion Calendar connections & API",
+      "href": "/help/notion-calendar-connections"
+    },
+    {
+      "anchor": "Use Notion Calendar with Notion",
+      "href": "/help/use-notion-calendar-with-notion"
+    },
+    {
+      "anchor": "Notion Calendar for teams",
+      "href": "/help/notion-calendar-for-teams"
+    },
+    {
+      "anchor": "Notion Calendar keyboard shortcuts",
+      "href": "/help/notion-calendar-keyboard-shortcuts"
+    },
+    {
+      "anchor": "Notion Calendar apps",
+      "href": "/help/notion-calendar-apps"
+    },
+    {
+      "anchor": "Notion Calendar security practices",
+      "href": "/help/notion-calendar-security-practices"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/notion-calendar"
+    },
+    {
+      "anchor": "Finding templates on Marketplace",
+      "href": "/help/finding-templates-on-marketplace"
+    },
+    {
+      "anchor": "Selling templates on Marketplace",
+      "href": "/help/selling-on-marketplace"
+    },
+    {
+      "anchor": "Getting featured in Marketplace",
+      "href": "/help/getting-featured-in-the-template-gallery"
+    },
+    {
+      "anchor": "Marketplace guidelines & terms",
+      "href": "/help/template-gallery-guidelines-and-terms"
+    },
+    {
+      "anchor": "Template localization on Marketplace",
+      "href": "/help/template-localization-on-marketplace"
+    },
+    {
+      "anchor": "Become a Notion Solutions Partner",
+      "href": "/help/become-a-notion-partner"
+    },
+    {
+      "anchor": "Offering services on Marketplace",
+      "href": "/help/offering-services-on-marketplace"
+    },
+    {
+      "anchor": "Finding services on Marketplace",
+      "href": "/help/finding-services-on-marketplace"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/template-gallery"
+    },
+    {
+      "anchor": "Change your plan",
+      "href": "/help/upgrade-or-downgrade-your-plan"
+    },
+    {
+      "anchor": "Billing",
+      "href": "/help/billing"
+    },
+    {
+      "anchor": "How adding & removing members impacts billing",
+      "href": "/help/members-and-billing"
+    },
+    {
+      "anchor": "Invoices",
+      "href": "/help/invoices"
+    },
+    {
+      "anchor": "Buy & track Notion credits for Custom Agents",
+      "href": "/help/custom-agent-pricing"
+    },
+    {
+      "anchor": "Payment methods",
+      "href": "/help/payment-methods"
+    },
+    {
+      "anchor": "Refunds",
+      "href": "/help/refunds"
+    },
+    {
+      "anchor": "Notion for education",
+      "href": "/help/notion-for-education"
+    },
+    {
+      "anchor": "Notion for startups",
+      "href": "/help/notion-for-startups"
+    },
+    {
+      "anchor": "Notion for creators",
+      "href": "/help/notion-for-creators"
+    },
+    {
+      "anchor": "Paid plan trials",
+      "href": "/help/paid-plan-trials"
+    },
+    {
+      "anchor": "Understanding block usage",
+      "href": "/help/understanding-block-usage"
+    },
+    {
+      "anchor": "What happens when I downgrade my plan?",
+      "href": "/help/plan-downgrade"
+    },
+    {
+      "anchor": "Sales tax",
+      "href": "/help/sales-tax"
+    },
+    {
+      "anchor": "Can’t upgrade to the Plus Plan for students and educators",
+      "href": "/help/cant-upgrade-to-the-plus-plan-for-education"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/plans-billing-and-payment"
+    },
+    {
+      "anchor": "Reset Notion",
+      "href": "/help/reset-notion"
+    },
+    {
+      "anchor": "I can't log in",
+      "href": "/help/cant-log-in"
+    },
+    {
+      "anchor": "I can’t access Notion",
+      "href": "/help/cant-access-notion"
+    },
+    {
+      "anchor": "Common formula errors",
+      "href": "/help/common-formula-errors"
+    },
+    {
+      "anchor": "I can't access my own page",
+      "href": "/help/cant-access-my-own-page"
+    },
+    {
+      "anchor": "I can’t upload or view a file",
+      "href": "/help/cant-upload-or-view-a-file"
+    },
+    {
+      "anchor": "Common Notion errors",
+      "href": "/help/notion-error-messages"
+    },
+    {
+      "anchor": "Record HAR files for troubleshooting",
+      "href": "/help/record-har-files-for-troubleshooting"
+    },
+    {
+      "anchor": "Can’t log into Notion Mail",
+      "href": "/help/cant-log-into-notion-mail"
+    },
+    {
+      "anchor": "Common Jira Sync issues",
+      "href": "/help/common-jira-sync-issues"
+    },
+    {
+      "anchor": "See all",
+      "href": "/help/category/troubleshooting"
+    },
+    {
+      "anchor": "Guides",
+      "href": "/help/guides"
+    },
+    {
+      "anchor": "Notion AI",
+      "href": "/help/guides/category/ai"
+    },
+    {
+      "anchor": "Documentation",
+      "href": "/help/guides/category/documentation"
+    },
+    {
+      "anchor": "Notes",
+      "href": "/help/guides/category/notes"
+    },
+    {
+      "anchor": "Project management",
+      "href": "/help/guides/category/project-management"
+    },
+    {
+      "anchor": "Wiki",
+      "href": "/help/guides/category/wiki"
+    },
+    {
+      "anchor": "Product",
+      "href": "/help/guides/category/product"
+    },
+    {
+      "anchor": "Engineering",
+      "href": "/help/guides/category/engineering"
+    },
+    {
+      "anchor": "Design",
+      "href": "/help/guides/category/design"
+    },
+    {
+      "anchor": "HR & people",
+      "href": "/help/guides/category/hr-and-people"
+    },
+    {
+      "anchor": "Marketing",
+      "href": "/help/guides/category/marketing"
+    },
+    {
+      "anchor": "Personal",
+      "href": "/help/guides/category/personal"
+    },
+    {
+      "anchor": "Enterprise",
+      "href": "/help/guides/category/enterprise"
+    },
+    {
+      "anchor": "Startup",
+      "href": "/help/guides/category/startup"
+    },
+    {
+      "anchor": "Demo",
+      "href": "/help/guides/category/demo"
+    },
+    {
+      "anchor": "Template gallery",
+      "href": "/help/guides/category/template-gallery"
+    },
+    {
+      "anchor": "Automations",
+      "href": "/help/guides/category/automations"
+    },
+    {
+      "anchor": "Notion Academy",
+      "href": "https://academy.notion.com"
+    },
+    {
+      "anchor": "Create integrations",
+      "href": "https://developers.notion.com"
+    },
+    {
+      "anchor": "Join our community",
+      "href": "https://www.notion.so/notion/04f306fbf59a413fae15f42e2a1ab029"
+    },
+    {
+      "anchor": "Find a consultant",
+      "href": "https://www.notion.so/consulting-partners"
+    },
+    {
+      "anchor": "About us",
+      "href": "/about"
+    },
+    {
+      "anchor": "Careers",
+      "href": "/careers"
+    },
+    {
+      "anchor": "Security",
+      "href": "/security"
+    },
+    {
+      "anchor": "Status",
+      "href": "https://www.notion-status.com"
+    },
+    {
+      "anchor": "Terms & privacy",
+      "href": "https://www.notion.so/28ffdd083dc3473e9c2da6ec011b58ac"
+    },
+    {
+      "anchor": "Your privacy rights",
+      "href": "https://www.notion.com/trust/privacy-policy#california"
+    },
+    {
+      "anchor": "iOS & Android",
+      "href": "/mobile"
+    },
+    {
+      "anchor": "Mac & Windows",
+      "href": "/desktop"
+    },
+    {
+      "anchor": "Mail",
+      "href": "/product/mail/download"
+    },
+    {
+      "anchor": "Calendar",
+      "href": "/product/calendar/download"
+    },
+    {
+      "anchor": "Web Clipper",
+      "href": "/web-clipper"
+    },
+    {
+      "anchor": "Help center",
+      "href": "/help"
+    },
+    {
+      "anchor": "Pricing",
+      "href": "/pricing"
+    },
+    {
+      "anchor": "Blog",
+      "href": "/blog"
+    },
+    {
+      "anchor": "Community",
+      "href": "/community"
+    },
+    {
+      "anchor": "Integrations",
+      "href": "/integrations"
+    },
+    {
+      "anchor": "Templates",
+      "href": "/templates"
+    },
+    {
+      "anchor": "Partner programs",
+      "href": "/partners"
+    },
+    {
+      "anchor": "Enterprise",
+      "href": "/enterprise"
+    },
+    {
+      "anchor": "Small business",
+      "href": "/teams"
+    },
+    {
+      "anchor": "Personal",
+      "href": "/personal"
+    },
+    {
+      "anchor": "Explore more→",
+      "href": "/explore"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Intro to databases"
+    },
+    {
+      "level": 2,
+      "text": "AI features"
+    },
+    {
+      "level": 2,
+      "text": "Explore use cases"
+    },
+    {
+      "level": 2,
+      "text": "Teams"
+    },
+    {
+      "level": 2,
+      "text": "Company size"
+    },
+    {
+      "level": 2,
+      "text": "Use Cases"
+    },
+    {
+      "level": 2,
+      "text": "Browse"
+    },
+    {
+      "level": 2,
+      "text": "Discover"
+    },
+    {
+      "level": 2,
+      "text": "Learn"
+    },
+    {
+      "level": 2,
+      "text": "Databases in Notion are collections of pages. Here, we'll introduce you to the general structure of a database, walk you through the different menus and options, and deep dive into how to open and edit pages within a database. 🗃"
+    },
+    {
+      "level": 2,
+      "text": "Create a database"
+    },
+    {
+      "level": 2,
+      "text": "Full-page vs. inline databases"
+    },
+    {
+      "level": 2,
+      "text": "Duplicate a database"
+    },
+    {
+      "level": 2,
+      "text": "Add and open database pages"
+    },
+    {
+      "level": 2,
+      "text": "Collaborating in a database"
+    },
+    {
+      "level": 2,
+      "text": "Contents"
+    },
+    {
+      "level": 3,
+      "text": "Full-page databases"
+    },
+    {
+      "level": 3,
+      "text": "Inline databases"
+    },
+    {
+      "level": 3,
+      "text": "Item options"
+    },
+    {
+      "level": 3,
+      "text": "Customize database pages"
+    },
+    {
+      "level": 3,
+      "text": "\"Can edit content\" permission level"
+    },
+    {
+      "level": 3,
+      "text": "Lock views"
+    },
+    {
+      "level": 3,
+      "text": "Was this resource helpful?"
+    },
+    {
+      "level": 3,
+      "text": "Intro to formulas"
+    }
+  ],
+  "content_md": "# Intro to databases\n\nUh-oh! It looks like your ad blocker is preventing the video from playing.\n\nPlease watch it on YouTube\n\n## Databases in Notion are collections of pages. Here, we'll introduce you to the general structure of a database, walk you through the different menus and options, and deep dive into how to open and edit pages within a database. 🗃\n\nDatabases are one of Notion’s fundamental features. They help you manage and organize multiple pages in one place. Notion databases are unique because:\n\n**Every item is its own page:**Every item you enter into your database is a Notion page. Open a database item to add more information in the form of text, images, and more, as you would with any other Notion page!**You can customize properties:**Add properties to contextualize, label, and augment any database item with things like dates, status, and links. Learn more about database properties here →**You can visualize your data in different ways:**Your data isn't limited to a table. Organize your database as a list, calendar, chart, and more**You can view multiple sets of data in one database.**For example:You can build an all-in-one CRM database where information on contacts, companies, and deals are managed all in the same database, while also being treated as separate sources of data.\n\nMaybe your team is currently managing projects and tasks in one database, and OKRs in another. You can link the OKR database in your projects and tasks database, bring all of this data into one place so you can see all of your team’s progress side by side without jumping from one part of your workspace to another.\n\n\n\nTo create a database in Notion, create a new page and under `Get started with`\n\n, select `Table`\n\n. You can also open an existing page and use the slash command `/database`\n\n.\n\nWhen you create a database, you can start from scratch or pull in data from another part of your workspace. If you want to create a database that’s a variation of another database that exists in your workspace, we suggest selecting an existing data source. Search for an existing database and then choose the one you'd like to use.\n\nNeed inspiration or help getting started? Creating a new database will also give you the option to `Build with AI`\n\nand give Notion AI a prompt to use to build you a database. You’ll also be able to choose from a `Suggested`\n\ntemplate.\n\nLet’s walk through some of the first steps you can take to set up a new database.\n\n**Create a new database page:**Click`New page`\n\nto add a new page to your database. For example, if your database is a task tracker, your first page might be the first task you want to track.**Add a property**: Give your database properties so you have more options for how to organize each page. A task tracking database might include a status property and a due date property.**Add a new view**: Views allow you to organize the information in your database in different ways. By default, your database will be displayed in Table view, but you can add as many views as you’d like.You can also use views to display data sources from across your workspace in the same database. Add a linked view of another data source, or even a view built using a new data source.\n\n\n**Edit your view**: For each view, you can edit its name, its layout, the properties that are shown or hidden in it, and more. You can also filter, sort, and group the items in your database. For example, you might want to see a task requestor in one view but not in another.\n\n### Full-page databases\n\nFull page databases appear just like any other page in your sidebar.\n\nYou can lock a full page database so that other people can't change properties and value options by selecting\n\n`•••`\n\nat the top of your database →`Lock database`\n\n.To turn a full page database into an inline database, drag the database into another page in the sidebar, which will turn it into a subpage. Then navigate into the page, and select\n\n\n→**⋮⋮**`Turn into inline`\n\n.\n\n### Inline databases\n\nControls and menus for your inline database are hidden until you hover over it.\n\nYou can expand an inline database to a full page database by selecting\n\n`⤡`\n\nat the top.You can turn an inline database into a full page database by clicking\n\n\nand dragging it into the sidebar as a top-level page.**⋮⋮**You can\n\n`Delete`\n\n,`Duplicate`\n\n, move, or copy the link to your inline database by selecting, which will appear on hover to the side.`⋮⋮`\n\nIn your sidebar, your inline database will appear as a subpage of the page it's in.\n\n\nYou can make a copy of a database.\n\n**For inline databases:**\n\nHover over the database, then select\n\n`⋮⋮`\n\n.Select\n\n`Duplicate`\n\n. You can choose to`Duplicate with content`\n\nor, if you want to use the same database setup to organize other pages,`Duplicate without content`\n\n.\n\n**For full pages:**\n\nClick the\n\n`•••`\n\nbutton in the top right.Select\n\n`Duplicate`\n\n. You can choose to`Duplicate with content`\n\nor, if you want to use the same database setup to organize other pages,`Duplicate without content`\n\n.\n\nEvery item in your database, whether it's a row in a table or a card on a board or calendar, is its own Notion page that you can build, format, and nest content in like any other page.\n\n**Note:** When a database contains more than 1,000 items, new pages may appear in the middle of the collection instead of at the end. This is due to the way large collections are sorted and indexed.\n\nTo add database items:\n\nFor all databases: Click the blue\n\n`New`\n\nbutton at the top right.For a\n\n`table`\n\n,`list`\n\nor`board`\n\n: Click`+ New`\n\nat the bottom to add a new item.For a\n\n`calendar`\n\n: Click the`+`\n\nicon that appears when you hover over any day. This creates a new event on that day.For a\n\n`gallery`\n\n: Click the`+ New`\n\nbutton in the empty card at the bottom of your gallery to add a new image frame right there.\n\nTo open database items as pages:\n\nIn\n\n`tables`\n\n, hover over your first column and click the`OPEN`\n\nbutton that appears.In\n\n`lists`\n\n, just click on the title of the item.In\n\n`boards`\n\n,`calendars`\n\n, and`galleries`\n\n, click anywhere on the card.Pages will always open in a peek preview. Click\n\n`⤡`\n\nat the top left to view in full page mode.\n\nIn this page, you'll see all your database properties at the top. Each row is one property, with a name, type, and a value. Click on the value to edit.\n\nClick the\n\n`⋮⋮`\n\nthat appears to the left of each property on hover in order to: drag it up or down, change the`Property type`\n\n, rename it,`Duplicate`\n\nor`Delete`\n\nit.\n\nUnderneath your properties is free page space, where you can add any type of content block, including sub-pages or an inline database.\n\nBecause database items are pages, any other type of content you drag into a database (like bullets or to-do items), will automatically turn into pages.\n\n\n### Item options\n\nRight click on an item to reveal a list of actions. Those actions include:\n\n`Delete`\n\n: Deletes the item from your database.`Duplicate`\n\n: Creates an exact copy of the item.`Copy link`\n\n: Copies an anchor link to that specific item to your clipboard.`Rename`\n\n: Lets you rename the page in your row without opening it.`Move to`\n\n: Lets you move the row to another workspace or page (where it will show up as a subpage).`Edit property`\n\n: Brings up a menu with all your table's properties. Click the one you want and then click the new value for it.\n\n### Customize database pages\n\nThe top section of any page in a Notion database can include several things:\n\n**Properties**provide data about the page you're looking at, like project owner, due date, tags, and more.**Comments**capture conversation between you and your teammates. You can use them to tag each other, ask questions, provide feedback and more.**Backlinks**indicate all the pages that link to the current page so you can easily navigate between them.\n\nAs with everything in Notion, you can customize the look and feel of these components. To access these options:\n\nClick the\n\n`•••`\n\nat the top right of any Notion page in a database and select`Customize page`\n\n.\n\nFor **properties**, you can use this menu to choose which property fields you want to show at the top of the page, and how. For each one, select from:\n\n**Always show:**Nothing changes, you continue to see the property field.**Hide when empty:**The property field will disappear from the top of your page if it has no value in it.**Always hide:**The property field will not show up at the top of your page.\n\nYou can also access the `Customize page`\n\nmenu by clicking the `⋮⋮`\n\nicon next to any property in the list at the top of your database page. This `⋮⋮`\n\nicon can also be clicked and dragged up or down to reorder how properties are displayed on your page.\n\n**Tip:** If you have a database with dozens of properties, hiding some properties is a great way to keep your pages clear.\n\n**Note:** When you hide properties, they get aggregated in a single menu item at the bottom of the list. You can click this to easily show any hidden properties.\n\nFor **backlinks**, you can choose:\n\n**Expanded:**See all the pages that link to the current page listed in full.**Show in popover:**In case you don't want to see all the pages, you can choose to see just the number of backlinks. Click to open a popup displaying all the pages.**Off:**Just hide all backlinks entirely.\n\nFor **comments**, you can choose to show them:\n\n**Expanded:**Show the full conversation at the top of the page.**Off:**Hide comments on the page for a minimalist view.\n\nWhen using a database in a shared workspace, Notion has features in place to prevent accidental edits that could impact other teammates.\n\n### \"Can edit content\" permission level\n\nClick `Share`\n\nat the top of a database to see and manage all users' permission levels. Learn more about sharing and permissions here →\n\nThe `Can edit content`\n\npermission level is only found on database pages, and allows users to:\n\nCreate, edit, and delete pages within the database.\n\nEdit property values for those pages.\n\n\nUsers with `Can edit content`\n\npermissions in a database will **not **be able to:\n\nAdd, edit, or remove database properties or views.\n\nChange filters or sorts.\n\nLock or unlock the database.\n\n\n**Note:** Users with `Can edit content`\n\naccess will still be able to create linked databases and edit views, sorts, and filters in that linked database. Learn more about linked databases →\n\n### Lock views\n\nFind this option in the `•••`\n\nmenu at the very top right of the Notion window. Switch it on to prevent anyone from changing properties and views in your database. They'll still be able to edit the data it contains.\n\nNote that anyone with editing access can toggle this lock on or off at any time. This is helpful as a quick safeguard against accidental edits in a database that you'd like many people to be able to change structurally.\n\nLearn more about how to optimize your databases' performance and load times here →\n",
+  "fit_md": null,
+  "operator_hints": []
+}

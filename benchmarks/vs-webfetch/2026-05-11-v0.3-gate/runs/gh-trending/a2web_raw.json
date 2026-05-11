@@ -1,0 +1,4699 @@
+{
+  "url": "https://github.com/trending/python?since=daily",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "medium",
+  "title": "Build software better, together",
+  "byline": null,
+  "published": "2026-01-01",
+  "started_at": "2026-05-11T18:04:45.886130Z",
+  "total_ms": 2326,
+  "tokens": {
+    "full": 1240,
+    "fit": 0
+  },
+  "cache": "miss",
+  "narrative": "raw → ok (2.3s).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=2326",
+  "diagnostics": [
+    {
+      "t_ms": 1,
+      "step": "site_handler",
+      "engine": null,
+      "host": "github.com",
+      "proxy": "direct",
+      "verdict": "not_found",
+      "subsystem": null,
+      "dur_ms": 323,
+      "extra": {
+        "status_code": 0
+      }
+    },
+    {
+      "t_ms": 325,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "github.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 1340,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 1665,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 623,
+      "extra": {
+        "chars": 1240
+      }
+    },
+    {
+      "t_ms": 2288,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 29,
+      "extra": {}
+    }
+  ],
+  "meta": {
+    "og.url": "https://github.com",
+    "og.site_name": "GitHub",
+    "og.title": "Build software better, together",
+    "og.description": "GitHub is where people build software. More than 150 million people use GitHub to discover, fork, and contribute to over 420 million projects.",
+    "og.image": "https://github.githubassets.com/assets/github-octocat-13c86b8b336d.png",
+    "og.image:type": "image/png",
+    "og.image:width": "1200",
+    "og.image:height": "620"
+  },
+  "links": [
+    {
+      "anchor": "Skip to content",
+      "href": "#start-of-content"
+    },
+    {
+      "anchor": "Sign in",
+      "href": "/login?return_to=https%3A%2F%2Fgithub.com%2Ftrending%2Fpython%3Fsince%3Ddaily"
+    },
+    {
+      "anchor": "GitHub CopilotWrite better code with AI",
+      "href": "https://github.com/features/copilot"
+    },
+    {
+      "anchor": "GitHub SparkBuild and deploy intelligent apps",
+      "href": "https://github.com/features/spark"
+    },
+    {
+      "anchor": "GitHub ModelsManage and compare prompts",
+      "href": "https://github.com/features/models"
+    },
+    {
+      "anchor": "MCP RegistryNewIntegrate external tools",
+      "href": "https://github.com/mcp"
+    },
+    {
+      "anchor": "ActionsAutomate any workflow",
+      "href": "https://github.com/features/actions"
+    },
+    {
+      "anchor": "CodespacesInstant dev environments",
+      "href": "https://github.com/features/codespaces"
+    },
+    {
+      "anchor": "IssuesPlan and track work",
+      "href": "https://github.com/features/issues"
+    },
+    {
+      "anchor": "Code ReviewManage code changes",
+      "href": "https://github.com/features/code-review"
+    },
+    {
+      "anchor": "GitHub Advanced SecurityFind and fix vulnerabilities",
+      "href": "https://github.com/security/advanced-security"
+    },
+    {
+      "anchor": "Code securitySecure your code as you build",
+      "href": "https://github.com/security/advanced-security/code-security"
+    },
+    {
+      "anchor": "Secret protectionStop leaks before they start",
+      "href": "https://github.com/security/advanced-security/secret-protection"
+    },
+    {
+      "anchor": "Why GitHub",
+      "href": "https://github.com/why-github"
+    },
+    {
+      "anchor": "Documentation",
+      "href": "https://docs.github.com"
+    },
+    {
+      "anchor": "Blog",
+      "href": "https://github.blog"
+    },
+    {
+      "anchor": "Changelog",
+      "href": "https://github.blog/changelog"
+    },
+    {
+      "anchor": "Marketplace",
+      "href": "https://github.com/marketplace"
+    },
+    {
+      "anchor": "View all features",
+      "href": "https://github.com/features"
+    },
+    {
+      "anchor": "Enterprises",
+      "href": "https://github.com/enterprise"
+    },
+    {
+      "anchor": "Small and medium teams",
+      "href": "https://github.com/team"
+    },
+    {
+      "anchor": "Startups",
+      "href": "https://github.com/enterprise/startups"
+    },
+    {
+      "anchor": "Nonprofits",
+      "href": "https://github.com/solutions/industry/nonprofits"
+    },
+    {
+      "anchor": "App Modernization",
+      "href": "https://github.com/solutions/use-case/app-modernization"
+    },
+    {
+      "anchor": "DevSecOps",
+      "href": "https://github.com/solutions/use-case/devsecops"
+    },
+    {
+      "anchor": "DevOps",
+      "href": "https://github.com/solutions/use-case/devops"
+    },
+    {
+      "anchor": "CI/CD",
+      "href": "https://github.com/solutions/use-case/ci-cd"
+    },
+    {
+      "anchor": "View all use cases",
+      "href": "https://github.com/solutions/use-case"
+    },
+    {
+      "anchor": "Healthcare",
+      "href": "https://github.com/solutions/industry/healthcare"
+    },
+    {
+      "anchor": "Financial services",
+      "href": "https://github.com/solutions/industry/financial-services"
+    },
+    {
+      "anchor": "Manufacturing",
+      "href": "https://github.com/solutions/industry/manufacturing"
+    },
+    {
+      "anchor": "Government",
+      "href": "https://github.com/solutions/industry/government"
+    },
+    {
+      "anchor": "View all industries",
+      "href": "https://github.com/solutions/industry"
+    },
+    {
+      "anchor": "View all solutions",
+      "href": "https://github.com/solutions"
+    },
+    {
+      "anchor": "AI",
+      "href": "https://github.com/resources/articles?topic=ai"
+    },
+    {
+      "anchor": "Software Development",
+      "href": "https://github.com/resources/articles?topic=software-development"
+    },
+    {
+      "anchor": "DevOps",
+      "href": "https://github.com/resources/articles?topic=devops"
+    },
+    {
+      "anchor": "Security",
+      "href": "https://github.com/resources/articles?topic=security"
+    },
+    {
+      "anchor": "View all topics",
+      "href": "https://github.com/resources/articles"
+    },
+    {
+      "anchor": "Customer stories",
+      "href": "https://github.com/customer-stories"
+    },
+    {
+      "anchor": "Events & webinars",
+      "href": "https://github.com/resources/events"
+    },
+    {
+      "anchor": "Ebooks & reports",
+      "href": "https://github.com/resources/whitepapers"
+    },
+    {
+      "anchor": "Business insights",
+      "href": "https://github.com/solutions/executive-insights"
+    },
+    {
+      "anchor": "GitHub Skills",
+      "href": "https://skills.github.com"
+    },
+    {
+      "anchor": "Documentation",
+      "href": "https://docs.github.com"
+    },
+    {
+      "anchor": "Customer support",
+      "href": "https://support.github.com"
+    },
+    {
+      "anchor": "Community forum",
+      "href": "https://github.com/orgs/community/discussions"
+    },
+    {
+      "anchor": "Trust center",
+      "href": "https://github.com/trust-center"
+    },
+    {
+      "anchor": "Partners",
+      "href": "https://github.com/partners"
+    },
+    {
+      "anchor": "View all resources",
+      "href": "https://github.com/resources"
+    },
+    {
+      "anchor": "GitHub SponsorsFund open source developers",
+      "href": "https://github.com/sponsors"
+    },
+    {
+      "anchor": "Security Lab",
+      "href": "https://securitylab.github.com"
+    },
+    {
+      "anchor": "Maintainer Community",
+      "href": "https://maintainers.github.com"
+    },
+    {
+      "anchor": "Accelerator",
+      "href": "https://github.com/accelerator"
+    },
+    {
+      "anchor": "GitHub Stars",
+      "href": "https://stars.github.com"
+    },
+    {
+      "anchor": "Archive Program",
+      "href": "https://archiveprogram.github.com"
+    },
+    {
+      "anchor": "Topics",
+      "href": "https://github.com/topics"
+    },
+    {
+      "anchor": "Trending",
+      "href": "https://github.com/trending"
+    },
+    {
+      "anchor": "Collections",
+      "href": "https://github.com/collections"
+    },
+    {
+      "anchor": "Enterprise platformAI-powered developer platform",
+      "href": "https://github.com/enterprise"
+    },
+    {
+      "anchor": "GitHub Advanced SecurityEnterprise-grade security features",
+      "href": "https://github.com/security/advanced-security"
+    },
+    {
+      "anchor": "Copilot for BusinessEnterprise-grade AI features",
+      "href": "https://github.com/features/copilot/copilot-business"
+    },
+    {
+      "anchor": "Premium SupportEnterprise-grade 24/7 support",
+      "href": "https://github.com/premium-support"
+    },
+    {
+      "anchor": "Pricing",
+      "href": "https://github.com/pricing"
+    },
+    {
+      "anchor": "Search syntax tips",
+      "href": "https://docs.github.com/search-github/github-code-search/understanding-github-code-search-syntax"
+    },
+    {
+      "anchor": "documentation",
+      "href": "https://docs.github.com/search-github/github-code-search/understanding-github-code-search-syntax"
+    },
+    {
+      "anchor": "Sign in",
+      "href": "/login?return_to=https%3A%2F%2Fgithub.com%2Ftrending%2Fpython%3Fsince%3Ddaily"
+    },
+    {
+      "anchor": "Sign up",
+      "href": "/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2Ftrending%2Fpython&source=header"
+    },
+    {
+      "anchor": "Explore",
+      "href": "/explore"
+    },
+    {
+      "anchor": "Topics",
+      "href": "/topics"
+    },
+    {
+      "anchor": "Trending",
+      "href": "/trending"
+    },
+    {
+      "anchor": "Collections",
+      "href": "/collections"
+    },
+    {
+      "anchor": "Events",
+      "href": "/events"
+    },
+    {
+      "anchor": "GitHub Sponsors",
+      "href": "/sponsors/explore"
+    },
+    {
+      "anchor": "Repositories",
+      "href": "/trending"
+    },
+    {
+      "anchor": "Developers",
+      "href": "/trending/developers"
+    },
+    {
+      "anchor": "Abkhazian",
+      "href": "/trending/python?since=daily&spoken_language_code=ab"
+    },
+    {
+      "anchor": "Afar",
+      "href": "/trending/python?since=daily&spoken_language_code=aa"
+    },
+    {
+      "anchor": "Afrikaans",
+      "href": "/trending/python?since=daily&spoken_language_code=af"
+    },
+    {
+      "anchor": "Akan",
+      "href": "/trending/python?since=daily&spoken_language_code=ak"
+    },
+    {
+      "anchor": "Albanian",
+      "href": "/trending/python?since=daily&spoken_language_code=sq"
+    },
+    {
+      "anchor": "Amharic",
+      "href": "/trending/python?since=daily&spoken_language_code=am"
+    },
+    {
+      "anchor": "Arabic",
+      "href": "/trending/python?since=daily&spoken_language_code=ar"
+    },
+    {
+      "anchor": "Aragonese",
+      "href": "/trending/python?since=daily&spoken_language_code=an"
+    },
+    {
+      "anchor": "Armenian",
+      "href": "/trending/python?since=daily&spoken_language_code=hy"
+    },
+    {
+      "anchor": "Assamese",
+      "href": "/trending/python?since=daily&spoken_language_code=as"
+    },
+    {
+      "anchor": "Avaric",
+      "href": "/trending/python?since=daily&spoken_language_code=av"
+    },
+    {
+      "anchor": "Avestan",
+      "href": "/trending/python?since=daily&spoken_language_code=ae"
+    },
+    {
+      "anchor": "Aymara",
+      "href": "/trending/python?since=daily&spoken_language_code=ay"
+    },
+    {
+      "anchor": "Azerbaijani",
+      "href": "/trending/python?since=daily&spoken_language_code=az"
+    },
+    {
+      "anchor": "Bambara",
+      "href": "/trending/python?since=daily&spoken_language_code=bm"
+    },
+    {
+      "anchor": "Bashkir",
+      "href": "/trending/python?since=daily&spoken_language_code=ba"
+    },
+    {
+      "anchor": "Basque",
+      "href": "/trending/python?since=daily&spoken_language_code=eu"
+    },
+    {
+      "anchor": "Belarusian",
+      "href": "/trending/python?since=daily&spoken_language_code=be"
+    },
+    {
+      "anchor": "Bengali",
+      "href": "/trending/python?since=daily&spoken_language_code=bn"
+    },
+    {
+      "anchor": "Bihari languages",
+      "href": "/trending/python?since=daily&spoken_language_code=bh"
+    },
+    {
+      "anchor": "Bislama",
+      "href": "/trending/python?since=daily&spoken_language_code=bi"
+    },
+    {
+      "anchor": "Bosnian",
+      "href": "/trending/python?since=daily&spoken_language_code=bs"
+    },
+    {
+      "anchor": "Breton",
+      "href": "/trending/python?since=daily&spoken_language_code=br"
+    },
+    {
+      "anchor": "Bulgarian",
+      "href": "/trending/python?since=daily&spoken_language_code=bg"
+    },
+    {
+      "anchor": "Burmese",
+      "href": "/trending/python?since=daily&spoken_language_code=my"
+    },
+    {
+      "anchor": "Catalan, Valencian",
+      "href": "/trending/python?since=daily&spoken_language_code=ca"
+    },
+    {
+      "anchor": "Chamorro",
+      "href": "/trending/python?since=daily&spoken_language_code=ch"
+    },
+    {
+      "anchor": "Chechen",
+      "href": "/trending/python?since=daily&spoken_language_code=ce"
+    },
+    {
+      "anchor": "Chichewa, Chewa, Nyanja",
+      "href": "/trending/python?since=daily&spoken_language_code=ny"
+    },
+    {
+      "anchor": "Chinese",
+      "href": "/trending/python?since=daily&spoken_language_code=zh"
+    },
+    {
+      "anchor": "Chuvash",
+      "href": "/trending/python?since=daily&spoken_language_code=cv"
+    },
+    {
+      "anchor": "Cornish",
+      "href": "/trending/python?since=daily&spoken_language_code=kw"
+    },
+    {
+      "anchor": "Corsican",
+      "href": "/trending/python?since=daily&spoken_language_code=co"
+    },
+    {
+      "anchor": "Cree",
+      "href": "/trending/python?since=daily&spoken_language_code=cr"
+    },
+    {
+      "anchor": "Croatian",
+      "href": "/trending/python?since=daily&spoken_language_code=hr"
+    },
+    {
+      "anchor": "Czech",
+      "href": "/trending/python?since=daily&spoken_language_code=cs"
+    },
+    {
+      "anchor": "Danish",
+      "href": "/trending/python?since=daily&spoken_language_code=da"
+    },
+    {
+      "anchor": "Divehi, Dhivehi, Maldivian",
+      "href": "/trending/python?since=daily&spoken_language_code=dv"
+    },
+    {
+      "anchor": "Dutch, Flemish",
+      "href": "/trending/python?since=daily&spoken_language_code=nl"
+    },
+    {
+      "anchor": "Dzongkha",
+      "href": "/trending/python?since=daily&spoken_language_code=dz"
+    },
+    {
+      "anchor": "English",
+      "href": "/trending/python?since=daily&spoken_language_code=en"
+    },
+    {
+      "anchor": "Esperanto",
+      "href": "/trending/python?since=daily&spoken_language_code=eo"
+    },
+    {
+      "anchor": "Estonian",
+      "href": "/trending/python?since=daily&spoken_language_code=et"
+    },
+    {
+      "anchor": "Ewe",
+      "href": "/trending/python?since=daily&spoken_language_code=ee"
+    },
+    {
+      "anchor": "Faroese",
+      "href": "/trending/python?since=daily&spoken_language_code=fo"
+    },
+    {
+      "anchor": "Fijian",
+      "href": "/trending/python?since=daily&spoken_language_code=fj"
+    },
+    {
+      "anchor": "Finnish",
+      "href": "/trending/python?since=daily&spoken_language_code=fi"
+    },
+    {
+      "anchor": "French",
+      "href": "/trending/python?since=daily&spoken_language_code=fr"
+    },
+    {
+      "anchor": "Fulah",
+      "href": "/trending/python?since=daily&spoken_language_code=ff"
+    },
+    {
+      "anchor": "Galician",
+      "href": "/trending/python?since=daily&spoken_language_code=gl"
+    },
+    {
+      "anchor": "Georgian",
+      "href": "/trending/python?since=daily&spoken_language_code=ka"
+    },
+    {
+      "anchor": "German",
+      "href": "/trending/python?since=daily&spoken_language_code=de"
+    },
+    {
+      "anchor": "Greek, Modern",
+      "href": "/trending/python?since=daily&spoken_language_code=el"
+    },
+    {
+      "anchor": "Guarani",
+      "href": "/trending/python?since=daily&spoken_language_code=gn"
+    },
+    {
+      "anchor": "Gujarati",
+      "href": "/trending/python?since=daily&spoken_language_code=gu"
+    },
+    {
+      "anchor": "Haitian, Haitian Creole",
+      "href": "/trending/python?since=daily&spoken_language_code=ht"
+    },
+    {
+      "anchor": "Hausa",
+      "href": "/trending/python?since=daily&spoken_language_code=ha"
+    },
+    {
+      "anchor": "Hebrew",
+      "href": "/trending/python?since=daily&spoken_language_code=he"
+    },
+    {
+      "anchor": "Herero",
+      "href": "/trending/python?since=daily&spoken_language_code=hz"
+    },
+    {
+      "anchor": "Hindi",
+      "href": "/trending/python?since=daily&spoken_language_code=hi"
+    },
+    {
+      "anchor": "Hiri Motu",
+      "href": "/trending/python?since=daily&spoken_language_code=ho"
+    },
+    {
+      "anchor": "Hungarian",
+      "href": "/trending/python?since=daily&spoken_language_code=hu"
+    },
+    {
+      "anchor": "Interlingua (International Auxil...",
+      "href": "/trending/python?since=daily&spoken_language_code=ia"
+    },
+    {
+      "anchor": "Indonesian",
+      "href": "/trending/python?since=daily&spoken_language_code=id"
+    },
+    {
+      "anchor": "Interlingue, Occidental",
+      "href": "/trending/python?since=daily&spoken_language_code=ie"
+    },
+    {
+      "anchor": "Irish",
+      "href": "/trending/python?since=daily&spoken_language_code=ga"
+    },
+    {
+      "anchor": "Igbo",
+      "href": "/trending/python?since=daily&spoken_language_code=ig"
+    },
+    {
+      "anchor": "Inupiaq",
+      "href": "/trending/python?since=daily&spoken_language_code=ik"
+    },
+    {
+      "anchor": "Ido",
+      "href": "/trending/python?since=daily&spoken_language_code=io"
+    },
+    {
+      "anchor": "Icelandic",
+      "href": "/trending/python?since=daily&spoken_language_code=is"
+    },
+    {
+      "anchor": "Italian",
+      "href": "/trending/python?since=daily&spoken_language_code=it"
+    },
+    {
+      "anchor": "Inuktitut",
+      "href": "/trending/python?since=daily&spoken_language_code=iu"
+    },
+    {
+      "anchor": "Japanese",
+      "href": "/trending/python?since=daily&spoken_language_code=ja"
+    },
+    {
+      "anchor": "Javanese",
+      "href": "/trending/python?since=daily&spoken_language_code=jv"
+    },
+    {
+      "anchor": "Kalaallisut, Greenlandic",
+      "href": "/trending/python?since=daily&spoken_language_code=kl"
+    },
+    {
+      "anchor": "Kannada",
+      "href": "/trending/python?since=daily&spoken_language_code=kn"
+    },
+    {
+      "anchor": "Kanuri",
+      "href": "/trending/python?since=daily&spoken_language_code=kr"
+    },
+    {
+      "anchor": "Kashmiri",
+      "href": "/trending/python?since=daily&spoken_language_code=ks"
+    },
+    {
+      "anchor": "Kazakh",
+      "href": "/trending/python?since=daily&spoken_language_code=kk"
+    },
+    {
+      "anchor": "Central Khmer",
+      "href": "/trending/python?since=daily&spoken_language_code=km"
+    },
+    {
+      "anchor": "Kikuyu, Gikuyu",
+      "href": "/trending/python?since=daily&spoken_language_code=ki"
+    },
+    {
+      "anchor": "Kinyarwanda",
+      "href": "/trending/python?since=daily&spoken_language_code=rw"
+    },
+    {
+      "anchor": "Kirghiz, Kyrgyz",
+      "href": "/trending/python?since=daily&spoken_language_code=ky"
+    },
+    {
+      "anchor": "Komi",
+      "href": "/trending/python?since=daily&spoken_language_code=kv"
+    },
+    {
+      "anchor": "Kongo",
+      "href": "/trending/python?since=daily&spoken_language_code=kg"
+    },
+    {
+      "anchor": "Korean",
+      "href": "/trending/python?since=daily&spoken_language_code=ko"
+    },
+    {
+      "anchor": "Kurdish",
+      "href": "/trending/python?since=daily&spoken_language_code=ku"
+    },
+    {
+      "anchor": "Kuanyama, Kwanyama",
+      "href": "/trending/python?since=daily&spoken_language_code=kj"
+    },
+    {
+      "anchor": "Latin",
+      "href": "/trending/python?since=daily&spoken_language_code=la"
+    },
+    {
+      "anchor": "Luxembourgish, Letzeburgesch",
+      "href": "/trending/python?since=daily&spoken_language_code=lb"
+    },
+    {
+      "anchor": "Ganda",
+      "href": "/trending/python?since=daily&spoken_language_code=lg"
+    },
+    {
+      "anchor": "Limburgan, Limburger, Limburgish",
+      "href": "/trending/python?since=daily&spoken_language_code=li"
+    },
+    {
+      "anchor": "Lingala",
+      "href": "/trending/python?since=daily&spoken_language_code=ln"
+    },
+    {
+      "anchor": "Lao",
+      "href": "/trending/python?since=daily&spoken_language_code=lo"
+    },
+    {
+      "anchor": "Lithuanian",
+      "href": "/trending/python?since=daily&spoken_language_code=lt"
+    },
+    {
+      "anchor": "Luba-Katanga",
+      "href": "/trending/python?since=daily&spoken_language_code=lu"
+    },
+    {
+      "anchor": "Latvian",
+      "href": "/trending/python?since=daily&spoken_language_code=lv"
+    },
+    {
+      "anchor": "Manx",
+      "href": "/trending/python?since=daily&spoken_language_code=gv"
+    },
+    {
+      "anchor": "Macedonian",
+      "href": "/trending/python?since=daily&spoken_language_code=mk"
+    },
+    {
+      "anchor": "Malagasy",
+      "href": "/trending/python?since=daily&spoken_language_code=mg"
+    },
+    {
+      "anchor": "Malay",
+      "href": "/trending/python?since=daily&spoken_language_code=ms"
+    },
+    {
+      "anchor": "Malayalam",
+      "href": "/trending/python?since=daily&spoken_language_code=ml"
+    },
+    {
+      "anchor": "Maltese",
+      "href": "/trending/python?since=daily&spoken_language_code=mt"
+    },
+    {
+      "anchor": "Maori",
+      "href": "/trending/python?since=daily&spoken_language_code=mi"
+    },
+    {
+      "anchor": "Marathi",
+      "href": "/trending/python?since=daily&spoken_language_code=mr"
+    },
+    {
+      "anchor": "Marshallese",
+      "href": "/trending/python?since=daily&spoken_language_code=mh"
+    },
+    {
+      "anchor": "Mongolian",
+      "href": "/trending/python?since=daily&spoken_language_code=mn"
+    },
+    {
+      "anchor": "Nauru",
+      "href": "/trending/python?since=daily&spoken_language_code=na"
+    },
+    {
+      "anchor": "Navajo, Navaho",
+      "href": "/trending/python?since=daily&spoken_language_code=nv"
+    },
+    {
+      "anchor": "North Ndebele",
+      "href": "/trending/python?since=daily&spoken_language_code=nd"
+    },
+    {
+      "anchor": "Nepali",
+      "href": "/trending/python?since=daily&spoken_language_code=ne"
+    },
+    {
+      "anchor": "Ndonga",
+      "href": "/trending/python?since=daily&spoken_language_code=ng"
+    },
+    {
+      "anchor": "Norwegian Bokmål",
+      "href": "/trending/python?since=daily&spoken_language_code=nb"
+    },
+    {
+      "anchor": "Norwegian Nynorsk",
+      "href": "/trending/python?since=daily&spoken_language_code=nn"
+    },
+    {
+      "anchor": "Norwegian",
+      "href": "/trending/python?since=daily&spoken_language_code=no"
+    },
+    {
+      "anchor": "Sichuan Yi, Nuosu",
+      "href": "/trending/python?since=daily&spoken_language_code=ii"
+    },
+    {
+      "anchor": "South Ndebele",
+      "href": "/trending/python?since=daily&spoken_language_code=nr"
+    },
+    {
+      "anchor": "Occitan",
+      "href": "/trending/python?since=daily&spoken_language_code=oc"
+    },
+    {
+      "anchor": "Ojibwa",
+      "href": "/trending/python?since=daily&spoken_language_code=oj"
+    },
+    {
+      "anchor": "Church Slavic, Old Slavonic, Chu...",
+      "href": "/trending/python?since=daily&spoken_language_code=cu"
+    },
+    {
+      "anchor": "Oromo",
+      "href": "/trending/python?since=daily&spoken_language_code=om"
+    },
+    {
+      "anchor": "Oriya",
+      "href": "/trending/python?since=daily&spoken_language_code=or"
+    },
+    {
+      "anchor": "Ossetian, Ossetic",
+      "href": "/trending/python?since=daily&spoken_language_code=os"
+    },
+    {
+      "anchor": "Punjabi, Panjabi",
+      "href": "/trending/python?since=daily&spoken_language_code=pa"
+    },
+    {
+      "anchor": "Pali",
+      "href": "/trending/python?since=daily&spoken_language_code=pi"
+    },
+    {
+      "anchor": "Persian",
+      "href": "/trending/python?since=daily&spoken_language_code=fa"
+    },
+    {
+      "anchor": "Polish",
+      "href": "/trending/python?since=daily&spoken_language_code=pl"
+    },
+    {
+      "anchor": "Pashto, Pushto",
+      "href": "/trending/python?since=daily&spoken_language_code=ps"
+    },
+    {
+      "anchor": "Portuguese",
+      "href": "/trending/python?since=daily&spoken_language_code=pt"
+    },
+    {
+      "anchor": "Quechua",
+      "href": "/trending/python?since=daily&spoken_language_code=qu"
+    },
+    {
+      "anchor": "Romansh",
+      "href": "/trending/python?since=daily&spoken_language_code=rm"
+    },
+    {
+      "anchor": "Rundi",
+      "href": "/trending/python?since=daily&spoken_language_code=rn"
+    },
+    {
+      "anchor": "Romanian, Moldavian, Moldovan",
+      "href": "/trending/python?since=daily&spoken_language_code=ro"
+    },
+    {
+      "anchor": "Russian",
+      "href": "/trending/python?since=daily&spoken_language_code=ru"
+    },
+    {
+      "anchor": "Sanskrit",
+      "href": "/trending/python?since=daily&spoken_language_code=sa"
+    },
+    {
+      "anchor": "Sardinian",
+      "href": "/trending/python?since=daily&spoken_language_code=sc"
+    },
+    {
+      "anchor": "Sindhi",
+      "href": "/trending/python?since=daily&spoken_language_code=sd"
+    },
+    {
+      "anchor": "Northern Sami",
+      "href": "/trending/python?since=daily&spoken_language_code=se"
+    },
+    {
+      "anchor": "Samoan",
+      "href": "/trending/python?since=daily&spoken_language_code=sm"
+    },
+    {
+      "anchor": "Sango",
+      "href": "/trending/python?since=daily&spoken_language_code=sg"
+    },
+    {
+      "anchor": "Serbian",
+      "href": "/trending/python?since=daily&spoken_language_code=sr"
+    },
+    {
+      "anchor": "Gaelic, Scottish Gaelic",
+      "href": "/trending/python?since=daily&spoken_language_code=gd"
+    },
+    {
+      "anchor": "Shona",
+      "href": "/trending/python?since=daily&spoken_language_code=sn"
+    },
+    {
+      "anchor": "Sinhala, Sinhalese",
+      "href": "/trending/python?since=daily&spoken_language_code=si"
+    },
+    {
+      "anchor": "Slovak",
+      "href": "/trending/python?since=daily&spoken_language_code=sk"
+    },
+    {
+      "anchor": "Slovenian",
+      "href": "/trending/python?since=daily&spoken_language_code=sl"
+    },
+    {
+      "anchor": "Somali",
+      "href": "/trending/python?since=daily&spoken_language_code=so"
+    },
+    {
+      "anchor": "Southern Sotho",
+      "href": "/trending/python?since=daily&spoken_language_code=st"
+    },
+    {
+      "anchor": "Spanish, Castilian",
+      "href": "/trending/python?since=daily&spoken_language_code=es"
+    },
+    {
+      "anchor": "Sundanese",
+      "href": "/trending/python?since=daily&spoken_language_code=su"
+    },
+    {
+      "anchor": "Swahili",
+      "href": "/trending/python?since=daily&spoken_language_code=sw"
+    },
+    {
+      "anchor": "Swati",
+      "href": "/trending/python?since=daily&spoken_language_code=ss"
+    },
+    {
+      "anchor": "Swedish",
+      "href": "/trending/python?since=daily&spoken_language_code=sv"
+    },
+    {
+      "anchor": "Tamil",
+      "href": "/trending/python?since=daily&spoken_language_code=ta"
+    },
+    {
+      "anchor": "Telugu",
+      "href": "/trending/python?since=daily&spoken_language_code=te"
+    },
+    {
+      "anchor": "Tajik",
+      "href": "/trending/python?since=daily&spoken_language_code=tg"
+    },
+    {
+      "anchor": "Thai",
+      "href": "/trending/python?since=daily&spoken_language_code=th"
+    },
+    {
+      "anchor": "Tigrinya",
+      "href": "/trending/python?since=daily&spoken_language_code=ti"
+    },
+    {
+      "anchor": "Tibetan",
+      "href": "/trending/python?since=daily&spoken_language_code=bo"
+    },
+    {
+      "anchor": "Turkmen",
+      "href": "/trending/python?since=daily&spoken_language_code=tk"
+    },
+    {
+      "anchor": "Tagalog",
+      "href": "/trending/python?since=daily&spoken_language_code=tl"
+    },
+    {
+      "anchor": "Tswana",
+      "href": "/trending/python?since=daily&spoken_language_code=tn"
+    },
+    {
+      "anchor": "Tonga (Tonga Islands)",
+      "href": "/trending/python?since=daily&spoken_language_code=to"
+    },
+    {
+      "anchor": "Turkish",
+      "href": "/trending/python?since=daily&spoken_language_code=tr"
+    },
+    {
+      "anchor": "Tsonga",
+      "href": "/trending/python?since=daily&spoken_language_code=ts"
+    },
+    {
+      "anchor": "Tatar",
+      "href": "/trending/python?since=daily&spoken_language_code=tt"
+    },
+    {
+      "anchor": "Twi",
+      "href": "/trending/python?since=daily&spoken_language_code=tw"
+    },
+    {
+      "anchor": "Tahitian",
+      "href": "/trending/python?since=daily&spoken_language_code=ty"
+    },
+    {
+      "anchor": "Uighur, Uyghur",
+      "href": "/trending/python?since=daily&spoken_language_code=ug"
+    },
+    {
+      "anchor": "Ukrainian",
+      "href": "/trending/python?since=daily&spoken_language_code=uk"
+    },
+    {
+      "anchor": "Urdu",
+      "href": "/trending/python?since=daily&spoken_language_code=ur"
+    },
+    {
+      "anchor": "Uzbek",
+      "href": "/trending/python?since=daily&spoken_language_code=uz"
+    },
+    {
+      "anchor": "Venda",
+      "href": "/trending/python?since=daily&spoken_language_code=ve"
+    },
+    {
+      "anchor": "Vietnamese",
+      "href": "/trending/python?since=daily&spoken_language_code=vi"
+    },
+    {
+      "anchor": "Volapük",
+      "href": "/trending/python?since=daily&spoken_language_code=vo"
+    },
+    {
+      "anchor": "Walloon",
+      "href": "/trending/python?since=daily&spoken_language_code=wa"
+    },
+    {
+      "anchor": "Welsh",
+      "href": "/trending/python?since=daily&spoken_language_code=cy"
+    },
+    {
+      "anchor": "Wolof",
+      "href": "/trending/python?since=daily&spoken_language_code=wo"
+    },
+    {
+      "anchor": "Western Frisian",
+      "href": "/trending/python?since=daily&spoken_language_code=fy"
+    },
+    {
+      "anchor": "Xhosa",
+      "href": "/trending/python?since=daily&spoken_language_code=xh"
+    },
+    {
+      "anchor": "Yiddish",
+      "href": "/trending/python?since=daily&spoken_language_code=yi"
+    },
+    {
+      "anchor": "Yoruba",
+      "href": "/trending/python?since=daily&spoken_language_code=yo"
+    },
+    {
+      "anchor": "Zhuang, Chuang",
+      "href": "/trending/python?since=daily&spoken_language_code=za"
+    },
+    {
+      "anchor": "Zulu",
+      "href": "/trending/python?since=daily&spoken_language_code=zu"
+    },
+    {
+      "anchor": "Clear language",
+      "href": "/trending?since=daily"
+    },
+    {
+      "anchor": "Unknown languages",
+      "href": "/trending/unknown?since=daily"
+    },
+    {
+      "anchor": "1C Enterprise",
+      "href": "/trending/1c-enterprise?since=daily"
+    },
+    {
+      "anchor": "2-Dimensional Array",
+      "href": "/trending/2-dimensional-array?since=daily"
+    },
+    {
+      "anchor": "4D",
+      "href": "/trending/4d?since=daily"
+    },
+    {
+      "anchor": "ABAP",
+      "href": "/trending/abap?since=daily"
+    },
+    {
+      "anchor": "ABAP CDS",
+      "href": "/trending/abap-cds?since=daily"
+    },
+    {
+      "anchor": "ABNF",
+      "href": "/trending/abnf?since=daily"
+    },
+    {
+      "anchor": "ActionScript",
+      "href": "/trending/actionscript?since=daily"
+    },
+    {
+      "anchor": "Ada",
+      "href": "/trending/ada?since=daily"
+    },
+    {
+      "anchor": "Adblock Filter List",
+      "href": "/trending/adblock-filter-list?since=daily"
+    },
+    {
+      "anchor": "Adobe Font Metrics",
+      "href": "/trending/adobe-font-metrics?since=daily"
+    },
+    {
+      "anchor": "Agda",
+      "href": "/trending/agda?since=daily"
+    },
+    {
+      "anchor": "AGS Script",
+      "href": "/trending/ags-script?since=daily"
+    },
+    {
+      "anchor": "AIDL",
+      "href": "/trending/aidl?since=daily"
+    },
+    {
+      "anchor": "Aiken",
+      "href": "/trending/aiken?since=daily"
+    },
+    {
+      "anchor": "AL",
+      "href": "/trending/al?since=daily"
+    },
+    {
+      "anchor": "ALGOL",
+      "href": "/trending/algol?since=daily"
+    },
+    {
+      "anchor": "Alloy",
+      "href": "/trending/alloy?since=daily"
+    },
+    {
+      "anchor": "Alpine Abuild",
+      "href": "/trending/alpine-abuild?since=daily"
+    },
+    {
+      "anchor": "Altium Designer",
+      "href": "/trending/altium-designer?since=daily"
+    },
+    {
+      "anchor": "AMPL",
+      "href": "/trending/ampl?since=daily"
+    },
+    {
+      "anchor": "AngelScript",
+      "href": "/trending/angelscript?since=daily"
+    },
+    {
+      "anchor": "Answer Set Programming",
+      "href": "/trending/answer-set-programming?since=daily"
+    },
+    {
+      "anchor": "Ant Build System",
+      "href": "/trending/ant-build-system?since=daily"
+    },
+    {
+      "anchor": "Antlers",
+      "href": "/trending/antlers?since=daily"
+    },
+    {
+      "anchor": "ANTLR",
+      "href": "/trending/antlr?since=daily"
+    },
+    {
+      "anchor": "ApacheConf",
+      "href": "/trending/apacheconf?since=daily"
+    },
+    {
+      "anchor": "Apex",
+      "href": "/trending/apex?since=daily"
+    },
+    {
+      "anchor": "API Blueprint",
+      "href": "/trending/api-blueprint?since=daily"
+    },
+    {
+      "anchor": "APL",
+      "href": "/trending/apl?since=daily"
+    },
+    {
+      "anchor": "Apollo Guidance Computer",
+      "href": "/trending/apollo-guidance-computer?since=daily"
+    },
+    {
+      "anchor": "AppleScript",
+      "href": "/trending/applescript?since=daily"
+    },
+    {
+      "anchor": "Arc",
+      "href": "/trending/arc?since=daily"
+    },
+    {
+      "anchor": "AsciiDoc",
+      "href": "/trending/asciidoc?since=daily"
+    },
+    {
+      "anchor": "ASL",
+      "href": "/trending/asl?since=daily"
+    },
+    {
+      "anchor": "ASN.1",
+      "href": "/trending/asn.1?since=daily"
+    },
+    {
+      "anchor": "Classic ASP",
+      "href": "/trending/classic-asp?since=daily"
+    },
+    {
+      "anchor": "ASP.NET",
+      "href": "/trending/asp.net?since=daily"
+    },
+    {
+      "anchor": "AspectJ",
+      "href": "/trending/aspectj?since=daily"
+    },
+    {
+      "anchor": "Assembly",
+      "href": "/trending/assembly?since=daily"
+    },
+    {
+      "anchor": "Astro",
+      "href": "/trending/astro?since=daily"
+    },
+    {
+      "anchor": "Asymptote",
+      "href": "/trending/asymptote?since=daily"
+    },
+    {
+      "anchor": "ATS",
+      "href": "/trending/ats?since=daily"
+    },
+    {
+      "anchor": "Augeas",
+      "href": "/trending/augeas?since=daily"
+    },
+    {
+      "anchor": "AutoHotkey",
+      "href": "/trending/autohotkey?since=daily"
+    },
+    {
+      "anchor": "AutoIt",
+      "href": "/trending/autoit?since=daily"
+    },
+    {
+      "anchor": "Avro IDL",
+      "href": "/trending/avro-idl?since=daily"
+    },
+    {
+      "anchor": "Awk",
+      "href": "/trending/awk?since=daily"
+    },
+    {
+      "anchor": "B (Formal Method)",
+      "href": "/trending/b-(formal-method)?since=daily"
+    },
+    {
+      "anchor": "B4X",
+      "href": "/trending/b4x?since=daily"
+    },
+    {
+      "anchor": "Ballerina",
+      "href": "/trending/ballerina?since=daily"
+    },
+    {
+      "anchor": "BASIC",
+      "href": "/trending/basic?since=daily"
+    },
+    {
+      "anchor": "Batchfile",
+      "href": "/trending/batchfile?since=daily"
+    },
+    {
+      "anchor": "Beef",
+      "href": "/trending/beef?since=daily"
+    },
+    {
+      "anchor": "Befunge",
+      "href": "/trending/befunge?since=daily"
+    },
+    {
+      "anchor": "Berry",
+      "href": "/trending/berry?since=daily"
+    },
+    {
+      "anchor": "BibTeX",
+      "href": "/trending/bibtex?since=daily"
+    },
+    {
+      "anchor": "BibTeX Style",
+      "href": "/trending/bibtex-style?since=daily"
+    },
+    {
+      "anchor": "Bicep",
+      "href": "/trending/bicep?since=daily"
+    },
+    {
+      "anchor": "Bikeshed",
+      "href": "/trending/bikeshed?since=daily"
+    },
+    {
+      "anchor": "Bison",
+      "href": "/trending/bison?since=daily"
+    },
+    {
+      "anchor": "BitBake",
+      "href": "/trending/bitbake?since=daily"
+    },
+    {
+      "anchor": "Blade",
+      "href": "/trending/blade?since=daily"
+    },
+    {
+      "anchor": "BlitzBasic",
+      "href": "/trending/blitzbasic?since=daily"
+    },
+    {
+      "anchor": "BlitzMax",
+      "href": "/trending/blitzmax?since=daily"
+    },
+    {
+      "anchor": "Bluespec",
+      "href": "/trending/bluespec?since=daily"
+    },
+    {
+      "anchor": "Bluespec BH",
+      "href": "/trending/bluespec-bh?since=daily"
+    },
+    {
+      "anchor": "Boo",
+      "href": "/trending/boo?since=daily"
+    },
+    {
+      "anchor": "Boogie",
+      "href": "/trending/boogie?since=daily"
+    },
+    {
+      "anchor": "BQN",
+      "href": "/trending/bqn?since=daily"
+    },
+    {
+      "anchor": "Brainfuck",
+      "href": "/trending/brainfuck?since=daily"
+    },
+    {
+      "anchor": "BrighterScript",
+      "href": "/trending/brighterscript?since=daily"
+    },
+    {
+      "anchor": "Brightscript",
+      "href": "/trending/brightscript?since=daily"
+    },
+    {
+      "anchor": "Zeek",
+      "href": "/trending/zeek?since=daily"
+    },
+    {
+      "anchor": "Browserslist",
+      "href": "/trending/browserslist?since=daily"
+    },
+    {
+      "anchor": "Bru",
+      "href": "/trending/bru?since=daily"
+    },
+    {
+      "anchor": "BuildStream",
+      "href": "/trending/buildstream?since=daily"
+    },
+    {
+      "anchor": "C",
+      "href": "/trending/c?since=daily"
+    },
+    {
+      "anchor": "C#",
+      "href": "/trending/c%23?since=daily"
+    },
+    {
+      "anchor": "C++",
+      "href": "/trending/c++?since=daily"
+    },
+    {
+      "anchor": "C-ObjDump",
+      "href": "/trending/c-objdump?since=daily"
+    },
+    {
+      "anchor": "C2hs Haskell",
+      "href": "/trending/c2hs-haskell?since=daily"
+    },
+    {
+      "anchor": "C3",
+      "href": "/trending/c3?since=daily"
+    },
+    {
+      "anchor": "Cabal Config",
+      "href": "/trending/cabal-config?since=daily"
+    },
+    {
+      "anchor": "Caddyfile",
+      "href": "/trending/caddyfile?since=daily"
+    },
+    {
+      "anchor": "Cadence",
+      "href": "/trending/cadence?since=daily"
+    },
+    {
+      "anchor": "Cairo",
+      "href": "/trending/cairo?since=daily"
+    },
+    {
+      "anchor": "Cairo Zero",
+      "href": "/trending/cairo-zero?since=daily"
+    },
+    {
+      "anchor": "CameLIGO",
+      "href": "/trending/cameligo?since=daily"
+    },
+    {
+      "anchor": "Cangjie",
+      "href": "/trending/cangjie?since=daily"
+    },
+    {
+      "anchor": "CAP CDS",
+      "href": "/trending/cap-cds?since=daily"
+    },
+    {
+      "anchor": "Cap'n Proto",
+      "href": "/trending/cap'n-proto?since=daily"
+    },
+    {
+      "anchor": "Carbon",
+      "href": "/trending/carbon?since=daily"
+    },
+    {
+      "anchor": "CartoCSS",
+      "href": "/trending/cartocss?since=daily"
+    },
+    {
+      "anchor": "Ceylon",
+      "href": "/trending/ceylon?since=daily"
+    },
+    {
+      "anchor": "Chapel",
+      "href": "/trending/chapel?since=daily"
+    },
+    {
+      "anchor": "Charity",
+      "href": "/trending/charity?since=daily"
+    },
+    {
+      "anchor": "Checksums",
+      "href": "/trending/checksums?since=daily"
+    },
+    {
+      "anchor": "ChucK",
+      "href": "/trending/chuck?since=daily"
+    },
+    {
+      "anchor": "CIL",
+      "href": "/trending/cil?since=daily"
+    },
+    {
+      "anchor": "Circom",
+      "href": "/trending/circom?since=daily"
+    },
+    {
+      "anchor": "Cirru",
+      "href": "/trending/cirru?since=daily"
+    },
+    {
+      "anchor": "Clarion",
+      "href": "/trending/clarion?since=daily"
+    },
+    {
+      "anchor": "Clarity",
+      "href": "/trending/clarity?since=daily"
+    },
+    {
+      "anchor": "Classic ASP",
+      "href": "/trending/classic-asp?since=daily"
+    },
+    {
+      "anchor": "Clean",
+      "href": "/trending/clean?since=daily"
+    },
+    {
+      "anchor": "Click",
+      "href": "/trending/click?since=daily"
+    },
+    {
+      "anchor": "CLIPS",
+      "href": "/trending/clips?since=daily"
+    },
+    {
+      "anchor": "Clojure",
+      "href": "/trending/clojure?since=daily"
+    },
+    {
+      "anchor": "Closure Templates",
+      "href": "/trending/closure-templates?since=daily"
+    },
+    {
+      "anchor": "Cloud Firestore Security Rules",
+      "href": "/trending/cloud-firestore-security-rules?since=daily"
+    },
+    {
+      "anchor": "Clue",
+      "href": "/trending/clue?since=daily"
+    },
+    {
+      "anchor": "CMake",
+      "href": "/trending/cmake?since=daily"
+    },
+    {
+      "anchor": "COBOL",
+      "href": "/trending/cobol?since=daily"
+    },
+    {
+      "anchor": "CODEOWNERS",
+      "href": "/trending/codeowners?since=daily"
+    },
+    {
+      "anchor": "CodeQL",
+      "href": "/trending/codeql?since=daily"
+    },
+    {
+      "anchor": "CoffeeScript",
+      "href": "/trending/coffeescript?since=daily"
+    },
+    {
+      "anchor": "ColdFusion",
+      "href": "/trending/coldfusion?since=daily"
+    },
+    {
+      "anchor": "ColdFusion CFC",
+      "href": "/trending/coldfusion-cfc?since=daily"
+    },
+    {
+      "anchor": "COLLADA",
+      "href": "/trending/collada?since=daily"
+    },
+    {
+      "anchor": "Common Lisp",
+      "href": "/trending/common-lisp?since=daily"
+    },
+    {
+      "anchor": "Common Workflow Language",
+      "href": "/trending/common-workflow-language?since=daily"
+    },
+    {
+      "anchor": "Component Pascal",
+      "href": "/trending/component-pascal?since=daily"
+    },
+    {
+      "anchor": "CoNLL-U",
+      "href": "/trending/conll-u?since=daily"
+    },
+    {
+      "anchor": "Cooklang",
+      "href": "/trending/cooklang?since=daily"
+    },
+    {
+      "anchor": "Cool",
+      "href": "/trending/cool?since=daily"
+    },
+    {
+      "anchor": "Rocq Prover",
+      "href": "/trending/rocq-prover?since=daily"
+    },
+    {
+      "anchor": "Cpp-ObjDump",
+      "href": "/trending/cpp-objdump?since=daily"
+    },
+    {
+      "anchor": "CQL",
+      "href": "/trending/cql?since=daily"
+    },
+    {
+      "anchor": "Creole",
+      "href": "/trending/creole?since=daily"
+    },
+    {
+      "anchor": "crontab",
+      "href": "/trending/crontab?since=daily"
+    },
+    {
+      "anchor": "Crystal",
+      "href": "/trending/crystal?since=daily"
+    },
+    {
+      "anchor": "CSON",
+      "href": "/trending/cson?since=daily"
+    },
+    {
+      "anchor": "Csound",
+      "href": "/trending/csound?since=daily"
+    },
+    {
+      "anchor": "Csound Document",
+      "href": "/trending/csound-document?since=daily"
+    },
+    {
+      "anchor": "Csound Score",
+      "href": "/trending/csound-score?since=daily"
+    },
+    {
+      "anchor": "CSS",
+      "href": "/trending/css?since=daily"
+    },
+    {
+      "anchor": "CSV",
+      "href": "/trending/csv?since=daily"
+    },
+    {
+      "anchor": "Cuda",
+      "href": "/trending/cuda?since=daily"
+    },
+    {
+      "anchor": "CUE",
+      "href": "/trending/cue?since=daily"
+    },
+    {
+      "anchor": "Cue Sheet",
+      "href": "/trending/cue-sheet?since=daily"
+    },
+    {
+      "anchor": "cURL Config",
+      "href": "/trending/curl-config?since=daily"
+    },
+    {
+      "anchor": "Curry",
+      "href": "/trending/curry?since=daily"
+    },
+    {
+      "anchor": "CWeb",
+      "href": "/trending/cweb?since=daily"
+    },
+    {
+      "anchor": "Cycript",
+      "href": "/trending/cycript?since=daily"
+    },
+    {
+      "anchor": "Cylc",
+      "href": "/trending/cylc?since=daily"
+    },
+    {
+      "anchor": "Cypher",
+      "href": "/trending/cypher?since=daily"
+    },
+    {
+      "anchor": "Cython",
+      "href": "/trending/cython?since=daily"
+    },
+    {
+      "anchor": "D",
+      "href": "/trending/d?since=daily"
+    },
+    {
+      "anchor": "D-ObjDump",
+      "href": "/trending/d-objdump?since=daily"
+    },
+    {
+      "anchor": "D2",
+      "href": "/trending/d2?since=daily"
+    },
+    {
+      "anchor": "Dafny",
+      "href": "/trending/dafny?since=daily"
+    },
+    {
+      "anchor": "Darcs Patch",
+      "href": "/trending/darcs-patch?since=daily"
+    },
+    {
+      "anchor": "Dart",
+      "href": "/trending/dart?since=daily"
+    },
+    {
+      "anchor": "Daslang",
+      "href": "/trending/daslang?since=daily"
+    },
+    {
+      "anchor": "DataWeave",
+      "href": "/trending/dataweave?since=daily"
+    },
+    {
+      "anchor": "Debian Package Control File",
+      "href": "/trending/debian-package-control-file?since=daily"
+    },
+    {
+      "anchor": "DenizenScript",
+      "href": "/trending/denizenscript?since=daily"
+    },
+    {
+      "anchor": "desktop",
+      "href": "/trending/desktop?since=daily"
+    },
+    {
+      "anchor": "Dhall",
+      "href": "/trending/dhall?since=daily"
+    },
+    {
+      "anchor": "Diff",
+      "href": "/trending/diff?since=daily"
+    },
+    {
+      "anchor": "DIGITAL Command Language",
+      "href": "/trending/digital-command-language?since=daily"
+    },
+    {
+      "anchor": "dircolors",
+      "href": "/trending/dircolors?since=daily"
+    },
+    {
+      "anchor": "DirectX 3D File",
+      "href": "/trending/directx-3d-file?since=daily"
+    },
+    {
+      "anchor": "DM",
+      "href": "/trending/dm?since=daily"
+    },
+    {
+      "anchor": "DNS Zone",
+      "href": "/trending/dns-zone?since=daily"
+    },
+    {
+      "anchor": "Dockerfile",
+      "href": "/trending/dockerfile?since=daily"
+    },
+    {
+      "anchor": "Dogescript",
+      "href": "/trending/dogescript?since=daily"
+    },
+    {
+      "anchor": "Dotenv",
+      "href": "/trending/dotenv?since=daily"
+    },
+    {
+      "anchor": "DTrace",
+      "href": "/trending/dtrace?since=daily"
+    },
+    {
+      "anchor": "Dune",
+      "href": "/trending/dune?since=daily"
+    },
+    {
+      "anchor": "Dylan",
+      "href": "/trending/dylan?since=daily"
+    },
+    {
+      "anchor": "E",
+      "href": "/trending/e?since=daily"
+    },
+    {
+      "anchor": "E-mail",
+      "href": "/trending/e-mail?since=daily"
+    },
+    {
+      "anchor": "Eagle",
+      "href": "/trending/eagle?since=daily"
+    },
+    {
+      "anchor": "Earthly",
+      "href": "/trending/earthly?since=daily"
+    },
+    {
+      "anchor": "Easybuild",
+      "href": "/trending/easybuild?since=daily"
+    },
+    {
+      "anchor": "EBNF",
+      "href": "/trending/ebnf?since=daily"
+    },
+    {
+      "anchor": "eC",
+      "href": "/trending/ec?since=daily"
+    },
+    {
+      "anchor": "Ecere Projects",
+      "href": "/trending/ecere-projects?since=daily"
+    },
+    {
+      "anchor": "ECL",
+      "href": "/trending/ecl?since=daily"
+    },
+    {
+      "anchor": "ECLiPSe",
+      "href": "/trending/eclipse?since=daily"
+    },
+    {
+      "anchor": "Ecmarkup",
+      "href": "/trending/ecmarkup?since=daily"
+    },
+    {
+      "anchor": "Edge",
+      "href": "/trending/edge?since=daily"
+    },
+    {
+      "anchor": "EdgeQL",
+      "href": "/trending/edgeql?since=daily"
+    },
+    {
+      "anchor": "EditorConfig",
+      "href": "/trending/editorconfig?since=daily"
+    },
+    {
+      "anchor": "Edje Data Collection",
+      "href": "/trending/edje-data-collection?since=daily"
+    },
+    {
+      "anchor": "edn",
+      "href": "/trending/edn?since=daily"
+    },
+    {
+      "anchor": "Eiffel",
+      "href": "/trending/eiffel?since=daily"
+    },
+    {
+      "anchor": "EJS",
+      "href": "/trending/ejs?since=daily"
+    },
+    {
+      "anchor": "Elixir",
+      "href": "/trending/elixir?since=daily"
+    },
+    {
+      "anchor": "Elm",
+      "href": "/trending/elm?since=daily"
+    },
+    {
+      "anchor": "Elvish",
+      "href": "/trending/elvish?since=daily"
+    },
+    {
+      "anchor": "Elvish Transcript",
+      "href": "/trending/elvish-transcript?since=daily"
+    },
+    {
+      "anchor": "Emacs Lisp",
+      "href": "/trending/emacs-lisp?since=daily"
+    },
+    {
+      "anchor": "EmberScript",
+      "href": "/trending/emberscript?since=daily"
+    },
+    {
+      "anchor": "E-mail",
+      "href": "/trending/e-mail?since=daily"
+    },
+    {
+      "anchor": "EQ",
+      "href": "/trending/eq?since=daily"
+    },
+    {
+      "anchor": "Erlang",
+      "href": "/trending/erlang?since=daily"
+    },
+    {
+      "anchor": "Euphoria",
+      "href": "/trending/euphoria?since=daily"
+    },
+    {
+      "anchor": "F#",
+      "href": "/trending/f%23?since=daily"
+    },
+    {
+      "anchor": "F*",
+      "href": "/trending/f*?since=daily"
+    },
+    {
+      "anchor": "Factor",
+      "href": "/trending/factor?since=daily"
+    },
+    {
+      "anchor": "Fancy",
+      "href": "/trending/fancy?since=daily"
+    },
+    {
+      "anchor": "Fantom",
+      "href": "/trending/fantom?since=daily"
+    },
+    {
+      "anchor": "Faust",
+      "href": "/trending/faust?since=daily"
+    },
+    {
+      "anchor": "Fennel",
+      "href": "/trending/fennel?since=daily"
+    },
+    {
+      "anchor": "FIGlet Font",
+      "href": "/trending/figlet-font?since=daily"
+    },
+    {
+      "anchor": "Filebench WML",
+      "href": "/trending/filebench-wml?since=daily"
+    },
+    {
+      "anchor": "Filterscript",
+      "href": "/trending/filterscript?since=daily"
+    },
+    {
+      "anchor": "FIRRTL",
+      "href": "/trending/firrtl?since=daily"
+    },
+    {
+      "anchor": "fish",
+      "href": "/trending/fish?since=daily"
+    },
+    {
+      "anchor": "Flix",
+      "href": "/trending/flix?since=daily"
+    },
+    {
+      "anchor": "Fluent",
+      "href": "/trending/fluent?since=daily"
+    },
+    {
+      "anchor": "FLUX",
+      "href": "/trending/flux?since=daily"
+    },
+    {
+      "anchor": "Formatted",
+      "href": "/trending/formatted?since=daily"
+    },
+    {
+      "anchor": "Forth",
+      "href": "/trending/forth?since=daily"
+    },
+    {
+      "anchor": "Fortran",
+      "href": "/trending/fortran?since=daily"
+    },
+    {
+      "anchor": "Fortran Free Form",
+      "href": "/trending/fortran-free-form?since=daily"
+    },
+    {
+      "anchor": "FreeBASIC",
+      "href": "/trending/freebasic?since=daily"
+    },
+    {
+      "anchor": "FreeMarker",
+      "href": "/trending/freemarker?since=daily"
+    },
+    {
+      "anchor": "Frege",
+      "href": "/trending/frege?since=daily"
+    },
+    {
+      "anchor": "Futhark",
+      "href": "/trending/futhark?since=daily"
+    },
+    {
+      "anchor": "G-code",
+      "href": "/trending/g-code?since=daily"
+    },
+    {
+      "anchor": "Game Maker Language",
+      "href": "/trending/game-maker-language?since=daily"
+    },
+    {
+      "anchor": "GAML",
+      "href": "/trending/gaml?since=daily"
+    },
+    {
+      "anchor": "GAMS",
+      "href": "/trending/gams?since=daily"
+    },
+    {
+      "anchor": "GAP",
+      "href": "/trending/gap?since=daily"
+    },
+    {
+      "anchor": "GCC Machine Description",
+      "href": "/trending/gcc-machine-description?since=daily"
+    },
+    {
+      "anchor": "GDB",
+      "href": "/trending/gdb?since=daily"
+    },
+    {
+      "anchor": "GDScript",
+      "href": "/trending/gdscript?since=daily"
+    },
+    {
+      "anchor": "GDShader",
+      "href": "/trending/gdshader?since=daily"
+    },
+    {
+      "anchor": "GEDCOM",
+      "href": "/trending/gedcom?since=daily"
+    },
+    {
+      "anchor": "Gemfile.lock",
+      "href": "/trending/gemfile.lock?since=daily"
+    },
+    {
+      "anchor": "Gemini",
+      "href": "/trending/gemini?since=daily"
+    },
+    {
+      "anchor": "Genero 4gl",
+      "href": "/trending/genero-4gl?since=daily"
+    },
+    {
+      "anchor": "Genero per",
+      "href": "/trending/genero-per?since=daily"
+    },
+    {
+      "anchor": "Genie",
+      "href": "/trending/genie?since=daily"
+    },
+    {
+      "anchor": "Genshi",
+      "href": "/trending/genshi?since=daily"
+    },
+    {
+      "anchor": "Gentoo Ebuild",
+      "href": "/trending/gentoo-ebuild?since=daily"
+    },
+    {
+      "anchor": "Gentoo Eclass",
+      "href": "/trending/gentoo-eclass?since=daily"
+    },
+    {
+      "anchor": "Gerber Image",
+      "href": "/trending/gerber-image?since=daily"
+    },
+    {
+      "anchor": "Gettext Catalog",
+      "href": "/trending/gettext-catalog?since=daily"
+    },
+    {
+      "anchor": "Gherkin",
+      "href": "/trending/gherkin?since=daily"
+    },
+    {
+      "anchor": "Git Attributes",
+      "href": "/trending/git-attributes?since=daily"
+    },
+    {
+      "anchor": "Git Commit",
+      "href": "/trending/git-commit?since=daily"
+    },
+    {
+      "anchor": "Git Config",
+      "href": "/trending/git-config?since=daily"
+    },
+    {
+      "anchor": "Git Revision List",
+      "href": "/trending/git-revision-list?since=daily"
+    },
+    {
+      "anchor": "Gleam",
+      "href": "/trending/gleam?since=daily"
+    },
+    {
+      "anchor": "Glimmer JS",
+      "href": "/trending/glimmer-js?since=daily"
+    },
+    {
+      "anchor": "Glimmer TS",
+      "href": "/trending/glimmer-ts?since=daily"
+    },
+    {
+      "anchor": "GLSL",
+      "href": "/trending/glsl?since=daily"
+    },
+    {
+      "anchor": "Glyph",
+      "href": "/trending/glyph?since=daily"
+    },
+    {
+      "anchor": "Glyph Bitmap Distribution Format",
+      "href": "/trending/glyph-bitmap-distribution-format?since=daily"
+    },
+    {
+      "anchor": "GN",
+      "href": "/trending/gn?since=daily"
+    },
+    {
+      "anchor": "Gnuplot",
+      "href": "/trending/gnuplot?since=daily"
+    },
+    {
+      "anchor": "Go",
+      "href": "/trending/go?since=daily"
+    },
+    {
+      "anchor": "Go Checksums",
+      "href": "/trending/go-checksums?since=daily"
+    },
+    {
+      "anchor": "Go Module",
+      "href": "/trending/go-module?since=daily"
+    },
+    {
+      "anchor": "Go Template",
+      "href": "/trending/go-template?since=daily"
+    },
+    {
+      "anchor": "Go Workspace",
+      "href": "/trending/go-workspace?since=daily"
+    },
+    {
+      "anchor": "Godot Resource",
+      "href": "/trending/godot-resource?since=daily"
+    },
+    {
+      "anchor": "Golo",
+      "href": "/trending/golo?since=daily"
+    },
+    {
+      "anchor": "Gosu",
+      "href": "/trending/gosu?since=daily"
+    },
+    {
+      "anchor": "Grace",
+      "href": "/trending/grace?since=daily"
+    },
+    {
+      "anchor": "Gradle",
+      "href": "/trending/gradle?since=daily"
+    },
+    {
+      "anchor": "Gradle Kotlin DSL",
+      "href": "/trending/gradle-kotlin-dsl?since=daily"
+    },
+    {
+      "anchor": "Grammatical Framework",
+      "href": "/trending/grammatical-framework?since=daily"
+    },
+    {
+      "anchor": "Graph Modeling Language",
+      "href": "/trending/graph-modeling-language?since=daily"
+    },
+    {
+      "anchor": "GraphQL",
+      "href": "/trending/graphql?since=daily"
+    },
+    {
+      "anchor": "Graphviz (DOT)",
+      "href": "/trending/graphviz-(dot)?since=daily"
+    },
+    {
+      "anchor": "Groovy",
+      "href": "/trending/groovy?since=daily"
+    },
+    {
+      "anchor": "Groovy Server Pages",
+      "href": "/trending/groovy-server-pages?since=daily"
+    },
+    {
+      "anchor": "GSC",
+      "href": "/trending/gsc?since=daily"
+    },
+    {
+      "anchor": "Hack",
+      "href": "/trending/hack?since=daily"
+    },
+    {
+      "anchor": "Haml",
+      "href": "/trending/haml?since=daily"
+    },
+    {
+      "anchor": "Handlebars",
+      "href": "/trending/handlebars?since=daily"
+    },
+    {
+      "anchor": "HAProxy",
+      "href": "/trending/haproxy?since=daily"
+    },
+    {
+      "anchor": "Harbour",
+      "href": "/trending/harbour?since=daily"
+    },
+    {
+      "anchor": "Hare",
+      "href": "/trending/hare?since=daily"
+    },
+    {
+      "anchor": "Haskell",
+      "href": "/trending/haskell?since=daily"
+    },
+    {
+      "anchor": "Haxe",
+      "href": "/trending/haxe?since=daily"
+    },
+    {
+      "anchor": "HCL",
+      "href": "/trending/hcl?since=daily"
+    },
+    {
+      "anchor": "HIP",
+      "href": "/trending/hip?since=daily"
+    },
+    {
+      "anchor": "HiveQL",
+      "href": "/trending/hiveql?since=daily"
+    },
+    {
+      "anchor": "HLSL",
+      "href": "/trending/hlsl?since=daily"
+    },
+    {
+      "anchor": "HOCON",
+      "href": "/trending/hocon?since=daily"
+    },
+    {
+      "anchor": "HolyC",
+      "href": "/trending/holyc?since=daily"
+    },
+    {
+      "anchor": "hoon",
+      "href": "/trending/hoon?since=daily"
+    },
+    {
+      "anchor": "Hosts File",
+      "href": "/trending/hosts-file?since=daily"
+    },
+    {
+      "anchor": "HTML",
+      "href": "/trending/html?since=daily"
+    },
+    {
+      "anchor": "Jinja",
+      "href": "/trending/jinja?since=daily"
+    },
+    {
+      "anchor": "HTML+ECR",
+      "href": "/trending/html+ecr?since=daily"
+    },
+    {
+      "anchor": "HTML+EEX",
+      "href": "/trending/html+eex?since=daily"
+    },
+    {
+      "anchor": "HTML+ERB",
+      "href": "/trending/html+erb?since=daily"
+    },
+    {
+      "anchor": "HTML+PHP",
+      "href": "/trending/html+php?since=daily"
+    },
+    {
+      "anchor": "HTML+Razor",
+      "href": "/trending/html+razor?since=daily"
+    },
+    {
+      "anchor": "HTTP",
+      "href": "/trending/http?since=daily"
+    },
+    {
+      "anchor": "Hurl",
+      "href": "/trending/hurl?since=daily"
+    },
+    {
+      "anchor": "HXML",
+      "href": "/trending/hxml?since=daily"
+    },
+    {
+      "anchor": "Hy",
+      "href": "/trending/hy?since=daily"
+    },
+    {
+      "anchor": "HyPhy",
+      "href": "/trending/hyphy?since=daily"
+    },
+    {
+      "anchor": "iCalendar",
+      "href": "/trending/icalendar?since=daily"
+    },
+    {
+      "anchor": "IDL",
+      "href": "/trending/idl?since=daily"
+    },
+    {
+      "anchor": "Idris",
+      "href": "/trending/idris?since=daily"
+    },
+    {
+      "anchor": "Ignore List",
+      "href": "/trending/ignore-list?since=daily"
+    },
+    {
+      "anchor": "IGOR Pro",
+      "href": "/trending/igor-pro?since=daily"
+    },
+    {
+      "anchor": "ImageJ Macro",
+      "href": "/trending/imagej-macro?since=daily"
+    },
+    {
+      "anchor": "Imba",
+      "href": "/trending/imba?since=daily"
+    },
+    {
+      "anchor": "Inform 7",
+      "href": "/trending/inform-7?since=daily"
+    },
+    {
+      "anchor": "INI",
+      "href": "/trending/ini?since=daily"
+    },
+    {
+      "anchor": "Ink",
+      "href": "/trending/ink?since=daily"
+    },
+    {
+      "anchor": "Inno Setup",
+      "href": "/trending/inno-setup?since=daily"
+    },
+    {
+      "anchor": "Io",
+      "href": "/trending/io?since=daily"
+    },
+    {
+      "anchor": "Ioke",
+      "href": "/trending/ioke?since=daily"
+    },
+    {
+      "anchor": "IRC log",
+      "href": "/trending/irc-log?since=daily"
+    },
+    {
+      "anchor": "Isabelle",
+      "href": "/trending/isabelle?since=daily"
+    },
+    {
+      "anchor": "Isabelle ROOT",
+      "href": "/trending/isabelle-root?since=daily"
+    },
+    {
+      "anchor": "ISPC",
+      "href": "/trending/ispc?since=daily"
+    },
+    {
+      "anchor": "J",
+      "href": "/trending/j?since=daily"
+    },
+    {
+      "anchor": "Jac",
+      "href": "/trending/jac?since=daily"
+    },
+    {
+      "anchor": "Jai",
+      "href": "/trending/jai?since=daily"
+    },
+    {
+      "anchor": "Janet",
+      "href": "/trending/janet?since=daily"
+    },
+    {
+      "anchor": "JAR Manifest",
+      "href": "/trending/jar-manifest?since=daily"
+    },
+    {
+      "anchor": "Jasmin",
+      "href": "/trending/jasmin?since=daily"
+    },
+    {
+      "anchor": "Java",
+      "href": "/trending/java?since=daily"
+    },
+    {
+      "anchor": "Java Properties",
+      "href": "/trending/java-properties?since=daily"
+    },
+    {
+      "anchor": "Java Server Pages",
+      "href": "/trending/java-server-pages?since=daily"
+    },
+    {
+      "anchor": "Java Template Engine",
+      "href": "/trending/java-template-engine?since=daily"
+    },
+    {
+      "anchor": "JavaScript",
+      "href": "/trending/javascript?since=daily"
+    },
+    {
+      "anchor": "JavaScript+ERB",
+      "href": "/trending/javascript+erb?since=daily"
+    },
+    {
+      "anchor": "JCL",
+      "href": "/trending/jcl?since=daily"
+    },
+    {
+      "anchor": "Jest Snapshot",
+      "href": "/trending/jest-snapshot?since=daily"
+    },
+    {
+      "anchor": "JetBrains MPS",
+      "href": "/trending/jetbrains-mps?since=daily"
+    },
+    {
+      "anchor": "JFlex",
+      "href": "/trending/jflex?since=daily"
+    },
+    {
+      "anchor": "Jinja",
+      "href": "/trending/jinja?since=daily"
+    },
+    {
+      "anchor": "Jison",
+      "href": "/trending/jison?since=daily"
+    },
+    {
+      "anchor": "Jison Lex",
+      "href": "/trending/jison-lex?since=daily"
+    },
+    {
+      "anchor": "Jolie",
+      "href": "/trending/jolie?since=daily"
+    },
+    {
+      "anchor": "jq",
+      "href": "/trending/jq?since=daily"
+    },
+    {
+      "anchor": "JSON",
+      "href": "/trending/json?since=daily"
+    },
+    {
+      "anchor": "JSON with Comments",
+      "href": "/trending/json-with-comments?since=daily"
+    },
+    {
+      "anchor": "JSON5",
+      "href": "/trending/json5?since=daily"
+    },
+    {
+      "anchor": "JSONiq",
+      "href": "/trending/jsoniq?since=daily"
+    },
+    {
+      "anchor": "JSONLD",
+      "href": "/trending/jsonld?since=daily"
+    },
+    {
+      "anchor": "Jsonnet",
+      "href": "/trending/jsonnet?since=daily"
+    },
+    {
+      "anchor": "Julia",
+      "href": "/trending/julia?since=daily"
+    },
+    {
+      "anchor": "Julia REPL",
+      "href": "/trending/julia-repl?since=daily"
+    },
+    {
+      "anchor": "Jupyter Notebook",
+      "href": "/trending/jupyter-notebook?since=daily"
+    },
+    {
+      "anchor": "Just",
+      "href": "/trending/just?since=daily"
+    },
+    {
+      "anchor": "Kaitai Struct",
+      "href": "/trending/kaitai-struct?since=daily"
+    },
+    {
+      "anchor": "KakouneScript",
+      "href": "/trending/kakounescript?since=daily"
+    },
+    {
+      "anchor": "KCL",
+      "href": "/trending/kcl?since=daily"
+    },
+    {
+      "anchor": "KDL",
+      "href": "/trending/kdl?since=daily"
+    },
+    {
+      "anchor": "KerboScript",
+      "href": "/trending/kerboscript?since=daily"
+    },
+    {
+      "anchor": "KFramework",
+      "href": "/trending/kframework?since=daily"
+    },
+    {
+      "anchor": "KiCad Layout",
+      "href": "/trending/kicad-layout?since=daily"
+    },
+    {
+      "anchor": "KiCad Legacy Layout",
+      "href": "/trending/kicad-legacy-layout?since=daily"
+    },
+    {
+      "anchor": "KiCad Schematic",
+      "href": "/trending/kicad-schematic?since=daily"
+    },
+    {
+      "anchor": "Kickstart",
+      "href": "/trending/kickstart?since=daily"
+    },
+    {
+      "anchor": "Kit",
+      "href": "/trending/kit?since=daily"
+    },
+    {
+      "anchor": "Koka",
+      "href": "/trending/koka?since=daily"
+    },
+    {
+      "anchor": "KoLmafia ASH",
+      "href": "/trending/kolmafia-ash?since=daily"
+    },
+    {
+      "anchor": "Kotlin",
+      "href": "/trending/kotlin?since=daily"
+    },
+    {
+      "anchor": "KRL",
+      "href": "/trending/krl?since=daily"
+    },
+    {
+      "anchor": "Kusto",
+      "href": "/trending/kusto?since=daily"
+    },
+    {
+      "anchor": "kvlang",
+      "href": "/trending/kvlang?since=daily"
+    },
+    {
+      "anchor": "LabVIEW",
+      "href": "/trending/labview?since=daily"
+    },
+    {
+      "anchor": "Lambdapi",
+      "href": "/trending/lambdapi?since=daily"
+    },
+    {
+      "anchor": "Langium",
+      "href": "/trending/langium?since=daily"
+    },
+    {
+      "anchor": "Lark",
+      "href": "/trending/lark?since=daily"
+    },
+    {
+      "anchor": "Lasso",
+      "href": "/trending/lasso?since=daily"
+    },
+    {
+      "anchor": "Latte",
+      "href": "/trending/latte?since=daily"
+    },
+    {
+      "anchor": "Lean",
+      "href": "/trending/lean?since=daily"
+    },
+    {
+      "anchor": "Lean 4",
+      "href": "/trending/lean-4?since=daily"
+    },
+    {
+      "anchor": "Leo",
+      "href": "/trending/leo?since=daily"
+    },
+    {
+      "anchor": "Less",
+      "href": "/trending/less?since=daily"
+    },
+    {
+      "anchor": "Lex",
+      "href": "/trending/lex?since=daily"
+    },
+    {
+      "anchor": "LFE",
+      "href": "/trending/lfe?since=daily"
+    },
+    {
+      "anchor": "LigoLANG",
+      "href": "/trending/ligolang?since=daily"
+    },
+    {
+      "anchor": "LilyPond",
+      "href": "/trending/lilypond?since=daily"
+    },
+    {
+      "anchor": "Limbo",
+      "href": "/trending/limbo?since=daily"
+    },
+    {
+      "anchor": "Linear Programming",
+      "href": "/trending/linear-programming?since=daily"
+    },
+    {
+      "anchor": "Linker Script",
+      "href": "/trending/linker-script?since=daily"
+    },
+    {
+      "anchor": "Linux Kernel Module",
+      "href": "/trending/linux-kernel-module?since=daily"
+    },
+    {
+      "anchor": "Liquid",
+      "href": "/trending/liquid?since=daily"
+    },
+    {
+      "anchor": "Liquidsoap",
+      "href": "/trending/liquidsoap?since=daily"
+    },
+    {
+      "anchor": "Literate Agda",
+      "href": "/trending/literate-agda?since=daily"
+    },
+    {
+      "anchor": "Literate CoffeeScript",
+      "href": "/trending/literate-coffeescript?since=daily"
+    },
+    {
+      "anchor": "Literate Haskell",
+      "href": "/trending/literate-haskell?since=daily"
+    },
+    {
+      "anchor": "LiveCode Script",
+      "href": "/trending/livecode-script?since=daily"
+    },
+    {
+      "anchor": "LiveScript",
+      "href": "/trending/livescript?since=daily"
+    },
+    {
+      "anchor": "LLVM",
+      "href": "/trending/llvm?since=daily"
+    },
+    {
+      "anchor": "Logos",
+      "href": "/trending/logos?since=daily"
+    },
+    {
+      "anchor": "Logtalk",
+      "href": "/trending/logtalk?since=daily"
+    },
+    {
+      "anchor": "LOLCODE",
+      "href": "/trending/lolcode?since=daily"
+    },
+    {
+      "anchor": "LookML",
+      "href": "/trending/lookml?since=daily"
+    },
+    {
+      "anchor": "LoomScript",
+      "href": "/trending/loomscript?since=daily"
+    },
+    {
+      "anchor": "LSL",
+      "href": "/trending/lsl?since=daily"
+    },
+    {
+      "anchor": "LTspice Symbol",
+      "href": "/trending/ltspice-symbol?since=daily"
+    },
+    {
+      "anchor": "Lua",
+      "href": "/trending/lua?since=daily"
+    },
+    {
+      "anchor": "Luau",
+      "href": "/trending/luau?since=daily"
+    },
+    {
+      "anchor": "M",
+      "href": "/trending/m?since=daily"
+    },
+    {
+      "anchor": "M3U",
+      "href": "/trending/m3u?since=daily"
+    },
+    {
+      "anchor": "M4",
+      "href": "/trending/m4?since=daily"
+    },
+    {
+      "anchor": "M4Sugar",
+      "href": "/trending/m4sugar?since=daily"
+    },
+    {
+      "anchor": "Macaulay2",
+      "href": "/trending/macaulay2?since=daily"
+    },
+    {
+      "anchor": "Makefile",
+      "href": "/trending/makefile?since=daily"
+    },
+    {
+      "anchor": "Mako",
+      "href": "/trending/mako?since=daily"
+    },
+    {
+      "anchor": "Markdown",
+      "href": "/trending/markdown?since=daily"
+    },
+    {
+      "anchor": "Marko",
+      "href": "/trending/marko?since=daily"
+    },
+    {
+      "anchor": "Mask",
+      "href": "/trending/mask?since=daily"
+    },
+    {
+      "anchor": "Wolfram Language",
+      "href": "/trending/wolfram-language?since=daily"
+    },
+    {
+      "anchor": "Mathematical Programming System",
+      "href": "/trending/mathematical-programming-system?since=daily"
+    },
+    {
+      "anchor": "MATLAB",
+      "href": "/trending/matlab?since=daily"
+    },
+    {
+      "anchor": "Maven POM",
+      "href": "/trending/maven-pom?since=daily"
+    },
+    {
+      "anchor": "Max",
+      "href": "/trending/max?since=daily"
+    },
+    {
+      "anchor": "MAXScript",
+      "href": "/trending/maxscript?since=daily"
+    },
+    {
+      "anchor": "mcfunction",
+      "href": "/trending/mcfunction?since=daily"
+    },
+    {
+      "anchor": "mdsvex",
+      "href": "/trending/mdsvex?since=daily"
+    },
+    {
+      "anchor": "MDX",
+      "href": "/trending/mdx?since=daily"
+    },
+    {
+      "anchor": "Wikitext",
+      "href": "/trending/wikitext?since=daily"
+    },
+    {
+      "anchor": "Mercury",
+      "href": "/trending/mercury?since=daily"
+    },
+    {
+      "anchor": "Mermaid",
+      "href": "/trending/mermaid?since=daily"
+    },
+    {
+      "anchor": "Meson",
+      "href": "/trending/meson?since=daily"
+    },
+    {
+      "anchor": "Metal",
+      "href": "/trending/metal?since=daily"
+    },
+    {
+      "anchor": "MeTTa",
+      "href": "/trending/metta?since=daily"
+    },
+    {
+      "anchor": "Microsoft Developer Studio Project",
+      "href": "/trending/microsoft-developer-studio-project?since=daily"
+    },
+    {
+      "anchor": "Microsoft Visual Studio Solution",
+      "href": "/trending/microsoft-visual-studio-solution?since=daily"
+    },
+    {
+      "anchor": "MiniD",
+      "href": "/trending/minid?since=daily"
+    },
+    {
+      "anchor": "MiniYAML",
+      "href": "/trending/miniyaml?since=daily"
+    },
+    {
+      "anchor": "MiniZinc",
+      "href": "/trending/minizinc?since=daily"
+    },
+    {
+      "anchor": "MiniZinc Data",
+      "href": "/trending/minizinc-data?since=daily"
+    },
+    {
+      "anchor": "Mint",
+      "href": "/trending/mint?since=daily"
+    },
+    {
+      "anchor": "Mirah",
+      "href": "/trending/mirah?since=daily"
+    },
+    {
+      "anchor": "mIRC Script",
+      "href": "/trending/mirc-script?since=daily"
+    },
+    {
+      "anchor": "MLIR",
+      "href": "/trending/mlir?since=daily"
+    },
+    {
+      "anchor": "Modelica",
+      "href": "/trending/modelica?since=daily"
+    },
+    {
+      "anchor": "Modula-2",
+      "href": "/trending/modula-2?since=daily"
+    },
+    {
+      "anchor": "Modula-3",
+      "href": "/trending/modula-3?since=daily"
+    },
+    {
+      "anchor": "Module Management System",
+      "href": "/trending/module-management-system?since=daily"
+    },
+    {
+      "anchor": "Mojo",
+      "href": "/trending/mojo?since=daily"
+    },
+    {
+      "anchor": "Monkey",
+      "href": "/trending/monkey?since=daily"
+    },
+    {
+      "anchor": "Monkey C",
+      "href": "/trending/monkey-c?since=daily"
+    },
+    {
+      "anchor": "Moocode",
+      "href": "/trending/moocode?since=daily"
+    },
+    {
+      "anchor": "MoonBit",
+      "href": "/trending/moonbit?since=daily"
+    },
+    {
+      "anchor": "MoonScript",
+      "href": "/trending/moonscript?since=daily"
+    },
+    {
+      "anchor": "Motoko",
+      "href": "/trending/motoko?since=daily"
+    },
+    {
+      "anchor": "Motorola 68K Assembly",
+      "href": "/trending/motorola-68k-assembly?since=daily"
+    },
+    {
+      "anchor": "Move",
+      "href": "/trending/move?since=daily"
+    },
+    {
+      "anchor": "MQL4",
+      "href": "/trending/mql4?since=daily"
+    },
+    {
+      "anchor": "MQL5",
+      "href": "/trending/mql5?since=daily"
+    },
+    {
+      "anchor": "MTML",
+      "href": "/trending/mtml?since=daily"
+    },
+    {
+      "anchor": "MUF",
+      "href": "/trending/muf?since=daily"
+    },
+    {
+      "anchor": "mupad",
+      "href": "/trending/mupad?since=daily"
+    },
+    {
+      "anchor": "Muse",
+      "href": "/trending/muse?since=daily"
+    },
+    {
+      "anchor": "Mustache",
+      "href": "/trending/mustache?since=daily"
+    },
+    {
+      "anchor": "Myghty",
+      "href": "/trending/myghty?since=daily"
+    },
+    {
+      "anchor": "nanorc",
+      "href": "/trending/nanorc?since=daily"
+    },
+    {
+      "anchor": "Nasal",
+      "href": "/trending/nasal?since=daily"
+    },
+    {
+      "anchor": "NASL",
+      "href": "/trending/nasl?since=daily"
+    },
+    {
+      "anchor": "NCL",
+      "href": "/trending/ncl?since=daily"
+    },
+    {
+      "anchor": "Nearley",
+      "href": "/trending/nearley?since=daily"
+    },
+    {
+      "anchor": "Nemerle",
+      "href": "/trending/nemerle?since=daily"
+    },
+    {
+      "anchor": "NEON",
+      "href": "/trending/neon?since=daily"
+    },
+    {
+      "anchor": "nesC",
+      "href": "/trending/nesc?since=daily"
+    },
+    {
+      "anchor": "NetLinx",
+      "href": "/trending/netlinx?since=daily"
+    },
+    {
+      "anchor": "NetLinx+ERB",
+      "href": "/trending/netlinx+erb?since=daily"
+    },
+    {
+      "anchor": "NetLogo",
+      "href": "/trending/netlogo?since=daily"
+    },
+    {
+      "anchor": "NewLisp",
+      "href": "/trending/newlisp?since=daily"
+    },
+    {
+      "anchor": "Nextflow",
+      "href": "/trending/nextflow?since=daily"
+    },
+    {
+      "anchor": "Nginx",
+      "href": "/trending/nginx?since=daily"
+    },
+    {
+      "anchor": "Nickel",
+      "href": "/trending/nickel?since=daily"
+    },
+    {
+      "anchor": "Nim",
+      "href": "/trending/nim?since=daily"
+    },
+    {
+      "anchor": "Ninja",
+      "href": "/trending/ninja?since=daily"
+    },
+    {
+      "anchor": "Nit",
+      "href": "/trending/nit?since=daily"
+    },
+    {
+      "anchor": "Nix",
+      "href": "/trending/nix?since=daily"
+    },
+    {
+      "anchor": "NL",
+      "href": "/trending/nl?since=daily"
+    },
+    {
+      "anchor": "NMODL",
+      "href": "/trending/nmodl?since=daily"
+    },
+    {
+      "anchor": "Noir",
+      "href": "/trending/noir?since=daily"
+    },
+    {
+      "anchor": "NPM Config",
+      "href": "/trending/npm-config?since=daily"
+    },
+    {
+      "anchor": "NSIS",
+      "href": "/trending/nsis?since=daily"
+    },
+    {
+      "anchor": "Nu",
+      "href": "/trending/nu?since=daily"
+    },
+    {
+      "anchor": "NumPy",
+      "href": "/trending/numpy?since=daily"
+    },
+    {
+      "anchor": "Nunjucks",
+      "href": "/trending/nunjucks?since=daily"
+    },
+    {
+      "anchor": "Nushell",
+      "href": "/trending/nushell?since=daily"
+    },
+    {
+      "anchor": "NWScript",
+      "href": "/trending/nwscript?since=daily"
+    },
+    {
+      "anchor": "OASv2-json",
+      "href": "/trending/oasv2-json?since=daily"
+    },
+    {
+      "anchor": "OASv2-yaml",
+      "href": "/trending/oasv2-yaml?since=daily"
+    },
+    {
+      "anchor": "OASv3-json",
+      "href": "/trending/oasv3-json?since=daily"
+    },
+    {
+      "anchor": "OASv3-yaml",
+      "href": "/trending/oasv3-yaml?since=daily"
+    },
+    {
+      "anchor": "Oberon",
+      "href": "/trending/oberon?since=daily"
+    },
+    {
+      "anchor": "ObjDump",
+      "href": "/trending/objdump?since=daily"
+    },
+    {
+      "anchor": "Object Data Instance Notation",
+      "href": "/trending/object-data-instance-notation?since=daily"
+    },
+    {
+      "anchor": "Objective-C",
+      "href": "/trending/objective-c?since=daily"
+    },
+    {
+      "anchor": "Objective-C++",
+      "href": "/trending/objective-c++?since=daily"
+    },
+    {
+      "anchor": "Objective-J",
+      "href": "/trending/objective-j?since=daily"
+    },
+    {
+      "anchor": "ObjectScript",
+      "href": "/trending/objectscript?since=daily"
+    },
+    {
+      "anchor": "OCaml",
+      "href": "/trending/ocaml?since=daily"
+    },
+    {
+      "anchor": "Odin",
+      "href": "/trending/odin?since=daily"
+    },
+    {
+      "anchor": "Omgrofl",
+      "href": "/trending/omgrofl?since=daily"
+    },
+    {
+      "anchor": "OMNeT++ MSG",
+      "href": "/trending/omnet++-msg?since=daily"
+    },
+    {
+      "anchor": "OMNeT++ NED",
+      "href": "/trending/omnet++-ned?since=daily"
+    },
+    {
+      "anchor": "OMNeT++ MSG",
+      "href": "/trending/omnet++-msg?since=daily"
+    },
+    {
+      "anchor": "OMNeT++ NED",
+      "href": "/trending/omnet++-ned?since=daily"
+    },
+    {
+      "anchor": "ooc",
+      "href": "/trending/ooc?since=daily"
+    },
+    {
+      "anchor": "Opa",
+      "href": "/trending/opa?since=daily"
+    },
+    {
+      "anchor": "Opal",
+      "href": "/trending/opal?since=daily"
+    },
+    {
+      "anchor": "Open Policy Agent",
+      "href": "/trending/open-policy-agent?since=daily"
+    },
+    {
+      "anchor": "OpenAPI Specification v2",
+      "href": "/trending/openapi-specification-v2?since=daily"
+    },
+    {
+      "anchor": "OpenAPI Specification v3",
+      "href": "/trending/openapi-specification-v3?since=daily"
+    },
+    {
+      "anchor": "OpenCL",
+      "href": "/trending/opencl?since=daily"
+    },
+    {
+      "anchor": "OpenEdge ABL",
+      "href": "/trending/openedge-abl?since=daily"
+    },
+    {
+      "anchor": "OpenQASM",
+      "href": "/trending/openqasm?since=daily"
+    },
+    {
+      "anchor": "OpenRC runscript",
+      "href": "/trending/openrc-runscript?since=daily"
+    },
+    {
+      "anchor": "OpenSCAD",
+      "href": "/trending/openscad?since=daily"
+    },
+    {
+      "anchor": "OpenStep Property List",
+      "href": "/trending/openstep-property-list?since=daily"
+    },
+    {
+      "anchor": "OpenType Feature File",
+      "href": "/trending/opentype-feature-file?since=daily"
+    },
+    {
+      "anchor": "Option List",
+      "href": "/trending/option-list?since=daily"
+    },
+    {
+      "anchor": "Org",
+      "href": "/trending/org?since=daily"
+    },
+    {
+      "anchor": "OverpassQL",
+      "href": "/trending/overpassql?since=daily"
+    },
+    {
+      "anchor": "Ox",
+      "href": "/trending/ox?since=daily"
+    },
+    {
+      "anchor": "Oxygene",
+      "href": "/trending/oxygene?since=daily"
+    },
+    {
+      "anchor": "Oz",
+      "href": "/trending/oz?since=daily"
+    },
+    {
+      "anchor": "P4",
+      "href": "/trending/p4?since=daily"
+    },
+    {
+      "anchor": "Pact",
+      "href": "/trending/pact?since=daily"
+    },
+    {
+      "anchor": "Pan",
+      "href": "/trending/pan?since=daily"
+    },
+    {
+      "anchor": "Papyrus",
+      "href": "/trending/papyrus?since=daily"
+    },
+    {
+      "anchor": "Parrot",
+      "href": "/trending/parrot?since=daily"
+    },
+    {
+      "anchor": "Parrot Assembly",
+      "href": "/trending/parrot-assembly?since=daily"
+    },
+    {
+      "anchor": "Parrot Internal Representation",
+      "href": "/trending/parrot-internal-representation?since=daily"
+    },
+    {
+      "anchor": "Pascal",
+      "href": "/trending/pascal?since=daily"
+    },
+    {
+      "anchor": "Pawn",
+      "href": "/trending/pawn?since=daily"
+    },
+    {
+      "anchor": "PDDL",
+      "href": "/trending/pddl?since=daily"
+    },
+    {
+      "anchor": "PEG.js",
+      "href": "/trending/peg.js?since=daily"
+    },
+    {
+      "anchor": "Pep8",
+      "href": "/trending/pep8?since=daily"
+    },
+    {
+      "anchor": "Perl",
+      "href": "/trending/perl?since=daily"
+    },
+    {
+      "anchor": "PHP",
+      "href": "/trending/php?since=daily"
+    },
+    {
+      "anchor": "Pic",
+      "href": "/trending/pic?since=daily"
+    },
+    {
+      "anchor": "Pickle",
+      "href": "/trending/pickle?since=daily"
+    },
+    {
+      "anchor": "PicoLisp",
+      "href": "/trending/picolisp?since=daily"
+    },
+    {
+      "anchor": "PigLatin",
+      "href": "/trending/piglatin?since=daily"
+    },
+    {
+      "anchor": "Pike",
+      "href": "/trending/pike?since=daily"
+    },
+    {
+      "anchor": "Pip Requirements",
+      "href": "/trending/pip-requirements?since=daily"
+    },
+    {
+      "anchor": "Pkl",
+      "href": "/trending/pkl?since=daily"
+    },
+    {
+      "anchor": "PlantUML",
+      "href": "/trending/plantuml?since=daily"
+    },
+    {
+      "anchor": "PLpgSQL",
+      "href": "/trending/plpgsql?since=daily"
+    },
+    {
+      "anchor": "PLSQL",
+      "href": "/trending/plsql?since=daily"
+    },
+    {
+      "anchor": "Pod",
+      "href": "/trending/pod?since=daily"
+    },
+    {
+      "anchor": "Pod 6",
+      "href": "/trending/pod-6?since=daily"
+    },
+    {
+      "anchor": "PogoScript",
+      "href": "/trending/pogoscript?since=daily"
+    },
+    {
+      "anchor": "Polar",
+      "href": "/trending/polar?since=daily"
+    },
+    {
+      "anchor": "Pony",
+      "href": "/trending/pony?since=daily"
+    },
+    {
+      "anchor": "Portugol",
+      "href": "/trending/portugol?since=daily"
+    },
+    {
+      "anchor": "PostCSS",
+      "href": "/trending/postcss?since=daily"
+    },
+    {
+      "anchor": "PostScript",
+      "href": "/trending/postscript?since=daily"
+    },
+    {
+      "anchor": "POV-Ray SDL",
+      "href": "/trending/pov-ray-sdl?since=daily"
+    },
+    {
+      "anchor": "PowerBuilder",
+      "href": "/trending/powerbuilder?since=daily"
+    },
+    {
+      "anchor": "PowerShell",
+      "href": "/trending/powershell?since=daily"
+    },
+    {
+      "anchor": "Praat",
+      "href": "/trending/praat?since=daily"
+    },
+    {
+      "anchor": "Prisma",
+      "href": "/trending/prisma?since=daily"
+    },
+    {
+      "anchor": "Processing",
+      "href": "/trending/processing?since=daily"
+    },
+    {
+      "anchor": "Procfile",
+      "href": "/trending/procfile?since=daily"
+    },
+    {
+      "anchor": "Proguard",
+      "href": "/trending/proguard?since=daily"
+    },
+    {
+      "anchor": "Prolog",
+      "href": "/trending/prolog?since=daily"
+    },
+    {
+      "anchor": "Promela",
+      "href": "/trending/promela?since=daily"
+    },
+    {
+      "anchor": "Propeller Spin",
+      "href": "/trending/propeller-spin?since=daily"
+    },
+    {
+      "anchor": "Protocol Buffer",
+      "href": "/trending/protocol-buffer?since=daily"
+    },
+    {
+      "anchor": "Protocol Buffer Text Format",
+      "href": "/trending/protocol-buffer-text-format?since=daily"
+    },
+    {
+      "anchor": "Public Key",
+      "href": "/trending/public-key?since=daily"
+    },
+    {
+      "anchor": "Pug",
+      "href": "/trending/pug?since=daily"
+    },
+    {
+      "anchor": "Puppet",
+      "href": "/trending/puppet?since=daily"
+    },
+    {
+      "anchor": "Pure Data",
+      "href": "/trending/pure-data?since=daily"
+    },
+    {
+      "anchor": "PureBasic",
+      "href": "/trending/purebasic?since=daily"
+    },
+    {
+      "anchor": "PureScript",
+      "href": "/trending/purescript?since=daily"
+    },
+    {
+      "anchor": "Pyret",
+      "href": "/trending/pyret?since=daily"
+    },
+    {
+      "anchor": "Python",
+      "href": "/trending?since=daily"
+    },
+    {
+      "anchor": "Python console",
+      "href": "/trending/python-console?since=daily"
+    },
+    {
+      "anchor": "Python traceback",
+      "href": "/trending/python-traceback?since=daily"
+    },
+    {
+      "anchor": "q",
+      "href": "/trending/q?since=daily"
+    },
+    {
+      "anchor": "Q#",
+      "href": "/trending/q%23?since=daily"
+    },
+    {
+      "anchor": "QMake",
+      "href": "/trending/qmake?since=daily"
+    },
+    {
+      "anchor": "QML",
+      "href": "/trending/qml?since=daily"
+    },
+    {
+      "anchor": "Qt Script",
+      "href": "/trending/qt-script?since=daily"
+    },
+    {
+      "anchor": "Quake",
+      "href": "/trending/quake?since=daily"
+    },
+    {
+      "anchor": "QuakeC",
+      "href": "/trending/quakec?since=daily"
+    },
+    {
+      "anchor": "QuickBASIC",
+      "href": "/trending/quickbasic?since=daily"
+    },
+    {
+      "anchor": "R",
+      "href": "/trending/r?since=daily"
+    },
+    {
+      "anchor": "Racket",
+      "href": "/trending/racket?since=daily"
+    },
+    {
+      "anchor": "Ragel",
+      "href": "/trending/ragel?since=daily"
+    },
+    {
+      "anchor": "Raku",
+      "href": "/trending/raku?since=daily"
+    },
+    {
+      "anchor": "RAML",
+      "href": "/trending/raml?since=daily"
+    },
+    {
+      "anchor": "Rascal",
+      "href": "/trending/rascal?since=daily"
+    },
+    {
+      "anchor": "RAScript",
+      "href": "/trending/rascript?since=daily"
+    },
+    {
+      "anchor": "Raw token data",
+      "href": "/trending/raw-token-data?since=daily"
+    },
+    {
+      "anchor": "RBS",
+      "href": "/trending/rbs?since=daily"
+    },
+    {
+      "anchor": "RDoc",
+      "href": "/trending/rdoc?since=daily"
+    },
+    {
+      "anchor": "Readline Config",
+      "href": "/trending/readline-config?since=daily"
+    },
+    {
+      "anchor": "REALbasic",
+      "href": "/trending/realbasic?since=daily"
+    },
+    {
+      "anchor": "Reason",
+      "href": "/trending/reason?since=daily"
+    },
+    {
+      "anchor": "ReasonLIGO",
+      "href": "/trending/reasonligo?since=daily"
+    },
+    {
+      "anchor": "Rebol",
+      "href": "/trending/rebol?since=daily"
+    },
+    {
+      "anchor": "Record Jar",
+      "href": "/trending/record-jar?since=daily"
+    },
+    {
+      "anchor": "Red",
+      "href": "/trending/red?since=daily"
+    },
+    {
+      "anchor": "Redcode",
+      "href": "/trending/redcode?since=daily"
+    },
+    {
+      "anchor": "Redirect Rules",
+      "href": "/trending/redirect-rules?since=daily"
+    },
+    {
+      "anchor": "Regular Expression",
+      "href": "/trending/regular-expression?since=daily"
+    },
+    {
+      "anchor": "Ren'Py",
+      "href": "/trending/ren'py?since=daily"
+    },
+    {
+      "anchor": "RenderScript",
+      "href": "/trending/renderscript?since=daily"
+    },
+    {
+      "anchor": "ReScript",
+      "href": "/trending/rescript?since=daily"
+    },
+    {
+      "anchor": "reStructuredText",
+      "href": "/trending/restructuredtext?since=daily"
+    },
+    {
+      "anchor": "REXX",
+      "href": "/trending/rexx?since=daily"
+    },
+    {
+      "anchor": "Rez",
+      "href": "/trending/rez?since=daily"
+    },
+    {
+      "anchor": "Rich Text Format",
+      "href": "/trending/rich-text-format?since=daily"
+    },
+    {
+      "anchor": "Ring",
+      "href": "/trending/ring?since=daily"
+    },
+    {
+      "anchor": "Riot",
+      "href": "/trending/riot?since=daily"
+    },
+    {
+      "anchor": "RMarkdown",
+      "href": "/trending/rmarkdown?since=daily"
+    },
+    {
+      "anchor": "RobotFramework",
+      "href": "/trending/robotframework?since=daily"
+    },
+    {
+      "anchor": "robots.txt",
+      "href": "/trending/robots.txt?since=daily"
+    },
+    {
+      "anchor": "Roc",
+      "href": "/trending/roc?since=daily"
+    },
+    {
+      "anchor": "Rocq Prover",
+      "href": "/trending/rocq-prover?since=daily"
+    },
+    {
+      "anchor": "Roff",
+      "href": "/trending/roff?since=daily"
+    },
+    {
+      "anchor": "Roff Manpage",
+      "href": "/trending/roff-manpage?since=daily"
+    },
+    {
+      "anchor": "RON",
+      "href": "/trending/ron?since=daily"
+    },
+    {
+      "anchor": "ROS Interface",
+      "href": "/trending/ros-interface?since=daily"
+    },
+    {
+      "anchor": "Rouge",
+      "href": "/trending/rouge?since=daily"
+    },
+    {
+      "anchor": "RouterOS Script",
+      "href": "/trending/routeros-script?since=daily"
+    },
+    {
+      "anchor": "RPC",
+      "href": "/trending/rpc?since=daily"
+    },
+    {
+      "anchor": "RPGLE",
+      "href": "/trending/rpgle?since=daily"
+    },
+    {
+      "anchor": "RPM Spec",
+      "href": "/trending/rpm-spec?since=daily"
+    },
+    {
+      "anchor": "Ruby",
+      "href": "/trending/ruby?since=daily"
+    },
+    {
+      "anchor": "RUNOFF",
+      "href": "/trending/runoff?since=daily"
+    },
+    {
+      "anchor": "Rust",
+      "href": "/trending/rust?since=daily"
+    },
+    {
+      "anchor": "Sage",
+      "href": "/trending/sage?since=daily"
+    },
+    {
+      "anchor": "Sail",
+      "href": "/trending/sail?since=daily"
+    },
+    {
+      "anchor": "SaltStack",
+      "href": "/trending/saltstack?since=daily"
+    },
+    {
+      "anchor": "SAS",
+      "href": "/trending/sas?since=daily"
+    },
+    {
+      "anchor": "Sass",
+      "href": "/trending/sass?since=daily"
+    },
+    {
+      "anchor": "Scala",
+      "href": "/trending/scala?since=daily"
+    },
+    {
+      "anchor": "Scaml",
+      "href": "/trending/scaml?since=daily"
+    },
+    {
+      "anchor": "Scenic",
+      "href": "/trending/scenic?since=daily"
+    },
+    {
+      "anchor": "Scheme",
+      "href": "/trending/scheme?since=daily"
+    },
+    {
+      "anchor": "Scilab",
+      "href": "/trending/scilab?since=daily"
+    },
+    {
+      "anchor": "SCSS",
+      "href": "/trending/scss?since=daily"
+    },
+    {
+      "anchor": "sed",
+      "href": "/trending/sed?since=daily"
+    },
+    {
+      "anchor": "Self",
+      "href": "/trending/self?since=daily"
+    },
+    {
+      "anchor": "SELinux Policy",
+      "href": "/trending/selinux-policy?since=daily"
+    },
+    {
+      "anchor": "ShaderLab",
+      "href": "/trending/shaderlab?since=daily"
+    },
+    {
+      "anchor": "Shell",
+      "href": "/trending/shell?since=daily"
+    },
+    {
+      "anchor": "ShellCheck Config",
+      "href": "/trending/shellcheck-config?since=daily"
+    },
+    {
+      "anchor": "ShellSession",
+      "href": "/trending/shellsession?since=daily"
+    },
+    {
+      "anchor": "Shen",
+      "href": "/trending/shen?since=daily"
+    },
+    {
+      "anchor": "Sieve",
+      "href": "/trending/sieve?since=daily"
+    },
+    {
+      "anchor": "Simple File Verification",
+      "href": "/trending/simple-file-verification?since=daily"
+    },
+    {
+      "anchor": "Singularity",
+      "href": "/trending/singularity?since=daily"
+    },
+    {
+      "anchor": "Slang",
+      "href": "/trending/slang?since=daily"
+    },
+    {
+      "anchor": "Slash",
+      "href": "/trending/slash?since=daily"
+    },
+    {
+      "anchor": "Slice",
+      "href": "/trending/slice?since=daily"
+    },
+    {
+      "anchor": "Slim",
+      "href": "/trending/slim?since=daily"
+    },
+    {
+      "anchor": "Slint",
+      "href": "/trending/slint?since=daily"
+    },
+    {
+      "anchor": "Smali",
+      "href": "/trending/smali?since=daily"
+    },
+    {
+      "anchor": "Smalltalk",
+      "href": "/trending/smalltalk?since=daily"
+    },
+    {
+      "anchor": "Smarty",
+      "href": "/trending/smarty?since=daily"
+    },
+    {
+      "anchor": "Smithy",
+      "href": "/trending/smithy?since=daily"
+    },
+    {
+      "anchor": "SmPL",
+      "href": "/trending/smpl?since=daily"
+    },
+    {
+      "anchor": "SMT",
+      "href": "/trending/smt?since=daily"
+    },
+    {
+      "anchor": "Snakemake",
+      "href": "/trending/snakemake?since=daily"
+    },
+    {
+      "anchor": "Solidity",
+      "href": "/trending/solidity?since=daily"
+    },
+    {
+      "anchor": "Soong",
+      "href": "/trending/soong?since=daily"
+    },
+    {
+      "anchor": "SourcePawn",
+      "href": "/trending/sourcepawn?since=daily"
+    },
+    {
+      "anchor": "SPARQL",
+      "href": "/trending/sparql?since=daily"
+    },
+    {
+      "anchor": "Spline Font Database",
+      "href": "/trending/spline-font-database?since=daily"
+    },
+    {
+      "anchor": "SQF",
+      "href": "/trending/sqf?since=daily"
+    },
+    {
+      "anchor": "SQL",
+      "href": "/trending/sql?since=daily"
+    },
+    {
+      "anchor": "SQLPL",
+      "href": "/trending/sqlpl?since=daily"
+    },
+    {
+      "anchor": "Squirrel",
+      "href": "/trending/squirrel?since=daily"
+    },
+    {
+      "anchor": "SRecode Template",
+      "href": "/trending/srecode-template?since=daily"
+    },
+    {
+      "anchor": "SSH Config",
+      "href": "/trending/ssh-config?since=daily"
+    },
+    {
+      "anchor": "Stan",
+      "href": "/trending/stan?since=daily"
+    },
+    {
+      "anchor": "Standard ML",
+      "href": "/trending/standard-ml?since=daily"
+    },
+    {
+      "anchor": "STAR",
+      "href": "/trending/star?since=daily"
+    },
+    {
+      "anchor": "Starlark",
+      "href": "/trending/starlark?since=daily"
+    },
+    {
+      "anchor": "Stata",
+      "href": "/trending/stata?since=daily"
+    },
+    {
+      "anchor": "STL",
+      "href": "/trending/stl?since=daily"
+    },
+    {
+      "anchor": "STON",
+      "href": "/trending/ston?since=daily"
+    },
+    {
+      "anchor": "StringTemplate",
+      "href": "/trending/stringtemplate?since=daily"
+    },
+    {
+      "anchor": "Stylus",
+      "href": "/trending/stylus?since=daily"
+    },
+    {
+      "anchor": "SubRip Text",
+      "href": "/trending/subrip-text?since=daily"
+    },
+    {
+      "anchor": "SugarSS",
+      "href": "/trending/sugarss?since=daily"
+    },
+    {
+      "anchor": "SuperCollider",
+      "href": "/trending/supercollider?since=daily"
+    },
+    {
+      "anchor": "SurrealQL",
+      "href": "/trending/surrealql?since=daily"
+    },
+    {
+      "anchor": "Survex data",
+      "href": "/trending/survex-data?since=daily"
+    },
+    {
+      "anchor": "Svelte",
+      "href": "/trending/svelte?since=daily"
+    },
+    {
+      "anchor": "SVG",
+      "href": "/trending/svg?since=daily"
+    },
+    {
+      "anchor": "Sway",
+      "href": "/trending/sway?since=daily"
+    },
+    {
+      "anchor": "Sweave",
+      "href": "/trending/sweave?since=daily"
+    },
+    {
+      "anchor": "Swift",
+      "href": "/trending/swift?since=daily"
+    },
+    {
+      "anchor": "SWIG",
+      "href": "/trending/swig?since=daily"
+    },
+    {
+      "anchor": "SystemVerilog",
+      "href": "/trending/systemverilog?since=daily"
+    },
+    {
+      "anchor": "Tact",
+      "href": "/trending/tact?since=daily"
+    },
+    {
+      "anchor": "Talon",
+      "href": "/trending/talon?since=daily"
+    },
+    {
+      "anchor": "Tcl",
+      "href": "/trending/tcl?since=daily"
+    },
+    {
+      "anchor": "Tcsh",
+      "href": "/trending/tcsh?since=daily"
+    },
+    {
+      "anchor": "Tea",
+      "href": "/trending/tea?since=daily"
+    },
+    {
+      "anchor": "Teal",
+      "href": "/trending/teal?since=daily"
+    },
+    {
+      "anchor": "templ",
+      "href": "/trending/templ?since=daily"
+    },
+    {
+      "anchor": "Terra",
+      "href": "/trending/terra?since=daily"
+    },
+    {
+      "anchor": "Terraform Template",
+      "href": "/trending/terraform-template?since=daily"
+    },
+    {
+      "anchor": "TeX",
+      "href": "/trending/tex?since=daily"
+    },
+    {
+      "anchor": "Texinfo",
+      "href": "/trending/texinfo?since=daily"
+    },
+    {
+      "anchor": "Text",
+      "href": "/trending/text?since=daily"
+    },
+    {
+      "anchor": "TextGrid",
+      "href": "/trending/textgrid?since=daily"
+    },
+    {
+      "anchor": "Textile",
+      "href": "/trending/textile?since=daily"
+    },
+    {
+      "anchor": "TextMate Properties",
+      "href": "/trending/textmate-properties?since=daily"
+    },
+    {
+      "anchor": "Thrift",
+      "href": "/trending/thrift?since=daily"
+    },
+    {
+      "anchor": "TI Program",
+      "href": "/trending/ti-program?since=daily"
+    },
+    {
+      "anchor": "TL-Verilog",
+      "href": "/trending/tl-verilog?since=daily"
+    },
+    {
+      "anchor": "TLA",
+      "href": "/trending/tla?since=daily"
+    },
+    {
+      "anchor": "TMDL",
+      "href": "/trending/tmdl?since=daily"
+    },
+    {
+      "anchor": "Toit",
+      "href": "/trending/toit?since=daily"
+    },
+    {
+      "anchor": "TOML",
+      "href": "/trending/toml?since=daily"
+    },
+    {
+      "anchor": "Tor Config",
+      "href": "/trending/tor-config?since=daily"
+    },
+    {
+      "anchor": "Tree-sitter Query",
+      "href": "/trending/tree-sitter-query?since=daily"
+    },
+    {
+      "anchor": "TSPLIB data",
+      "href": "/trending/tsplib-data?since=daily"
+    },
+    {
+      "anchor": "TSQL",
+      "href": "/trending/tsql?since=daily"
+    },
+    {
+      "anchor": "TSV",
+      "href": "/trending/tsv?since=daily"
+    },
+    {
+      "anchor": "TSX",
+      "href": "/trending/tsx?since=daily"
+    },
+    {
+      "anchor": "Turing",
+      "href": "/trending/turing?since=daily"
+    },
+    {
+      "anchor": "Turtle",
+      "href": "/trending/turtle?since=daily"
+    },
+    {
+      "anchor": "Twig",
+      "href": "/trending/twig?since=daily"
+    },
+    {
+      "anchor": "TXL",
+      "href": "/trending/txl?since=daily"
+    },
+    {
+      "anchor": "Type Language",
+      "href": "/trending/type-language?since=daily"
+    },
+    {
+      "anchor": "TypeScript",
+      "href": "/trending/typescript?since=daily"
+    },
+    {
+      "anchor": "TypeSpec",
+      "href": "/trending/typespec?since=daily"
+    },
+    {
+      "anchor": "Typst",
+      "href": "/trending/typst?since=daily"
+    },
+    {
+      "anchor": "Unified Parallel C",
+      "href": "/trending/unified-parallel-c?since=daily"
+    },
+    {
+      "anchor": "Unity3D Asset",
+      "href": "/trending/unity3d-asset?since=daily"
+    },
+    {
+      "anchor": "Unix Assembly",
+      "href": "/trending/unix-assembly?since=daily"
+    },
+    {
+      "anchor": "Uno",
+      "href": "/trending/uno?since=daily"
+    },
+    {
+      "anchor": "UnrealScript",
+      "href": "/trending/unrealscript?since=daily"
+    },
+    {
+      "anchor": "Untyped Plutus Core",
+      "href": "/trending/untyped-plutus-core?since=daily"
+    },
+    {
+      "anchor": "UrWeb",
+      "href": "/trending/urweb?since=daily"
+    },
+    {
+      "anchor": "V",
+      "href": "/trending/v?since=daily"
+    },
+    {
+      "anchor": "Vala",
+      "href": "/trending/vala?since=daily"
+    },
+    {
+      "anchor": "Valve Data Format",
+      "href": "/trending/valve-data-format?since=daily"
+    },
+    {
+      "anchor": "VBA",
+      "href": "/trending/vba?since=daily"
+    },
+    {
+      "anchor": "VBScript",
+      "href": "/trending/vbscript?since=daily"
+    },
+    {
+      "anchor": "vCard",
+      "href": "/trending/vcard?since=daily"
+    },
+    {
+      "anchor": "VCL",
+      "href": "/trending/vcl?since=daily"
+    },
+    {
+      "anchor": "Velocity Template Language",
+      "href": "/trending/velocity-template-language?since=daily"
+    },
+    {
+      "anchor": "Vento",
+      "href": "/trending/vento?since=daily"
+    },
+    {
+      "anchor": "Verilog",
+      "href": "/trending/verilog?since=daily"
+    },
+    {
+      "anchor": "VHDL",
+      "href": "/trending/vhdl?since=daily"
+    },
+    {
+      "anchor": "Vim Help File",
+      "href": "/trending/vim-help-file?since=daily"
+    },
+    {
+      "anchor": "Vim Script",
+      "href": "/trending/vim-script?since=daily"
+    },
+    {
+      "anchor": "Vim Snippet",
+      "href": "/trending/vim-snippet?since=daily"
+    },
+    {
+      "anchor": "Visual Basic .NET",
+      "href": "/trending/visual-basic-.net?since=daily"
+    },
+    {
+      "anchor": "Visual Basic .NET",
+      "href": "/trending/visual-basic-.net?since=daily"
+    },
+    {
+      "anchor": "Visual Basic 6.0",
+      "href": "/trending/visual-basic-6.0?since=daily"
+    },
+    {
+      "anchor": "Volt",
+      "href": "/trending/volt?since=daily"
+    },
+    {
+      "anchor": "Vue",
+      "href": "/trending/vue?since=daily"
+    },
+    {
+      "anchor": "Vyper",
+      "href": "/trending/vyper?since=daily"
+    },
+    {
+      "anchor": "Wavefront Material",
+      "href": "/trending/wavefront-material?since=daily"
+    },
+    {
+      "anchor": "Wavefront Object",
+      "href": "/trending/wavefront-object?since=daily"
+    },
+    {
+      "anchor": "WDL",
+      "href": "/trending/wdl?since=daily"
+    },
+    {
+      "anchor": "Web Ontology Language",
+      "href": "/trending/web-ontology-language?since=daily"
+    },
+    {
+      "anchor": "WebAssembly",
+      "href": "/trending/webassembly?since=daily"
+    },
+    {
+      "anchor": "WebAssembly Interface Type",
+      "href": "/trending/webassembly-interface-type?since=daily"
+    },
+    {
+      "anchor": "WebIDL",
+      "href": "/trending/webidl?since=daily"
+    },
+    {
+      "anchor": "WebVTT",
+      "href": "/trending/webvtt?since=daily"
+    },
+    {
+      "anchor": "Wget Config",
+      "href": "/trending/wget-config?since=daily"
+    },
+    {
+      "anchor": "WGSL",
+      "href": "/trending/wgsl?since=daily"
+    },
+    {
+      "anchor": "Whiley",
+      "href": "/trending/whiley?since=daily"
+    },
+    {
+      "anchor": "Wikitext",
+      "href": "/trending/wikitext?since=daily"
+    },
+    {
+      "anchor": "Win32 Message File",
+      "href": "/trending/win32-message-file?since=daily"
+    },
+    {
+      "anchor": "Windows Registry Entries",
+      "href": "/trending/windows-registry-entries?since=daily"
+    },
+    {
+      "anchor": "wisp",
+      "href": "/trending/wisp?since=daily"
+    },
+    {
+      "anchor": "Witcher Script",
+      "href": "/trending/witcher-script?since=daily"
+    },
+    {
+      "anchor": "Wolfram Language",
+      "href": "/trending/wolfram-language?since=daily"
+    },
+    {
+      "anchor": "Wollok",
+      "href": "/trending/wollok?since=daily"
+    },
+    {
+      "anchor": "World of Warcraft Addon Data",
+      "href": "/trending/world-of-warcraft-addon-data?since=daily"
+    },
+    {
+      "anchor": "Wren",
+      "href": "/trending/wren?since=daily"
+    },
+    {
+      "anchor": "X BitMap",
+      "href": "/trending/x-bitmap?since=daily"
+    },
+    {
+      "anchor": "X Font Directory Index",
+      "href": "/trending/x-font-directory-index?since=daily"
+    },
+    {
+      "anchor": "X PixMap",
+      "href": "/trending/x-pixmap?since=daily"
+    },
+    {
+      "anchor": "X10",
+      "href": "/trending/x10?since=daily"
+    },
+    {
+      "anchor": "xBase",
+      "href": "/trending/xbase?since=daily"
+    },
+    {
+      "anchor": "XC",
+      "href": "/trending/xc?since=daily"
+    },
+    {
+      "anchor": "XCompose",
+      "href": "/trending/xcompose?since=daily"
+    },
+    {
+      "anchor": "Xmake",
+      "href": "/trending/xmake?since=daily"
+    },
+    {
+      "anchor": "XML",
+      "href": "/trending/xml?since=daily"
+    },
+    {
+      "anchor": "XML Property List",
+      "href": "/trending/xml-property-list?since=daily"
+    },
+    {
+      "anchor": "Xojo",
+      "href": "/trending/xojo?since=daily"
+    },
+    {
+      "anchor": "Xonsh",
+      "href": "/trending/xonsh?since=daily"
+    },
+    {
+      "anchor": "XPages",
+      "href": "/trending/xpages?since=daily"
+    },
+    {
+      "anchor": "XProc",
+      "href": "/trending/xproc?since=daily"
+    },
+    {
+      "anchor": "XQuery",
+      "href": "/trending/xquery?since=daily"
+    },
+    {
+      "anchor": "XS",
+      "href": "/trending/xs?since=daily"
+    },
+    {
+      "anchor": "XSLT",
+      "href": "/trending/xslt?since=daily"
+    },
+    {
+      "anchor": "Xtend",
+      "href": "/trending/xtend?since=daily"
+    },
+    {
+      "anchor": "Yacc",
+      "href": "/trending/yacc?since=daily"
+    },
+    {
+      "anchor": "YAML",
+      "href": "/trending/yaml?since=daily"
+    },
+    {
+      "anchor": "YANG",
+      "href": "/trending/yang?since=daily"
+    },
+    {
+      "anchor": "YARA",
+      "href": "/trending/yara?since=daily"
+    },
+    {
+      "anchor": "YASnippet",
+      "href": "/trending/yasnippet?since=daily"
+    },
+    {
+      "anchor": "Yul",
+      "href": "/trending/yul?since=daily"
+    },
+    {
+      "anchor": "ZAP",
+      "href": "/trending/zap?since=daily"
+    },
+    {
+      "anchor": "Zeek",
+      "href": "/trending/zeek?since=daily"
+    },
+    {
+      "anchor": "ZenScript",
+      "href": "/trending/zenscript?since=daily"
+    },
+    {
+      "anchor": "Zephir",
+      "href": "/trending/zephir?since=daily"
+    },
+    {
+      "anchor": "Zig",
+      "href": "/trending/zig?since=daily"
+    },
+    {
+      "anchor": "ZIL",
+      "href": "/trending/zil?since=daily"
+    },
+    {
+      "anchor": "Zimpl",
+      "href": "/trending/zimpl?since=daily"
+    },
+    {
+      "anchor": "Zmodel",
+      "href": "/trending/zmodel?since=daily"
+    },
+    {
+      "anchor": "Today",
+      "href": "https://github.com/trending/python?since=daily"
+    },
+    {
+      "anchor": "This week",
+      "href": "https://github.com/trending/python?since=weekly"
+    },
+    {
+      "anchor": "This month",
+      "href": "https://github.com/trending/python?since=monthly"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2FCloakHQ%2FCloakBrowser"
+    },
+    {
+      "anchor": "CloakHQ /\n\n      CloakBrowser",
+      "href": "/CloakHQ/CloakBrowser"
+    },
+    {
+      "anchor": "5,854",
+      "href": "/CloakHQ/CloakBrowser/stargazers"
+    },
+    {
+      "anchor": "442",
+      "href": "/CloakHQ/CloakBrowser/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2FAUTOMATIC1111%2Fstable-diffusion-webui"
+    },
+    {
+      "anchor": "AUTOMATIC1111 /\n\n      stable-diffusion-webui",
+      "href": "/AUTOMATIC1111/stable-diffusion-webui"
+    },
+    {
+      "anchor": "162,872",
+      "href": "/AUTOMATIC1111/stable-diffusion-webui/stargazers"
+    },
+    {
+      "anchor": "30,332",
+      "href": "/AUTOMATIC1111/stable-diffusion-webui/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2FNousResearch%2Fhermes-agent"
+    },
+    {
+      "anchor": "NousResearch /\n\n      hermes-agent",
+      "href": "/NousResearch/hermes-agent"
+    },
+    {
+      "anchor": "144,371",
+      "href": "/NousResearch/hermes-agent/stargazers"
+    },
+    {
+      "anchor": "22,563",
+      "href": "/NousResearch/hermes-agent/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2FHKUDS%2FAI-Trader"
+    },
+    {
+      "anchor": "HKUDS /\n\n      AI-Trader",
+      "href": "/HKUDS/AI-Trader"
+    },
+    {
+      "anchor": "16,093",
+      "href": "/HKUDS/AI-Trader/stargazers"
+    },
+    {
+      "anchor": "2,574",
+      "href": "/HKUDS/AI-Trader/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2Fjundot%2Fomlx"
+    },
+    {
+      "anchor": "jundot /\n\n      omlx",
+      "href": "/jundot/omlx"
+    },
+    {
+      "anchor": "13,601",
+      "href": "/jundot/omlx/stargazers"
+    },
+    {
+      "anchor": "1,157",
+      "href": "/jundot/omlx/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2Fjwadow%2Fkiro-gateway"
+    },
+    {
+      "anchor": "jwadow /\n\n      kiro-gateway",
+      "href": "/jwadow/kiro-gateway"
+    },
+    {
+      "anchor": "1,313",
+      "href": "/jwadow/kiro-gateway/stargazers"
+    },
+    {
+      "anchor": "315",
+      "href": "/jwadow/kiro-gateway/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2Fbytedance%2FUI-TARS"
+    },
+    {
+      "anchor": "bytedance /\n\n      UI-TARS",
+      "href": "/bytedance/UI-TARS"
+    },
+    {
+      "anchor": "10,424",
+      "href": "/bytedance/UI-TARS/stargazers"
+    },
+    {
+      "anchor": "770",
+      "href": "/bytedance/UI-TARS/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2Fdatawhalechina%2Fhello-agents"
+    },
+    {
+      "anchor": "datawhalechina /\n\n      hello-agents",
+      "href": "/datawhalechina/hello-agents"
+    },
+    {
+      "anchor": "47,522",
+      "href": "/datawhalechina/hello-agents/stargazers"
+    },
+    {
+      "anchor": "5,721",
+      "href": "/datawhalechina/hello-agents/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2Fylytdeng%2Fwechat-decrypt"
+    },
+    {
+      "anchor": "ylytdeng /\n\n      wechat-decrypt",
+      "href": "/ylytdeng/wechat-decrypt"
+    },
+    {
+      "anchor": "3,238",
+      "href": "/ylytdeng/wechat-decrypt/stargazers"
+    },
+    {
+      "anchor": "1,872",
+      "href": "/ylytdeng/wechat-decrypt/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2Fwanshuiyin%2FAuto-claude-code-research-in-sleep"
+    },
+    {
+      "anchor": "wanshuiyin /\n\n      Auto-claude-code-research-in-sleep",
+      "href": "/wanshuiyin/Auto-claude-code-research-in-sleep"
+    },
+    {
+      "anchor": "8,845",
+      "href": "/wanshuiyin/Auto-claude-code-research-in-sleep/stargazers"
+    },
+    {
+      "anchor": "826",
+      "href": "/wanshuiyin/Auto-claude-code-research-in-sleep/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2Fhuggingface%2Fskills"
+    },
+    {
+      "anchor": "huggingface /\n\n      skills",
+      "href": "/huggingface/skills"
+    },
+    {
+      "anchor": "10,459",
+      "href": "/huggingface/skills/stargazers"
+    },
+    {
+      "anchor": "661",
+      "href": "/huggingface/skills/forks"
+    },
+    {
+      "anchor": "Star",
+      "href": "/login?return_to=%2Fanthropics%2Ffinancial-services"
+    },
+    {
+      "anchor": "anthropics /\n\n      financial-services",
+      "href": "/anthropics/financial-services"
+    },
+    {
+      "anchor": "20,079",
+      "href": "/anthropics/financial-services/stargazers"
+    },
+    {
+      "anchor": "2,625",
+      "href": "/anthropics/financial-services/forks"
+    },
+    {
+      "anchor": "Terms",
+      "href": "https://docs.github.com/site-policy/github-terms/github-terms-of-service"
+    },
+    {
+      "anchor": "Privacy",
+      "href": "https://docs.github.com/site-policy/privacy-policies/github-privacy-statement"
+    },
+    {
+      "anchor": "Security",
+      "href": "https://github.com/security"
+    },
+    {
+      "anchor": "Status",
+      "href": "https://www.githubstatus.com/"
+    },
+    {
+      "anchor": "Community",
+      "href": "https://github.community/"
+    },
+    {
+      "anchor": "Docs",
+      "href": "https://docs.github.com/"
+    },
+    {
+      "anchor": "Contact",
+      "href": "https://support.github.com?tags=dotcom-footer"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Search code, repositories, users, issues, pull requests..."
+    },
+    {
+      "level": 1,
+      "text": "Provide feedback"
+    },
+    {
+      "level": 1,
+      "text": "Saved searches"
+    },
+    {
+      "level": 1,
+      "text": "Trending"
+    },
+    {
+      "level": 2,
+      "text": "Navigation Menu"
+    },
+    {
+      "level": 2,
+      "text": "Use saved searches to filter your results more quickly"
+    },
+    {
+      "level": 2,
+      "text": "CloakHQ /\n\n      CloakBrowser"
+    },
+    {
+      "level": 2,
+      "text": "AUTOMATIC1111 /\n\n      stable-diffusion-webui"
+    },
+    {
+      "level": 2,
+      "text": "NousResearch /\n\n      hermes-agent"
+    },
+    {
+      "level": 2,
+      "text": "HKUDS /\n\n      AI-Trader"
+    },
+    {
+      "level": 2,
+      "text": "jundot /\n\n      omlx"
+    },
+    {
+      "level": 2,
+      "text": "jwadow /\n\n      kiro-gateway"
+    },
+    {
+      "level": 2,
+      "text": "bytedance /\n\n      UI-TARS"
+    },
+    {
+      "level": 2,
+      "text": "datawhalechina /\n\n      hello-agents"
+    },
+    {
+      "level": 2,
+      "text": "ylytdeng /\n\n      wechat-decrypt"
+    },
+    {
+      "level": 2,
+      "text": "wanshuiyin /\n\n      Auto-claude-code-research-in-sleep"
+    },
+    {
+      "level": 2,
+      "text": "huggingface /\n\n      skills"
+    },
+    {
+      "level": 2,
+      "text": "anthropics /\n\n      financial-services"
+    },
+    {
+      "level": 2,
+      "text": "Footer"
+    },
+    {
+      "level": 3,
+      "text": "Footer navigation"
+    }
+  ],
+  "content_md": "## CloakHQ / CloakBrowser\n\nStealth Chromium that passes every bot detection test. Drop-in Playwright replacement with source-level fingerprint patches. 30/30 tests passed.\n\nSee what the GitHub community is most excited about today.\n\nStealth Chromium that passes every bot detection test. Drop-in Playwright replacement with source-level fingerprint patches. 30/30 tests passed.\n\nStable Diffusion web UI\n\nThe agent that grows with you\n\n\"AI-Trader: 100% Fully-Automated Agent-Native Trading\"\n\nLLM inference server with continuous batching & SSD caching for Apple Silicon — managed from the macOS menu bar\n\n👻 Proxy API gateway for Kiro IDE & CLI (Amazon Q Developer / AWS CodeWhisperer). Use free Claude models with any client.\n\nPioneering Automated GUI Interaction with Native Agents\n\n📚 《从零开始构建智能体》——从零开始的智能体原理与实践教程\n\nWeChat 4.0 database decryptor - extract keys from memory, decrypt SQLCipher 4 databases, real-time message monitor\n\nARIS ⚔️ (Auto-Research-In-Sleep) — Lightweight Markdown-only skills for autonomous ML research: cross-model review loops, idea discovery, and experiment automation. No framework, no lock-in — works with Claude Code, Codex, OpenClaw, or any LLM agent.\n\nGive your agents the power of the Hugging Face ecosystem\n",
+  "fit_md": null,
+  "operator_hints": []
+}

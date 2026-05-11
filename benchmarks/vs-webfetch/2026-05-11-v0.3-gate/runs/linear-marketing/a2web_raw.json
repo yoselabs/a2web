@@ -1,0 +1,419 @@
+{
+  "url": "https://linear.app/",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "medium",
+  "title": "Linear – The system for product development",
+  "byline": "Gabriel Peal OpenAI",
+  "published": "2020-12-03",
+  "started_at": "2026-05-11T18:04:23.238851Z",
+  "total_ms": 2042,
+  "tokens": {
+    "full": 1152,
+    "fit": 0
+  },
+  "cache": "miss",
+  "narrative": "raw → ok (2.0s).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=2042",
+  "diagnostics": [
+    {
+      "t_ms": 4,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "linear.app",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 484,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 489,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 1353,
+      "extra": {
+        "chars": 1152
+      }
+    },
+    {
+      "t_ms": 1842,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 134,
+      "extra": {}
+    }
+  ],
+  "meta": {
+    "og.title": "Linear – The system for product development",
+    "og.description": "Purpose-built for planning and building products with AI agents.",
+    "og.image": "https://linear.app/static/og/homepage.jpg",
+    "twitter.card": "summary_large_image",
+    "twitter.site": "@linear",
+    "twitter.creator": "@linear",
+    "twitter.title": "Linear – The system for product development",
+    "twitter.description": "Purpose-built for planning and building products with AI agents.",
+    "twitter.image": "https://linear.app/static/og/homepage.jpg"
+  },
+  "links": [
+    {
+      "anchor": "Skip to content →",
+      "href": "#skip-nav"
+    },
+    {
+      "anchor": "Customers",
+      "href": "/customers"
+    },
+    {
+      "anchor": "Pricing",
+      "href": "/pricing"
+    },
+    {
+      "anchor": "Now",
+      "href": "/now"
+    },
+    {
+      "anchor": "Contact",
+      "href": "/contact"
+    },
+    {
+      "anchor": "Docs",
+      "href": "/docs"
+    },
+    {
+      "anchor": "Open app",
+      "href": "/login"
+    },
+    {
+      "anchor": "Log in",
+      "href": "/login"
+    },
+    {
+      "anchor": "Sign up",
+      "href": "/signup"
+    },
+    {
+      "anchor": "Issue tracking is deadlinear.app/next →",
+      "href": "/next"
+    },
+    {
+      "anchor": "1.0Intake→",
+      "href": "/intake"
+    },
+    {
+      "anchor": "2.0Plan→",
+      "href": "/plan"
+    },
+    {
+      "anchor": "3.0Build→",
+      "href": "/build"
+    },
+    {
+      "anchor": "4.0Diffs→",
+      "href": "/diffs"
+    },
+    {
+      "anchor": "5.0Monitor→",
+      "href": "/monitor"
+    },
+    {
+      "anchor": "ReleasesPlan and track your software releases directly from Linear.Apr 30, 2026",
+      "href": "/changelog/2026-04-30-releases"
+    },
+    {
+      "anchor": "Linear Agent MCP supportLinear Agent can now connect to your tools via MCP, giving it access to data and actions beyond your Linear workspace. Bring external context into your workflows to investigate issues, plan projects, write specs, and draft updates grounded in your full context.Apr 23, 2026",
+      "href": "/changelog/2026-04-23-linear-agent-mcp-support"
+    },
+    {
+      "anchor": "Linear for Microsoft TeamsMention @Linear in any Microsoft Teams channel to turn your conversations into actionable work.Apr 15, 2026",
+      "href": "/changelog/2026-04-16-linear-for-microsoft-teams"
+    },
+    {
+      "anchor": "Multi-level sub-teamsStructure your teams in Linear to match how your organization works.Apr 8, 2026",
+      "href": "/changelog/2026-04-09-multi-level-sub-teams"
+    },
+    {
+      "anchor": "View all→",
+      "href": "/changelog"
+    },
+    {
+      "anchor": "You just have to use it and you will see, you will just feel it.Gabriel PealOpenAI",
+      "href": "/customers/openai"
+    },
+    {
+      "anchor": "Our speed is intense and Linear helps us be action biased.Nik KoblovRamp",
+      "href": "/customers/ramp"
+    },
+    {
+      "anchor": "Linear is excellent, just excellent. It has the right opinions for fast moving teams.Kaz NejatianOpendoor",
+      "href": "/customers/opendoor"
+    },
+    {
+      "anchor": "You just have to use it and you will see, you will just feel it.Gabriel PealOpenAI",
+      "href": "/customers/openai"
+    },
+    {
+      "anchor": "Our speed is intense and Linear helps us be action biased.Nik KoblovHead of Engineering, Ramp",
+      "href": "/customers/ramp"
+    },
+    {
+      "anchor": "Customer stories→",
+      "href": "/customers"
+    },
+    {
+      "anchor": "Get started",
+      "href": "/signup"
+    },
+    {
+      "anchor": "Contact sales",
+      "href": "/contact/sales"
+    },
+    {
+      "anchor": "Open app",
+      "href": "/login"
+    },
+    {
+      "anchor": "Download",
+      "href": "/download"
+    },
+    {
+      "anchor": "Intake",
+      "href": "/intake"
+    },
+    {
+      "anchor": "Plan",
+      "href": "/plan"
+    },
+    {
+      "anchor": "Build",
+      "href": "/build"
+    },
+    {
+      "anchor": "Diffs",
+      "href": "/diffs"
+    },
+    {
+      "anchor": "Monitor",
+      "href": "/monitor"
+    },
+    {
+      "anchor": "Pricing",
+      "href": "/pricing"
+    },
+    {
+      "anchor": "Security",
+      "href": "/security"
+    },
+    {
+      "anchor": "Asks",
+      "href": "/asks"
+    },
+    {
+      "anchor": "Agents",
+      "href": "/agents"
+    },
+    {
+      "anchor": "Customer Requests",
+      "href": "/customer-requests"
+    },
+    {
+      "anchor": "Insights",
+      "href": "/insights"
+    },
+    {
+      "anchor": "Mobile",
+      "href": "/mobile"
+    },
+    {
+      "anchor": "Integrations",
+      "href": "/integrations"
+    },
+    {
+      "anchor": "Changelog",
+      "href": "/changelog"
+    },
+    {
+      "anchor": "About",
+      "href": "/about"
+    },
+    {
+      "anchor": "Customers",
+      "href": "/customers"
+    },
+    {
+      "anchor": "Careers",
+      "href": "/careers"
+    },
+    {
+      "anchor": "Blog",
+      "href": "/blog"
+    },
+    {
+      "anchor": "Method",
+      "href": "/method"
+    },
+    {
+      "anchor": "Quality",
+      "href": "/quality"
+    },
+    {
+      "anchor": "Brand",
+      "href": "/brand"
+    },
+    {
+      "anchor": "Switch",
+      "href": "/switch"
+    },
+    {
+      "anchor": "Download",
+      "href": "/download"
+    },
+    {
+      "anchor": "DocumentationDocs",
+      "href": "/docs"
+    },
+    {
+      "anchor": "Developers",
+      "href": "/developers"
+    },
+    {
+      "anchor": "Status",
+      "href": "https://linearstatus.com"
+    },
+    {
+      "anchor": "Enterprise",
+      "href": "/enterprise"
+    },
+    {
+      "anchor": "Startups",
+      "href": "/startups"
+    },
+    {
+      "anchor": "Contact us",
+      "href": "/contact"
+    },
+    {
+      "anchor": "Community",
+      "href": "https://linear.app/join-slack"
+    },
+    {
+      "anchor": "X (Twitter)",
+      "href": "https://x.com/linear"
+    },
+    {
+      "anchor": "GitHub",
+      "href": "https://github.com/linear"
+    },
+    {
+      "anchor": "YouTube",
+      "href": "https://www.youtube.com/@linear"
+    },
+    {
+      "anchor": "Privacy",
+      "href": "/privacy"
+    },
+    {
+      "anchor": "Terms",
+      "href": "/terms"
+    },
+    {
+      "anchor": "DPA",
+      "href": "/dpa"
+    },
+    {
+      "anchor": "Privacy",
+      "href": "/privacy"
+    },
+    {
+      "anchor": "Terms",
+      "href": "/terms"
+    },
+    {
+      "anchor": "DPA",
+      "href": "/dpa"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "The productdevelopmentsystem for teamsand agentsThe product developmentsystem for teams and agentsThe product development system for teams and agents"
+    },
+    {
+      "level": 2,
+      "text": "A new species of product tool. Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products."
+    },
+    {
+      "level": 2,
+      "text": "Make product \noperations self-driving"
+    },
+    {
+      "level": 2,
+      "text": "Define the \nproduct direction"
+    },
+    {
+      "level": 2,
+      "text": "Move work forward \nacross teams and agents"
+    },
+    {
+      "level": 2,
+      "text": "Review PRs and agent output"
+    },
+    {
+      "level": 2,
+      "text": "Understand \nprogress at scale"
+    },
+    {
+      "level": 2,
+      "text": "Changelog"
+    },
+    {
+      "level": 2,
+      "text": "Built for the future. Available today."
+    },
+    {
+      "level": 3,
+      "text": "Faster app launch"
+    },
+    {
+      "level": 3,
+      "text": "Product"
+    },
+    {
+      "level": 3,
+      "text": "Features"
+    },
+    {
+      "level": 3,
+      "text": "Company"
+    },
+    {
+      "level": 3,
+      "text": "Resources"
+    },
+    {
+      "level": 3,
+      "text": "Connect"
+    },
+    {
+      "level": 3,
+      "text": "Legal"
+    },
+    {
+      "level": 4,
+      "text": "Activity"
+    }
+  ],
+  "content_md": "# The product development system for teams and agents\n\nPurpose-built for planning and building products. Designed for the AI era.\n\n**A new species of product tool.** Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products.\n\n## Make product operations self-driving\n\nTurn conversations and customer feedback into actionable issues that are routed, labeled, and prioritized for the right team.\n\nThread in #feedback\n\n## Define the product direction\n\nPlan and navigate from idea to launch. Align your team with product initiatives, strategic roadmaps, and clear, up-to-date PRDs.\n\n## Move work forward across teams and agents\n\nBuild and deploy AI agents that work alongside your team. Work on complex tasks together or delegate entire issues end-to-end.\n\n## Review PRs and agent output\n\nUnderstand code changes at a glance with structural diffs for human and agent output. Review, discuss, and merge — all within Linear.\n\n## Understand progress at scale\n\nTake the guesswork out of product development with project updates, analytics, and dashboards that surface what needs your attention.\n",
+  "fit_md": null,
+  "operator_hints": []
+}

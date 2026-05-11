@@ -1,0 +1,44 @@
+{
+  "slug": "hn-front",
+  "class": "A_clean",
+  "url": "https://news.ycombinator.com/",
+  "a2web": {
+    "status": "ok",
+    "tier": "raw",
+    "verdict": "high",
+    "wall_ms_cli": 4133,
+    "wall_ms_internal": 2314,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 1303,
+      "fit_md": 0,
+      "title": 3,
+      "byline": 0,
+      "published": 6,
+      "narrative": 9,
+      "links": 4507,
+      "headings": 1,
+      "diagnostics": 188,
+      "operator_hints": 1,
+      "meta": 1,
+      "tokens": 13,
+      "url": 9,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 2,
+      "total_ms": 2,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 6334,
+      "B_meta": 1507,
+      "C_content_only": 1469
+    },
+    "links_count": 196,
+    "headings_count": 0,
+    "content_chars": 4076,
+    "fit_equals_content": false
+  }
+}

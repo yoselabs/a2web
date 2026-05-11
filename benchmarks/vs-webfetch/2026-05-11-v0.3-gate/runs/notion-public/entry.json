@@ -1,0 +1,14 @@
+{
+  "slug": "notion-public",
+  "url": "https://www.notion.so/help/intro-to-databases",
+  "class": "C_spa",
+  "task": "What is a Notion database, and how does it differ from a regular Notion page?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Defines Notion database (collection of pages with shared properties)",
+    "Contrasts with regular pages (free-form content)",
+    "Mentions views / properties / structure"
+  ]
+}

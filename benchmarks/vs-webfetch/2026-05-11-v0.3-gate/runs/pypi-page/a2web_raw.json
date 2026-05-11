@@ -1,0 +1,1372 @@
+{
+  "url": "https://pypi.org/project/anthropic/",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "high",
+  "title": "anthropic",
+  "byline": null,
+  "published": "2026-05-11",
+  "started_at": "2026-05-11T18:04:41.764946Z",
+  "total_ms": 362,
+  "tokens": {
+    "full": 2940,
+    "fit": 0
+  },
+  "cache": "hit",
+  "narrative": "Cache hit (362ms).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=362",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "pypi.org",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 193,
+      "extra": {
+        "conditional_hit": "true"
+      }
+    },
+    {
+      "t_ms": 193,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 159,
+      "extra": {
+        "chars": 2940
+      }
+    },
+    {
+      "t_ms": 352,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 10,
+      "extra": {}
+    }
+  ],
+  "meta": {
+    "og.url": "https://pypi.org/project/anthropic/",
+    "og.site_name": "PyPI",
+    "og.type": "website",
+    "og.image": "https://pypi.org/static/images/twitter.abaf4b19.webp",
+    "og.title": "anthropic",
+    "og.description": "The official Python library for the anthropic API"
+  },
+  "links": [
+    {
+      "anchor": "Skip to main content",
+      "href": "#content"
+    },
+    {
+      "anchor": "Help",
+      "href": "/help/"
+    },
+    {
+      "anchor": "Docs",
+      "href": "https://docs.pypi.org/"
+    },
+    {
+      "anchor": "Sponsors",
+      "href": "/sponsors/"
+    },
+    {
+      "anchor": "Log in",
+      "href": "/account/login/?next=https%3A%2F%2Fpypi.org%2Fproject%2Fanthropic%2F"
+    },
+    {
+      "anchor": "Register",
+      "href": "/account/register/"
+    },
+    {
+      "anchor": "Help",
+      "href": "/help/"
+    },
+    {
+      "anchor": "Docs",
+      "href": "https://docs.pypi.org/"
+    },
+    {
+      "anchor": "Sponsors",
+      "href": "/sponsors/"
+    },
+    {
+      "anchor": "Log in",
+      "href": "/account/login/?next=https%3A%2F%2Fpypi.org%2Fproject%2Fanthropic%2F"
+    },
+    {
+      "anchor": "Register",
+      "href": "/account/register/"
+    },
+    {
+      "anchor": "Latest version",
+      "href": "/project/anthropic/"
+    },
+    {
+      "anchor": "Project description",
+      "href": "#description"
+    },
+    {
+      "anchor": "Release history",
+      "href": "#history"
+    },
+    {
+      "anchor": "Download files",
+      "href": "#files"
+    },
+    {
+      "anchor": "verified by PyPI",
+      "href": "https://docs.pypi.org/project_metadata/#verified-details"
+    },
+    {
+      "anchor": "Anthropic, PBC.",
+      "href": "/org/Anthropic/"
+    },
+    {
+      "anchor": "Homepage",
+      "href": "https://github.com/anthropics/anthropic-sdk-python"
+    },
+    {
+      "anchor": "Repository",
+      "href": "https://github.com/anthropics/anthropic-sdk-python"
+    },
+    {
+      "anchor": "Anthropic",
+      "href": "mailto:support@anthropic.com"
+    },
+    {
+      "anchor": "Developers",
+      "href": "/search/?c=Intended+Audience+%3A%3A+Developers"
+    },
+    {
+      "anchor": "OSI Approved :: MIT License",
+      "href": "/search/?c=License+%3A%3A+OSI+Approved+%3A%3A+MIT+License"
+    },
+    {
+      "anchor": "MacOS",
+      "href": "/search/?c=Operating+System+%3A%3A+MacOS"
+    },
+    {
+      "anchor": "Microsoft :: Windows",
+      "href": "/search/?c=Operating+System+%3A%3A+Microsoft+%3A%3A+Windows"
+    },
+    {
+      "anchor": "OS Independent",
+      "href": "/search/?c=Operating+System+%3A%3A+OS+Independent"
+    },
+    {
+      "anchor": "POSIX",
+      "href": "/search/?c=Operating+System+%3A%3A+POSIX"
+    },
+    {
+      "anchor": "POSIX :: Linux",
+      "href": "/search/?c=Operating+System+%3A%3A+POSIX+%3A%3A+Linux"
+    },
+    {
+      "anchor": "Python :: 3.9",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.9"
+    },
+    {
+      "anchor": "Python :: 3.10",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.10"
+    },
+    {
+      "anchor": "Python :: 3.11",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.11"
+    },
+    {
+      "anchor": "Python :: 3.12",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.12"
+    },
+    {
+      "anchor": "Python :: 3.13",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.13"
+    },
+    {
+      "anchor": "Python :: 3.14",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.14"
+    },
+    {
+      "anchor": "Software Development :: Libraries :: Python Modules",
+      "href": "/search/?c=Topic+%3A%3A+Software+Development+%3A%3A+Libraries+%3A%3A+Python+Modules"
+    },
+    {
+      "anchor": "Typed",
+      "href": "/search/?c=Typing+%3A%3A+Typed"
+    },
+    {
+      "anchor": "Report project as malware",
+      "href": "https://pypi.org/project/anthropic/submit-malware-report/"
+    },
+    {
+      "anchor": "Project description",
+      "href": "#description"
+    },
+    {
+      "anchor": "Project details",
+      "href": "#data"
+    },
+    {
+      "anchor": "Release history",
+      "href": "#history"
+    },
+    {
+      "anchor": "Download files",
+      "href": "#files"
+    },
+    {
+      "anchor": "Claude API",
+      "href": "https://docs.anthropic.com/en/api/"
+    },
+    {
+      "anchor": "platform.claude.com/docs/en/api/sdks/python",
+      "href": "https://platform.claude.com/docs/en/api/sdks/python"
+    },
+    {
+      "anchor": "CONTRIBUTING.md",
+      "href": "https://github.com/anthropics/anthropic-sdk-python/tree/main/./CONTRIBUTING.md"
+    },
+    {
+      "anchor": "LICENSE",
+      "href": "https://github.com/anthropics/anthropic-sdk-python/tree/main/LICENSE"
+    },
+    {
+      "anchor": "verified by PyPI",
+      "href": "https://docs.pypi.org/project_metadata/#verified-details"
+    },
+    {
+      "anchor": "Anthropic, PBC.",
+      "href": "/org/Anthropic/"
+    },
+    {
+      "anchor": "Homepage",
+      "href": "https://github.com/anthropics/anthropic-sdk-python"
+    },
+    {
+      "anchor": "Repository",
+      "href": "https://github.com/anthropics/anthropic-sdk-python"
+    },
+    {
+      "anchor": "Anthropic",
+      "href": "mailto:support@anthropic.com"
+    },
+    {
+      "anchor": "Developers",
+      "href": "/search/?c=Intended+Audience+%3A%3A+Developers"
+    },
+    {
+      "anchor": "OSI Approved :: MIT License",
+      "href": "/search/?c=License+%3A%3A+OSI+Approved+%3A%3A+MIT+License"
+    },
+    {
+      "anchor": "MacOS",
+      "href": "/search/?c=Operating+System+%3A%3A+MacOS"
+    },
+    {
+      "anchor": "Microsoft :: Windows",
+      "href": "/search/?c=Operating+System+%3A%3A+Microsoft+%3A%3A+Windows"
+    },
+    {
+      "anchor": "OS Independent",
+      "href": "/search/?c=Operating+System+%3A%3A+OS+Independent"
+    },
+    {
+      "anchor": "POSIX",
+      "href": "/search/?c=Operating+System+%3A%3A+POSIX"
+    },
+    {
+      "anchor": "POSIX :: Linux",
+      "href": "/search/?c=Operating+System+%3A%3A+POSIX+%3A%3A+Linux"
+    },
+    {
+      "anchor": "Python :: 3.9",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.9"
+    },
+    {
+      "anchor": "Python :: 3.10",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.10"
+    },
+    {
+      "anchor": "Python :: 3.11",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.11"
+    },
+    {
+      "anchor": "Python :: 3.12",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.12"
+    },
+    {
+      "anchor": "Python :: 3.13",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.13"
+    },
+    {
+      "anchor": "Python :: 3.14",
+      "href": "/search/?c=Programming+Language+%3A%3A+Python+%3A%3A+3.14"
+    },
+    {
+      "anchor": "Software Development :: Libraries :: Python Modules",
+      "href": "/search/?c=Topic+%3A%3A+Software+Development+%3A%3A+Libraries+%3A%3A+Python+Modules"
+    },
+    {
+      "anchor": "Typed",
+      "href": "/search/?c=Typing+%3A%3A+Typed"
+    },
+    {
+      "anchor": "Release notifications",
+      "href": "/help/#project-release-notifications"
+    },
+    {
+      "anchor": "RSS feed",
+      "href": "/rss/project/anthropic/releases.xml"
+    },
+    {
+      "anchor": "0.101.0\n            \n            \n    May 11, 2026",
+      "href": "/project/anthropic/0.101.0/"
+    },
+    {
+      "anchor": "0.100.0\n            \n            \n    May 6, 2026",
+      "href": "/project/anthropic/0.100.0/"
+    },
+    {
+      "anchor": "0.99.0\n            \n            \n    May 5, 2026",
+      "href": "/project/anthropic/0.99.0/"
+    },
+    {
+      "anchor": "0.98.1\n            \n            \n    May 4, 2026",
+      "href": "/project/anthropic/0.98.1/"
+    },
+    {
+      "anchor": "0.98.0\n            \n            \n    May 4, 2026",
+      "href": "/project/anthropic/0.98.0/"
+    },
+    {
+      "anchor": "0.97.0\n            \n            \n    Apr 23, 2026",
+      "href": "/project/anthropic/0.97.0/"
+    },
+    {
+      "anchor": "0.96.0\n            \n            \n    Apr 16, 2026",
+      "href": "/project/anthropic/0.96.0/"
+    },
+    {
+      "anchor": "0.95.0\n            \n            \n    Apr 14, 2026",
+      "href": "/project/anthropic/0.95.0/"
+    },
+    {
+      "anchor": "0.94.1\n            \n            \n    Apr 13, 2026",
+      "href": "/project/anthropic/0.94.1/"
+    },
+    {
+      "anchor": "0.94.0\n            \n            \n    Apr 10, 2026",
+      "href": "/project/anthropic/0.94.0/"
+    },
+    {
+      "anchor": "0.93.0\n            \n            \n    Apr 9, 2026",
+      "href": "/project/anthropic/0.93.0/"
+    },
+    {
+      "anchor": "0.92.0\n            \n            \n    Apr 8, 2026",
+      "href": "/project/anthropic/0.92.0/"
+    },
+    {
+      "anchor": "0.91.0\n            \n            \n    Apr 7, 2026",
+      "href": "/project/anthropic/0.91.0/"
+    },
+    {
+      "anchor": "0.90.0\n            \n            \n    Apr 7, 2026",
+      "href": "/project/anthropic/0.90.0/"
+    },
+    {
+      "anchor": "0.89.0\n            \n            \n    Apr 3, 2026",
+      "href": "/project/anthropic/0.89.0/"
+    },
+    {
+      "anchor": "0.88.0\n            \n            \n    Apr 1, 2026",
+      "href": "/project/anthropic/0.88.0/"
+    },
+    {
+      "anchor": "0.87.0\n            \n            \n    Mar 31, 2026",
+      "href": "/project/anthropic/0.87.0/"
+    },
+    {
+      "anchor": "0.86.0\n            \n            \n    Mar 18, 2026",
+      "href": "/project/anthropic/0.86.0/"
+    },
+    {
+      "anchor": "0.85.0\n            \n            \n    Mar 16, 2026",
+      "href": "/project/anthropic/0.85.0/"
+    },
+    {
+      "anchor": "0.84.0\n            \n            \n    Feb 25, 2026",
+      "href": "/project/anthropic/0.84.0/"
+    },
+    {
+      "anchor": "0.83.0\n            \n            \n    Feb 19, 2026",
+      "href": "/project/anthropic/0.83.0/"
+    },
+    {
+      "anchor": "0.82.0\n            \n            \n    Feb 18, 2026",
+      "href": "/project/anthropic/0.82.0/"
+    },
+    {
+      "anchor": "0.81.0\n            \n            \n    Feb 18, 2026",
+      "href": "/project/anthropic/0.81.0/"
+    },
+    {
+      "anchor": "0.80.0\n            \n            \n    Feb 17, 2026",
+      "href": "/project/anthropic/0.80.0/"
+    },
+    {
+      "anchor": "0.79.0\n            \n            \n    Feb 7, 2026",
+      "href": "/project/anthropic/0.79.0/"
+    },
+    {
+      "anchor": "0.78.0\n            \n            \n    Feb 5, 2026",
+      "href": "/project/anthropic/0.78.0/"
+    },
+    {
+      "anchor": "0.77.1\n            \n            \n    Feb 3, 2026",
+      "href": "/project/anthropic/0.77.1/"
+    },
+    {
+      "anchor": "0.77.0\n            \n            \n    Jan 29, 2026",
+      "href": "/project/anthropic/0.77.0/"
+    },
+    {
+      "anchor": "0.76.0\n            \n            \n    Jan 13, 2026",
+      "href": "/project/anthropic/0.76.0/"
+    },
+    {
+      "anchor": "0.75.0\n            \n            \n    Nov 24, 2025",
+      "href": "/project/anthropic/0.75.0/"
+    },
+    {
+      "anchor": "0.74.1\n            \n            \n    Nov 19, 2025",
+      "href": "/project/anthropic/0.74.1/"
+    },
+    {
+      "anchor": "0.74.0\n            \n            \n    Nov 18, 2025",
+      "href": "/project/anthropic/0.74.0/"
+    },
+    {
+      "anchor": "0.73.0\n            \n            \n    Nov 14, 2025",
+      "href": "/project/anthropic/0.73.0/"
+    },
+    {
+      "anchor": "0.72.1\n            \n            \n    Nov 11, 2025",
+      "href": "/project/anthropic/0.72.1/"
+    },
+    {
+      "anchor": "0.72.0\n            \n            \n    Oct 28, 2025",
+      "href": "/project/anthropic/0.72.0/"
+    },
+    {
+      "anchor": "0.71.1\n            \n            \n    Oct 28, 2025",
+      "href": "/project/anthropic/0.71.1/"
+    },
+    {
+      "anchor": "0.71.0\n            \n            \n    Oct 16, 2025",
+      "href": "/project/anthropic/0.71.0/"
+    },
+    {
+      "anchor": "0.70.0\n            \n            \n    Oct 15, 2025",
+      "href": "/project/anthropic/0.70.0/"
+    },
+    {
+      "anchor": "0.69.0\n            \n            \n    Sep 29, 2025",
+      "href": "/project/anthropic/0.69.0/"
+    },
+    {
+      "anchor": "0.68.2\n            \n            \n    Sep 29, 2025",
+      "href": "/project/anthropic/0.68.2/"
+    },
+    {
+      "anchor": "0.68.1\n            \n            \n    Sep 26, 2025",
+      "href": "/project/anthropic/0.68.1/"
+    },
+    {
+      "anchor": "0.68.0\n            \n            \n    Sep 17, 2025",
+      "href": "/project/anthropic/0.68.0/"
+    },
+    {
+      "anchor": "0.67.0\n            \n            \n    Sep 10, 2025",
+      "href": "/project/anthropic/0.67.0/"
+    },
+    {
+      "anchor": "0.66.0\n            \n            \n    Sep 3, 2025",
+      "href": "/project/anthropic/0.66.0/"
+    },
+    {
+      "anchor": "0.65.0\n            \n            \n    Sep 2, 2025",
+      "href": "/project/anthropic/0.65.0/"
+    },
+    {
+      "anchor": "0.64.0\n            \n            \n    Aug 13, 2025",
+      "href": "/project/anthropic/0.64.0/"
+    },
+    {
+      "anchor": "0.63.0\n            \n            \n    Aug 12, 2025",
+      "href": "/project/anthropic/0.63.0/"
+    },
+    {
+      "anchor": "0.62.0\n            \n            \n    Aug 8, 2025",
+      "href": "/project/anthropic/0.62.0/"
+    },
+    {
+      "anchor": "0.61.0\n            \n            \n    Aug 5, 2025",
+      "href": "/project/anthropic/0.61.0/"
+    },
+    {
+      "anchor": "0.60.0\n            \n            \n    Jul 28, 2025",
+      "href": "/project/anthropic/0.60.0/"
+    },
+    {
+      "anchor": "0.59.0\n            \n            \n    Jul 23, 2025",
+      "href": "/project/anthropic/0.59.0/"
+    },
+    {
+      "anchor": "0.58.2\n            \n            \n    Jul 18, 2025",
+      "href": "/project/anthropic/0.58.2/"
+    },
+    {
+      "anchor": "0.58.1\n            \n            \n    Jul 18, 2025",
+      "href": "/project/anthropic/0.58.1/"
+    },
+    {
+      "anchor": "0.58.0\n            \n            \n    Jul 18, 2025",
+      "href": "/project/anthropic/0.58.0/"
+    },
+    {
+      "anchor": "0.57.1\n            \n            \n    Jul 3, 2025",
+      "href": "/project/anthropic/0.57.1/"
+    },
+    {
+      "anchor": "0.57.0\n            \n            \n    Jul 3, 2025",
+      "href": "/project/anthropic/0.57.0/"
+    },
+    {
+      "anchor": "0.56.0\n            \n            \n    Jul 1, 2025",
+      "href": "/project/anthropic/0.56.0/"
+    },
+    {
+      "anchor": "0.55.0\n            \n            \n    Jun 23, 2025",
+      "href": "/project/anthropic/0.55.0/"
+    },
+    {
+      "anchor": "0.54.0\n            \n            \n    Jun 11, 2025",
+      "href": "/project/anthropic/0.54.0/"
+    },
+    {
+      "anchor": "0.53.0\n            \n            \n    Jun 9, 2025",
+      "href": "/project/anthropic/0.53.0/"
+    },
+    {
+      "anchor": "0.52.2\n            \n            \n    Jun 2, 2025",
+      "href": "/project/anthropic/0.52.2/"
+    },
+    {
+      "anchor": "0.52.1\n            \n            \n    May 28, 2025",
+      "href": "/project/anthropic/0.52.1/"
+    },
+    {
+      "anchor": "0.52.0\n            \n            \n    May 22, 2025",
+      "href": "/project/anthropic/0.52.0/"
+    },
+    {
+      "anchor": "0.51.0\n            \n            \n    May 7, 2025",
+      "href": "/project/anthropic/0.51.0/"
+    },
+    {
+      "anchor": "0.50.0\n            \n            \n    Apr 22, 2025",
+      "href": "/project/anthropic/0.50.0/"
+    },
+    {
+      "anchor": "0.49.0\n            \n            \n    Feb 28, 2025",
+      "href": "/project/anthropic/0.49.0/"
+    },
+    {
+      "anchor": "0.48.0\n            \n            \n    Feb 27, 2025",
+      "href": "/project/anthropic/0.48.0/"
+    },
+    {
+      "anchor": "0.47.2\n            \n            \n    Feb 25, 2025",
+      "href": "/project/anthropic/0.47.2/"
+    },
+    {
+      "anchor": "0.47.1\n            \n            \n    Feb 24, 2025",
+      "href": "/project/anthropic/0.47.1/"
+    },
+    {
+      "anchor": "0.47.0\n            \n            \n    Feb 24, 2025",
+      "href": "/project/anthropic/0.47.0/"
+    },
+    {
+      "anchor": "0.46.0\n            \n            \n    Feb 18, 2025",
+      "href": "/project/anthropic/0.46.0/"
+    },
+    {
+      "anchor": "0.45.2\n            \n            \n    Jan 27, 2025",
+      "href": "/project/anthropic/0.45.2/"
+    },
+    {
+      "anchor": "0.45.1\n            \n            \n    Jan 27, 2025",
+      "href": "/project/anthropic/0.45.1/"
+    },
+    {
+      "anchor": "0.45.0\n            \n            \n    Jan 23, 2025",
+      "href": "/project/anthropic/0.45.0/"
+    },
+    {
+      "anchor": "0.44.0\n            \n            \n    Jan 21, 2025",
+      "href": "/project/anthropic/0.44.0/"
+    },
+    {
+      "anchor": "0.43.1\n            \n            \n    Jan 17, 2025",
+      "href": "/project/anthropic/0.43.1/"
+    },
+    {
+      "anchor": "0.43.0\n            \n            \n    Jan 14, 2025",
+      "href": "/project/anthropic/0.43.0/"
+    },
+    {
+      "anchor": "0.42.0\n            \n            \n    Dec 17, 2024",
+      "href": "/project/anthropic/0.42.0/"
+    },
+    {
+      "anchor": "0.41.0\n            \n            \n    Dec 17, 2024",
+      "href": "/project/anthropic/0.41.0/"
+    },
+    {
+      "anchor": "0.40.0\n            \n            \n    Nov 28, 2024",
+      "href": "/project/anthropic/0.40.0/"
+    },
+    {
+      "anchor": "0.39.0\n            \n            \n    Nov 4, 2024",
+      "href": "/project/anthropic/0.39.0/"
+    },
+    {
+      "anchor": "0.38.0\n            \n            \n    Nov 1, 2024",
+      "href": "/project/anthropic/0.38.0/"
+    },
+    {
+      "anchor": "0.37.1\n            \n            \n    Oct 22, 2024",
+      "href": "/project/anthropic/0.37.1/"
+    },
+    {
+      "anchor": "0.37.0\n            \n            \n    Oct 22, 2024",
+      "href": "/project/anthropic/0.37.0/"
+    },
+    {
+      "anchor": "0.36.2\n            \n            \n    Oct 17, 2024",
+      "href": "/project/anthropic/0.36.2/"
+    },
+    {
+      "anchor": "0.36.1\n            \n            \n    Oct 15, 2024",
+      "href": "/project/anthropic/0.36.1/"
+    },
+    {
+      "anchor": "0.36.0\n            \n            \n    Oct 8, 2024",
+      "href": "/project/anthropic/0.36.0/"
+    },
+    {
+      "anchor": "0.35.0\n            \n            \n    Oct 4, 2024",
+      "href": "/project/anthropic/0.35.0/"
+    },
+    {
+      "anchor": "0.34.2\n            \n            \n    Sep 4, 2024",
+      "href": "/project/anthropic/0.34.2/"
+    },
+    {
+      "anchor": "0.34.1\n            \n            \n    Aug 20, 2024",
+      "href": "/project/anthropic/0.34.1/"
+    },
+    {
+      "anchor": "0.34.0\n            \n            \n    Aug 14, 2024",
+      "href": "/project/anthropic/0.34.0/"
+    },
+    {
+      "anchor": "0.33.1\n            \n            \n    Aug 12, 2024",
+      "href": "/project/anthropic/0.33.1/"
+    },
+    {
+      "anchor": "0.33.0\n            \n            \n    Aug 9, 2024",
+      "href": "/project/anthropic/0.33.0/"
+    },
+    {
+      "anchor": "0.32.0\n            \n            \n    Jul 29, 2024",
+      "href": "/project/anthropic/0.32.0/"
+    },
+    {
+      "anchor": "0.31.2\n            \n            \n    Jul 17, 2024",
+      "href": "/project/anthropic/0.31.2/"
+    },
+    {
+      "anchor": "0.31.1\n            \n            \n    Jul 15, 2024",
+      "href": "/project/anthropic/0.31.1/"
+    },
+    {
+      "anchor": "0.31.0\n            \n            \n    Jul 10, 2024",
+      "href": "/project/anthropic/0.31.0/"
+    },
+    {
+      "anchor": "0.30.1\n            \n            \n    Jul 2, 2024",
+      "href": "/project/anthropic/0.30.1/"
+    },
+    {
+      "anchor": "0.30.0\n            \n            \n    Jun 26, 2024",
+      "href": "/project/anthropic/0.30.0/"
+    },
+    {
+      "anchor": "0.29.2\n            \n            \n    Jun 26, 2024",
+      "href": "/project/anthropic/0.29.2/"
+    },
+    {
+      "anchor": "0.29.0\n            \n            \n    Jun 20, 2024",
+      "href": "/project/anthropic/0.29.0/"
+    },
+    {
+      "anchor": "0.28.1\n            \n            \n    Jun 14, 2024",
+      "href": "/project/anthropic/0.28.1/"
+    },
+    {
+      "anchor": "0.28.0\n            \n            \n    May 30, 2024",
+      "href": "/project/anthropic/0.28.0/"
+    },
+    {
+      "anchor": "0.27.0\n            \n            \n    May 30, 2024",
+      "href": "/project/anthropic/0.27.0/"
+    },
+    {
+      "anchor": "0.26.1\n            \n            \n    May 21, 2024",
+      "href": "/project/anthropic/0.26.1/"
+    },
+    {
+      "anchor": "0.26.0\n            \n            \n    May 16, 2024",
+      "href": "/project/anthropic/0.26.0/"
+    },
+    {
+      "anchor": "0.25.9\n            \n            \n    May 14, 2024",
+      "href": "/project/anthropic/0.25.9/"
+    },
+    {
+      "anchor": "0.25.8\n            \n            \n    May 8, 2024",
+      "href": "/project/anthropic/0.25.8/"
+    },
+    {
+      "anchor": "0.25.7\n            \n            \n    Apr 29, 2024",
+      "href": "/project/anthropic/0.25.7/"
+    },
+    {
+      "anchor": "0.25.6\n            \n            \n    Apr 18, 2024",
+      "href": "/project/anthropic/0.25.6/"
+    },
+    {
+      "anchor": "0.25.5\n            \n            \n    Apr 18, 2024",
+      "href": "/project/anthropic/0.25.5/"
+    },
+    {
+      "anchor": "0.25.4\n            \n            \n    Apr 17, 2024",
+      "href": "/project/anthropic/0.25.4/"
+    },
+    {
+      "anchor": "0.25.3\n            \n            \n    Apr 17, 2024",
+      "href": "/project/anthropic/0.25.3/"
+    },
+    {
+      "anchor": "0.25.2\n            \n            \n    Apr 15, 2024",
+      "href": "/project/anthropic/0.25.2/"
+    },
+    {
+      "anchor": "0.25.1\n            \n            \n    Apr 11, 2024",
+      "href": "/project/anthropic/0.25.1/"
+    },
+    {
+      "anchor": "0.25.0\n            \n            \n    Apr 9, 2024",
+      "href": "/project/anthropic/0.25.0/"
+    },
+    {
+      "anchor": "0.24.0\n            \n            \n    Apr 9, 2024",
+      "href": "/project/anthropic/0.24.0/"
+    },
+    {
+      "anchor": "0.23.1\n            \n            \n    Apr 4, 2024",
+      "href": "/project/anthropic/0.23.1/"
+    },
+    {
+      "anchor": "0.23.0\n            \n            \n    Apr 4, 2024",
+      "href": "/project/anthropic/0.23.0/"
+    },
+    {
+      "anchor": "0.22.1\n            \n            \n    Apr 4, 2024",
+      "href": "/project/anthropic/0.22.1/"
+    },
+    {
+      "anchor": "0.22.0\n            \n            \n    Apr 4, 2024",
+      "href": "/project/anthropic/0.22.0/"
+    },
+    {
+      "anchor": "0.21.3\n            \n            \n    Mar 21, 2024",
+      "href": "/project/anthropic/0.21.3/"
+    },
+    {
+      "anchor": "0.21.2\n            \n            \n    Mar 21, 2024",
+      "href": "/project/anthropic/0.21.2/"
+    },
+    {
+      "anchor": "0.21.1\n            \n            \n    Mar 20, 2024",
+      "href": "/project/anthropic/0.21.1/"
+    },
+    {
+      "anchor": "0.21.0\n            \n            \n    Mar 19, 2024",
+      "href": "/project/anthropic/0.21.0/"
+    },
+    {
+      "anchor": "0.20.0\n            \n            \n    Mar 13, 2024",
+      "href": "/project/anthropic/0.20.0/"
+    },
+    {
+      "anchor": "0.19.2\n            \n            \n    Mar 11, 2024",
+      "href": "/project/anthropic/0.19.2/"
+    },
+    {
+      "anchor": "0.19.1\n            \n            \n    Mar 7, 2024",
+      "href": "/project/anthropic/0.19.1/"
+    },
+    {
+      "anchor": "0.19.0\n            \n            \n    Mar 6, 2024",
+      "href": "/project/anthropic/0.19.0/"
+    },
+    {
+      "anchor": "0.18.1\n            \n            \n    Mar 4, 2024",
+      "href": "/project/anthropic/0.18.1/"
+    },
+    {
+      "anchor": "0.18.0\n            \n            \n    Mar 4, 2024",
+      "href": "/project/anthropic/0.18.0/"
+    },
+    {
+      "anchor": "0.17.0\n            \n            \n    Mar 4, 2024",
+      "href": "/project/anthropic/0.17.0/"
+    },
+    {
+      "anchor": "0.16.0\n            \n            \n    Feb 13, 2024",
+      "href": "/project/anthropic/0.16.0/"
+    },
+    {
+      "anchor": "0.15.1\n            \n            \n    Feb 7, 2024",
+      "href": "/project/anthropic/0.15.1/"
+    },
+    {
+      "anchor": "0.15.0\n            \n            \n    Feb 2, 2024",
+      "href": "/project/anthropic/0.15.0/"
+    },
+    {
+      "anchor": "0.14.1\n            \n            \n    Feb 2, 2024",
+      "href": "/project/anthropic/0.14.1/"
+    },
+    {
+      "anchor": "0.14.0\n            \n            \n    Jan 31, 2024",
+      "href": "/project/anthropic/0.14.0/"
+    },
+    {
+      "anchor": "0.13.0\n            \n            \n    Jan 31, 2024",
+      "href": "/project/anthropic/0.13.0/"
+    },
+    {
+      "anchor": "0.12.0\n            \n            \n    Jan 26, 2024",
+      "href": "/project/anthropic/0.12.0/"
+    },
+    {
+      "anchor": "0.11.0\n            \n            \n    Jan 23, 2024",
+      "href": "/project/anthropic/0.11.0/"
+    },
+    {
+      "anchor": "0.10.0\n            \n            \n    Jan 18, 2024",
+      "href": "/project/anthropic/0.10.0/"
+    },
+    {
+      "anchor": "0.9.0\n            \n            \n    Jan 8, 2024",
+      "href": "/project/anthropic/0.9.0/"
+    },
+    {
+      "anchor": "0.8.1\n            \n            \n    Dec 22, 2023",
+      "href": "/project/anthropic/0.8.1/"
+    },
+    {
+      "anchor": "0.8.0\n            \n            \n    Dec 19, 2023",
+      "href": "/project/anthropic/0.8.0/"
+    },
+    {
+      "anchor": "0.7.8\n            \n            \n    Dec 13, 2023",
+      "href": "/project/anthropic/0.7.8/"
+    },
+    {
+      "anchor": "0.7.7\n            \n            \n    Nov 29, 2023",
+      "href": "/project/anthropic/0.7.7/"
+    },
+    {
+      "anchor": "0.7.6\n            \n            \n    Nov 28, 2023",
+      "href": "/project/anthropic/0.7.6/"
+    },
+    {
+      "anchor": "0.7.5\n            \n            \n    Nov 27, 2023",
+      "href": "/project/anthropic/0.7.5/"
+    },
+    {
+      "anchor": "0.7.4\n            \n            \n    Nov 23, 2023",
+      "href": "/project/anthropic/0.7.4/"
+    },
+    {
+      "anchor": "0.7.3\n            \n            \n    Nov 21, 2023",
+      "href": "/project/anthropic/0.7.3/"
+    },
+    {
+      "anchor": "0.7.2\n            \n            \n    Nov 18, 2023",
+      "href": "/project/anthropic/0.7.2/"
+    },
+    {
+      "anchor": "0.7.1\n            \n            \n    Nov 17, 2023",
+      "href": "/project/anthropic/0.7.1/"
+    },
+    {
+      "anchor": "0.7.0\n            \n            \n    Nov 16, 2023",
+      "href": "/project/anthropic/0.7.0/"
+    },
+    {
+      "anchor": "0.6.0\n            \n            \n    Nov 9, 2023",
+      "href": "/project/anthropic/0.6.0/"
+    },
+    {
+      "anchor": "0.5.0\n            \n            \n    Oct 18, 2023",
+      "href": "/project/anthropic/0.5.0/"
+    },
+    {
+      "anchor": "0.4.1\n            \n            \n    Oct 16, 2023",
+      "href": "/project/anthropic/0.4.1/"
+    },
+    {
+      "anchor": "0.3.11\n            \n            \n    Aug 28, 2023",
+      "href": "/project/anthropic/0.3.11/"
+    },
+    {
+      "anchor": "0.3.10\n            \n            \n    Aug 16, 2023",
+      "href": "/project/anthropic/0.3.10/"
+    },
+    {
+      "anchor": "0.3.9\n            \n            \n    Aug 12, 2023",
+      "href": "/project/anthropic/0.3.9/"
+    },
+    {
+      "anchor": "0.3.8\n            \n            \n    Aug 2, 2023",
+      "href": "/project/anthropic/0.3.8/"
+    },
+    {
+      "anchor": "0.3.7\n            \n            \n    Jul 31, 2023",
+      "href": "/project/anthropic/0.3.7/"
+    },
+    {
+      "anchor": "0.3.6\n            \n            \n    Jul 22, 2023",
+      "href": "/project/anthropic/0.3.6/"
+    },
+    {
+      "anchor": "0.3.5\n            \n            \n    Jul 20, 2023",
+      "href": "/project/anthropic/0.3.5/"
+    },
+    {
+      "anchor": "0.3.4\n            \n            \n    Jul 11, 2023",
+      "href": "/project/anthropic/0.3.4/"
+    },
+    {
+      "anchor": "0.3.3\n            \n            \n    Jul 11, 2023",
+      "href": "/project/anthropic/0.3.3/"
+    },
+    {
+      "anchor": "0.3.2\n            \n            \n    Jul 1, 2023",
+      "href": "/project/anthropic/0.3.2/"
+    },
+    {
+      "anchor": "0.3.1\n            \n            \n    Jun 29, 2023",
+      "href": "/project/anthropic/0.3.1/"
+    },
+    {
+      "anchor": "0.3.0\n            \n            \n    Jun 28, 2023",
+      "href": "/project/anthropic/0.3.0/"
+    },
+    {
+      "anchor": "0.2.10\n            \n            \n    Jun 2, 2023",
+      "href": "/project/anthropic/0.2.10/"
+    },
+    {
+      "anchor": "0.2.9\n            \n            \n    May 15, 2023",
+      "href": "/project/anthropic/0.2.9/"
+    },
+    {
+      "anchor": "0.2.8\n            \n            \n    May 8, 2023",
+      "href": "/project/anthropic/0.2.8/"
+    },
+    {
+      "anchor": "0.2.7\n            \n            \n    Apr 15, 2023",
+      "href": "/project/anthropic/0.2.7/"
+    },
+    {
+      "anchor": "0.2.6\n            \n            \n    Apr 3, 2023",
+      "href": "/project/anthropic/0.2.6/"
+    },
+    {
+      "anchor": "0.2.5\n            \n            \n    Mar 29, 2023",
+      "href": "/project/anthropic/0.2.5/"
+    },
+    {
+      "anchor": "0.2.4\n            \n            \n    Mar 28, 2023",
+      "href": "/project/anthropic/0.2.4/"
+    },
+    {
+      "anchor": "0.2.3\n            \n            \n    Mar 20, 2023",
+      "href": "/project/anthropic/0.2.3/"
+    },
+    {
+      "anchor": "0.2.2\n            \n            \n    Feb 9, 2023",
+      "href": "/project/anthropic/0.2.2/"
+    },
+    {
+      "anchor": "installing packages",
+      "href": "https://packaging.python.org/tutorials/installing-packages/"
+    },
+    {
+      "anchor": "anthropic-0.101.0.tar.gz",
+      "href": "https://files.pythonhosted.org/packages/b5/cb/9d0123243e749ac3a579972b2c398971bce1dc57bcc4efb08066df610360/anthropic-0.101.0.tar.gz"
+    },
+    {
+      "anchor": "view details",
+      "href": "#anthropic-0.101.0.tar.gz"
+    },
+    {
+      "anchor": "wheel file names",
+      "href": "https://packaging.python.org/en/latest/specifications/binary-distribution-format/"
+    },
+    {
+      "anchor": "anthropic-0.101.0-py3-none-any.whl",
+      "href": "https://files.pythonhosted.org/packages/f1/b2/74ff06762d005ecf1658929a292df0acb786d025f6a6c54fcb30e2dc7761/anthropic-0.101.0-py3-none-any.whl"
+    },
+    {
+      "anchor": "view details",
+      "href": "#anthropic-0.101.0-py3-none-any.whl"
+    },
+    {
+      "anchor": "anthropic-0.101.0.tar.gz",
+      "href": "https://files.pythonhosted.org/packages/b5/cb/9d0123243e749ac3a579972b2c398971bce1dc57bcc4efb08066df610360/anthropic-0.101.0.tar.gz"
+    },
+    {
+      "anchor": "See more details on using hashes here.",
+      "href": "https://pip.pypa.io/en/stable/topics/secure-installs/#hash-checking-mode"
+    },
+    {
+      "anchor": "anthropic-0.101.0-py3-none-any.whl",
+      "href": "https://files.pythonhosted.org/packages/f1/b2/74ff06762d005ecf1658929a292df0acb786d025f6a6c54fcb30e2dc7761/anthropic-0.101.0-py3-none-any.whl"
+    },
+    {
+      "anchor": "See more details on using hashes here.",
+      "href": "https://pip.pypa.io/en/stable/topics/secure-installs/#hash-checking-mode"
+    },
+    {
+      "anchor": "Installing packages",
+      "href": "https://packaging.python.org/tutorials/installing-packages/"
+    },
+    {
+      "anchor": "Uploading packages",
+      "href": "https://packaging.python.org/tutorials/packaging-projects/"
+    },
+    {
+      "anchor": "User guide",
+      "href": "https://packaging.python.org/"
+    },
+    {
+      "anchor": "Project name retention",
+      "href": "https://www.python.org/dev/peps/pep-0541/"
+    },
+    {
+      "anchor": "FAQs",
+      "href": "/help/"
+    },
+    {
+      "anchor": "PyPI Blog",
+      "href": "https://blog.pypi.org"
+    },
+    {
+      "anchor": "Infrastructure dashboard",
+      "href": "https://dtdg.co/pypi"
+    },
+    {
+      "anchor": "Statistics",
+      "href": "/stats/"
+    },
+    {
+      "anchor": "Logos & trademarks",
+      "href": "/trademarks/"
+    },
+    {
+      "anchor": "Our sponsors",
+      "href": "/sponsors/"
+    },
+    {
+      "anchor": "Bugs and feedback",
+      "href": "/help/#feedback"
+    },
+    {
+      "anchor": "Contribute on GitHub",
+      "href": "https://github.com/pypi/warehouse"
+    },
+    {
+      "anchor": "Translate PyPI",
+      "href": "https://hosted.weblate.org/projects/pypa/warehouse/"
+    },
+    {
+      "anchor": "Sponsor PyPI",
+      "href": "/sponsors/"
+    },
+    {
+      "anchor": "Development credits",
+      "href": "https://github.com/pypi/warehouse/graphs/contributors"
+    },
+    {
+      "anchor": "Terms of Service",
+      "href": "https://policies.python.org/pypi.org/Terms-of-Service/"
+    },
+    {
+      "anchor": "Report security issue",
+      "href": "/security/"
+    },
+    {
+      "anchor": "Code of conduct",
+      "href": "https://policies.python.org/python.org/code-of-conduct/"
+    },
+    {
+      "anchor": "Privacy Notice",
+      "href": "https://policies.python.org/pypi.org/Privacy-Notice/"
+    },
+    {
+      "anchor": "Acceptable Use Policy",
+      "href": "https://policies.python.org/pypi.org/Acceptable-Use-Policy/"
+    },
+    {
+      "anchor": "all systems operational",
+      "href": "https://status.python.org/"
+    },
+    {
+      "anchor": "Donate today!",
+      "href": "https://donate.pypi.org"
+    },
+    {
+      "anchor": "trademarks",
+      "href": "/trademarks/"
+    },
+    {
+      "anchor": "Python Software Foundation",
+      "href": "https://www.python.org/psf-landing"
+    },
+    {
+      "anchor": "Python Software Foundation",
+      "href": "https://www.python.org/psf-landing/"
+    },
+    {
+      "anchor": "Site map",
+      "href": "/sitemap/"
+    },
+    {
+      "anchor": "c008af2",
+      "href": "https://github.com/pypi/warehouse/commit/c008af27d056f53ae50872c78b615a2a1c320cde"
+    },
+    {
+      "anchor": "AWS\n          \n              Cloud computing and Security Sponsor",
+      "href": "https://aws.amazon.com/"
+    },
+    {
+      "anchor": "Datadog\n          \n              Monitoring",
+      "href": "https://www.datadoghq.com/"
+    },
+    {
+      "anchor": "Depot\n          \n              Continuous Integration",
+      "href": "https://depot.dev"
+    },
+    {
+      "anchor": "Fastly\n          \n              CDN",
+      "href": "https://www.fastly.com/"
+    },
+    {
+      "anchor": "Google\n          \n              Download Analytics",
+      "href": "https://careers.google.com/"
+    },
+    {
+      "anchor": "Pingdom\n          \n              Monitoring",
+      "href": "https://www.pingdom.com/"
+    },
+    {
+      "anchor": "Sentry\n          \n              Error logging",
+      "href": "https://sentry.io/for/python/?utm_source=pypi&utm_medium=paid-community&utm_campaign=python-na-evergreen&utm_content=static-ad-pypi-sponsor-learnmore"
+    },
+    {
+      "anchor": "StatusPage\n          \n              Status page",
+      "href": "https://statuspage.io"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "anthropic 0.101.0"
+    },
+    {
+      "level": 1,
+      "text": "Claude SDK for Python"
+    },
+    {
+      "level": 2,
+      "text": "Project description"
+    },
+    {
+      "level": 2,
+      "text": "Documentation"
+    },
+    {
+      "level": 2,
+      "text": "Installation"
+    },
+    {
+      "level": 2,
+      "text": "Getting started"
+    },
+    {
+      "level": 2,
+      "text": "Requirements"
+    },
+    {
+      "level": 2,
+      "text": "Contributing"
+    },
+    {
+      "level": 2,
+      "text": "License"
+    },
+    {
+      "level": 2,
+      "text": "Project details"
+    },
+    {
+      "level": 2,
+      "text": "Release history\n      \n        Release notifications |\n        RSS feed"
+    },
+    {
+      "level": 2,
+      "text": "Download files"
+    },
+    {
+      "level": 2,
+      "text": "File details"
+    },
+    {
+      "level": 2,
+      "text": "File details"
+    },
+    {
+      "level": 2,
+      "text": "Help"
+    },
+    {
+      "level": 2,
+      "text": "About PyPI"
+    },
+    {
+      "level": 2,
+      "text": "Contributing to PyPI"
+    },
+    {
+      "level": 2,
+      "text": "Using PyPI"
+    },
+    {
+      "level": 3,
+      "text": "Navigation"
+    },
+    {
+      "level": 3,
+      "text": "Verified details"
+    },
+    {
+      "level": 3,
+      "text": "Unverified details"
+    },
+    {
+      "level": 3,
+      "text": "Verified details"
+    },
+    {
+      "level": 3,
+      "text": "Unverified details"
+    },
+    {
+      "level": 3,
+      "text": "Source Distribution"
+    },
+    {
+      "level": 3,
+      "text": "Built Distribution"
+    },
+    {
+      "level": 3,
+      "text": "File metadata"
+    },
+    {
+      "level": 3,
+      "text": "File hashes"
+    },
+    {
+      "level": 3,
+      "text": "File metadata"
+    },
+    {
+      "level": 3,
+      "text": "File hashes"
+    },
+    {
+      "level": 6,
+      "text": "Owner"
+    },
+    {
+      "level": 6,
+      "text": "Project links"
+    },
+    {
+      "level": 6,
+      "text": "Meta"
+    },
+    {
+      "level": 6,
+      "text": "Classifiers"
+    },
+    {
+      "level": 6,
+      "text": "Owner"
+    },
+    {
+      "level": 6,
+      "text": "Project links"
+    },
+    {
+      "level": 6,
+      "text": "Meta"
+    },
+    {
+      "level": 6,
+      "text": "Classifiers"
+    }
+  ],
+  "content_md": "The official Python library for the anthropic API\n\n## Project description\n\n# Claude SDK for Python\n\nThe Claude SDK for Python provides access to the Claude API from Python applications.\n\n## Documentation\n\nFull documentation is available at **platform.claude.com/docs/en/api/sdks/python**.\n\n## Installation\n\n```\npip install anthropic\n```\n\n## Getting started\n\n```\nimport os\nfrom anthropic import Anthropic\nclient = Anthropic(\napi_key=os.environ.get(\"ANTHROPIC_API_KEY\"), # This is the default and can be omitted\n)\nmessage = client.messages.create(\nmax_tokens=1024,\nmessages=[\n{\n\"role\": \"user\",\n\"content\": \"Hello, Claude\",\n}\n],\nmodel=\"claude-opus-4-6\",\n)\nprint(message.content)\n```\n\n## Requirements\n\nPython 3.9+\n\n## Contributing\n\nSee CONTRIBUTING.md.\n\n## License\n\nThis project is licensed under the MIT License. See the LICENSE file for details.\n\n## Project details\n\n## Release history Release notifications | RSS feed\n\n## Download files\n\nDownload the file for your platform. If you're not sure which to choose, learn more about installing packages.\n\n### Source Distribution\n\n### Built Distribution\n\nFilter files by name, interpreter, ABI, and platform.\n\nIf you're not sure about the file name format, learn more about wheel file names.\n\nCopy a direct link to the current filters\n\n\n## File details\n\nDetails for the file `anthropic-0.101.0.tar.gz`\n\n.\n\n### File metadata\n\n- Download URL: anthropic-0.101.0.tar.gz\n- Upload date:\n- Size: 758.6 kB\n- Tags: Source\n- Uploaded using Trusted Publishing? No\n- Uploaded via: uv/0.9.13 {\"installer\":{\"name\":\"uv\",\"version\":\"0.9.13\"},\"python\":null,\"implementation\":{\"name\":null,\"version\":null},\"distro\":{\"name\":\"Ubuntu\",\"version\":\"24.04\",\"id\":\"noble\",\"libc\":null},\"system\":{\"name\":null,\"release\":null},\"cpu\":null,\"openssl_version\":null,\"setuptools_version\":null,\"rustc_version\":null,\"ci\":true}\n\n### File hashes\n\nAlgorithm | Hash digest | |\n---|---|---|\n\nSHA256 |\n`1116a6a87c55757e0fbe3e1ba40804fbd04de7963601a6dd6b539a889f18de3e`\n|\n|\n\nMD5 |\n`ab63f4c02707e630145e22545f0db62a`\n|\n|\n\nBLAKE2b-256 |\n`b5cb9d0123243e749ac3a579972b2c398971bce1dc57bcc4efb08066df610360`\n|\n\n\n## File details\n\nDetails for the file `anthropic-0.101.0-py3-none-any.whl`\n\n.\n\n### File metadata\n\n- Download URL: anthropic-0.101.0-py3-none-any.whl\n- Upload date:\n- Size: 753.6 kB\n- Tags: Python 3\n- Uploaded using Trusted Publishing? No\n- Uploaded via: uv/0.9.13 {\"installer\":{\"name\":\"uv\",\"version\":\"0.9.13\"},\"python\":null,\"implementation\":{\"name\":null,\"version\":null},\"distro\":{\"name\":\"Ubuntu\",\"version\":\"24.04\",\"id\":\"noble\",\"libc\":null},\"system\":{\"name\":null,\"release\":null},\"cpu\":null,\"openssl_version\":null,\"setuptools_version\":null,\"rustc_version\":null,\"ci\":true}\n\n### File hashes\n\nAlgorithm | Hash digest | |\n---|---|---|\n\nSHA256 |\n`cc3cc6576989471e2aa9132258034ad0ff0d8fe500b04ac499e4e46ed68c5ed0`\n|\n|\n\nMD5 |\n`7245b1e21520d61c83564527855bdc15`\n|\n|\n\nBLAKE2b-256 |\n`f1b274ff06762d005ecf1658929a292df0acb786d025f6a6c54fcb30e2dc7761`\n|\n\n",
+  "fit_md": null,
+  "operator_hints": []
+}

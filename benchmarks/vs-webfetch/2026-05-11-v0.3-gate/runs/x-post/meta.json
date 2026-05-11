@@ -1,0 +1,44 @@
+{
+  "slug": "x-post",
+  "class": "B_gated",
+  "url": "https://x.com/karpathy/status/1759031023815639423",
+  "a2web": {
+    "status": "failed",
+    "tier": "browser",
+    "verdict": "low",
+    "wall_ms_cli": 8136,
+    "wall_ms_internal": 5800,
+    "from_archive": false,
+    "from_browser": true,
+    "field_tokens": {
+      "content_md": 60,
+      "fit_md": 0,
+      "title": 0,
+      "byline": 0,
+      "published": 6,
+      "narrative": 10,
+      "links": 163,
+      "headings": 1,
+      "diagnostics": 248,
+      "operator_hints": 1,
+      "meta": 12,
+      "tokens": 0,
+      "url": 17,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 2,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 657,
+      "B_meta": 114,
+      "C_content_only": 70
+    },
+    "links_count": 6,
+    "headings_count": 0,
+    "content_chars": 296,
+    "fit_equals_content": false
+  }
+}

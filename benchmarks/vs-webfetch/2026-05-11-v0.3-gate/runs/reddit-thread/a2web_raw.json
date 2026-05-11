@@ -1,0 +1,73 @@
+{
+  "url": "https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/",
+  "status": "failed",
+  "tier": "raw",
+  "confidence": "low",
+  "title": "Reddit",
+  "byline": null,
+  "published": "2026-01-01",
+  "started_at": "2026-05-11T18:04:05.694077Z",
+  "total_ms": 1308,
+  "tokens": null,
+  "cache": "bypass",
+  "narrative": "raw → length_floor (1.3s).",
+  "diagnostics_summary": "tier=raw verdict=length_floor total_ms=1308",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "site_handler",
+      "engine": null,
+      "host": "www.reddit.com",
+      "proxy": "direct",
+      "verdict": "not_found",
+      "subsystem": null,
+      "dur_ms": 923,
+      "extra": {
+        "status_code": 0
+      }
+    },
+    {
+      "t_ms": 923,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "www.reddit.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 201,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 1124,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 182,
+      "extra": {
+        "chars": 0
+      }
+    },
+    {
+      "t_ms": 1306,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "length_floor",
+      "subsystem": null,
+      "dur_ms": 2,
+      "extra": {}
+    }
+  ],
+  "meta": {},
+  "links": [],
+  "headings": [],
+  "content_md": "",
+  "fit_md": null,
+  "operator_hints": []
+}

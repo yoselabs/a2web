@@ -1,0 +1,14 @@
+{
+  "slug": "mdn-fetch-api",
+  "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+  "class": "A_clean",
+  "task": "What is the Fetch API used for, and which method on the global object is the primary entry point?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Describes Fetch API as for making HTTP requests / fetching resources",
+    "Names fetch() (or globalThis.fetch / window.fetch) as the primary entry point",
+    "Mentions Promise-based or returns a Promise"
+  ]
+}

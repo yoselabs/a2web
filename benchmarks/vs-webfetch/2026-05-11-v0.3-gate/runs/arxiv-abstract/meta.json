@@ -1,0 +1,44 @@
+{
+  "slug": "arxiv-abstract",
+  "class": "A_clean",
+  "url": "https://arxiv.org/abs/2401.05566",
+  "a2web": {
+    "status": "ok",
+    "tier": "site_handler:arxiv",
+    "verdict": "high",
+    "wall_ms_cli": 2472,
+    "wall_ms_internal": 540,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 488,
+      "fit_md": 0,
+      "title": 16,
+      "byline": 177,
+      "published": 0,
+      "narrative": 11,
+      "links": 1,
+      "headings": 41,
+      "diagnostics": 120,
+      "operator_hints": 1,
+      "meta": 1,
+      "tokens": 13,
+      "url": 13,
+      "status": 1,
+      "tier": 5,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 1,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 1027,
+      "B_meta": 727,
+      "C_content_only": 500
+    },
+    "links_count": 0,
+    "headings_count": 2,
+    "content_chars": 2198,
+    "fit_equals_content": false
+  }
+}

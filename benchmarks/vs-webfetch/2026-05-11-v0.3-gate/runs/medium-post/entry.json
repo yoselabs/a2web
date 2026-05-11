@@ -1,0 +1,14 @@
+{
+  "slug": "medium-post",
+  "url": "https://medium.com/@altimore/llms-as-cognitive-prosthetics-d3a5b7c2cba9",
+  "class": "B_gated",
+  "task": "What is the article's central thesis in 2-3 sentences?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Provides a substantive thesis about LLMs (or the topic of the actual page reached)",
+    "Is not just a paywall / member-only notice",
+    "Is not just navigation/footer text"
+  ]
+}

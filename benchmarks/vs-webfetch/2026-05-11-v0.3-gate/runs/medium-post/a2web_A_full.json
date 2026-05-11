@@ -1,0 +1,213 @@
+{
+  "url": "https://medium.com/@altimore/llms-as-cognitive-prosthetics-d3a5b7c2cba9",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "medium",
+  "title": "404",
+  "byline": null,
+  "published": "2026-04-17",
+  "started_at": "2026-05-11T18:04:08.842542Z",
+  "total_ms": 807,
+  "tokens": {
+    "full": 967,
+    "fit": 0
+  },
+  "cache": "miss",
+  "narrative": "raw → ok (807ms).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=807",
+  "diagnostics": [
+    {
+      "t_ms": 1,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "medium.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 601,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 602,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 197,
+      "extra": {
+        "chars": 967
+      }
+    },
+    {
+      "t_ms": 799,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 5,
+      "extra": {}
+    }
+  ],
+  "meta": {
+    "og.site_name": "Medium",
+    "twitter.app:name:iphone": "Medium",
+    "twitter.app:id:iphone": "828256236"
+  },
+  "links": [
+    {
+      "anchor": "Sitemap",
+      "href": "/sitemap/sitemap.xml"
+    },
+    {
+      "anchor": "Open in app",
+      "href": "https://play.google.com/store/apps/details?id=com.medium.reader&referrer=utm_source%3DmobileNavBar&source=post_page---top_nav_layout_nav-----------------------------------------"
+    },
+    {
+      "anchor": "Sign in",
+      "href": "/m/signin?operation=login&redirect=https%3A%2F%2Fmedium.com%2F%40altimore%2Fllms-as-cognitive-prosthetics-d3a5b7c2cba9&source=post_page---top_nav_layout_nav-----------------------global_nav------------------"
+    },
+    {
+      "anchor": "Medium Logo",
+      "href": "/?source=post_page---top_nav_layout_nav-----------------------------------------"
+    },
+    {
+      "anchor": "Write",
+      "href": "/m/signin?operation=register&redirect=https%3A%2F%2Fmedium.com%2Fnew-story&source=---top_nav_layout_nav-----------------------new_post_topnav------------------"
+    },
+    {
+      "anchor": "Search",
+      "href": "/search?source=post_page---top_nav_layout_nav-----------------------------------------"
+    },
+    {
+      "anchor": "Sign in",
+      "href": "/m/signin?operation=login&redirect=https%3A%2F%2Fmedium.com%2F%40altimore%2Fllms-as-cognitive-prosthetics-d3a5b7c2cba9&source=post_page---top_nav_layout_nav-----------------------global_nav------------------"
+    },
+    {
+      "anchor": "Home",
+      "href": "/?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "digimon is one of the most important things in my life, and i will endeavor to tell you why",
+      "href": "https://docseuss.medium.com/digimon-is-one-of-the-most-important-things-in-my-life-and-i-will-endeavor-to-tell-you-why-3d3bc4793bf5?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Doc Burford",
+      "href": "https://docseuss.medium.com/?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "digimon is one of the most important things in my life, and i will endeavor to tell you why",
+      "href": "https://docseuss.medium.com/digimon-is-one-of-the-most-important-things-in-my-life-and-i-will-endeavor-to-tell-you-why-3d3bc4793bf5?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Doc Burford",
+      "href": "https://docseuss.medium.com/?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Coming Back to Center",
+      "href": "https://natalievi.medium.com/coming-back-to-center-f5fc3a6481de?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Natalie Armendariz",
+      "href": "https://natalievi.medium.com/?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Coming Back to Center",
+      "href": "https://natalievi.medium.com/coming-back-to-center-f5fc3a6481de?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Natalie Armendariz",
+      "href": "https://natalievi.medium.com/?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Whose wars are we allowed to forget?",
+      "href": "/modern-women/whose-wars-are-we-allowed-to-forget-42796be63dde?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Olivia Bussey",
+      "href": "/@livj21?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "in Modern Women",
+      "href": "/modern-women?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Whose wars are we allowed to forget?",
+      "href": "/modern-women/whose-wars-are-we-allowed-to-forget-42796be63dde?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Olivia Bussey",
+      "href": "/@livj21?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "in Modern Women",
+      "href": "/modern-women?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Minor mendings",
+      "href": "/@karla.miller_91186/minor-mendings-1cc4d6400c00?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Karla L. Miller",
+      "href": "/@karla.miller_91186?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Minor mendings",
+      "href": "/@karla.miller_91186/minor-mendings-1cc4d6400c00?source=post_page--------------------------------------------"
+    },
+    {
+      "anchor": "Karla L. Miller",
+      "href": "/@karla.miller_91186?source=post_page--------------------------------------------"
+    }
+  ],
+  "headings": [
+    {
+      "level": 2,
+      "text": "404"
+    },
+    {
+      "level": 2,
+      "text": "Out of nothing, something."
+    },
+    {
+      "level": 4,
+      "text": "digimon is one of the most important things in my life, and i will endeavor to tell you why"
+    },
+    {
+      "level": 4,
+      "text": "digimon is one of the most important things in my life, and i will endeavor to tell you why"
+    },
+    {
+      "level": 4,
+      "text": "Coming Back to Center"
+    },
+    {
+      "level": 4,
+      "text": "Coming Back to Center"
+    },
+    {
+      "level": 4,
+      "text": "Whose wars are we allowed to forget?"
+    },
+    {
+      "level": 4,
+      "text": "Whose wars are we allowed to forget?"
+    },
+    {
+      "level": 4,
+      "text": "Minor mendings"
+    },
+    {
+      "level": 4,
+      "text": "Minor mendings"
+    }
+  ],
+  "content_md": "Sitemap\nOpen in app\nSign up\nSign in\nMedium Logo\nGet app\nWrite\nSearch\nSign up\nSign in\nPAGE NOT FOUND\n404\nOut of nothing, something.\nYou can find (just about) anything on Medium — apparently even a page that doesn’t exist. Maybe these stories will take you somewhere new?\nHome\ndigimon is one of the most important things in my life, and i will endeavor to tell you why\nDoc Burford\nMay 9, 2026\n·\n55 min read\ndigimon is one of the most important things in my life, and i will endeavor to tell you why\nDoc Burford\nMay 9, 2026\n·\n55 min read\nComing Back to Center\nNatalie Armendariz\nMay 7, 2026\n·\n5 min read\nComing Back to Center\nNatalie Armendariz\nMay 7, 2026\n·\n5 min read\nWhose wars are we allowed to forget?\nOlivia Bussey\nin Modern Women\nApr 17, 2026\n·\n8 min read\nWhose wars are we allowed to forget?\nOlivia Bussey\nin Modern Women\nApr 17, 2026\n·\n8 min read\nMinor mendings\nKarla L. Miller\nApr 29, 2026\n·\n4 min read\nMinor mendings\nKarla L. Miller\nApr 29, 2026\n·\n4 min read\n",
+  "fit_md": null,
+  "operator_hints": []
+}

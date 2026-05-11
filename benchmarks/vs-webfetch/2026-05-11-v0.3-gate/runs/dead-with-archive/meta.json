@@ -1,0 +1,44 @@
+{
+  "slug": "dead-with-archive",
+  "class": "E_edge",
+  "url": "https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/",
+  "a2web": {
+    "status": "failed",
+    "tier": "jina",
+    "verdict": "low",
+    "wall_ms_cli": 4298,
+    "wall_ms_internal": 2589,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 97,
+      "fit_md": 0,
+      "title": 0,
+      "byline": 0,
+      "published": 0,
+      "narrative": 11,
+      "links": 1,
+      "headings": 1,
+      "diagnostics": 194,
+      "operator_hints": 1,
+      "meta": 1,
+      "tokens": 0,
+      "url": 34,
+      "status": 1,
+      "tier": 2,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 2,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 487,
+      "B_meta": 168,
+      "C_content_only": 114
+    },
+    "links_count": 0,
+    "headings_count": 0,
+    "content_chars": 384,
+    "fit_equals_content": false
+  }
+}

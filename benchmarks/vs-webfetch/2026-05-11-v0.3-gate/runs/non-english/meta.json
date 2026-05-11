@@ -1,0 +1,44 @@
+{
+  "slug": "non-english",
+  "class": "E_edge",
+  "url": "https://habr.com/ru/articles/799471/",
+  "a2web": {
+    "status": "ok",
+    "tier": "raw",
+    "verdict": "high",
+    "wall_ms_cli": 1894,
+    "wall_ms_internal": 425,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 1396,
+      "fit_md": 0,
+      "title": 33,
+      "byline": 3,
+      "published": 6,
+      "narrative": 6,
+      "links": 1073,
+      "headings": 122,
+      "diagnostics": 184,
+      "operator_hints": 1,
+      "meta": 673,
+      "tokens": 13,
+      "url": 12,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 1,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 3696,
+      "B_meta": 1521,
+      "C_content_only": 1447
+    },
+    "links_count": 43,
+    "headings_count": 5,
+    "content_chars": 3289,
+    "fit_equals_content": false
+  }
+}

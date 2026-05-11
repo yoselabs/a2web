@@ -1,0 +1,100 @@
+{
+  "url": "https://x.com/karpathy/status/1759031023815639423",
+  "status": "failed",
+  "tier": "browser",
+  "confidence": "low",
+  "title": null,
+  "byline": null,
+  "published": "2026-01-01",
+  "started_at": "2026-05-11T18:04:14.724804Z",
+  "total_ms": 5800,
+  "tokens": null,
+  "cache": "miss",
+  "narrative": "browser → length_floor (5.8s).",
+  "diagnostics_summary": "tier=browser verdict=length_floor total_ms=5800",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "x.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 494,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 495,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 239,
+      "extra": {
+        "chars": 296
+      }
+    },
+    {
+      "t_ms": 734,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "length_floor",
+      "subsystem": "js_required",
+      "dur_ms": 50,
+      "extra": {}
+    },
+    {
+      "t_ms": 784,
+      "step": "browser",
+      "engine": "camoufox",
+      "host": "x.com",
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 5015,
+      "extra": {
+        "status_code": 200
+      }
+    }
+  ],
+  "meta": {
+    "og.site_name": "X (formerly Twitter)"
+  },
+  "links": [
+    {
+      "anchor": "Help Center",
+      "href": "https://help.x.com/using-x/x-supported-browsers"
+    },
+    {
+      "anchor": "Terms of Service",
+      "href": "https://x.com/tos"
+    },
+    {
+      "anchor": "Privacy Policy",
+      "href": "https://x.com/privacy"
+    },
+    {
+      "anchor": "Cookie Policy",
+      "href": "https://support.x.com/articles/20170514"
+    },
+    {
+      "anchor": "Imprint",
+      "href": "https://legal.twitter.com/imprint.html"
+    },
+    {
+      "anchor": "Ads info",
+      "href": "https://business.twitter.com/en/help/troubleshooting/how-twitter-ads-work.html?ref=web-twc-ao-gbl-adsinfo&utm_source=twc&utm_medium=web&utm_campaign=ao&utm_content=adsinfo"
+    }
+  ],
+  "headings": [],
+  "content_md": "We’ve detected that JavaScript is disabled in this browser. Please enable JavaScript or switch to a supported browser to continue using x.com. You can see a list of supported browsers in our Help Center.\n\nHelp Center\n\nTerms of Service Privacy Policy Cookie Policy Imprint Ads info © 2026 X Corp.\n",
+  "fit_md": null,
+  "operator_hints": []
+}

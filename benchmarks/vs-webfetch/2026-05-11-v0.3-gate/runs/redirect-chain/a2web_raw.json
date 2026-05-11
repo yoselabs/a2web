@@ -1,0 +1,49 @@
+{
+  "url": "https://t.co/abcdef",
+  "status": "failed",
+  "tier": "none",
+  "confidence": "low",
+  "title": null,
+  "byline": null,
+  "published": null,
+  "started_at": "2026-05-11T18:04:59.576978Z",
+  "total_ms": 752,
+  "tokens": null,
+  "cache": "miss",
+  "narrative": "none → connection_error (752ms).",
+  "diagnostics_summary": "tier=none verdict=connection_error total_ms=752",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "t.co",
+      "proxy": "direct",
+      "verdict": "not_found",
+      "subsystem": null,
+      "dur_ms": 213,
+      "extra": {
+        "status_code": 404
+      }
+    },
+    {
+      "t_ms": 213,
+      "step": "jina",
+      "engine": null,
+      "host": "r.jina.ai",
+      "proxy": "direct",
+      "verdict": "connection_error",
+      "subsystem": null,
+      "dur_ms": 539,
+      "extra": {
+        "status_code": 451
+      }
+    }
+  ],
+  "meta": {},
+  "links": [],
+  "headings": [],
+  "content_md": "",
+  "fit_md": null,
+  "operator_hints": []
+}

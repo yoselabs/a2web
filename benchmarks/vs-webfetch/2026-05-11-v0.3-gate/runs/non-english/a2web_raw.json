@@ -1,0 +1,279 @@
+{
+  "url": "https://habr.com/ru/articles/799471/",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "high",
+  "title": "Управление обратным маятником в MATLAB Simulink без формул. Настройка PID регуляторов",
+  "byline": "Эрик",
+  "published": "2024-03-11",
+  "started_at": "2026-05-11T18:04:57.035391Z",
+  "total_ms": 425,
+  "tokens": {
+    "full": 3289,
+    "fit": 0
+  },
+  "cache": "hit",
+  "narrative": "Cache hit (425ms).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=425",
+  "diagnostics": [
+    {
+      "t_ms": 1,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "habr.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 384,
+      "extra": {
+        "conditional_hit": "true"
+      }
+    },
+    {
+      "t_ms": 385,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 27,
+      "extra": {
+        "chars": 3289
+      }
+    },
+    {
+      "t_ms": 412,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 13,
+      "extra": {}
+    }
+  ],
+  "meta": {
+    "og.site_name": "Хабр",
+    "og.title": "Управление обратным маятником в MATLAB Simulink без формул. Настройка PID регуляторов",
+    "og.description": "Простой и популярной реализацией закона управления обратным маятником является PID регулятор. Современные средства настройки коэффициентов PID регулятора позволяют решать подобные задачи нажатием пары...",
+    "og.image": "https://habrastorage.org/getpro/habr/upload_files/8f3/9c0/d6c/8f39c0d6ce72b2ba04fe718d281fb922.jpg",
+    "og.image:width": "1200",
+    "og.image:height": "630",
+    "og.url": "https://habr.com/ru/articles/799471/",
+    "og.type": "article",
+    "og.locale": "ru_RU",
+    "twitter.card": "summary_large_image",
+    "twitter.site": "@habr_com",
+    "twitter.title": "Управление обратным маятником в MATLAB Simulink без формул. Настройка PID регуляторов",
+    "twitter.description": "Простой и популярной реализацией закона управления обратным маятником является PID регулятор. Современные средства настройки коэффициентов PID регулятора позволяют решать подобные задачи нажатием пары...",
+    "twitter.image": "https://habrastorage.org/getpro/habr/upload_files/8f3/9c0/d6c/8f39c0d6ce72b2ba04fe718d281fb922.jpg",
+    "jsonld[0].@context": "http://schema.org",
+    "jsonld[0].@type": "Article",
+    "jsonld[0].headline": "Управление обратным маятником в MATLAB Simulink без формул. Настройка PID регуляторов",
+    "jsonld[0].datePublished": "2024-03-11T17:54:22+03:00",
+    "jsonld[0].dateModified": "2024-03-12T00:24:11+03:00",
+    "jsonld[0].description": "Простой и популярной реализацией закона управления обратным маятником является PID регулятор. Современные средства настройки коэффициентов PID регулятора позволя...",
+    "jsonld[0].url": "https://habr.com/ru/articles/799471/#post-content-body"
+  },
+  "links": [
+    {
+      "anchor": "Хабр",
+      "href": "/ru/feed"
+    },
+    {
+      "anchor": "Все потоки",
+      "href": "/ru/articles/"
+    },
+    {
+      "anchor": "Поиск",
+      "href": "/ru/search/"
+    },
+    {
+      "anchor": "Редактировать",
+      "href": "/ru/sandbox/start/"
+    },
+    {
+      "anchor": "Войти",
+      "href": "https://habr.com/kek/v1/auth/habrahabr/?back=/ru/articles/799471/&hl=ru"
+    },
+    {
+      "anchor": "ErikAntsupovControlTheory",
+      "href": "/ru/users/ErikAntsupovControlTheory/"
+    },
+    {
+      "anchor": "Matlab *",
+      "href": "/ru/hubs/matlab/"
+    },
+    {
+      "anchor": "Ссылка на проект",
+      "href": "https://github.com/Vitalya777/InvertPendulumPIDControl"
+    },
+    {
+      "anchor": "simulink",
+      "href": "/ru/search/?target_type=posts&order=relevance&q=[simulink]"
+    },
+    {
+      "anchor": "matlab",
+      "href": "/ru/search/?target_type=posts&order=relevance&q=[matlab]"
+    },
+    {
+      "anchor": "тау",
+      "href": "/ru/search/?target_type=posts&order=relevance&q=[%D1%82%D0%B0%D1%83]"
+    },
+    {
+      "anchor": "pid",
+      "href": "/ru/search/?target_type=posts&order=relevance&q=[pid]"
+    },
+    {
+      "anchor": "pid controller",
+      "href": "/ru/search/?target_type=posts&order=relevance&q=[pid+controller]"
+    },
+    {
+      "anchor": "Matlab",
+      "href": "/ru/hubs/matlab/"
+    },
+    {
+      "anchor": "Комментарии0",
+      "href": "/ru/articles/799471/comments/"
+    },
+    {
+      "anchor": "@ErikAntsupovControlTheory",
+      "href": "/ru/users/ErikAntsupovControlTheory/"
+    },
+    {
+      "anchor": "Перейти",
+      "href": "https://career.habr.com/courses/?erid=2VSb5wDLYUH&utm_source=habr&utm_medium=sponsorship_hub"
+    },
+    {
+      "anchor": "Комментарии Комментировать",
+      "href": "/ru/articles/799471/comments/"
+    },
+    {
+      "anchor": "Войти",
+      "href": "/kek/v1/auth/habrahabr/?back=/ru/articles/799471/&hl=ru"
+    },
+    {
+      "anchor": "Регистрация",
+      "href": "/kek/v1/auth/habrahabr-register/?back=/ru/articles/799471/&hl=ru"
+    },
+    {
+      "anchor": "Статьи",
+      "href": "/ru/articles/"
+    },
+    {
+      "anchor": "Новости",
+      "href": "/ru/news/"
+    },
+    {
+      "anchor": "Хабы",
+      "href": "/ru/hubs/"
+    },
+    {
+      "anchor": "Компании",
+      "href": "/ru/companies/"
+    },
+    {
+      "anchor": "Авторы",
+      "href": "/ru/users/"
+    },
+    {
+      "anchor": "Песочница",
+      "href": "/ru/sandbox/"
+    },
+    {
+      "anchor": "Устройство сайта",
+      "href": "/ru/docs/help/"
+    },
+    {
+      "anchor": "Для авторов",
+      "href": "/ru/docs/authors/codex/"
+    },
+    {
+      "anchor": "Для компаний",
+      "href": "/ru/docs/companies/corpblogs/"
+    },
+    {
+      "anchor": "Документы",
+      "href": "/ru/docs/docs/transparency/"
+    },
+    {
+      "anchor": "Соглашение",
+      "href": "https://account.habr.com/info/agreement/?hl=ru_RU"
+    },
+    {
+      "anchor": "Конфиденциальность",
+      "href": "https://account.habr.com/info/confidential/?hl=ru_RU"
+    },
+    {
+      "anchor": "Корпоративный блог",
+      "href": "https://company.habr.com/ru/corporate-blogs/"
+    },
+    {
+      "anchor": "Медийная реклама",
+      "href": "https://company.habr.com/ru/advertising/"
+    },
+    {
+      "anchor": "Нативные проекты",
+      "href": "https://company.habr.com/ru/native-special/"
+    },
+    {
+      "anchor": "Образовательные программы",
+      "href": "https://company.habr.com/ru/education-programs/"
+    },
+    {
+      "anchor": "Стартапам",
+      "href": "https://company.habr.com/ru/hello-startup/"
+    },
+    {
+      "anchor": "VK",
+      "href": "https://vk.com/habr"
+    },
+    {
+      "anchor": "Telegram",
+      "href": "https://telegram.me/habr_com"
+    },
+    {
+      "anchor": "Youtube",
+      "href": "http://www.youtube.com/@Habr_com"
+    },
+    {
+      "anchor": "Яндекс Дзен",
+      "href": "https://dzen.ru/habr"
+    },
+    {
+      "anchor": "Техническая поддержка",
+      "href": "/ru/feedback/"
+    },
+    {
+      "anchor": "Habr",
+      "href": "https://company.habr.com/"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Управление обратным маятником в MATLAB Simulink без формул. Настройка PID регуляторов"
+    },
+    {
+      "level": 2,
+      "text": "Публикации"
+    },
+    {
+      "level": 3,
+      "text": "Объект управления (Plant)"
+    },
+    {
+      "level": 3,
+      "text": "Система управления"
+    },
+    {
+      "level": 3,
+      "text": "Полная модель обратного маятника"
+    }
+  ],
+  "content_md": "Простой и популярной реализацией закона управления обратным маятником является PID регулятор. Современные средства настройки коэффициентов PID регулятора позволяют решать подобные задачи нажатием пары кнопок даже без знания математики, физики и вообще без каких-либо технических знаний. Рассмотрим пример настройки PID регуляторов в Simulink для классического обратного маятника.\n\n### Объект управления (Plant)\n\nМодель перевернутого маятника соберем в библиотеке Multibody. Для этого нам не понадобится знание физики и математики. Библиотека Multibody предоставляет нам готовые блоки степеней свободы, твердых тел, преобразований координат, которые нужно только верно соединить. Собираем подсистемы отдельно для маятника и отдельно для тележки, и собираем все вместе. Результат на рисунке, модель в прикрепленных файлах.\n\nСборка отдельных элементов в подсистемы придает более красивый и структурированный вид модели.\n\nЗададим следующие параметры модели: масса тележки – 5 кг, масса маятника – 1 кг, длинна маятника – 2 м, коэффициент трения для тележки – 0.1/10 N/(m/s), коэффициент трения для маятника – 0.1/10 N*m/(deg/s).\n\nПромоделируем и заценим результаты:\n\nРезультат в виде анимации:\n\n### Система управления\n\nСистема управления будет состоять из двух контуров, первый будет отвечать за стабилизацию маятника в положении «вверх», а второй за положение тележки.\n\nВ библиотеки Simulink находим блок PID Controller включаем его в систему в соответствие с классическим управлением с отрицательной обратной связью и тут же настраиваем его. Открываем блок, и жмем кнопку Tune как на рисунке:\n\nПроисходит автоматическая линеаризация нашего Объекта Управления и автоматическая настройка PID регулятора.\n\nМожем бегунками поднастроить робастность и скорость регулятора, после чего не забываем обновить коэффициенты кнопкой Update Block.\n\nСобираем контур положения тележки и таким же образом, нажав две кнопки, его настраиваем.\n\nТак же добавим отдельный контур для угловой скорости маятника, можно обойтись без него, но по ощущениям он хорошо добавляет устойчивости. В итоге имеем следующую систему управления:\n\nДобавим в выходные сигналы шумов, чтобы сделать модель более правдоподобной:\n\nДобавим в модель фильтр Калмана, чтобы сгладить помехи и иметь доступ ко всем состояниям ОУ:\n\n### Полная модель обратного маятника\n\nТак, как в своем обычном состоянии маятник имеет положение «вниз», добавим специальный блок и назовем Swing, в котором на глаз запрограммируем сигнал на раскачку системы и в момент, когда маятник достигнет положения «вверх», включим контроллер. Так же добавим внешнее возмущение – импульс в 0.5 сек амплитудой 1 Н, приложенный к маятнику. И ограничим силу, которую может развивать тележка 25 Н.\n\nВ итоге вся модель имеет следующий вид:\n\nПромоделируем систему:\n\nВ течении примерно 10 сек идет раскачка маятника, пока он не достигнет нулевого значения угла, потом контроллер отрабатывает ошибку и приводит тележку к координате 0, в самом конце маятник «толкают».\n\nСоздадим анимацию:\n\nМодель получилась довольно устойчивой. Можно ее еще более упростить, оставить только два PID контроллера для угла и координаты.\n\nДля разработки этой модели не было использовано ни одной формулы и ни одного расчета в ручную не было сделано. За нас всю эту рутину сделал Simulink и Multibody.\n",
+  "fit_md": null,
+  "operator_hints": []
+}

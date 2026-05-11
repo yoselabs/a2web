@@ -1,0 +1,14 @@
+{
+  "slug": "non-english",
+  "url": "https://habr.com/ru/articles/799471/",
+  "class": "E_edge",
+  "task": "What is this article about? Summarize in English in 2-3 sentences.",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Provides an English summary of substantive content",
+    "Is not only navigation / 'cookie banner' text",
+    "Mentions at least one specific concept from the article body"
+  ]
+}

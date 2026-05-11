@@ -1,0 +1,14 @@
+{
+  "slug": "large-page",
+  "url": "https://lwn.net/Articles/991060/",
+  "class": "E_edge",
+  "task": "What is the topic of this LWN article, and what is the key technical issue or change being discussed?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Identifies the topic of the actual article",
+    "Captures a substantive technical detail",
+    "Is not only the LWN paywall notice"
+  ]
+}
