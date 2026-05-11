@@ -23,6 +23,7 @@ from .settings import AppSettings, get_settings
 
 if TYPE_CHECKING:
     from .browser.pool import BrowserPool
+    from .llm import Extractor
 
 
 @dataclass(slots=True)
@@ -31,7 +32,9 @@ class AppState:
 
     `sqlite` is assigned by the `@app.on_startup` hook (requires event loop).
     `browser_pool` stays None and is lazily opened on first browser-tier
-    dispatch (Camoufox is an optional dep).
+    dispatch (Camoufox is an optional dep). `llm_extractor` stays None and
+    is lazily constructed on the first `ask=`-bearing fetch (the
+    `anthropic` SDK is also an optional dep).
     """
 
     settings: AppSettings
@@ -41,6 +44,9 @@ class AppState:
     sqlite: aiosqlite.Connection | None = None
     browser_pool: BrowserPool | None = None
     browser_lock: asyncio.Lock | None = None
+    llm_extractor: Extractor | None = None
+    llm_lock: asyncio.Lock | None = None
+    llm_unavailable_reason: str | None = None  # set when construction fails
 
 
 def build_state(settings: AppSettings | None = None) -> AppState:
@@ -78,3 +84,53 @@ async def ensure_browser_pool(state: AppState):
             await pool.start()
             state.browser_pool = pool
     return state.browser_pool
+
+
+async def ensure_llm_extractor(state: AppState):
+    """Construct an Extractor on first ask=-bearing fetch; cache thereafter.
+
+    Returns the cached Extractor on success, or None if construction failed
+    (missing `[llm]` extra OR missing API key OR otherwise unconfigured).
+    On failure, `state.llm_unavailable_reason` records the human-readable
+    reason so the orchestrator can populate operator_hints.
+
+    Lazy because the `anthropic` SDK is an optional dep and we don't want a
+    bare a2web install to crash on import. The factory is settings-driven —
+    `llm_provider` chooses the backend, `llm_model` chooses the model id.
+    """
+    if state.llm_extractor is not None:
+        return state.llm_extractor
+    if state.llm_unavailable_reason is not None:
+        return None  # already failed once; don't retry every fetch
+    if state.llm_lock is None:
+        state.llm_lock = asyncio.Lock()
+    async with state.llm_lock:
+        if state.llm_extractor is not None:
+            return state.llm_extractor
+        if state.llm_unavailable_reason is not None:
+            return None
+        try:
+            from .llm import Extractor, ModelSpec
+            from .llm.errors import LLMNotAvailable
+            from .llm.providers.anthropic import AnthropicProvider
+
+            s = state.settings
+            if s.llm_provider != "anthropic":
+                state.llm_unavailable_reason = (
+                    f"llm_provider={s.llm_provider!r} not supported in v0.4 (only 'anthropic'; OpenRouter lands in v0.5)"
+                )
+                return None
+            try:
+                provider = AnthropicProvider(api_key_env=s.llm_api_key_env)
+            except LLMNotAvailable as exc:
+                state.llm_unavailable_reason = str(exc)
+                return None
+            state.llm_extractor = Extractor(
+                provider=provider,
+                model=ModelSpec(s.llm_provider, s.llm_model),
+                max_content_chars=s.extraction_max_chars,
+            )
+            return state.llm_extractor
+        except Exception as exc:
+            state.llm_unavailable_reason = f"llm_extractor construction failed: {exc}"
+            return None

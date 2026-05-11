@@ -120,17 +120,13 @@ def _make_state() -> AppState:
 
 def test_to_old_reddit_url_drops_json_and_query() -> None:
     """`<host>/r/X/comments/Y/title.json?...` → `old.reddit.com/r/X/comments/Y/title`."""
-    out = _to_old_reddit_url(
-        "https://www.reddit.com/r/programming/comments/abc/some_title.json?limit=500"
-    )
+    out = _to_old_reddit_url("https://www.reddit.com/r/programming/comments/abc/some_title.json?limit=500")
     assert out == "https://old.reddit.com/r/programming/comments/abc/some_title"
 
 
 def test_to_old_reddit_url_handles_no_json_suffix() -> None:
     """When the URL doesn't end with .json, just swap the host."""
-    out = _to_old_reddit_url(
-        "https://www.reddit.com/r/programming/comments/abc/some_title/"
-    )
+    out = _to_old_reddit_url("https://www.reddit.com/r/programming/comments/abc/some_title/")
     assert out == "https://old.reddit.com/r/programming/comments/abc/some_title"
 
 
@@ -179,9 +175,7 @@ async def test_old_reddit_fallback_returns_not_found_on_404(
     real_cls = httpx.AsyncClient
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
 
-    result = await _fetch_old_reddit(
-        "https://www.reddit.com/r/x/comments/dead/", state=_make_state()
-    )
+    result = await _fetch_old_reddit("https://www.reddit.com/r/x/comments/dead/", state=_make_state())
 
     assert result.verdict == Verdict.not_found
     assert result.pre_rendered is None
@@ -192,12 +186,7 @@ async def test_reddit_handler_falls_back_on_json_404(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """RedditHandler: .json 404 → tries old.reddit and returns its content."""
-    html = (
-        "<html><body><article>"
-        "<h1>Recoverable thread</h1>"
-        "<p>" + ("body " * 100) + "</p>"
-        "</article></body></html>"
-    )
+    html = "<html><body><article><h1>Recoverable thread</h1><p>" + ("body " * 100) + "</p></article></body></html>"
 
     def handler(request: httpx.Request) -> httpx.Response:
         url = str(request.url)
@@ -212,9 +201,7 @@ async def test_reddit_handler_falls_back_on_json_404(
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
 
     handler_obj = RedditHandler()
-    result = await handler_obj.fetch(
-        "https://www.reddit.com/r/x/comments/abc/title/", state=_make_state()
-    )
+    result = await handler_obj.fetch("https://www.reddit.com/r/x/comments/abc/title/", state=_make_state())
 
     assert result.verdict == Verdict.ok
     assert result.pre_rendered is not None
@@ -226,12 +213,7 @@ async def test_reddit_handler_falls_back_on_empty_thread(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """RedditHandler: .json 200 but empty render → tries old.reddit."""
-    html = (
-        "<html><body><article>"
-        "<h1>Quarantined-but-readable</h1>"
-        "<p>" + ("body " * 100) + "</p>"
-        "</article></body></html>"
-    )
+    html = "<html><body><article><h1>Quarantined-but-readable</h1><p>" + ("body " * 100) + "</p></article></body></html>"
     calls: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -246,9 +228,7 @@ async def test_reddit_handler_falls_back_on_empty_thread(
     real_cls = httpx.AsyncClient
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
 
-    result = await RedditHandler().fetch(
-        "https://www.reddit.com/r/x/comments/abc/title/", state=_make_state()
-    )
+    result = await RedditHandler().fetch("https://www.reddit.com/r/x/comments/abc/title/", state=_make_state())
 
     assert result.verdict == Verdict.ok
     assert result.pre_rendered is not None
@@ -278,9 +258,7 @@ async def test_reddit_handler_skips_fallback_when_json_succeeds(
     real_cls = httpx.AsyncClient
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
 
-    result = await RedditHandler().fetch(
-        "https://www.reddit.com/r/x/comments/abc/title/", state=_make_state()
-    )
+    result = await RedditHandler().fetch("https://www.reddit.com/r/x/comments/abc/title/", state=_make_state())
 
     assert result.verdict == Verdict.ok
     assert result.pre_rendered is not None
@@ -331,9 +309,7 @@ def test_twitter_handler_does_not_match_other_hosts() -> None:
 async def test_twitter_handler_no_match_when_no_instances_configured() -> None:
     """Empty nitter_instances → fetch returns no_match=True silently."""
     state = _make_state_with_nitter()  # no instances
-    result = await TwitterHandler().fetch(
-        "https://x.com/karpathy/status/1759031023815639423", state=state
-    )
+    result = await TwitterHandler().fetch("https://x.com/karpathy/status/1759031023815639423", state=state)
     assert result.no_match is True
 
 
@@ -358,9 +334,7 @@ async def test_twitter_handler_returns_content_from_first_working_instance(
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
 
     state = _make_state_with_nitter("https://nitter.example.com")
-    result = await TwitterHandler().fetch(
-        "https://x.com/karpathy/status/1759031023815639423", state=state
-    )
+    result = await TwitterHandler().fetch("https://x.com/karpathy/status/1759031023815639423", state=state)
 
     assert result.verdict == Verdict.ok
     assert result.pre_rendered is not None
@@ -372,9 +346,7 @@ async def test_twitter_handler_rotates_past_failing_instance(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """First instance times out / 5xx → handler tries the next one."""
-    tweet_html = (
-        "<html><body><article><div>" + ("recovered body. " * 60) + "</div></article></body></html>"
-    )
+    tweet_html = "<html><body><article><div>" + ("recovered body. " * 60) + "</div></article></body></html>"
     seen: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -392,12 +364,8 @@ async def test_twitter_handler_rotates_past_failing_instance(
     # Disable shuffle for deterministic order — patch random.shuffle to no-op.
     monkeypatch.setattr("a2web.handlers.twitter.random.shuffle", lambda _: None)
 
-    state = _make_state_with_nitter(
-        "https://fail.example.com", "https://ok.example.com"
-    )
-    result = await TwitterHandler().fetch(
-        "https://x.com/karpathy/status/123", state=state
-    )
+    state = _make_state_with_nitter("https://fail.example.com", "https://ok.example.com")
+    result = await TwitterHandler().fetch("https://x.com/karpathy/status/123", state=state)
 
     assert result.verdict == Verdict.ok
     assert result.pre_rendered is not None
@@ -420,9 +388,7 @@ async def test_twitter_handler_returns_empty_when_all_instances_fail(
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
 
     state = _make_state_with_nitter("https://a.example.com", "https://b.example.com")
-    result = await TwitterHandler().fetch(
-        "https://x.com/karpathy/status/123", state=state
-    )
+    result = await TwitterHandler().fetch("https://x.com/karpathy/status/123", state=state)
 
     assert result.verdict == Verdict.connection_error
     assert result.pre_rendered is None

@@ -117,10 +117,7 @@ def test_clean_article_has_no_suggested_tier() -> None:
 
 def test_next_js_shell_suggests_browser() -> None:
     """Thin extraction + Next.js __next root + script tag → escalate to browser."""
-    html = (
-        '<html><head><script src="/_next/static/x.js"></script></head>'
-        '<body><div id="__next"></div></body></html>'
-    )
+    html = '<html><head><script src="/_next/static/x.js"></script></head><body><div id="__next"></div></body></html>'
     result = evaluate(content_md="hi", raw_html=html, content_type="text/html")
     assert result.verdict == Verdict.length_floor
     assert result.subsystem == "js_required"
@@ -157,10 +154,7 @@ def test_vue_app_root_suggests_browser() -> None:
 def test_substantive_spa_page_is_NOT_escalated() -> None:
     """Pages with framework roots BUT enough server-rendered content stay ok."""
     long_md = "Real SSR content. " * 100
-    html = (
-        '<html><body><div id="__next">' + ("<p>article body</p>" * 100) + "</div>"
-        '<script src="hydrate.js"></script></body></html>'
-    )
+    html = '<html><body><div id="__next">' + ("<p>article body</p>" * 100) + '</div><script src="hydrate.js"></script></body></html>'
     result = evaluate(content_md=long_md, raw_html=html, content_type="text/html")
     assert result.verdict == Verdict.ok
     assert result.suggested_tier is None

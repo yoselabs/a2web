@@ -113,6 +113,14 @@ class AppSettings(BaseSettings):
     # commits to a maintained list.
     nitter_instances: list[str] = Field(default_factory=list)
 
+    # v0.4: optional LLM-backed extraction. Activated by the `ask=` param on
+    # the fetch tool. Requires the `[llm]` install extra. Default model
+    # matches Claude Code's WebFetch sub-call (research/123).
+    llm_provider: Literal["anthropic"] = "anthropic"
+    llm_model: str = "claude-haiku-4-5-20251001"
+    llm_api_key_env: str = "ANTHROPIC_API_KEY"
+    extraction_max_chars: int = 100_000  # matches WebFetch's BD_ constant
+
     @classmethod
     def settings_customise_sources(
         cls,

@@ -95,6 +95,25 @@ class TokenCounts(BaseModel):
     fit: int
 
 
+class ExtractionMeta(BaseModel):
+    """Per-fetch LLM extraction metadata.
+
+    Populated by the v0.4 `ask=` pipeline on `FetchResponse.extraction`.
+    Mirrors what `a2web.llm.ExtractionResult` carries, minus the answer
+    text (which lives on `FetchResponse.extracted_answer` for ergonomic
+    direct access).
+    """
+
+    model: str
+    template_name: str
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    cost_usd: float = 0.0
+    latency_ms: int = 0
+    cache_hit: bool = False
+    truncated: bool = False
+
+
 class FetchResponse(BaseModel):
     """The single response envelope from the `fetch` tool.
 
@@ -124,3 +143,6 @@ class FetchResponse(BaseModel):
     content_md: str = ""
     fit_md: str | None = None
     operator_hints: list[OperatorHint] = Field(default_factory=list)
+    # v0.4: present only when the caller passed `ask=`. None when ask is unset.
+    extracted_answer: str | None = None
+    extraction: ExtractionMeta | None = None

@@ -44,6 +44,21 @@ class WebRouter(a2kit.Router):
                 ),
             ),
         ] = False,
+        ask: Annotated[
+            str | None,
+            a2kit.Param(
+                description=(
+                    "Optional question to answer about the fetched page. When set, "
+                    "a2web invokes an LLM extractor server-side over the fetched "
+                    "content and populates `extracted_answer` + `extraction` "
+                    "metadata. Mirrors Claude Code WebFetch's behavior — keeps the "
+                    "calling agent's context tiny. Requires the `[llm]` install "
+                    "extra and a configured API key; without those the fetch still "
+                    "succeeds but `extracted_answer` is None and an operator hint "
+                    "is recorded."
+                ),
+            ),
+        ] = None,
         state: AppState,
         ctx: a2kit.ToolContext,
     ) -> FetchResponse:
@@ -72,4 +87,5 @@ class WebRouter(a2kit.Router):
             ctx=ctx,
             include_links=include_links,
             debug=debug,
+            ask=ask,
         )

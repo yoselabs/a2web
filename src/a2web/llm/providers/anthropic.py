@@ -57,8 +57,7 @@ class AnthropicProvider:
             import anthropic  # noqa: F401  — import-side check only
         except ImportError as exc:
             raise LLMNotAvailable(
-                "The `anthropic` SDK is not installed. Run "
-                "`pip install a2web[llm]` (or add `anthropic` to your environment)."
+                "The `anthropic` SDK is not installed. Run `pip install a2web[llm]` (or add `anthropic` to your environment)."
             ) from exc
 
         api_key = os.environ.get(api_key_env, "").strip()
@@ -133,10 +132,7 @@ class AnthropicProvider:
         cost_usd = 0.0
         if prices is not None:
             input_price, output_price = prices
-            cost_usd = (
-                prompt_tokens / 1_000_000 * input_price
-                + completion_tokens / 1_000_000 * output_price
-            )
+            cost_usd = prompt_tokens / 1_000_000 * input_price + completion_tokens / 1_000_000 * output_price
 
         return ProviderResponse(
             text=text,

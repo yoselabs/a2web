@@ -202,9 +202,7 @@ def test_custom_template_overrides_default() -> None:
         user_template="{content}|{ask}",
     )
     provider = MockProvider()
-    ex = Extractor(
-        provider=provider, model=ModelSpec("mock", "m"), template=custom
-    )
+    ex = Extractor(provider=provider, model=ModelSpec("mock", "m"), template=custom)
     assert ex.template is custom
 
 

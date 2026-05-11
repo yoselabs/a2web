@@ -46,13 +46,13 @@ _SCRIPT_TAG_RE = re.compile(r"<script\b", re.IGNORECASE)
 # Patterns intentionally narrow: false positive surface = "framework root id +
 # script + truly thin content" — that page benefits from browser regardless.
 _JS_SHELL_ROOT_MARKERS = re.compile(
-    r'id="__next"'          # Next.js
-    r'|id="root"'           # React (CRA / Vite default)
-    r'|id="app"'            # Vue / generic SPA
-    r'|id="react-root"'     # Twitter / X
-    r'|window\.__data__'    # Ember-style hydration
-    r'|window\.__INITIAL_STATE__'  # common Redux SSR
-    r"|<noscript",          # ANY noscript tag (progressive-enhancement signal)
+    r'id="__next"'  # Next.js
+    r'|id="root"'  # React (CRA / Vite default)
+    r'|id="app"'  # Vue / generic SPA
+    r'|id="react-root"'  # Twitter / X
+    r"|window\.__data__"  # Ember-style hydration
+    r"|window\.__INITIAL_STATE__"  # common Redux SSR
+    r"|<noscript",  # ANY noscript tag (progressive-enhancement signal)
     re.IGNORECASE,
 )
 
@@ -108,11 +108,7 @@ def evaluate(
     # JavaScript" text) misses most real SPAs. The broader rule catches
     # Next.js / React / Vue / Twitter / Ember roots — any one is enough when
     # combined with thin extracted content + at least one script tag.
-    if (
-        len(content_md) < LENGTH_FLOOR
-        and _SCRIPT_TAG_RE.search(raw_html)
-        and _JS_SHELL_ROOT_MARKERS.search(raw_html)
-    ):
+    if len(content_md) < LENGTH_FLOOR and _SCRIPT_TAG_RE.search(raw_html) and _JS_SHELL_ROOT_MARKERS.search(raw_html):
         return GateResult(Verdict.length_floor, subsystem="js_required", suggested_tier="browser")
 
     if len(content_md) < LENGTH_FLOOR:

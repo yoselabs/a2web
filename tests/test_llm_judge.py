@@ -43,9 +43,7 @@ class _MockJudgeProvider:
         temperature=0.0,
         thinking_disabled=True,
     ) -> ProviderResponse:
-        self.calls.append(
-            {"system": system, "user": user, "model": model}
-        )
+        self.calls.append({"system": system, "user": user, "model": model})
         return ProviderResponse(
             text=self.text,
             model=model,
@@ -57,7 +55,7 @@ class _MockJudgeProvider:
 
 
 def test_mock_judge_provider_satisfies_provider_protocol() -> None:
-    assert isinstance(_MockJudgeProvider(text='{}'), Provider)
+    assert isinstance(_MockJudgeProvider(text="{}"), Provider)
 
 
 @pytest.mark.asyncio
@@ -120,13 +118,7 @@ async def test_judge_records_failure_answer_as_not_reached() -> None:
 async def test_judge_tolerates_markdown_fence() -> None:
     """Models sometimes wrap JSON in ```json fences despite STRICT instructions."""
     provider = _MockJudgeProvider(
-        text=(
-            "```json\n"
-            + json.dumps(
-                {"scores": [3], "overall": 3, "reached": True, "reasoning": "partial"}
-            )
-            + "\n```"
-        ),
+        text=("```json\n" + json.dumps({"scores": [3], "overall": 3, "reached": True, "reasoning": "partial"}) + "\n```"),
     )
     judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
     verdict = await judge.score(task="?", criteria=["?"], answer="partial answer")
@@ -139,11 +131,7 @@ async def test_judge_tolerates_prose_wrapper() -> None:
     """Models sometimes emit a sentence before the JSON object."""
     provider = _MockJudgeProvider(
         text=(
-            "Here is my verdict: "
-            + json.dumps(
-                {"scores": [4], "overall": 4, "reached": True, "reasoning": "close enough"}
-            )
-            + " — done."
+            "Here is my verdict: " + json.dumps({"scores": [4], "overall": 4, "reached": True, "reasoning": "close enough"}) + " — done."
         ),
     )
     judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
@@ -177,9 +165,7 @@ async def test_judge_raises_parse_error_on_missing_field() -> None:
 async def test_judge_sends_criteria_and_answer_into_template() -> None:
     """The constructed user message embeds the criteria + answer."""
     provider = _MockJudgeProvider(
-        text=json.dumps(
-            {"scores": [5], "overall": 5, "reached": True, "reasoning": "ok"}
-        ),
+        text=json.dumps({"scores": [5], "overall": 5, "reached": True, "reasoning": "ok"}),
     )
     judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
     await judge.score(

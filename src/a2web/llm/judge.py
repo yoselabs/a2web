@@ -92,12 +92,8 @@ class Judge:
     ) -> JudgeVerdict:
         """Run the judge over (task, criteria, answer). Raises JudgeParseError
         on un-parseable output."""
-        criteria_lines = "\n".join(
-            f"  {i + 1}. {c}" for i, c in enumerate(criteria)
-        )
-        user = JUDGE_V1.user_template.format(
-            ask=task, content=criteria_lines, answer=answer
-        )
+        criteria_lines = "\n".join(f"  {i + 1}. {c}" for i, c in enumerate(criteria))
+        user = JUDGE_V1.user_template.format(ask=task, content=criteria_lines, answer=answer)
         response = await self._provider.complete(
             system=JUDGE_V1.system,
             user=user,

@@ -254,9 +254,7 @@ async def test_pre_rendered_handler_skips_extraction(monkeypatch: pytest.MonkeyP
     monkeypatch.setitem(REGISTRY, "site_handler", _PreRenderedHandler())
     state = _make_state()
     # debug=True — inspect diagnostics trace.
-    result = await fetch(
-        "https://www.reddit.com/r/x/comments/abc/", state=state, debug=True
-    )
+    result = await fetch("https://www.reddit.com/r/x/comments/abc/", state=state, debug=True)
 
     assert result.status == FetchStatus.ok
     assert result.tier == "site_handler:reddit"
@@ -411,9 +409,7 @@ async def test_include_links_opt_in_populates_links(
     monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
 
     state = _make_state()
-    result = await fetch(
-        "https://example.org/post", state=state, include_links=True
-    )
+    result = await fetch("https://example.org/post", state=state, include_links=True)
 
     assert result.status == FetchStatus.ok
     # blog.html fixture is known to contain links; if it ever doesn't, this

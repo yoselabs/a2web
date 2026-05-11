@@ -37,6 +37,7 @@ from .models import (
     CacheState,
     Confidence,
     Diagnostic,
+    ExtractionMeta,
     FetchResponse,
     FetchStatus,
     Heading,
@@ -45,7 +46,7 @@ from .models import (
     TokenCounts,
     Verdict,
 )
-from .state import AppState
+from .state import AppState, ensure_llm_extractor
 from .tiers import REGISTRY, TIER_ORDER, Rendered
 from .tiers.jina import JinaTier
 from .tiers.raw import RawTier
@@ -94,6 +95,11 @@ class FetchContext:
     # Response-shape opt-ins (v0.3 envelope diet)
     include_links: bool = False
     debug: bool = False
+    # v0.4: optional LLM extraction question + outputs
+    ask: str | None = None
+    extracted_answer: str | None = None
+    extraction_meta: ExtractionMeta | None = None
+    llm_unavailable_hint: OperatorHint | None = None
 
     # Body & verdict state (set by tier loop, mutated by escalations)
     body: bytes = b""
@@ -139,6 +145,7 @@ async def fetch(
     ctx: a2kit.ToolContext | None = None,
     include_links: bool = False,
     debug: bool = False,
+    ask: str | None = None,
 ) -> FetchResponse:
     """Run the v0.1 cascade for one URL.
 
@@ -149,6 +156,12 @@ async def fetch(
 
     `include_links` and `debug` are v0.3 envelope-diet opt-ins (both default
     False). See `FetchResponse` docs.
+
+    `ask` (v0.4) opts into server-side LLM extraction: when set, an LLM
+    reads `content_md` and produces an answer string returned on
+    `extracted_answer`. Graceful when the `[llm]` extra is missing or the
+    API key is unset — `extracted_answer` stays None and an operator hint
+    is recorded.
     """
     start_perf = time.perf_counter()
     started_at = datetime.now(UTC)
@@ -167,6 +180,7 @@ async def fetch(
         final_url=url,
         include_links=include_links,
         debug=debug,
+        ask=ask,
         cache_state=CacheState.bypass if bypass_cache else CacheState.miss,
     )
 
@@ -193,6 +207,7 @@ async def fetch(
 # --------------------------------------------------------------------- #
 # Event emission helpers
 # --------------------------------------------------------------------- #
+
 
 async def _emit(ctx: a2kit.ToolContext | None, event) -> None:
     """Emit a typed event via a2kit.ldd, no-op when ctx is None."""
@@ -224,6 +239,7 @@ def _event_payload(event) -> dict:
 # --------------------------------------------------------------------- #
 # Archive escalation helper (shared by after-tier + after-gate)
 # --------------------------------------------------------------------- #
+
 
 @dataclass(slots=True)
 class _ArchiveOutcome:
@@ -297,6 +313,7 @@ async def _dispatch_archive(
 # --------------------------------------------------------------------- #
 # Phase functions
 # --------------------------------------------------------------------- #
+
 
 async def _phase_cache_check(fc: FetchContext) -> None:
     """Read the cached row (if cache is enabled and a hit exists)."""
@@ -440,7 +457,11 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
             if isinstance(tier_action, RetryViaArchive) and fc.archive_dispatches < 1:
                 fc.archive_dispatches += 1
                 outcome = await _dispatch_archive(
-                    tier_action.url, state=state, ctx=ctx, start_perf=fc.start_perf, diagnostics=fc.diagnostics,
+                    tier_action.url,
+                    state=state,
+                    ctx=ctx,
+                    start_perf=fc.start_perf,
+                    diagnostics=fc.diagnostics,
                 )
                 if outcome.success:
                     archive_break_payload = {
@@ -582,7 +603,11 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState, ctx: a2
     if isinstance(gate_action, RetryViaArchive) and fc.archive_dispatches < 1:
         fc.archive_dispatches += 1
         outcome = await _dispatch_archive(
-            gate_action.url, state=state, ctx=ctx, start_perf=fc.start_perf, diagnostics=fc.diagnostics,
+            gate_action.url,
+            state=state,
+            ctx=ctx,
+            start_perf=fc.start_perf,
+            diagnostics=fc.diagnostics,
         )
         if outcome.success and outcome.pre_rendered is not None:
             fc.content_md = outcome.pre_rendered.content_md
@@ -698,8 +723,12 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState, ctx: a2kit.To
 # Top-level coordinator + response builder
 # --------------------------------------------------------------------- #
 
+
 async def _run_pipeline(
-    fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext | None = None,
+    fc: FetchContext,
+    *,
+    state: AppState,
+    ctx: a2kit.ToolContext | None = None,
 ) -> FetchResponse:
     """Run the cascade end-to-end; return the response built from the context."""
     await _phase_cache_check(fc)
@@ -709,7 +738,79 @@ async def _run_pipeline(
     await _phase_extract(fc, ctx=ctx)
     await _phase_gate_and_escalate(fc, state=state, ctx=ctx)
     await _phase_cache_write(fc, state=state, ctx=ctx)
+    # v0.4: optional LLM extraction. Runs only when ask= is set and the fetch
+    # succeeded. Graceful when the [llm] extra or API key is unavailable.
+    await _phase_extract_answer(fc, state=state, ctx=ctx)
     return _build_response(fc)
+
+
+async def _phase_extract_answer(
+    fc: FetchContext,
+    *,
+    state: AppState,
+    ctx: a2kit.ToolContext | None,
+) -> None:
+    """Run server-side LLM extraction when ask= is set. v0.4."""
+    if fc.ask is None:
+        return
+    if fc.final_verdict != Verdict.ok or not fc.content_md:
+        # Failed fetches don't get extraction — no content to extract from.
+        # The agent will see status=failed + diagnostics_summary explaining why.
+        return
+
+    phase_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+    await _emit(ctx, StageStarted(t_ms=phase_start_ms, step="extract_answer"))
+
+    extractor = await ensure_llm_extractor(state)
+    if extractor is None:
+        # Graceful degrade: fetch succeeded, extraction skipped, operator
+        # hint surfaces the actionable reason.
+        reason = state.llm_unavailable_reason or "LLM extractor unavailable"
+        fc.llm_unavailable_hint = OperatorHint(
+            code="llm_unavailable",
+            message=reason,
+            fix=f"Install with `pip install a2web[llm]` and set {state.settings.llm_api_key_env} in the environment.",
+        )
+        dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
+        await _emit(
+            ctx,
+            StageEnded(
+                t_ms=phase_start_ms,
+                step="extract_answer",
+                verdict=Verdict.other,
+                dur_ms=dur_ms,
+                extra={"skipped": "llm_unavailable"},
+            ),
+        )
+        return
+
+    result = await extractor.extract(content=fc.content_md, ask=fc.ask)
+    fc.extracted_answer = result.answer
+    fc.extraction_meta = ExtractionMeta(
+        model=result.model,
+        template_name=result.template_name,
+        prompt_tokens=result.prompt_tokens,
+        completion_tokens=result.completion_tokens,
+        cost_usd=result.cost_usd,
+        latency_ms=result.latency_ms,
+        cache_hit=result.cache_hit,
+        truncated=bool(result.raw and result.raw.get("truncated")),
+    )
+    dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
+    await _emit(
+        ctx,
+        StageEnded(
+            t_ms=phase_start_ms,
+            step="extract_answer",
+            verdict=Verdict.ok,
+            dur_ms=dur_ms,
+            extra={
+                "model": result.model,
+                "prompt_tokens": result.prompt_tokens,
+                "completion_tokens": result.completion_tokens,
+            },
+        ),
+    )
 
 
 def _build_response(fc: FetchContext) -> FetchResponse:
@@ -730,14 +831,12 @@ def _build_response(fc: FetchContext) -> FetchResponse:
         gate_subsystem=fc.gate_subsystem,
     )
 
-    tokens = (
-        TokenCounts(full=len(fc.content_md), fit=len(fit_md or ""))
-        if fc.final_verdict == Verdict.ok and fc.content_md
-        else None
-    )
+    tokens = TokenCounts(full=len(fc.content_md), fit=len(fit_md or "")) if fc.final_verdict == Verdict.ok and fc.content_md else None
     op_hints: list[OperatorHint] = []
     if fc.browser_unavailable_hint is not None:
         op_hints.append(fc.browser_unavailable_hint)
+    if fc.llm_unavailable_hint is not None:
+        op_hints.append(fc.llm_unavailable_hint)
 
     diagnostics_summary = _build_diagnostics_summary(
         tier_used=fc.tier_used,
@@ -771,6 +870,8 @@ def _build_response(fc: FetchContext) -> FetchResponse:
         content_md=fc.content_md,
         fit_md=fit_md,
         operator_hints=op_hints,
+        extracted_answer=fc.extracted_answer,
+        extraction=fc.extraction_meta,
     )
 
 
