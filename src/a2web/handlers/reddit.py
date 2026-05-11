@@ -53,8 +53,11 @@ class RedditHandler:
         except httpx.HTTPError:
             return _empty_result(url, Verdict.connection_error)
 
+        # v0.3: on 404, try old.reddit.com as HTML fallback before giving up.
+        # Reddit frequently 404s its `.json` endpoint for threads that are
+        # still readable on old.reddit (private/removed quirks, UA gating).
         if response.status_code == 404:
-            return _empty_result(url, Verdict.not_found)
+            return await _fetch_old_reddit(url, state=state)
         if response.status_code == 429:
             return _empty_result(url, Verdict.rate_limited)
         if response.status_code >= 400:
@@ -68,6 +71,13 @@ class RedditHandler:
         rendered = _render_thread(payload)
         body_bytes = response.content
         from ..tiers import Rendered  # local — avoid circular
+
+        # v0.3: empty thread (deleted / quarantined / private) → fall back to
+        # old.reddit. is_empty=True when JSON parsed but had no title, no
+        # selftext, and no comments — boilerplate "---/Comments" body alone
+        # doesn't count as a renderable thread.
+        if rendered.get("is_empty"):
+            return await _fetch_old_reddit(url, state=state)
 
         return TierResult(
             body=body_bytes,
@@ -92,7 +102,14 @@ def _to_json_url(url: str) -> str:
 def _render_thread(payload: Any) -> dict[str, Any]:
     """Render a Reddit listing pair `[post, comments]` to markdown."""
     if not (isinstance(payload, list) and len(payload) >= 2):
-        return {"content_md": "", "title": None, "byline": None, "headings": [], "more_stubs": 0}
+        return {
+            "content_md": "",
+            "title": None,
+            "byline": None,
+            "headings": [],
+            "more_stubs": 0,
+            "is_empty": True,
+        }
 
     post_data = _first_child_data(payload[0])
     comments_data = payload[1].get("data", {}).get("children", []) if isinstance(payload[1], dict) else []
@@ -103,6 +120,7 @@ def _render_thread(payload: Any) -> dict[str, Any]:
     selftext = (post_data.get("selftext") or "").strip()
     subreddit = post_data.get("subreddit")
     permalink = post_data.get("permalink")
+    is_empty = title is None and not selftext and not comments_data
 
     parts: list[str] = []
     if title:
@@ -139,6 +157,7 @@ def _render_thread(payload: Any) -> dict[str, Any]:
         "byline": byline,
         "headings": headings,
         "more_stubs": more_stubs,
+        "is_empty": is_empty,
     }
 
 
@@ -197,4 +216,88 @@ def _empty_result(url: str, verdict: Verdict) -> TierResult:
         status_code=0,
         final_url=url,
         verdict=verdict,
+    )
+
+
+def _to_old_reddit_url(url: str) -> str:
+    """Rewrite a reddit URL to old.reddit.com, dropping the .json suffix."""
+    parsed = urlparse(url)
+    path = (parsed.path or "/").rstrip("/")
+    if path.endswith(".json"):
+        path = path[: -len(".json")]
+    return urlunparse(parsed._replace(netloc="old.reddit.com", path=path, query=""))
+
+
+async def _fetch_old_reddit(url: str, *, state: AppState) -> TierResult:
+    """Fallback: GET old.reddit.com<path> and extract HTML via trafilatura.
+
+    Used when the primary `.json` request fails (404, deleted/private thread,
+    or any other case where the JSON path produces no usable content). Reddit
+    still serves a server-rendered HTML thread at the old.reddit.com host for
+    many threads where the JSON API refuses. Returns a `Rendered` with the
+    extracted markdown, or an empty result with `not_found` on failure.
+    """
+    import trafilatura
+
+    from ..tiers import Rendered, TierResult
+
+    old_url = _to_old_reddit_url(url)
+    try:
+        async with httpx.AsyncClient(
+            timeout=_DEFAULT_TIMEOUT_S,
+            follow_redirects=True,
+            headers={"User-Agent": state.settings.default_ua},
+        ) as client:
+            response = await client.get(old_url)
+    except httpx.TimeoutException:
+        return _empty_result(url, Verdict.timeout)
+    except httpx.HTTPError:
+        return _empty_result(url, Verdict.connection_error)
+
+    if response.status_code == 404:
+        return _empty_result(url, Verdict.not_found)
+    if response.status_code == 429:
+        return _empty_result(url, Verdict.rate_limited)
+    if response.status_code >= 400:
+        return _empty_result(url, Verdict.connection_error)
+
+    html = response.text
+    if not html:
+        return _empty_result(url, Verdict.length_floor)
+
+    markdown = (
+        trafilatura.extract(
+            html,
+            url=old_url,
+            output_format="markdown",
+            include_comments=True,
+            include_tables=False,
+        )
+        or ""
+    )
+    if not markdown:
+        return _empty_result(url, Verdict.length_floor)
+
+    metadata = trafilatura.extract_metadata(html)
+    title = (metadata.title if metadata else None) or None
+    author = (metadata.author if metadata else None) or None
+    byline = author if author else None
+
+    headings: list[Heading] = []
+    if title:
+        headings.append(Heading(level=1, text=title))
+
+    return TierResult(
+        body=response.content,
+        content_type="text/html",
+        status_code=response.status_code,
+        final_url=old_url,
+        headers=dict(response.headers),
+        pre_rendered=Rendered(
+            content_md=markdown,
+            title=title,
+            byline=byline,
+            headings=headings,
+        ),
+        verdict=Verdict.ok,
     )
