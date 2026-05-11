@@ -8,6 +8,20 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### v0.5 step 4 — block_detector promoted to packages/ (2026-05-12)
+
+- **`packages/block_detector.py`** — second in-tree microsofware after
+  `browser_pool`. Defines package-local `BlockVerdict` enum + `BlockResult`
+  dataclass; no `a2web.<domain>` imports. Values intentionally match
+  `a2web.models.Verdict` strings so the seam adapter is a one-liner.
+- **`gate/block_detector.py` → thin seam adapter** (~52 LOC). Imports the
+  package, calls it, maps `BlockVerdict → Verdict`, returns `GateResult`
+  for the pipeline. Public signature (`evaluate(...) -> GateResult`,
+  `LENGTH_FLOOR` re-export) unchanged — fetcher and gate tests pass
+  unmodified.
+- `test_packages_independence` invariant validates the new module
+  automatically.
+
 ### v0.5 step 3 — micro-cleanups bundle (2026-05-12)
 
 - **Three `*_hint` fields collapsed to `fc.operator_hints` accumulator.**

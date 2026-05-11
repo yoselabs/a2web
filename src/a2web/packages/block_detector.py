@@ -1,0 +1,116 @@
+"""Block-page detector — in-tree microsofware (packages/).
+
+Pure functions over `(content_md, raw_html, content_type)` returning a
+closed-enum verdict + optional subsystem fingerprint + suggested
+escalation tier. No I/O, no a2web-domain imports.
+
+Boundary types (`BlockVerdict`, `BlockResult`) are owned by this package.
+The a2web seam (`gate/block_detector.py`) adapts them to the wider
+`a2web.models.Verdict` enum used across the pipeline.
+
+Pattern catalogue rules:
+- Tight markers — false positives on legitimate articles would be a
+  real regression. Each comes from observed block pages on real sites;
+  do not weaken without an incident.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from enum import StrEnum
+
+LENGTH_FLOOR = 500
+
+
+class BlockVerdict(StrEnum):
+    """Subset of verdicts this detector itself produces.
+
+    Values intentionally match `a2web.models.Verdict` strings so the
+    a2web seam can `Verdict(result.verdict.value)` without a lookup
+    table. Other Verdict members (paywall, timeout, not_found, …) are
+    produced elsewhere in the pipeline, not here.
+    """
+
+    ok = "ok"
+    block_page_detected = "block_page_detected"
+    anti_bot = "anti_bot"
+    length_floor = "length_floor"
+    content_type_mismatch = "content_type_mismatch"
+
+
+@dataclass(slots=True)
+class BlockResult:
+    verdict: BlockVerdict
+    subsystem: str | None = None
+    suggested_tier: str | None = None
+
+
+_BLOCK_PATTERNS = (
+    re.compile(r"\bJust a moment\b", re.IGNORECASE),
+    re.compile(r"\bcf-chl-bypass\b"),
+    re.compile(r"\bAttention Required\b", re.IGNORECASE),
+    re.compile(r"\bEnable JavaScript and cookies to continue\b", re.IGNORECASE),
+    re.compile(r"\bAccess denied\b", re.IGNORECASE),
+    re.compile(r"\bAre you a robot\b", re.IGNORECASE),
+    re.compile(r"_Incapsula_"),
+    re.compile(r"\bpx-captcha\b"),
+    re.compile(r"\bYou've been blocked\b", re.IGNORECASE),
+    re.compile(r"\bnetwork security\b", re.IGNORECASE),
+)
+
+_ANUBIS_MARKER = re.compile(r"anubis", re.IGNORECASE)
+_TURNSTILE_MARKER = re.compile(r"cf-turnstile|turnstile-callback|challenges\.cloudflare\.com/turnstile", re.IGNORECASE)
+_AKAMAI_BMP_MARKER = re.compile(r"_abck=|bm_sz=|akam/\d+/[0-9a-f]{6,}", re.IGNORECASE)
+_CF_INTERSTITIAL_MARKER = re.compile(r"\bcf-chl-bypass\b|\bJust a moment\b", re.IGNORECASE)
+_SCRIPT_TAG_RE = re.compile(r"<script\b", re.IGNORECASE)
+
+_JS_SHELL_ROOT_MARKERS = re.compile(
+    r'id="__next"'
+    r'|id="root"'
+    r'|id="app"'
+    r'|id="react-root"'
+    r"|window\.__data__"
+    r"|window\.__INITIAL_STATE__"
+    r"|<noscript",
+    re.IGNORECASE,
+)
+
+
+def evaluate(
+    *,
+    content_md: str,
+    raw_html: str,
+    content_type: str | None,
+) -> BlockResult:
+    """Decide whether `content_md` is acceptable cache material.
+
+    `content_md` is what the agent will read; `raw_html` is the
+    unextracted body (used for marker scans that would be lost after
+    extraction); `content_type` is the response header.
+    """
+    if content_type and "html" not in content_type.lower():
+        return BlockResult(BlockVerdict.content_type_mismatch)
+
+    if _TURNSTILE_MARKER.search(raw_html):
+        return BlockResult(BlockVerdict.anti_bot, subsystem="turnstile", suggested_tier="browser")
+    if _AKAMAI_BMP_MARKER.search(raw_html):
+        return BlockResult(BlockVerdict.anti_bot, subsystem="akamai_bmp", suggested_tier="browser")
+    if _ANUBIS_MARKER.search(raw_html) and len(content_md) < LENGTH_FLOOR:
+        return BlockResult(BlockVerdict.anti_bot, subsystem="anubis", suggested_tier="browser")
+
+    if len(content_md) < LENGTH_FLOOR:
+        if _CF_INTERSTITIAL_MARKER.search(raw_html):
+            return BlockResult(BlockVerdict.block_page_detected, subsystem="cf_iuam", suggested_tier="tls_impersonate")
+
+        for pattern in _BLOCK_PATTERNS:
+            if pattern.search(raw_html):
+                return BlockResult(BlockVerdict.block_page_detected)
+
+    if len(content_md) < LENGTH_FLOOR and _SCRIPT_TAG_RE.search(raw_html) and _JS_SHELL_ROOT_MARKERS.search(raw_html):
+        return BlockResult(BlockVerdict.length_floor, subsystem="js_required", suggested_tier="browser")
+
+    if len(content_md) < LENGTH_FLOOR:
+        return BlockResult(BlockVerdict.length_floor)
+
+    return BlockResult(BlockVerdict.ok)

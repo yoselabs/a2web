@@ -35,8 +35,12 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   `a2web.models` — violates the packages contract. Move requires defining
   `ExtractedHeading` / `ExtractedLink` inside the package + an adapter
   at the a2web seam. Larger surface, own PR.
-- ⏳ **Stage 2c+ — additional package promotions.** http_cache,
-  block_detector, proxy_routing, llm_extract behind their boundary types.
+- ✅ **Stage 2c — block_detector promoted to packages/.** Second in-tree
+  microsofware. Package owns `BlockVerdict` + `BlockResult` boundary
+  types; a2web seam (`gate/block_detector.py`) maps to `Verdict`. Public
+  signature unchanged; fetcher and gate tests pass unmodified.
+- ⏳ **Stage 2d+ — remaining package promotions.** http_cache,
+  ndjson_log, proxy_routing, llm_extract behind their boundary types.
   Each is its own focused PR.
 - ⏳ **Stage 3a — logging swap.** *Why deferred:* stdlib
   `RotatingFileHandler` uses `.1`/`.2` suffix instead of the current
