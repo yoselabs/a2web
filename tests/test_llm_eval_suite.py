@@ -157,9 +157,7 @@ class _MockJudge(Judge):
         self._model = ModelSpec("mock", "judge-mock")
         self._max_tokens = 512
 
-    async def score(
-        self, *, task: str, criteria: list[str], answer: str
-    ) -> JudgeVerdict:
+    async def score(self, *, task: str, criteria: list[str], answer: str) -> JudgeVerdict:
         overall = self._answers_to_score.get(answer, 3)
         return JudgeVerdict(
             scores=[overall] * len(criteria),
@@ -179,9 +177,7 @@ class _ParseErrorJudge(Judge):
         self._model = ModelSpec("mock", "judge-mock")
         self._max_tokens = 512
 
-    async def score(
-        self, *, task: str, criteria: list[str], answer: str
-    ) -> JudgeVerdict:
+    async def score(self, *, task: str, criteria: list[str], answer: str) -> JudgeVerdict:
         raise JudgeParseError("synthetic", raw_text="garbage")
 
 

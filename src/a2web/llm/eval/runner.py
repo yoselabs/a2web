@@ -154,9 +154,7 @@ class EvalSuite:
         # 1) Fetch
         t0 = time.perf_counter()
         try:
-            fetch_result: SystemResult = await system.fetch(
-                url=entry.url, ask=entry.task
-            )
+            fetch_result: SystemResult = await system.fetch(url=entry.url, ask=entry.task)
         except Exception as exc:
             _LOG.warning(
                 "eval_system_failed",

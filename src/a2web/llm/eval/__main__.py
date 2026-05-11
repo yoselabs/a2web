@@ -94,9 +94,7 @@ async def _amain(argv: list[str]) -> int:
 
     judge = Judge(provider=provider, model=ModelSpec("anthropic", args.judge_model))
 
-    output_dir = args.output_dir or Path("eval/runs") / datetime.now(UTC).strftime(
-        "%Y-%m-%d_%H%M%S"
-    )
+    output_dir = args.output_dir or Path("eval/runs") / datetime.now(UTC).strftime("%Y-%m-%d_%H%M%S")
 
     suite = EvalSuite(
         corpus=corpus,
