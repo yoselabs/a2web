@@ -43,7 +43,13 @@ paid = ["firecrawl-py>=1,<2"]
 # v0.4: optional LLM-backed extraction + evaluation. Bare install of a2web
 # stays LLM-dep-free; install with `pip install a2web[llm]` to enable the
 # `ask=` parameter on the fetch tool and the eval suite.
-llm = ["anthropic>=0.40,<1", "openai>=1.40,<3"]
+llm = [
+    "anthropic>=0.40,<1",
+    "openai>=1.40,<3",
+    # markdownify is the Python equivalent of WebFetch's Turndown — used by
+    # WebFetchBaseline to keep HTML→markdown behavior close to Claude Code's.
+    "markdownify>=0.13,<2",
+]
 
 [dependency-groups]
 dev = [
