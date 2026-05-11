@@ -6,6 +6,50 @@ All notable changes to **a2web** are recorded here. The format follows
 
 > First tagged release; entries summarize the full PR1–PR10 build.
 
+## [Unreleased] - v0.3 engine improvements (partial)
+
+Driven by `benchmarks/vs-webfetch/2026-05-11/` findings. Two of the seven
+v0.3 sections shipped; remaining sections (gate escalation, Linear gate FP,
+Twitter/Nitter, v0.4 prep) tracked in `openspec/changes/v0.3-engine-improvements/`.
+
+### Changed (response envelope — opt-in for prior defaults)
+
+- **`fit_md` no longer duplicates `content_md`.** v0.2 populated `fit_md` as
+  a byte-for-byte copy of `content_md` (pruning filter is gone since v0.2;
+  field was preserved for forward-compat). Reality: 19% of total payload
+  tokens across the benchmark corpus, zero quality benefit. v0.3 returns
+  `fit_md=None` until a future pruning filter ships. Field stays on the
+  model.
+- **`links` is opt-in via new `include_links: bool = False` param.** Was
+  the largest line item (49% of total payload), dominated by aggregator/UI
+  noise. Pass `include_links=True` for list-extraction tasks. Default-off
+  saves ~50% of tokens on link-heavy pages with judge-score parity on
+  17/20 benchmark URLs.
+- **`diagnostics` is opt-in via new `debug: bool = False` param.** A new
+  always-populated `diagnostics_summary: str` field carries a one-line
+  `tier=X verdict=Y total_ms=Z` summary. Pass `debug=True` to get the
+  full per-tier diagnostic trace. Default-off saves ~3% always-on tokens.
+- **Net result on the benchmark corpus: 72% fewer tokens per fetch by
+  default** (127k → 35.5k across 20 URLs; gh-trending alone dropped from
+  27,167 to 1,011 tokens).
+
+### Fixed
+
+- **Reddit handler now falls back to `old.reddit.com` on `.json` failure.**
+  Reddit's `.json` endpoint frequently 404s for threads that remain
+  readable on old.reddit (UA gating, removed/quarantined quirks). The
+  handler now: (a) attempts the JSON path first as before, (b) on 404 or
+  empty thread (no title + no selftext + no comments), retries against
+  `old.reddit.com<path>` with trafilatura extraction. Single extra GET
+  only when the JSON path is empty/missing.
+
+### Migration notes
+
+Callers that relied on `links` or full `diagnostics` being present without
+explicit opt-in must pass the new params. The `fit_md` change is purely a
+defect fix — callers that read `fit_md` got the same content as
+`content_md` and should switch to `content_md` directly.
+
 ## [0.2.0] - 2026-05-11
 
 ### Changed (internal architecture; wire surface unchanged)

@@ -86,7 +86,8 @@ async def test_archive_failure_keeps_original_verdict(monkeypatch: pytest.Monkey
     monkeypatch.setitem(REGISTRY, "raw", _RealBlockedTier())
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
 
-    result = await fetch("https://blocked.example/", state=_make_state())
+    # debug=True — inspect diagnostics trace (v0.3 wire-default omits it).
+    result = await fetch("https://blocked.example/", state=_make_state(), debug=True)
 
     assert result.status == FetchStatus.failed
     # Block page verdict survives the failed escalation

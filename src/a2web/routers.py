@@ -23,6 +23,27 @@ class WebRouter(a2kit.Router):
         self,
         *,
         url: Annotated[str, a2kit.Param(description="Absolute http(s) URL to fetch.")],
+        include_links: Annotated[
+            bool,
+            a2kit.Param(
+                description=(
+                    "Include the extracted `links` array in the response. Default "
+                    "False — links are a large share of payload bytes on aggregator "
+                    "pages (HN, PyPI, GitHub trending) and most tasks don't need them. "
+                    "Pass True for list-extraction tasks."
+                ),
+            ),
+        ] = False,
+        debug: Annotated[
+            bool,
+            a2kit.Param(
+                description=(
+                    "Return the full `diagnostics` trace and per-tier rows. Default "
+                    "False — a one-line `diagnostics_summary` is always populated. "
+                    "Pass True for debugging fetch behavior."
+                ),
+            ),
+        ] = False,
         state: AppState,
         ctx: a2kit.ToolContext,
     ) -> FetchResponse:
@@ -45,4 +66,10 @@ class WebRouter(a2kit.Router):
         and observers can subscribe to phase boundaries and slow-tier
         heartbeats for live visibility.
         """
-        return await orchestrate(url, state=state, ctx=ctx)
+        return await orchestrate(
+            url,
+            state=state,
+            ctx=ctx,
+            include_links=include_links,
+            debug=debug,
+        )

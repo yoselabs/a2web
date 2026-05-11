@@ -53,7 +53,8 @@ async def test_anubis_triggers_browser_dispatch(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setitem(REGISTRY, "browser", _RecoveringBrowserTier())
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
 
-    result = await fetch("https://anubis.example/", state=_make_state())
+    # debug=True — inspect diagnostics trace (v0.3 wire-default omits it).
+    result = await fetch("https://anubis.example/", state=_make_state(), debug=True)
 
     assert result.status == FetchStatus.ok
     assert result.tier == "browser"

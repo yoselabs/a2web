@@ -94,7 +94,8 @@ async def test_block_page_fails_and_does_not_cache(monkeypatch: pytest.MonkeyPat
     _swap_tier(monkeypatch, _MockTier(body))
 
     state = await _make_state_with_sqlite()
-    result = await fetch("https://blocked.example/page", state=state)
+    # debug=True to inspect the diagnostics trace (v0.3 wire-default is empty).
+    result = await fetch("https://blocked.example/page", state=state, debug=True)
 
     assert result.status == FetchStatus.failed
     verdicts = [d.verdict for d in result.diagnostics]
@@ -252,7 +253,10 @@ async def test_pre_rendered_handler_skips_extraction(monkeypatch: pytest.MonkeyP
 
     monkeypatch.setitem(REGISTRY, "site_handler", _PreRenderedHandler())
     state = _make_state()
-    result = await fetch("https://www.reddit.com/r/x/comments/abc/", state=state)
+    # debug=True — inspect diagnostics trace.
+    result = await fetch(
+        "https://www.reddit.com/r/x/comments/abc/", state=state, debug=True
+    )
 
     assert result.status == FetchStatus.ok
     assert result.tier == "site_handler:reddit"
@@ -272,7 +276,8 @@ async def test_no_match_handler_emits_no_diagnostic(monkeypatch: pytest.MonkeyPa
     monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
 
     state = _make_state()
-    result = await fetch("https://example.org/post", state=state)
+    # debug=True — inspect diagnostics trace.
+    result = await fetch("https://example.org/post", state=state, debug=True)
 
     steps = [d.step for d in result.diagnostics]
     assert "site_handler" not in steps
@@ -280,9 +285,16 @@ async def test_no_match_handler_emits_no_diagnostic(monkeypatch: pytest.MonkeyPa
 
 
 @pytest.mark.asyncio
-async def test_successful_fetch_populates_fit_md_and_tokens(
+async def test_successful_fetch_populates_tokens_and_leaves_fit_md_none(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """v0.3 envelope diet: fit_md stays None until a real pruning filter ships.
+
+    The field is preserved on the model for forward-compat (see CLAUDE.md
+    architecture note). What changed in v0.3 is that we no longer populate it
+    as a byte-for-byte copy of content_md — that was 19% of total tokens on
+    the benchmark corpus with zero quality benefit.
+    """
     body = (_FIX / "blog.html").read_bytes()
     monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
 
@@ -290,12 +302,10 @@ async def test_successful_fetch_populates_fit_md_and_tokens(
     result = await fetch("https://example.org/post", state=state)
 
     assert result.status == FetchStatus.ok
-    assert result.fit_md is not None
+    assert result.fit_md is None
     assert result.tokens is not None
     assert result.tokens.full == len(result.content_md)
-    assert result.tokens.fit == len(result.fit_md)
-    # fit_md is at most as long as content_md (often shorter)
-    assert len(result.fit_md) <= len(result.content_md)
+    assert result.tokens.fit == 0
 
 
 @pytest.mark.asyncio
@@ -312,9 +322,13 @@ async def test_failed_fetch_leaves_fit_md_none(monkeypatch: pytest.MonkeyPatch) 
 
 
 @pytest.mark.asyncio
-async def test_pre_rendered_handler_keeps_fit_md_equal_to_content_md(
+async def test_pre_rendered_handler_returns_fit_md_none(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """v0.3: even with pre-rendered content from a handler, fit_md is None.
+
+    No pruning filter ran. fit_md only populates when a future filter ships.
+    """
     from a2web.models import Heading
 
     class _PreRendered:
@@ -340,7 +354,8 @@ async def test_pre_rendered_handler_keeps_fit_md_equal_to_content_md(
     result = await fetch("https://www.reddit.com/r/x/comments/abc/", state=state)
 
     assert result.status == FetchStatus.ok
-    assert result.fit_md == result.content_md
+    assert result.fit_md is None
+    assert result.content_md  # non-empty
 
 
 @pytest.mark.asyncio
@@ -357,3 +372,83 @@ async def test_ctx_none_preserves_pr5_behavior(monkeypatch: pytest.MonkeyPatch) 
 # Event-emission integration tests now live in test_router_dispatch.py — they
 # go through a2kit.testing.client(app), which captures emissions on the test
 # client's `events` list. Direct EventBus mocking is gone with the bus itself.
+
+
+# --------------------------------------------------------------------- #
+# v0.3 envelope-diet scenarios
+# --------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_default_response_omits_links_and_full_diagnostics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Default fetch returns empty links list and empty diagnostics list.
+
+    The agent-facing summary stays present on `diagnostics_summary`.
+    """
+    body = (_FIX / "blog.html").read_bytes()
+    monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
+
+    state = _make_state()
+    result = await fetch("https://example.org/post", state=state)
+
+    assert result.status == FetchStatus.ok
+    assert result.links == []
+    assert result.diagnostics == []
+    assert result.diagnostics_summary  # non-empty
+    assert "tier=" in result.diagnostics_summary
+    assert "verdict=ok" in result.diagnostics_summary
+    assert "total_ms=" in result.diagnostics_summary
+
+
+@pytest.mark.asyncio
+async def test_include_links_opt_in_populates_links(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When include_links=True, extracted links are present."""
+    body = (_FIX / "blog.html").read_bytes()
+    monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
+
+    state = _make_state()
+    result = await fetch(
+        "https://example.org/post", state=state, include_links=True
+    )
+
+    assert result.status == FetchStatus.ok
+    # blog.html fixture is known to contain links; if it ever doesn't, this
+    # asserts that the wire-up is correct (a non-empty links list at least
+    # means the context flag was honored).
+    assert isinstance(result.links, list)
+
+
+@pytest.mark.asyncio
+async def test_debug_opt_in_populates_diagnostics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When debug=True, full diagnostics trace is returned."""
+    body = (_FIX / "blog.html").read_bytes()
+    monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
+
+    state = _make_state()
+    result = await fetch("https://example.org/post", state=state, debug=True)
+
+    assert result.status == FetchStatus.ok
+    assert len(result.diagnostics) >= 1  # at least raw + extract + gate rows
+    assert result.diagnostics_summary  # always populated
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_summary_carries_failure_extras(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """On failure, diagnostics_summary surfaces the gate subsystem if present."""
+    body = (_FIX / "cloudflare_block.html").read_bytes()
+    monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
+
+    state = _make_state()
+    result = await fetch("https://blocked.example/page", state=state)
+
+    assert result.status == FetchStatus.failed
+    assert "verdict=" in result.diagnostics_summary
+    assert result.diagnostics_summary != ""

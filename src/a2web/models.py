@@ -116,6 +116,7 @@ class FetchResponse(BaseModel):
     cache: CacheState
 
     narrative: str = ""
+    diagnostics_summary: str = ""
     diagnostics: list[Diagnostic] = Field(default_factory=list)
     meta: dict[str, str] = Field(default_factory=dict)
     links: list[Link] = Field(default_factory=list)

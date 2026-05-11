@@ -91,6 +91,10 @@ class FetchContext:
     url: str
     final_url: str
 
+    # Response-shape opt-ins (v0.3 envelope diet)
+    include_links: bool = False
+    debug: bool = False
+
     # Body & verdict state (set by tier loop, mutated by escalations)
     body: bytes = b""
     content_type: str = ""
@@ -128,13 +132,23 @@ class FetchContext:
     diagnostics: list[Diagnostic] = field(default_factory=list)
 
 
-async def fetch(url: str, *, state: AppState, ctx: a2kit.ToolContext | None = None) -> FetchResponse:
+async def fetch(
+    url: str,
+    *,
+    state: AppState,
+    ctx: a2kit.ToolContext | None = None,
+    include_links: bool = False,
+    debug: bool = False,
+) -> FetchResponse:
     """Run the v0.1 cascade for one URL.
 
     `ctx` is the a2kit ToolContext; when supplied, the orchestrator emits
     typed phase-boundary events via `a2kit.ldd.event(ctx, ...)`. When None
     (direct calls from unit tests), no events are emitted. a2kit's emission
     chain owns the wire bridge + OTel sink fan-out.
+
+    `include_links` and `debug` are v0.3 envelope-diet opt-ins (both default
+    False). See `FetchResponse` docs.
     """
     start_perf = time.perf_counter()
     started_at = datetime.now(UTC)
@@ -151,6 +165,8 @@ async def fetch(url: str, *, state: AppState, ctx: a2kit.ToolContext | None = No
         bypass_cache=bypass_cache,
         url=url,
         final_url=url,
+        include_links=include_links,
+        debug=debug,
         cache_state=CacheState.bypass if bypass_cache else CacheState.miss,
     )
 
@@ -162,6 +178,14 @@ async def fetch(url: str, *, state: AppState, ctx: a2kit.ToolContext | None = No
         except Exception as exc:
             response.operator_hints.append(OperatorHint(code="log_write_failed", message=str(exc)))
             _LOG.warning("log_write_failed", error=str(exc), url=url)
+
+    # v0.3 envelope diet: apply opt-in gates AT THE WIRE BOUNDARY. Logging
+    # has already consumed the full diagnostics; agents see the slim version.
+    # `diagnostics_summary` is always populated and carries verdict + timing.
+    if not fc.include_links:
+        response.links = []
+    if not fc.debug:
+        response.diagnostics = []
 
     return response
 
@@ -693,9 +717,10 @@ def _build_response(fc: FetchContext) -> FetchResponse:
     total_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     status = FetchStatus.ok if fc.final_verdict == Verdict.ok else FetchStatus.failed
 
-    # fit_md preserved for response backward-compat — trafilatura's native
-    # pruning produces output within 10% of v0.1 fit-md against every fixture.
-    fit_md: str | None = fc.content_md if (fc.final_verdict == Verdict.ok and fc.content_md) else None
+    # v0.3: fit_md is None until a real pruning filter ships. The field stays
+    # on the model for forward-compat; we stopped populating it as a duplicate
+    # of content_md (saved ~19% of total payload across the benchmark corpus).
+    fit_md: str | None = None
 
     narrative = _build_narrative(
         tier_used=fc.tier_used,
@@ -714,6 +739,17 @@ def _build_response(fc: FetchContext) -> FetchResponse:
     if fc.browser_unavailable_hint is not None:
         op_hints.append(fc.browser_unavailable_hint)
 
+    diagnostics_summary = _build_diagnostics_summary(
+        tier_used=fc.tier_used,
+        final_verdict=fc.final_verdict,
+        total_ms=total_ms,
+        gate_subsystem=fc.gate_subsystem,
+    )
+
+    # v0.3 envelope diet is applied at the wire boundary in `fetch()` AFTER
+    # the log writer reads the response — so this builder always emits the
+    # full diagnostics + links. Callers wanting the diet effect must invoke
+    # via `fetch()`, not `_build_response()` directly.
     return FetchResponse(
         url=fc.final_url,
         status=status,
@@ -727,6 +763,7 @@ def _build_response(fc: FetchContext) -> FetchResponse:
         tokens=tokens,
         cache=fc.cache_state,
         narrative=narrative,
+        diagnostics_summary=diagnostics_summary,
         diagnostics=fc.diagnostics,
         meta=fc.meta_dict,
         links=fc.links,
@@ -735,6 +772,27 @@ def _build_response(fc: FetchContext) -> FetchResponse:
         fit_md=fit_md,
         operator_hints=op_hints,
     )
+
+
+def _build_diagnostics_summary(
+    *,
+    tier_used: str,
+    final_verdict: Verdict,
+    total_ms: int,
+    gate_subsystem: str | None,
+) -> str:
+    """One-line summary of the fetch outcome. Always populated.
+
+    Shape: `tier=<x> verdict=<v> total_ms=<n>[ extras=<failure_code>]`.
+    """
+    parts = [
+        f"tier={tier_used}",
+        f"verdict={final_verdict.value}",
+        f"total_ms={total_ms}",
+    ]
+    if final_verdict != Verdict.ok and gate_subsystem:
+        parts.append(f"extras={gate_subsystem}")
+    return " ".join(parts)
 
 
 def _host(url: str) -> str | None:

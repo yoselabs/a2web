@@ -123,3 +123,83 @@ Pattern: hand-rolled async code (cache wrapper, hedged race, proxy health, NDJSO
 - **Search aggregation as primary surface.** Source: engineering.md §10
   (v1.0). *Why deferred:* a separate product surface, not a tier in
   the cascade. Scope: L.
+
+---
+
+## Findings from `benchmarks/vs-webfetch/2026-05-11/` (a2web vs Claude Code WebFetch)
+
+20-URL benchmark, blind LLM judge, three a2web response variants. Full
+write-up at `benchmarks/vs-webfetch/2026-05-11/findings.md`. Headline:
+**a2web's content tier wins on quality (mean 3.40 vs WebFetch 2.95) but
+the default response envelope leaks ~80% of its token budget for ~0%
+quality gain on most tasks** — `links` is 49% of payload, `fit_md` is
+19% of payload as a pure duplicate of `content_md`.
+
+### v0.3 (response-envelope diet) — SHIPPED ✓ (Unreleased)
+
+Three items merged. Benchmark re-run on 2026-05-11 against the same
+20-URL corpus shows **72% token reduction across the default response
+shape**, judged equivalent quality on 17/20 URLs.
+
+- ~~**Stop populating `fit_md` with `content_md`**~~ ✓ SHIPPED — fit_md
+  stays None until a real pruning filter ships.
+- ~~**Default `include_links=false` (param-gated)**~~ ✓ SHIPPED — new
+  `include_links: bool = False` param on the `fetch` tool.
+- ~~**Move `diagnostics` behind `debug=true`**~~ ✓ SHIPPED — new
+  `debug: bool = False` param; one-line `diagnostics_summary` always
+  populated.
+
+Still deferred:
+
+- **🟡 Classify links at extraction time** (`role:
+  primary|nav|meta|footer`) and filter by default. Source: H2.
+  Eyeballed HN/PyPI/gh-trending payloads — 60-80% of link entries are
+  UI/nav/redundant. Even when links stay, returning only `role=primary`
+  shrinks them ~5×. Scope: M.
+
+### v0.3 (browser tier reliability) — capability gap
+
+- **🔴 Investigate why browser tier fires 0/20 times** on this corpus.
+  Source: benchmark finding. Reddit / X / Linear / LWN — raw failed
+  and the gate had clear opportunity to suggest browser escalation; it
+  did not. Either `block_detector` mis-classifies these as "thin
+  content" (skipping browser), or the orchestrator doesn't route on
+  `suggested_tier="browser"`. We ship a browser tier we don't actually
+  use, defeating the architectural promise. Scope: M.
+
+- **🟡 Gate false-positive on Linear** (`linear.app`). Returned
+  `status=failed` but content was the real landing page (judge 5/5).
+  Audit `block_detector.py` thresholds against JS-heavy but
+  content-bearing pages. Scope: S.
+
+### v0.3 (handler coverage)
+
+- **🟢 Add site handlers for PyPI, npm, GitHub Trending.** Source:
+  benchmark finding. Current envelope/value ratios:
+  - PyPI: 13,312 tokens A_full, 287 links → 1,011 tokens C_content (13×
+    bloat for the same answer)
+  - gh-trending: 27,167 tokens A_full, 1,142 links → 379 tokens
+    C_content (71× bloat, AND only A had the data to answer the task)
+  - npm: 1,874 tokens A_full → 228 tokens C_content (8× bloat)
+  Handlers would return structured tier-0 output with the right
+  fields, killing both the bloat and the list-extraction failure mode.
+  Scope: M per handler.
+
+### v0.3+ (untrusted-content envelope) — security posture
+
+- **🟡 Wrap fetched content in a structural envelope** (e.g.
+  `<a2web:content>...</a2web:content>` or explicit
+  `is_user_authored: bool` flag) so downstream agents can syntactically
+  distinguish page content from system signals / harness messages.
+  Source: false-positive incident during the benchmark — even a careful
+  reader misclassified a Claude Code harness reminder as page content
+  when it appeared inside a tool-result envelope. If a single LLM
+  judge could be confused, so can downstream agents consuming
+  `content_md`. Scope: S (envelope) + M (taxonomy).
+
+### Process / measurement
+
+- **🟢 Make this benchmark a recurring eval.** Source: benchmark
+  itself. Re-run on each v0.3+ release; track judge scores + token
+  sums as regression metrics. Adds the harness, corpus, and judge
+  prompts already in `benchmarks/vs-webfetch/`. Scope: S.
