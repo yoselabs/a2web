@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Answer fully satisfies all three criteria: clearly describes Fetch API for HTTP/network requests, names fetch() as the global entry point with both Window and Worker contexts, and explicitly states it returns a Promise resolving to a Response object."
+}

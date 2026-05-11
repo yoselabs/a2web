@@ -1,0 +1,16 @@
+# Stripe PaymentIntent
+
+A PaymentIntent is a Stripe API object that tracks a payment from creation through checkout and handles the complete payment lifecycle. It encapsulates all details about a transaction, including the supported payment methods, amount to collect, and desired currency.
+
+Purpose: build an integration that can handle complex payment flows with a status that changes over the PaymentIntent's lifecycle. It tracks a payment from creation through checkout, and triggers additional authentication steps when required.
+
+Key Advantages:
+- Automatic authentication handling for SCA / 3D Secure
+- No double charges (idempotency)
+- Regulatory compliance for SCA
+
+Basic Workflow:
+1. Creating a PaymentIntent on the server with amount and currency
+2. Confirming it on the client side to initiate the payment
+
+Returns a client secret that allows the client to complete the payment while hiding sensitive information.

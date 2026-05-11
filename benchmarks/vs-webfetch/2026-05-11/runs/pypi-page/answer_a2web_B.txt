@@ -1,0 +1,10 @@
+**Package:** The official Python library for the Anthropic API — the Claude SDK for Python that provides access to the Claude API from Python applications.
+
+**Latest version:** 0.100.0 (released 2026-05-06)
+
+**Install command:**
+```
+pip install anthropic
+```
+
+The package requires Python 3.9+. Full documentation is available at platform.claude.com/docs/en/api/sdks/python.

@@ -1,0 +1,3 @@
+# Framework-Defined Infrastructure: Core Idea
+
+Framework-defined infrastructure is an evolution where "a build-time program parses the source code written to a framework, understands the intent behind the code, and then automatically generates the IaC configuration needed to run the software." This approach enables developers to write application code while the deployment environment automatically handles all necessary infrastructure provisioning based on framework patterns, eliminating the need for manual infrastructure configuration.

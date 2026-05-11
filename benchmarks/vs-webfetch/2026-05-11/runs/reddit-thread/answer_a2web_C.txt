@@ -1,0 +1,1 @@
+The fetch response contains no content — `content_md` is empty. This indicates the page either failed to load, returned a block page, hit a login wall, or otherwise didn't yield substantive text. I cannot determine what the original post is about or analyze comment sentiment without the actual page content.

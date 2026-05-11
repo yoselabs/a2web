@@ -1,0 +1,20 @@
+A **Stripe PaymentIntent** is an API object that manages the entire payment lifecycle for a single transaction. It tracks a payment from creation through checkout and handles any required additional authentication steps.
+
+**Key purposes:**
+
+- **Lifecycle management**: Each PaymentIntent correlates with one shopping cart or customer session and encapsulates transaction details (supported payment methods, amount, currency)
+- **Prevents payment failures**: Automatic authentication handling, eliminates double charges, and avoids idempotency key issues
+- **Regulatory compliance**: Built-in support for Strong Customer Authentication (SCA) and other regional payment regulations
+
+**How it works:**
+
+The integration involves two main actions:
+1. **Create** a PaymentIntent on your server when you know the amount (e.g., at checkout start)
+2. **Confirm** the PaymentIntent on the client side using the PaymentIntent's `client_secret`
+
+**Best practices** include:
+- Creating the PaymentIntent early (when checkout begins) to track your purchase funnel
+- Reusing the same PaymentIntent if checkout is interrupted, rather than creating a new one—this helps track failed payment attempts
+- Using an idempotency key to prevent duplicate PaymentIntents for the same purchase
+
+The PaymentIntent's state helps you monitor payment status across the entire flow and supports complex scenarios like retries and multiple charge attempts.

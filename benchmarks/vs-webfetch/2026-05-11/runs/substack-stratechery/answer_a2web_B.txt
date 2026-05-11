@@ -1,0 +1,3 @@
+The article is not available. The fetch returned a **404 Not Found** error for the URL `https://stratechery.com/2025/the-end-of-the-beginning/`. 
+
+The page displays a standard 404 error page with navigation and sidebar content from Stratechery, but no article content. There is no main argument or specific claims to cite from the requested article.

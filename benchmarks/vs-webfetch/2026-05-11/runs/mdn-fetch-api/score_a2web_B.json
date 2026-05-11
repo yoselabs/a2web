@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Answer correctly describes Fetch API purpose, names fetch() as the global entry point, and explains the Promise-based return including the nuance about HTTP error statuses."
+}

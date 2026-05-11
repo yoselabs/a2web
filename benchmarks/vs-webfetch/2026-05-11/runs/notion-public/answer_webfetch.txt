@@ -1,0 +1,5 @@
+REDIRECT DETECTED: The URL redirects to a different host.
+
+Original URL: https://www.notion.so/help/intro-to-databases
+Redirect URL: https://www.notion.com/help/intro-to-databases
+Status: 301 Moved Permanently

@@ -1,0 +1,8 @@
+The fetch response contains **no content** — the `content_md` field is empty. This indicates the destination returned one of:
+
+- **Block page** (access denied/blocked by filter)
+- **404** (page not found)
+- **Login wall** (requires authentication)
+- **Other error** (timeout, redirect loop, unreadable page)
+
+However, I can't tell you where the short link leads without seeing the original URL. The response shows only the outcome (no readable content), not the destination. Could you provide the short link URL itself?

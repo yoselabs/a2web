@@ -1,0 +1,5 @@
+1. Ratty – A terminal emulator with inline 3D graphics (ratty-term.org) — 360
+2. Training an LLM in Swift, Part 1: Taking matrix mult from Gflop/s to Tflop/s (cocoawithlove.com) — 44
+3. Hardware Attestation as Monopoly Enabler (grapheneos.social) — 1895
+4. Killed by Apple (theden.sh) — 87
+5. Gmail registration now requires scanning a QR code and sending a text message (privacyguides.net) — 203

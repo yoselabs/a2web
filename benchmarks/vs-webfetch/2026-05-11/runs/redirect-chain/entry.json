@@ -1,0 +1,14 @@
+{
+  "slug": "redirect-chain",
+  "url": "https://t.co/abcdef",
+  "class": "E_edge",
+  "task": "Where does this short link lead, and what is the content at the destination?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Either resolves the redirect and describes destination content",
+    "Or explicitly reports the redirect chain / failure mode",
+    "Does not fabricate a destination URL"
+  ]
+}

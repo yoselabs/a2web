@@ -1,0 +1,851 @@
+{
+  "url": "https://news.ycombinator.com/",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "high",
+  "title": "Hacker News",
+  "byline": null,
+  "published": "2026-05-11",
+  "started_at": "2026-05-11T15:29:12.996384Z",
+  "total_ms": 2178,
+  "tokens": {
+    "full": 3987,
+    "fit": 3987
+  },
+  "cache": "bypass",
+  "narrative": "raw → ok (2.2s).",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "news.ycombinator.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 670,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 672,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 1499,
+      "extra": {
+        "chars": 3987
+      }
+    },
+    {
+      "t_ms": 2171,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 7,
+      "extra": {}
+    }
+  ],
+  "meta": {},
+  "links": [
+    {
+      "anchor": "Hacker News",
+      "href": "news"
+    },
+    {
+      "anchor": "new",
+      "href": "newest"
+    },
+    {
+      "anchor": "past",
+      "href": "front"
+    },
+    {
+      "anchor": "comments",
+      "href": "newcomments"
+    },
+    {
+      "anchor": "ask",
+      "href": "ask"
+    },
+    {
+      "anchor": "show",
+      "href": "show"
+    },
+    {
+      "anchor": "jobs",
+      "href": "jobs"
+    },
+    {
+      "anchor": "submit",
+      "href": "submit"
+    },
+    {
+      "anchor": "login",
+      "href": "login?goto=news"
+    },
+    {
+      "anchor": "Ratty – A terminal emulator with inline 3D graphics",
+      "href": "https://ratty-term.org/"
+    },
+    {
+      "anchor": "ratty-term.org",
+      "href": "from?site=ratty-term.org"
+    },
+    {
+      "anchor": "orhunp_",
+      "href": "user?id=orhunp_"
+    },
+    {
+      "anchor": "5 hours ago",
+      "href": "item?id=48093100"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48093100&goto=news"
+    },
+    {
+      "anchor": "119 comments",
+      "href": "item?id=48093100"
+    },
+    {
+      "anchor": "Training an LLM in Swift, Part 1: Taking matrix mult from Gflop/s to Tflop/s",
+      "href": "https://www.cocoawithlove.com/blog/matrix-multiplications-swift.html"
+    },
+    {
+      "anchor": "cocoawithlove.com",
+      "href": "from?site=cocoawithlove.com"
+    },
+    {
+      "anchor": "zdw",
+      "href": "user?id=zdw"
+    },
+    {
+      "anchor": "2 hours ago",
+      "href": "item?id=48085685"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48085685&goto=news"
+    },
+    {
+      "anchor": "1 comment",
+      "href": "item?id=48085685"
+    },
+    {
+      "anchor": "Hardware Attestation as Monopoly Enabler",
+      "href": "https://grapheneos.social/@GrapheneOS/116550899908879585"
+    },
+    {
+      "anchor": "grapheneos.social",
+      "href": "from?site=grapheneos.social"
+    },
+    {
+      "anchor": "ChuckMcM",
+      "href": "user?id=ChuckMcM"
+    },
+    {
+      "anchor": "21 hours ago",
+      "href": "item?id=48086190"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48086190&goto=news"
+    },
+    {
+      "anchor": "622 comments",
+      "href": "item?id=48086190"
+    },
+    {
+      "anchor": "Killed by Apple",
+      "href": "https://killedbyapple.theden.sh/"
+    },
+    {
+      "anchor": "theden.sh",
+      "href": "from?site=theden.sh"
+    },
+    {
+      "anchor": "theden",
+      "href": "user?id=theden"
+    },
+    {
+      "anchor": "59 minutes ago",
+      "href": "item?id=48095468"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48095468&goto=news"
+    },
+    {
+      "anchor": "78 comments",
+      "href": "item?id=48095468"
+    },
+    {
+      "anchor": "Gmail registration now requires scanning a QR code and sending a text message",
+      "href": "https://discuss.privacyguides.net/t/google-account-registration-now-requires-sending-an-sms-via-phone-instead-of-receiving-an-sms/36082"
+    },
+    {
+      "anchor": "privacyguides.net",
+      "href": "from?site=privacyguides.net"
+    },
+    {
+      "anchor": "negura",
+      "href": "user?id=negura"
+    },
+    {
+      "anchor": "8 hours ago",
+      "href": "item?id=48092028"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48092028&goto=news"
+    },
+    {
+      "anchor": "92 comments",
+      "href": "item?id=48092028"
+    },
+    {
+      "anchor": "Local AI needs to be the norm",
+      "href": "https://unix.foo/posts/local-ai-needs-to-be-norm/"
+    },
+    {
+      "anchor": "unix.foo",
+      "href": "from?site=unix.foo"
+    },
+    {
+      "anchor": "cylo",
+      "href": "user?id=cylo"
+    },
+    {
+      "anchor": "22 hours ago",
+      "href": "item?id=48085821"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48085821&goto=news"
+    },
+    {
+      "anchor": "586 comments",
+      "href": "item?id=48085821"
+    },
+    {
+      "anchor": "Driver accused of DUI tracks missing laptop to Illinois State trooper's house",
+      "href": "https://abc7chicago.com/post/top-cop-driver-accused-dui-tracks-missing-laptop-illinois-state-police-trooper-kevin-bradleys-house/19060850/"
+    },
+    {
+      "anchor": "abc7chicago.com",
+      "href": "from?site=abc7chicago.com"
+    },
+    {
+      "anchor": "bryan0",
+      "href": "user?id=bryan0"
+    },
+    {
+      "anchor": "3 hours ago",
+      "href": "item?id=48067184"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48067184&goto=news"
+    },
+    {
+      "anchor": "192 comments",
+      "href": "item?id=48067184"
+    },
+    {
+      "anchor": "Software engineering may no longer be a lifetime career",
+      "href": "https://www.seangoedecke.com/software-engineering-may-no-longer-be-a-lifetime-career/"
+    },
+    {
+      "anchor": "seangoedecke.com",
+      "href": "from?site=seangoedecke.com"
+    },
+    {
+      "anchor": "movis",
+      "href": "user?id=movis"
+    },
+    {
+      "anchor": "54 minutes ago",
+      "href": "item?id=48095550"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48095550&goto=news"
+    },
+    {
+      "anchor": "38 comments",
+      "href": "item?id=48095550"
+    },
+    {
+      "anchor": "Venom and Hot Peppers Offer a Key to Killing Resistant Bacteria",
+      "href": "https://www.wired.com/story/mexican-science-transforms-scorpion-venom-and-habanero-chile-into-antibiotics-against-resistant-bacteria/"
+    },
+    {
+      "anchor": "wired.com",
+      "href": "from?site=wired.com"
+    },
+    {
+      "anchor": "littlexsparkee",
+      "href": "user?id=littlexsparkee"
+    },
+    {
+      "anchor": "6 hours ago",
+      "href": "item?id=48070571"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48070571&goto=news"
+    },
+    {
+      "anchor": "16 comments",
+      "href": "item?id=48070571"
+    },
+    {
+      "anchor": "I'm going back to writing code by hand",
+      "href": "https://blog.k10s.dev/im-going-back-to-writing-code-by-hand/"
+    },
+    {
+      "anchor": "k10s.dev",
+      "href": "from?site=k10s.dev"
+    },
+    {
+      "anchor": "dropbox_miner",
+      "href": "user?id=dropbox_miner"
+    },
+    {
+      "anchor": "14 hours ago",
+      "href": "item?id=48090029"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48090029&goto=news"
+    },
+    {
+      "anchor": "368 comments",
+      "href": "item?id=48090029"
+    },
+    {
+      "anchor": "Building a web server in aarch64 assembly to give my life (a lack of) meaning",
+      "href": "https://imtomt.github.io/ymawky/"
+    },
+    {
+      "anchor": "imtomt.github.io",
+      "href": "from?site=imtomt.github.io"
+    },
+    {
+      "anchor": "theanonymousone",
+      "href": "user?id=theanonymousone"
+    },
+    {
+      "anchor": "2 hours ago",
+      "href": "item?id=48062977"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48062977&goto=news"
+    },
+    {
+      "anchor": "2 comments",
+      "href": "item?id=48062977"
+    },
+    {
+      "anchor": "Running local models on an M4 with 24GB memory",
+      "href": "https://jola.dev/posts/running-local-models-on-m4"
+    },
+    {
+      "anchor": "jola.dev",
+      "href": "from?site=jola.dev"
+    },
+    {
+      "anchor": "shintoist",
+      "href": "user?id=shintoist"
+    },
+    {
+      "anchor": "16 hours ago",
+      "href": "item?id=48089091"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48089091&goto=news"
+    },
+    {
+      "anchor": "132 comments",
+      "href": "item?id=48089091"
+    },
+    {
+      "anchor": "The OpenAI Deployment Company",
+      "href": "https://openai.com/index/openai-launches-the-deployment-company/"
+    },
+    {
+      "anchor": "openai.com",
+      "href": "from?site=openai.com"
+    },
+    {
+      "anchor": "j4mie",
+      "href": "user?id=j4mie"
+    },
+    {
+      "anchor": "2 hours ago",
+      "href": "item?id=48094531"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48094531&goto=news"
+    },
+    {
+      "anchor": "12 comments",
+      "href": "item?id=48094531"
+    },
+    {
+      "anchor": "The greatest shot in television: James Burke had one chance to nail this scene (2024)",
+      "href": "https://www.openculture.com/2024/10/the-greatest-shot-in-television.html"
+    },
+    {
+      "anchor": "openculture.com",
+      "href": "from?site=openculture.com"
+    },
+    {
+      "anchor": "susam",
+      "href": "user?id=susam"
+    },
+    {
+      "anchor": "12 hours ago",
+      "href": "item?id=48090521"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48090521&goto=news"
+    },
+    {
+      "anchor": "141 comments",
+      "href": "item?id=48090521"
+    },
+    {
+      "anchor": "Guitar tuner that uses phone accelerometer",
+      "href": "https://tautme.github.io/phone-sensors/accel-tuner.html"
+    },
+    {
+      "anchor": "tautme.github.io",
+      "href": "from?site=tautme.github.io"
+    },
+    {
+      "anchor": "adm4",
+      "href": "user?id=adm4"
+    },
+    {
+      "anchor": "9 hours ago",
+      "href": "item?id=48058260"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48058260&goto=news"
+    },
+    {
+      "anchor": "50 comments",
+      "href": "item?id=48058260"
+    },
+    {
+      "anchor": "Classification of Amino Acids",
+      "href": "https://www.khanacademy.org/test-prep/mcat/chemical-processes/amino-acids-peptides-proteins-5d/v/classification-amino-acids"
+    },
+    {
+      "anchor": "khanacademy.org",
+      "href": "from?site=khanacademy.org"
+    },
+    {
+      "anchor": "kamaraju",
+      "href": "user?id=kamaraju"
+    },
+    {
+      "anchor": "4 hours ago",
+      "href": "item?id=48068072"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48068072&goto=news"
+    },
+    {
+      "anchor": "discuss",
+      "href": "item?id=48068072"
+    },
+    {
+      "anchor": "Create a 90s GeoCities style website in seconds (Python)",
+      "href": "https://pypi.org/project/create-geocities-app/"
+    },
+    {
+      "anchor": "pypi.org",
+      "href": "from?site=pypi.org"
+    },
+    {
+      "anchor": "whatsupdog",
+      "href": "user?id=whatsupdog"
+    },
+    {
+      "anchor": "2 hours ago",
+      "href": "item?id=48094521"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48094521&goto=news"
+    },
+    {
+      "anchor": "2 comments",
+      "href": "item?id=48094521"
+    },
+    {
+      "anchor": "Amália and the Future of European Portuguese LLMs",
+      "href": "https://duarteocarmo.com/blog/amalia-and-the-future-of-european-portuguese-llms"
+    },
+    {
+      "anchor": "duarteocarmo.com",
+      "href": "from?site=duarteocarmo.com"
+    },
+    {
+      "anchor": "johnbarron",
+      "href": "user?id=johnbarron"
+    },
+    {
+      "anchor": "1 hour ago",
+      "href": "item?id=48065429"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48065429&goto=news"
+    },
+    {
+      "anchor": "discuss",
+      "href": "item?id=48065429"
+    },
+    {
+      "anchor": "An AI coding agent, used to write code, needs to reduce your maintenance costs",
+      "href": "https://www.jamesshore.com/v2/blog/2026/you-need-ai-that-reduces-your-maintenance-costs"
+    },
+    {
+      "anchor": "jamesshore.com",
+      "href": "from?site=jamesshore.com"
+    },
+    {
+      "anchor": "cratermoon",
+      "href": "user?id=cratermoon"
+    },
+    {
+      "anchor": "15 hours ago",
+      "href": "item?id=48089289"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48089289&goto=news"
+    },
+    {
+      "anchor": "81 comments",
+      "href": "item?id=48089289"
+    },
+    {
+      "anchor": "Obsidian plugin was abused to deploy a remote access trojan",
+      "href": "https://cyber.netsecops.io/articles/obsidian-plugin-abused-in-campaign-to-deploy-phantom-pulse-rat/"
+    },
+    {
+      "anchor": "netsecops.io",
+      "href": "from?site=netsecops.io"
+    },
+    {
+      "anchor": "cmbailey",
+      "href": "user?id=cmbailey"
+    },
+    {
+      "anchor": "17 hours ago",
+      "href": "item?id=48088576"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48088576&goto=news"
+    },
+    {
+      "anchor": "166 comments",
+      "href": "item?id=48088576"
+    },
+    {
+      "anchor": "Incident Report: CVE-2024-YIKES",
+      "href": "https://nesbitt.io/2026/02/03/incident-report-cve-2024-yikes.html"
+    },
+    {
+      "anchor": "nesbitt.io",
+      "href": "from?site=nesbitt.io"
+    },
+    {
+      "anchor": "miniBill",
+      "href": "user?id=miniBill"
+    },
+    {
+      "anchor": "21 hours ago",
+      "href": "item?id=48086082"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48086082&goto=news"
+    },
+    {
+      "anchor": "154 comments",
+      "href": "item?id=48086082"
+    },
+    {
+      "anchor": "Mythos Finds a Curl Vulnerability",
+      "href": "https://daniel.haxx.se/blog/2026/05/11/mythos-finds-a-curl-vulnerability/"
+    },
+    {
+      "anchor": "haxx.se",
+      "href": "from?site=haxx.se"
+    },
+    {
+      "anchor": "TangerineDream",
+      "href": "user?id=TangerineDream"
+    },
+    {
+      "anchor": "8 hours ago",
+      "href": "item?id=48091737"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48091737&goto=news"
+    },
+    {
+      "anchor": "178 comments",
+      "href": "item?id=48091737"
+    },
+    {
+      "anchor": "7 lines of code, 3 minutes: Implement a programming language (2010)",
+      "href": "https://matt.might.net/articles/implementing-a-programming-language/"
+    },
+    {
+      "anchor": "might.net",
+      "href": "from?site=might.net"
+    },
+    {
+      "anchor": "azhenley",
+      "href": "user?id=azhenley"
+    },
+    {
+      "anchor": "10 hours ago",
+      "href": "item?id=48091085"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48091085&goto=news"
+    },
+    {
+      "anchor": "30 comments",
+      "href": "item?id=48091085"
+    },
+    {
+      "anchor": "European Money Pours into Palantir",
+      "href": "https://english.elpais.com/economy-and-business/branded/2026-04-11/european-money-pours-into-palantir-over-100-asset-managers-and-banks-boost-their-investments-in-the-controversial-tech-company.html"
+    },
+    {
+      "anchor": "elpais.com",
+      "href": "from?site=elpais.com"
+    },
+    {
+      "anchor": "robtherobber",
+      "href": "user?id=robtherobber"
+    },
+    {
+      "anchor": "4 hours ago",
+      "href": "item?id=48093626"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48093626&goto=news"
+    },
+    {
+      "anchor": "9 comments",
+      "href": "item?id=48093626"
+    },
+    {
+      "anchor": "The Adventure Family Tree",
+      "href": "https://mipmip.org/advfamily/advfamily.html"
+    },
+    {
+      "anchor": "mipmip.org",
+      "href": "from?site=mipmip.org"
+    },
+    {
+      "anchor": "exvi",
+      "href": "user?id=exvi"
+    },
+    {
+      "anchor": "7 hours ago",
+      "href": "item?id=48092367"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48092367&goto=news"
+    },
+    {
+      "anchor": "2 comments",
+      "href": "item?id=48092367"
+    },
+    {
+      "anchor": "How Fast Does Claude, Acting as a User Space IP Stack, Respond to Pings?",
+      "href": "https://dunkels.com/adam/claude-user-space-ip-stack-ping/"
+    },
+    {
+      "anchor": "dunkels.com",
+      "href": "from?site=dunkels.com"
+    },
+    {
+      "anchor": "adunk",
+      "href": "user?id=adunk"
+    },
+    {
+      "anchor": "16 hours ago",
+      "href": "item?id=48089049"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48089049&goto=news"
+    },
+    {
+      "anchor": "47 comments",
+      "href": "item?id=48089049"
+    },
+    {
+      "anchor": "Ask HN: What are you working on? (May 2026)",
+      "href": "item?id=48085993"
+    },
+    {
+      "anchor": "david927",
+      "href": "user?id=david927"
+    },
+    {
+      "anchor": "21 hours ago",
+      "href": "item?id=48085993"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48085993&goto=news"
+    },
+    {
+      "anchor": "817 comments",
+      "href": "item?id=48085993"
+    },
+    {
+      "anchor": "All Those A.I. Note Takers? They're Making Lawyers Nervous",
+      "href": "https://www.nytimes.com/2026/05/09/business/dealbook/ai-notetakers-legal-risk.html"
+    },
+    {
+      "anchor": "nytimes.com",
+      "href": "from?site=nytimes.com"
+    },
+    {
+      "anchor": "JumpCrisscross",
+      "href": "user?id=JumpCrisscross"
+    },
+    {
+      "anchor": "5 hours ago",
+      "href": "item?id=48093043"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48093043&goto=news"
+    },
+    {
+      "anchor": "83 comments",
+      "href": "item?id=48093043"
+    },
+    {
+      "anchor": "First tunnel element of the Fehmarnbelt Tunnel immersed",
+      "href": "https://www.arup.com/en-us/news/first-fehmarnbelt-tunnel-element-lowered/"
+    },
+    {
+      "anchor": "arup.com",
+      "href": "from?site=arup.com"
+    },
+    {
+      "anchor": "robin_reala",
+      "href": "user?id=robin_reala"
+    },
+    {
+      "anchor": "18 hours ago",
+      "href": "item?id=48050666"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48050666&goto=news"
+    },
+    {
+      "anchor": "74 comments",
+      "href": "item?id=48050666"
+    },
+    {
+      "anchor": "Bliss (Photograph)",
+      "href": "https://en.wikipedia.org/wiki/Bliss_(photograph)"
+    },
+    {
+      "anchor": "wikipedia.org",
+      "href": "from?site=wikipedia.org"
+    },
+    {
+      "anchor": "cainxinth",
+      "href": "user?id=cainxinth"
+    },
+    {
+      "anchor": "7 hours ago",
+      "href": "item?id=48057790"
+    },
+    {
+      "anchor": "hide",
+      "href": "hide?id=48057790&goto=news"
+    },
+    {
+      "anchor": "29 comments",
+      "href": "item?id=48057790"
+    },
+    {
+      "anchor": "More",
+      "href": "?p=2"
+    },
+    {
+      "anchor": "Guidelines",
+      "href": "newsguidelines.html"
+    },
+    {
+      "anchor": "FAQ",
+      "href": "newsfaq.html"
+    },
+    {
+      "anchor": "Lists",
+      "href": "lists"
+    },
+    {
+      "anchor": "API",
+      "href": "https://github.com/HackerNews/API"
+    },
+    {
+      "anchor": "Security",
+      "href": "security.html"
+    },
+    {
+      "anchor": "Legal",
+      "href": "https://www.ycombinator.com/legal/"
+    },
+    {
+      "anchor": "Apply to YC",
+      "href": "https://www.ycombinator.com/apply/"
+    },
+    {
+      "anchor": "Contact",
+      "href": "mailto:hn@ycombinator.com"
+    }
+  ],
+  "headings": [],
+  "content_md": "Hacker News\nnew\n|\npast\n|\ncomments\n|\nask\n|\nshow\n|\njobs\n|\nsubmit\nlogin\n1.\nRatty – A terminal emulator with inline 3D graphics\n(\nratty-term.org\n)\n360 points\nby\norhunp_\n5 hours ago\n|\nhide\n|\n119 comments\n2.\nTraining an LLM in Swift, Part 1: Taking matrix mult from Gflop/s to Tflop/s\n(\ncocoawithlove.com\n)\n44 points\nby\nzdw\n2 hours ago\n|\nhide\n|\n1 comment\n3.\nHardware Attestation as Monopoly Enabler\n(\ngrapheneos.social\n)\n1895 points\nby\nChuckMcM\n21 hours ago\n|\nhide\n|\n622 comments\n4.\nKilled by Apple\n(\ntheden.sh\n)\n87 points\nby\ntheden\n59 minutes ago\n|\nhide\n|\n78 comments\n5.\nGmail registration now requires scanning a QR code and sending a text message\n(\nprivacyguides.net\n)\n203 points\nby\nnegura\n8 hours ago\n|\nhide\n|\n92 comments\n6.\nLocal AI needs to be the norm\n(\nunix.foo\n)\n1521 points\nby\ncylo\n22 hours ago\n|\nhide\n|\n586 comments\n7.\nDriver accused of DUI tracks missing laptop to Illinois State trooper's house\n(\nabc7chicago.com\n)\n267 points\nby\nbryan0\n3 hours ago\n|\nhide\n|\n192 comments\n8.\nSoftware engineering may no longer be a lifetime career\n(\nseangoedecke.com\n)\n45 points\nby\nmovis\n54 minutes ago\n|\nhide\n|\n38 comments\n9.\nVenom and Hot Peppers Offer a Key to Killing Resistant Bacteria\n(\nwired.com\n)\n77 points\nby\nlittlexsparkee\n6 hours ago\n|\nhide\n|\n16 comments\n10.\nI'm going back to writing code by hand\n(\nk10s.dev\n)\n684 points\nby\ndropbox_miner\n14 hours ago\n|\nhide\n|\n368 comments\n11.\nBuilding a web server in aarch64 assembly to give my life (a lack of) meaning\n(\nimtomt.github.io\n)\n25 points\nby\ntheanonymousone\n2 hours ago\n|\nhide\n|\n2 comments\n12.\nRunning local models on an M4 with 24GB memory\n(\njola.dev\n)\n448 points\nby\nshintoist\n16 hours ago\n|\nhide\n|\n132 comments\n13.\nThe OpenAI Deployment Company\n(\nopenai.com\n)\n19 points\nby\nj4mie\n2 hours ago\n|\nhide\n|\n12 comments\n14.\nThe greatest shot in television: James Burke had one chance to nail this scene (2024)\n(\nopenculture.com\n)\n259 points\nby\nsusam\n12 hours ago\n|\nhide\n|\n141 comments\n15.\nGuitar tuner that uses phone accelerometer\n(\ntautme.github.io\n)\n98 points\nby\nadm4\n9 hours ago\n|\nhide\n|\n50 comments\n16.\nClassification of Amino Acids\n(\nkhanacademy.org\n)\n37 points\nby\nkamaraju\n4 hours ago\n|\nhide\n|\ndiscuss\n17.\nCreate a 90s GeoCities style website in seconds (Python)\n(\npypi.org\n)\n9 points\nby\nwhatsupdog\n2 hours ago\n|\nhide\n|\n2 comments\n18.\nAmália and the Future of European Portuguese LLMs\n(\nduarteocarmo.com\n)\n7 points\nby\njohnbarron\n1 hour ago\n|\nhide\n|\ndiscuss\n19.\nAn AI coding agent, used to write code, needs to reduce your maintenance costs\n(\njamesshore.com\n)\n268 points\nby\ncratermoon\n15 hours ago\n|\nhide\n|\n81 comments\n20.\nObsidian plugin was abused to deploy a remote access trojan\n(\nnetsecops.io\n)\n293 points\nby\ncmbailey\n17 hours ago\n|\nhide\n|\n166 comments\n21.\nIncident Report: CVE-2024-YIKES\n(\nnesbitt.io\n)\n636 points\nby\nminiBill\n21 hours ago\n|\nhide\n|\n154 comments\n22.\nMythos Finds a Curl Vulnerability\n(\nhaxx.se\n)\n413 points\nby\nTangerineDream\n8 hours ago\n|\nhide\n|\n178 comments\n23.\n7 lines of code, 3 minutes: Implement a programming language (2010)\n(\nmight.net\n)\n83 points\nby\nazhenley\n10 hours ago\n|\nhide\n|\n30 comments\n24.\nEuropean Money Pours into Palantir\n(\nelpais.com\n)\n65 points\nby\nrobtherobber\n4 hours ago\n|\nhide\n|\n9 comments\n25.\nThe Adventure Family Tree\n(\nmipmip.org\n)\n33 points\nby\nexvi\n7 hours ago\n|\nhide\n|\n2 comments\n26.\nHow Fast Does Claude, Acting as a User Space IP Stack, Respond to Pings?\n(\ndunkels.com\n)\n135 points\nby\nadunk\n16 hours ago\n|\nhide\n|\n47 comments\n27.\nAsk HN: What are you working on? (May 2026)\n218 points\nby\ndavid927\n21 hours ago\n|\nhide\n|\n817 comments\n28.\nAll Those A.I. Note Takers? They're Making Lawyers Nervous\n(\nnytimes.com\n)\n113 points\nby\nJumpCrisscross\n5 hours ago\n|\nhide\n|\n83 comments\n29.\nFirst tunnel element of the Fehmarnbelt Tunnel immersed\n(\narup.com\n)\n136 points\nby\nrobin_reala\n18 hours ago\n|\nhide\n|\n74 comments\n30.\nBliss (Photograph)\n(\nwikipedia.org\n)\n59 points\nby\ncainxinth\n7 hours ago\n|\nhide\n|\n29 comments\nMore\nGuidelines\n|\nFAQ\n|\nLists\n|\nAPI\n|\nSecurity\n|\nLegal\n|\nApply to YC\n|\nContact\nSearch:\n",
+  "fit_md": "Hacker News\nnew\n|\npast\n|\ncomments\n|\nask\n|\nshow\n|\njobs\n|\nsubmit\nlogin\n1.\nRatty – A terminal emulator with inline 3D graphics\n(\nratty-term.org\n)\n360 points\nby\norhunp_\n5 hours ago\n|\nhide\n|\n119 comments\n2.\nTraining an LLM in Swift, Part 1: Taking matrix mult from Gflop/s to Tflop/s\n(\ncocoawithlove.com\n)\n44 points\nby\nzdw\n2 hours ago\n|\nhide\n|\n1 comment\n3.\nHardware Attestation as Monopoly Enabler\n(\ngrapheneos.social\n)\n1895 points\nby\nChuckMcM\n21 hours ago\n|\nhide\n|\n622 comments\n4.\nKilled by Apple\n(\ntheden.sh\n)\n87 points\nby\ntheden\n59 minutes ago\n|\nhide\n|\n78 comments\n5.\nGmail registration now requires scanning a QR code and sending a text message\n(\nprivacyguides.net\n)\n203 points\nby\nnegura\n8 hours ago\n|\nhide\n|\n92 comments\n6.\nLocal AI needs to be the norm\n(\nunix.foo\n)\n1521 points\nby\ncylo\n22 hours ago\n|\nhide\n|\n586 comments\n7.\nDriver accused of DUI tracks missing laptop to Illinois State trooper's house\n(\nabc7chicago.com\n)\n267 points\nby\nbryan0\n3 hours ago\n|\nhide\n|\n192 comments\n8.\nSoftware engineering may no longer be a lifetime career\n(\nseangoedecke.com\n)\n45 points\nby\nmovis\n54 minutes ago\n|\nhide\n|\n38 comments\n9.\nVenom and Hot Peppers Offer a Key to Killing Resistant Bacteria\n(\nwired.com\n)\n77 points\nby\nlittlexsparkee\n6 hours ago\n|\nhide\n|\n16 comments\n10.\nI'm going back to writing code by hand\n(\nk10s.dev\n)\n684 points\nby\ndropbox_miner\n14 hours ago\n|\nhide\n|\n368 comments\n11.\nBuilding a web server in aarch64 assembly to give my life (a lack of) meaning\n(\nimtomt.github.io\n)\n25 points\nby\ntheanonymousone\n2 hours ago\n|\nhide\n|\n2 comments\n12.\nRunning local models on an M4 with 24GB memory\n(\njola.dev\n)\n448 points\nby\nshintoist\n16 hours ago\n|\nhide\n|\n132 comments\n13.\nThe OpenAI Deployment Company\n(\nopenai.com\n)\n19 points\nby\nj4mie\n2 hours ago\n|\nhide\n|\n12 comments\n14.\nThe greatest shot in television: James Burke had one chance to nail this scene (2024)\n(\nopenculture.com\n)\n259 points\nby\nsusam\n12 hours ago\n|\nhide\n|\n141 comments\n15.\nGuitar tuner that uses phone accelerometer\n(\ntautme.github.io\n)\n98 points\nby\nadm4\n9 hours ago\n|\nhide\n|\n50 comments\n16.\nClassification of Amino Acids\n(\nkhanacademy.org\n)\n37 points\nby\nkamaraju\n4 hours ago\n|\nhide\n|\ndiscuss\n17.\nCreate a 90s GeoCities style website in seconds (Python)\n(\npypi.org\n)\n9 points\nby\nwhatsupdog\n2 hours ago\n|\nhide\n|\n2 comments\n18.\nAmália and the Future of European Portuguese LLMs\n(\nduarteocarmo.com\n)\n7 points\nby\njohnbarron\n1 hour ago\n|\nhide\n|\ndiscuss\n19.\nAn AI coding agent, used to write code, needs to reduce your maintenance costs\n(\njamesshore.com\n)\n268 points\nby\ncratermoon\n15 hours ago\n|\nhide\n|\n81 comments\n20.\nObsidian plugin was abused to deploy a remote access trojan\n(\nnetsecops.io\n)\n293 points\nby\ncmbailey\n17 hours ago\n|\nhide\n|\n166 comments\n21.\nIncident Report: CVE-2024-YIKES\n(\nnesbitt.io\n)\n636 points\nby\nminiBill\n21 hours ago\n|\nhide\n|\n154 comments\n22.\nMythos Finds a Curl Vulnerability\n(\nhaxx.se\n)\n413 points\nby\nTangerineDream\n8 hours ago\n|\nhide\n|\n178 comments\n23.\n7 lines of code, 3 minutes: Implement a programming language (2010)\n(\nmight.net\n)\n83 points\nby\nazhenley\n10 hours ago\n|\nhide\n|\n30 comments\n24.\nEuropean Money Pours into Palantir\n(\nelpais.com\n)\n65 points\nby\nrobtherobber\n4 hours ago\n|\nhide\n|\n9 comments\n25.\nThe Adventure Family Tree\n(\nmipmip.org\n)\n33 points\nby\nexvi\n7 hours ago\n|\nhide\n|\n2 comments\n26.\nHow Fast Does Claude, Acting as a User Space IP Stack, Respond to Pings?\n(\ndunkels.com\n)\n135 points\nby\nadunk\n16 hours ago\n|\nhide\n|\n47 comments\n27.\nAsk HN: What are you working on? (May 2026)\n218 points\nby\ndavid927\n21 hours ago\n|\nhide\n|\n817 comments\n28.\nAll Those A.I. Note Takers? They're Making Lawyers Nervous\n(\nnytimes.com\n)\n113 points\nby\nJumpCrisscross\n5 hours ago\n|\nhide\n|\n83 comments\n29.\nFirst tunnel element of the Fehmarnbelt Tunnel immersed\n(\narup.com\n)\n136 points\nby\nrobin_reala\n18 hours ago\n|\nhide\n|\n74 comments\n30.\nBliss (Photograph)\n(\nwikipedia.org\n)\n59 points\nby\ncainxinth\n7 hours ago\n|\nhide\n|\n29 comments\nMore\nGuidelines\n|\nFAQ\n|\nLists\n|\nAPI\n|\nSecurity\n|\nLegal\n|\nApply to YC\n|\nContact\nSearch:\n",
+  "operator_hints": []
+}

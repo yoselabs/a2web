@@ -1,0 +1,10 @@
+{
+  "scores": [
+    0,
+    5,
+    0
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "Answer correctly identifies a 404 error page and does not fabricate content, but delivers no substantive information about the requested article."
+}

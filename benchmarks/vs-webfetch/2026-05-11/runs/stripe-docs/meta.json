@@ -1,0 +1,44 @@
+{
+  "slug": "stripe-docs",
+  "class": "C_spa",
+  "url": "https://docs.stripe.com/payments/payment-intents",
+  "a2web": {
+    "status": "ok",
+    "tier": "raw",
+    "verdict": "high",
+    "wall_ms_cli": 2935,
+    "wall_ms_internal": 1077,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 1516,
+      "fit_md": 1516,
+      "title": 5,
+      "byline": 0,
+      "published": 6,
+      "narrative": 9,
+      "links": 1627,
+      "headings": 248,
+      "diagnostics": 184,
+      "operator_hints": 1,
+      "meta": 140,
+      "tokens": 14,
+      "url": 11,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 2,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 5615,
+      "B_meta": 1677,
+      "C_content_only": 1634
+    },
+    "links_count": 83,
+    "headings_count": 16,
+    "content_chars": 7842,
+    "fit_equals_content": true
+  }
+}

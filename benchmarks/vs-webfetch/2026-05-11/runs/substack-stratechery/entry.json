@@ -1,0 +1,14 @@
+{
+  "slug": "substack-stratechery",
+  "url": "https://stratechery.com/2025/the-end-of-the-beginning/",
+  "class": "B_gated",
+  "task": "What is the article's main argument? Cite at least one specific claim.",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Substantive answer about the article's argument",
+    "Cites at least one specific claim, statistic, or example from the body",
+    "Is not only the title + subscribe prompt"
+  ]
+}

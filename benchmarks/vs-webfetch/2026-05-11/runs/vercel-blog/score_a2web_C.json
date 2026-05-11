@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Accurately captures FDI's core idea: framework analyzes source code to auto-generate infra config, abstracting cloud primitives away from developers."
+}

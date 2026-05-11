@@ -1,0 +1,5 @@
+The target URL returned a **404 error** — the article does not exist or is not accessible. 
+
+The response contains only the 404 error page from Stratechery's website, not the actual article content. The diagnostics show that the raw tier received a 404 status code, and while the Jina tier successfully retrieved a 200 response, that response was the 404 error page itself, not substantive article content.
+
+There is no main argument or specific claims to cite because the article is not available at the requested URL (`https://stratechery.com/2025/the-end-of-the-beginning/`).

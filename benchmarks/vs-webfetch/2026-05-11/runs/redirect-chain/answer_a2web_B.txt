@@ -1,0 +1,15 @@
+The fetch response is empty and does not contain the information needed to answer your question. 
+
+The response shows:
+- Empty `content_md` (no content extracted)
+- Null values for title, byline, and published metadata
+
+This indicates the fetch operation failed to retrieve substantive content from the short link. The response does not include:
+1. The expanded destination URL that t.co/abcdef redirects to
+2. The content at that destination
+
+To determine where this short link leads and what content exists there, you would need a fetch that either:
+- Captures the redirect target URL explicitly, or
+- Successfully retrieves and parses content from the final destination page
+
+The current response suggests the fetch either encountered a block page, failed to follow the redirect, or couldn't extract content from the destination.

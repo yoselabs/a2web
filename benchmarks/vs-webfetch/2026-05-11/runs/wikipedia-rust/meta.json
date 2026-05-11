@@ -1,0 +1,44 @@
+{
+  "slug": "wikipedia-rust",
+  "class": "A_clean",
+  "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+  "a2web": {
+    "status": "ok",
+    "tier": "site_handler:wikipedia",
+    "verdict": "high",
+    "wall_ms_cli": 3189,
+    "wall_ms_internal": 1368,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 9683,
+      "fit_md": 9683,
+      "title": 6,
+      "byline": 0,
+      "published": 0,
+      "narrative": 12,
+      "links": 1,
+      "headings": 1,
+      "diagnostics": 122,
+      "operator_hints": 1,
+      "meta": 1,
+      "tokens": 14,
+      "url": 12,
+      "status": 1,
+      "tier": 4,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 2,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 21705,
+      "B_meta": 10752,
+      "C_content_only": 10715
+    },
+    "links_count": 0,
+    "headings_count": 0,
+    "content_chars": 42069,
+    "fit_equals_content": true
+  }
+}

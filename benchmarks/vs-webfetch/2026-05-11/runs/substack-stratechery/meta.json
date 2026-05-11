@@ -1,0 +1,44 @@
+{
+  "slug": "substack-stratechery",
+  "class": "B_gated",
+  "url": "https://stratechery.com/2025/the-end-of-the-beginning/",
+  "a2web": {
+    "status": "ok",
+    "tier": "jina",
+    "verdict": "high",
+    "wall_ms_cli": 5326,
+    "wall_ms_internal": 3530,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 1948,
+      "fit_md": 1948,
+      "title": 0,
+      "byline": 0,
+      "published": 0,
+      "narrative": 10,
+      "links": 1,
+      "headings": 1,
+      "diagnostics": 190,
+      "operator_hints": 1,
+      "meta": 1,
+      "tokens": 14,
+      "url": 23,
+      "status": 1,
+      "tier": 2,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 2,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 4551,
+      "B_meta": 2146,
+      "C_content_only": 2103
+    },
+    "links_count": 0,
+    "headings_count": 0,
+    "content_chars": 6500,
+    "fit_equals_content": true
+  }
+}

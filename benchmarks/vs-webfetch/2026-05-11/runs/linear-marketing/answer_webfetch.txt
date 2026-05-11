@@ -1,0 +1,12 @@
+# Linear Product Overview
+
+**Product:** Linear is a product development platform—an issue tracking and project management system designed for software teams.
+
+**Primary Value Proposition:** The homepage headline states: "The product development system for teams and agents," emphasizing that Linear is "Purpose-built for planning and building products. Designed for the AI era."
+
+The core value proposition centers on three themes:
+- **Built for purpose** through practices of world-class product teams
+- **Powered by AI agents** for workflows shared by humans and AI
+- **Designed for speed** to reduce noise and help teams ship with high velocity
+
+Linear positions itself as a modern alternative to traditional issue tracking, integrating AI agent capabilities throughout the product development workflow—from intake and planning through building, reviewing, and monitoring work.

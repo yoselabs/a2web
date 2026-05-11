@@ -1,0 +1,44 @@
+{
+  "slug": "vercel-blog",
+  "class": "C_spa",
+  "url": "https://vercel.com/blog/framework-defined-infrastructure",
+  "a2web": {
+    "status": "ok",
+    "tier": "raw",
+    "verdict": "high",
+    "wall_ms_cli": 2803,
+    "wall_ms_internal": 719,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 2484,
+      "fit_md": 2484,
+      "title": 3,
+      "byline": 10,
+      "published": 6,
+      "narrative": 7,
+      "links": 3301,
+      "headings": 468,
+      "diagnostics": 183,
+      "operator_hints": 1,
+      "meta": 262,
+      "tokens": 14,
+      "url": 10,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 1,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 9632,
+      "B_meta": 2683,
+      "C_content_only": 2633
+    },
+    "links_count": 173,
+    "headings_count": 32,
+    "content_chars": 13627,
+    "fit_equals_content": true
+  }
+}

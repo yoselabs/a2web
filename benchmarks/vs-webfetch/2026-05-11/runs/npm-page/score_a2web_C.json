@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    0,
+    0
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "Correctly identifies React but honestly admits version and download stats were not in the fetched content, scoring zero on those criteria."
+}

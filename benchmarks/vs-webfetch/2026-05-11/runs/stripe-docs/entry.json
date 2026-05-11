@@ -1,0 +1,14 @@
+{
+  "slug": "stripe-docs",
+  "url": "https://docs.stripe.com/payments/payment-intents",
+  "class": "C_spa",
+  "task": "What is a Stripe PaymentIntent and what is its purpose in the payment lifecycle?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Defines PaymentIntent as Stripe's API object for tracking a payment through its lifecycle",
+    "Mentions states / transitions / SCA / authentication context",
+    "Is not only navigation links"
+  ]
+}

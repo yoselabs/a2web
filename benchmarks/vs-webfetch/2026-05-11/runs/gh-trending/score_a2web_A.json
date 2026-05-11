@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    4,
+    2
+  ],
+  "overall": 3,
+  "reasoning": "Five repos in correct format with descriptions, but the list looks partially fabricated or stale \u2014 CloakBrowser and AI-Trader are plausible but order does not match typical trending patterns, and AUTOMATIC1111 and paperless-ngx are evergreen repos unlikely to be top-5 trending on any given day."
+}

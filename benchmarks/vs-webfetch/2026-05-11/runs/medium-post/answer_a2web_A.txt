@@ -1,0 +1,1 @@
+The article is not available. The URL returns a **404 error page** — the article by @altimore on "LLMs as Cognitive Prosthetics" no longer exists on Medium. Instead of the article content, the fetch returned Medium's "page not found" error page with suggested reading recommendations.

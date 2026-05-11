@@ -1,0 +1,10 @@
+{
+  "scores": [
+    0,
+    5,
+    5
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "Correctly identifies the fetch failed and why, names Karpathy, but delivers zero substantive content from the post."
+}

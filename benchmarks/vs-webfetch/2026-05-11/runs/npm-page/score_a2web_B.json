@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    0,
+    0
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "Correctly identifies React but fails to provide version or download count, citing missing metadata from the fetch."
+}

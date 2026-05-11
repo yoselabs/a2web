@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    2
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Correctly identifies React and provides an accurate version, but fails to supply the weekly download figure, partially mitigated by an honest explanation of why."
+}

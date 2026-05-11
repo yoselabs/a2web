@@ -1,0 +1,16 @@
+# Issue Summary
+
+Bug report (#2107) in claude-code repo describing an occasional file update error.
+
+Error Message: "String to replace not found in file."
+
+Environment:
+- Claude CLI version: 1.0.24
+- OS: Windows 11
+- Platform: IDEA Claude Code plugin
+
+Status: CLOSED (marked as duplicate)
+
+Labels: bug, duplicate, autoclose, area:tools, platform:windows
+
+Conclusion: The issue was marked as a duplicate, suggesting this bug had already been reported in another issue. No assignee was set, and no specific fix or workaround is documented in the provided content.

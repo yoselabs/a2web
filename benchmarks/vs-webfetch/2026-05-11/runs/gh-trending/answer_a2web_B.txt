@@ -1,0 +1,9 @@
+The fetched content doesn't contain the information needed to answer this question. While the page is from the correct URL (GitHub's daily Python trending), the extracted markdown appears to be incomplete or poorly parsed — it contains project titles and descriptions but **lacks the OWNER/REPO names** that would normally be displayed on GitHub's trending page.
+
+I can only identify one repo clearly: **CloakHQ / CloakBrowser** — Stealth Chromium that passes every bot detection test; Playwright replacement with fingerprint patches.
+
+The rest of the extracted content shows project descriptions ("Stable Diffusion web UI," "AI-Trader," etc.) but without their corresponding GitHub owners and repo names, making it impossible to provide the OWNER/REPO — description format you requested.
+
+To get accurate trending data, you'd need to either:
+- Fetch the page with a browser-based tier (the HTML structure likely needs JavaScript or better parsing)
+- Use GitHub's API directly (e.g., `/repos/trending` endpoint)

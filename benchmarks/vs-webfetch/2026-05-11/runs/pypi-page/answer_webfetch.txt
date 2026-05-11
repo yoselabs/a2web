@@ -1,0 +1,11 @@
+# Anthropic Package Overview
+
+Package Name: anthropic
+Latest Version: 0.100.0 (released May 6, 2026)
+
+Install Command:
+```
+pip install anthropic
+```
+
+Description: "The official Python library for the anthropic API." Provides access to the Claude API from Python applications, requires Python 3.9 or higher. Owned by Anthropic, PBC. MIT License.

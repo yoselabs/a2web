@@ -1,0 +1,21 @@
+slug	class	url	a2web_status	a2web_tier	a2web_from_browser	a2web_from_archive	fit_eq_content	tok_A_full	tok_B_meta	tok_C_content	tok_links	tok_fit_md	tok_content_md	tok_diagnostics	tok_headings	tok_narrative	links_count	judge_wf	judge_A	judge_B	judge_C	reached_wf	reached_A	reached_B	reached_C
+hn-front	A_clean	https://news.ycombinator.com/	ok	raw	False	False	True	7778	1495	1457	4529	1298	1298	188	1	9	197	4	4	3	4	True	True		True
+arxiv-abstract	A_clean	https://arxiv.org/abs/2401.05566	ok	site_handler:arxiv	False	False	True	1501	727	500	1	488	488	120	41	11	0	5	5	5	5	True	True	True	True
+wikipedia-rust	A_clean	https://en.wikipedia.org/wiki/Rust_(programming_language)	ok	site_handler:wikipedia	False	False	True	21705	10752	10715	1	9683	9683	122	1	12	0	4	3	4	4	True	True	True	True
+mdn-fetch-api	A_clean	https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API	ok	raw	False	False	True	6375	718	676	4516	557	557	183	163	7	193	5	5	5	5	True	True	True	True
+reddit-thread	B_gated	https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/	failed	raw	False	False	False	409	60	6	1	0	0	247	1	8	0	1	1	1	1	False	False	False	False
+medium-post	B_gated	https://medium.com/@altimore/llms-as-cognitive-prosthetics-d3a5b7c2cba9	ok	raw	False	False	True	2235	389	336	1002	316	316	182	193	9	26	1	1	2	1	False	False	False	False
+substack-stratechery	B_gated	https://stratechery.com/2025/the-end-of-the-beginning/	ok	jina	False	False	True	4551	2146	2103	1	1948	1948	190	1	10	0	0	1	1	1	False	False	False	False
+x-post	B_gated	https://x.com/karpathy/status/1759031023815639423	failed	raw	False	False	False	589	118	70	163	0	60	182	17	8	6	1	1	1	1	False	False	False	False
+linear-marketing	C_spa	https://linear.app/	failed	raw	False	False	False	2225	291	247	1226	0	222	190	301	14	69	5	5	5	5	True	True	True	True
+vercel-blog	C_spa	https://vercel.com/blog/framework-defined-infrastructure	ok	raw	False	False	True	9632	2683	2633	3301	2484	2484	183	468	7	173	5	5	5	5	True	True	True	True
+stripe-docs	C_spa	https://docs.stripe.com/payments/payment-intents	ok	raw	False	False	True	5615	1677	1634	1627	1516	1516	184	248	9	83	5	5	5	5	True	True	True	True
+notion-public	C_spa	https://www.notion.so/help/intro-to-databases	ok	raw	False	False	True	14468	2779	2732	7990	2458	2458	184	383	9	395	0	5	5	5	False	True	True	True
+github-issue	D_structured	https://github.com/anthropics/claude-code/issues/2107	ok	site_handler:github	False	False	True	1052	419	362	1	325	325	119	41	10	0	5	5	5	5	True	True	True	True
+pypi-page	D_structured	https://pypi.org/project/anthropic/	ok	raw	False	False	True	13312	1049	1011	10391	885	885	183	501	7	287	5	5	5	5	True	True	True	True
+npm-page	D_structured	https://www.npmjs.com/package/react	ok	raw	False	False	True	1874	265	228	634	188	188	184	251	7	36	0	4	2	2	False	True	True	True
+gh-trending	D_structured	https://github.com/trending/python?since=daily	ok	raw	False	False	True	27167	422	379	25464	351	351	248	430	9	1142	3	3	1	0	True		False	False
+dead-with-archive	E_edge	https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/	failed	jina	False	False	False	471	168	114	1	0	97	196	1	11	0	0	1	1	1	False	False	False	False
+large-page	E_edge	https://lwn.net/Articles/991060/	failed	raw	False	False	False	708	95	42	242	0	36	184	28	10	16	2	1	1	1	False	False	False	False
+non-english	E_edge	https://habr.com/ru/articles/799471/	ok	raw	False	False	True	5121	1521	1447	1073	1396	1396	183	122	7	43	5	5	5	5	True	True	True	True
+redirect-chain	E_edge	https://t.co/abcdef	failed	none	False	False	False	266	33	6	1	0	0	132	1	8	0	3	3	2	2	False	False	False	False

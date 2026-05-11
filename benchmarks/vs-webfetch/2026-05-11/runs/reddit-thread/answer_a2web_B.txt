@@ -1,0 +1,8 @@
+The fetch response doesn't contain the content needed to answer your question. The `content_md` field is empty, which means the extraction failed—I received no substantive content from the page, neither the original post text nor the comments.
+
+This could be due to:
+- Reddit blocking the fetch or requiring authentication
+- The page layout not being parseable by the extraction tool
+- A handler error
+
+To get the post content and comment sentiment, the fetch would need to be retried, possibly with a browser tier or a Reddit-specific handler that can navigate the page structure.

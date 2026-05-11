@@ -1,0 +1,72 @@
+{
+  "url": "https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/",
+  "status": "failed",
+  "tier": "raw",
+  "confidence": "low",
+  "title": "Reddit",
+  "byline": null,
+  "published": "2026-01-01",
+  "started_at": "2026-05-11T15:29:25.089977Z",
+  "total_ms": 630,
+  "tokens": null,
+  "cache": "bypass",
+  "narrative": "raw → length_floor (630ms).",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "site_handler",
+      "engine": null,
+      "host": "www.reddit.com",
+      "proxy": "direct",
+      "verdict": "not_found",
+      "subsystem": null,
+      "dur_ms": 375,
+      "extra": {
+        "status_code": 0
+      }
+    },
+    {
+      "t_ms": 375,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "www.reddit.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 92,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 467,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 161,
+      "extra": {
+        "chars": 0
+      }
+    },
+    {
+      "t_ms": 628,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "length_floor",
+      "subsystem": null,
+      "dur_ms": 2,
+      "extra": {}
+    }
+  ],
+  "meta": {},
+  "links": [],
+  "headings": [],
+  "content_md": "",
+  "fit_md": null,
+  "operator_hints": []
+}

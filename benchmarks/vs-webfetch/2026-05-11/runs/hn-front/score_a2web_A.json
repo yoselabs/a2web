@@ -1,0 +1,12 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Five stories with titles, domains, and point counts are present, but the order appears scrambled (story 3 has 1895 points suggesting it should rank much higher than position 3, and ordering does not match typical HN front-page descending-points or recency ordering)."
+}

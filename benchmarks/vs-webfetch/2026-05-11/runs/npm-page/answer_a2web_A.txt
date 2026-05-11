@@ -1,0 +1,5 @@
+**Package:** React is a JavaScript library for building user interfaces. The `react` package contains the core functionality for defining React components and is typically used with a renderer like `react-dom` (web) or `react-native` (native).
+
+**Current version:** 19.2.6 (published 5 days ago)
+
+**Weekly downloads:** The weekly download count is not included in the extracted content. The page has a "DownloadsWeekly Downloads" section (visible in the headings), but the actual number wasn't captured in the markdown extraction—likely because it's rendered dynamically via JavaScript or structured as an interactive element that the extraction couldn't parse.

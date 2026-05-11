@@ -1,0 +1,14 @@
+{
+  "slug": "wikipedia-rust",
+  "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+  "class": "A_clean",
+  "task": "Who designed Rust originally and what year was it first released? What memory-safety mechanism is Rust known for?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Identifies Graydon Hoare as original designer",
+    "Names 2010 as first appearance / release year",
+    "Describes ownership / borrow checker for memory safety"
+  ]
+}

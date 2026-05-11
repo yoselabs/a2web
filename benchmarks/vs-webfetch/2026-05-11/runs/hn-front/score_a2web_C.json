@@ -1,0 +1,12 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Five stories with titles, domains, and point counts are present, but the ordering appears scrambled (story 3 with 1895 points likely ranked higher than position 3 suggests)."
+}

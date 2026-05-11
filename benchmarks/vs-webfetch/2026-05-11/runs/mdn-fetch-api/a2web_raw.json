@@ -1,0 +1,887 @@
+{
+  "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "high",
+  "title": "Fetch API",
+  "byline": null,
+  "published": "2026-01-08",
+  "started_at": "2026-05-11T15:29:22.915619Z",
+  "total_ms": 223,
+  "tokens": {
+    "full": 2593,
+    "fit": 2593
+  },
+  "cache": "miss",
+  "narrative": "raw → ok (223ms).",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "developer.mozilla.org",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 150,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 150,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 40,
+      "extra": {
+        "chars": 2593
+      }
+    },
+    {
+      "t_ms": 190,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 28,
+      "extra": {}
+    }
+  ],
+  "meta": {
+    "twitter.card": "summary",
+    "twitter.creator": "MozDevNet"
+  },
+  "links": [
+    {
+      "anchor": "Skip to main content",
+      "href": "#content"
+    },
+    {
+      "anchor": "Skip to search",
+      "href": "#search"
+    },
+    {
+      "anchor": "MDN",
+      "href": "/en-US/"
+    },
+    {
+      "anchor": "HTML: Markup language",
+      "href": "/en-US/docs/Web/HTML"
+    },
+    {
+      "anchor": "Elements",
+      "href": "/en-US/docs/Web/HTML/Reference/Elements"
+    },
+    {
+      "anchor": "Global attributes",
+      "href": "/en-US/docs/Web/HTML/Reference/Global_attributes"
+    },
+    {
+      "anchor": "Attributes",
+      "href": "/en-US/docs/Web/HTML/Reference/Attributes"
+    },
+    {
+      "anchor": "See all…",
+      "href": "/en-US/docs/Web/HTML/Reference"
+    },
+    {
+      "anchor": "Responsive images",
+      "href": "/en-US/docs/Web/HTML/Guides/Responsive_images"
+    },
+    {
+      "anchor": "HTML cheatsheet",
+      "href": "/en-US/docs/Web/HTML/Guides/Cheatsheet"
+    },
+    {
+      "anchor": "Date & time formats",
+      "href": "/en-US/docs/Web/HTML/Guides/Date_and_time_formats"
+    },
+    {
+      "anchor": "See all…",
+      "href": "/en-US/docs/Web/HTML/Guides"
+    },
+    {
+      "anchor": "SVG",
+      "href": "/en-US/docs/Web/SVG"
+    },
+    {
+      "anchor": "MathML",
+      "href": "/en-US/docs/Web/MathML"
+    },
+    {
+      "anchor": "XML",
+      "href": "/en-US/docs/Web/XML"
+    },
+    {
+      "anchor": "CSS: Styling language",
+      "href": "/en-US/docs/Web/CSS"
+    },
+    {
+      "anchor": "Properties",
+      "href": "/en-US/docs/Web/CSS/Reference/Properties"
+    },
+    {
+      "anchor": "Selectors",
+      "href": "/en-US/docs/Web/CSS/Reference/Selectors"
+    },
+    {
+      "anchor": "At-rules",
+      "href": "/en-US/docs/Web/CSS/Reference/At-rules"
+    },
+    {
+      "anchor": "Values",
+      "href": "/en-US/docs/Web/CSS/Reference/Values"
+    },
+    {
+      "anchor": "See all…",
+      "href": "/en-US/docs/Web/CSS/Reference"
+    },
+    {
+      "anchor": "Box model",
+      "href": "/en-US/docs/Web/CSS/Guides/Box_model/Introduction"
+    },
+    {
+      "anchor": "Animations",
+      "href": "/en-US/docs/Web/CSS/Guides/Animations/Using"
+    },
+    {
+      "anchor": "Flexbox",
+      "href": "/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Basic_concepts"
+    },
+    {
+      "anchor": "Colors",
+      "href": "/en-US/docs/Web/CSS/Guides/Colors/Applying_color"
+    },
+    {
+      "anchor": "See all…",
+      "href": "/en-US/docs/Web/CSS/Guides"
+    },
+    {
+      "anchor": "Column layouts",
+      "href": "/en-US/docs/Web/CSS/How_to/Layout_cookbook/Column_layouts"
+    },
+    {
+      "anchor": "Centering an element",
+      "href": "/en-US/docs/Web/CSS/How_to/Layout_cookbook/Center_an_element"
+    },
+    {
+      "anchor": "Card component",
+      "href": "/en-US/docs/Web/CSS/How_to/Layout_cookbook/Card"
+    },
+    {
+      "anchor": "See all…",
+      "href": "/en-US/docs/Web/CSS/How_to/Layout_cookbook"
+    },
+    {
+      "anchor": "JavaScript: Scripting language",
+      "href": "/en-US/docs/Web/JavaScript"
+    },
+    {
+      "anchor": "Standard built-in objects",
+      "href": "/en-US/docs/Web/JavaScript/Reference/Global_Objects"
+    },
+    {
+      "anchor": "Expressions & operators",
+      "href": "/en-US/docs/Web/JavaScript/Reference/Operators"
+    },
+    {
+      "anchor": "Statements & declarations",
+      "href": "/en-US/docs/Web/JavaScript/Reference/Statements"
+    },
+    {
+      "anchor": "Functions",
+      "href": "/en-US/docs/Web/JavaScript/Reference/Functions"
+    },
+    {
+      "anchor": "See all…",
+      "href": "/en-US/docs/Web/JavaScript/Reference"
+    },
+    {
+      "anchor": "Control flow & error handing",
+      "href": "/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling"
+    },
+    {
+      "anchor": "Loops and iteration",
+      "href": "/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration"
+    },
+    {
+      "anchor": "Working with objects",
+      "href": "/en-US/docs/Web/JavaScript/Guide/Working_with_objects"
+    },
+    {
+      "anchor": "Using classes",
+      "href": "/en-US/docs/Web/JavaScript/Guide/Using_classes"
+    },
+    {
+      "anchor": "See all…",
+      "href": "/en-US/docs/Web/JavaScript/Guide"
+    },
+    {
+      "anchor": "Web APIs: Programming interfaces",
+      "href": "/en-US/docs/Web/API"
+    },
+    {
+      "anchor": "File system API",
+      "href": "/en-US/docs/Web/API/File_System_API"
+    },
+    {
+      "anchor": "Fetch API",
+      "href": "/en-US/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "Geolocation API",
+      "href": "/en-US/docs/Web/API/Geolocation_API"
+    },
+    {
+      "anchor": "HTML DOM API",
+      "href": "/en-US/docs/Web/API/HTML_DOM_API"
+    },
+    {
+      "anchor": "Push API",
+      "href": "/en-US/docs/Web/API/Push_API"
+    },
+    {
+      "anchor": "Service worker API",
+      "href": "/en-US/docs/Web/API/Service_Worker_API"
+    },
+    {
+      "anchor": "See all…",
+      "href": "/en-US/docs/Web/API"
+    },
+    {
+      "anchor": "Using the Web animation API",
+      "href": "/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API"
+    },
+    {
+      "anchor": "Using the Fetch API",
+      "href": "/en-US/docs/Web/API/Fetch_API/Using_Fetch"
+    },
+    {
+      "anchor": "Working with the History API",
+      "href": "/en-US/docs/Web/API/History_API/Working_with_the_History_API"
+    },
+    {
+      "anchor": "Using the Web speech API",
+      "href": "/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API"
+    },
+    {
+      "anchor": "Using web workers",
+      "href": "/en-US/docs/Web/API/Web_Workers_API/Using_web_workers"
+    },
+    {
+      "anchor": "All web technology",
+      "href": "/en-US/docs/Web"
+    },
+    {
+      "anchor": "Accessibility",
+      "href": "/en-US/docs/Web/Accessibility"
+    },
+    {
+      "anchor": "HTTP",
+      "href": "/en-US/docs/Web/HTTP"
+    },
+    {
+      "anchor": "URI",
+      "href": "/en-US/docs/Web/URI"
+    },
+    {
+      "anchor": "Web extensions",
+      "href": "/en-US/docs/Mozilla/Add-ons/WebExtensions"
+    },
+    {
+      "anchor": "WebAssembly",
+      "href": "/en-US/docs/WebAssembly"
+    },
+    {
+      "anchor": "WebDriver",
+      "href": "/en-US/docs/Web/WebDriver"
+    },
+    {
+      "anchor": "See all…",
+      "href": "/en-US/docs/Web"
+    },
+    {
+      "anchor": "Media",
+      "href": "/en-US/docs/Web/Media"
+    },
+    {
+      "anchor": "Performance",
+      "href": "/en-US/docs/Web/Performance"
+    },
+    {
+      "anchor": "Privacy",
+      "href": "/en-US/docs/Web/Privacy"
+    },
+    {
+      "anchor": "Security",
+      "href": "/en-US/docs/Web/Security"
+    },
+    {
+      "anchor": "Progressive web apps",
+      "href": "/en-US/docs/Web/Progressive_web_apps"
+    },
+    {
+      "anchor": "Learn web development",
+      "href": "/en-US/docs/Learn_web_development"
+    },
+    {
+      "anchor": "Getting started modules",
+      "href": "/en-US/docs/Learn_web_development/Getting_started"
+    },
+    {
+      "anchor": "Core modules",
+      "href": "/en-US/docs/Learn_web_development/Core"
+    },
+    {
+      "anchor": "MDN Curriculum",
+      "href": "/en-US/curriculum/"
+    },
+    {
+      "anchor": "Check out the video course from Scrimba, our partner",
+      "href": "https://scrimba.com/frontend-path-c0j?via=mdn-learn-navbar"
+    },
+    {
+      "anchor": "Structuring content with HTML module",
+      "href": "/en-US/docs/Learn_web_development/Core/Structuring_content"
+    },
+    {
+      "anchor": "CSS styling basics module",
+      "href": "/en-US/docs/Learn_web_development/Core/Styling_basics"
+    },
+    {
+      "anchor": "CSS layout module",
+      "href": "/en-US/docs/Learn_web_development/Core/CSS_layout"
+    },
+    {
+      "anchor": "Dynamic scripting with JavaScript module",
+      "href": "/en-US/docs/Learn_web_development/Core/Scripting"
+    },
+    {
+      "anchor": "Playground",
+      "href": "/en-US/play"
+    },
+    {
+      "anchor": "HTTP Observatory",
+      "href": "/en-US/observatory"
+    },
+    {
+      "anchor": "Border-image generator",
+      "href": "/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator"
+    },
+    {
+      "anchor": "Border-radius generator",
+      "href": "/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-radius_generator"
+    },
+    {
+      "anchor": "Box-shadow generator",
+      "href": "/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Box-shadow_generator"
+    },
+    {
+      "anchor": "Color format converter",
+      "href": "/en-US/docs/Web/CSS/Guides/Colors/Color_format_converter"
+    },
+    {
+      "anchor": "Color mixer",
+      "href": "/en-US/docs/Web/CSS/Guides/Colors/Color_mixer"
+    },
+    {
+      "anchor": "Shape generator",
+      "href": "/en-US/docs/Web/CSS/Guides/Shapes/Shape_generator"
+    },
+    {
+      "anchor": "About MDN",
+      "href": "/en-US/about"
+    },
+    {
+      "anchor": "Advertise with us",
+      "href": "/en-US/advertising"
+    },
+    {
+      "anchor": "Community",
+      "href": "/en-US/community"
+    },
+    {
+      "anchor": "MDN on GitHub",
+      "href": "https://github.com/mdn"
+    },
+    {
+      "anchor": "Blog",
+      "href": "/en-US/blog/"
+    },
+    {
+      "anchor": "Web",
+      "href": "/en-US/docs/Web"
+    },
+    {
+      "anchor": "Web APIs",
+      "href": "/en-US/docs/Web/API"
+    },
+    {
+      "anchor": "Fetch API",
+      "href": "/en-US/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "Deutsch",
+      "href": "/de/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "English (US)",
+      "href": "/en-US/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "Español",
+      "href": "/es/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "Français",
+      "href": "/fr/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "日本語",
+      "href": "/ja/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "한국어",
+      "href": "/ko/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "Português (do Brasil)",
+      "href": "/pt-BR/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "Русский",
+      "href": "/ru/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "中文 (简体)",
+      "href": "/zh-CN/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "正體中文 (繁體)",
+      "href": "/zh-TW/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "XMLHttpRequest",
+      "href": "/en-US/docs/Web/API/XMLHttpRequest"
+    },
+    {
+      "anchor": "Concepts and usage",
+      "href": "#concepts_and_usage"
+    },
+    {
+      "anchor": "Interfaces",
+      "href": "#interfaces"
+    },
+    {
+      "anchor": "HTTP headers",
+      "href": "#http_headers"
+    },
+    {
+      "anchor": "Specifications",
+      "href": "#specifications"
+    },
+    {
+      "anchor": "Browser compatibility",
+      "href": "#browser_compatibility"
+    },
+    {
+      "anchor": "See also",
+      "href": "#see_also"
+    },
+    {
+      "anchor": "Concepts and usage",
+      "href": "#concepts_and_usage"
+    },
+    {
+      "anchor": "Request",
+      "href": "/en-US/docs/Web/API/Request"
+    },
+    {
+      "anchor": "Response",
+      "href": "/en-US/docs/Web/API/Response"
+    },
+    {
+      "anchor": "fetch()",
+      "href": "/en-US/docs/Web/API/Window/fetch"
+    },
+    {
+      "anchor": "Window",
+      "href": "/en-US/docs/Web/API/Window"
+    },
+    {
+      "anchor": "Worker",
+      "href": "/en-US/docs/Web/API/WorkerGlobalScope"
+    },
+    {
+      "anchor": "Promise",
+      "href": "/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise"
+    },
+    {
+      "anchor": "Response",
+      "href": "/en-US/docs/Web/API/Response"
+    },
+    {
+      "anchor": "Request",
+      "href": "/en-US/docs/Web/API/Request"
+    },
+    {
+      "anchor": "Response",
+      "href": "/en-US/docs/Web/API/Response"
+    },
+    {
+      "anchor": "Request()",
+      "href": "/en-US/docs/Web/API/Request/Request"
+    },
+    {
+      "anchor": "Response()",
+      "href": "/en-US/docs/Web/API/Response/Response"
+    },
+    {
+      "anchor": "FetchEvent.respondWith()",
+      "href": "/en-US/docs/Web/API/FetchEvent/respondWith"
+    },
+    {
+      "anchor": "Using Fetch",
+      "href": "/en-US/docs/Web/API/Fetch_API/Using_Fetch"
+    },
+    {
+      "anchor": "Deferred Fetch",
+      "href": "#deferred_fetch"
+    },
+    {
+      "anchor": "fetchLater()",
+      "href": "/en-US/docs/Web/API/Window/fetchLater"
+    },
+    {
+      "anchor": "Using Deferred Fetch",
+      "href": "/en-US/docs/Web/API/Fetch_API/Using_Deferred_Fetch"
+    },
+    {
+      "anchor": "Interfaces",
+      "href": "#interfaces"
+    },
+    {
+      "anchor": "Window.fetch()",
+      "href": "/en-US/docs/Web/API/Window/fetch"
+    },
+    {
+      "anchor": "WorkerGlobalScope.fetch()",
+      "href": "/en-US/docs/Web/API/WorkerGlobalScope/fetch"
+    },
+    {
+      "anchor": "Window.fetchLater()",
+      "href": "/en-US/docs/Web/API/Window/fetchLater"
+    },
+    {
+      "anchor": "DeferredRequestInit",
+      "href": "/en-US/docs/Web/API/DeferredRequestInit"
+    },
+    {
+      "anchor": "FetchLaterResult",
+      "href": "/en-US/docs/Web/API/FetchLaterResult"
+    },
+    {
+      "anchor": "Headers",
+      "href": "/en-US/docs/Web/API/Headers"
+    },
+    {
+      "anchor": "Request",
+      "href": "/en-US/docs/Web/API/Request"
+    },
+    {
+      "anchor": "Response",
+      "href": "/en-US/docs/Web/API/Response"
+    },
+    {
+      "anchor": "HTTP headers",
+      "href": "#http_headers"
+    },
+    {
+      "anchor": "deferred-fetch",
+      "href": "/en-US/docs/Web/HTTP/Reference/Headers/Permissions-Policy/deferred-fetch"
+    },
+    {
+      "anchor": "top-level quota",
+      "href": "/en-US/docs/Web/API/Fetch_API/Using_Deferred_Fetch#quotas"
+    },
+    {
+      "anchor": "deferred-fetch-minimal",
+      "href": "/en-US/docs/Web/HTTP/Reference/Headers/Permissions-Policy/deferred-fetch-minimal"
+    },
+    {
+      "anchor": "shared cross-origin subframe quota",
+      "href": "/en-US/docs/Web/API/Fetch_API/Using_Deferred_Fetch#quotas"
+    },
+    {
+      "anchor": "Specifications",
+      "href": "#specifications"
+    },
+    {
+      "anchor": "Fetch# fetch-method",
+      "href": "https://fetch.spec.whatwg.org/#fetch-method"
+    },
+    {
+      "anchor": "Fetch# deferred-fetch",
+      "href": "https://fetch.spec.whatwg.org/#deferred-fetch"
+    },
+    {
+      "anchor": "Browser compatibility",
+      "href": "#browser_compatibility"
+    },
+    {
+      "anchor": "api.fetch",
+      "href": "#api.fetch"
+    },
+    {
+      "anchor": "api.Window.fetchLater",
+      "href": "#api.Window.fetchLater"
+    },
+    {
+      "anchor": "See also",
+      "href": "#see_also"
+    },
+    {
+      "anchor": "Using Fetch",
+      "href": "/en-US/docs/Web/API/Fetch_API/Using_Fetch"
+    },
+    {
+      "anchor": "Service Worker API",
+      "href": "/en-US/docs/Web/API/Service_Worker_API"
+    },
+    {
+      "anchor": "HTTP access control (CORS)",
+      "href": "/en-US/docs/Web/HTTP/Guides/CORS"
+    },
+    {
+      "anchor": "HTTP",
+      "href": "/en-US/docs/Web/HTTP"
+    },
+    {
+      "anchor": "Learn how to contribute",
+      "href": "/en-US/docs/MDN/Community/Getting_started"
+    },
+    {
+      "anchor": "MDN contributors",
+      "href": "/en-US/docs/Web/API/Fetch_API/contributors.txt"
+    },
+    {
+      "anchor": "View this page on GitHub",
+      "href": "https://github.com/mdn/content/blob/main/files/en-us/web/api/fetch_api/index.md?plain=1"
+    },
+    {
+      "anchor": "Report a problem with this content",
+      "href": "https://github.com/mdn/content/issues/new?template=page-report.yml&mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FFetch_API&metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EPage+report+details%3C%2Fsummary%3E%0A%0A*+Folder%3A+%60en-us%2Fweb%2Fapi%2Ffetch_api%60%0A*+MDN+URL%3A+https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FFetch_API%0A*+GitHub+URL%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fblob%2Fmain%2Ffiles%2Fen-us%2Fweb%2Fapi%2Ffetch_api%2Findex.md%0A*+Last+commit%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fcommit%2F8c1bc8d99fc8301fbbe874f6dcf8d41a9f4fe5fb%0A*+Document+last+modified%3A+2026-01-08T22%3A18%3A49.000Z%0A%0A%3C%2Fdetails%3E"
+    },
+    {
+      "anchor": "Fetch API",
+      "href": "/en-US/docs/Web/API/Fetch_API"
+    },
+    {
+      "anchor": "Using the Fetch API",
+      "href": "/en-US/docs/Web/API/Fetch_API/Using_Fetch"
+    },
+    {
+      "anchor": "Using Deferred Fetch",
+      "href": "/en-US/docs/Web/API/Fetch_API/Using_Deferred_Fetch"
+    },
+    {
+      "anchor": "DeferredRequestInit",
+      "href": "/en-US/docs/Web/API/DeferredRequestInit"
+    },
+    {
+      "anchor": "FetchLaterResult",
+      "href": "/en-US/docs/Web/API/FetchLaterResult"
+    },
+    {
+      "anchor": "Headers",
+      "href": "/en-US/docs/Web/API/Headers"
+    },
+    {
+      "anchor": "Request",
+      "href": "/en-US/docs/Web/API/Request"
+    },
+    {
+      "anchor": "RequestInit",
+      "href": "/en-US/docs/Web/API/RequestInit"
+    },
+    {
+      "anchor": "Response",
+      "href": "/en-US/docs/Web/API/Response"
+    },
+    {
+      "anchor": "Window.fetch()",
+      "href": "/en-US/docs/Web/API/Window/fetch"
+    },
+    {
+      "anchor": "WorkerGlobalScope.fetch()",
+      "href": "/en-US/docs/Web/API/WorkerGlobalScope/fetch"
+    },
+    {
+      "anchor": "Window.fetchLater()",
+      "href": "/en-US/docs/Web/API/Window/fetchLater"
+    },
+    {
+      "anchor": "MDN",
+      "href": "/"
+    },
+    {
+      "anchor": "About",
+      "href": "/en-US/about"
+    },
+    {
+      "anchor": "Blog",
+      "href": "/en-US/blog/"
+    },
+    {
+      "anchor": "Mozilla careers",
+      "href": "https://www.mozilla.org/en-US/careers/listings/"
+    },
+    {
+      "anchor": "Advertise with us",
+      "href": "/en-US/advertising"
+    },
+    {
+      "anchor": "MDN Plus",
+      "href": "/en-US/plus"
+    },
+    {
+      "anchor": "Product help",
+      "href": "https://support.mozilla.org/products/mdn-plus"
+    },
+    {
+      "anchor": "MDN Community",
+      "href": "/en-US/community"
+    },
+    {
+      "anchor": "Community resources",
+      "href": "/en-US/docs/MDN/Community"
+    },
+    {
+      "anchor": "Writing guidelines",
+      "href": "/en-US/docs/MDN/Writing_guidelines"
+    },
+    {
+      "anchor": "MDN Discord",
+      "href": "/discord"
+    },
+    {
+      "anchor": "MDN on GitHub",
+      "href": "https://github.com/mdn"
+    },
+    {
+      "anchor": "Web technologies",
+      "href": "/en-US/docs/Web"
+    },
+    {
+      "anchor": "Learn web development",
+      "href": "/en-US/docs/Learn_web_development"
+    },
+    {
+      "anchor": "Guides",
+      "href": "/en-US/docs/MDN/Guides"
+    },
+    {
+      "anchor": "Tutorials",
+      "href": "/en-US/docs/MDN/Tutorials"
+    },
+    {
+      "anchor": "Glossary",
+      "href": "/en-US/docs/Glossary"
+    },
+    {
+      "anchor": "Hacks blog",
+      "href": "https://hacks.mozilla.org/"
+    },
+    {
+      "anchor": "Mozilla",
+      "href": "https://www.mozilla.org/"
+    },
+    {
+      "anchor": "Website Privacy Notice",
+      "href": "https://www.mozilla.org/privacy/websites/"
+    },
+    {
+      "anchor": "Telemetry Settings",
+      "href": "https://www.mozilla.org/en-US/privacy/websites/data-preferences/"
+    },
+    {
+      "anchor": "Legal",
+      "href": "https://www.mozilla.org/about/legal/terms/mozilla"
+    },
+    {
+      "anchor": "Community Participation Guidelines",
+      "href": "https://www.mozilla.org/about/governance/policies/participation/"
+    },
+    {
+      "anchor": "Mozilla Corporation’s",
+      "href": "https://www.mozilla.org/"
+    },
+    {
+      "anchor": "Mozilla Foundation",
+      "href": "https://foundation.mozilla.org/"
+    },
+    {
+      "anchor": "a Creative Commons license",
+      "href": "/docs/MDN/Writing_guidelines/Attrib_copyright_license"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Fetch API"
+    },
+    {
+      "level": 2,
+      "text": "In this article"
+    },
+    {
+      "level": 2,
+      "text": "Concepts and usage"
+    },
+    {
+      "level": 2,
+      "text": "Interfaces"
+    },
+    {
+      "level": 2,
+      "text": "HTTP headers"
+    },
+    {
+      "level": 2,
+      "text": "Specifications"
+    },
+    {
+      "level": 2,
+      "text": "Browser compatibility"
+    },
+    {
+      "level": 2,
+      "text": "See also"
+    },
+    {
+      "level": 2,
+      "text": "Help improve MDN"
+    },
+    {
+      "level": 3,
+      "text": "Deferred Fetch"
+    },
+    {
+      "level": 3,
+      "text": "api.fetch"
+    },
+    {
+      "level": 3,
+      "text": "api.Window.fetchLater"
+    }
+  ],
+  "content_md": "# Fetch API\n\nThe Fetch API provides an interface for fetching resources (including across the network). It is a more powerful and flexible replacement for `XMLHttpRequest`\n\n.\n\n## Concepts and usage\n\nThe Fetch API uses `Request`\n\nand `Response`\n\nobjects (and other things involved with network requests), as well as related concepts such as CORS and the HTTP Origin header semantics.\n\nFor making a request and fetching a resource, use the `fetch()`\n\nmethod. It is a global method in both `Window`\n\nand `Worker`\n\ncontexts. This makes it available in pretty much any context you might want to fetch resources in.\n\nThe `fetch()`\n\nmethod takes one mandatory argument, the path to the resource you want to fetch. It returns a `Promise`\n\nthat resolves to the `Response`\n\nto that request — as soon as the server responds with headers — **even if the server response is an HTTP error status**. You can also optionally pass in an `init`\n\noptions object as the second argument (see `Request`\n\n).\n\nOnce a `Response`\n\nis retrieved, there are a number of methods available to define what the body content is and how it should be handled.\n\nYou can create a request and response directly using the `Request()`\n\nand `Response()`\n\nconstructors, but it's uncommon to do this directly. Instead, these are more likely to be created as results of other API actions (for example, `FetchEvent.respondWith()`\n\nfrom service workers).\n\nFind out more about using the Fetch API features in Using Fetch.\n\n### Deferred Fetch\n\nThe `fetchLater()`\n\nAPI enables a developer to request a *deferred fetch*, that can be sent after a specified period of time, or when the page is closed or navigated away from. See Using Deferred Fetch.\n\n## Interfaces\n\n`Window.fetch()`\n\nand`WorkerGlobalScope.fetch()`\n\n-\nThe\n\n`fetch()`\n\nmethod used to fetch a resource. `Window.fetchLater()`\n\n-\nUsed to make a deferred fetch request.\n\n`DeferredRequestInit`\n\n-\nRepresents the set of options that can be used to configure a deferred fetch request.\n\n`FetchLaterResult`\n\n-\nRepresents the result of requesting a deferred fetch.\n\n`Headers`\n\n-\nRepresents response/request headers, allowing you to query them and take different actions depending on the results.\n\n`Request`\n\n-\nRepresents a resource request.\n\n`Response`\n\n-\nRepresents the response to a request.\n\n\n## HTTP headers\n\n`deferred-fetch`\n\n-\nControls the top-level quota for the\n\n`fetchLater()`\n\nAPI. `deferred-fetch-minimal`\n\n-\nControls the shared cross-origin subframe quota for the\n\n`fetchLater()`\n\nAPI.\n\n## Specifications\n\nSpecification |\n---|\n\nFetch # fetch-method |\n\nFetch # deferred-fetch |\n\n",
+  "fit_md": "# Fetch API\n\nThe Fetch API provides an interface for fetching resources (including across the network). It is a more powerful and flexible replacement for `XMLHttpRequest`\n\n.\n\n## Concepts and usage\n\nThe Fetch API uses `Request`\n\nand `Response`\n\nobjects (and other things involved with network requests), as well as related concepts such as CORS and the HTTP Origin header semantics.\n\nFor making a request and fetching a resource, use the `fetch()`\n\nmethod. It is a global method in both `Window`\n\nand `Worker`\n\ncontexts. This makes it available in pretty much any context you might want to fetch resources in.\n\nThe `fetch()`\n\nmethod takes one mandatory argument, the path to the resource you want to fetch. It returns a `Promise`\n\nthat resolves to the `Response`\n\nto that request — as soon as the server responds with headers — **even if the server response is an HTTP error status**. You can also optionally pass in an `init`\n\noptions object as the second argument (see `Request`\n\n).\n\nOnce a `Response`\n\nis retrieved, there are a number of methods available to define what the body content is and how it should be handled.\n\nYou can create a request and response directly using the `Request()`\n\nand `Response()`\n\nconstructors, but it's uncommon to do this directly. Instead, these are more likely to be created as results of other API actions (for example, `FetchEvent.respondWith()`\n\nfrom service workers).\n\nFind out more about using the Fetch API features in Using Fetch.\n\n### Deferred Fetch\n\nThe `fetchLater()`\n\nAPI enables a developer to request a *deferred fetch*, that can be sent after a specified period of time, or when the page is closed or navigated away from. See Using Deferred Fetch.\n\n## Interfaces\n\n`Window.fetch()`\n\nand`WorkerGlobalScope.fetch()`\n\n-\nThe\n\n`fetch()`\n\nmethod used to fetch a resource. `Window.fetchLater()`\n\n-\nUsed to make a deferred fetch request.\n\n`DeferredRequestInit`\n\n-\nRepresents the set of options that can be used to configure a deferred fetch request.\n\n`FetchLaterResult`\n\n-\nRepresents the result of requesting a deferred fetch.\n\n`Headers`\n\n-\nRepresents response/request headers, allowing you to query them and take different actions depending on the results.\n\n`Request`\n\n-\nRepresents a resource request.\n\n`Response`\n\n-\nRepresents the response to a request.\n\n\n## HTTP headers\n\n`deferred-fetch`\n\n-\nControls the top-level quota for the\n\n`fetchLater()`\n\nAPI. `deferred-fetch-minimal`\n\n-\nControls the shared cross-origin subframe quota for the\n\n`fetchLater()`\n\nAPI.\n\n## Specifications\n\nSpecification |\n---|\n\nFetch # fetch-method |\n\nFetch # deferred-fetch |\n\n",
+  "operator_hints": []
+}

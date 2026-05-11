@@ -1,0 +1,16 @@
+{
+  "slug": "hn-front",
+  "url": "https://news.ycombinator.com/",
+  "class": "A_clean",
+  "task": "List the top 5 stories on this page, each as 'TITLE (SOURCE_DOMAIN) — POINTS'.",
+  "needs": [
+    "content+links"
+  ],
+  "criteria": [
+    "Identifies 5 stories from the front page",
+    "Each story has a title",
+    "Each story has a source domain or 'self.HN' tag",
+    "Each story has a points count (a number)",
+    "Order roughly matches HN front-page order"
+  ]
+}

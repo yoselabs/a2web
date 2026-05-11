@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Precise, detailed, and substantive summary covering specific technical elements (Multibody library, PID tuning, Kalman filter, dual control loops) with no fabrication indicators."
+}

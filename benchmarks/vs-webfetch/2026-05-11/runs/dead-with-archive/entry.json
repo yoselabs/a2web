@@ -1,0 +1,14 @@
+{
+  "slug": "dead-with-archive",
+  "url": "https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/",
+  "class": "E_edge",
+  "task": "What is the main advice in this article about salary negotiation? Give the top 3 points.",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Provides substantive negotiation advice (e.g. don't disclose salary first, BATNA, etc.)",
+    "Lists at least 3 distinct points",
+    "Is not a 404 / connection error page"
+  ]
+}

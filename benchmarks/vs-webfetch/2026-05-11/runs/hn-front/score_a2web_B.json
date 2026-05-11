@@ -1,0 +1,11 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5,
+    2
+  ],
+  "overall": 3,
+  "reasoning": "All 5 stories have titles, domains, and point counts, but the ordering is wrong \u2014 story 3 (895 pts) appears before story 1 which suggests rank order is scrambled rather than matching HN front-page sequence."
+}

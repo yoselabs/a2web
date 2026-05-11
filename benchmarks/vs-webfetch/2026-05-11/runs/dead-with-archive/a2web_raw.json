@@ -1,0 +1,59 @@
+{
+  "url": "https://r.jina.ai/https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/",
+  "status": "failed",
+  "tier": "jina",
+  "confidence": "low",
+  "title": null,
+  "byline": null,
+  "published": null,
+  "started_at": "2026-05-11T15:30:20.630820Z",
+  "total_ms": 2819,
+  "tokens": null,
+  "cache": "miss",
+  "narrative": "jina → length_floor (2.8s).",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "www.kalzumeus.com",
+      "proxy": "direct",
+      "verdict": "not_found",
+      "subsystem": null,
+      "dur_ms": 1048,
+      "extra": {
+        "status_code": 404
+      }
+    },
+    {
+      "t_ms": 1048,
+      "step": "jina",
+      "engine": null,
+      "host": "r.jina.ai",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 1771,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 2819,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "length_floor",
+      "subsystem": null,
+      "dur_ms": 0,
+      "extra": {}
+    }
+  ],
+  "meta": {},
+  "links": [],
+  "headings": [],
+  "content_md": "Title: The page you were looking for doesn't exist (404)\n\nURL Source: https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/\n\nWarning: Target URL returned error 404: Not Found\n\nMarkdown Content:\n# The page you were looking for doesn't exist (404)\n\n# The page you were looking for doesn't exist.\n\nYou may have mistyped the address or the page may have moved.\n",
+  "fit_md": null,
+  "operator_hints": []
+}

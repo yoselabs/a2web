@@ -1,0 +1,8 @@
+I cannot determine where this short link leads or what content is there. The fetch attempt failed with the following issues:
+
+1. **Raw tier (curl_cffi)**: Returned a 404 status code — the short link either doesn't exist, has expired, or is inaccessible
+2. **Jina tier fallback**: Returned a 451 status code (Unavailable For Legal Reasons) — suggesting content blocking or geographic restrictions
+
+Since `t.co` is Twitter's URL shortener service and requires a redirect to resolve, the 404 suggests the short link itself is invalid or no longer exists. The alternative path via Jina also failed due to content restrictions.
+
+**Bottom line**: The short link could not be resolved to retrieve its destination or content.

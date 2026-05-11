@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    0,
+    5
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Correctly identifies Graydon Hoare and borrow checker, but gives 2006 (personal origin) instead of 2010 (first public appearance), missing the target year."
+}

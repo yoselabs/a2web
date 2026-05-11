@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    4,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Accurately defines PaymentIntent as a lifecycle-tracking API object, covers SCA/authentication and status transitions, and provides substantive content beyond navigation links."
+}

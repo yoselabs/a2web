@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a precise, substantive summary with specific technical concepts (PID controller, inverted pendulum, Simulink Multibody, Kalman filter, swing-up logic, dual control loops) that clearly reflect real article content."
+}

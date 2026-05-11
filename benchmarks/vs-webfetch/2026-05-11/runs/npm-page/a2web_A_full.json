@@ -1,0 +1,298 @@
+{
+  "url": "https://www.npmjs.com/package/react",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "medium",
+  "title": "react",
+  "byline": null,
+  "published": "2026-05-06",
+  "started_at": "2026-05-11T15:30:14.306952Z",
+  "total_ms": 268,
+  "tokens": {
+    "full": 926,
+    "fit": 926
+  },
+  "cache": "miss",
+  "narrative": "raw → ok (268ms).",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "www.npmjs.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 120,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 120,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 42,
+      "extra": {
+        "chars": 926
+      }
+    },
+    {
+      "t_ms": 162,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 87,
+      "extra": {}
+    }
+  ],
+  "meta": {
+    "og.image": "https://static-production.npmjs.com/a12c728e90758ccd16976b394b964317.png",
+    "og.description": "React is a JavaScript library for building user interfaces.. Latest version: 19.2.6, last published: 5 days ago. Start using react in your project by running `npm i react`. There are 210610 other projects in the npm registry using react.",
+    "og.title": "react",
+    "og.url": "https://www.npmjs.com/package/react",
+    "og.site_name": "npm",
+    "twitter.card": "summary",
+    "twitter.url": "https://www.npmjs.com/package/react",
+    "twitter.title": "npm: react",
+    "twitter.description": "React is a JavaScript library for building user interfaces.. Latest version: 19.2.6, last published: 5 days ago. Start using react in your project by running `npm i react`. There are 210610 other projects in the npm registry using react."
+  },
+  "links": [
+    {
+      "anchor": "content",
+      "href": "#main"
+    },
+    {
+      "anchor": "package search",
+      "href": "#search"
+    },
+    {
+      "anchor": "sign in",
+      "href": "#signin"
+    },
+    {
+      "anchor": "Pro",
+      "href": "/products/pro"
+    },
+    {
+      "anchor": "Teams",
+      "href": "/products/teams"
+    },
+    {
+      "anchor": "Pricing",
+      "href": "/products"
+    },
+    {
+      "anchor": "Documentation",
+      "href": "https://docs.npmjs.com"
+    },
+    {
+      "anchor": "Sign Up",
+      "href": "/signup"
+    },
+    {
+      "anchor": "Sign In",
+      "href": "/login"
+    },
+    {
+      "anchor": "Readme",
+      "href": "?activeTab=readme"
+    },
+    {
+      "anchor": "Code Beta",
+      "href": "?activeTab=code"
+    },
+    {
+      "anchor": "0 Dependencies",
+      "href": "?activeTab=dependencies"
+    },
+    {
+      "anchor": "210610 Dependents",
+      "href": "?activeTab=dependents"
+    },
+    {
+      "anchor": "2,804 Versions",
+      "href": "?activeTab=versions"
+    },
+    {
+      "anchor": "production build",
+      "href": "https://reactjs.org/docs/optimizing-performance.html#use-the-production-build"
+    },
+    {
+      "anchor": "https://react.dev/",
+      "href": "https://react.dev/"
+    },
+    {
+      "anchor": "https://react.dev/reference/react",
+      "href": "https://react.dev/reference/react"
+    },
+    {
+      "anchor": "react",
+      "href": "/search?q=keywords:react"
+    },
+    {
+      "anchor": "Gitgithub.com/facebook/react",
+      "href": "https://github.com/facebook/react"
+    },
+    {
+      "anchor": "react.dev/",
+      "href": "https://react.dev/"
+    },
+    {
+      "anchor": "Analyze security with Socket",
+      "href": "https://socket.dev/npm/package/react"
+    },
+    {
+      "anchor": "Check bundle size",
+      "href": "https://bundlephobia.com/package/react"
+    },
+    {
+      "anchor": "View package health",
+      "href": "https://snyk.io/advisor/npm-package/react"
+    },
+    {
+      "anchor": "Explore dependencies",
+      "href": "https://npmgraph.js.org/?q=react"
+    },
+    {
+      "anchor": "Report malware",
+      "href": "/support?inquire=security&security-inquire=malware&package=react&version=19.2.6"
+    },
+    {
+      "anchor": "Help",
+      "href": "https://docs.npmjs.com"
+    },
+    {
+      "anchor": "Advisories",
+      "href": "https://github.com/advisories"
+    },
+    {
+      "anchor": "Status",
+      "href": "http://status.npmjs.org/"
+    },
+    {
+      "anchor": "Contact npm",
+      "href": "/support"
+    },
+    {
+      "anchor": "About",
+      "href": "/about"
+    },
+    {
+      "anchor": "Blog",
+      "href": "https://github.blog/tag/npm/"
+    },
+    {
+      "anchor": "Press",
+      "href": "/press"
+    },
+    {
+      "anchor": "Policies",
+      "href": "/policies/"
+    },
+    {
+      "anchor": "Terms of Use",
+      "href": "/policies/terms"
+    },
+    {
+      "anchor": "Code of Conduct",
+      "href": "/policies/conduct"
+    },
+    {
+      "anchor": "Privacy",
+      "href": "/policies/privacy"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "react"
+    },
+    {
+      "level": 1,
+      "text": "react"
+    },
+    {
+      "level": 2,
+      "text": "Usage"
+    },
+    {
+      "level": 2,
+      "text": "Documentation"
+    },
+    {
+      "level": 2,
+      "text": "API"
+    },
+    {
+      "level": 2,
+      "text": "Readme"
+    },
+    {
+      "level": 2,
+      "text": "Package Sidebar"
+    },
+    {
+      "level": 2,
+      "text": "Footer"
+    },
+    {
+      "level": 3,
+      "text": "Keywords"
+    },
+    {
+      "level": 3,
+      "text": "Install"
+    },
+    {
+      "level": 3,
+      "text": "Repository"
+    },
+    {
+      "level": 3,
+      "text": "Homepage"
+    },
+    {
+      "level": 3,
+      "text": "DownloadsWeekly Downloads"
+    },
+    {
+      "level": 3,
+      "text": "Version"
+    },
+    {
+      "level": 3,
+      "text": "License"
+    },
+    {
+      "level": 3,
+      "text": "Last publish"
+    },
+    {
+      "level": 3,
+      "text": "Collaborators"
+    },
+    {
+      "level": 3,
+      "text": "Support"
+    },
+    {
+      "level": 3,
+      "text": "Company"
+    },
+    {
+      "level": 3,
+      "text": "Terms & Policies"
+    }
+  ],
+  "content_md": "React is a JavaScript library for creating user interfaces.\n\nThe `react`\n\npackage contains only the functionality necessary to define React components. It is typically used together with a React renderer like `react-dom`\n\nfor the web, or `react-native`\n\nfor the native environments.\n\n**Note:** by default, React will be in development mode. The development version includes extra warnings about common mistakes, whereas the production version includes extra performance optimizations and strips all error messages. Don't forget to use the production build when deploying your application.\n\n```\nimport { useState } from 'react';\nimport { createRoot } from 'react-dom/client';\nfunction Counter() {\nconst [count, setCount] = useState(0);\nreturn (\n<>\n<h1>{count}</h1>\n<button onClick={() => setCount(count + 1)}>\nIncrement\n</button>\n</>\n);\n}\nconst root = createRoot(document.getElementById('root'));\nroot.render(<Counter />);\n```\n",
+  "fit_md": "React is a JavaScript library for creating user interfaces.\n\nThe `react`\n\npackage contains only the functionality necessary to define React components. It is typically used together with a React renderer like `react-dom`\n\nfor the web, or `react-native`\n\nfor the native environments.\n\n**Note:** by default, React will be in development mode. The development version includes extra warnings about common mistakes, whereas the production version includes extra performance optimizations and strips all error messages. Don't forget to use the production build when deploying your application.\n\n```\nimport { useState } from 'react';\nimport { createRoot } from 'react-dom/client';\nfunction Counter() {\nconst [count, setCount] = useState(0);\nreturn (\n<>\n<h1>{count}</h1>\n<button onClick={() => setCount(count + 1)}>\nIncrement\n</button>\n</>\n);\n}\nconst root = createRoot(document.getElementById('root'));\nroot.render(<Counter />);\n```\n",
+  "operator_hints": []
+}

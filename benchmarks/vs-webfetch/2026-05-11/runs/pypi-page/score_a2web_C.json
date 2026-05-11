@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Answer correctly identifies the Anthropic Python SDK, provides a specific version number (0.100.0), and gives the exact pip install command."
+}

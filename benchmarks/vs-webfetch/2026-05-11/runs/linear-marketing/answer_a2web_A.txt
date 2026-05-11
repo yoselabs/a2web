@@ -1,0 +1,11 @@
+**Product:** Linear — a product development/issue tracking system
+
+**Primary Headline:** "The product development system for teams and agents"
+
+**Value Proposition:** "Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products." The page emphasizes it is "Designed for the AI era."
+
+The page outlines five core capabilities: making product operations self-driving, defining product direction, moving work forward across teams and agents, reviewing PRs and agent output, and understanding progress at scale.
+
+---
+
+**Technical note:** The fetch status is marked "failed" because the gate detected a Cloudflare IUAM (I Am Under Attack) block page. However, the extraction succeeded before that detection, so the substantive content above is reliable.

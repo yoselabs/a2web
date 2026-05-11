@@ -1,0 +1,8 @@
+The fetch response is a **JavaScript-disabled error page from X.com**, not the actual post content. X.com requires JavaScript to render posts, and the fetch was blocked by this technical wall.
+
+To get Karpathy's post content, you'd need:
+1. A fetch method that executes JavaScript (the `browser` tier in a2web can handle this)
+2. Direct access to the post via an API (if available)
+3. An archive or cache that captured the post when it was rendered
+
+The current response contains no substantive post content.

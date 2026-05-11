@@ -1,0 +1,10 @@
+{
+  "scores": [
+    0,
+    3,
+    5
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "Correctly identifies the fetch failure and requester (Karpathy) but delivers zero substantive post content."
+}

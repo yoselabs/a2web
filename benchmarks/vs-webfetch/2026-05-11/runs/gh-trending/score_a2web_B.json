@@ -1,0 +1,11 @@
+{
+  "scores": [
+    1,
+    1,
+    1,
+    0
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "Only one repo was identified with owner/repo format; the answer is mostly a failure notice acknowledging incomplete extraction rather than delivering the requested list."
+}

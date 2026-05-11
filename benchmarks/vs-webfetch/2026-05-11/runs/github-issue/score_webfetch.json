@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Answer accurately captures the reported bug, its closed/duplicate status, and cites specific details including the error message, environment, and labels."
+}

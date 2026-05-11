@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Answer precisely defines FDI as build-time framework code parsing to auto-generate IaC, hits all three criteria with no fabrication flags."
+}

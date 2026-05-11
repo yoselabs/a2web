@@ -1,0 +1,5 @@
+**Designer:** Graydon Hoare created Rust in 2006 while working at Mozilla. Mozilla officially sponsored the project in 2009.
+
+**First Release:** The first public release, Rust 0.1, came out on January 20, 2012. The first stable release, Rust 1.0, was published in May 2015.
+
+**Memory-Safety Mechanism:** Rust is known for its **borrow checker** and **ownership system**. These enforce memory safety without requiring a garbage collector. The borrow checker tracks object lifetimes of references at compile time to prevent memory safety errors and data races. The ownership system consists of rules where each value has exactly one owner, and values can be borrowed temporarily before being returned to the owner. This approach prevents dangling pointers and other undefined behavior while maintaining performance.

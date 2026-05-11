@@ -1,0 +1,9 @@
+# Rust Programming Language Origins and Safety
+
+**Designer and Release Date:**
+Graydon Hoare created Rust in 2006 while working at Mozilla. "Rust 0.1 became the first public release on January 20, 2012" for Windows, Linux, and macOS.
+
+**Memory-Safety Mechanism:**
+Rust is renowned for its "borrow checker," which enforces memory safety at compile time. Rather than relying on garbage collection, "Rust enforces memory safety (i.e., that all references point to valid memory) without a conventional garbage collector; instead, memory safety errors and data races are prevented by the 'borrow checker', which tracks the object lifetime of references at compile time."
+
+This innovative approach allows developers to write systems-level code with safety guarantees typically found only in higher-level languages.

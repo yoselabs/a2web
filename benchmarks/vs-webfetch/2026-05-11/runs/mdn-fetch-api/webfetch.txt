@@ -1,0 +1,33 @@
+# Fetch API Overview
+
+## Purpose
+
+The **Fetch API** provides an interface for fetching resources (including across the network). It is a more powerful and flexible replacement for `XMLHttpRequest`.
+
+## Primary Entry Point
+
+The primary entry point is the **`fetch()`** method, which is available as a global method in both `Window` and `Worker` contexts:
+
+- **`Window.fetch()`** - Available in browser contexts
+- **`WorkerGlobalScope.fetch()`** - Available in worker contexts
+
+## Key Characteristics
+
+**Basic Usage:**
+```javascript
+fetch(resourcePath)
+```
+
+**Key Points:**
+- Takes one mandatory argument: the path to the resource you want to fetch
+- Returns a `Promise` that resolves to a `Response` object
+- Resolves as soon as the server responds with headers, even if the server response is an HTTP error status
+- Accepts an optional second argument (`init` options object) for request configuration
+
+## Core Interfaces
+
+The Fetch API uses:
+- **`Request`** - Represents a resource request
+- **`Response`** - Represents the response to a request
+- **`Headers`** - Allows querying response/request headers
+- **`DeferredRequestInit`** & **`FetchLaterResult`** - For deferred fetch requests via `fetchLater()`

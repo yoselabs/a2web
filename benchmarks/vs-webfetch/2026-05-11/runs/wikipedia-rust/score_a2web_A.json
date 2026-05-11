@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    0,
+    5
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "Correctly identifies Graydon Hoare and explains the borrow checker/ownership model well, but gives 2012 (first public release) or 2006 (creation) instead of 2010 (first appearance on the public stage)."
+}

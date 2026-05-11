@@ -1,0 +1,44 @@
+{
+  "slug": "gh-trending",
+  "class": "D_structured",
+  "url": "https://github.com/trending/python?since=daily",
+  "a2web": {
+    "status": "ok",
+    "tier": "raw",
+    "verdict": "medium",
+    "wall_ms_cli": 4556,
+    "wall_ms_internal": 2651,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 351,
+      "fit_md": 351,
+      "title": 5,
+      "byline": 0,
+      "published": 6,
+      "narrative": 9,
+      "links": 25464,
+      "headings": 430,
+      "diagnostics": 248,
+      "operator_hints": 1,
+      "meta": 119,
+      "tokens": 14,
+      "url": 11,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 2,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 27167,
+      "B_meta": 422,
+      "C_content_only": 379
+    },
+    "links_count": 1142,
+    "headings_count": 22,
+    "content_chars": 1442,
+    "fit_equals_content": true
+  }
+}

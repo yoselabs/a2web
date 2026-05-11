@@ -1,0 +1,7 @@
+# Top 5 Trending Python Repos on GitHub Today
+
+1. CloakHQ/CloakBrowser — "Stealth Chromium that passes every bot detection test. Drop-in Playwright replacement with source-level fingerprint patches."
+2. AUTOMATIC1111/stable-diffusion-webui — Web interface for Stable Diffusion image generation
+3. NousResearch/hermes-agent — "The agent that grows with you"
+4. paperless-ngx/paperless-ngx — "Community-supported supercharged document management system: scan, index and archive all your documents"
+5. HKUDS/AI-Trader — Fully-automated agent-native trading system

@@ -1,0 +1,134 @@
+{
+  "url": "https://lwn.net/Articles/991060/",
+  "status": "failed",
+  "tier": "raw",
+  "confidence": "low",
+  "title": "openSUSE Tumbleweed Review of the Week (September 20)",
+  "byline": "[Posted September",
+  "published": "2024-09-22",
+  "started_at": "2026-05-11T15:30:25.202195Z",
+  "total_ms": 1497,
+  "tokens": null,
+  "cache": "miss",
+  "narrative": "raw → length_floor (1.5s).",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "raw",
+      "engine": "curl_cffi",
+      "host": "lwn.net",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 783,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 783,
+      "step": "extract",
+      "engine": "trafilatura",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 713,
+      "extra": {
+        "chars": 148
+      }
+    },
+    {
+      "t_ms": 1496,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "length_floor",
+      "subsystem": null,
+      "dur_ms": 1,
+      "extra": {}
+    }
+  ],
+  "meta": {
+    "og.title": "openSUSE Tumbleweed Review of the Week (September 20)",
+    "og.site_name": "LWN.net",
+    "og.type": "article",
+    "og.description": "  openSUSE Tumbleweed Review of the Week September 20  "
+  },
+  "links": [
+    {
+      "anchor": "LWN.net\n            News from the source",
+      "href": "/"
+    },
+    {
+      "anchor": "Content",
+      "href": "#t"
+    },
+    {
+      "anchor": "Weekly Edition",
+      "href": "/current/"
+    },
+    {
+      "anchor": "Archives",
+      "href": "/Archives/"
+    },
+    {
+      "anchor": "Search",
+      "href": "/Search/"
+    },
+    {
+      "anchor": "Kernel",
+      "href": "/Kernel/"
+    },
+    {
+      "anchor": "Security",
+      "href": "/Security/"
+    },
+    {
+      "anchor": "Events calendar",
+      "href": "/Calendar/"
+    },
+    {
+      "anchor": "Unread comments",
+      "href": "/Comments/unread"
+    },
+    {
+      "anchor": "LWN FAQ",
+      "href": "/op/FAQ.lwn"
+    },
+    {
+      "anchor": "Write for us",
+      "href": "/op/AuthorGuide.lwn"
+    },
+    {
+      "anchor": "Edition",
+      "href": "#t"
+    },
+    {
+      "anchor": "Return to the Announcements page",
+      "href": "/Articles/990794/"
+    },
+    {
+      "anchor": "Log in",
+      "href": "/Login/"
+    },
+    {
+      "anchor": "Subscribe",
+      "href": "/subscribe/"
+    },
+    {
+      "anchor": "Register",
+      "href": "/Login/newaccount"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "openSUSE Tumbleweed Review of the Week (September 20)"
+    }
+  ],
+  "content_md": "\nCopyright © 2024, Eklektix, Inc. Comments and public postings are copyrighted by their creators. Linux is a registered trademark of Linus Torvalds\n",
+  "fit_md": null,
+  "operator_hints": []
+}

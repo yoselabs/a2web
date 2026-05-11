@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "All three criteria fully satisfied: the reported bug is precisely described, closed status is stated, and a verbatim maintainer comment is cited."
+}

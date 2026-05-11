@@ -1,0 +1,10 @@
+{
+  "scores": [
+    0,
+    0,
+    5
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "The answer honestly reports a 404/failed fetch with diagnostic detail, but delivers zero substantive content from the article."
+}

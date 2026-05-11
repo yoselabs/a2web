@@ -1,0 +1,44 @@
+{
+  "slug": "redirect-chain",
+  "class": "E_edge",
+  "url": "https://t.co/abcdef",
+  "a2web": {
+    "status": "failed",
+    "tier": "none",
+    "verdict": "low",
+    "wall_ms_cli": 2384,
+    "wall_ms_internal": 627,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 0,
+      "fit_md": 0,
+      "title": 0,
+      "byline": 0,
+      "published": 0,
+      "narrative": 8,
+      "links": 1,
+      "headings": 1,
+      "diagnostics": 132,
+      "operator_hints": 1,
+      "meta": 1,
+      "tokens": 0,
+      "url": 6,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 1,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 266,
+      "B_meta": 33,
+      "C_content_only": 6
+    },
+    "links_count": 0,
+    "headings_count": 0,
+    "content_chars": 0,
+    "fit_equals_content": false
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "scores": [
+    0,
+    5,
+    3
+  ],
+  "overall": 3,
+  "reached": false,
+  "reasoning": "Honestly reports a failure mode (404) without fabricating a destination, but delivers no content since the fetch failed."
+}

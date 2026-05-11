@@ -1,0 +1,7 @@
+Based on the fetch response:
+
+**What is this package:** React is a JavaScript library for creating user interfaces. The `react` package contains the core functionality to define React components and is typically used with a renderer like `react-dom` (for web) or `react-native` (for native environments).
+
+**Current version and weekly downloads:** The fetch response does not contain this information. The extracted content includes only the package description and example code, but is missing the metadata sections (typically displayed in the npm package page sidebar) that show version numbers and download statistics.
+
+To get that information, you would need to either fetch the page with a different extraction strategy that captures the metadata sidebar, or use the npm API directly (e.g., `https://registry.npmjs.org/react`).

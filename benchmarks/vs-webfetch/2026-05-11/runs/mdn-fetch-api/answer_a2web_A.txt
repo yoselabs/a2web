@@ -1,0 +1,5 @@
+The Fetch API provides an interface for **fetching resources across the network**. It is a more powerful and flexible replacement for `XMLHttpRequest`.
+
+The primary entry point is the **`fetch()` method**, which is a global method available in both `Window` and `Worker` contexts. 
+
+The `fetch()` method takes one mandatory argument—the path to the resource you want to fetch—and returns a `Promise` that resolves to the `Response` for that request, as soon as the server responds with headers (even if the response is an HTTP error status). You can optionally pass an `init` options object as the second argument to configure the request.

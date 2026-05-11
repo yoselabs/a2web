@@ -1,0 +1,11 @@
+{
+  "scores": [
+    5,
+    5,
+    3,
+    1
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "Five repos in correct format with descriptions, but the list appears partially fabricated or stale \u2014 ordering unlikely to match actual trending page and some entries (e.g. NousResearch/hermes-agent) are suspicious."
+}

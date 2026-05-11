@@ -1,0 +1,5 @@
+This GitHub issue (#2107) reports an intermittent bug in Claude Code's Edit tool, where file updates occasionally fail with the error "String to replace not found in file." The reporter encountered this on Windows 11 using Claude CLI v1.0.24 via the IDEA plugin.
+
+**Most recent status/conclusion:**
+
+The issue is **closed**. The most recent substantive response is from @catherinewu (a maintainer), who acknowledged the issue and stated that error rates for the edit tool have been improved in the latest Claude 4.5 models. The issue was then automatically locked 7 days after closure due to inactivity—no follow-up from the reporter confirming whether the problem persisted.

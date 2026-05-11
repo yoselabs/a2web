@@ -1,0 +1,10 @@
+{
+  "scores": [
+    2,
+    5,
+    5
+  ],
+  "overall": 3,
+  "reached": false,
+  "reasoning": "Correctly reports failure modes with specific HTTP codes and does not fabricate a destination URL, but could not deliver actual content."
+}

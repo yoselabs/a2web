@@ -1,0 +1,952 @@
+[
+  {
+    "slug": "mdn-fetch-api",
+    "class": "A_clean",
+    "task": "What is the Fetch API used for, and which method on the global object is the primary entry point?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer fully satisfies all three criteria: clearly describes Fetch API for HTTP/network requests, names fetch() as the global entry point with both Window and Worker contexts, and explicitly states it returns a Promise resolving to a Response object."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer precisely covers all three criteria: HTTP/network fetching, fetch() as global entry point, and Promise return semantics."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer correctly describes Fetch API purpose, names fetch() as the global entry point, and explains the Promise-based return including the nuance about HTTP error statuses."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer accurately describes the Fetch API's purpose, names fetch() as the global entry point, and explicitly states it returns a Promise resolving to a Response."
+      }
+    }
+  },
+  {
+    "slug": "arxiv-abstract",
+    "class": "A_clean",
+    "task": "What is the paper's title, who are the authors, and what is the main contribution in one sentence?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          3,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Title is exact, at least 3 authors named (though remaining 36 are aggregated rather than listed), and the contribution is accurately and concisely summarized."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "All three criteria fully satisfied: exact title, extensive author list, and a precise one-sentence contribution summary covering deceptive triggers and safety-training persistence."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer correctly identifies the full title, names multiple authors, and precisely summarizes the deceptive backdoor persistence contribution."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer precisely identifies the full title, lists all authors (well beyond the minimum 3), and accurately summarizes the core contribution in one clear sentence."
+      }
+    }
+  },
+  {
+    "slug": "wikipedia-rust",
+    "class": "A_clean",
+    "task": "Who designed Rust originally and what year was it first released? What memory-safety mechanism is Rust known for?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          2,
+          5
+        ],
+        "overall": 4,
+        "reached": true,
+        "reasoning": "Correctly names Graydon Hoare and describes the borrow checker accurately, but gives 2006 (personal start) or 2012 (first public release) rather than 2010 (first appearance/announced), so criterion 2 is only partially met."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          0,
+          5
+        ],
+        "overall": 3,
+        "reached": true,
+        "reasoning": "Correctly identifies Graydon Hoare and explains the borrow checker/ownership model well, but gives 2012 (first public release) or 2006 (creation) instead of 2010 (first appearance on the public stage)."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          2,
+          5
+        ],
+        "overall": 4,
+        "reached": true,
+        "reasoning": "Correctly identifies Graydon Hoare and gives an excellent description of ownership/borrow checker, but names 2012 (first public release) or 2006 (creation) rather than 2010 (first appearance), missing the target year."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          0,
+          5
+        ],
+        "overall": 4,
+        "reached": true,
+        "reasoning": "Correctly identifies Graydon Hoare and borrow checker, but gives 2006 (personal origin) instead of 2010 (first public appearance), missing the target year."
+      }
+    }
+  },
+  {
+    "slug": "hn-front",
+    "class": "A_clean",
+    "task": "List the top 5 stories on this page, each as 'TITLE (SOURCE_DOMAIN) — POINTS'.",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          5,
+          5,
+          5,
+          3
+        ],
+        "overall": 4,
+        "reached": true,
+        "reasoning": "All 5 entries are correctly formatted with title, domain, and point count; ordering cannot be verified against live HN state, and the 1,895-point figure for story #2 is suspiciously high for a typical HN post, raising mild fabrication concern."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          5,
+          5,
+          3
+        ],
+        "overall": 4,
+        "reached": true,
+        "reasoning": "Five stories with titles, domains, and point counts are present, but the order appears scrambled (story 3 has 1895 points suggesting it should rank much higher than position 3, and ordering does not match typical HN front-page descending-points or recency ordering)."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5,
+          5,
+          2
+        ],
+        "overall": 3,
+        "reasoning": "All 5 stories have titles, domains, and point counts, but the ordering is wrong — story 3 (895 pts) appears before story 1 which suggests rank order is scrambled rather than matching HN front-page sequence."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5,
+          5,
+          3
+        ],
+        "overall": 4,
+        "reached": true,
+        "reasoning": "Five stories with titles, domains, and point counts are present, but the ordering appears scrambled (story 3 with 1895 points likely ranked higher than position 3 suggests)."
+      }
+    }
+  },
+  {
+    "slug": "medium-post",
+    "class": "B_gated",
+    "task": "What is the article's central thesis in 2-3 sentences?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          5,
+          0
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Answer correctly identifies a 404 error page and does not fabricate content, but delivers no substantive information about the requested article."
+      },
+      "a2web_A": {
+        "scores": [
+          0,
+          5,
+          3
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Answer honestly reports a 404 and provides no article thesis, which is accurate but scores low on substantive delivery."
+      },
+      "a2web_B": {
+        "scores": [
+          0,
+          5,
+          5
+        ],
+        "overall": 2,
+        "reached": false,
+        "reasoning": "Honest 404 report with no fabrication, but no substantive content was delivered."
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          5,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Honestly reports a 404/fetch failure with no fabrication, but delivers no substantive content."
+      }
+    }
+  },
+  {
+    "slug": "x-post",
+    "class": "B_gated",
+    "task": "What does Karpathy say in this post? Capture the gist.",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer correctly identifies that the fetch failed (HTTP 402) and names Karpathy implicitly via the question context, but delivers zero substantive content from the post."
+      },
+      "a2web_A": {
+        "scores": [
+          0,
+          5,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Correctly identifies the fetch failed and why, names Karpathy, but delivers zero substantive content from the post."
+      },
+      "a2web_B": {
+        "scores": [
+          0,
+          3,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Correctly identifies the fetch failure and requester (Karpathy) but delivers zero substantive post content."
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          4,
+          0
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Honestly reports a fetch failure with no post content retrieved, but conveys nothing substantive about Karpathy's post."
+      }
+    }
+  },
+  {
+    "slug": "substack-stratechery",
+    "class": "B_gated",
+    "task": "What is the article's main argument? Cite at least one specific claim.",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The answer is a fetch failure notice (HTTP 404) with no page content, argument, or specific claims."
+      },
+      "a2web_A": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Honest 404/failure report with diagnostic detail, but no article content or argument could be conveyed."
+      },
+      "a2web_B": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Honest 404 failure report with no fabrication, but delivers zero substantive content about the article."
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer honestly reports a 404 fetch failure and correctly avoids fabricating content, but delivers no substantive information about the article."
+      }
+    }
+  },
+  {
+    "slug": "reddit-thread",
+    "class": "B_gated",
+    "task": "What is the original post about, and what is the dominant sentiment in the comments?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer is an honest fetch failure notice — criterion 3 is satisfied (no fabricated login-wall description), but no actual content was retrieved so substantive criteria score zero."
+      },
+      "a2web_A": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer honestly reports a fetch failure with no page content retrieved, satisfying only the criterion that it doesn't fabricate a login/block-page description, but provides zero substantive information about the post or comments."
+      },
+      "a2web_B": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Answer honestly reports a failed/empty fetch with no fabrication, satisfying only the 'not a login-wall description' criterion but delivering zero substantive content."
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer honestly reports a content failure and does not fabricate or describe a block page, but delivers zero substantive information about the post or comments."
+      }
+    }
+  },
+  {
+    "slug": "linear-marketing",
+    "class": "C_spa",
+    "task": "What product does this company sell, and what is the primary headline / value proposition on the landing page?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer precisely identifies Linear as an issue tracker/project management tool for software teams, quotes a substantive headline ('The product development system for teams and agents'), and provides rich on-page content well beyond navigation text."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer precisely identifies Linear as a project management/issue tracking tool for software teams, captures the exact headline verbatim, and provides rich substantive page content well beyond navigation or cookie text."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer correctly identifies Linear as a project management/product development tool and quotes the exact headline with supporting context from real page content."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer correctly identifies Linear as a project management/product development tool, quotes a substantive and specific headline verbatim, and provides rich page content well beyond navigation text."
+      }
+    }
+  },
+  {
+    "slug": "vercel-blog",
+    "class": "C_spa",
+    "task": "What is 'framework-defined infrastructure' according to this post? Give the core idea in 2 sentences.",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer precisely defines FDI with a direct quote, captures the core idea in two substantive sentences, and explicitly names the framework as the source of infrastructure decisions."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer precisely defines FDI as build-time framework code parsing to auto-generate IaC, hits all three criteria with no fabrication flags."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer precisely defines FDI, provides a substantive 2-sentence summary capturing the core mechanism, and explicitly identifies the framework/application code as the source of infrastructure decisions."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Accurately captures FDI's core idea: framework analyzes source code to auto-generate infra config, abstracting cloud primitives away from developers."
+      }
+    }
+  },
+  {
+    "slug": "stripe-docs",
+    "class": "C_spa",
+    "task": "What is a Stripe PaymentIntent and what is its purpose in the payment lifecycle?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          4,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Accurately defines PaymentIntent as a lifecycle-tracking API object, covers SCA/authentication and status transitions, and provides substantive content beyond navigation links."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          4,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer accurately defines PaymentIntent as a lifecycle-tracking API object, covers SCA/authentication and states/transitions with practical detail, and provides substantive content beyond navigation links."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer accurately defines PaymentIntent as a lifecycle-tracking API object, covers states/transitions/SCA/3DS authentication, and provides substantive content beyond navigation links."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer accurately defines PaymentIntent as a lifecycle-tracking API object, covers states/transitions/SCA/authentication, and delivers substantive prose rather than navigation links."
+      }
+    }
+  },
+  {
+    "slug": "notion-public",
+    "class": "C_spa",
+    "task": "What is a Notion database, and how does it differ from a regular Notion page?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The answer is purely a redirect notice with no substantive content about Notion databases."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer fully defines Notion databases, contrasts them with free-form pages, and clearly covers properties, views, and structure with accurate detail."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer fully defines Notion databases, clearly contrasts with regular pages, and explicitly covers properties, views, filtering, and structure with concrete examples."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer fully defines Notion databases, clearly contrasts them with regular pages, and explicitly covers properties, views, and structure with concrete examples."
+      }
+    }
+  },
+  {
+    "slug": "pypi-page",
+    "class": "D_structured",
+    "task": "What is this package, what is its latest version, and what is the install command?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer correctly identifies the Anthropic Python SDK, provides a specific version number with release date, and gives the exact pip install command."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer correctly identifies the Anthropic Python SDK, provides a specific version with release date, and gives the exact install command."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer correctly identifies the Anthropic Python SDK, provides a specific version number with release date, and gives the exact install command."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer correctly identifies the Anthropic Python SDK, provides a specific version number (0.100.0), and gives the exact pip install command."
+      }
+    }
+  },
+  {
+    "slug": "github-issue",
+    "class": "D_structured",
+    "task": "What does this issue report, and what is the most recent status / conclusion?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer accurately captures the reported bug, its closed/duplicate status, and cites specific details including the error message, environment, and labels."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "All three criteria fully satisfied: the reported bug is precisely described, closed status is stated, and a verbatim maintainer comment is cited."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer accurately captures the bug report, closed status with lock notice, and quotes a substantive team member comment about Claude 4.5 improvements."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Answer precisely identifies the bug, correctly states the issue is closed, and cites specific details including the reporter's environment, the maintainer's name, and the resolution referencing Claude 4.5 model improvements."
+      }
+    }
+  },
+  {
+    "slug": "npm-page",
+    "class": "D_structured",
+    "task": "What is this package, what is its current version, and how many weekly downloads does it have (approximately)?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The answer reports only an HTTP 403 error with no page content retrieved, satisfying none of the criteria."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          2
+        ],
+        "overall": 4,
+        "reached": true,
+        "reasoning": "Correctly identifies React and provides an accurate version, but fails to supply the weekly download figure, partially mitigated by an honest explanation of why."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          0,
+          0
+        ],
+        "overall": 2,
+        "reached": true,
+        "reasoning": "Correctly identifies React but fails to provide version or download count, citing missing metadata from the fetch."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          0,
+          0
+        ],
+        "overall": 2,
+        "reached": true,
+        "reasoning": "Correctly identifies React but honestly admits version and download stats were not in the fetched content, scoring zero on those criteria."
+      }
+    }
+  },
+  {
+    "slug": "gh-trending",
+    "class": "D_structured",
+    "task": "List the top 5 trending Python repos on GitHub today, each as 'OWNER/REPO — short description'.",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          5,
+          3,
+          1
+        ],
+        "overall": 3,
+        "reached": true,
+        "reasoning": "Five repos in correct format with descriptions, but the list appears partially fabricated or stale — ordering unlikely to match actual trending page and some entries (e.g. NousResearch/hermes-agent) are suspicious."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          4,
+          2
+        ],
+        "overall": 3,
+        "reasoning": "Five repos in correct format with descriptions, but the list looks partially fabricated or stale — CloakBrowser and AI-Trader are plausible but order does not match typical trending patterns, and AUTOMATIC1111 and paperless-ngx are evergreen repos unlikely to be top-5 trending on any given day."
+      },
+      "a2web_B": {
+        "scores": [
+          1,
+          1,
+          1,
+          0
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Only one repo was identified with owner/repo format; the answer is mostly a failure notice acknowledging incomplete extraction rather than delivering the requested list."
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The answer admits it cannot identify the repos and provides no actual trending Python repo data, delivering only meta-commentary about what a proper fetch would need."
+      }
+    }
+  },
+  {
+    "slug": "dead-with-archive",
+    "class": "E_edge",
+    "task": "What is the main advice in this article about salary negotiation? Give the top 3 points.",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The answer reports a 404 error and contains no substantive content from the page."
+      },
+      "a2web_A": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer honestly reports a 404/failed fetch with diagnostic detail, but delivers zero substantive content from the article."
+      },
+      "a2web_B": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Answer honestly reports a 404 fetch failure and delivers no negotiation content."
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer honestly reports a 404 and provides no substantive negotiation advice, satisfying only the 'not a connection error' criterion."
+      }
+    }
+  },
+  {
+    "slug": "large-page",
+    "class": "E_edge",
+    "task": "What is the topic of this LWN article, and what is the key technical issue or change being discussed?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          3,
+          0,
+          2
+        ],
+        "overall": 2,
+        "reached": false,
+        "reasoning": "Correctly identifies the article title and date but cannot extract any technical content, honestly acknowledging the absence of substantive body text rather than fabricating details."
+      },
+      "a2web_A": {
+        "scores": [
+          1,
+          0,
+          3
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer honestly reports a paywall/extraction failure and correctly identifies the site and partial title context, but delivers no substantive article content or technical detail."
+      },
+      "a2web_B": {
+        "scores": [
+          2,
+          0,
+          0
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "Answer correctly identifies the article title and honestly acknowledges content extraction failure, but delivers no substantive technical content from the article itself."
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer honestly reports a failed/blocked fetch with only a copyright footer, scores points only for correctly identifying this is not a paywall notice but a content-extraction failure, and delivers no substantive article information."
+      }
+    }
+  },
+  {
+    "slug": "non-english",
+    "class": "E_edge",
+    "task": "What is this article about? Summarize in English in 2-3 sentences.",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer provides a precise, substantive English summary naming specific technical concepts (inverted pendulum, PID controllers, Multibody library, Kalman filter, cart positioning) with no fabrication signals."
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer delivers a precise, specific summary covering the core topic (inverted pendulum, MATLAB Simulink Multibody, PID auto-tuning, Kalman filter) with no fabrication signals and no navigation/cookie filler."
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "Precise, detailed, and substantive summary covering specific technical elements (Multibody library, PID tuning, Kalman filter, dual control loops) with no fabrication indicators."
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer provides a precise, substantive summary with specific technical concepts (PID controller, inverted pendulum, Simulink Multibody, Kalman filter, swing-up logic, dual control loops) that clearly reflect real article content."
+      }
+    }
+  },
+  {
+    "slug": "redirect-chain",
+    "class": "E_edge",
+    "task": "Where does this short link lead, and what is the content at the destination?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          5,
+          3
+        ],
+        "overall": 3,
+        "reached": false,
+        "reasoning": "Honestly reports a failure mode (404) without fabricating a destination, but delivers no content since the fetch failed."
+      },
+      "a2web_A": {
+        "scores": [
+          2,
+          5,
+          5
+        ],
+        "overall": 3,
+        "reached": false,
+        "reasoning": "Correctly reports failure modes with specific HTTP codes and does not fabricate a destination URL, but could not deliver actual content."
+      },
+      "a2web_B": {
+        "scores": [
+          0,
+          5,
+          5
+        ],
+        "overall": 2,
+        "reached": false,
+        "reasoning": "Answer honestly reports a failed/empty fetch with no fabricated destination URL, satisfying the failure-disclosure criterion but delivering zero substantive content about the redirect target."
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          3,
+          5
+        ],
+        "overall": 2,
+        "reached": false,
+        "reasoning": "Answer honestly reports no content and lists plausible failure modes but never resolves the redirect or reports the actual destination URL, making it substantively empty while correctly avoiding fabrication."
+      }
+    }
+  }
+]

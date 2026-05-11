@@ -1,0 +1,3 @@
+The fetch response is a **404 Page Not Found error** from Medium. The content returned is the Medium homepage navigation and a list of suggested articles, not the article you were trying to read.
+
+I cannot provide the central thesis because the actual article content is not available — the URL either doesn't exist, has been removed, or is inaccessible.

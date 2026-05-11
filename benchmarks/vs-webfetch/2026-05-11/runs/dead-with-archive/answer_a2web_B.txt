@@ -1,0 +1,6 @@
+The article is not available. The fetch response returned a **404 error** — the target URL (`https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/`) no longer exists or has been moved.
+
+The response contains only the 404 error page, not the actual article content, so I cannot extract the main advice or top 3 points. You may want to:
+- Check if the article has been republished at a different URL
+- Try the Wayback Machine to see if an archived version is available
+- Verify the original URL is correct

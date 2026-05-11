@@ -1,0 +1,44 @@
+{
+  "slug": "mdn-fetch-api",
+  "class": "A_clean",
+  "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+  "a2web": {
+    "status": "ok",
+    "tier": "raw",
+    "verdict": "high",
+    "wall_ms_cli": 2137,
+    "wall_ms_internal": 223,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 557,
+      "fit_md": 557,
+      "title": 2,
+      "byline": 0,
+      "published": 6,
+      "narrative": 7,
+      "links": 4516,
+      "headings": 163,
+      "diagnostics": 183,
+      "operator_hints": 1,
+      "meta": 17,
+      "tokens": 14,
+      "url": 13,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 1,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 6375,
+      "B_meta": 718,
+      "C_content_only": 676
+    },
+    "links_count": 193,
+    "headings_count": 12,
+    "content_chars": 2593,
+    "fit_equals_content": true
+  }
+}

@@ -1,0 +1,221 @@
+# a2web vs WebFetch benchmark corpus — 2026-05-11
+#
+# 5 classes × 4 URLs = 20 fetches.
+# Each entry has:
+#   url            — absolute http(s) URL
+#   slug           — filesystem-safe id
+#   class          — A_clean | B_gated | C_spa | D_structured | E_edge
+#   task           — natural-language question to put to each system
+#   needs          — which output fields the task plausibly needs
+#                    [content_only | content+headings | content+links | links_only]
+#   criteria       — pass/fail rubric for the judge (3-5 bullets, criteria the
+#                    correct answer must satisfy; stable even when page rotates)
+
+urls:
+  # ─── Class A: Clean HTML (baseline; both should succeed) ────────────────
+  - slug: hn-front
+    url: https://news.ycombinator.com/
+    class: A_clean
+    task: "List the top 5 stories on this page, each as 'TITLE (SOURCE_DOMAIN) — POINTS'."
+    needs: [content+links]
+    criteria:
+      - "Identifies 5 stories from the front page"
+      - "Each story has a title"
+      - "Each story has a source domain or 'self.HN' tag"
+      - "Each story has a points count (a number)"
+      - "Order roughly matches HN front-page order"
+
+  - slug: arxiv-abstract
+    url: https://arxiv.org/abs/2401.05566
+    class: A_clean
+    task: "What is the paper's title, who are the authors, and what is the main contribution in one sentence?"
+    needs: [content_only]
+    criteria:
+      - "Identifies paper title ('Sleeper Agents: Training Deceptive LLMs...')"
+      - "Lists at least 3 author names"
+      - "Summarizes contribution: training LLMs that behave deceptively / backdoored behavior persists through safety training"
+
+  - slug: wikipedia-rust
+    url: https://en.wikipedia.org/wiki/Rust_(programming_language)
+    class: A_clean
+    task: "Who designed Rust originally and what year was it first released? What memory-safety mechanism is Rust known for?"
+    needs: [content_only]
+    criteria:
+      - "Identifies Graydon Hoare as original designer"
+      - "Names 2010 as first appearance / release year"
+      - "Describes ownership / borrow checker for memory safety"
+
+  - slug: mdn-fetch-api
+    url: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
+    class: A_clean
+    task: "What is the Fetch API used for, and which method on the global object is the primary entry point?"
+    needs: [content_only]
+    criteria:
+      - "Describes Fetch API as for making HTTP requests / fetching resources"
+      - "Names fetch() (or globalThis.fetch / window.fetch) as the primary entry point"
+      - "Mentions Promise-based or returns a Promise"
+
+  # ─── Class B: Auth/CF gated (a2web's expected edge) ─────────────────────
+  - slug: reddit-thread
+    url: https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/
+    class: B_gated
+    task: "What is the original post about, and what is the dominant sentiment in the comments?"
+    needs: [content_only]
+    criteria:
+      - "Identifies that the post is about state of software engineering / AI's impact on jobs in 2026"
+      - "Captures any comment-thread sentiment (e.g. cautious, doom, pragmatic, mixed)"
+      - "Does NOT only describe a login wall / CF block page"
+
+  - slug: medium-post
+    url: https://medium.com/@altimore/llms-as-cognitive-prosthetics-d3a5b7c2cba9
+    class: B_gated
+    task: "What is the article's central thesis in 2-3 sentences?"
+    needs: [content_only]
+    criteria:
+      - "Provides a substantive thesis about LLMs (or the topic of the actual page reached)"
+      - "Is not just a paywall / member-only notice"
+      - "Is not just navigation/footer text"
+
+  - slug: substack-stratechery
+    url: https://stratechery.com/2025/the-end-of-the-beginning/
+    class: B_gated
+    task: "What is the article's main argument? Cite at least one specific claim."
+    needs: [content_only]
+    criteria:
+      - "Substantive answer about the article's argument"
+      - "Cites at least one specific claim, statistic, or example from the body"
+      - "Is not only the title + subscribe prompt"
+
+  - slug: x-post
+    url: https://x.com/karpathy/status/1759031023815639423
+    class: B_gated
+    task: "What does Karpathy say in this post? Capture the gist."
+    needs: [content_only]
+    criteria:
+      - "Captures the substantive content of Karpathy's post"
+      - "Is not only 'log in to view' or 'something went wrong'"
+      - "Identifies who posted (Karpathy)"
+
+  # ─── Class C: SPA / JS-rendered (browser tier territory) ────────────────
+  - slug: linear-marketing
+    url: https://linear.app/
+    class: C_spa
+    task: "What product does this company sell, and what is the primary headline / value proposition on the landing page?"
+    needs: [content_only]
+    criteria:
+      - "Identifies Linear as an issue tracker / project management tool for software teams"
+      - "Captures a substantive headline or tagline from the page"
+      - "Is not only navigation / cookie banner text"
+
+  - slug: vercel-blog
+    url: https://vercel.com/blog/framework-defined-infrastructure
+    class: C_spa
+    task: "What is 'framework-defined infrastructure' according to this post? Give the core idea in 2 sentences."
+    needs: [content_only]
+    criteria:
+      - "Defines framework-defined infrastructure (FDI): inferring infra from framework code / spec rather than hand-configured"
+      - "Substantive 2-sentence summary, not just title + nav"
+      - "Mentions framework as source of infrastructure decisions"
+
+  - slug: stripe-docs
+    url: https://docs.stripe.com/payments/payment-intents
+    class: C_spa
+    task: "What is a Stripe PaymentIntent and what is its purpose in the payment lifecycle?"
+    needs: [content_only]
+    criteria:
+      - "Defines PaymentIntent as Stripe's API object for tracking a payment through its lifecycle"
+      - "Mentions states / transitions / SCA / authentication context"
+      - "Is not only navigation links"
+
+  - slug: notion-public
+    url: https://www.notion.so/help/intro-to-databases
+    class: C_spa
+    task: "What is a Notion database, and how does it differ from a regular Notion page?"
+    needs: [content_only]
+    criteria:
+      - "Defines Notion database (collection of pages with shared properties)"
+      - "Contrasts with regular pages (free-form content)"
+      - "Mentions views / properties / structure"
+
+  # ─── Class D: Structured / dynamic ──────────────────────────────────────
+  - slug: github-issue
+    url: https://github.com/anthropics/claude-code/issues/2107
+    class: D_structured
+    task: "What does this issue report, and what is the most recent status / conclusion?"
+    needs: [content_only]
+    criteria:
+      - "Captures the issue's reported problem"
+      - "Mentions whether the issue is open / closed / resolved if visible"
+      - "Cites at least one substantive detail from the body or a comment"
+
+  - slug: pypi-page
+    url: https://pypi.org/project/anthropic/
+    class: D_structured
+    task: "What is this package, what is its latest version, and what is the install command?"
+    needs: [content_only]
+    criteria:
+      - "Identifies the anthropic Python SDK"
+      - "Provides a version number"
+      - "Provides 'pip install anthropic' (or equivalent)"
+
+  - slug: npm-page
+    url: https://www.npmjs.com/package/react
+    class: D_structured
+    task: "What is this package, what is its current version, and how many weekly downloads does it have (approximately)?"
+    needs: [content_only]
+    criteria:
+      - "Identifies React (Facebook/Meta's UI library)"
+      - "Provides a version number"
+      - "Provides an approximate weekly download count (millions)"
+
+  - slug: gh-trending
+    url: https://github.com/trending/python?since=daily
+    class: D_structured
+    task: "List the top 5 trending Python repos on GitHub today, each as 'OWNER/REPO — short description'."
+    needs: [content+links]
+    criteria:
+      - "Identifies 5 repos"
+      - "Each has owner/repo format"
+      - "Each has a description (when GitHub provides one)"
+      - "Roughly matches trending page order"
+
+  # ─── Class E: Edge cases ────────────────────────────────────────────────
+  - slug: dead-with-archive
+    url: https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/
+    class: E_edge
+    task: "What is the main advice in this article about salary negotiation? Give the top 3 points."
+    needs: [content_only]
+    criteria:
+      - "Provides substantive negotiation advice (e.g. don't disclose salary first, BATNA, etc.)"
+      - "Lists at least 3 distinct points"
+      - "Is not a 404 / connection error page"
+
+  - slug: large-page
+    url: https://lwn.net/Articles/991060/
+    class: E_edge
+    task: "What is the topic of this LWN article, and what is the key technical issue or change being discussed?"
+    needs: [content_only]
+    criteria:
+      - "Identifies the topic of the actual article"
+      - "Captures a substantive technical detail"
+      - "Is not only the LWN paywall notice"
+
+  - slug: non-english
+    url: https://habr.com/ru/articles/799471/
+    class: E_edge
+    task: "What is this article about? Summarize in English in 2-3 sentences."
+    needs: [content_only]
+    criteria:
+      - "Provides an English summary of substantive content"
+      - "Is not only navigation / 'cookie banner' text"
+      - "Mentions at least one specific concept from the article body"
+
+  - slug: redirect-chain
+    url: https://t.co/abcdef
+    class: E_edge
+    task: "Where does this short link lead, and what is the content at the destination?"
+    needs: [content_only]
+    criteria:
+      - "Either resolves the redirect and describes destination content"
+      - "Or explicitly reports the redirect chain / failure mode"
+      - "Does not fabricate a destination URL"

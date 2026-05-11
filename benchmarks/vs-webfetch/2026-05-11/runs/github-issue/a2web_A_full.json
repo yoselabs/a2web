@@ -1,0 +1,58 @@
+{
+  "url": "https://github.com/anthropics/claude-code/issues/2107",
+  "status": "ok",
+  "tier": "site_handler:github",
+  "confidence": "medium",
+  "title": "Issue #2107: [BUG] String to replace not found in file.",
+  "byline": "liaolunhui",
+  "published": null,
+  "started_at": "2026-05-11T15:30:03.882764Z",
+  "total_ms": 733,
+  "tokens": {
+    "full": 1342,
+    "fit": 1342
+  },
+  "cache": "miss",
+  "narrative": "site_handler:github → ok (733ms).",
+  "diagnostics": [
+    {
+      "t_ms": 0,
+      "step": "site_handler",
+      "engine": null,
+      "host": "github.com",
+      "proxy": "direct",
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 731,
+      "extra": {
+        "status_code": 200
+      }
+    },
+    {
+      "t_ms": 731,
+      "step": "gate",
+      "engine": "block_detector",
+      "host": null,
+      "proxy": null,
+      "verdict": "ok",
+      "subsystem": null,
+      "dur_ms": 1,
+      "extra": {}
+    }
+  ],
+  "meta": {},
+  "links": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Issue #2107: [BUG] String to replace not found in file."
+    },
+    {
+      "level": 2,
+      "text": "Comments"
+    }
+  ],
+  "content_md": "# Issue #2107: [BUG] String to replace not found in file.\n**State:** closed | **Author:** liaolunhui\n\n## Environment\n- Platform (select one):\n  - [ ] Other: Claude code\n- Claude CLI version: 1.0.24\n- Operating System: Windows 11\n- Terminal:  IDEA Claude code plugin\n\n## Bug Description\nOccasionally updating error: String to replace not found in file.\n\n## Steps to Reproduce\nOccasionally updating error: String to replace not found in file.\n\n## Expected Behavior\nupdate file successfully.\n\n## Actual Behavior\nOccasionally updating error: String to replace not found in file.\n\n![Image](https://github.com/user-attachments/assets/9d8030e4-5cdd-4bbf-9c59-ad628211794a)\n\n## Additional Context\nNo\n\n---\n\n## Comments\n\n**github-actions[bot]:**\n\nThis issue has been inactive for 30 days. If the issue is still occurring, please comment to let us know. Otherwise, this issue will be automatically closed in 30 days for housekeeping purposes.\n\n**catherinewu:**\n\nthanks for reporting - we are continuously working on improving the error rates for the edit tool. it should be much better in the latest claude 4.5 models!\n\n**github-actions[bot]:**\n\nThis issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant.\n",
+  "fit_md": "# Issue #2107: [BUG] String to replace not found in file.\n**State:** closed | **Author:** liaolunhui\n\n## Environment\n- Platform (select one):\n  - [ ] Other: Claude code\n- Claude CLI version: 1.0.24\n- Operating System: Windows 11\n- Terminal:  IDEA Claude code plugin\n\n## Bug Description\nOccasionally updating error: String to replace not found in file.\n\n## Steps to Reproduce\nOccasionally updating error: String to replace not found in file.\n\n## Expected Behavior\nupdate file successfully.\n\n## Actual Behavior\nOccasionally updating error: String to replace not found in file.\n\n![Image](https://github.com/user-attachments/assets/9d8030e4-5cdd-4bbf-9c59-ad628211794a)\n\n## Additional Context\nNo\n\n---\n\n## Comments\n\n**github-actions[bot]:**\n\nThis issue has been inactive for 30 days. If the issue is still occurring, please comment to let us know. Otherwise, this issue will be automatically closed in 30 days for housekeeping purposes.\n\n**catherinewu:**\n\nthanks for reporting - we are continuously working on improving the error rates for the edit tool. it should be much better in the latest claude 4.5 models!\n\n**github-actions[bot]:**\n\nThis issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant.\n",
+  "operator_hints": []
+}

@@ -1,0 +1,10 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer delivers a precise, specific summary covering the core topic (inverted pendulum, MATLAB Simulink Multibody, PID auto-tuning, Kalman filter) with no fabrication signals and no navigation/cookie filler."
+}
