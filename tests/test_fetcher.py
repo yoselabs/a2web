@@ -6,13 +6,10 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.cache.sqlite_cache import cache_dir
 from a2web.fetcher import fetch
-from a2web.log.writer import LogWriter
 from a2web.models import CacheState, FetchStatus, Verdict
-from a2web.proxy.pool import ProxyPool
 from a2web.settings import AppSettings
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult
@@ -46,21 +43,15 @@ class _MockTier:
 
 
 def _make_state(*, settings: AppSettings | None = None) -> AppState:
-    resolved = settings or AppSettings()
-    return AppState(
-        settings=resolved,
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        log_writer=LogWriter(disabled=not resolved.log_enabled),
-        proxy_pool=ProxyPool(settings=resolved),
-    )
+    from a2web.state import build_state
+
+    return build_state(settings=settings)
 
 
 async def _make_state_with_sqlite(*, settings: AppSettings | None = None) -> AppState:
-    """Variant for cache-touching tests: opens sqlite synchronously."""
-    from a2web.cache.sqlite_cache import open_sqlite_with_schema
-
+    """Variant for cache-touching tests: warms the sqlite Resource eagerly."""
     state = _make_state(settings=settings)
-    state.sqlite = await open_sqlite_with_schema(state.settings)
+    await state.sqlite._ensure()
     return state
 
 

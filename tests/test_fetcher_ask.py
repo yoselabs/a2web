@@ -16,15 +16,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.fetcher import fetch
 from a2web.llm.extractor import Extractor, ModelSpec
-from a2web.log.writer import LogWriter
 from a2web.models import FetchStatus
-from a2web.proxy.pool import ProxyPool
 from a2web.settings import AppSettings
-from a2web.state import AppState
+from a2web.state import AppState, build_state
 from a2web.tiers import REGISTRY, TierResult
 
 _FIX = Path(__file__).parent / "fixtures"
@@ -58,13 +55,8 @@ def _swap_raw(monkeypatch: pytest.MonkeyPatch, body: bytes) -> None:
 
 
 def _make_state(**overrides) -> AppState:
-    s = AppSettings(**overrides)
-    return AppState(
-        settings=s,
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        log_writer=LogWriter(disabled=True),
-        proxy_pool=ProxyPool(settings=s),
-    )
+    s = AppSettings(log_enabled=False, **overrides)
+    return build_state(settings=s)
 
 
 class _StubProvider:
@@ -91,9 +83,9 @@ class _StubProvider:
 
 
 def _inject_extractor(state: AppState, *, answer: str) -> _StubProvider:
-    """Bypass ensure_llm_extractor by setting state.llm_extractor directly."""
+    """Bypass LlmExtractorResource._build by seeding the inner Extractor."""
     provider = _StubProvider(answer=answer)
-    state.llm_extractor = Extractor(
+    state.llm_extractor._extractor = Extractor(
         provider=provider,
         model=ModelSpec("stub", "stub-model"),
     )
@@ -187,9 +179,9 @@ async def test_ask_without_llm_available_records_operator_hint(
     _swap_raw(monkeypatch, body)
 
     state = _make_state()
-    # Pre-set unavailable reason — simulates ensure_llm_extractor's failure
-    # path (missing extra OR missing API key).
-    state.llm_unavailable_reason = "No Anthropic API key found."
+    # Pre-set unavailable reason — simulates LlmExtractorResource._build's
+    # failure path (missing extra OR missing API key).
+    state.llm_extractor._unavailable_reason = "No Anthropic API key found."
 
     result = await fetch(
         "https://example.org/post",

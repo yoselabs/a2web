@@ -85,6 +85,9 @@ async def test_successful_fetch_via_stub_pool(monkeypatch: pytest.MonkeyPatch) -
             return None
 
     class _StubPool:
+        async def _ensure(self) -> None:
+            return None
+
         def acquire(self, url: str) -> _StubPoolCtx:
             del url
             return _StubPoolCtx()
@@ -92,13 +95,8 @@ async def test_successful_fetch_via_stub_pool(monkeypatch: pytest.MonkeyPatch) -
         async def close(self) -> None:
             return None
 
-    async def _fake_ensure(state: AppState) -> _StubPool:
-        del state
-        return _StubPool()
-
-    monkeypatch.setattr("a2web.state.ensure_browser_pool", _fake_ensure)
-
     state = _make_state()
+    state.browser_pool = _StubPool()  # type: ignore[assignment]
     tier = REGISTRY["browser"]
     result = await tier.fetch("https://example.com/", state=state)
 
@@ -134,6 +132,9 @@ async def test_navigation_timeout_yields_timeout_verdict(monkeypatch: pytest.Mon
             return None
 
     class _StubPool:
+        async def _ensure(self) -> None:
+            return None
+
         def acquire(self, url: str) -> _StubPoolCtx:
             del url
             return _StubPoolCtx()
@@ -141,13 +142,8 @@ async def test_navigation_timeout_yields_timeout_verdict(monkeypatch: pytest.Mon
         async def close(self) -> None:
             return None
 
-    async def _fake_ensure(state: AppState) -> _StubPool:
-        del state
-        return _StubPool()
-
-    monkeypatch.setattr("a2web.state.ensure_browser_pool", _fake_ensure)
-
     state = _make_state()
+    state.browser_pool = _StubPool()  # type: ignore[assignment]
     state.settings = AppSettings(browser_page_budget_s=1)
     tier = REGISTRY["browser"]
     result = await tier.fetch("https://slow.example/", state=state)

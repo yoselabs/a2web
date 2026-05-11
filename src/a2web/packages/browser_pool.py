@@ -1,11 +1,15 @@
 """Camoufox browser pool — per-host contexts, LRU eviction, page-per-fetch.
 
-Pool ownership pattern (mirrors PR7a sqlite):
-- Lazy: `BrowserPool.__init__` does not launch Firefox; `start()` does.
-- Singleton-per-AppState: `state.ensure_browser_pool` caches the pool
-  under an asyncio.Lock so concurrent first-fetches share one pool.
-- atexit-cleaned: `state._atexit_close` calls `pool.close()` on a fresh
-  event loop at process exit.
+Resource pattern (a2kit v0.27 canonical):
+- Sync `__init__`: does not launch Firefox.
+- `_ensure()`: idempotent under internal `_lock` with double-checked
+  open. Lazy-launches Camoufox on first call. Concurrent first-fetches
+  share one launch.
+- `close()`: idempotent; called from `@app.on_shutdown`.
+
+AppState holds the pool as a **non-Optional** field. Callers do not
+ensure externally — `BrowserTier.fetch()` invokes `_ensure()` itself and
+catches `ImportError` from a missing `[browser]` extra.
 
 Concurrency:
 - Per-host BrowserContext keeps cookies warm across same-host fetches.
@@ -57,18 +61,29 @@ class BrowserPool:
         self._closed = False
         self._eviction_tasks: set[asyncio.Task[None]] = set()
 
-    async def start(self) -> None:
-        """Launch Camoufox. Raises ImportError if optional dep missing."""
+    async def _ensure(self) -> None:
+        """Lazy-init: launch Camoufox under lock if not yet opened.
+
+        Idempotent under concurrent first calls (double-checked locking).
+        Raises ImportError if optional dep missing — BrowserTier catches
+        and translates to operator hint.
+        """
         if self._browser is not None:
             return
-        # Lazy import — keeps base install lean; ImportError bubbles up so
-        # BrowserTier can translate to operator hint.
-        from camoufox.async_api import AsyncCamoufox
+        async with self._lock:
+            if self._browser is not None:
+                return
+            # Lazy import — keeps base install lean; ImportError bubbles up.
+            from camoufox.async_api import AsyncCamoufox
 
-        self._camoufox = AsyncCamoufox(headless=True)
-        # AsyncCamoufox is itself an async context manager; we hold the
-        # Browser handle for the pool's lifetime.
-        self._browser = await self._camoufox.__aenter__()
+            self._camoufox = AsyncCamoufox(headless=True)
+            # AsyncCamoufox is itself an async context manager; we hold the
+            # Browser handle for the pool's lifetime.
+            self._browser = await self._camoufox.__aenter__()
+
+    async def start(self) -> None:
+        """Deprecated alias for `_ensure()`. Kept during v0.27 migration."""
+        await self._ensure()
 
     async def close(self) -> None:
         if self._closed:

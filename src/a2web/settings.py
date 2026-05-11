@@ -13,11 +13,12 @@ expected default.
 from __future__ import annotations
 
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, ClassVar, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -25,13 +26,29 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
+_ENV_REF_RE = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
+
+
+def _resolve_env_refs(value: str) -> str:
+    """Replace `${VAR}` with `os.environ[VAR]`; leave literal on miss."""
+
+    def _sub(match: re.Match[str]) -> str:
+        return os.environ.get(match.group(1), match.group(0))
+
+    return _ENV_REF_RE.sub(_sub, value)
+
 
 class ProxyEntry(BaseModel):
-    """One proxy in the pool. Supports `${ENV_VAR}` references in `url`."""
+    """One proxy in the pool. `${ENV_VAR}` references in `url` are resolved at load."""
 
     url: str
     region: str = "unknown"
     kind: Literal["datacenter", "residential", "mobile"] = "datacenter"
+
+    @field_validator("url", mode="after")
+    @classmethod
+    def _resolve_env(cls, value: str) -> str:
+        return _resolve_env_refs(value)
 
 
 class RouteRule(BaseModel):

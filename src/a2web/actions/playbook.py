@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING
 from ..models import Verdict
 
 if TYPE_CHECKING:
-    from ..settings import AppSettings
     from ..tiers import TierResult
 
 
@@ -48,17 +47,15 @@ def _is_cloudflare(tier_result: TierResult) -> bool:
     return False
 
 
-def next_action_after_gate(verdict: Verdict, url: str, settings: AppSettings) -> Action | None:
+def next_action_after_gate(verdict: Verdict, url: str) -> Action | None:
     """Map a gate verdict + URL to a follow-up action. None = no-op."""
-    del settings  # reserved for future per-host overrides
     if verdict is Verdict.paywall or verdict is Verdict.block_page_detected:
         return RetryViaArchive(url=url)
     return None
 
 
-def next_action_after_tier(tier_result: TierResult, url: str, settings: AppSettings) -> Action | None:
+def next_action_after_tier(tier_result: TierResult, url: str) -> Action | None:
     """Map a tier result + URL to a follow-up action. None = no-op."""
-    del settings
     # Rule 1: arxiv PDF → abs page rewrite (fires regardless of verdict)
     arxiv_match = _ARXIV_PDF_RE.match(url)
     if arxiv_match:

@@ -8,6 +8,70 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### v0.5 step 3 — micro-cleanups bundle (2026-05-12)
+
+- **Three `*_hint` fields collapsed to `fc.operator_hints` accumulator.**
+  Anywhere in the pipeline can append; `_build_response` consumes the list
+  uniformly. Removes the pattern-duplication smell across `llm_unavailable_hint`
+  / `browser_unavailable_hint` / any future "X unavailable" field.
+- **`del settings` / `del ms` reserved-for-future stubs deleted.** Three
+  parameters removed across `playbook.next_action_after_gate`,
+  `playbook.next_action_after_tier`, and `ProxyPool.report`. YAGNI code
+  gone.
+- **`@runtime_checkable` dropped on `Tier` and `Handler` protocols** (kept
+  on `Provider` and `EvalSystem` where contract tests rely on isinstance
+  against the Protocol). Less decorator noise; static typing covers the
+  rest.
+- **`_resolve_env` moved into `ProxyEntry.url` pydantic validator.** Env
+  interpolation (`${VAR}` → `os.environ[VAR]`) happens once at settings
+  load instead of repeatedly at proxy-resolution time. `proxy/policy.py`
+  and `proxy/pool.py` both gain trivial code (read `entry.url` directly).
+  Kills a private-import `# type: ignore[attr-defined]` in `pool.py`.
+- **`record_from_response` alias replaced** by `FetchResponse.to_log_record()`
+  method. Lives next to the model it converts from. Caller goes from
+  `await state.log_writer.write_record(record_from_response(response, input_url=url))`
+  to `await state.log_writer.write_record(response.to_log_record(input_url=url))`.
+
+### v0.5 step 2 — `packages/` scaffold (2026-05-12)
+
+- **New `src/a2web/packages/` directory** with the microsofware contract:
+  modules under `packages/` MUST NOT import from `a2web.<domain>`. Boundary
+  types are owned by the package itself. Lives next to a `README.md` that
+  documents the rule.
+- **`tests/test_packages_independence.py`** — load-bearing invariant test
+  that walks every `.py` under `packages/` and asserts zero domain imports.
+  Catches drift in CI.
+- **`browser_pool.py` relocated** from `src/a2web/browser/pool.py` to
+  `src/a2web/packages/browser_pool.py`. First in-tree microsofware,
+  validates the scaffold contract.
+
+### v0.5 step 1 — a2kit v0.27.2 migration (2026-05-12)
+
+**Resource pattern adopted (a2kit v0.27 canonical).** Every long-lived async
+resource is now a class with sync `__init__`, internal `asyncio.Lock`, lazy
+`_ensure()`, and idempotent `close()`. AppState fields are all non-Optional;
+locks no longer leak to state.
+
+- **New `SqliteResource`** wrapping `aiosqlite.Connection` + schema bootstrap.
+  Replaces the previous Optional `state.sqlite` + startup-hook-opens dance.
+- **New `LlmExtractorResource`** wrapping the Extractor + provider auto/anthropic
+  fallback + ExtractionCache wiring. Returns `None` on permanent unavailability;
+  caller branches and populates an operator hint without retrying construction.
+- **`BrowserPool._ensure()`** — idempotent under internal lock with
+  double-check. `start()` retained as deprecated alias.
+- **DI-aware lifecycle hooks.** `@app.on_startup` / `@app.on_shutdown` take
+  typed kwargs (`state: AppState`) — no `container.resolve(...)` ceremony,
+  no `connection=None`, no `_app: a2kit.App` parameter.
+- **Typed-event direct emit** via `await a2kit.ldd.event(ctx, EventInstance(...))`
+  (a2kit 0.26.1). The `_emit` + `_event_payload` adapter shim is gone (~30 LOC).
+- **`a2kit.testing.null_context()`** swapped in for direct `fetch(ctx=None)`
+  callers; phase functions take non-Optional `ctx: a2kit.ToolContext`.
+- **`Param("desc")` positional shorthand** on the URL parameter.
+
+Closes all four gaps + both soft notes from `docs/history/A2KIT_FEEDBACK_v0.26.md`.
+Net ~-95 LOC across `state.py` + `server.py` + `fetcher.py` (state.py alone
+drops from 136 → 63 LOC).
+
 ### Added
 
 - **`ClaudeCodeProvider`** — runs prompts through the user's Claude Code

@@ -17,6 +17,58 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## v0.5 simplification stages (shipped / deferred)
+
+- ✅ **Stage 1 — a2kit v0.27.2 migration (DONE in v0.5 step 1).** Delivered:
+  Resource pattern (SqliteResource, BrowserPool, LlmExtractorResource);
+  non-Optional AppState; DI-aware lifecycle hooks; typed-event direct emit
+  (no `_emit`/`_event_payload` shim). PR5 "lazy state cleanup" from the
+  earlier punch list is folded into this — the Resource pattern delivered
+  it.
+- ✅ **Stage 2a — `packages/` scaffold + browser_pool moved.** Created
+  `src/a2web/packages/` with the contract README, the
+  `test_packages_independence` invariant (load-bearing — fails CI if any
+  module under `packages/` imports from `a2web.<domain>`), and moved
+  `BrowserPool` over as the first proof-of-concept package.
+- ⏳ **Stage 2b — content_extract move.** *Why deferred:*
+  `extract/trafilatura_ext.py` returns `Heading` and `Link` typed-from
+  `a2web.models` — violates the packages contract. Move requires defining
+  `ExtractedHeading` / `ExtractedLink` inside the package + an adapter
+  at the a2web seam. Larger surface, own PR.
+- ⏳ **Stage 2c+ — additional package promotions.** http_cache,
+  block_detector, proxy_routing, llm_extract behind their boundary types.
+  Each is its own focused PR.
+- ⏳ **Stage 3a — logging swap.** *Why deferred:* stdlib
+  `RotatingFileHandler` uses `.1`/`.2` suffix instead of the current
+  `fetches-YYYY-MM-DD-NN.ndjson.gz` format. Changes the rolled-file naming
+  contract — downstream wire change for log consumers. Worth its own
+  focused PR with explicit format-migration plan. Current `log/*` works,
+  is well-tested, and rotation/gzip is correct.
+- ⏳ **Stage 3b — proxy → purgatory.** *Why deferred:* purgatory's API is
+  context-manager-flavored (`async with brk: ...`), not report-flavored.
+  Swapping cleanly requires either making `ProxyPool.acquire/report` async
+  and wrapping every tier call in `async with breaker:`, or hooking into
+  purgatory's internal messagebus directly. Larger surface than planned.
+  Current `_ProxyHealth` (~30 LOC, well-tested, no bugs) stays — defer to
+  its own design PR.
+- ✅ **Stage 3c — PR1 micro-cleanups (DONE in v0.5 step 3).** Delivered:
+  three `*_hint` fields collapsed to `fc.operator_hints` accumulator;
+  `del settings` / `del ms` reserved-for-future stubs deleted (3 params
+  removed across `playbook.next_action_*` + `ProxyPool.report`);
+  `@runtime_checkable` dropped on `Tier` and `Handler` protocols (kept
+  on `Provider` + `EvalSystem` where contract-tests rely on isinstance);
+  `_resolve_env` moved from `proxy/policy.py` into a pydantic
+  `field_validator` on `ProxyEntry.url` in `settings.py`;
+  `record_from_response` alias replaced by `FetchResponse.to_log_record()`
+  method.
+- ⏳ **Stage 4 — fetcher decomposition.** `_phase_tier_loop` → `_try_tier`
+  / `_install_if_won` / `_apply_after_tier` (the 15-line "obvious form").
+  Merge `_dispatch_archive` + `_escalate_browser` → unified `_escalate`.
+  Move `_phase_extract_answer` into `packages/llm_extract/`. Needs its
+  own Plan — separate session.
+
+---
+
 ## v0.2 workspace-packaging deferral (from `migrate-to-a2kit-v026-and-simplify`)
 
 - **Phase D — extract `proxy-pool`, `browser-pool`, `block-detector` as

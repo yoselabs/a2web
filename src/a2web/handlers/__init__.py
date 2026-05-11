@@ -8,7 +8,7 @@ to `_HANDLERS` below.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol
 
 from .arxiv import ArxivHandler
 from .github import GitHubHandler
@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from ..tiers import TierResult
 
 
-@runtime_checkable
 class Handler(Protocol):
     """A Tier with a URL-pattern match discriminator."""
 

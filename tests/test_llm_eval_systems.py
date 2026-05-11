@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import httpx
 import pytest
-from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.llm import ProviderResponse
 from a2web.llm.eval import (
@@ -20,8 +19,6 @@ from a2web.llm.eval import (
 )
 from a2web.llm.eval.systems import WEBFETCH_MARKDOWN_CAP, WEBFETCH_MODEL
 from a2web.llm.extractor import Extractor, ModelSpec
-from a2web.log.writer import LogWriter
-from a2web.proxy.pool import ProxyPool
 from a2web.settings import AppSettings
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TierResult
@@ -230,13 +227,9 @@ class _MockRawTier:
 
 
 def _make_state() -> AppState:
-    s = AppSettings()
-    return AppState(
-        settings=s,
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        log_writer=LogWriter(disabled=True),
-        proxy_pool=ProxyPool(settings=s),
-    )
+    from a2web.state import build_state
+
+    return build_state(settings=AppSettings(log_enabled=False))
 
 
 @pytest.mark.asyncio
@@ -265,7 +258,7 @@ async def test_a2web_extract_runs_extractor_when_available(
 
     # Inject a stub extractor on the state to bypass real API construction.
     provider = _RecordingProvider(answer="Extract speaks.")
-    state.llm_extractor = Extractor(provider=provider, model=ModelSpec("rec", "rec-model"))
+    state.llm_extractor._extractor = Extractor(provider=provider, model=ModelSpec("rec", "rec-model"))
 
     system = A2WebExtract(state=state)
     result = await system.fetch(url="https://example.com/p", ask="What does it say?")
@@ -288,7 +281,7 @@ async def test_a2web_extract_falls_back_to_content_md_when_no_extractor(
     body = b"<!doctype html><html><body><article><h1>NoLLM</h1>" + b"<p>content. </p>" * 80 + b"</article></body></html>"
     monkeypatch.setitem(REGISTRY, "raw", _MockRawTier(body))
     state = _make_state()
-    state.llm_unavailable_reason = "No API key in env."
+    state.llm_extractor._unavailable_reason = "No API key in env."
 
     system = A2WebExtract(state=state)
     result = await system.fetch(url="https://example.com/p", ask="ignored")

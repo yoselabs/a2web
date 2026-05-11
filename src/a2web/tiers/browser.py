@@ -46,14 +46,14 @@ class BrowserTier:
     name: str = "browser"
 
     async def fetch(self, url: str, *, state: AppState) -> TierResult:
-        from ..state import ensure_browser_pool
         from . import Rendered, TierResult  # local - circular with package init
 
         if not state.settings.browser_enabled:
             return _unavailable_result(url, "browser tier disabled (A2WEB_BROWSER_ENABLED=false)")
 
+        pool = state.browser_pool
         try:
-            pool = await ensure_browser_pool(state)
+            await pool._ensure()
         except ImportError as exc:
             return _unavailable_result(url, f"camoufox not installed: {exc}")
         except Exception as exc:  # browser launch failed

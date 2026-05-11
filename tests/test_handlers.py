@@ -7,14 +7,11 @@ from pathlib import Path
 
 import httpx
 import pytest
-from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.handlers import HNHandler, RedditHandler, TwitterHandler, match_handler
 from a2web.handlers.hn import _render_item
 from a2web.handlers.reddit import _fetch_old_reddit, _render_thread, _to_old_reddit_url
-from a2web.log.writer import LogWriter
 from a2web.models import Verdict
-from a2web.proxy.pool import ProxyPool
 from a2web.settings import AppSettings
 from a2web.state import AppState
 
@@ -109,13 +106,9 @@ def test_hn_render_item_includes_story_and_quoted_replies() -> None:
 
 
 def _make_state() -> AppState:
-    s = AppSettings()
-    return AppState(
-        settings=s,
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        log_writer=LogWriter(disabled=True),
-        proxy_pool=ProxyPool(settings=s),
-    )
+    from a2web.state import build_state
+
+    return build_state(settings=AppSettings(log_enabled=False))
 
 
 def test_to_old_reddit_url_drops_json_and_query() -> None:
@@ -274,13 +267,10 @@ async def test_reddit_handler_skips_fallback_when_json_succeeds(
 
 
 def _make_state_with_nitter(*instances: str) -> AppState:
-    s = AppSettings(nitter_instances=list(instances))
-    return AppState(
-        settings=s,
-        breakers=AsyncCircuitBreakerFactory(default_threshold=2, default_ttl=30.0),
-        log_writer=LogWriter(disabled=True),
-        proxy_pool=ProxyPool(settings=s),
-    )
+    from a2web.state import build_state
+
+    s = AppSettings(nitter_instances=list(instances), log_enabled=False)
+    return build_state(settings=s)
 
 
 def test_twitter_handler_matches_x_status_urls() -> None:

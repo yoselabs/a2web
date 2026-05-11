@@ -78,14 +78,12 @@ class ProxyPool:
         chain: list[tuple[str, str]] = []
         # Primary first.
         chain.append((route.proxy_id or "", route.proxy_url))
-        # Fallbacks (resolve URLs from settings).
+        # Fallbacks — URLs are env-resolved at load by ProxyEntry's validator.
         for fb_id in route.fallback:
             entry = self.settings.proxies.get(fb_id)
             if entry is None:
                 continue
-            from .policy import _resolve_env  # type: ignore[attr-defined]
-
-            chain.append((fb_id, _resolve_env(entry.url)))
+            chain.append((fb_id, entry.url))
 
         now = time.monotonic()
         for proxy_id, proxy_url in chain:
@@ -106,8 +104,7 @@ class ProxyPool:
             matched_rule_index=route.matched_rule_index,
         )
 
-    def report(self, handle: ProxyHandle, *, success: bool, ms: int) -> None:
-        del ms  # reserved for future per-proxy latency tracking
+    def report(self, handle: ProxyHandle, *, success: bool) -> None:
         if handle.proxy_id == "direct":
             return
         h = self.health.setdefault(handle.proxy_id, _ProxyHealth())

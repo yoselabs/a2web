@@ -7,8 +7,6 @@ layer on top.
 
 from __future__ import annotations
 
-import os
-import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -25,18 +23,6 @@ class ResolvedRoute:
     proxy_required: bool
     fallback: tuple[str, ...]
     matched_rule_index: int | None
-
-
-_ENV_REF_RE = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
-
-
-def _resolve_env(url: str) -> str:
-    """Replace `${VAR}` with `os.environ[VAR]`; leave literal on miss."""
-
-    def _sub(match: re.Match[str]) -> str:
-        return os.environ.get(match.group(1), match.group(0))
-
-    return _ENV_REF_RE.sub(_sub, url)
 
 
 def _host_matches(pattern: str, host: str) -> bool:
@@ -89,7 +75,7 @@ def resolve_route(host: str, tier: str, settings: AppSettings) -> ResolvedRoute:
                 matched_rule_index=idx,
             )
         return ResolvedRoute(
-            proxy_url=_resolve_env(proxy_entry.url),
+            proxy_url=proxy_entry.url,
             proxy_id=rule.proxy,
             proxy_required=rule.proxy_required,
             fallback=tuple(rule.fallback),

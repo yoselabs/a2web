@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from a2web.browser.pool import BrowserPool
+from a2web.packages.browser_pool import BrowserPool
 
 
 class _StubPage:

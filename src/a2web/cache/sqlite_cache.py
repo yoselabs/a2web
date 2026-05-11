@@ -6,6 +6,7 @@ gate lives in `fetcher.py` — only `Verdict.ok` results land here.
 
 from __future__ import annotations
 
+import asyncio
 import gzip
 import hashlib
 import os
@@ -145,3 +146,75 @@ def is_live_only(url: str, settings: AppSettings) -> bool:
 
     host = urlparse(url).hostname or ""
     return any(host == h or host.endswith(f".{h}") for h in settings.live_only_hosts)
+
+
+# --------------------------------------------------------------------- #
+# Resource pattern — lazy-init, lock-in-resource (a2kit v0.27 canonical).
+# --------------------------------------------------------------------- #
+
+
+class SqliteResource:
+    """Lazy aiosqlite connection + schema bootstrap. Non-Optional on AppState.
+
+    Opens the underlying sqlite connection on first `_ensure()` call under
+    an internal lock. AppState holds this as a non-Optional field; callers
+    invoke `get` / `put` / `close` directly without None-guards.
+    """
+
+    def __init__(self, settings: AppSettings) -> None:
+        self._settings = settings
+        self._conn: aiosqlite.Connection | None = None
+        self._lock = asyncio.Lock()
+
+    async def _ensure(self) -> aiosqlite.Connection:
+        """Open + schema-bootstrap on first call; cached thereafter.
+
+        Double-checked locking guards against concurrent first calls. Safe
+        to call from anywhere on the event loop.
+        """
+        if self._conn is not None:
+            return self._conn
+        async with self._lock:
+            if self._conn is None:
+                self._conn = await open_sqlite_with_schema(self._settings)
+            return self._conn
+
+    async def get(self, url: str, profile_hash: str) -> CacheRow | None:
+        """Return a non-expired cache row for (url, profile_hash) or None."""
+        conn = await self._ensure()
+        return await cache_get(conn, url, profile_hash)
+
+    async def put(
+        self,
+        url: str,
+        profile_hash: str,
+        *,
+        etag: str | None,
+        last_modified: str | None,
+        status_code: int,
+        content_type: str | None,
+        body: bytes,
+        ttl_s: int,
+    ) -> None:
+        """Insert or replace one cache row. Caller MUST gate-check first."""
+        conn = await self._ensure()
+        await cache_put(
+            conn,
+            url,
+            profile_hash,
+            etag=etag,
+            last_modified=last_modified,
+            status_code=status_code,
+            content_type=content_type,
+            body=body,
+            ttl_s=ttl_s,
+        )
+
+    async def close(self) -> None:
+        """Idempotent close. Re-`_ensure()` after close reopens."""
+        if self._conn is None:
+            return
+        async with self._lock:
+            if self._conn is not None:
+                await self._conn.close()
+                self._conn = None

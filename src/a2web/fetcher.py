@@ -17,14 +17,13 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 
 import a2kit
-import aiosqlite
+import a2kit.ldd
 import structlog
 
 from .actions import RetryViaArchive, RewriteUrl, next_action_after_gate, next_action_after_tier
 from .cache.sqlite_cache import (
     CacheRow,
-    cache_get,
-    cache_put,
+    SqliteResource,
     compute_profile_hash,
     is_live_only,
 )
@@ -32,7 +31,6 @@ from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .extract.metadata import parse_metadata
 from .extract.trafilatura_ext import extract_markdown
 from .gate.block_detector import evaluate
-from .log.record import from_response as record_from_response
 from .models import (
     CacheState,
     Confidence,
@@ -46,7 +44,7 @@ from .models import (
     TokenCounts,
     Verdict,
 )
-from .state import AppState, ensure_llm_extractor
+from .state import AppState
 from .tiers import REGISTRY, TIER_ORDER, Rendered
 from .tiers.jina import JinaTier
 from .tiers.raw import RawTier
@@ -85,7 +83,7 @@ class FetchContext:
     started_at: datetime
     start_perf: float
     profile_hash: str
-    sqlite_conn: aiosqlite.Connection | None
+    sqlite: SqliteResource | None
     bypass_cache: bool
 
     # URL state (rewritten on after-tier RewriteUrl)
@@ -99,7 +97,6 @@ class FetchContext:
     ask: str | None = None
     extracted_answer: str | None = None
     extraction_meta: ExtractionMeta | None = None
-    llm_unavailable_hint: OperatorHint | None = None
 
     # Body & verdict state (set by tier loop, mutated by escalations)
     body: bytes = b""
@@ -132,10 +129,10 @@ class FetchContext:
     # Gate state
     gate_verdict: Verdict = Verdict.ok
     gate_subsystem: str | None = None
-    browser_unavailable_hint: OperatorHint | None = None
 
-    # Diagnostics accumulator
+    # Diagnostics + operator-hint accumulators — anywhere in the pipeline can append.
     diagnostics: list[Diagnostic] = field(default_factory=list)
+    operator_hints: list[OperatorHint] = field(default_factory=list)
 
 
 async def fetch(
@@ -174,13 +171,13 @@ async def fetch(
 
     profile_hash = compute_profile_hash(state.settings)
     bypass_cache = is_live_only(url, state.settings)
-    sqlite_conn = None if bypass_cache else state.sqlite
+    sqlite = None if bypass_cache else state.sqlite
 
     fc = FetchContext(
         started_at=started_at,
         start_perf=start_perf,
         profile_hash=profile_hash,
-        sqlite_conn=sqlite_conn,
+        sqlite=sqlite,
         bypass_cache=bypass_cache,
         url=url,
         final_url=url,
@@ -194,7 +191,7 @@ async def fetch(
 
     if state.log_writer is not None:
         try:
-            await state.log_writer.write_record(record_from_response(response, input_url=url))
+            await state.log_writer.write_record(response.to_log_record(input_url=url))
         except Exception as exc:
             response.operator_hints.append(OperatorHint(code="log_write_failed", message=str(exc)))
             _LOG.warning("log_write_failed", error=str(exc), url=url)
@@ -302,8 +299,8 @@ async def _dispatch_archive(
 
 async def _phase_cache_check(fc: FetchContext) -> None:
     """Read the cached row (if cache is enabled and a hit exists)."""
-    if fc.sqlite_conn is not None:
-        fc.cached_row = await cache_get(fc.sqlite_conn, fc.url, fc.profile_hash)
+    if fc.sqlite is not None:
+        fc.cached_row = await fc.sqlite.get(fc.url, fc.profile_hash)
 
 
 async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext) -> None:
@@ -370,7 +367,6 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
             proxy_pool.report(
                 handle,
                 success=tier_result.verdict not in (Verdict.proxy_unavailable, Verdict.connection_error, Verdict.timeout),
-                ms=tier_dur_ms,
             )
 
             await a2kit.ldd.event(
@@ -427,14 +423,14 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
             )
 
             # After-tier action: URL rewrite or archive escalation
-            tier_action = next_action_after_tier(tier_result, fc.url, state.settings)
+            tier_action = next_action_after_tier(tier_result, fc.url)
             if isinstance(tier_action, RewriteUrl) and fc.url_rewrites < 1:
                 fc.url_rewrites += 1
                 fc.url = tier_action.new_url
                 fc.final_url = fc.url
                 # Reset cached_row — new URL likely has its own cache entry.
-                if fc.sqlite_conn is not None:
-                    fc.cached_row = await cache_get(fc.sqlite_conn, fc.url, fc.profile_hash)
+                if fc.sqlite is not None:
+                    fc.cached_row = await fc.sqlite.get(fc.url, fc.profile_hash)
                 else:
                     fc.cached_row = None
                 restart_loop = True
@@ -584,7 +580,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState, ctx: a2
         await _escalate_browser(fc, state=state, ctx=ctx)
 
     # Archive escalation — cap=1 (shared with after-tier archive_dispatches)
-    gate_action = next_action_after_gate(fc.gate_verdict, fc.final_url, state.settings)
+    gate_action = next_action_after_gate(fc.gate_verdict, fc.final_url)
     if isinstance(gate_action, RetryViaArchive) and fc.archive_dispatches < 1:
         fc.archive_dispatches += 1
         outcome = await _dispatch_archive(
@@ -666,15 +662,15 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, ctx: a2kit.Too
             fc.final_verdict = regate.verdict
             fc.gate_verdict = regate.verdict
             fc.gate_subsystem = regate.subsystem
-    else:
-        fc.browser_unavailable_hint = browser_result.operator_hint
+    elif browser_result.operator_hint is not None:
+        fc.operator_hints.append(browser_result.operator_hint)
 
 
 async def _phase_cache_write(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext) -> None:
     """Write to cache iff gate passed, non-hit, non-bypass, non-archive."""
     is_archive_result = fc.tier_used == "archive"
     should_cache = (
-        fc.sqlite_conn is not None
+        fc.sqlite is not None
         and not fc.bypass_cache
         and fc.cache_state != CacheState.hit
         and fc.final_verdict == Verdict.ok
@@ -683,11 +679,11 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState, ctx: a2kit.To
     )
     if not should_cache:
         return
+    assert fc.sqlite is not None  # noqa: S101 — narrowed by should_cache
 
     cache_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
     await a2kit.ldd.event(ctx, StageStarted(t_ms=cache_dur_start, step="cache_write"))
-    await cache_put(
-        fc.sqlite_conn,
+    await fc.sqlite.put(
         fc.url,
         fc.profile_hash,
         etag=fc.etag,
@@ -746,15 +742,17 @@ async def _phase_extract_answer(
     phase_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     await a2kit.ldd.event(ctx, StageStarted(t_ms=phase_start_ms, step="extract_answer"))
 
-    extractor = await ensure_llm_extractor(state)
-    if extractor is None:
+    result = await state.llm_extractor.extract(content=fc.content_md, ask=fc.ask)
+    if result is None:
         # Graceful degrade: fetch succeeded, extraction skipped, operator
         # hint surfaces the actionable reason.
-        reason = state.llm_unavailable_reason or "LLM extractor unavailable"
-        fc.llm_unavailable_hint = OperatorHint(
-            code="llm_unavailable",
-            message=reason,
-            fix=f"Install with `pip install a2web[llm]` and set {state.settings.llm_api_key_env} in the environment.",
+        reason = state.llm_extractor.unavailable_reason or "LLM extractor unavailable"
+        fc.operator_hints.append(
+            OperatorHint(
+                code="llm_unavailable",
+                message=reason,
+                fix=f"Install with `pip install a2web[llm]` and set {state.settings.llm_api_key_env} in the environment.",
+            )
         )
         dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
         await a2kit.ldd.event(
@@ -768,8 +766,6 @@ async def _phase_extract_answer(
             ),
         )
         return
-
-    result = await extractor.extract(content=fc.content_md, ask=fc.ask)
     fc.extracted_answer = result.answer
     fc.extraction_meta = ExtractionMeta(
         model=result.model,
@@ -817,11 +813,7 @@ def _build_response(fc: FetchContext) -> FetchResponse:
     )
 
     tokens = TokenCounts(full=len(fc.content_md), fit=len(fit_md or "")) if fc.final_verdict == Verdict.ok and fc.content_md else None
-    op_hints: list[OperatorHint] = []
-    if fc.browser_unavailable_hint is not None:
-        op_hints.append(fc.browser_unavailable_hint)
-    if fc.llm_unavailable_hint is not None:
-        op_hints.append(fc.llm_unavailable_hint)
+    op_hints: list[OperatorHint] = list(fc.operator_hints)
 
     diagnostics_summary = _build_diagnostics_summary(
         tier_used=fc.tier_used,

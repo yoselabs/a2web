@@ -41,16 +41,11 @@ class OpenRouterProvider:
         try:
             import openai  # noqa: F401
         except ImportError as exc:
-            raise LLMNotAvailable(
-                "The `openai` SDK is not installed. Run `pip install a2web[llm]`."
-            ) from exc
+            raise LLMNotAvailable("The `openai` SDK is not installed. Run `pip install a2web[llm]`.") from exc
 
         api_key = os.environ.get(api_key_env, "").strip()
         if not api_key:
-            raise LLMNotAvailable(
-                f"No OpenRouter API key found. Set {api_key_env} from "
-                "https://openrouter.ai/keys."
-            )
+            raise LLMNotAvailable(f"No OpenRouter API key found. Set {api_key_env} from https://openrouter.ai/keys.")
 
         from openai import AsyncOpenAI
 

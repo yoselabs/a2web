@@ -16,7 +16,7 @@ or after-tier actions.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol
 
 from ..models import Heading, OperatorHint, Verdict
 from ..state import AppState
@@ -71,7 +71,6 @@ class TierResult:
     archive_source: str | None = None  # "wayback" | "archive.ph"
 
 
-@runtime_checkable
 class Tier(Protocol):
     """One step in the cascade. Tiers MUST NOT raise for routine HTTP failures.
 

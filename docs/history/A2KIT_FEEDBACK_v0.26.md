@@ -390,3 +390,36 @@ a2web is post-migration to a2kit v0.26+. The lifecycle + singleton + LDD sink re
 Happy to provide more concrete repros, run experimental APIs against a2web's test suite, or anything else useful.
 
 Thanks again.
+
+---
+
+## Migration outcome — 2026-05-12
+
+All four gaps + both soft notes shipped in a2kit 0.26.1 (additive) and 0.27.0
+(breaking). a2web migrated cleanly to v0.27.2 in one focused PR
+(`openspec/changes/v0.5-a2kit-v027-migration/`):
+
+- **Gap 1 (typed-emit)** — `_emit` + `_event_payload` shim deleted. All
+  fetcher.py emit sites use `await a2kit.ldd.event(ctx, EventInstance(...))`.
+- **Gap 2 (lifecycle DI)** — `@on_startup` / `@on_shutdown` take
+  `state: AppState` directly. Container ceremony gone (~14 LOC deleted in
+  `server.py`).
+- **Gap 3 (async resource init)** — solved via the v0.27 README "Resource
+  pattern": sync DI factories + lock-in-resource + `_ensure()` per Resource.
+  a2web adopted it with three classes (`SqliteResource`,
+  `LlmExtractorResource`, `BrowserPool._ensure()`). AppState's 5 Optional
+  fields + 2 standalone locks collapsed to 3 non-Optional Resources.
+  Cleaner than the lifespan-yield factory we originally proposed.
+- **Gap 4 (`App.container()` non-Optional + drop `connection=None`)** —
+  delivered; defensive `if container is None: raise` guards gone.
+- **Soft A (Param positional shorthand)** — adopted at one-line description
+  site in `routers.py`.
+- **Soft B (`ToolContext.null()`)** — `a2kit.testing.null_context()`
+  shipped. Production phase signatures take non-Optional `ToolContext`;
+  the top-level `fetch()` swaps in `null_context()` when called directly
+  by tests/eval systems with `ctx=None`.
+
+Net diff: ~-95 LOC in a2web core. `state.py` dropped from 136 → 63 LOC.
+All 289 tests pass on a2kit 0.27.2.
+
+Thanks for the turnaround. Round 4 is closed.
