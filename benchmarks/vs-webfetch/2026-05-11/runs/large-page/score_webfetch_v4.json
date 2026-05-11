@@ -1,0 +1,17 @@
+{
+  "scores": [
+    2,
+    0,
+    1
+  ],
+  "overall": 1,
+  "reached": true,
+  "reasoning": "The answer identifies the article title and date correctly but cannot report any technical content, only noting the body was absent; it avoids fabrication but provides no substantive technical detail.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0071559,
+  "latency_ms": 11686,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 61
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The answer contains only a redirect notice and no actual content about Notion databases.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04078589999999999,
+  "latency_ms": 9133,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 41
+  }
+}

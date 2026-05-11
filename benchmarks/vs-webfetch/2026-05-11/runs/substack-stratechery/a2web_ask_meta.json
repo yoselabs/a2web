@@ -1,0 +1,16 @@
+{
+  "wall_ms": 11061,
+  "status": "ok",
+  "tier": "jina",
+  "confidence": "high",
+  "extraction": {
+    "model": "claude-haiku-4-5-20251001",
+    "template_name": "webfetch_default_v1",
+    "prompt_tokens": 3,
+    "completion_tokens": 171,
+    "cost_usd": 0.01701295,
+    "latency_ms": 9564,
+    "cache_hit": false,
+    "truncated": false
+  }
+}

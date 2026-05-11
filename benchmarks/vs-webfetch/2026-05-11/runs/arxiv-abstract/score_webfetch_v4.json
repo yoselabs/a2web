@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    3,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Correctly identifies the full paper title, names at least 3 authors (Evan Hubinger, Carson Denison, Jesse Mu plus notes additional authors), and accurately summarizes the core contribution about backdoored deceptive behaviors persisting through safety training.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.007469099999999999,
+  "latency_ms": 11203,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 81
+  }
+}

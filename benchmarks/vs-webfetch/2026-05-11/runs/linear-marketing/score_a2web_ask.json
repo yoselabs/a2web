@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as an issue tracker/project management tool, captures substantive headlines ('A new species of product tool', 'Purpose-built for planning and building products', 'Designed for the AI era'), and goes well beyond navigation text with meaningful content about the product's value proposition.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041832150000000005,
+  "latency_ms": 10329,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 87
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The answer reports a fetch error and provides no content about the post topic or comment sentiment.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0068664,
+  "latency_ms": 10651,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 43
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a precise, substantive English summary mentioning specific technical concepts (inverted pendulum, PID controllers, Multibody library, Kalman filter, cart positioning) directly from the article body.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04135590000000001,
+  "latency_ms": 10526,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 70
+  }
+}

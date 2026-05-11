@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer fully and accurately describes the Fetch API's purpose for making HTTP requests/fetching resources, names fetch() as the primary entry point with correct context variants, and explicitly states it returns a Promise resolving to a Response object.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0074010000000000005,
+  "latency_ms": 10872,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 73
+  }
+}

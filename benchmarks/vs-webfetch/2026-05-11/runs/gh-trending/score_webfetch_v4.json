@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    3,
+    1
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "Five repos are listed in correct owner/repo format with descriptions, but the selections appear fabricated or outdated rather than reflecting the actual GitHub trending page order for today.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04147965,
+  "latency_ms": 9480,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 61
+  }
+}

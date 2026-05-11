@@ -1,0 +1,9 @@
+Based on the content provided:
+
+**Designer and Release Year:**
+Graydon Hoare created Rust in 2006 while working at Mozilla. The first public release, Rust 0.1, became available on January 20, 2012.
+
+**Memory-Safety Mechanism:**
+Rust is renowned for its "borrow checker," a compile-time mechanism that prevents memory safety errors. As stated in the source material, the language "enforces memory safety (i.e., that all references point to valid memory) without a conventional garbage collector; instead, memory safety errors and data races are prevented by the 'borrow checker', which tracks the object lifetime of references at compile time."
+
+This innovative approach allows Rust to guarantee memory safety without runtime overhead from garbage collection, making it both safe and performant.

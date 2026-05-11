@@ -1,0 +1,10 @@
+I cannot provide the article's main argument because the page returned a **404 error** — the content is not available.
+
+The URL `https://stratechery.com/2025/the-end-of-the-beginning/` no longer exists or is inaccessible. The fetched page shows only Stratechery's standard 404 template with navigation and recent article listings, but not the article itself.
+
+To analyze the article, you would need:
+- A working link to the piece, or
+- Access via Stratechery Plus subscription (the article may be member-only), or
+- An archived version if one exists
+
+Would you like me to search for related Stratechery content on a different topic, or do you have an alternative source for this article?

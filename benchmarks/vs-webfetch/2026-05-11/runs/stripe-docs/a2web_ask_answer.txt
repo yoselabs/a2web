@@ -1,0 +1,24 @@
+# What is a Stripe PaymentIntent?
+
+A **PaymentIntent** is Stripe's API abstraction for managing payment lifecycles. It encapsulates a single transaction from creation through completion, tracking status changes and triggering authentication when needed.
+
+## Core Purpose
+
+"Use the Payment Intents API to build an integration that can handle complex payment flows with a status that changes over the PaymentIntent's lifecycle."
+
+The object serves as a stateful container linking a shopping cart or customer session to its associated payment details—amount, currency, and supported payment methods.
+
+## Key Advantages
+
+The API eliminates three common integration headaches:
+- **Automatic authentication** — handles regulatory requirements like Strong Customer Authentication (SCA) without manual intervention
+- **Idempotency guarantees** — prevents duplicate charges when requests retry
+- **Payment state tracking** — monitors attempts and failed transactions, crucial for debugging and analytics
+
+## Workflow
+
+Building with PaymentIntent involves two steps:
+1. **Server-side creation** — establish the intent with amount/currency; extract and pass only the client secret to your frontend
+2. **Client-side confirmation** — use Stripe.js to finalize payment using that secret
+
+The separation of concerns (server holds the full object, client sees only the secret) reduces exposure to payment data while enabling sophisticated retry logic and webhook monitoring post-payment.

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the full paper title, lists far more than 3 authors, and clearly summarizes the core contribution regarding persistent backdoored/deceptive behavior surviving safety training.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0403221,
+  "latency_ms": 10874,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

@@ -1,0 +1,14 @@
+Based on the content provided:
+
+**Product:** Linear sells a product development and issue tracking system designed for modern teams with AI workflows integrated.
+
+**Primary Value Proposition:** The headline frames Linear as "A new species of product tool" that is "Purpose-built for planning and building products" and "Designed for the AI era."
+
+The landing page emphasizes several key capabilities:
+- Converting feedback into actionable, routed issues
+- Strategic planning and roadmap alignment
+- AI agent collaboration and task delegation
+- Code review with structural diffs
+- Progress visibility through analytics and dashboards
+
+The core positioning centers on making product operations "self-driving" by automating issue management and enabling seamless collaboration between human teams and AI agents.

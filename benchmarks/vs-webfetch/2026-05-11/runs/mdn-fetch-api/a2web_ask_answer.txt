@@ -1,0 +1,7 @@
+Based on the provided content, here's a concise answer:
+
+**Purpose:** The Fetch API is designed for "fetching resources (including across the network)" and serves as "a more powerful and flexible replacement for `XMLHttpRequest`."
+
+**Primary Entry Point:** The `fetch()` method is the main global function. It's available in both Window and Worker contexts, making it universally accessible for retrieving resources. The method accepts a mandatory resource path argument and returns a Promise that resolves to a Response object—even when the server returns an HTTP error status.
+
+Additionally, the modern `fetchLater()` API enables deferred requests that execute after a delay or when the page closes, expanding the API's capabilities for asynchronous resource retrieval.

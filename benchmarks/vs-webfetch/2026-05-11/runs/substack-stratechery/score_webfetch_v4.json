@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The fetch returned HTTP 404 and no article content was retrieved, so no substantive answer or specific claims could be provided.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0408984,
+  "latency_ms": 9137,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 51
+  }
+}

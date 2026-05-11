@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The fetch returned a 404 Not Found error, so no article content was retrieved and no negotiation advice could be provided.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03887835,
+  "latency_ms": 10672,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 51
+  }
+}

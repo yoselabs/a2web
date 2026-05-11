@@ -1,0 +1,18 @@
+{
+  "scores": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The answer admits it cannot provide the requested data and offers no trending repos, scoring zero on all substantive criteria.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0394821,
+  "latency_ms": 13483,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 50
+  }
+}

@@ -1,5 +1,14 @@
 # Findings v2 — full cost/quality/reliability comparison
 
+> **SUPERSEDED on the caller-token dimension by `findings_v3.md`.**
+> This document's "67x caller-token gap" was apples-to-oranges: it
+> compared WebFetch's *server-side-extracted answer* (~94 tok) against
+> a2web's *full raw envelope* (~6,353 tok). Different artifacts.
+> The fair answer-vs-answer measurement (a2web v0.4 `ask=` extracted
+> answer vs WebFetch answer) shows a 1.43x ratio, not 67x.
+> Quality, reach, latency, per-class breakdowns below remain valid.
+
+
 Run on 2026-05-11. Phase 3 (reader + judge) replayed via `a2web.llm` over
 the Claude Code OS session, replacing the original `claude -p` subprocess
 loop. Tokens cl100k_base. n=20 URLs across 5 classes.

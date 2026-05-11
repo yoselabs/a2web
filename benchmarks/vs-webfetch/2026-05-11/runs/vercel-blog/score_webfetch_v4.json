@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer directly quotes the core definition, provides a clear 2-sentence summary, and explicitly identifies the framework/source code as the driver of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041205900000000004,
+  "latency_ms": 9459,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 57
+  }
+}

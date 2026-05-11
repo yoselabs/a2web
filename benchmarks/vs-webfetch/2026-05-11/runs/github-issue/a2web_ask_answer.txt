@@ -1,0 +1,7 @@
+## Issue Summary
+
+**What it reports:** A bug where Claude Code's file editing tool occasionally fails with the error "String to replace not found in file," preventing successful file updates on Windows 11.
+
+**Most recent status:** The issue is closed and locked. Catherine Wu (from Anthropic) acknowledged the problem and stated that "we are continuously working on improving the error rates for the edit tool. it should be much better in the latest claude 4.5 models!" This suggests the underlying issue has been addressed in newer Claude model versions, making this particular bug report obsolete.
+
+The reporter did not provide detailed reproduction steps or clarify whether the problem persists with current versions, so the closure appears to be based on the assumption that newer models have resolved the underlying editing instability.

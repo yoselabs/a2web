@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as an issue tracker/project management tool for software teams, captures the exact headline 'The product development system for teams and agents,' and provides substantive page content well beyond navigation or cookie text.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0416259,
+  "latency_ms": 8561,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 70
+  }
+}

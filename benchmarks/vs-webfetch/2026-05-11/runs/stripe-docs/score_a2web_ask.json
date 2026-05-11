@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately defines PaymentIntent as a lifecycle-tracking API object, covers states/transitions/SCA/authentication, and provides substantive content well beyond navigation links.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04193715,
+  "latency_ms": 8767,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 60
+  }
+}

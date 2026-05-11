@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    3
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "The fetch failed with HTTP 402 and no content was retrieved, so the post's substance is entirely absent, though the answer does not falsely claim success.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0070992,
+  "latency_ms": 11404,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 58
+  }
+}

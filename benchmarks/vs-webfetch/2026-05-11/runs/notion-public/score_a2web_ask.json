@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer fully defines a Notion database as a collection of pages with shared properties, clearly contrasts it with free-form regular pages, and explicitly covers views, properties, and structural features.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04187715,
+  "latency_ms": 9832,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

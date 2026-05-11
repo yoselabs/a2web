@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer fully covers all three criteria: describes the Fetch API's purpose for HTTP/network resource fetching, names fetch() as the primary global entry point, and explicitly states it returns a Promise resolving to a Response object.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04165965,
+  "latency_ms": 9380,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 72
+  }
+}

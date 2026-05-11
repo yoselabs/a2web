@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    5,
+    5
+  ],
+  "overall": 3,
+  "reached": false,
+  "reasoning": "The answer correctly reports a failure mode (HTTP 404) without fabricating a destination URL, but provides no information about where the short link leads or the destination content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0084552,
+  "latency_ms": 8549,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
+}

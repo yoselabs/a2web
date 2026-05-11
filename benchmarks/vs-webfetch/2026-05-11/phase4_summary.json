@@ -1,0 +1,978 @@
+[
+  {
+    "slug": "hn-front",
+    "class": "A_clean",
+    "url": "https://news.ycombinator.com/",
+    "task": "List the top 5 stories on this page, each as 'TITLE (SOURCE_DOMAIN) — POINTS'.",
+    "wall_ms": 14042,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "high",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 196,
+      "cost_usd": 0.01563245,
+      "latency_ms": 11626,
+      "cache_hit": false,
+      "truncated": false
+    },
+    "extracted_answer_chars": 547,
+    "a2web_ask_score": {
+      "error": "judge response missing required fields: 'reached'",
+      "raw": "{\"scores\":[5,5,5,5,3],\"overall\":4,\"reasoning\":\"All 5 stories have titles, source domains, and point counts, but the ordering is suspicious (story 3 has 525 points and story 4 has 423 points yet appear below a 273-point story, suggesting the order may not match actual HN front-page ranking).\"}"
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        5,
+        5,
+        5,
+        2
+      ],
+      "overall": 3,
+      "reached": true,
+      "reasoning": "Five stories are identified with titles, source domains, and point counts, but the ordering is suspicious — story #2 with 1,895 points would almost certainly rank #1 on HN, suggesting the order does not match the actual front-page ranking.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.007533,
+      "latency_ms": 11386,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 84
+      }
+    }
+  },
+  {
+    "slug": "arxiv-abstract",
+    "class": "A_clean",
+    "url": "https://arxiv.org/abs/2401.05566",
+    "task": "What is the paper's title, who are the authors, and what is the main contribution in one sentence?",
+    "wall_ms": 237,
+    "status": "ok",
+    "tier": "site_handler:arxiv",
+    "confidence": "high",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 334,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 1039,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer correctly identifies the full paper title, lists far more than 3 authors, and clearly summarizes the core contribution regarding persistent backdoored/deceptive behavior surviving safety training.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0403221,
+      "latency_ms": 10874,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 64
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        3,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "Correctly identifies the full paper title, names at least 3 authors (Evan Hubinger, Carson Denison, Jesse Mu plus notes additional authors), and accurately summarizes the core contribution about backdoored deceptive behaviors persisting through safety training.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.007469099999999999,
+      "latency_ms": 11203,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 81
+      }
+    }
+  },
+  {
+    "slug": "wikipedia-rust",
+    "class": "A_clean",
+    "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+    "task": "Who designed Rust originally and what year was it first released? What memory-safety mechanism is Rust known for?",
+    "wall_ms": 1046,
+    "status": "ok",
+    "tier": "site_handler:wikipedia",
+    "confidence": "high",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 179,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 794,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        0,
+        5
+      ],
+      "overall": 3,
+      "reached": true,
+      "reasoning": "Correctly identifies Graydon Hoare and the borrow checker mechanism, but states 2006 (creation year) and 2012 (first release) rather than 2010 as the first appearance/release year per the criterion.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0398796,
+      "latency_ms": 11197,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 78
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        3,
+        5
+      ],
+      "overall": 4,
+      "reached": true,
+      "reasoning": "Correctly identifies Graydon Hoare and the borrow checker mechanism, but gives 2006 (personal start) rather than 2010 (first public announcement) as the release year, though mentions 2012 public release — partial credit for criterion 2.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.04190715,
+      "latency_ms": 9163,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 84
+      }
+    }
+  },
+  {
+    "slug": "mdn-fetch-api",
+    "class": "A_clean",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+    "task": "What is the Fetch API used for, and which method on the global object is the primary entry point?",
+    "wall_ms": 219,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "high",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 162,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 771,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer fully covers all three criteria: describes the Fetch API's purpose for HTTP/network resource fetching, names fetch() as the primary global entry point, and explicitly states it returns a Promise resolving to a Response object.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.04165965,
+      "latency_ms": 9380,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 72
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer fully and accurately describes the Fetch API's purpose for making HTTP requests/fetching resources, names fetch() as the primary entry point with correct context variants, and explicitly states it returns a Promise resolving to a Response object.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0074010000000000005,
+      "latency_ms": 10872,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 73
+      }
+    }
+  },
+  {
+    "slug": "reddit-thread",
+    "class": "B_gated",
+    "url": "https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/",
+    "task": "What is the original post about, and what is the dominant sentiment in the comments?",
+    "wall_ms": 808,
+    "status": "failed",
+    "tier": "raw",
+    "confidence": "low",
+    "extraction": null,
+    "extracted_answer_chars": 0,
+    "a2web_ask_score": {
+      "error": "empty extracted_answer"
+    },
+    "webfetch_score": {
+      "scores": [
+        0,
+        0,
+        0
+      ],
+      "overall": 0,
+      "reached": false,
+      "reasoning": "The answer reports a fetch error and provides no content about the post topic or comment sentiment.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0068664,
+      "latency_ms": 10651,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 43
+      }
+    }
+  },
+  {
+    "slug": "medium-post",
+    "class": "B_gated",
+    "url": "https://medium.com/@altimore/llms-as-cognitive-prosthetics-d3a5b7c2cba9",
+    "task": "What is the article's central thesis in 2-3 sentences?",
+    "wall_ms": 11090,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "medium",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 175,
+      "cost_usd": 0.014507949999999999,
+      "latency_ms": 10299,
+      "cache_hit": false,
+      "truncated": false
+    },
+    "extracted_answer_chars": 688,
+    "a2web_ask_score": {
+      "scores": [
+        0,
+        3,
+        3
+      ],
+      "overall": 1,
+      "reached": false,
+      "reasoning": "The answer correctly identifies a 404 page with no article content and honestly admits it cannot provide a thesis, scoring low on substance but not failing on paywall/nav criteria.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.041502149999999995,
+      "latency_ms": 8125,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 61
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        0,
+        5,
+        3
+      ],
+      "overall": 1,
+      "reached": false,
+      "reasoning": "The answer correctly identifies a 404 error page with no article content, so no thesis can be provided; it is not a paywall notice but does mention navigation elements.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0410409,
+      "latency_ms": 9312,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 60
+      }
+    }
+  },
+  {
+    "slug": "substack-stratechery",
+    "class": "B_gated",
+    "url": "https://stratechery.com/2025/the-end-of-the-beginning/",
+    "task": "What is the article's main argument? Cite at least one specific claim.",
+    "wall_ms": 11061,
+    "status": "ok",
+    "tier": "jina",
+    "confidence": "high",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 171,
+      "cost_usd": 0.01701295,
+      "latency_ms": 9564,
+      "cache_hit": false,
+      "truncated": false
+    },
+    "extracted_answer_chars": 687,
+    "a2web_ask_score": {
+      "scores": [
+        0,
+        0,
+        5
+      ],
+      "overall": 1,
+      "reached": false,
+      "reasoning": "The answer correctly reports a 404 fetch failure and provides no fabricated content, but cannot satisfy the substantive argument or citation criteria; criterion 3 scores high because it is not merely a title+subscribe prompt.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.03970335,
+      "latency_ms": 11410,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 70
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        0,
+        0,
+        0
+      ],
+      "overall": 0,
+      "reached": false,
+      "reasoning": "The fetch returned HTTP 404 and no article content was retrieved, so no substantive answer or specific claims could be provided.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0408984,
+      "latency_ms": 9137,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 51
+      }
+    }
+  },
+  {
+    "slug": "x-post",
+    "class": "B_gated",
+    "url": "https://x.com/karpathy/status/1759031023815639423",
+    "task": "What does Karpathy say in this post? Capture the gist.",
+    "wall_ms": 5675,
+    "status": "failed",
+    "tier": "browser",
+    "confidence": "low",
+    "extraction": null,
+    "extracted_answer_chars": 0,
+    "a2web_ask_score": {
+      "error": "empty extracted_answer"
+    },
+    "webfetch_score": {
+      "scores": [
+        0,
+        0,
+        3
+      ],
+      "overall": 1,
+      "reached": false,
+      "reasoning": "The fetch failed with HTTP 402 and no content was retrieved, so the post's substance is entirely absent, though the answer does not falsely claim success.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0070992,
+      "latency_ms": 11404,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 58
+      }
+    }
+  },
+  {
+    "slug": "linear-marketing",
+    "class": "C_spa",
+    "url": "https://linear.app/",
+    "task": "What product does this company sell, and what is the primary headline / value proposition on the landing page?",
+    "wall_ms": 5788,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "medium",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 157,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 808,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer correctly identifies Linear as an issue tracker/project management tool, captures substantive headlines ('A new species of product tool', 'Purpose-built for planning and building products', 'Designed for the AI era'), and goes well beyond navigation text with meaningful content about the product's value proposition.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.041832150000000005,
+      "latency_ms": 10329,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 87
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer correctly identifies Linear as an issue tracker/project management tool for software teams, captures the exact headline 'The product development system for teams and agents,' and provides substantive page content well beyond navigation or cookie text.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0416259,
+      "latency_ms": 8561,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 70
+      }
+    }
+  },
+  {
+    "slug": "vercel-blog",
+    "class": "C_spa",
+    "url": "https://vercel.com/blog/framework-defined-infrastructure",
+    "task": "What is 'framework-defined infrastructure' according to this post? Give the core idea in 2 sentences.",
+    "wall_ms": 559,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "high",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 136,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 715,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer accurately defines FDI with a direct quote, provides a clear 2-sentence core summary, and explicitly identifies the framework as the source of infrastructure decisions.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.041393400000000004,
+      "latency_ms": 9030,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 59
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer directly quotes the core definition, provides a clear 2-sentence summary, and explicitly identifies the framework/source code as the driver of infrastructure decisions.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.041205900000000004,
+      "latency_ms": 9459,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 57
+      }
+    }
+  },
+  {
+    "slug": "stripe-docs",
+    "class": "C_spa",
+    "url": "https://docs.stripe.com/payments/payment-intents",
+    "task": "What is a Stripe PaymentIntent and what is its purpose in the payment lifecycle?",
+    "wall_ms": 1426,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "high",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 296,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 1471,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer accurately defines PaymentIntent as a lifecycle-tracking API object, covers states/transitions/SCA/authentication, and provides substantive content well beyond navigation links.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.04193715,
+      "latency_ms": 8767,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 60
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        4,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer clearly defines PaymentIntent as a lifecycle-tracking API object, covers states/transitions and SCA/authentication, and provides substantive content beyond navigation links.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.04153965,
+      "latency_ms": 8545,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 59
+      }
+    }
+  },
+  {
+    "slug": "notion-public",
+    "class": "C_spa",
+    "url": "https://www.notion.so/help/intro-to-databases",
+    "task": "What is a Notion database, and how does it differ from a regular Notion page?",
+    "wall_ms": 858,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "high",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 265,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 1297,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer fully defines a Notion database as a collection of pages with shared properties, clearly contrasts it with free-form regular pages, and explicitly covers views, properties, and structural features.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.04187715,
+      "latency_ms": 9832,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 64
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        0,
+        0,
+        0
+      ],
+      "overall": 0,
+      "reached": false,
+      "reasoning": "The answer contains only a redirect notice and no actual content about Notion databases.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.04078589999999999,
+      "latency_ms": 9133,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 41
+      }
+    }
+  },
+  {
+    "slug": "github-issue",
+    "class": "D_structured",
+    "url": "https://github.com/anthropics/claude-code/issues/2107",
+    "task": "What does this issue report, and what is the most recent status / conclusion?",
+    "wall_ms": 680,
+    "status": "ok",
+    "tier": "site_handler:github",
+    "confidence": "medium",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 166,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 841,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer accurately captures the reported bug, confirms the issue is closed and locked, and cites a specific comment from Catherine Wu at Anthropic referencing improvements in Claude 4.5 models.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.03962834999999999,
+      "latency_ms": 10795,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 66
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer accurately captures the reported problem (string-not-found file update error), confirms the issue is closed as a duplicate, and cites specific substantive details including the error message text, version, OS, platform, and labels.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0415434,
+      "latency_ms": 14278,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 73
+      }
+    }
+  },
+  {
+    "slug": "pypi-page",
+    "class": "D_structured",
+    "url": "https://pypi.org/project/anthropic/",
+    "task": "What is this package, what is its latest version, and what is the install command?",
+    "wall_ms": 289,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "high",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 101,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 394,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer correctly identifies the Anthropic Python SDK, provides a specific version number (0.101.0), and gives the exact pip install command.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.04111215,
+      "latency_ms": 10317,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 56
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer correctly identifies the Anthropic Python SDK, provides a specific version number (0.100.0), and gives the correct install command (pip install anthropic).",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.007137,
+      "latency_ms": 11427,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 60
+      }
+    }
+  },
+  {
+    "slug": "npm-page",
+    "class": "D_structured",
+    "url": "https://www.npmjs.com/package/react",
+    "task": "What is this package, what is its current version, and how many weekly downloads does it have (approximately)?",
+    "wall_ms": 1067,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "medium",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 130,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 663,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        0,
+        0
+      ],
+      "overall": 2,
+      "reached": true,
+      "reasoning": "The answer correctly identifies React as a JavaScript UI library but fails to provide the current version number or weekly download count, admitting the content didn't include that data.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.041269650000000005,
+      "latency_ms": 9784,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 58
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        0,
+        0,
+        0
+      ],
+      "overall": 0,
+      "reached": false,
+      "reasoning": "The fetch failed with HTTP 403 Forbidden and no content was retrieved, so none of the criteria could be satisfied.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0069657,
+      "latency_ms": 16120,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 50
+      }
+    }
+  },
+  {
+    "slug": "gh-trending",
+    "class": "D_structured",
+    "url": "https://github.com/trending/python?since=daily",
+    "task": "List the top 5 trending Python repos on GitHub today, each as 'OWNER/REPO — short description'.",
+    "wall_ms": 2238,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "medium",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 184,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 776,
+    "a2web_ask_score": {
+      "scores": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "overall": 0,
+      "reached": false,
+      "reasoning": "The answer admits it cannot provide the requested data and offers no trending repos, scoring zero on all substantive criteria.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0394821,
+      "latency_ms": 13483,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 50
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        5,
+        3,
+        1
+      ],
+      "overall": 3,
+      "reached": true,
+      "reasoning": "Five repos are listed in correct owner/repo format with descriptions, but the selections appear fabricated or outdated rather than reflecting the actual GitHub trending page order for today.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.04147965,
+      "latency_ms": 9480,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 61
+      }
+    }
+  },
+  {
+    "slug": "dead-with-archive",
+    "class": "E_edge",
+    "url": "https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/",
+    "task": "What is the main advice in this article about salary negotiation? Give the top 3 points.",
+    "wall_ms": 2357,
+    "status": "failed",
+    "tier": "jina",
+    "confidence": "low",
+    "extraction": null,
+    "extracted_answer_chars": 0,
+    "a2web_ask_score": {
+      "error": "empty extracted_answer"
+    },
+    "webfetch_score": {
+      "scores": [
+        0,
+        0,
+        0
+      ],
+      "overall": 0,
+      "reached": false,
+      "reasoning": "The fetch returned a 404 Not Found error, so no article content was retrieved and no negotiation advice could be provided.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.03887835,
+      "latency_ms": 10672,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 51
+      }
+    }
+  },
+  {
+    "slug": "large-page",
+    "class": "E_edge",
+    "url": "https://lwn.net/Articles/991060/",
+    "task": "What is the topic of this LWN article, and what is the key technical issue or change being discussed?",
+    "wall_ms": 433,
+    "status": "failed",
+    "tier": "raw",
+    "confidence": "low",
+    "extraction": null,
+    "extracted_answer_chars": 0,
+    "a2web_ask_score": {
+      "error": "empty extracted_answer"
+    },
+    "webfetch_score": {
+      "scores": [
+        2,
+        0,
+        1
+      ],
+      "overall": 1,
+      "reached": true,
+      "reasoning": "The answer identifies the article title and date correctly but cannot report any technical content, only noting the body was absent; it avoids fabrication but provides no substantive technical detail.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0071559,
+      "latency_ms": 11686,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 61
+      }
+    }
+  },
+  {
+    "slug": "non-english",
+    "class": "E_edge",
+    "url": "https://habr.com/ru/articles/799471/",
+    "task": "What is this article about? Summarize in English in 2-3 sentences.",
+    "wall_ms": 395,
+    "status": "ok",
+    "tier": "raw",
+    "confidence": "high",
+    "extraction": {
+      "model": "claude-haiku-4-5-20251001",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 3,
+      "completion_tokens": 100,
+      "cost_usd": 0.0,
+      "latency_ms": 0,
+      "cache_hit": true,
+      "truncated": false
+    },
+    "extracted_answer_chars": 480,
+    "a2web_ask_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer provides a precise, substantive English summary covering the specific concepts of PID control, inverted pendulum, Simulink Multibody library, dual control loops (pendulum stabilization and cart position), and disturbance rejection.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.041434649999999996,
+      "latency_ms": 8512,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 76
+      }
+    },
+    "webfetch_score": {
+      "scores": [
+        5,
+        5,
+        5
+      ],
+      "overall": 5,
+      "reached": true,
+      "reasoning": "The answer provides a precise, substantive English summary mentioning specific technical concepts (inverted pendulum, PID controllers, Multibody library, Kalman filter, cart positioning) directly from the article body.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.04135590000000001,
+      "latency_ms": 10526,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 70
+      }
+    }
+  },
+  {
+    "slug": "redirect-chain",
+    "class": "E_edge",
+    "url": "https://t.co/abcdef",
+    "task": "Where does this short link lead, and what is the content at the destination?",
+    "wall_ms": 724,
+    "status": "failed",
+    "tier": "none",
+    "confidence": "low",
+    "extraction": null,
+    "extracted_answer_chars": 0,
+    "a2web_ask_score": {
+      "error": "empty extracted_answer"
+    },
+    "webfetch_score": {
+      "scores": [
+        0,
+        5,
+        5
+      ],
+      "overall": 3,
+      "reached": false,
+      "reasoning": "The answer correctly reports a failure mode (HTTP 404) without fabricating a destination URL, but provides no information about where the short link leads or the destination content.",
+      "model": "claude-sonnet-4-6",
+      "cost_usd": 0.0084552,
+      "latency_ms": 8549,
+      "raw": {
+        "prompt_tokens": 3,
+        "completion_tokens": 59
+      }
+    }
+  }
+]

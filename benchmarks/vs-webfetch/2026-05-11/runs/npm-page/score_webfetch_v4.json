@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The fetch failed with HTTP 403 Forbidden and no content was retrieved, so none of the criteria could be satisfied.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0069657,
+  "latency_ms": 16120,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 50
+  }
+}
