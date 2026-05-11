@@ -8,6 +8,21 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### v0.5 step 6 — http_cache promoted to packages/ (2026-05-12)
+
+- **`packages/http_cache/`** — fourth in-tree microsofware. Owns
+  `CacheRow` (boundary type), `SqliteResource` (lazy aiosqlite + schema
+  bootstrap), `cache_get`/`cache_put` primitives, `open_sqlite_with_schema`,
+  `cache_dir`. Zero `a2web.<domain>` imports — the package takes a
+  `db_path: Path | None` instead of `AppSettings`.
+- **`cache/sqlite_cache.py` reduced to seam.** Keeps the domain-coupled
+  bits: `compute_profile_hash(AppSettings)`, `is_live_only(url,
+  AppSettings)`, and a `SqliteResource(settings)` subclass shim that
+  forwards to the package. Re-exports the package primitives so
+  existing imports (`from a2web.cache.sqlite_cache import …`) keep
+  working unmodified.
+- `test_packages_independence` auto-validates the new module.
+
 ### v0.5 step 5 — ndjson_log promoted to packages/ (2026-05-12)
 
 - **`packages/ndjson_log/`** — third in-tree microsofware. Owns

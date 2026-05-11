@@ -1,72 +1,74 @@
-"""sqlite-backed conditional-GET cache. Block pages NEVER enter this cache.
+"""a2web seam over `packages.http_cache`.
 
-Schema is one table, profile-scoped, content-hash dedup. The cache write
-gate lives in `fetcher.py` — only `Verdict.ok` results land here.
+The cache primitives (`CacheRow`, `cache_get`/`cache_put`, `SqliteResource`,
+`cache_dir`, `open_sqlite_with_schema`) live in
+`a2web.packages.http_cache` as in-tree microsofware. This module is the
+a2web seam: it re-exports the primitives and adds the domain-coupled
+bits (profile-hash composition over `AppSettings`, live-only host
+bypass) that the orchestrator needs.
+
+Block pages NEVER enter this cache — the write gate lives in `fetcher.py`.
 """
 
 from __future__ import annotations
 
-import asyncio
-import gzip
 import hashlib
-import os
-import time
-from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
-import aiosqlite
-
+from ..packages.http_cache import (
+    CacheRow,
+    cache_dir,
+    cache_get,
+    cache_put,
+)
+from ..packages.http_cache import (
+    SqliteResource as _PackageSqliteResource,
+)
+from ..packages.http_cache import (
+    open_sqlite_with_schema as _package_open,
+)
 from ..settings import AppSettings
 
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS cache (
-    url            TEXT NOT NULL,
-    profile_hash   TEXT NOT NULL,
-    etag           TEXT,
-    last_modified  TEXT,
-    fetched_at     INTEGER NOT NULL,
-    expires_at     INTEGER NOT NULL,
-    status_code    INTEGER NOT NULL,
-    content_type   TEXT,
-    content_hash   TEXT NOT NULL,
-    body           BLOB NOT NULL,
-    PRIMARY KEY (url, profile_hash)
-);
-"""
+if TYPE_CHECKING:
+    import aiosqlite
 
-_INDEX = "CREATE INDEX IF NOT EXISTS cache_content_hash ON cache(content_hash);"
+__all__ = (
+    "CacheRow",
+    "SqliteResource",
+    "cache_dir",
+    "cache_get",
+    "cache_get_dir",
+    "cache_put",
+    "compute_profile_hash",
+    "is_live_only",
+    "open_sqlite_with_schema",
+)
 
 
-@dataclass(slots=True)
-class CacheRow:
-    url: str
-    profile_hash: str
-    etag: str | None
-    last_modified: str | None
-    fetched_at: int
-    expires_at: int
-    status_code: int
-    content_type: str | None
-    content_hash: str
-    body: bytes
+async def open_sqlite_with_schema(_settings: AppSettings | None = None) -> aiosqlite.Connection:
+    """a2web seam over `packages.http_cache.open_sqlite_with_schema`.
+
+    Accepts (and ignores) `AppSettings` for backward compat — the
+    package layer takes a `Path | None` and resolves via `$A2WEB_CACHE_DIR`
+    / `cache_dir()`.
+    """
+    return await _package_open(None)
 
 
-def cache_dir() -> Path:
-    """Resolve the cache directory, honoring `$A2WEB_CACHE_DIR`."""
-    override = os.environ.get("A2WEB_CACHE_DIR")
-    return Path(override).expanduser() if override else Path.home() / ".a2web"
+class SqliteResource(_PackageSqliteResource):
+    """a2web seam: accepts `AppSettings` and constructs the package's
+    `SqliteResource` against the resolved cache path.
 
+    The settings object is currently unused at the package layer (cache
+    location comes from `cache_dir()` / `$A2WEB_CACHE_DIR`). It is held
+    on the seam in case future fields (e.g. operator-specified DB path)
+    need to influence construction.
+    """
 
-async def open_sqlite_with_schema(_settings: AppSettings) -> aiosqlite.Connection:
-    """Open the sqlite database (creating dir + schema as needed)."""
-    cache_root = cache_dir()
-    cache_root.mkdir(parents=True, exist_ok=True)
-    conn = await aiosqlite.connect(cache_root / "cache.sqlite")
-    await conn.execute("PRAGMA journal_mode=WAL")
-    await conn.execute(_SCHEMA)
-    await conn.execute(_INDEX)
-    await conn.commit()
-    return conn
+    def __init__(self, settings: AppSettings) -> None:
+        self._settings = settings
+        super().__init__(db_path=None)
 
 
 def compute_profile_hash(settings: AppSettings) -> str:
@@ -78,143 +80,11 @@ def compute_profile_hash(settings: AppSettings) -> str:
     return hashlib.sha256(payload).hexdigest()[:16]
 
 
-async def cache_get(conn: aiosqlite.Connection, url: str, profile_hash: str) -> CacheRow | None:
-    """Return a non-expired row for (url, profile_hash) or None."""
-    async with conn.execute(
-        "SELECT url, profile_hash, etag, last_modified, fetched_at, expires_at, "
-        "status_code, content_type, content_hash, body FROM cache "
-        "WHERE url = ? AND profile_hash = ? AND expires_at > ?",
-        (url, profile_hash, int(time.time())),
-    ) as cursor:
-        row = await cursor.fetchone()
-    if row is None:
-        return None
-    return CacheRow(
-        url=row[0],
-        profile_hash=row[1],
-        etag=row[2],
-        last_modified=row[3],
-        fetched_at=row[4],
-        expires_at=row[5],
-        status_code=row[6],
-        content_type=row[7],
-        content_hash=row[8],
-        body=gzip.decompress(row[9]),
-    )
-
-
-async def cache_put(
-    conn: aiosqlite.Connection,
-    url: str,
-    profile_hash: str,
-    *,
-    etag: str | None,
-    last_modified: str | None,
-    status_code: int,
-    content_type: str | None,
-    body: bytes,
-    ttl_s: int,
-) -> None:
-    """Insert or replace one cache row. Caller MUST gate-check first."""
-    now = int(time.time())
-    content_hash = hashlib.sha256(body).hexdigest()
-    compressed = gzip.compress(body)
-    await conn.execute(
-        "INSERT OR REPLACE INTO cache "
-        "(url, profile_hash, etag, last_modified, fetched_at, expires_at, "
-        "status_code, content_type, content_hash, body) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (
-            url,
-            profile_hash,
-            etag,
-            last_modified,
-            now,
-            now + ttl_s,
-            status_code,
-            content_type,
-            content_hash,
-            compressed,
-        ),
-    )
-    await conn.commit()
-
-
 def is_live_only(url: str, settings: AppSettings) -> bool:
     """Return True if `url`'s host should bypass the cache entirely."""
-    from urllib.parse import urlparse
-
     host = urlparse(url).hostname or ""
     return any(host == h or host.endswith(f".{h}") for h in settings.live_only_hosts)
 
 
-# --------------------------------------------------------------------- #
-# Resource pattern — lazy-init, lock-in-resource (a2kit v0.27 canonical).
-# --------------------------------------------------------------------- #
-
-
-class SqliteResource:
-    """Lazy aiosqlite connection + schema bootstrap. Non-Optional on AppState.
-
-    Opens the underlying sqlite connection on first `_ensure()` call under
-    an internal lock. AppState holds this as a non-Optional field; callers
-    invoke `get` / `put` / `close` directly without None-guards.
-    """
-
-    def __init__(self, settings: AppSettings) -> None:
-        self._settings = settings
-        self._conn: aiosqlite.Connection | None = None
-        self._lock = asyncio.Lock()
-
-    async def _ensure(self) -> aiosqlite.Connection:
-        """Open + schema-bootstrap on first call; cached thereafter.
-
-        Double-checked locking guards against concurrent first calls. Safe
-        to call from anywhere on the event loop.
-        """
-        if self._conn is not None:
-            return self._conn
-        async with self._lock:
-            if self._conn is None:
-                self._conn = await open_sqlite_with_schema(self._settings)
-            return self._conn
-
-    async def get(self, url: str, profile_hash: str) -> CacheRow | None:
-        """Return a non-expired cache row for (url, profile_hash) or None."""
-        conn = await self._ensure()
-        return await cache_get(conn, url, profile_hash)
-
-    async def put(
-        self,
-        url: str,
-        profile_hash: str,
-        *,
-        etag: str | None,
-        last_modified: str | None,
-        status_code: int,
-        content_type: str | None,
-        body: bytes,
-        ttl_s: int,
-    ) -> None:
-        """Insert or replace one cache row. Caller MUST gate-check first."""
-        conn = await self._ensure()
-        await cache_put(
-            conn,
-            url,
-            profile_hash,
-            etag=etag,
-            last_modified=last_modified,
-            status_code=status_code,
-            content_type=content_type,
-            body=body,
-            ttl_s=ttl_s,
-        )
-
-    async def close(self) -> None:
-        """Idempotent close. Re-`_ensure()` after close reopens."""
-        if self._conn is None:
-            return
-        async with self._lock:
-            if self._conn is not None:
-                await self._conn.close()
-                self._conn = None
+# Backward-compat re-export alias kept off __all__ to avoid encouraging new use.
+cache_get_dir = cache_dir

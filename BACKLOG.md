@@ -43,9 +43,13 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   microsofware. Package owns `LogRecord` + `LogWriter` + rotation + paths;
   `log/*` reduced to seam shims (one-line re-exports + the
   `from_response()` adapter for `FetchResponse`).
-- ⏳ **Stage 2e+ — remaining package promotions.** http_cache,
-  proxy_routing, llm_extract behind their boundary types. Each is its
-  own focused PR.
+- ✅ **Stage 2e — http_cache promoted to packages/.** Fourth in-tree
+  microsofware. Package owns `CacheRow` + `SqliteResource` + cache_get/put
+  primitives, takes `db_path: Path | None`. `cache/sqlite_cache.py`
+  reduced to seam — keeps `compute_profile_hash`, `is_live_only`, and an
+  AppSettings-aware `SqliteResource` subclass shim.
+- ⏳ **Stage 2f+ — remaining package promotions.** proxy_routing,
+  llm_extract behind their boundary types. Each is its own focused PR.
 - ⏳ **Stage 3a — logging swap.** *Why deferred:* stdlib
   `RotatingFileHandler` uses `.1`/`.2` suffix instead of the current
   `fetches-YYYY-MM-DD-NN.ndjson.gz` format. Changes the rolled-file naming
