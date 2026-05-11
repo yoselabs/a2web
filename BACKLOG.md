@@ -91,25 +91,29 @@ invariant guards the contract for all of them.
   `field_validator` on `ProxyEntry.url` in `settings.py`;
   `record_from_response` alias replaced by `FetchResponse.to_log_record()`
   method.
-- ⏳ **Stage 4 — fetcher decomposition.** `_phase_tier_loop` → `_try_tier`
-  / `_install_if_won` / `_apply_after_tier` (the 15-line "obvious form").
-  Merge `_dispatch_archive` + `_escalate_browser` → unified `_escalate`.
-  Move `_phase_extract_answer` into `packages/llm_extract/`. Needs its
-  own Plan — separate session.
+- ✅ **Stage 4 — fetcher decomposition (DONE in v0.5 step 10).** Delivered:
+  `_phase_tier_loop` body split into `_install_won_tier`,
+  `_install_archive_payload`, `_apply_after_tier_action` (returning the
+  `_AfterTier` enum); shared `_emit_tier_started` / `_emit_tier_ended`
+  helpers used by tier loop + both escalators; shared
+  `_regate_after_escalation` helper. `_phase_extract_answer` stays at
+  the a2web seam by design (intrinsically domain-coupled — uses
+  FetchContext, FetchResponse, OperatorHint).
 
 ---
 
 ## v0.2 workspace-packaging deferral (from `migrate-to-a2kit-v026-and-simplify`)
 
-- **Phase D — extract `proxy-pool`, `browser-pool`, `block-detector` as
-  uv workspace packages.** Source: `migrate-to-a2kit-v026-and-simplify`
-  Phase D (tasks 4.1–4.6). *Why deferred:* mechanical cost is real
-  (three `pyproject.toml`s, isolated test trees, Makefile + CI rewiring,
-  import-boundary lint) and there is no concrete external-reuse signal
-  yet. All three modules already have package-shaped interfaces inside
-  a2web (pure types, no upward `a2web.*` imports) — extraction is a
-  refactor any future change can pick up unchanged. Reconsider when a
-  second consumer materializes. Scope: M.
+- **Phase D — extract as uv workspace packages.** Source:
+  `migrate-to-a2kit-v026-and-simplify` Phase D (tasks 4.1–4.6).
+  *Superseded by v0.5's in-tree `packages/` migration.* All seven
+  candidate microsofware modules (`browser_pool`, `block_detector`,
+  `ndjson_log`, `http_cache`, `proxy_routing`, `llm_extract`,
+  `content_extract`) now live under `src/a2web/packages/` with the
+  contract enforced by `test_packages_independence`. Promoting one
+  to a separate uv workspace package is a mechanical move from there
+  — wait for an actual second consumer before paying that mechanical
+  cost. Scope: M per module.
 
 ## v0.2 OSS-adoption deferrals (from `migrate-to-a2kit-v026-and-simplify`)
 
@@ -217,7 +221,7 @@ the default response envelope leaks ~80% of its token budget for ~0%
 quality gain on most tasks** — `links` is 49% of payload, `fit_md` is
 19% of payload as a pure duplicate of `content_md`.
 
-### v0.3 (response-envelope diet) — SHIPPED ✓ (Unreleased)
+### v0.3 (response-envelope diet) — SHIPPED ✓ (v0.3.0)
 
 Three items merged. Benchmark re-run on 2026-05-11 against the same
 20-URL corpus shows **72% token reduction across the default response
@@ -239,7 +243,7 @@ Still deferred:
   UI/nav/redundant. Even when links stay, returning only `role=primary`
   shrinks them ~5×. Scope: M.
 
-### v0.3 (browser tier reliability) — SHIPPED ✓ (Unreleased)
+### v0.3 (browser tier reliability) — SHIPPED ✓ (v0.3.0)
 
 - ~~**Investigate why browser tier fires 0/20 times**~~ ✓ SHIPPED — gate
   now produces `suggested_tier="browser"` on the broader JS-shell pattern
