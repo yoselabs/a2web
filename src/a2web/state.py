@@ -110,7 +110,7 @@ async def ensure_llm_extractor(state: AppState):
         if state.llm_unavailable_reason is not None:
             return None
         try:
-            from .llm import Extractor, ModelSpec
+            from .llm import ExtractionCache, Extractor, ModelSpec
             from .llm.errors import LLMNotAvailable
             from .llm.providers.anthropic import AnthropicProvider
 
@@ -125,10 +125,19 @@ async def ensure_llm_extractor(state: AppState):
             except LLMNotAvailable as exc:
                 state.llm_unavailable_reason = str(exc)
                 return None
+
+            # Hook the extraction cache into the same sqlite file as the
+            # HTTP cache. When sqlite isn't yet open (early test), the
+            # extractor runs uncached — cache is purely an optimization.
+            cache = None
+            if state.sqlite is not None:
+                cache = ExtractionCache(state.sqlite, ttl_s=s.extraction_cache_ttl_s)
+
             state.llm_extractor = Extractor(
                 provider=provider,
                 model=ModelSpec(s.llm_provider, s.llm_model),
                 max_content_chars=s.extraction_max_chars,
+                cache=cache,
             )
             return state.llm_extractor
         except Exception as exc:

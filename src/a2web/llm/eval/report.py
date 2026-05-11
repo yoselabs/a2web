@@ -110,9 +110,7 @@ def _write_leaderboard(report: EvalReport) -> None:
     for row in report.rows:
         if row.judge_overall is not None:
             by_system[row.system].append(row.judge_overall)
-            by_class_system[(row.url_class or "?", row.system)].append(
-                row.judge_overall
-            )
+            by_class_system[(row.url_class or "?", row.system)].append(row.judge_overall)
         if row.judge_reached is not None:
             reached_by_system[row.system].append(row.judge_reached)
 
@@ -123,20 +121,13 @@ def _write_leaderboard(report: EvalReport) -> None:
     for system in report.systems:
         scores = by_system.get(system, [])
         if not scores:
-            lines.append(
-                f"| {system} | 0 | — | — | — | — | — |"
-            )
+            lines.append(f"| {system} | 0 | — | — | — | — | — |")
             continue
         reached = reached_by_system.get(system, [])
-        reached_pct = (
-            f"{sum(1 for r in reached if r)}/{len(reached)}" if reached else "—"
-        )
+        reached_pct = f"{sum(1 for r in reached if r)}/{len(reached)}" if reached else "—"
         mean_s = statistics.mean(scores)
         median_s = statistics.median(scores)
-        lines.append(
-            f"| {system} | {len(scores)} | {reached_pct} "
-            f"| {mean_s:.2f} | {median_s:.1f} | {min(scores)} | {max(scores)} |"
-        )
+        lines.append(f"| {system} | {len(scores)} | {reached_pct} | {mean_s:.2f} | {median_s:.1f} | {min(scores)} | {max(scores)} |")
     lines.append("")
 
     # Per URL class
@@ -190,10 +181,7 @@ def _write_cost(report: EvalReport) -> None:
         cost_per_point_s = f"${cost_per_point:.4f}" if mean_score > 0 else "—"
         fc = fetch_cost[system]
         jc = judge_cost[system]
-        lines.append(
-            f"| {system} | ${fc:.4f} | ${jc:.4f} "
-            f"| ${total_sys:.4f} | {mean_score:.2f} | {cost_per_point_s} |"
-        )
+        lines.append(f"| {system} | ${fc:.4f} | ${jc:.4f} | ${total_sys:.4f} | {mean_score:.2f} | {cost_per_point_s} |")
     (report.output_dir / "cost.md").write_text("\n".join(lines) + "\n")
 
 
@@ -204,9 +192,7 @@ def _write_findings(report: EvalReport) -> None:
     # System reach summary
     lines.append("## Reach (judge said real content delivered)\n")
     for system in report.systems:
-        reached = sum(
-            1 for r in report.rows if r.system == system and r.judge_reached
-        )
+        reached = sum(1 for r in report.rows if r.system == system and r.judge_reached)
         total = sum(1 for r in report.rows if r.system == system)
         lines.append(f"- **{system}**: {reached}/{total}")
     lines.append("")
@@ -268,9 +254,7 @@ def stats_dict(report: EvalReport) -> dict[str, Any]:
     return {
         "rows": len(report.rows),
         "systems": report.systems,
-        "mean_overall_by_system": {
-            s: (statistics.mean(v) if v else None) for s, v in by_system_overall.items()
-        },
+        "mean_overall_by_system": {s: (statistics.mean(v) if v else None) for s, v in by_system_overall.items()},
         "cost_by_system_usd": dict(cost_by_system),
         "total_cost_usd": sum(cost_by_system.values()),
         "wall_seconds": report.wall_seconds,

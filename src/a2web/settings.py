@@ -120,6 +120,7 @@ class AppSettings(BaseSettings):
     llm_model: str = "claude-haiku-4-5-20251001"
     llm_api_key_env: str = "ANTHROPIC_API_KEY"
     extraction_max_chars: int = 100_000  # matches WebFetch's BD_ constant
+    extraction_cache_ttl_s: int = 900  # matches WebFetch's sg5 (15 min)
 
     @classmethod
     def settings_customise_sources(

@@ -17,6 +17,7 @@ Wired into `routers.fetch` via the optional `ask=` parameter (v0.4). When
 
 from __future__ import annotations
 
+from .cache import ExtractionCache, ExtractionCacheRow, hash_text
 from .errors import LLMNotAvailable
 from .extractor import ExtractionResult, Extractor, ModelSpec
 from .judge import Judge, JudgeParseError, JudgeVerdict
@@ -32,6 +33,8 @@ __all__ = [
     "JUDGE_V1",
     "TERSE_V1",
     "WEBFETCH_DEFAULT_V1",
+    "ExtractionCache",
+    "ExtractionCacheRow",
     "ExtractionResult",
     "Extractor",
     "Judge",
@@ -42,4 +45,5 @@ __all__ = [
     "PromptTemplate",
     "Provider",
     "ProviderResponse",
+    "hash_text",
 ]

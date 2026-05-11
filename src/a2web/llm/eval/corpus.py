@@ -73,22 +73,14 @@ def load_corpus(path: str | Path) -> Corpus:
             task = str(row["task"])
             criteria_raw = row["criteria"]
         except KeyError as exc:
-            raise CorpusError(
-                f"corpus {p} row {i} missing required field: {exc}"
-            ) from exc
+            raise CorpusError(f"corpus {p} row {i} missing required field: {exc}") from exc
         if not isinstance(criteria_raw, list) or not criteria_raw:
-            raise CorpusError(
-                f"corpus {p} row {i} (slug={slug!r}) has empty/invalid criteria"
-            )
+            raise CorpusError(f"corpus {p} row {i} (slug={slug!r}) has empty/invalid criteria")
         criteria = [str(c) for c in criteria_raw]
         url_class = str(row.get("class") or "")
         needs_raw = row.get("needs") or []
         needs = [str(n) for n in needs_raw]
-        extra: dict[str, Any] = {
-            k: v
-            for k, v in row.items()
-            if k not in {"slug", "url", "task", "criteria", "class", "needs"}
-        }
+        extra: dict[str, Any] = {k: v for k, v in row.items() if k not in {"slug", "url", "task", "criteria", "class", "needs"}}
         entries.append(
             CorpusEntry(
                 slug=slug,

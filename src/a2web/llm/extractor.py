@@ -11,10 +11,13 @@ Tied to a `Provider` + `PromptTemplate` at construction time. The cache
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .prompts import WEBFETCH_DEFAULT_V1, PromptTemplate
 from .providers.base import Provider
+
+if TYPE_CHECKING:
+    from .cache import ExtractionCache
 
 
 @dataclass(slots=True)
@@ -72,12 +75,14 @@ class Extractor:
         template: PromptTemplate = WEBFETCH_DEFAULT_V1,
         max_content_chars: int = 100_000,
         max_tokens: int = 1024,
+        cache: ExtractionCache | None = None,
     ) -> None:
         self._provider = provider
         self._model = model
         self._template = template
         self._max_content_chars = max_content_chars
         self._max_tokens = max_tokens
+        self._cache = cache
 
     @property
     def model(self) -> ModelSpec:
@@ -88,8 +93,43 @@ class Extractor:
         return self._template
 
     async def extract(self, *, content: str, ask: str) -> ExtractionResult:
-        """Run the template over (content, ask). Returns ExtractionResult."""
+        """Run the template over (content, ask). Returns ExtractionResult.
+
+        When a cache is wired and the key (hash(content), hash(ask), model_id,
+        template_name) hits, the cached answer + tokens are returned with
+        `cost_usd=0.0` and `original_cost_usd` carrying the original spend.
+        """
         truncated, was_truncated = _truncate(content, self._max_content_chars)
+        raw_extras: dict[str, Any] | None = {"truncated": True} if was_truncated else None
+
+        # Cache lookup uses the (truncated) content we'd actually send; that
+        # way two callers with different upstream payloads but the same
+        # post-cap content share a cache slot, mirroring WebFetch's behavior.
+        if self._cache is not None:
+            from .cache import hash_text
+
+            content_hash = hash_text(truncated)
+            ask_hash = hash_text(ask)
+            hit = await self._cache.get(
+                content_hash=content_hash,
+                ask_hash=ask_hash,
+                model_id=self._model.model,
+                template_name=self._template.name,
+            )
+            if hit is not None:
+                return ExtractionResult(
+                    answer=hit.answer,
+                    model=self._model.model,
+                    template_name=self._template.name,
+                    prompt_tokens=hit.prompt_tokens,
+                    completion_tokens=hit.completion_tokens,
+                    cost_usd=0.0,
+                    latency_ms=0,
+                    cache_hit=True,
+                    original_cost_usd=hit.cost_usd,
+                    raw=raw_extras,
+                )
+
         user = self._template.user_template.format(content=truncated, ask=ask)
 
         response = await self._provider.complete(
@@ -100,6 +140,22 @@ class Extractor:
             thinking_disabled=True,
         )
 
+        # Persist a successful answer for re-use within the TTL window.
+        if self._cache is not None and response.text:
+            from .cache import hash_text
+
+            await self._cache.put(
+                content_hash=hash_text(truncated),
+                ask_hash=hash_text(ask),
+                model_id=self._model.model,
+                template_name=self._template.name,
+                answer=response.text,
+                prompt_tokens=response.prompt_tokens,
+                completion_tokens=response.completion_tokens,
+                cost_usd=response.cost_usd,
+                latency_ms=response.latency_ms,
+            )
+
         return ExtractionResult(
             answer=response.text,
             model=response.model,
@@ -109,7 +165,7 @@ class Extractor:
             cost_usd=response.cost_usd,
             latency_ms=response.latency_ms,
             cache_hit=False,
-            raw={"truncated": was_truncated} if was_truncated else None,
+            raw=raw_extras,
         )
 
 
