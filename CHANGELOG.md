@@ -8,6 +8,55 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+(no unreleased work)
+
+## [0.5.0] - 2026-05-12
+
+Simplification + structural cleanup release. Three themes:
+
+1. **a2kit v0.27.2 migration** (step 1). Resource pattern for every
+   long-lived async resource — sync `__init__`, internal lock, lazy
+   `_ensure()`, idempotent `close()`. Non-Optional AppState. DI-aware
+   lifecycle hooks. Typed-event direct emit. ~-95 LOC.
+2. **Seven in-tree microsofware packages** (steps 2, 4–9). New
+   `src/a2web/packages/` directory with a strict contract: no
+   `a2web.<domain>` imports allowed inside. Promoted: `browser_pool`,
+   `block_detector`, `ndjson_log`, `http_cache`, `proxy_routing`,
+   `llm_extract`, `content_extract`. The `test_packages_independence`
+   invariant fails CI on drift.
+3. **Fetcher decomposition** (step 10). The 180-LOC tier loop is
+   split into a coordinator + three named helpers driven by an
+   `_AfterTier` enum. Shared tier-emit and regate-after-escalation
+   helpers centralize previously-duplicated boilerplate.
+
+Plus a micro-cleanups bundle (step 3) that collapsed `*_hint` fields
+to a single `fc.operator_hints` accumulator, deleted YAGNI parameter
+stubs, dropped non-loadbearing `@runtime_checkable` decorators, and
+moved `_resolve_env` to a pydantic validator.
+
+320 tests passing at 85.90% coverage on release.
+
+### v0.5 step 10 — fetcher decomposition (2026-05-12)
+
+Plan: `openspec/changes/archive/2026-05-12-v0.5-fetcher-decomposition/`.
+
+- **Step 10a — `_emit_tier_started` / `_emit_tier_ended` helpers.** The
+  TierStarted/TierEnded emission pattern was duplicated at three sites
+  (tier loop, archive escalation, browser escalation). Centralized
+  into two small async helpers above the archive section. Removes a
+  stale in-band `tier_dur_ms` calc — TierEnded.dur_ms and Diagnostic
+  share exactly one source now.
+- **Step 10b — split `_phase_tier_loop` into named helpers.** The
+  180-LOC tier loop now coordinates over three named helpers with an
+  `_AfterTier` enum driving control flow: `_install_won_tier`,
+  `_install_archive_payload`, `_apply_after_tier_action`. Outer loop
+  body drops from ~150 to ~85 LOC and reads top-to-bottom without
+  flag variables (`restart_loop`, `archive_break_payload`).
+- **Step 10c — `_regate_after_escalation` helper.** Browser and
+  gate-path archive escalators both ran the same 7-line regate block
+  after installing pre-rendered content; now one helper, one source
+  of truth.
+
 ### v0.5 step 9 — content_extract promoted to packages/ (2026-05-12)
 
 Closes Stage 2b — the original deferred-with-reason item that needed
