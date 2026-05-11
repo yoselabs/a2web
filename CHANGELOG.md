@@ -8,6 +8,22 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### v0.5 step 7 — proxy_routing promoted to packages/ (2026-05-12)
+
+- **`packages/proxy_routing/`** — fifth in-tree microsofware. Owns
+  `ResolvedRoute`, `ProxyHandle`, `ProxyPool`, `resolve_route`, plus
+  Protocol-shaped boundary types `ProxyEntryShape` / `RouteRuleShape`.
+  Zero `a2web.<domain>` imports — the package reads route/proxy data
+  via the Protocols, so any duck-typed source (pydantic, dataclass)
+  works without conversion.
+- **`proxy/policy.py` + `proxy/pool.py` reduced to seams.**
+  `resolve_route(host, tier, AppSettings)` forwards `settings.routes` /
+  `settings.proxies` into the package. `ProxyPool(settings=...)` is a
+  subclass shim with a back-compat `.settings` property. Existing test
+  and consumer imports (`from a2web.proxy.policy import resolve_route`,
+  `from a2web.proxy.pool import ProxyPool, ProxyHandle`) unchanged.
+- `test_packages_independence` auto-validates the new module.
+
 ### v0.5 step 6 — http_cache promoted to packages/ (2026-05-12)
 
 - **`packages/http_cache/`** — fourth in-tree microsofware. Owns

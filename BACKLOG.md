@@ -48,8 +48,14 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   primitives, takes `db_path: Path | None`. `cache/sqlite_cache.py`
   reduced to seam — keeps `compute_profile_hash`, `is_live_only`, and an
   AppSettings-aware `SqliteResource` subclass shim.
-- ⏳ **Stage 2f+ — remaining package promotions.** proxy_routing,
-  llm_extract behind their boundary types. Each is its own focused PR.
+- ✅ **Stage 2f — proxy_routing promoted to packages/.** Fifth in-tree
+  microsofware. Package owns `ResolvedRoute`, `ProxyHandle`, `ProxyPool`,
+  `resolve_route` plus Protocol-shaped `ProxyEntryShape` / `RouteRuleShape`
+  boundary types — pydantic models from `AppSettings.routes`/`.proxies`
+  pass through without conversion. `proxy/policy.py` + `proxy/pool.py`
+  reduced to seam shims.
+- ⏳ **Stage 2g+ — remaining package promotions.** llm_extract behind
+  its boundary types. Own focused PR.
 - ⏳ **Stage 3a — logging swap.** *Why deferred:* stdlib
   `RotatingFileHandler` uses `.1`/`.2` suffix instead of the current
   `fetches-YYYY-MM-DD-NN.ndjson.gz` format. Changes the rolled-file naming
