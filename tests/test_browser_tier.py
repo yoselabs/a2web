@@ -152,6 +152,72 @@ async def test_navigation_timeout_yields_timeout_verdict(monkeypatch: pytest.Mon
     assert result.js_executed is True
 
 
+@pytest.mark.asyncio
+async def test_launch_failure_yields_unavailable() -> None:
+    """`_ensure()` raises a non-ImportError (e.g. playwright launch failure)."""
+
+    class _BoomPool:
+        async def _ensure(self) -> None:
+            raise RuntimeError("firefox spawn failed")
+
+        async def close(self) -> None:
+            return None
+
+    state = _make_state()
+    state.browser_pool = _BoomPool()  # type: ignore[assignment]
+    tier = REGISTRY["browser"]
+    result = await tier.fetch("https://example.com/", state=state)
+
+    assert result.verdict == Verdict.connection_error
+    assert result.operator_hint.code == "browser_unavailable"
+    assert "browser launch failed" in result.operator_hint.message
+
+
+@pytest.mark.asyncio
+async def test_navigation_exception_yields_connection_error() -> None:
+    """Generic Exception during page.goto (network reset, DNS, etc.)."""
+
+    class _ExplodingPage:
+        url = "https://example.com/"
+
+        async def goto(self, url: str, wait_until: str = "networkidle") -> Any:
+            del url, wait_until
+            raise RuntimeError("net::ERR_NAME_NOT_RESOLVED")
+
+        async def content(self) -> str:
+            return ""
+
+        async def close(self) -> None:
+            return None
+
+    class _StubPoolCtx:
+        async def __aenter__(self) -> _ExplodingPage:
+            return _ExplodingPage()
+
+        async def __aexit__(self, *exc: Any) -> None:
+            return None
+
+    class _StubPool:
+        async def _ensure(self) -> None:
+            return None
+
+        def acquire(self, url: str) -> _StubPoolCtx:
+            del url
+            return _StubPoolCtx()
+
+        async def close(self) -> None:
+            return None
+
+    state = _make_state()
+    state.browser_pool = _StubPool()  # type: ignore[assignment]
+    tier = REGISTRY["browser"]
+    result = await tier.fetch("https://example.com/", state=state)
+
+    assert result.verdict == Verdict.connection_error
+    assert result.from_browser is True
+    assert result.js_executed is True
+
+
 def test_browser_in_registry_not_in_tier_order() -> None:
     from a2web.tiers import REGISTRY as REAL_REGISTRY
     from a2web.tiers import TIER_ORDER
