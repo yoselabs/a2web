@@ -6,11 +6,108 @@ All notable changes to **a2web** are recorded here. The format follows
 
 > First tagged release; entries summarize the full PR1–PR10 build.
 
-## [Unreleased] - v0.3 engine improvements (partial)
+## [0.4.0] - 2026-05-11
 
-Driven by `benchmarks/vs-webfetch/2026-05-11/` findings. Five of the seven
-v0.3 sections shipped; remaining sections (v0.4 prep, verification re-run)
-tracked in `openspec/changes/v0.3-engine-improvements/`.
+The `a2web.llm` module — optional server-side LLM extraction +
+LLM-as-judge primitive + matrix eval suite. Gated by the `[llm]` install
+extra; bare `pip install a2web` is unchanged.
+
+The headline trick (research/123): Claude Code's WebFetch runs Haiku
+over the fetched markdown server-side and returns only the answer.
+v0.4 makes a2web do the same — caller passes `ask=...` to the `fetch`
+tool, gets back a tiny `extracted_answer` envelope. Calling agent's
+context stays tiny.
+
+### Added
+
+- **`ask=` parameter on the `fetch` tool.** When set, a2web invokes an
+  LLM extractor server-side after the existing content extract phase
+  and populates `FetchResponse.extracted_answer` + `extraction`
+  metadata. Default model is `claude-haiku-4-5-20251001` (matches
+  Claude Code's WebFetch sub-call per research/123). Graceful when
+  the `[llm]` extra is missing or `ANTHROPIC_API_KEY` is unset — the
+  fetch still succeeds, `extracted_answer` stays None, and an operator
+  hint with code `llm_unavailable` surfaces the actionable reason.
+
+- **`src/a2web/llm/` module** — Extractor, Judge, prompts, providers,
+  cache. Public surface:
+  - `Extractor(provider, model, template, cache?)` — wraps a Provider
+    with a frozen prompt template; returns `ExtractionResult`.
+  - `Judge(provider, model)` — LLM-as-judge over (task, criteria,
+    answer) tuples; returns `JudgeVerdict` (scores, overall, reached,
+    reasoning, cost). Robust JSON parsing tolerates markdown fences
+    and prose wrappers; `JudgeParseError` carries raw text on failure.
+  - `Provider` Protocol + `AnthropicProvider` reference implementation
+    with hardcoded pricing table for Haiku 4.5 / Sonnet 4.6 / Opus 4.7
+    (populates `cost_usd`). Empty system content + thinking_disabled
+    are first-class for WebFetch behavioral parity.
+  - `PromptTemplate` frozen dataclasses: `WEBFETCH_DEFAULT_V1`
+    (byte-for-byte the `Rb9` template from Claude Code's binary),
+    `TERSE_V1` (compact variant), `JUDGE_V1` (strict-JSON judge).
+  - `ExtractionCache` — sqlite-backed (content_hash, ask_hash,
+    model_id, template_name) → answer LRU. Mirrors WebFetch's 15-min
+    TTL (`sg5 = 900000ms`). Lives in the same sqlite file as the HTTP
+    cache; schema created lazily so the no-extra install is unaffected.
+
+- **`src/a2web/llm/eval/` module + `make eval`** — deterministic eval
+  harness. EvalSuite runs (corpus × systems × judge) with bounded
+  concurrency, writes dated `eval/runs/<timestamp>/` directories
+  containing `results.tsv`, `manifest.json`, `leaderboard.md`,
+  `cost.md`, `findings.md`, `corpus.frozen.yaml`, and per-cell trace
+  dirs. Three systems out of the box:
+  - `WebFetchBaseline` — faithful local reproduction of Claude Code
+    WebFetch using the binary-extracted constants. Runs offline (no
+    Claude Code session needed). Documented divergences: no domain
+    preflight, no cross-host redirect break, no preapproved-host fast
+    path, markdownify ≠ Turndown.
+  - `A2WebDetail` — a2web `fetch(url)` without `ask=`; measures the
+    "agent reads envelope, extracts in its own context" path.
+  - `A2WebExtract` — a2web `fetch(url, ask=...)`; matches WebFetch's
+    answer-only shape via server-side extraction.
+
+- **`[llm]` install extra** — adds `anthropic`, `openai` (reserved for
+  v0.5 OpenRouter), and `markdownify` (Turndown neighbor for
+  WebFetchBaseline). `pip install a2web[llm]` enables `ask=` and the
+  eval suite.
+
+- **New Makefile targets**: `make eval` (full matrix), `make
+  eval-baseline` (WebFetchBaseline only, drift detection), `make
+  eval-detail` (a2web systems only, engine-only validation).
+
+- **New settings on `AppSettings`**: `llm_provider` ("anthropic" in
+  v0.4), `llm_model` (default `claude-haiku-4-5-20251001`),
+  `llm_api_key_env`, `extraction_max_chars` (default 100,000 — matches
+  WebFetch's `BD_`), `extraction_cache_ttl_s` (default 900 — matches
+  WebFetch's `sg5`).
+
+- **New models**: `ExtractionMeta` carrying per-fetch LLM metadata
+  (model, template_name, tokens, cost, latency, cache_hit, truncated).
+  `FetchResponse.extracted_answer: str | None` and `extraction:
+  ExtractionMeta | None` (both default None — no schema change for
+  callers not using `ask=`).
+
+### Tests
+
+- 50+ new scenarios across `test_llm_module.py`, `test_llm_judge.py`,
+  `test_llm_eval_systems.py`, `test_llm_eval_suite.py`,
+  `test_llm_cache.py`, `test_fetcher_ask.py`. All isolated via mock
+  providers + in-memory sqlite + httpx MockTransport — no real API
+  calls in the test suite.
+
+### Migration notes
+
+- Bare `pip install a2web` keeps working unchanged; `ask=` simply
+  surfaces an `llm_unavailable` operator hint without the extra.
+- Callers wanting `ask=` should `pip install a2web[llm]` and set
+  `ANTHROPIC_API_KEY` (or whatever `llm_api_key_env` points at).
+
+## [0.3.0] - 2026-05-11
+
+Engine improvements driven by `benchmarks/vs-webfetch/2026-05-11/`.
+Five of seven planned sections shipped (envelope diet + reach
+reliability + Twitter handler); the last two (v0.4 benchmark code
+migration, verification re-run) deferred. Remaining tracker:
+`openspec/changes/v0.3-engine-improvements/`.
 
 ### Changed (response envelope — opt-in for prior defaults)
 
