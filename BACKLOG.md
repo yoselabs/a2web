@@ -54,8 +54,13 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   boundary types — pydantic models from `AppSettings.routes`/`.proxies`
   pass through without conversion. `proxy/policy.py` + `proxy/pool.py`
   reduced to seam shims.
-- ⏳ **Stage 2g+ — remaining package promotions.** llm_extract behind
-  its boundary types. Own focused PR.
+- ✅ **Stage 2g — llm_extract promoted to packages/.** Sixth in-tree
+  microsofware. Package owns the whole extraction + judge surface
+  (`Extractor`, `ModelSpec`, `ExtractionCache`, `Judge`, prompts, all
+  four providers, `LLMNotAvailable`, `Provider` Protocol). `llm/*.py`
+  reduced to seam shims; `llm/resource.py` (AppSettings provider
+  selection + SqliteResource cache wiring) and `llm/eval/` stay at
+  the seam.
 - ⏳ **Stage 3a — logging swap.** *Why deferred:* stdlib
   `RotatingFileHandler` uses `.1`/`.2` suffix instead of the current
   `fetches-YYYY-MM-DD-NN.ndjson.gz` format. Changes the rolled-file naming

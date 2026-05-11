@@ -8,6 +8,31 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### v0.5 step 8 — llm_extract promoted to packages/ (2026-05-12)
+
+- **`packages/llm_extract/`** — sixth in-tree microsofware. Owns the
+  whole LLM extraction + judge surface: `Extractor`, `ModelSpec`,
+  `ExtractionResult`, `ExtractionCache` + `hash_text`, `Judge` +
+  `JudgeVerdict` + `JudgeParseError`, `PromptTemplate` + the
+  WEBFETCH/TERSE/JUDGE prompts, `LLMNotAvailable`, plus the four
+  providers (`anthropic`, `claude_code`, `openrouter`, `ollama`) and
+  `Provider` Protocol. Zero `a2web.<domain>` imports.
+- **`llm/*.py` reduced to seam shims.** `llm/__init__.py` re-exports
+  the package's public surface. `llm/{cache,errors,extractor,judge,prompts}.py`
+  and `llm/providers/*.py` are one-line re-exports each. Existing test
+  imports (`from a2web.llm.extractor import Extractor, ModelSpec`,
+  `from a2web.llm.providers.claude_code import ClaudeCodeProvider`, etc.)
+  keep working unmodified.
+- **`llm/resource.py` stays at the seam.** `LlmExtractorResource`
+  remains the domain-coupled wiring — it pulls provider selection from
+  `AppSettings.llm_provider`, plumbs `SqliteResource` into
+  `ExtractionCache`, and gates construction on the optional `[llm]`
+  install extra.
+- **`llm/eval/` stays at the seam.** The eval harness imports
+  `AppSettings`, `FetchResponse`, `build_state` — domain-coupled by
+  definition.
+- `test_packages_independence` auto-validates all new modules.
+
 ### v0.5 step 7 — proxy_routing promoted to packages/ (2026-05-12)
 
 - **`packages/proxy_routing/`** — fifth in-tree microsofware. Owns

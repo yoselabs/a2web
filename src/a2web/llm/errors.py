@@ -1,14 +1,7 @@
-"""Errors raised by the a2web.llm module."""
+"""a2web seam — re-exports from `packages.llm_extract.errors`."""
 
 from __future__ import annotations
 
+from ..packages.llm_extract.errors import LLMNotAvailable
 
-class LLMNotAvailable(RuntimeError):
-    """Raised when an LLM call is attempted but the backing SDK is unavailable.
-
-    Two common causes:
-    1. The `[llm]` extra was not installed (`pip install a2web[llm]`).
-    2. The required API key is not set in the environment.
-
-    The message always includes an actionable hint pointing to the fix.
-    """
+__all__ = ("LLMNotAvailable",)
