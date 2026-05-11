@@ -157,20 +157,15 @@ Still deferred:
   UI/nav/redundant. Even when links stay, returning only `role=primary`
   shrinks them ~5×. Scope: M.
 
-### v0.3 (browser tier reliability) — capability gap
+### v0.3 (browser tier reliability) — SHIPPED ✓ (Unreleased)
 
-- **🔴 Investigate why browser tier fires 0/20 times** on this corpus.
-  Source: benchmark finding. Reddit / X / Linear / LWN — raw failed
-  and the gate had clear opportunity to suggest browser escalation; it
-  did not. Either `block_detector` mis-classifies these as "thin
-  content" (skipping browser), or the orchestrator doesn't route on
-  `suggested_tier="browser"`. We ship a browser tier we don't actually
-  use, defeating the architectural promise. Scope: M.
-
-- **🟡 Gate false-positive on Linear** (`linear.app`). Returned
-  `status=failed` but content was the real landing page (judge 5/5).
-  Audit `block_detector.py` thresholds against JS-heavy but
-  content-bearing pages. Scope: S.
+- ~~**Investigate why browser tier fires 0/20 times**~~ ✓ SHIPPED — gate
+  now produces `suggested_tier="browser"` on the broader JS-shell pattern
+  (Next.js / React / Vue / Twitter / Ember / noscript). Orchestrator
+  already routed on the hint; the gate side was the bottleneck.
+- ~~**Gate false-positive on Linear**~~ ✓ SHIPPED — all interstitial /
+  block-page markers are now length-gated; substantive extracted content
+  (>= LENGTH_FLOOR) keeps `status=ok` regardless of marker matches.
 
 ### v0.3 (handler coverage)
 

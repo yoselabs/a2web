@@ -40,6 +40,22 @@ _CF_INTERSTITIAL_MARKER = re.compile(r"\bcf-chl-bypass\b|\bJust a moment\b", re.
 _NOSCRIPT_SHELL_MARKER = re.compile(r"<noscript>[^<]*(?:enable JavaScript|requires JavaScript)", re.IGNORECASE)
 _SCRIPT_TAG_RE = re.compile(r"<script\b", re.IGNORECASE)
 
+# v0.3: broader JS-shell root markers. A page with one of these AND a `<script>`
+# tag AND below the length floor is a JS-rendered page where the raw HTML alone
+# yielded ~no content. Browser tier is the right escalation.
+# Patterns intentionally narrow: false positive surface = "framework root id +
+# script + truly thin content" — that page benefits from browser regardless.
+_JS_SHELL_ROOT_MARKERS = re.compile(
+    r'id="__next"'          # Next.js
+    r'|id="root"'           # React (CRA / Vite default)
+    r'|id="app"'            # Vue / generic SPA
+    r'|id="react-root"'     # Twitter / X
+    r'|window\.__data__'    # Ember-style hydration
+    r'|window\.__INITIAL_STATE__'  # common Redux SSR
+    r"|<noscript",          # ANY noscript tag (progressive-enhancement signal)
+    re.IGNORECASE,
+)
+
 
 @dataclass(slots=True)
 class GateResult:
@@ -75,14 +91,28 @@ def evaluate(
     if _ANUBIS_MARKER.search(raw_html) and len(content_md) < LENGTH_FLOOR:
         return GateResult(Verdict.anti_bot, subsystem="anubis", suggested_tier="browser")
 
-    if _CF_INTERSTITIAL_MARKER.search(raw_html):
-        return GateResult(Verdict.block_page_detected, subsystem="cf_iuam", suggested_tier="tls_impersonate")
+    # v0.3 Linear-style FP fix: an interstitial / block-page marker on a page
+    # that yielded substantive extracted content is NOT a block — sites embed
+    # these phrases in security pages, cookie banners, compliance copy. Same
+    # length-gated rule Anubis uses. Block pages by definition render no body.
+    if len(content_md) < LENGTH_FLOOR:
+        if _CF_INTERSTITIAL_MARKER.search(raw_html):
+            return GateResult(Verdict.block_page_detected, subsystem="cf_iuam", suggested_tier="tls_impersonate")
 
-    for pattern in _BLOCK_PATTERNS:
-        if pattern.search(raw_html):
-            return GateResult(Verdict.block_page_detected)
+        for pattern in _BLOCK_PATTERNS:
+            if pattern.search(raw_html):
+                return GateResult(Verdict.block_page_detected)
 
-    if _NOSCRIPT_SHELL_MARKER.search(raw_html) and len(content_md) < LENGTH_FLOOR and len(_SCRIPT_TAG_RE.findall(raw_html)) >= 3:
+    # v0.3: thin extracted content + JS-shell signals → escalate to browser.
+    # The narrower _NOSCRIPT_SHELL_MARKER variant (needs explicit "enable
+    # JavaScript" text) misses most real SPAs. The broader rule catches
+    # Next.js / React / Vue / Twitter / Ember roots — any one is enough when
+    # combined with thin extracted content + at least one script tag.
+    if (
+        len(content_md) < LENGTH_FLOOR
+        and _SCRIPT_TAG_RE.search(raw_html)
+        and _JS_SHELL_ROOT_MARKERS.search(raw_html)
+    ):
         return GateResult(Verdict.length_floor, subsystem="js_required", suggested_tier="browser")
 
     if len(content_md) < LENGTH_FLOOR:

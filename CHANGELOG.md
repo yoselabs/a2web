@@ -8,9 +8,9 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased] - v0.3 engine improvements (partial)
 
-Driven by `benchmarks/vs-webfetch/2026-05-11/` findings. Two of the seven
-v0.3 sections shipped; remaining sections (gate escalation, Linear gate FP,
-Twitter/Nitter, v0.4 prep) tracked in `openspec/changes/v0.3-engine-improvements/`.
+Driven by `benchmarks/vs-webfetch/2026-05-11/` findings. Four of the seven
+v0.3 sections shipped; remaining sections (Twitter/Nitter handler, v0.4
+prep, verification re-run) tracked in `openspec/changes/v0.3-engine-improvements/`.
 
 ### Changed (response envelope — opt-in for prior defaults)
 
@@ -35,6 +35,22 @@ Twitter/Nitter, v0.4 prep) tracked in `openspec/changes/v0.3-engine-improvements
 
 ### Fixed
 
+- **Gate: block-page markers no longer false-positive on pages with substantive
+  extracted content.** Real interstitial / block pages by definition return
+  empty bodies; previously a "cf-chl-bypass" or "Just a moment" string anywhere
+  in the HTML (security pages, cookie banners, compliance copy) was enough to
+  flag the page. v0.3 requires `content_md < LENGTH_FLOOR` for any block-marker
+  verdict to fire — the same length-gated rule Anubis already used. Surfaces on
+  the benchmark as the Linear false-positive (1,152 chars extracted, marked
+  `status=failed`).
+- **Gate: broader JS-shell escalation to browser tier.** Previously the
+  length_floor → browser path required the narrow `<noscript>enable JavaScript</noscript>`
+  marker plus three `<script>` tags. v0.3 also escalates on any of: `id="__next"`
+  (Next.js), `id="root"` (React), `id="app"` (Vue / generic), `id="react-root"`
+  (Twitter / X), `window.__data__`, `window.__INITIAL_STATE__`, or any
+  `<noscript>` tag — provided extracted content is below the floor and at
+  least one `<script>` tag is present. Closes the "browser tier fires 0/20
+  times" benchmark finding for the SPA-shell case.
 - **Reddit handler now falls back to `old.reddit.com` on `.json` failure.**
   Reddit's `.json` endpoint frequently 404s for threads that remain
   readable on old.reddit (UA gating, removed/quarantined quirks). The
