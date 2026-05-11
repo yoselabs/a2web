@@ -8,6 +8,19 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### v0.5 step 5 — ndjson_log promoted to packages/ (2026-05-12)
+
+- **`packages/ndjson_log/`** — third in-tree microsofware. Owns
+  `LogRecord` (boundary type), `LogWriter` (lazy-open + size-based
+  rotation + gzip on rollover), `paths.py`, `rotation.py`. Zero
+  `a2web.<domain>` imports.
+- **`log/*.py` reduced to seam shims.** `log/record.py` keeps the
+  domain-coupled `from_response(FetchResponse) -> LogRecord` adapter;
+  `log/paths.py` / `log/writer.py` / `log/rotation.py` are one-line
+  re-exports from the package. Test imports (`from a2web.log.record
+  import LogRecord, from_response`, etc.) keep working unmodified.
+- `test_packages_independence` auto-validates the new module.
+
 ### v0.5 step 4 — block_detector promoted to packages/ (2026-05-12)
 
 - **`packages/block_detector.py`** — second in-tree microsofware after

@@ -39,9 +39,13 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   microsofware. Package owns `BlockVerdict` + `BlockResult` boundary
   types; a2web seam (`gate/block_detector.py`) maps to `Verdict`. Public
   signature unchanged; fetcher and gate tests pass unmodified.
-- ⏳ **Stage 2d+ — remaining package promotions.** http_cache,
-  ndjson_log, proxy_routing, llm_extract behind their boundary types.
-  Each is its own focused PR.
+- ✅ **Stage 2d — ndjson_log promoted to packages/.** Third in-tree
+  microsofware. Package owns `LogRecord` + `LogWriter` + rotation + paths;
+  `log/*` reduced to seam shims (one-line re-exports + the
+  `from_response()` adapter for `FetchResponse`).
+- ⏳ **Stage 2e+ — remaining package promotions.** http_cache,
+  proxy_routing, llm_extract behind their boundary types. Each is its
+  own focused PR.
 - ⏳ **Stage 3a — logging swap.** *Why deferred:* stdlib
   `RotatingFileHandler` uses `.1`/`.2` suffix instead of the current
   `fetches-YYYY-MM-DD-NN.ndjson.gz` format. Changes the rolled-file naming
