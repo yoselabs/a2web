@@ -8,6 +8,23 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### v0.5 step 9 — content_extract promoted to packages/ (2026-05-12)
+
+Closes Stage 2b — the original deferred-with-reason item that needed
+boundary types before it could move.
+
+- **`packages/content_extract/`** — seventh in-tree microsofware. Owns
+  the trafilatura wrapper (`extract_markdown`) + OG/Twitter/JSON-LD
+  metadata parser (`parse_metadata`). Boundary types `ExtractedHeading`
+  / `ExtractedLink` / `ExtractedContent` are frozen `dataclass(slots=True)`,
+  package-owned. Zero `a2web.<domain>` imports.
+- **`extract/trafilatura_ext.py` reduced to seam.** Calls the package
+  and maps `ExtractedHeading` → `models.Heading`, `ExtractedLink` →
+  `models.Link`. Preserves the existing `ExtractResult` shape so
+  `fetcher.py` and tests need zero changes.
+- **`extract/metadata.py` reduced to one-line re-export.**
+- `test_packages_independence` auto-validates the new module.
+
 ### v0.5 step 8 — llm_extract promoted to packages/ (2026-05-12)
 
 - **`packages/llm_extract/`** — sixth in-tree microsofware. Owns the

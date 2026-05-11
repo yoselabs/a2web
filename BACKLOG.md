@@ -30,11 +30,13 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   `test_packages_independence` invariant (load-bearing — fails CI if any
   module under `packages/` imports from `a2web.<domain>`), and moved
   `BrowserPool` over as the first proof-of-concept package.
-- ⏳ **Stage 2b — content_extract move.** *Why deferred:*
-  `extract/trafilatura_ext.py` returns `Heading` and `Link` typed-from
-  `a2web.models` — violates the packages contract. Move requires defining
-  `ExtractedHeading` / `ExtractedLink` inside the package + an adapter
-  at the a2web seam. Larger surface, own PR.
+- ✅ **Stage 2b — content_extract promoted to packages/ (DONE in v0.5
+  step 9).** Seventh in-tree microsofware. Package owns
+  `ExtractedHeading` / `ExtractedLink` / `ExtractedContent` frozen
+  dataclasses + `extract_markdown` + `parse_metadata`. `extract/*`
+  reduced to seam shims; the seam adapts `ExtractedHeading`/`ExtractedLink`
+  back onto pydantic `Heading`/`Link` from `a2web.models` so fetcher and
+  tests are unchanged. Closes the original deferred-with-reason item.
 - ✅ **Stage 2c — block_detector promoted to packages/.** Second in-tree
   microsofware. Package owns `BlockVerdict` + `BlockResult` boundary
   types; a2web seam (`gate/block_detector.py`) maps to `Verdict`. Public
@@ -61,6 +63,11 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   reduced to seam shims; `llm/resource.py` (AppSettings provider
   selection + SqliteResource cache wiring) and `llm/eval/` stay at
   the seam.
+
+**Packages migration complete.** Seven in-tree microsofware modules
+shipped: `browser_pool`, `block_detector`, `ndjson_log`, `http_cache`,
+`proxy_routing`, `llm_extract`, `content_extract`. The `test_packages_independence`
+invariant guards the contract for all of them.
 - ⏳ **Stage 3a — logging swap.** *Why deferred:* stdlib
   `RotatingFileHandler` uses `.1`/`.2` suffix instead of the current
   `fetches-YYYY-MM-DD-NN.ndjson.gz` format. Changes the rolled-file naming

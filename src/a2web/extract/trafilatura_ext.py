@@ -1,20 +1,24 @@
-"""Trafilatura wrapper — sync extraction, single async chokepoint.
+"""a2web seam over `packages.content_extract.trafilatura_ext`.
 
-Trafilatura is sync, blocking. We wrap it once via `asyncio.to_thread` here
-so async paths in the orchestrator never call blocking code directly. Lint
-ASYNC100/210/230 enforces.
+Calls the package's `extract_markdown`, then maps the package's
+boundary types (`ExtractedHeading`, `ExtractedLink`) onto the pydantic
+`Heading` / `Link` models used in the response envelope.
+
+Preserves the existing `ExtractResult` shape so `fetcher.py` and tests
+keep working unmodified.
 """
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
-from datetime import date, datetime
-
-import trafilatura
-from selectolax.parser import HTMLParser
+from datetime import date
 
 from ..models import Heading, Link
+from ..packages.content_extract import (
+    extract_markdown as _package_extract_markdown,
+)
+
+__all__ = ("ExtractResult", "extract_markdown")
 
 
 @dataclass(slots=True)
@@ -28,73 +32,20 @@ class ExtractResult:
     score: float | None = None
 
 
-def _parse_date(value: str | None) -> date | None:
-    """Parse trafilatura's date field (YYYY-MM-DD or ISO timestamp) → date."""
-    if not value:
-        return None
-    try:
-        return datetime.strptime(value[:10], "%Y-%m-%d").date()
-    except ValueError:
-        return None
-
-
-def _extract_sync(html: str, url: str) -> ExtractResult:
-    """Blocking extraction — never call from async paths directly.
-
-    `trafilatura.extract_metadata(html)` provides title / author / date /
-    image / pagetype / sitename in a single pass — replaces the prior
-    separate `htmldate.find_date()` call.
-    """
-    md = (
-        trafilatura.extract(
-            html,
-            url=url,
-            output_format="markdown",
-            include_comments=False,
-            include_tables=True,
-            favor_recall=False,
-        )
-        or ""
-    )
-
-    title: str | None = None
-    byline: str | None = None
-    published: date | None = None
-    metadata = trafilatura.extract_metadata(html)
-    if metadata is not None:
-        title = metadata.title or None
-        byline = metadata.author or None
-        published = _parse_date(getattr(metadata, "date", None))
-
-    headings: list[Heading] = []
-    links: list[Link] = []
-    try:
-        tree = HTMLParser(html)
-        for node in tree.css("h1, h2, h3, h4, h5, h6"):
-            level = int(node.tag[1])
-            text = (node.text() or "").strip()
-            if text:
-                headings.append(Heading(level=level, text=text))
-        for a in tree.css("a[href]"):
-            href = a.attributes.get("href") or ""
-            anchor = (a.text() or "").strip()
-            if href and anchor:
-                links.append(Link(anchor=anchor, href=href))
-    except Exception:  # noqa: S110
-        # selectolax parse errors are non-fatal — extraction's primary output is content_md
-        pass
-
-    return ExtractResult(
-        content_md=md,
-        title=title,
-        byline=byline,
-        published=published,
-        headings=headings,
-        links=links,
-        score=None,
-    )
-
-
 async def extract_markdown(html: str, url: str) -> ExtractResult:
-    """Async-facing extraction — only public entry into this module."""
-    return await asyncio.to_thread(_extract_sync, html, url)
+    """Async-facing extraction — only public entry into this module.
+
+    Forwards to `packages.content_extract.extract_markdown`, then adapts
+    the package's frozen `ExtractedHeading`/`ExtractedLink` dataclasses
+    onto the response envelope's pydantic `Heading`/`Link` models.
+    """
+    raw = await _package_extract_markdown(html, url)
+    return ExtractResult(
+        content_md=raw.content_md,
+        title=raw.title,
+        byline=raw.byline,
+        published=raw.published,
+        headings=[Heading(level=h.level, text=h.text) for h in raw.headings],
+        links=[Link(anchor=lk.anchor, href=lk.href) for lk in raw.links],
+        score=raw.score,
+    )
