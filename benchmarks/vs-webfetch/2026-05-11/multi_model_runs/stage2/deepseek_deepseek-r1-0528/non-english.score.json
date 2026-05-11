@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a detailed, substantive English summary of the article's specific content about building an inverted pendulum Simulink model with automatic PID tuning and Kalman filtering, with no navigation or cookie text, and includes multiple specific concepts with supporting quotes.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0418959,
+  "latency_ms": 7975,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 80
+  }
+}

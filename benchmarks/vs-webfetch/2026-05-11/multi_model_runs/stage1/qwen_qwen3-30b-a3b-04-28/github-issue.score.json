@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the reported bug, confirms the issue is closed, and cites a specific substantive detail from a comment including the commenter's name and context.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04099965,
+  "latency_ms": 8667,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
+}

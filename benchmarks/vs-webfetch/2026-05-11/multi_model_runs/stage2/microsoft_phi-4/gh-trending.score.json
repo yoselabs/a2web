@@ -1,0 +1,18 @@
+{
+  "scores": [
+    1,
+    0,
+    3,
+    0
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "The answer uses obvious placeholder owner/repo names (owner1/repo1, etc.) rather than real GitHub data, making it fabricated and unreliable despite listing 5 entries with descriptions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03983085,
+  "latency_ms": 10746,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 68
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    3,
+    5
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Title is exact, at least 3 authors named (though listed as 'and others' rather than fully enumerated), and the contribution is accurately and concisely summarized.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041269650000000005,
+  "latency_ms": 7800,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
+}

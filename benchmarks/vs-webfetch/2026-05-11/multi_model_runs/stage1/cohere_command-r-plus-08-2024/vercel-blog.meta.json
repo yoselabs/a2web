@@ -1,0 +1,9 @@
+{
+  "model": "cohere/command-r-plus-08-2024",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 2759,
+  "completion_tokens": 54,
+  "cost_usd": 0.0074375,
+  "latency_ms": 2208,
+  "cache_hit": false
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately captures the core FDI concept \u2014 framework code driving automatic infrastructure provisioning \u2014 in two substantive sentences that directly address all three criteria.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0391971,
+  "latency_ms": 12535,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 56
+  }
+}

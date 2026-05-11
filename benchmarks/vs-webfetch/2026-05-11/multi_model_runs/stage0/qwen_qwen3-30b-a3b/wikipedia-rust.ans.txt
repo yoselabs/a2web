@@ -1,0 +1,1 @@
+Graydon Hoare created Rust in 2006; first public release was 2012. "Rust enforces memory safety without a garbage collector via the 'borrow checker', tracking reference lifetimes at compile time."

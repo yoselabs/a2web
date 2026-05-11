@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The fetch returned a 404 error, so no article content was available and no argument or claims could be evaluated.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03887085,
+  "latency_ms": 10426,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 49
+  }
+}

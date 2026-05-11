@@ -1,0 +1,1 @@
+This issue reports a bug where "String to replace not found in file" occurs during updates. The state is closed. The latest comment notes improved error rates in "latest claude 4.5 models!" per catherinewu.

@@ -1,0 +1,1 @@
+Rust was designed by Graydon Hoare and first released in 2012. It's known for its "borrow checker" memory-safety mechanism.

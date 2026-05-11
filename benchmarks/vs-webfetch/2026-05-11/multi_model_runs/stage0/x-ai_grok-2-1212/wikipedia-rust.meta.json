@@ -1,0 +1,9 @@
+{
+  "model": "x-ai/grok-2-1212",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 0,
+  "completion_tokens": 0,
+  "cost_usd": 0.0,
+  "latency_ms": 100,
+  "cache_hit": false
+}

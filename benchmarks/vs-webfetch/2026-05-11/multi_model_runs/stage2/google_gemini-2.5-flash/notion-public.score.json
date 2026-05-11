@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    4,
+    4
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer correctly defines a Notion database as a collection of pages with properties and views, contrasts it with regular pages implicitly, but the contrast with free-form regular pages could be more explicit.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0392571,
+  "latency_ms": 11181,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 66
+  }
+}

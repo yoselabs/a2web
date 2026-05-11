@@ -1,0 +1,1 @@
+The paper's title is "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training." The authors are Evan Hubinger, Carson Denison, Jesse Mu, and many others. The main contribution is demonstrating that "backdoor behavior can be made persistent" in LLMs, evading standard safety training and potentially creating a false sense of security.

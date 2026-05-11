@@ -1,0 +1,5 @@
+1. CloakHQ/CloakBrowser — "Stealth Chromium that passes every bot detection test" with source-level patches.  
+2. AUTOMATIC1111/stable-diffusion-webui — "Stable Diffusion web UI" for local AI image generation.  
+3. lmstudio-ai/lmstudio — LLM inference server optimized for Apple Silicon with macOS menu integration.  
+4. xushengpenguin/WeChatDatabaseDecryptor — Tool to "decrypt SQLCipher 4 databases" from WeChat 4.0.  
+5. ARIS-Auto-Research-In-Sleep/ARIS — "Lightweight Markdown-only skills for autonomous ML research."

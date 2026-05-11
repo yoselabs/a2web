@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    4,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a product development/project management tool and captures a substantive tagline ('new species of product tool'), though some phrasing appears paraphrased rather than verbatim from the page.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03929835,
+  "latency_ms": 11014,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 71
+  }
+}

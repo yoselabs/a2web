@@ -1,0 +1,1 @@
+The issue reports an intermittent error: "String to replace not found in file" during updates. The status is closed, with a comment noting ongoing improvements in the edit tool's error rates, especially in the latest Claude 4.5 models.

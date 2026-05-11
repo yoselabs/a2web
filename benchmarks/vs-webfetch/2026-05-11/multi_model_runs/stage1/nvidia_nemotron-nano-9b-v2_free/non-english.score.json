@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a concise, substantive English summary mentioning specific concepts (Simulink, PID controllers, inverted pendulum, automatic tuning, Kalman filters) directly from the article body.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04114965,
+  "latency_ms": 9304,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 69
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a product development/project management tool and captures a substantive headline, though it slightly undersells the issue-tracker/software-team specificity.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041025900000000004,
+  "latency_ms": 9866,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 61
+  }
+}

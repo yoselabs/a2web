@@ -1,0 +1,1 @@
+Based on the provided content, there is no information about PEP 703 proposing anything for tuple immutability, nor which Python version made tuples mutable. The document only states that PEP 703 introduced an "Optional experimental free-threaded build."

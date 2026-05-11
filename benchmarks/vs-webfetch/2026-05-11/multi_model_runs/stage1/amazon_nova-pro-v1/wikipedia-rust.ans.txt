@@ -1,0 +1,1 @@
+Graydon Hoare designed Rust, which was first released in 2012. Rust is known for its "borrow checker" mechanism for memory safety.

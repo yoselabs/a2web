@@ -1,0 +1,1 @@
+The issue reports an occasional error where a string to replace is not found during file updates in the Claude CLI (v1.0.24) on Windows 11. The most recent comment from catherinewu states: "it should be much better in the latest claude 4.5 models!" The issue is closed and locked due to inactivity.

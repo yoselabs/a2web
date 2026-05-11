@@ -1,0 +1,1 @@
+This article demonstrates using Simulink and Multibody libraries to model and control an inverted pendulum without manual calculations. It details assembling the plant model and then "automatically tuning" PID controllers for both the pendulum's angle and the cart's position. The final tested model includes a swing-up mechanism and disturbance rejection.

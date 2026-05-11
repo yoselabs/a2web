@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific English summary of the article's content about PID controller-based inverted pendulum stabilization in Simulink, includes a direct quote from the article body, and is entirely substantive rather than navigational.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041235900000000006,
+  "latency_ms": 7167,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 75
+  }
+}

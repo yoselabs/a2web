@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The answer correctly identifies a 404 error page and admits no content could be retrieved, so all substantive criteria score 0.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04093215,
+  "latency_ms": 9604,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 52
+  }
+}

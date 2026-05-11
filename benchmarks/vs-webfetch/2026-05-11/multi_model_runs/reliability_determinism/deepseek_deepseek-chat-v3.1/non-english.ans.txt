@@ -1,0 +1,1 @@
+This article describes using Simulink and Multibody libraries to model and control an inverted pendulum "without a single formula or manual calculation." It explains setting up the physical model and then using automated PID controller tuning tools, stating "modern tuning tools allow solving such tasks by pressing a couple of buttons."

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    3,
+    5
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Title is exact, at least 3 authors named (though 'many others' is vague), and the contribution is accurately summarized with a direct quote about persistent backdoor behavior.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03939585,
+  "latency_ms": 10945,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

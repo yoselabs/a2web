@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer captures the exact headline/tagline from the page and clearly identifies Linear as a product planning/building tool for modern teams, though it describes it as a 'product tool' rather than explicitly calling out issue tracking or project management.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04118715,
+  "latency_ms": 10466,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 74
+  }
+}

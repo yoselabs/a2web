@@ -1,0 +1,1 @@
+This article explains using Simulink's PID tuner to control an inverted pendulum without manual calculations. "Modern tools allow solving... with a few clicks even without knowledge" describes the approach. The model uses two control loops, Kalman filtering, and automatic tuning for stability.

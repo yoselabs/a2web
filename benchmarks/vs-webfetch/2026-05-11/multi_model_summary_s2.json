@@ -1,0 +1,1655 @@
+{
+  "stage": 2,
+  "models": [
+    "microsoft/phi-4",
+    "deepseek/deepseek-chat-v3.1",
+    "google/gemini-2.5-flash",
+    "qwen/qwen3-30b-a3b-04-28",
+    "openai/gpt-4.1-mini-2025-04-14"
+  ],
+  "slugs": [
+    "hn-front",
+    "arxiv-abstract",
+    "wikipedia-rust",
+    "mdn-fetch-api",
+    "reddit-thread",
+    "medium-post",
+    "substack-stratechery",
+    "x-post",
+    "linear-marketing",
+    "vercel-blog",
+    "stripe-docs",
+    "notion-public",
+    "github-issue",
+    "pypi-page",
+    "npm-page",
+    "gh-trending",
+    "dead-with-archive",
+    "large-page",
+    "non-english",
+    "redirect-chain"
+  ],
+  "wall_seconds": 241,
+  "n_rows": 100,
+  "per_model": {
+    "microsoft/phi-4": {
+      "cells_ok": 18,
+      "errors": 2,
+      "empty": 0,
+      "mean_overall": 3.3333333333333335,
+      "total_cost_usd": 0.002217,
+      "mean_latency_ms": 3098
+    },
+    "deepseek/deepseek-chat-v3.1": {
+      "cells_ok": 18,
+      "errors": 2,
+      "empty": 0,
+      "mean_overall": 3.111111111111111,
+      "total_cost_usd": 0.009335,
+      "mean_latency_ms": 4138
+    },
+    "google/gemini-2.5-flash": {
+      "cells_ok": 18,
+      "errors": 2,
+      "empty": 0,
+      "mean_overall": 3.2222222222222223,
+      "total_cost_usd": 0.011414,
+      "mean_latency_ms": 1389
+    },
+    "qwen/qwen3-30b-a3b-04-28": {
+      "cells_ok": 18,
+      "errors": 2,
+      "empty": 3,
+      "mean_overall": 2.933333333333333,
+      "total_cost_usd": 0.008156,
+      "mean_latency_ms": 15872
+    },
+    "openai/gpt-4.1-mini-2025-04-14": {
+      "cells_ok": 18,
+      "errors": 2,
+      "empty": 0,
+      "mean_overall": 3.0555555555555554,
+      "total_cost_usd": 0.011859,
+      "mean_latency_ms": 2051
+    }
+  },
+  "rows": [
+    {
+      "model": "microsoft/phi-4",
+      "slug": "hn-front",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1645,
+      "completion_tokens": 208,
+      "cost_usd": 0.000136045,
+      "latency_ms": 5944,
+      "cache_hit": false,
+      "answer_chars": 688,
+      "empty": false,
+      "judge": {
+        "overall": 2,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "arxiv-abstract",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 619,
+      "completion_tokens": 68,
+      "cost_usd": 5.285e-05,
+      "latency_ms": 1767,
+      "cache_hit": false,
+      "answer_chars": 356,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10813,
+      "completion_tokens": 346,
+      "cost_usd": 0.000751285,
+      "latency_ms": 7882,
+      "cache_hit": false,
+      "answer_chars": 1904,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "mdn-fetch-api",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 807,
+      "completion_tokens": 178,
+      "cost_usd": 7.7375e-05,
+      "latency_ms": 4908,
+      "cache_hit": false,
+      "answer_chars": 900,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "reddit-thread",
+      "error": "no content_md in phase1 payload"
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "medium-post",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 439,
+      "completion_tokens": 71,
+      "cost_usd": 4.067e-05,
+      "latency_ms": 1146,
+      "cache_hit": false,
+      "answer_chars": 351,
+      "empty": false,
+      "judge": {
+        "overall": 2,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "substack-stratechery",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2482,
+      "completion_tokens": 60,
+      "cost_usd": 0.00016973,
+      "latency_ms": 2604,
+      "cache_hit": false,
+      "answer_chars": 330,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "x-post",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 183,
+      "completion_tokens": 54,
+      "cost_usd": 2.037e-05,
+      "latency_ms": 1636,
+      "cache_hit": false,
+      "answer_chars": 260,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": false
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 352,
+      "completion_tokens": 57,
+      "cost_usd": 3.262e-05,
+      "latency_ms": 1394,
+      "cache_hit": false,
+      "answer_chars": 304,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2614,
+      "completion_tokens": 65,
+      "cost_usd": 0.00019208,
+      "latency_ms": 1200,
+      "cache_hit": false,
+      "answer_chars": 385,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "stripe-docs",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1795,
+      "completion_tokens": 348,
+      "cost_usd": 0.000165395,
+      "latency_ms": 9745,
+      "cache_hit": false,
+      "answer_chars": 1966,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "notion-public",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2870,
+      "completion_tokens": 119,
+      "cost_usd": 0.00020321,
+      "latency_ms": 4897,
+      "cache_hit": false,
+      "answer_chars": 661,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 450,
+      "completion_tokens": 94,
+      "cost_usd": 4.466e-05,
+      "latency_ms": 1721,
+      "cache_hit": false,
+      "answer_chars": 442,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "pypi-page",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1156,
+      "completion_tokens": 60,
+      "cost_usd": 8.354e-05,
+      "latency_ms": 2106,
+      "cache_hit": false,
+      "answer_chars": 287,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "npm-page",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 319,
+      "completion_tokens": 51,
+      "cost_usd": 2.947e-05,
+      "latency_ms": 927,
+      "cache_hit": false,
+      "answer_chars": 258,
+      "empty": false,
+      "judge": {
+        "overall": 2,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "gh-trending",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 524,
+      "completion_tokens": 176,
+      "cost_usd": 5.87e-05,
+      "latency_ms": 3949,
+      "cache_hit": false,
+      "answer_chars": 812,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": false
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "dead-with-archive",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 248,
+      "completion_tokens": 49,
+      "cost_usd": 2.298e-05,
+      "latency_ms": 1278,
+      "cache_hit": false,
+      "answer_chars": 272,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": false
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "large-page",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 166,
+      "completion_tokens": 51,
+      "cost_usd": 1.876e-05,
+      "latency_ms": 974,
+      "cache_hit": false,
+      "answer_chars": 263,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1523,
+      "completion_tokens": 77,
+      "cost_usd": 0.00011739,
+      "latency_ms": 1688,
+      "cache_hit": false,
+      "answer_chars": 402,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "redirect-chain",
+      "error": "no content_md in phase1 payload"
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "hn-front",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1434,
+      "completion_tokens": 135,
+      "cost_usd": 0.00101145,
+      "latency_ms": 4495,
+      "cache_hit": false,
+      "answer_chars": 362,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "arxiv-abstract",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 618,
+      "completion_tokens": 46,
+      "cost_usd": 0.00021286,
+      "latency_ms": 5327,
+      "cache_hit": false,
+      "answer_chars": 222,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9909,
+      "completion_tokens": 43,
+      "cost_usd": 0.00284704,
+      "latency_ms": 2005,
+      "cache_hit": false,
+      "answer_chars": 180,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "mdn-fetch-api",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 701,
+      "completion_tokens": 46,
+      "cost_usd": 0.00023527,
+      "latency_ms": 4163,
+      "cache_hit": false,
+      "answer_chars": 204,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "reddit-thread",
+      "error": "no content_md in phase1 payload"
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "medium-post",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 432,
+      "completion_tokens": 40,
+      "cost_usd": 0.00015664,
+      "latency_ms": 4178,
+      "cache_hit": false,
+      "answer_chars": 214,
+      "empty": false,
+      "judge": {
+        "overall": 2,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "substack-stratechery",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2072,
+      "completion_tokens": 33,
+      "cost_usd": 0.00059244,
+      "latency_ms": 5490,
+      "cache_hit": false,
+      "answer_chars": 161,
+      "empty": false,
+      "judge": {
+        "overall": 0,
+        "reached": false
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "x-post",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 182,
+      "completion_tokens": 32,
+      "cost_usd": 8.5e-05,
+      "latency_ms": 2358,
+      "cache_hit": false,
+      "answer_chars": 160,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": false
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 349,
+      "completion_tokens": 37,
+      "cost_usd": 0.000253,
+      "latency_ms": 1101,
+      "cache_hit": false,
+      "answer_chars": 191,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2625,
+      "completion_tokens": 47,
+      "cost_usd": 0.00083215,
+      "latency_ms": 3093,
+      "cache_hit": false,
+      "answer_chars": 313,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "stripe-docs",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1682,
+      "completion_tokens": 27,
+      "cost_usd": 0.00096965,
+      "latency_ms": 1278,
+      "cache_hit": false,
+      "answer_chars": 157,
+      "empty": false,
+      "judge": {
+        "overall": 2,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "notion-public",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2580,
+      "completion_tokens": 56,
+      "cost_usd": 0.0007526,
+      "latency_ms": 5550,
+      "cache_hit": false,
+      "answer_chars": 287,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 445,
+      "completion_tokens": 62,
+      "cost_usd": 0.00018215,
+      "latency_ms": 4601,
+      "cache_hit": false,
+      "answer_chars": 311,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "pypi-page",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1040,
+      "completion_tokens": 42,
+      "cost_usd": 0.0003228,
+      "latency_ms": 4385,
+      "cache_hit": false,
+      "answer_chars": 172,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "npm-page",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 321,
+      "completion_tokens": 49,
+      "cost_usd": 0.00013567,
+      "latency_ms": 2895,
+      "cache_hit": false,
+      "answer_chars": 281,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "gh-trending",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 470,
+      "completion_tokens": 141,
+      "cost_usd": 0.0002679,
+      "latency_ms": 5180,
+      "cache_hit": false,
+      "answer_chars": 495,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "dead-with-archive",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 224,
+      "completion_tokens": 55,
+      "cost_usd": 0.00011548,
+      "latency_ms": 3746,
+      "cache_hit": false,
+      "answer_chars": 262,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": false
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "large-page",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 164,
+      "completion_tokens": 41,
+      "cost_usd": 8.528e-05,
+      "latency_ms": 3147,
+      "cache_hit": false,
+      "answer_chars": 231,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1052,
+      "completion_tokens": 72,
+      "cost_usd": 0.00027764,
+      "latency_ms": 11506,
+      "cache_hit": false,
+      "answer_chars": 375,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "redirect-chain",
+      "error": "no content_md in phase1 payload"
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "hn-front",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1723,
+      "completion_tokens": 140,
+      "cost_usd": 0.0008669,
+      "latency_ms": 1076,
+      "cache_hit": false,
+      "answer_chars": 379,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "arxiv-abstract",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 618,
+      "completion_tokens": 74,
+      "cost_usd": 0.0003704,
+      "latency_ms": 4512,
+      "cache_hit": false,
+      "answer_chars": 355,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10975,
+      "completion_tokens": 50,
+      "cost_usd": 0.0034175,
+      "latency_ms": 794,
+      "cache_hit": false,
+      "answer_chars": 214,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "mdn-fetch-api",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 741,
+      "completion_tokens": 57,
+      "cost_usd": 0.0003648,
+      "latency_ms": 1002,
+      "cache_hit": false,
+      "answer_chars": 265,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "reddit-thread",
+      "error": "no content_md in phase1 payload"
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "medium-post",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 467,
+      "completion_tokens": 51,
+      "cost_usd": 0.0002676,
+      "latency_ms": 821,
+      "cache_hit": false,
+      "answer_chars": 221,
+      "empty": false,
+      "judge": {
+        "overall": 0,
+        "reached": false
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "substack-stratechery",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2465,
+      "completion_tokens": 40,
+      "cost_usd": 0.0008395,
+      "latency_ms": 705,
+      "cache_hit": false,
+      "answer_chars": 170,
+      "empty": false,
+      "judge": {
+        "overall": 0,
+        "reached": false
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "x-post",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 192,
+      "completion_tokens": 48,
+      "cost_usd": 0.0001776,
+      "latency_ms": 1037,
+      "cache_hit": false,
+      "answer_chars": 244,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 366,
+      "completion_tokens": 38,
+      "cost_usd": 0.0002048,
+      "latency_ms": 852,
+      "cache_hit": false,
+      "answer_chars": 190,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2736,
+      "completion_tokens": 51,
+      "cost_usd": 0.0009483,
+      "latency_ms": 961,
+      "cache_hit": false,
+      "answer_chars": 300,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "stripe-docs",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1706,
+      "completion_tokens": 39,
+      "cost_usd": 0.0006093,
+      "latency_ms": 803,
+      "cache_hit": false,
+      "answer_chars": 220,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "notion-public",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2675,
+      "completion_tokens": 59,
+      "cost_usd": 0.00095,
+      "latency_ms": 935,
+      "cache_hit": false,
+      "answer_chars": 314,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 485,
+      "completion_tokens": 116,
+      "cost_usd": 0.0004355,
+      "latency_ms": 1220,
+      "cache_hit": false,
+      "answer_chars": 465,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "pypi-page",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1231,
+      "completion_tokens": 52,
+      "cost_usd": 0.0004993,
+      "latency_ms": 963,
+      "cache_hit": false,
+      "answer_chars": 219,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "npm-page",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 348,
+      "completion_tokens": 19,
+      "cost_usd": 0.0001519,
+      "latency_ms": 1166,
+      "cache_hit": false,
+      "answer_chars": 103,
+      "empty": false,
+      "judge": {
+        "overall": 2,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "gh-trending",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 484,
+      "completion_tokens": 124,
+      "cost_usd": 0.0004552,
+      "latency_ms": 4652,
+      "cache_hit": false,
+      "answer_chars": 415,
+      "empty": false,
+      "judge": {
+        "overall": 2,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "dead-with-archive",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 251,
+      "completion_tokens": 44,
+      "cost_usd": 0.0001853,
+      "latency_ms": 859,
+      "cache_hit": false,
+      "answer_chars": 224,
+      "empty": false,
+      "judge": {
+        "overall": 0,
+        "reached": false
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "large-page",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 172,
+      "completion_tokens": 56,
+      "cost_usd": 0.0001916,
+      "latency_ms": 841,
+      "cache_hit": false,
+      "answer_chars": 207,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 977,
+      "completion_tokens": 74,
+      "cost_usd": 0.0004781,
+      "latency_ms": 1818,
+      "cache_hit": false,
+      "answer_chars": 424,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "redirect-chain",
+      "error": "no content_md in phase1 payload"
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "hn-front",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1559,
+      "completion_tokens": 1024,
+      "cost_usd": 0.00078146,
+      "latency_ms": 48753,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true,
+      "judge": {
+        "error": "empty answer"
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "arxiv-abstract",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 626,
+      "completion_tokens": 1024,
+      "cost_usd": 0.00051714,
+      "latency_ms": 19377,
+      "cache_hit": false,
+      "answer_chars": 98,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10427,
+      "completion_tokens": 791,
+      "cost_usd": 0.00129438,
+      "latency_ms": 16139,
+      "cache_hit": false,
+      "answer_chars": 126,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "mdn-fetch-api",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 691,
+      "completion_tokens": 1024,
+      "cost_usd": 0.00052299,
+      "latency_ms": 20433,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true,
+      "judge": {
+        "error": "empty answer"
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "reddit-thread",
+      "error": "no content_md in phase1 payload"
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "medium-post",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 466,
+      "completion_tokens": 508,
+      "cost_usd": 0.00027054,
+      "latency_ms": 9766,
+      "cache_hit": false,
+      "answer_chars": 254,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "substack-stratechery",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2177,
+      "completion_tokens": 390,
+      "cost_usd": 0.00048581,
+      "latency_ms": 6262,
+      "cache_hit": false,
+      "answer_chars": 137,
+      "empty": false,
+      "judge": {
+        "overall": 0,
+        "reached": false
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "x-post",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 187,
+      "completion_tokens": 227,
+      "cost_usd": 0.00014235,
+      "latency_ms": 3634,
+      "cache_hit": false,
+      "answer_chars": 180,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": false
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 355,
+      "completion_tokens": 364,
+      "cost_usd": 0.0002499,
+      "latency_ms": 20474,
+      "cache_hit": false,
+      "answer_chars": 112,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2621,
+      "completion_tokens": 1024,
+      "cost_usd": 0.00069669,
+      "latency_ms": 21802,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true,
+      "judge": {
+        "error": "empty answer"
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "stripe-docs",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1645,
+      "completion_tokens": 1093,
+      "cost_usd": 0.00078221,
+      "latency_ms": 16843,
+      "cache_hit": false,
+      "answer_chars": 221,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "notion-public",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2560,
+      "completion_tokens": 447,
+      "cost_usd": 0.00043155,
+      "latency_ms": 9615,
+      "cache_hit": false,
+      "answer_chars": 286,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 468,
+      "completion_tokens": 371,
+      "cost_usd": 0.00020907,
+      "latency_ms": 8105,
+      "cache_hit": false,
+      "answer_chars": 206,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "pypi-page",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1144,
+      "completion_tokens": 250,
+      "cost_usd": 0.00021546,
+      "latency_ms": 5629,
+      "cache_hit": false,
+      "answer_chars": 155,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "npm-page",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 322,
+      "completion_tokens": 373,
+      "cost_usd": 0.00019683,
+      "latency_ms": 8112,
+      "cache_hit": false,
+      "answer_chars": 163,
+      "empty": false,
+      "judge": {
+        "overall": 2,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "gh-trending",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 472,
+      "completion_tokens": 988,
+      "cost_usd": 0.00048708,
+      "latency_ms": 20586,
+      "cache_hit": false,
+      "answer_chars": 328,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "dead-with-archive",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 238,
+      "completion_tokens": 749,
+      "cost_usd": 0.00044527,
+      "latency_ms": 35399,
+      "cache_hit": false,
+      "answer_chars": 83,
+      "empty": false,
+      "judge": {
+        "overall": 0,
+        "reached": false
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "large-page",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 171,
+      "completion_tokens": 287,
+      "cost_usd": 0.00014454,
+      "latency_ms": 6600,
+      "cache_hit": false,
+      "answer_chars": 206,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1203,
+      "completion_tokens": 388,
+      "cost_usd": 0.00028287,
+      "latency_ms": 8177,
+      "cache_hit": false,
+      "answer_chars": 327,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "redirect-chain",
+      "error": "no content_md in phase1 payload"
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "hn-front",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1418,
+      "completion_tokens": 127,
+      "cost_usd": 0.0007704,
+      "latency_ms": 4380,
+      "cache_hit": false,
+      "answer_chars": 439,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "arxiv-abstract",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 617,
+      "completion_tokens": 47,
+      "cost_usd": 0.000322,
+      "latency_ms": 1428,
+      "cache_hit": false,
+      "answer_chars": 238,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9788,
+      "completion_tokens": 61,
+      "cost_usd": 0.0040128,
+      "latency_ms": 4341,
+      "cache_hit": false,
+      "answer_chars": 302,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "mdn-fetch-api",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 689,
+      "completion_tokens": 27,
+      "cost_usd": 0.0003188,
+      "latency_ms": 1237,
+      "cache_hit": false,
+      "answer_chars": 126,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "reddit-thread",
+      "error": "no content_md in phase1 payload"
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "medium-post",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 437,
+      "completion_tokens": 59,
+      "cost_usd": 0.0002692,
+      "latency_ms": 4126,
+      "cache_hit": false,
+      "answer_chars": 292,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "substack-stratechery",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2062,
+      "completion_tokens": 30,
+      "cost_usd": 0.0008728,
+      "latency_ms": 1512,
+      "cache_hit": false,
+      "answer_chars": 140,
+      "empty": false,
+      "judge": {
+        "overall": 0,
+        "reached": false
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "x-post",
+      "class": "B_gated",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 184,
+      "completion_tokens": 16,
+      "cost_usd": 9.92e-05,
+      "latency_ms": 1068,
+      "cache_hit": false,
+      "answer_chars": 78,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": false
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "linear-marketing",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 350,
+      "completion_tokens": 42,
+      "cost_usd": 0.0002072,
+      "latency_ms": 1849,
+      "cache_hit": false,
+      "answer_chars": 218,
+      "empty": false,
+      "judge": {
+        "overall": 4,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "vercel-blog",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2582,
+      "completion_tokens": 38,
+      "cost_usd": 0.0010936,
+      "latency_ms": 1386,
+      "cache_hit": false,
+      "answer_chars": 256,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "stripe-docs",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1640,
+      "completion_tokens": 64,
+      "cost_usd": 0.0007584,
+      "latency_ms": 2018,
+      "cache_hit": false,
+      "answer_chars": 357,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "notion-public",
+      "class": "C_spa",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 2556,
+      "completion_tokens": 29,
+      "cost_usd": 0.0010688,
+      "latency_ms": 1147,
+      "cache_hit": false,
+      "answer_chars": 128,
+      "empty": false,
+      "judge": {
+        "overall": 3,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "github-issue",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 447,
+      "completion_tokens": 51,
+      "cost_usd": 0.0002604,
+      "latency_ms": 2256,
+      "cache_hit": false,
+      "answer_chars": 236,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "pypi-page",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 1019,
+      "completion_tokens": 52,
+      "cost_usd": 0.0004908,
+      "latency_ms": 1644,
+      "cache_hit": false,
+      "answer_chars": 219,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "npm-page",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 326,
+      "completion_tokens": 42,
+      "cost_usd": 0.0001976,
+      "latency_ms": 1281,
+      "cache_hit": false,
+      "answer_chars": 233,
+      "empty": false,
+      "judge": {
+        "overall": 2,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "gh-trending",
+      "class": "D_structured",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 465,
+      "completion_tokens": 112,
+      "cost_usd": 0.0003652,
+      "latency_ms": 2296,
+      "cache_hit": false,
+      "answer_chars": 481,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "dead-with-archive",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 222,
+      "completion_tokens": 23,
+      "cost_usd": 0.0001256,
+      "latency_ms": 1575,
+      "cache_hit": false,
+      "answer_chars": 106,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": false
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "large-page",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 166,
+      "completion_tokens": 27,
+      "cost_usd": 0.0001096,
+      "latency_ms": 1430,
+      "cache_hit": false,
+      "answer_chars": 148,
+      "empty": false,
+      "judge": {
+        "overall": 1,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "non-english",
+      "class": "E_edge",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 988,
+      "completion_tokens": 76,
+      "cost_usd": 0.0005168,
+      "latency_ms": 1959,
+      "cache_hit": false,
+      "answer_chars": 400,
+      "empty": false,
+      "judge": {
+        "overall": 5,
+        "reached": true
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "redirect-chain",
+      "error": "no content_md in phase1 payload"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    3,
+    4
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer captures the core idea of automatic infrastructure provisioning from framework concepts, but is brief and lacks explicit mention of inferring from code/spec rather than hand-configuration.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03912209999999999,
+  "latency_ms": 12495,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 60
+  }
+}

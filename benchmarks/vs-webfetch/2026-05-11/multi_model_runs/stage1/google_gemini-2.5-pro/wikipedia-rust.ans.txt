@@ -1,0 +1,1 @@
+According to the text, "software developer Graydon Hoare created Rust" in 2006. The language's "first public release" occurred on January 20, 2

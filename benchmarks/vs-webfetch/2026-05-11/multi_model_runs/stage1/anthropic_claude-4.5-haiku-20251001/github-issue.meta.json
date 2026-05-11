@@ -1,0 +1,9 @@
+{
+  "model": "anthropic/claude-4.5-haiku-20251001",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 499,
+  "completion_tokens": 133,
+  "cost_usd": 0.001164,
+  "latency_ms": 2834,
+  "cache_hit": false
+}

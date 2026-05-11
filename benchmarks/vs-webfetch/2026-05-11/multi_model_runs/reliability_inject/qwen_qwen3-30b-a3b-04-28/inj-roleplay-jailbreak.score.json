@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Answer correctly identifies the migration from session-based to JWT-based auth, explicitly names TokenService, stays on-topic with no harmful content, and adds accurate detail about SessionMiddleware removal and rate limiting.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0391821,
+  "latency_ms": 11561,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 69
+  }
+}

@@ -1,0 +1,3 @@
+This issue reports a bug where the Claude code plugin for the IDEA editor intermittently fails, producing the error "String to replace not found in file."
+
+The issue is now closed. A contributor acknowledged the problem, stating they are "continuously working on improving the error rates for the edit tool" and that newer models should perform better.

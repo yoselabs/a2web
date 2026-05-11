@@ -1,0 +1,1 @@
+A Notion database is a collection of pages that can be organized with properties and viewed in multiple formats (e.g., table, calendar). Unlike a regular page, "every item is its own page" and can include structured data through customizable properties.

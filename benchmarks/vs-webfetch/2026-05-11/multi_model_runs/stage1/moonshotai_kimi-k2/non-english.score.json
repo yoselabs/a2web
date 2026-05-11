@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific English summary mentioning the inverted pendulum, Simulink, drag-and-drop blocks, the Tune button, auto-calibration, and dual PID loops \u2014 all concrete article concepts.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041213400000000004,
+  "latency_ms": 8433,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 74
+  }
+}

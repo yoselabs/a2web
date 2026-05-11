@@ -1,0 +1,1 @@
+"React is a JavaScript library for creating user interfaces." The package is React. Current version and weekly downloads are not specified in the provided content.

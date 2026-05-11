@@ -1,0 +1,3 @@
+# Framework-Defined Infrastructure
+
+According to the article, framework-defined infrastructure (FdI) is an evolution of Infrastructure as Code where "a build-time program parses the source code written to a framework, understands the intent behind the code, and then automatically generates the IaC configuration needed to run the software." This approach eliminates manual infrastructure configuration by having the deployment environment automatically provision resources based on the framework's patterns and the application code itself.

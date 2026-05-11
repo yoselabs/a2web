@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a product tool for modern software teams and captures a substantive headline emphasizing AI-native product development, satisfying all three criteria well.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0411459,
+  "latency_ms": 8188,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
+}

@@ -1,0 +1,1 @@
+Based solely on the provided text, the author and their professional background are not mentioned. The content only states that "The async and await keywords were added to JavaScript in ES2017," focusing on technical explanation.

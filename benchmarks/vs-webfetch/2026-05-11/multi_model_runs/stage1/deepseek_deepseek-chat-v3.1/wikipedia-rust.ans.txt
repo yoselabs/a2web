@@ -1,0 +1,1 @@
+Rust was created by Graydon Hoare and first appeared in 2012. It is known for its "borrow checker", which "tracks the object lifetime of references at compile time" to enforce memory safety.

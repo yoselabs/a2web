@@ -1,0 +1,9 @@
+{
+  "model": "qwen/qwen3-235b-a22b-04-28",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 10426,
+  "completion_tokens": 701,
+  "cost_usd": 0.00601965,
+  "latency_ms": 10659,
+  "cache_hit": false
+}

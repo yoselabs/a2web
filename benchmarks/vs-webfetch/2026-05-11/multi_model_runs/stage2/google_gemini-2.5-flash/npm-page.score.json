@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    0,
+    0
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the package as React but fails to provide the version number or weekly download count despite these being standard fields on the npm registry page.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.040819650000000006,
+  "latency_ms": 9549,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 55
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer precisely defines FDI as auto-provisioned infrastructure derived from framework/code analysis, provides a clean 2-sentence summary with substantive detail, and explicitly names the framework as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041284650000000006,
+  "latency_ms": 9628,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 70
+  }
+}

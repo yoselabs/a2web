@@ -1,0 +1,7 @@
+Here are the top 5 stories from the page:
+
+1. Hardware Attestation as Monopoly Enabler (grapheneos.social) — 1895 points
+2. Local AI needs to be the norm (unix.foo) — 1521 points
+3. I'm going back to writing code by hand (k10s.dev) — 684 points
+4. Incident Report: CVE-2024-YIKES (nesbitt.io) — 636 points
+5. Running local models on an M4 with 24GB memory (jola.dev) — 448 points

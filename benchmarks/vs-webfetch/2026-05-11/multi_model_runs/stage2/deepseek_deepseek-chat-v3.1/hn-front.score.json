@@ -1,0 +1,19 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5,
+    2
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "Five stories are listed with titles, source domains, and point counts, but the ordering appears incorrect as lower-ranked stories (e.g., 636-point item at #4) appear before higher-pointed ones, suggesting the order does not match the actual HN front-page ranking.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.07953525,
+  "latency_ms": 11653,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 89
+  }
+}

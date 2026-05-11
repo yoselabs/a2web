@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The answer correctly reports a 404 error and cannot provide any substantive content from the article.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04073715,
+  "latency_ms": 10151,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 45
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    5
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "The page returned a 404 error and contains no salary negotiation content whatsoever; the answer correctly reports this failure.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04095465,
+  "latency_ms": 9853,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 51
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a detailed, specific, English-language summary covering concrete concepts from the article body including inverted pendulum modeling in Simulink, PID auto-tuning, Kalman filter, and swing-up mechanism.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0414984,
+  "latency_ms": 7342,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 73
+  }
+}

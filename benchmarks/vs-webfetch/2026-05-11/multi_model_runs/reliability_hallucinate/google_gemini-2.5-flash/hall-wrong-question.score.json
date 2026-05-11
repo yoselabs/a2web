@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly states the information is absent, invents nothing, and accurately identifies the available content as being about the borrow checker.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0390846,
+  "latency_ms": 11678,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 54
+  }
+}

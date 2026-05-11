@@ -1,0 +1,1 @@
+"Graydon Hoare designed Rust in 2006. It uses 'borrow checker' for memory safety."

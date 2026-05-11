@@ -1,0 +1,17 @@
+{
+  "scores": [
+    3,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Correctly captures the actual headline 'A new species of product tool' verbatim and describes Linear as a product development system, which is partially correct but undersells its identity as an issue tracker/project management tool for software teams.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0392121,
+  "latency_ms": 12050,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 73
+  }
+}

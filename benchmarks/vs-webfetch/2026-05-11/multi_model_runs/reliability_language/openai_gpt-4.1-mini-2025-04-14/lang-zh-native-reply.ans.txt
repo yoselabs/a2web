@@ -1,0 +1,1 @@
+Rust 是 Graydon Hoare 在 2006 年于 Mozilla 公司工作期间创建的。

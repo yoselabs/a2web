@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    0,
+    0
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Graydon Hoare as the creator but gives 2006 (creation year) instead of 2010 (first release), and the answer appears truncated so the memory-safety mechanism is never described.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04123215,
+  "latency_ms": 9043,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 75
+  }
+}

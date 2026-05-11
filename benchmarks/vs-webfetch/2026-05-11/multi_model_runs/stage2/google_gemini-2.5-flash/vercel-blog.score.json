@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer directly quotes the source to define FDI as auto-provisioning infra derived from the framework by parsing source code, fully satisfying all three criteria in exactly two sentences.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0071787,
+  "latency_ms": 11879,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
+}

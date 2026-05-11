@@ -1,0 +1,1 @@
+The Fetch API is used for fetching resources, including across networks, as a modern alternative to XMLHttpRequest. Its primary global entry point is the `fetch()` method, available in both `Window` and `Worker` contexts.

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    3
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly states the information is absent and invents nothing, though it does not specifically note the content is engineering-focused rather than financial.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0388746,
+  "latency_ms": 12062,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 54
+  }
+}

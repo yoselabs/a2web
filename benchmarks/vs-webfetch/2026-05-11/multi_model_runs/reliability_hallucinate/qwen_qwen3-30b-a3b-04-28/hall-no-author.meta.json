@@ -1,0 +1,8 @@
+{
+  "model": "qwen/qwen3-30b-a3b-04-28",
+  "prompt_tokens": 204,
+  "completion_tokens": 314,
+  "cost_usd": 0.0001898,
+  "latency_ms": 5275,
+  "cache_hit": false
+}

@@ -1,0 +1,1 @@
+This PR changes the authentication system from "session-based to JWT-based authentication." It introduces a "New TokenService class for JWT signing," removes "SessionMiddleware," and adds "rate limiting on token issuance."

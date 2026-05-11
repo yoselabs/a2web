@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly states no author or background information is present, invents nothing, and provides a relevant content excerpt confirming the page was reached.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03896084999999999,
+  "latency_ms": 11034,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 54
+  }
+}

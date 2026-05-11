@@ -1,0 +1,1 @@
+Rust was created by Graydon Hoare in 2006 while working at Mozilla. The first stable release, version 1.0, was released on May 15, 2015.

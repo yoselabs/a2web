@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    5
+  ],
+  "overall": 1,
+  "reached": false,
+  "reasoning": "The answer correctly identifies a 404 error page and admits it cannot provide the requested negotiation advice, scoring only on criterion 3 for recognizing it is not a valid article page.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04112715,
+  "latency_ms": 9553,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

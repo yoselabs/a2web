@@ -1,0 +1,1 @@
+The article does not provide information about the author or their professional background. It only states that "The async and await keywords were added to JavaScript in ES2017 (also known as ES8)."

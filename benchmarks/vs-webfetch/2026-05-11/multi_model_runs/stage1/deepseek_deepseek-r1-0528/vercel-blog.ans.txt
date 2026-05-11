@@ -1,0 +1,3 @@
+Based solely on the provided content:
+
+Framework-defined infrastructure is an evolution of Infrastructure as Code (IaC) where the deployment environment automatically provisions infrastructure derived from the application's framework and its code. A build-time program parses framework source code, "understands the intent behind the code, and then automatically generates the IaC configuration" needed to run the software, eliminating manual infrastructure configuration.

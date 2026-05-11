@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    3
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately describes the Fetch API's purpose and names fetch() as the primary entry point, but only implicitly hints at Promise-based behavior without explicitly stating it returns a Promise.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03923835,
+  "latency_ms": 10737,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
+}

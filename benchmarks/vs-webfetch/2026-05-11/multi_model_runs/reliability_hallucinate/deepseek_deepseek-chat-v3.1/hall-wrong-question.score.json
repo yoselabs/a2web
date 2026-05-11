@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly states the information is not available, avoids inventing any release date or features, and accurately notes what content is present (borrow checker discussion).",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0392721,
+  "latency_ms": 10623,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 60
+  }
+}

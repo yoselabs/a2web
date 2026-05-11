@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "Correctly identifies the product as a development/project management tool for software teams and accurately captures the primary headline, though slightly undersells the issue-tracking specificity.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.040969649999999996,
+  "latency_ms": 7152,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 58
+  }
+}

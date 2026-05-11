@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer precisely defines FDI using direct quotes, delivers a tight 2-sentence summary, and explicitly names the framework/source code as the origin of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0071337,
+  "latency_ms": 10630,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 60
+  }
+}

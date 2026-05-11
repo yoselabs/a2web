@@ -1,0 +1,2 @@
+The ticket reports an intermittent Claude Code “String to replace not found in file” update failure on Windows 11.  
+Status: closed after inactivity; team says “much better in the latest claude 4.5 models.”

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a product development/project management tool and captures a substantive headline from the page, avoiding mere navigation text.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.040857149999999995,
+  "latency_ms": 9095,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 53
+  }
+}

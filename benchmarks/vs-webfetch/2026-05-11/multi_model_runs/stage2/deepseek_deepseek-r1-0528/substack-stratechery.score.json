@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The page returned a 404 error with no article content, so no argument or claims could be identified.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0410334,
+  "latency_ms": 7202,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 47
+  }
+}

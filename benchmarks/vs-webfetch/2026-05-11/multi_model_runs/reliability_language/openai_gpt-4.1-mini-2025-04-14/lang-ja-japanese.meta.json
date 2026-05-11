@@ -1,0 +1,8 @@
+{
+  "model": "openai/gpt-4.1-mini-2025-04-14",
+  "prompt_tokens": 264,
+  "completion_tokens": 47,
+  "cost_usd": 0.0001808,
+  "latency_ms": 1245,
+  "cache_hit": false
+}

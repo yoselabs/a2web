@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    5
+  ],
+  "overall": 1,
+  "reached": true,
+  "reasoning": "The answer correctly identifies that no article content was available (only a copyright notice), satisfying criterion 3, but cannot score on topic or technical detail since no substantive content was retrieved.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04102965,
+  "latency_ms": 10373,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
+}

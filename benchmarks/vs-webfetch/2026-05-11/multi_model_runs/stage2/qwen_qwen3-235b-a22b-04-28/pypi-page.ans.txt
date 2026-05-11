@@ -1,0 +1,2 @@
+This package is "the official Python library for the anthropic API" (quoted directly). Its latest version shown is **0.100.0**, and the install command is:  
+`pip install anthropic` (quoted directly).

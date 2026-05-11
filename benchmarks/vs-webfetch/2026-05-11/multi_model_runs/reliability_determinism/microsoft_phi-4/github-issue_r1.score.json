@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately captures the reported bug, confirms the issue is closed, and cites specific substantive details including the version, OS, error message, a named commenter's response, and the auto-lock after inactivity.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.007319399999999999,
+  "latency_ms": 11327,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 72
+  }
+}

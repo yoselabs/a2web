@@ -1,0 +1,1 @@
+Graydon Hoare created Rust in 2006 while working at Mozilla. The first stable version, 1.0, was released on May 15, 2015. Rust is known for its "borrow checker" mechanism, which ensures memory safety without a garbage collector.

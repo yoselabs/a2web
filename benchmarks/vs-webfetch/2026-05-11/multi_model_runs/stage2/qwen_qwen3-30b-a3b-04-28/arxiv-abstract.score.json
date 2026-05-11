@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    1,
+    5
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Title is exact and contribution is well captured, but author list is truncated to only one name with 'et al' implied, failing the 3-author threshold.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04103715,
+  "latency_ms": 8682,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 60
+  }
+}

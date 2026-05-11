@@ -1,0 +1,3 @@
+
+
+"The articleexplains using Simulink's PID controllers to stabilize an inverted pendulum via automatic tuning, eliminating manual calculations and incorporating noise/Kalman filters for robustness." (124 chars)

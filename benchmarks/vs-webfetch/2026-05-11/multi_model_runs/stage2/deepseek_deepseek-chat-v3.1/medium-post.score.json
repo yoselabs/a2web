@@ -1,0 +1,17 @@
+{
+  "scores": [
+    1,
+    4,
+    4
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer reaches real page content (a personal essay about Digimon, not LLMs or a paywall), but the thesis summary is extremely vague and circular, offering almost no substantive information beyond 'the author likes Digimon a lot.'",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041303400000000004,
+  "latency_ms": 8236,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 80
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    3,
+    2,
+    1
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer gives a partial definition and hints at authentication but lacks detail on states/transitions/SCA and is too thin to fully satisfy any criterion.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04086465,
+  "latency_ms": 9999,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 55
+  }
+}

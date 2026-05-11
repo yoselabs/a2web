@@ -1,0 +1,1 @@
+"Framework-defined infrastructure" is "an evolution of IaC" that automatically provisions infrastructure based on framework code.

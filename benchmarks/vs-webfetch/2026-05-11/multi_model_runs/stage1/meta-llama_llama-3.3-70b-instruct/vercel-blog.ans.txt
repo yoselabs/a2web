@@ -1,0 +1,1 @@
+Framework-defined infrastructure is an evolution of infrastructure as code. It "abstracts over cloud primitives" to automatically provision infrastructure based on a framework's concepts.

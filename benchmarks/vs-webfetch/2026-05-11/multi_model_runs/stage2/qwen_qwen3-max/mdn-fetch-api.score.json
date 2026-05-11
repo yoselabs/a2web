@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Correctly identifies Fetch API purpose and fetch() entry point, but only implicitly hints at Promise-based nature without explicitly mentioning Promises.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04099215,
+  "latency_ms": 10151,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 55
+  }
+}

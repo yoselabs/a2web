@@ -1,0 +1,1 @@
+A Notion database is a collection of pages, where "every item you enter into your database is a Notion page." Unlike a regular page, a database allows you to manage multiple pages in one place using customizable properties and different visual layouts like tables, calendars, and boards.

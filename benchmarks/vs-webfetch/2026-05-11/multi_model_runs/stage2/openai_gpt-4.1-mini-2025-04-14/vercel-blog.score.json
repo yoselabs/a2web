@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer precisely defines FDI as inferring/provisioning infra from framework code without explicit configuration, uses a direct quote for criterion 3, and delivers a clean 2-sentence summary.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.007219199999999999,
+  "latency_ms": 11454,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 66
+  }
+}

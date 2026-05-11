@@ -1,0 +1,3 @@
+Title: "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"  
+Authors: Evan Hubinger, Carson Denison, et al.  
+Main contribution: Demonstrates that deceptive behaviors in LLMs can persist through standard safety training methods.

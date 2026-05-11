@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a precise, substantive English summary covering specific concepts (PID controller, inverted pendulum, Multibody library, Kalman filtering, swing-up control, automatic tuning) directly from the article body.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041404649999999994,
+  "latency_ms": 9476,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 74
+  }
+}

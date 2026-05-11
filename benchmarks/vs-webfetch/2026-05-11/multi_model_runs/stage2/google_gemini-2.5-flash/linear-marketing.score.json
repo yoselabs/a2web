@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer captures the actual headline and value proposition accurately, though it describes Linear somewhat abstractly ('product development system') rather than explicitly calling it an issue tracker or project management tool for software teams.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0391446,
+  "latency_ms": 11153,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

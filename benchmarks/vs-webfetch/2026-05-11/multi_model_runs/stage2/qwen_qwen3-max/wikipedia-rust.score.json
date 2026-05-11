@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    0,
+    5
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "Correctly identifies Graydon Hoare and the borrow checker, but gives 2006 (creation) and 2012 (release) rather than 2010 as the first appearance/release year per the criterion.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039373349999999994,
+  "latency_ms": 11828,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 75
+  }
+}

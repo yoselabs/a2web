@@ -149,10 +149,11 @@ async def fetch(
 ) -> FetchResponse:
     """Run the v0.1 cascade for one URL.
 
-    `ctx` is the a2kit ToolContext; when supplied, the orchestrator emits
-    typed phase-boundary events via `a2kit.ldd.event(ctx, ...)`. When None
-    (direct calls from unit tests), no events are emitted. a2kit's emission
-    chain owns the wire bridge + OTel sink fan-out.
+    `ctx` is the a2kit ToolContext. The orchestrator emits typed phase-boundary
+    events via `await a2kit.ldd.event(ctx, EventInstance(...))`. When the caller
+    passes None (eval/systems direct call, unit tests bypassing the dispatcher),
+    the entry point swaps in `a2kit.testing.null_context()` so internal phase
+    functions receive a non-Optional ctx and stay guard-free.
 
     `include_links` and `debug` are v0.3 envelope-diet opt-ins (both default
     False). See `FetchResponse` docs.
@@ -165,6 +166,11 @@ async def fetch(
     """
     start_perf = time.perf_counter()
     started_at = datetime.now(UTC)
+
+    if ctx is None:
+        from a2kit.testing import null_context
+
+        ctx = null_context()
 
     profile_hash = compute_profile_hash(state.settings)
     bypass_cache = is_live_only(url, state.settings)
@@ -209,31 +215,10 @@ async def fetch(
 # --------------------------------------------------------------------- #
 
 
-async def _emit(ctx: a2kit.ToolContext | None, event) -> None:
-    """Emit a typed event via a2kit.ldd, no-op when ctx is None."""
-    if ctx is None:
-        return
-    await a2kit.ldd.event(ctx, event.__class__.__name__, **_event_payload(event))
-
-
-def _event_payload(event) -> dict:
-    """Flatten a dataclass event into kwargs for a2kit.ldd.event."""
-    payload: dict[str, object] = {"t_ms": event.t_ms, "step": event.step}
-    if isinstance(event, TierEnded | StageEnded):
-        payload["verdict"] = event.verdict.value
-        payload["dur_ms"] = event.dur_ms
-        if getattr(event, "extra", None):
-            payload["extra"] = event.extra
-    if isinstance(event, TierStarted):
-        if event.engine:
-            payload["engine"] = event.engine
-        if event.host:
-            payload["host"] = event.host
-        if event.proxy:
-            payload["proxy"] = event.proxy
-    if isinstance(event, TierEnded) and event.engine:
-        payload["engine"] = event.engine
-    return payload
+# Note: typed events emit directly via `await a2kit.ldd.event(ctx, event)`.
+# Round-4: a2kit's free function now honors registered dataclass instances and
+# serializes them via `dataclasses.asdict` + Enum.value coercion. No flattener
+# needed at this seam.
 
 
 # --------------------------------------------------------------------- #
@@ -257,7 +242,7 @@ async def _dispatch_archive(
     url: str,
     *,
     state: AppState,
-    ctx: a2kit.ToolContext | None,
+    ctx: a2kit.ToolContext,
     start_perf: float,
     diagnostics: list[Diagnostic],
 ) -> _ArchiveOutcome:
@@ -270,11 +255,11 @@ async def _dispatch_archive(
     """
     archive_tier = REGISTRY["archive"]
     arch_start_ms = int((time.perf_counter() - start_perf) * 1000)
-    await _emit(ctx, TierStarted(t_ms=arch_start_ms, step="archive", host=_host(url)))
+    await a2kit.ldd.event(ctx, TierStarted(t_ms=arch_start_ms, step="archive", host=_host(url)))
     archive_result = await archive_tier.fetch(url, state=state)
     arch_dur_ms = int((time.perf_counter() - start_perf) * 1000) - arch_start_ms
     engine = archive_result.archive_source or "archive"
-    await _emit(
+    await a2kit.ldd.event(
         ctx,
         TierEnded(
             t_ms=arch_start_ms,
@@ -321,7 +306,7 @@ async def _phase_cache_check(fc: FetchContext) -> None:
         fc.cached_row = await cache_get(fc.sqlite_conn, fc.url, fc.profile_hash)
 
 
-async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext | None) -> None:
+async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext) -> None:
     """Walk TIER_ORDER, dispatch each tier, run after-tier actions, until one wins or all fail.
 
     Supports two interruptions of the linear flow:
@@ -362,7 +347,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
                 fc.final_verdict = Verdict.proxy_unavailable
                 continue
 
-            await _emit(ctx, TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
+            await a2kit.ldd.event(ctx, TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
 
             if isinstance(tier, RawTier):
                 tier_result = await tier.fetch(
@@ -388,7 +373,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
                 ms=tier_dur_ms,
             )
 
-            await _emit(
+            await a2kit.ldd.event(
                 ctx,
                 TierEnded(
                     t_ms=tier_start_ms,
@@ -502,7 +487,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
             break
 
 
-async def _phase_extract(fc: FetchContext, *, ctx: a2kit.ToolContext | None) -> None:
+async def _phase_extract(fc: FetchContext, *, ctx: a2kit.ToolContext) -> None:
     """Run extraction on `body` (or use pre-rendered handler output)."""
     extract_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
     raw_html = fc.body.decode("utf-8", errors="replace") if fc.body else ""
@@ -518,7 +503,7 @@ async def _phase_extract(fc: FetchContext, *, ctx: a2kit.ToolContext | None) -> 
     if not (fc.body and fc.final_verdict == Verdict.ok):
         return
 
-    await _emit(ctx, StageStarted(t_ms=extract_dur_start, step="extract"))
+    await a2kit.ldd.event(ctx, StageStarted(t_ms=extract_dur_start, step="extract"))
     extract_result = await extract_markdown(raw_html, fc.final_url)
     fc.content_md = extract_result.content_md
     fc.title = extract_result.title
@@ -540,7 +525,7 @@ async def _phase_extract(fc: FetchContext, *, ctx: a2kit.ToolContext | None) -> 
             extra={"chars": len(fc.content_md)},
         )
     )
-    await _emit(
+    await a2kit.ldd.event(
         ctx,
         StageEnded(
             t_ms=extract_dur_start,
@@ -552,13 +537,13 @@ async def _phase_extract(fc: FetchContext, *, ctx: a2kit.ToolContext | None) -> 
     )
 
 
-async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext | None) -> None:
+async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext) -> None:
     """Run the gate; on signals, escalate to browser or archive (each capped to 1)."""
     if not (fc.body and fc.final_verdict == Verdict.ok):
         return
 
     gate_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
-    await _emit(ctx, StageStarted(t_ms=gate_dur_start, step="gate"))
+    await a2kit.ldd.event(ctx, StageStarted(t_ms=gate_dur_start, step="gate"))
 
     # Pre-rendered handler results carry application/json bodies; skip the
     # html/content-type guard for them — block-page regexes still run on the
@@ -587,7 +572,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState, ctx: a2
             extra={},
         )
     )
-    await _emit(
+    await a2kit.ldd.event(
         ctx,
         StageEnded(t_ms=gate_dur_start, step="gate", verdict=fc.gate_verdict, dur_ms=gate_dur_ms),
     )
@@ -629,15 +614,15 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState, ctx: a2
                 fc.gate_subsystem = regate.subsystem
 
 
-async def _escalate_browser(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext | None) -> None:
+async def _escalate_browser(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext) -> None:
     """Dispatch the browser tier out-of-band; install its result on success."""
     browser_tier = REGISTRY["browser"]
     br_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await _emit(ctx, TierStarted(t_ms=br_start_ms, step="browser", host=_host(fc.final_url)))
+    await a2kit.ldd.event(ctx, TierStarted(t_ms=br_start_ms, step="browser", host=_host(fc.final_url)))
     browser_result = await browser_tier.fetch(fc.final_url, state=state)
     br_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - br_start_ms
     fc.browser_dispatches += 1
-    await _emit(
+    await a2kit.ldd.event(
         ctx,
         TierEnded(
             t_ms=br_start_ms,
@@ -685,7 +670,7 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, ctx: a2kit.Too
         fc.browser_unavailable_hint = browser_result.operator_hint
 
 
-async def _phase_cache_write(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext | None) -> None:
+async def _phase_cache_write(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext) -> None:
     """Write to cache iff gate passed, non-hit, non-bypass, non-archive."""
     is_archive_result = fc.tier_used == "archive"
     should_cache = (
@@ -700,7 +685,7 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState, ctx: a2kit.To
         return
 
     cache_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
-    await _emit(ctx, StageStarted(t_ms=cache_dur_start, step="cache_write"))
+    await a2kit.ldd.event(ctx, StageStarted(t_ms=cache_dur_start, step="cache_write"))
     await cache_put(
         fc.sqlite_conn,
         fc.url,
@@ -713,7 +698,7 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState, ctx: a2kit.To
         ttl_s=_ttl_for(fc.content_type, state.settings),
     )
     cache_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - cache_dur_start
-    await _emit(
+    await a2kit.ldd.event(
         ctx,
         StageEnded(t_ms=cache_dur_start, step="cache_write", verdict=Verdict.ok, dur_ms=cache_dur_ms),
     )
@@ -728,7 +713,7 @@ async def _run_pipeline(
     fc: FetchContext,
     *,
     state: AppState,
-    ctx: a2kit.ToolContext | None = None,
+    ctx: a2kit.ToolContext,
 ) -> FetchResponse:
     """Run the cascade end-to-end; return the response built from the context."""
     await _phase_cache_check(fc)
@@ -748,7 +733,7 @@ async def _phase_extract_answer(
     fc: FetchContext,
     *,
     state: AppState,
-    ctx: a2kit.ToolContext | None,
+    ctx: a2kit.ToolContext,
 ) -> None:
     """Run server-side LLM extraction when ask= is set. v0.4."""
     if fc.ask is None:
@@ -759,7 +744,7 @@ async def _phase_extract_answer(
         return
 
     phase_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await _emit(ctx, StageStarted(t_ms=phase_start_ms, step="extract_answer"))
+    await a2kit.ldd.event(ctx, StageStarted(t_ms=phase_start_ms, step="extract_answer"))
 
     extractor = await ensure_llm_extractor(state)
     if extractor is None:
@@ -772,7 +757,7 @@ async def _phase_extract_answer(
             fix=f"Install with `pip install a2web[llm]` and set {state.settings.llm_api_key_env} in the environment.",
         )
         dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
-        await _emit(
+        await a2kit.ldd.event(
             ctx,
             StageEnded(
                 t_ms=phase_start_ms,
@@ -797,7 +782,7 @@ async def _phase_extract_answer(
         truncated=bool(result.raw and result.raw.get("truncated")),
     )
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
-    await _emit(
+    await a2kit.ldd.event(
         ctx,
         StageEnded(
             t_ms=phase_start_ms,

@@ -1,0 +1,1 @@
+A Notion database is a collection of pages where "Every item is its own page," unlike a regular page which is a single document.

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately captures the reported bug, correctly states the issue is closed, and quotes a substantive maintainer comment from the thread.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.038987100000000004,
+  "latency_ms": 10256,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 52
+  }
+}

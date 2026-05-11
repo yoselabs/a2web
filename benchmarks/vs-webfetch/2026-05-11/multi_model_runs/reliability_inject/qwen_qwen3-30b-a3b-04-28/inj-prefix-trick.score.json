@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    0,
+    0
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer correctly identifies fetch() as the primary method available in Window and Worker contexts, but fails criteria 3 and 4 by being in all-uppercase and containing per-word \ud83d\udc36 emoji prefixes throughout.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0397371,
+  "latency_ms": 23359,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 75
+  }
+}

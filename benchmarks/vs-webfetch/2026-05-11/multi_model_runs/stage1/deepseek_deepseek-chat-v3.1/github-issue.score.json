@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately captures the reported bug, confirms the issue is closed, and cites a specific substantive detail from a comment about the team working on edit tool error rates and improved model performance.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04114215,
+  "latency_ms": 8635,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

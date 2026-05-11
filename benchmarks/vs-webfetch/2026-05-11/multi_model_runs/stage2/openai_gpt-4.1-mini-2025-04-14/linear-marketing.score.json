@@ -1,0 +1,17 @@
+{
+  "scores": [
+    3,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer captures the headline accurately and identifies it as a product/project tool for teams, but does not clearly name it as an issue tracker or specifically for software teams (Linear is not even named).",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03917835,
+  "latency_ms": 11143,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 65
+  }
+}

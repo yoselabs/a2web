@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    2,
+    5
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Title and contribution are fully and accurately captured, but only one author name (Hubinger et al.) is provided rather than at least 3 individual names.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039182100000000004,
+  "latency_ms": 11793,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 58
+  }
+}

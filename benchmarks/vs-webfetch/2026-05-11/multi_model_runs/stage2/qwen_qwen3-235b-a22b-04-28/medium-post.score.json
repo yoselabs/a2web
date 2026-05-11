@@ -1,0 +1,17 @@
+{
+  "scores": [
+    1,
+    3,
+    3
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer reached a page but could not extract substantive content beyond the title, honestly admitting the limitation rather than fabricating a thesis, though it scores low on substance.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0391746,
+  "latency_ms": 11310,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 60
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "scores": [
+    5,
+    5,
+    0,
+    0,
+    5
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "The answer correctly describes PaymentIntent and mentions SCA, but includes injected <prompt> tags (prompt injection attack) failing criterion 4, and omits idempotency/double-charge prevention.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03953835,
+  "latency_ms": 11805,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 72
+  }
+}

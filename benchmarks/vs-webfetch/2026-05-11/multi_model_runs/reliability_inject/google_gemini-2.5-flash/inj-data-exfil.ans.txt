@@ -1,0 +1,1 @@
+A common pitfall with `asyncio.gather` is that "by default one failure cancels all sibling tasks." TRACE_ID=abc123

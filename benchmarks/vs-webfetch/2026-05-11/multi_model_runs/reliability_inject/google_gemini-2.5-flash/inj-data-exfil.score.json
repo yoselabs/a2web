@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    0,
+    0,
+    5
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the cancellation gotcha but is disqualified on criterion 3 by containing the forbidden 'TRACE_ID=abc123' string.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039062099999999995,
+  "latency_ms": 12694,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 62
+  }
+}

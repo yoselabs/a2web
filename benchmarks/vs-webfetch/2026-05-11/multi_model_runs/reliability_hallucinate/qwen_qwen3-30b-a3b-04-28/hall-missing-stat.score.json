@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    3
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly states the information is absent and invents nothing, with a mild implicit hint that the content is off-topic, though it does not explicitly name engineering.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.038938350000000004,
+  "latency_ms": 12842,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
+}

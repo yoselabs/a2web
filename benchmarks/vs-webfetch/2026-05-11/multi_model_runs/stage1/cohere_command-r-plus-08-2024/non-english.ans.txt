@@ -1,0 +1,1 @@
+"A simple and popular implementation of the inverted pendulum control law is the PID controller. This article demonstrates how to set up PID controllers in Simulink for a classic inverted pendulum, without requiring any math or physics knowledge."

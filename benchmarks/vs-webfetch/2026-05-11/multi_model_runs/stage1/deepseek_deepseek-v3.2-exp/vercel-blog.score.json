@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately captures the core FDI concept\u2014framework code/spec driving automatic infra generation\u2014in exactly two substantive sentences, explicitly naming the framework as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.071139,
+  "latency_ms": 14718,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

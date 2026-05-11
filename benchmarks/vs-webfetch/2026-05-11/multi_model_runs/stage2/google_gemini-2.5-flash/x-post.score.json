@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    3
+  ],
+  "overall": 1,
+  "reached": true,
+  "reasoning": "The fetch reached x.com but got a JavaScript-disabled wall instead of content, so no substantive post content was captured, though Karpathy was mentioned in the question context.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0410859,
+  "latency_ms": 11646,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
+}

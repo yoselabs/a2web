@@ -1,0 +1,1 @@
+Framework-defined infrastructure (FdI) automatically provisions infrastructure by parsing framework code to infer needed resources. It "maps framework concepts onto the appropriate infrastructure without the need for explicit declaration or configuration."

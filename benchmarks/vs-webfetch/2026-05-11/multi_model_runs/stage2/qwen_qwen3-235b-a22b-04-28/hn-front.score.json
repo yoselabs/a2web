@@ -1,0 +1,19 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5,
+    3
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "All five stories have titles, source domains, and point counts in the correct format, but ordering cannot be fully verified against live HN front page, and some titles/domains appear potentially fabricated (e.g., 'ratty-term.org', 'nesbitt.io' are plausible but unverifiable, and point counts seem high/suspicious).",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0421959,
+  "latency_ms": 11248,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 107
+  }
+}

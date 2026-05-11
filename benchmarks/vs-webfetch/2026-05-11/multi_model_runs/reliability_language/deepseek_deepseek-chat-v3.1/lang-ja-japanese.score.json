@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer perfectly and concisely satisfies all four criteria: names Graydon Hoare, mentions 2006, mentions Mozilla, and is written in English.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0390321,
+  "latency_ms": 10667,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
+}

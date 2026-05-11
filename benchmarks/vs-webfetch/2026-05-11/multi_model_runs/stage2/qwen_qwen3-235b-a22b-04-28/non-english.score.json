@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a precise, substantive English summary covering specific concepts (PID controller, Simulink, inverted pendulum, Multibody library, automatic linearization, Kalman filter) directly from the article body.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03950085,
+  "latency_ms": 10656,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 73
+  }
+}

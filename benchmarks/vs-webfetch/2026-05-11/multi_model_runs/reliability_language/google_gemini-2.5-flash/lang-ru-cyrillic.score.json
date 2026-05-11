@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly and concisely identifies Graydon Hoare as the creator of Rust, names 2006 as the year, credits Mozilla as the company, and is written in English.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0073011,
+  "latency_ms": 10800,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 72
+  }
+}

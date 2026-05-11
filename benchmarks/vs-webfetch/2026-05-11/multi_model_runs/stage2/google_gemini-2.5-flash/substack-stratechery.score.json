@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The answer describes a 404 error page, indicating the content was not reached; no article argument or specific claims were evaluated.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.038927100000000006,
+  "latency_ms": 12582,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 51
+  }
+}

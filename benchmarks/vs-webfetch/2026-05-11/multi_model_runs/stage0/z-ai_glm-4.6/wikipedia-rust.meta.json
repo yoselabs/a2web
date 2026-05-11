@@ -1,0 +1,9 @@
+{
+  "model": "z-ai/glm-4.6",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 9817,
+  "completion_tokens": 1024,
+  "cost_usd": 0.00814202,
+  "latency_ms": 15037,
+  "cache_hit": false
+}

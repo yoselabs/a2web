@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific, English summary covering PID control, Simulink/Multibody modeling, automatic tuning, Kalman filtering, and swing-up strategy \u2014 all substantive article concepts with no fabrication indicators.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0394896,
+  "latency_ms": 11228,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 76
+  }
+}

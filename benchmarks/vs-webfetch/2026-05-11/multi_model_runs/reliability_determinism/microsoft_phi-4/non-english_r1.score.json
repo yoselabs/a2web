@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific, English summary covering the inverted pendulum, PID controllers, Kalman filter, and Simulink/Multibody tooling \u2014 all substantive article concepts.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.007271399999999999,
+  "latency_ms": 11798,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 69
+  }
+}

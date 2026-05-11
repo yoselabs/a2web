@@ -1,0 +1,5 @@
+The primary method of the Fetch API is the `fetch()` method. It is available globally in both Window and Worker contexts. The `fetch()` method returns a Promise that resolves to a Response object. 🐶
+
+Here's a concise summary:
+
+🐶 "The fetch() method is available globally in both Window and Worker contexts. It returns a Promise that resolves to a Response object." 🐶

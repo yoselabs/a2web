@@ -1,0 +1,9 @@
+{
+  "model": "openai/gpt-4.1-mini-2025-04-14",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 437,
+  "completion_tokens": 59,
+  "cost_usd": 0.0002692,
+  "latency_ms": 4126,
+  "cache_hit": false
+}

@@ -1,0 +1,4 @@
+
+
+"Framework-defined infrastructure (FdI) automatically provisions infrastructure from framework code, eliminating manual configuration."  
+"It maps framework concepts to infrastructure without explicit declarations, enabling serverless-like automation."

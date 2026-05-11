@@ -1,0 +1,1 @@
+The Fetch API is "an interface for fetching resources (including across the network)." The primary entry point is the "`fetch()` method," which is "a global method in both `Window` and `Worker` contexts."

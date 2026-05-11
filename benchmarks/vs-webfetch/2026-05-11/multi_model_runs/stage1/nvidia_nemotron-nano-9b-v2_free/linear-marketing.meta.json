@@ -1,0 +1,9 @@
+{
+  "model": "nvidia/nemotron-nano-9b-v2:free",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 367,
+  "completion_tokens": 346,
+  "cost_usd": 0.0,
+  "latency_ms": 7017,
+  "cache_hit": false
+}

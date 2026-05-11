@@ -1,0 +1,17 @@
+{
+  "scores": [
+    3,
+    0,
+    0
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer correctly identifies React as a UI library but fails to provide the version number or weekly download count, which were likely present on the npm page but not extracted.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039140850000000005,
+  "latency_ms": 10481,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 58
+  }
+}

@@ -1,0 +1,3 @@
+# Summary
+
+This article demonstrates how to build and control an inverted pendulum system using MATLAB Simulink without requiring manual calculations or deep technical knowledge. The author uses the Multibody library to model the physical system and employs automatic PID controller tuning features to create a stable control system that can swing up and balance the pendulum while managing cart position.

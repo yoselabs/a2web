@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a product development/project management tool for software teams and captures a substantive, accurate headline from the landing page, though it slightly undersells the issue-tracker framing by emphasizing 'AI workflows' over the core project management identity.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0074298,
+  "latency_ms": 11729,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 80
+  }
+}

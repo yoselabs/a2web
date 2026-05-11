@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer perfectly satisfies all four criteria: names \u0413\u0440\u0435\u0439\u0434\u043e\u043d \u0425\u043e\u0430\u0440 in Cyrillic, states 2006, mentions Mozilla, and is written entirely in Russian.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0392046,
+  "latency_ms": 10831,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 67
+  }
+}

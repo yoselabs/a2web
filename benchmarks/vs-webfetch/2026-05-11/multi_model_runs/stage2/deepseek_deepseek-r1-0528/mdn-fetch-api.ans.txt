@@ -1,0 +1,3 @@
+Based solely on the provided content:
+
+The Fetch API is used for "fetching resources (including across the network)". The primary entry point is "the `fetch()` method" on the global object (available in `Window` and `Worker` contexts).

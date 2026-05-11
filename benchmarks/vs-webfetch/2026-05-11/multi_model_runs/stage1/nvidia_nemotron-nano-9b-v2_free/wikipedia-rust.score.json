@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    0,
+    4
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "Correctly identifies Graydon Hoare and the borrow checker, but gives 2006 (the start of personal development) instead of 2010 (first public release/appearance).",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04106715,
+  "latency_ms": 8798,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 67
+  }
+}

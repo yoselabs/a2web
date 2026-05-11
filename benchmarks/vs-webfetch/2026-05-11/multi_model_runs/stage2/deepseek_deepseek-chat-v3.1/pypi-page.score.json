@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the Anthropic Python SDK, provides the specific version 0.100.0, and gives the exact install command pip install anthropic.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04093215,
+  "latency_ms": 8208,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 58
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    2,
+    5
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Title and contribution are perfectly captured, but only 'Evan Hubinger et al.' is given with no additional author names listed, falling short of the 3-author requirement.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0411759,
+  "latency_ms": 8868,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
+}

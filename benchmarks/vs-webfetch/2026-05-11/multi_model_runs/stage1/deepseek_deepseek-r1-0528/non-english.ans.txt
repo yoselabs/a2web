@@ -1,0 +1,5 @@
+Based solely on the provided content, this article describes:
+
+1.  Building an inverted pendulum model in Simulink using the Multibody library "without knowledge of physics and mathematics" by assembling pre-made components.
+2.  Automatically tuning PID controllers for stabilization "by pressing a couple of buttons" using Simulink's tuning feature, eliminating manual calculations.
+3.  Extending the model with noise, a Kalman filter, a swing-up mechanism, and disturbance rejection to create a robust simulation achieved "without using a single formula."

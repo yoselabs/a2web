@@ -22,7 +22,7 @@ class WebRouter(a2kit.Router):
     async def fetch(
         self,
         *,
-        url: Annotated[str, a2kit.Param(description="Absolute http(s) URL to fetch.")],
+        url: Annotated[str, a2kit.Param("Absolute http(s) URL to fetch.")],
         include_links: Annotated[
             bool,
             a2kit.Param(

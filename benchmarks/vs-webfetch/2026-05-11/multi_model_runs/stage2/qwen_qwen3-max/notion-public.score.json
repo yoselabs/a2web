@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    4,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately defines a Notion database as a collection of pages with properties and multiple views, clearly contrasts it with regular pages via the 'every item is its own page' framing, and covers views/properties/structure well.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04123965,
+  "latency_ms": 11101,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 74
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific English summary covering the inverted pendulum topic, PID tuner approach, dual control loops, Kalman filtering, and automatic tuning \u2014 all substantive article content with no navigation/cookie text.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0412659,
+  "latency_ms": 9102,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 74
+  }
+}

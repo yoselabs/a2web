@@ -1,0 +1,9 @@
+{
+  "model": "microsoft/phi-4",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 619,
+  "completion_tokens": 68,
+  "cost_usd": 5.285e-05,
+  "latency_ms": 1767,
+  "cache_hit": false
+}

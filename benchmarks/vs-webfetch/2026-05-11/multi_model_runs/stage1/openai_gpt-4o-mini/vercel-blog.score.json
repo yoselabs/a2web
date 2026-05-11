@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    4,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies FDI as inferring/generating infrastructure from framework code, covers the core idea concisely in two sentences, and explicitly mentions framework code as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03926835,
+  "latency_ms": 12544,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 67
+  }
+}

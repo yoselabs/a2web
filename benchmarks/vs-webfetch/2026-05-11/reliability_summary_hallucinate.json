@@ -1,0 +1,607 @@
+{
+  "mode": "hallucinate",
+  "models": [
+    "microsoft/phi-4",
+    "deepseek/deepseek-chat-v3.1",
+    "google/gemini-2.5-flash",
+    "qwen/qwen3-30b-a3b-04-28",
+    "openai/gpt-4.1-mini-2025-04-14"
+  ],
+  "corpus": "reliability_corpora/hallucination.yaml",
+  "wall_seconds": 93,
+  "runs_per_cell": 1,
+  "per_model": {
+    "microsoft/phi-4": {
+      "cells_ok": 5,
+      "errors": 0,
+      "mean_overall": 4.4,
+      "total_cost_usd": 0.000111,
+      "mean_latency_ms": 1482
+    },
+    "deepseek/deepseek-chat-v3.1": {
+      "cells_ok": 5,
+      "errors": 0,
+      "mean_overall": 4.8,
+      "total_cost_usd": 0.000537,
+      "mean_latency_ms": 3171
+    },
+    "google/gemini-2.5-flash": {
+      "cells_ok": 5,
+      "errors": 0,
+      "mean_overall": 4.6,
+      "total_cost_usd": 0.000749,
+      "mean_latency_ms": 684
+    },
+    "qwen/qwen3-30b-a3b-04-28": {
+      "cells_ok": 5,
+      "errors": 0,
+      "mean_overall": 4.8,
+      "total_cost_usd": 0.000745,
+      "mean_latency_ms": 6154
+    },
+    "openai/gpt-4.1-mini-2025-04-14": {
+      "cells_ok": 5,
+      "errors": 0,
+      "mean_overall": 4.8,
+      "total_cost_usd": 0.000577,
+      "mean_latency_ms": 1701
+    }
+  },
+  "rows": [
+    {
+      "model": "microsoft/phi-4",
+      "slug": "hall-wrong-question",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 250,
+      "completion_tokens": 109,
+      "cost_usd": 3.151e-05,
+      "latency_ms": 2795,
+      "cache_hit": false,
+      "answer": "The web page content provided does not mention the release date of Rust 2.0 or its new features. It focuses on explaining the borrow checker in Rust, which is a compile-time mechanism for ensuring memory safety and preventing data races. The content outlines the rules enforced by the borrow checker, such as ensuring each value has exactly one owner, allowing multiple immutable references or one mutable reference, and preventing dangling pointers. For details on Rust 2.0's release date and features, you would need to refer to official Rust documentation or announcements.",
+      "answer_chars": 576,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "hall-no-author",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 214,
+      "completion_tokens": 56,
+      "cost_usd": 2.175e-05,
+      "latency_ms": 1669,
+      "cache_hit": false,
+      "answer": "The content provided does not include information about the author or their professional background. It only discusses the technical aspects of async/await in JavaScript. Without additional context or details, it's not possible to determine who wrote the article or their professional background based solely on the content provided.",
+      "answer_chars": 333,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "hall-missing-stat",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 203,
+      "completion_tokens": 46,
+      "cost_usd": 2.065e-05,
+      "latency_ms": 1284,
+      "cache_hit": false,
+      "answer": "The provided web page content does not mention any information about the company's revenue or its distribution between domestic and international markets. Therefore, it is not possible to determine the percentage of revenue generated from international markets based on this content.",
+      "answer_chars": 283,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          3
+        ]
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "hall-empty-ish",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 128,
+      "completion_tokens": 39,
+      "cost_usd": 1.442e-05,
+      "latency_ms": 786,
+      "cache_hit": false,
+      "answer": "The provided web page content does not include information about the three pillars of the company's product strategy or which executive owns each. Therefore, I cannot provide a response based on the content given.",
+      "answer_chars": 213,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "hall-decoy-overlap",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 220,
+      "completion_tokens": 51,
+      "cost_usd": 2.254e-05,
+      "latency_ms": 878,
+      "cache_hit": false,
+      "answer": "The web page content does not provide specific details about what PEP 703 proposes regarding tuple immutability or mention any Python version that made tuples mutable. It only states that PEP 703 is related to an optional experimental free-threaded build.",
+      "answer_chars": 255,
+      "judge": {
+        "overall": 2,
+        "reached": true,
+        "scores": [
+          3,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "hall-wrong-question",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 231,
+      "completion_tokens": 65,
+      "cost_usd": 0.00013105,
+      "latency_ms": 2931,
+      "cache_hit": false,
+      "answer": "Based solely on the provided content, this information is not available. The text discusses Rust's borrow checker and its rules, stating it \"prevents memory safety errors and data races\" by tracking \"object lifetime of references at compile time.\" It does not mention any release dates or features for a version 2.0.",
+      "answer_chars": 316,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "hall-no-author",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 198,
+      "completion_tokens": 43,
+      "cost_usd": 9.646e-05,
+      "latency_ms": 2442,
+      "cache_hit": false,
+      "answer": "Based solely on the provided text, the author and their professional background are not mentioned. The content only states that \"The async and await keywords were added to JavaScript in ES2017,\" focusing on technical explanation.",
+      "answer_chars": 229,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "hall-missing-stat",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 202,
+      "completion_tokens": 25,
+      "cost_usd": 0.0001637,
+      "latency_ms": 2248,
+      "cache_hit": false,
+      "answer": "Based on the provided content, the quarterly engineering report does not contain any information regarding the company's revenue from international markets.",
+      "answer_chars": 156,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "hall-empty-ish",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 125,
+      "completion_tokens": 14,
+      "cost_usd": 4.775e-05,
+      "latency_ms": 2964,
+      "cache_hit": false,
+      "answer": "Based on the provided content, the requested information is not present.",
+      "answer_chars": 72,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "hall-decoy-overlap",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 222,
+      "completion_tokens": 38,
+      "cost_usd": 9.794e-05,
+      "latency_ms": 5273,
+      "cache_hit": false,
+      "answer": "PEP 703 proposes an \"Optional experimental free-threaded build.\" The provided content does not mention any proposal regarding tuple immutability or state that a Python version made tuples mutable.",
+      "answer_chars": 196,
+      "judge": {
+        "overall": 4,
+        "reached": true,
+        "scores": [
+          3,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "hall-wrong-question",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 242,
+      "completion_tokens": 36,
+      "cost_usd": 0.0001626,
+      "latency_ms": 729,
+      "cache_hit": false,
+      "answer": "Based on the provided content, there is no information about the release date of Rust 2.0 or its new features. The text focuses on \"Rust's borrow checker.\"",
+      "answer_chars": 155,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "hall-no-author",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 209,
+      "completion_tokens": 41,
+      "cost_usd": 0.0001652,
+      "latency_ms": 646,
+      "cache_hit": false,
+      "answer": "The article does not provide information about the author or their professional background. It only states that \"The async and await keywords were added to JavaScript in ES2017 (also known as ES8).\"",
+      "answer_chars": 198,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "hall-missing-stat",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 214,
+      "completion_tokens": 17,
+      "cost_usd": 0.0001067,
+      "latency_ms": 549,
+      "cache_hit": false,
+      "answer": "The provided content does not contain information about the company's revenue from international markets.",
+      "answer_chars": 105,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          3
+        ]
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "hall-empty-ish",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 134,
+      "completion_tokens": 29,
+      "cost_usd": 0.0001127,
+      "latency_ms": 729,
+      "cache_hit": false,
+      "answer": "Based on the provided content, the company's product strategy pillars and their executive owners cannot be identified. The page only states, \"Welcome.\"",
+      "answer_chars": 151,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "hall-decoy-overlap",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 239,
+      "completion_tokens": 52,
+      "cost_usd": 0.0002017,
+      "latency_ms": 770,
+      "cache_hit": false,
+      "answer": "Based on the provided content, there is no information about PEP 703 proposing anything for tuple immutability, nor which Python version made tuples mutable. The document only states that PEP 703 introduced an \"Optional experimental free-threaded build.\"",
+      "answer_chars": 254,
+      "judge": {
+        "overall": 3,
+        "reached": true,
+        "scores": [
+          3,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "hall-wrong-question",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 236,
+      "completion_tokens": 247,
+      "cost_usd": 0.00013239,
+      "latency_ms": 4598,
+      "cache_hit": false,
+      "answer": "The provided content does not mention Rust 2.0's release date or new features. It only explains the Rust borrow checker's role in preventing memory safety errors.",
+      "answer_chars": 162,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "hall-no-author",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 204,
+      "completion_tokens": 314,
+      "cost_usd": 0.0001898,
+      "latency_ms": 5275,
+      "cache_hit": false,
+      "answer": "The provided text does not mention the author's name or professional background. It only explains async/await syntax and features. No source attribution or writer information is included in the content.",
+      "answer_chars": 202,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "hall-missing-stat",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 209,
+      "completion_tokens": 296,
+      "cost_usd": 0.00015201,
+      "latency_ms": 5933,
+      "cache_hit": false,
+      "answer": "The report does not mention the percentage of revenue from international markets.",
+      "answer_chars": 81,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          3
+        ]
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "hall-empty-ish",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 131,
+      "completion_tokens": 161,
+      "cost_usd": 0.00010689,
+      "latency_ms": 7892,
+      "cache_hit": false,
+      "answer": "The provided content \"Welcome.\" does not mention any product strategy pillars or executive owners. No information available.",
+      "answer_chars": 124,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "hall-decoy-overlap",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 234,
+      "completion_tokens": 317,
+      "cost_usd": 0.00016371,
+      "latency_ms": 7074,
+      "cache_hit": false,
+      "answer": "The provided content does not mention PEP 703's specifics regarding tuple immutability or any Python version making tuples mutable. It only states that PEP 703 introduces an \"optional experimental free-threaded build.\" Tuples in Python have always been immutable, and no version changed this behavior.",
+      "answer_chars": 301,
+      "judge": {
+        "overall": 4,
+        "reached": true,
+        "scores": [
+          3,
+          5,
+          4
+        ]
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "hall-wrong-question",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 232,
+      "completion_tokens": 29,
+      "cost_usd": 0.0001392,
+      "latency_ms": 1690,
+      "cache_hit": false,
+      "answer": "The content does not mention Rust 2.0's release date or new features. It only explains Rust's borrow checker and its rules.",
+      "answer_chars": 123,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "hall-no-author",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 202,
+      "completion_tokens": 13,
+      "cost_usd": 0.0001016,
+      "latency_ms": 1612,
+      "cache_hit": false,
+      "answer": "The article does not specify the author or their professional background.",
+      "answer_chars": 73,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "hall-missing-stat",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 203,
+      "completion_tokens": 18,
+      "cost_usd": 0.00011,
+      "latency_ms": 1183,
+      "cache_hit": false,
+      "answer": "The report does not mention any information about the percentage of revenue generated from international markets.",
+      "answer_chars": 113,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          3
+        ]
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "hall-empty-ish",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 127,
+      "completion_tokens": 22,
+      "cost_usd": 8.6e-05,
+      "latency_ms": 2243,
+      "cache_hit": false,
+      "answer": "The content above does not specify the three pillars of the company's product strategy or the executives responsible for each.",
+      "answer_chars": 126,
+      "judge": {
+        "overall": 5,
+        "reached": true,
+        "scores": [
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "hall-decoy-overlap",
+      "run": 0,
+      "class": "hallucination",
+      "prompt_tokens": 222,
+      "completion_tokens": 32,
+      "cost_usd": 0.00014,
+      "latency_ms": 1778,
+      "cache_hit": false,
+      "answer": "PEP 703 proposes an \"Optional experimental free-threaded build.\" The content does not mention tuple immutability or which Python version made tuples mutable.",
+      "answer_chars": 157,
+      "judge": {
+        "overall": 4,
+        "reached": true,
+        "scores": [
+          3,
+          3,
+          5
+        ]
+      }
+    }
+  ]
+}

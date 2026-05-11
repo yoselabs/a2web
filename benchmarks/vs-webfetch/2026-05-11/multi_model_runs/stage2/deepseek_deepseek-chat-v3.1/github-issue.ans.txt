@@ -1,0 +1,1 @@
+This issue reports a bug where the Claude code tool occasionally fails with the error "String to replace not found in file." A developer responded that they are "continuously working on improving the error rates for the edit tool," noting it should be better in newer models. The issue is now closed and locked.

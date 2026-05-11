@@ -1,0 +1,9 @@
+{
+  "model": "qwen/qwen3-max",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 690,
+  "completion_tokens": 44,
+  "cost_usd": 0.0007098,
+  "latency_ms": 2313,
+  "cache_hit": false
+}

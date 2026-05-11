@@ -1,0 +1,1 @@
+"Framework-defined infrastructure" means a build-time parser reads your framework code, infers what infra it needs, and auto-creates the IaC to run it—no manual config.

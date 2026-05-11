@@ -1,0 +1,5 @@
+"CloakHQ/CloakBrowser — Stealth Chromium that passes every bot detection test."  
+"Stable Diffusion web UI — The agent that grows with you"  
+"AI-Trader — 100% Fully-Automated Agent-Native Trading"  
+"LLM inference server — managed from the macOS menu bar"  
+"ARIS — Lightweight Markdown-only skills for autonomous ML research."

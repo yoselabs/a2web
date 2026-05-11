@@ -1,0 +1,1 @@
+The article describes using Simulink's PID controller for an inverted pendulum, enabling automatic tuning without technical expertise. It highlights building the model with Multibody, setting parameters, and achieving stability through automated adjustments. "Modern tools allow solving tasks with a few clicks" is a key quote.

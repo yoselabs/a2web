@@ -1,0 +1,9 @@
+{
+  "model": "meta-llama/llama-3.3-70b-instruct",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 9839,
+  "completion_tokens": 34,
+  "cost_usd": 0.0011936,
+  "latency_ms": 3009,
+  "cache_hit": false
+}

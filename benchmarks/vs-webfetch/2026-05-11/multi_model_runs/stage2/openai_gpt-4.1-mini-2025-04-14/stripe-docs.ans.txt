@@ -1,0 +1,1 @@
+A Stripe PaymentIntent tracks a payment from creation through checkout, managing status changes and triggering authentication. It "encapsulates details about the transaction, such as the supported payment methods, the amount to collect, and the desired currency." Its purpose is to handle complex payment flows securely and comply with regulations like SCA.

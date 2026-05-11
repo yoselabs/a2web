@@ -1,0 +1,9 @@
+{
+  "model": "moonshotai/kimi-k2",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 462,
+  "completion_tokens": 48,
+  "cost_usd": 0.00037374,
+  "latency_ms": 5108,
+  "cache_hit": false
+}

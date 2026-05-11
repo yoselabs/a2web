@@ -1,0 +1,1 @@
+Rust was created by Graydon Hoare in 2006 while working at Mozilla. "Грейдон Хоар создал Rust в 2006 году, работая в компании Mozilla."

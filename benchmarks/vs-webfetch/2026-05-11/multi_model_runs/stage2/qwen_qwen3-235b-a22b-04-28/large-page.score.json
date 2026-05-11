@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    5
+  ],
+  "overall": 1,
+  "reached": true,
+  "reasoning": "The answer correctly identifies that no article content was retrievable (only a copyright notice), but this is not a paywall admission per se \u2014 it scores low on substantive criteria while accurately describing the fetched content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0411084,
+  "latency_ms": 11373,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 68
+  }
+}

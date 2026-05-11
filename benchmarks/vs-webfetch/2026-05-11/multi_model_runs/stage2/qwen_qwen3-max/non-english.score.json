@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific English summary mentioning the inverted pendulum, PID controllers, Simulink, and the modern auto-tuning theme \u2014 all substantive article content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.008559299999999999,
+  "latency_ms": 10298,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 65
+  }
+}

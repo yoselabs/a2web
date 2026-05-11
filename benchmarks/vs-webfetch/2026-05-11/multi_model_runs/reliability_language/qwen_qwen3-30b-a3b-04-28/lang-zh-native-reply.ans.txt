@@ -1,0 +1,1 @@
+"Graydon Hoare 于 2006 年在 Mozilla 公司工作期间创建了 Rust。"

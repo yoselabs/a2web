@@ -1,0 +1,5 @@
+Based solely on the provided content, this article describes:
+
+1.  Building a Simulink model of an inverted pendulum using the Multibody library without requiring manual physics or math calculations, stating "Собираем отдельные элементы в подсистемы" (assembling individual elements into subsystems).
+2.  Automatically tuning PID controllers for pendulum angle and cart position stabilization using Simulink's tuning tools, highlighting that "нажав две кнопки" (pressing two buttons) configures the controllers.
+3.  Adding realism and robustness to the model through noise, a Kalman filter, a swing-up mechanism, and disturbances, concluding the model achieved stability without manual formulas: "ни одной формулы и ни одного расчета в ручную не было сделано" (not a single formula or manual calculation was done).

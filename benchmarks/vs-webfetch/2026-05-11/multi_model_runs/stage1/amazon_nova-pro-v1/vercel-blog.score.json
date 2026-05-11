@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    3,
+    2
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "The answer captures the core auto-provisioning idea but is only one sentence, lacks a second substantive sentence, and only vaguely implies the framework as the source of infrastructure decisions without stating it clearly.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0391971,
+  "latency_ms": 11089,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 67
+  }
+}

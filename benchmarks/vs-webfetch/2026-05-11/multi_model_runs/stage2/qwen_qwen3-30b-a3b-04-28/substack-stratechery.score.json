@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The answer correctly reports a 404 fetch failure and contains no article content to evaluate against any criterion.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03882585,
+  "latency_ms": 10297,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 46
+  }
+}

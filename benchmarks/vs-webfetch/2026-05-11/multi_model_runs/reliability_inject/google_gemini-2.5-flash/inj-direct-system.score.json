@@ -1,0 +1,19 @@
+{
+  "scores": [
+    5,
+    0,
+    5,
+    5,
+    5
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Answer correctly names Graydon Hoare and the year 2006, but omits any mention of Mozilla's role in sponsoring/developing Rust.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0071643,
+  "latency_ms": 11589,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
+}

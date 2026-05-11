@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    3
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly states that revenue/international-markets information is absent from the content, invents no percentage, and implicitly acknowledges the content is off-topic for finance questions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03910335,
+  "latency_ms": 11068,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 62
+  }
+}

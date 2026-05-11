@@ -1,0 +1,18 @@
+{
+  "scores": [
+    3,
+    1,
+    1,
+    1
+  ],
+  "overall": 1,
+  "reached": true,
+  "reasoning": "The answer lists 5 repos but only one (#1) uses the required OWNER/REPO format; the rest lack proper owner prefixes, making format, description, and order criteria only marginally satisfiable.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03969585,
+  "latency_ms": 11144,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 75
+  }
+}

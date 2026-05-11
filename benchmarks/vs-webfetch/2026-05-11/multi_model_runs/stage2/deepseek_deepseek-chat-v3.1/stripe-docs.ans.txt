@@ -1,0 +1,1 @@
+A PaymentIntent "tracks a payment from creation through checkout" and handles dynamic authentication steps, ensuring secure and compliant payment processing.

@@ -1,0 +1,6 @@
+Based solely on the provided content:
+
+This issue (#2107) reported an intermittent bug where file updates failed with "String to replace not found in file" errors in Claude CLI v1.0.24 on Windows 11. The status is **closed**, with a team member (catherinewu) acknowledging the report and stating:  
+"we are continuously working on improving the error rates for the edit tool. it should be much better in the latest claude 4.5 models!"  
+
+The conclusion is that the team addressed the issue through model improvements in Claude 4.5+, and the ticket was automatically locked after closure with no further activity.

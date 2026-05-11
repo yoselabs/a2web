@@ -1,0 +1,7 @@
+Here are 5 trending Python repos:
+
+1.  CloakHQ/CloakBrowser — "Stealth Chromium that passes every bot detection test."
+2.  Stability-AI/Stable-Diffusion-WebUI — Stable Diffusion web UI
+3.  PyFlow/PyFlow — "The agent that grows with you"
+4.  paperless-ngx/paperless-ngx — "A community-supported supercharged document management system"
+5.  AI-Trader/AI-Trader — "AI-Trader: 100% Fully-Automated Agent-Native Trading"

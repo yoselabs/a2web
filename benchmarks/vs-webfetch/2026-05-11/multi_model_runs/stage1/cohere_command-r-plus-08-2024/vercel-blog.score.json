@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately defines FDI as infra provisioned from framework/code intent rather than hand-configuration, provides a substantive 2-sentence summary, and explicitly identifies the framework/code as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03939959999999999,
+  "latency_ms": 11555,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 72
+  }
+}

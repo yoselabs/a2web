@@ -1,0 +1,1 @@
+Graydon Hoare created Rust in 2006; Rust 1.0 shipped May 15, 2015. It's famed for its "borrow checker," which "tracks the object lifetime of references at compile time" to ensure memory safety sans garbage collection.

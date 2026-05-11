@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies the exact title, lists the full author list (well over 3 names), and accurately summarizes the main contribution regarding backdoored/deceptive behavior persisting through safety training.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.040393349999999995,
+  "latency_ms": 11361,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 68
+  }
+}

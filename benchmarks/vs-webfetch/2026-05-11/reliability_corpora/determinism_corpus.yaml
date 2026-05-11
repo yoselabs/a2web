@@ -1,0 +1,2417 @@
+urls:
+- slug: wikipedia-rust
+  url: https://en.wikipedia.org/wiki/Rust_(programming_language)
+  class: A_clean
+  task: Who designed Rust originally and what year was it first released? What memory-safety
+    mechanism is Rust known for?
+  needs:
+  - content_only
+  criteria:
+  - Identifies Graydon Hoare as original designer
+  - Names 2010 as first appearance / release year
+  - Describes ownership / borrow checker for memory safety
+  content: '
+
+    Rust | |
+
+    ---|---|
+
+
+    Paradigms | |
+
+
+    Developer | The Rust Team |
+
+
+    First appeared | January 19, 2012 |
+
+
+    Stable release | |
+
+
+    Typing discipline | |
+
+
+    Implementation language | OCaml (2006–2011) Rust (2012–present) |
+
+
+    Platform | Cross-platform[note 1] |
+
+
+    OS | Cross-platform[note 2] |
+
+
+    License | MIT, Apache 2.0[note 3] |
+
+
+    Filename extensions | `.rs` , `.rlib` |
+
+
+    Website | rust-lang.org |
+
+
+    Influenced by | |
+
+
+    Influenced | |
+
+
+
+    **Rust** is a general-purpose programming language which emphasizes performance,
+    type safety, concurrency, and memory safety.
+
+
+    Rust supports multiple programming paradigms. It was influenced by ideas from
+    functional programming, including immutability, higher-order functions, algebraic
+    data types, and pattern matching. It also supports object-oriented programming
+    via structs, enums, traits, and methods. Rust enforces memory safety (i.e., that
+    all references point to valid memory) without a conventional garbage collector;
+    instead, memory safety errors and data races are prevented by the "borrow checker",
+    which tracks the object lifetime of references at compile time.
+
+
+    Software developer Graydon Hoare created Rust in 2006 while working at Mozilla,
+    which officially sponsored the project in 2009. The first stable release, Rust
+    1.0, was published in May 2015. Following a layoff of Mozilla employees in August
+    2020, four other companies joined Mozilla in sponsoring Rust through the creation
+    of the Rust Foundation in February 2021.
+
+
+    Rust has been adopted by many software projects, especially web services and system
+    software. It has been studied academically and has a growing community of developers.
+
+
+    Rust began as a personal project by Mozilla employee Graydon Hoare in 2006. According
+    to *MIT Technology Review*, he started the project due to his frustration with
+    a broken elevator in his apartment building whose software had crashed,[16] and
+    named the language after the group of fungi of the same name that is "over-engineered
+    for survival".[16] During the time period between 2006 and 2009, Rust was not
+    publicized to others at Mozilla and was written in Hoare''s free time;[17]: 7:50
+    Hoare began speaking about the language around 2009 after a small group at Mozilla
+    became interested in the project.[18] Hoare cited languages from the 1970s, 1980s,
+    and 1990s as influences — including CLU, BETA, Mesa, NIL,[note 4] Erlang, Newsqueak,
+    Napier, Hermes, Sather, Alef, and Limbo.[18] He described the language as "technology
+    from the past come to save the future from itself."[17]: 8:17 [18] Early Rust
+    developer Manish Goregaokar similarly described Rust as being based on "mostly
+    decades-old research."[16]
+
+
+    During the early years, the Rust compiler was written in about 38,000 lines of
+    OCaml.[17]: 15:34 [19] Early Rust contained several features no longer present
+    today, including explicit object-oriented programming via an `obj`
+
+
+    keyword[17]: 10:08 and a typestates system for variable state changes, such as
+    going from uninitialized to initialized.[17]: 13:12
+
+
+    Mozilla officially sponsored the Rust project in 2009.[16] Brendan Eich and other
+    executives, intrigued by the possibility of using Rust for a safe web browser
+    engine, placed engineers on the project including Patrick Walton, Niko Matsakis,
+    Felix Klock, and Manish Goregaokar.[16] A conference room taken by the project
+    developers was dubbed "the nerd cave," with a sign placed outside the door.[16]
+
+
+    During this time period, work had shifted from the initial OCaml compiler to a
+    self-hosting compiler (*i.e.*, written in Rust) targeting LLVM.[20][note 5] The
+    ownership system was in place by 2010.[16] The Rust logo was developed in 2011
+    based on a bicycle chainring.[22]
+
+
+    Rust 0.1 became the first public release on January 20, 2012[23] for Windows,
+    Linux, and MacOS.[24] The early 2010s witnessed increasing involvement from full-time
+    engineers at Mozilla, open source volunteers outside Mozilla, and open source
+    volunteers outside the United States.[16]
+
+
+    The years from 2012 to 2015 were marked by substantial changes to the Rust type
+    system.[17]: 18:36 [16] Memory management through the ownership system was gradually
+    consolidated and expanded. By 2013, the garbage collector was rarely used, and
+    was removed in favor of the ownership system.[16] Other features were removed
+    in order to simplify the language, including typestates, the `pure`
+
+
+    keyword,[25] various specialized pointer types, and syntax support for channels.[17]:
+    22:32
+
+
+    According to Steve Klabnik, Rust was influenced during this period by developers
+    coming from C++ (e.g., low-level performance of features), scripting languages
+    (e.g., Cargo and package management), and functional programming (e.g., type systems
+    development).[17]: 30:50
+
+
+    Graydon Hoare stepped down from Rust in 2013.[16] After Hoare''s departure, it
+    evolved organically under a federated governance structure, with a "core team"
+    of initially six people,[17]: 21:45 and around 30-40 developers total across various
+    other teams.[17]: 22:22 A Request for Comments (RFC) process for new language
+    features was added in March 2014.[17]: 33:47 The core team would grow to nine
+    people by 2016[17]: 21:45 with over 1600 RFCs.[17]: 34:08
+
+
+    According to Andrew Binstock for *Dr. Dobb''s Journal* in January 2014, while
+    Rust was "widely viewed as a remarkably elegant language", adoption slowed because
+    it radically changed from version to version.[26] Rust development at this time
+    focused on finalizing features for version 1.0 so that it could begin promising
+    backward compatibility.[17]: 41:26
+
+
+    Six years after Mozilla''s sponsorship, Rust 1.0 was published and became the
+    first stable release on May 15, 2015.[16] A year later, the Rust compiler had
+    accumulated over 1,400 contributors and there were over 5,000 third-party libraries
+    published on the Rust package management website Crates.io.[17]: 43:15
+
+
+    The development of the Servo browser engine continued in parallel with Rust, jointly
+    funded by Mozilla and Samsung.[27] The teams behind the two projects worked in
+    close collaboration; new features in Rust were tested out by the Servo team, and
+    new features in Servo were used to give feedback back to the Rust team.[17]: 5:41
+    The first version of Servo was released in 2016.[16] The Firefox web browser shipped
+    with Rust code as of 2016 (version 45),[17]: 53:30 [28] but components of Servo
+    did not appear in Firefox until September 2017 (version 57) as part of the Gecko
+    and Quantum projects.[29]
+
+
+    Improvements were made to the Rust toolchain ecosystem during the years following
+    1.0 including Rustfmt, integrated development environment integration,[17]: 44:56
+    and a regular compiler testing and release cycle.[17]: 46:48 Rust''s community
+    gained a code of conduct and an IRC chat for discussion.[17]: 50:36
+
+
+    The earliest known adoption outside of Mozilla was by individual projects at Samsung,
+    Facebook (now Meta Platforms), Dropbox, and Tilde, Inc., the company behind ember.js.[17]:
+    55:44 [16] Amazon Web Services followed in 2020.[16] Engineers cited performance,
+    lack of a garbage collector, safety, and pleasantness of working in the language
+    as reasons for the adoption. Amazon developers cited a finding by Portuguese researchers
+    that Rust code used less energy compared to similar code written in Java.[16][30]
+
+
+    In August 2020, Mozilla laid off 250 of its 1,000 employees worldwide, as part
+    of a corporate restructuring caused by the COVID-19 pandemic.[31][32] The team
+    behind Servo was disbanded. The event raised concerns about the future of Rust.[33]
+    In the following week, the Rust Core Team acknowledged the severe impact of the
+    layoffs and announced that plans for a Rust foundation were underway. The first
+    goal of the foundation would be to take ownership of all trademarks and domain
+    names and to take financial responsibility for their costs.[34]
+
+
+    On February 8, 2021, the formation of the Rust Foundation was announced by five
+    founding companies: Amazon Web Services, Google, Huawei, Microsoft, and Mozilla.[35][36]
+    The foundation would provide financial support for Rust developers in the form
+    of grants and server funding.[16] In a blog post published on April 6, 2021, Google
+    announced support for Rust within the Android Open Source Project as an alternative
+    to C/C++.[37]
+
+
+    On November 22, 2021, the Moderation Team, which was responsible for enforcing
+    the community code of conduct, announced their resignation "in protest of the
+    Core Team placing themselves unaccountable to anyone but themselves".[38] In May
+    2022, members of the Rust leadership council posted a public response to the incident.[39]
+
+
+    The Rust Foundation posted a draft for a new trademark policy on April 6, 2023,
+    which resulted in widespread negative reactions from Rust users and contributors.[40]
+    The trademark policy included rules for how the Rust logo and name could be used.[40]
+
+
+    Rust''s syntax is similar to that of C and C++,[41][42] although many of its features
+    were influenced by functional programming languages such as OCaml.[43] Hoare has
+    described Rust as targeted at frustrated C++ developers.[18]
+
+
+    Below is a "Hello, World!" program in Rust. The `fn`
+
+
+    keyword denotes a function, and the `println!`
+
+
+    macro (see § Macros) prints the message to standard output.[44] Statements in
+    Rust are separated by semicolons.
+
+
+    ```
+
+    fn main() {
+
+    println!("Hello, World!");
+
+    }
+
+    ```
+
+
+    Variables in Rust are defined through the `let`
+
+
+    keyword.[45] The example below assigns a value to the variable with name `foo`
+
+
+    of type `i32`
+
+
+    and outputs its value; the type annotation `: i32`
+
+
+    can be omitted.
+
+
+    ```
+
+    fn main() {
+
+    let foo: i32 = 10;
+
+    println!("The value of foo is {foo}");
+
+    }
+
+    ```
+
+
+    Variables are immutable by default, unless the `mut`
+
+
+    keyword is added.[46] The following example uses `//`
+
+
+    , which denotes the start of a comment.[47]
+
+
+    ```
+
+    fn main() {
+
+    // This code would not compile without adding "mut".
+
+    let mut foo = 10;
+
+    println!("The value of foo is {foo}");
+
+    foo = 20;
+
+    println!("The value of foo is {foo}");
+
+    }
+
+    ```
+
+
+    Multiple `let`
+
+
+    expressions can define multiple variables with the same name, known as variable
+    shadowing. Variable shadowing allows transforming variables without having to
+    name the variables differently.[48] The example below declares a new variable
+    with the same name that is double the original value:
+
+
+    ```
+
+    fn main() {
+
+    let foo = 10;
+
+    // This will output "The value of foo is 10"
+
+    println!("The value of foo is {foo}");
+
+    let foo = foo * 2;
+
+    // This will output "The value of foo is 20"
+
+    println!("The value of foo is {foo}");
+
+    }
+
+    ```
+
+
+    Variable shadowing is also possible for values of different types. For example,
+    going from a string to its length:
+
+
+    ```
+
+    fn main() {
+
+    let letters = "abc";
+
+    let letters = letters.len();
+
+    }
+
+    ```
+
+
+    A *block expression* is delimited by curly brackets. When the last expression
+    inside a block does not end with a semicolon, the block evaluates to the value
+    of that trailing expression:[49]
+
+
+    ```
+
+    fn main() {
+
+    let x = {
+
+    println!("this is inside the block");
+
+    1 + 2
+
+    };
+
+    println!("1 + 2 = {x}");
+
+    }
+
+    ```
+
+
+    Trailing expressions of function bodies are used as the return value:[50]
+
+
+    ```
+
+    fn add_two(x: i32) -> i32 {
+
+    x + 2
+
+    }
+
+    ```
+
+
+    `if`
+
+
+    expressionsAn `if`
+
+
+    conditional expression executes code based on whether the given value is `true`
+
+
+    . `else`
+
+
+    can be used for when the value evaluates to `false`
+
+
+    , and `else if`
+
+
+    can be used for combining multiple expressions.[51]
+
+
+    ```
+
+    fn main() {
+
+    let x = 10;
+
+    if x > 5 {
+
+    println!("value is greater than five");
+
+    }
+
+    if x % 7 == 0 {
+
+    println!("value is divisible by 7");
+
+    } else if x % 5 == 0 {
+
+    println!("value is divisible by 5");
+
+    } else {
+
+    println!("value is not divisible by 7 or 5");
+
+    }
+
+    }
+
+    ```
+
+
+    `if`
+
+
+    and `else`
+
+
+    blocks can evaluate to a value, which can then be assigned to a variable:[51]
+
+
+    ```
+
+    fn main() {
+
+    let x = 10;
+
+    let new_x = if x % 2 == 0 { x / 2 } else { 3 * x + 1 };
+
+    println!("{new_x}");
+
+    }
+
+    ```
+
+
+    `while`
+
+
+    loops`while`
+
+
+    can be used to repeat a block of code while a condition is met.[52]
+
+
+    ```
+
+    fn main() {
+
+    // Iterate over all integers from 4 to 10
+
+    let mut value = 4;
+
+    while value <= 10 {
+
+    println!("value = {value}");
+
+    value += 1;
+
+    }
+
+    }
+
+    ```
+
+
+    `for`
+
+
+    loops and iteratorsFor loops in Rust loop over elements of a collection.[53]
+
+    `for`
+
+
+    expressions work over any iterator type.
+
+
+    ```
+
+    fn main() {
+
+    // Using `for` with range syntax for the same functionality as above
+
+    // The syntax 4..=10 means the range from 4 to 10, up to and including 10.
+
+    for value in 4..=10 {
+
+    println!("value = {value}");
+
+    }
+
+    }
+
+    ```
+
+
+    In the above code, `4..=10`
+
+
+    is a value of type `Range`
+
+
+    which implements the `Iterator`
+
+
+    trait. The code within the curly braces is applied to each element returned by
+    the iterator.
+
+
+    Iterators can be combined with functions over iterators like `map`
+
+
+    , `filter`
+
+
+    , and `sum`
+
+
+    . For example, the following adds up all numbers between 1 and 100 that are multiples
+    of 3:
+
+
+    ```
+
+    (1..=100).filter(|x| x % 3 == 0).sum()
+
+    ```
+
+
+    `loop`
+
+
+    and `break`
+
+
+    statementsMore generally, the `loop`
+
+
+    keyword allows repeating a portion of code until a `break`
+
+
+    occurs. `break`
+
+
+    may optionally exit the loop with a value. In the case of nested loops, labels
+    denoted by `''label_name`
+
+
+    can be used to break an outer loop rather than the innermost loop.[54]
+
+
+    ```
+
+    fn main() {
+
+    let value = 456;
+
+    let mut x = 1;
+
+    let y = loop {
+
+    x *= 10;
+
+    if x > value {
+
+    break x / 10;
+
+    }
+
+    };
+
+    println!("largest power of ten that is smaller than or equal to value: {y}");
+
+    let mut up = 1;
+
+    ''outer: loop {
+
+    let mut down = 120;
+
+    loop {
+
+    if up > 100 {
+
+    break ''outer;
+
+    }
+
+    if down < 4 {
+
+    break;
+
+    }
+
+    down /= 2;
+
+    up += 1;
+
+    println!("up: {up}, down: {down}");
+
+    }
+
+    up *= 2;
+
+    }
+
+    }
+
+    ```
+
+
+    The `match`
+
+
+    and `if let`
+
+
+    expressions can be used for pattern matching. For example, `match`
+
+
+    can be used to double an optional integer value if present, and return zero otherwise:[55]
+
+
+    ```
+
+    fn double(x: Option<u64>) -> u64 {
+
+    match x {
+
+    Some(y) => y * 2,
+
+    None => 0,
+
+    }
+
+    }
+
+    ```
+
+
+    Equivalently, this can be written with `if let`
+
+
+    and `else`
+
+
+    :
+
+
+    ```
+
+    fn double(x: Option<u64>) -> u64 {
+
+    if let Some(y) = x {
+
+    y * 2
+
+    } else {
+
+    0
+
+    }
+
+    }
+
+    ```
+
+
+    Rust is strongly typed and statically typed, meaning that the types of all variables
+    must be known at compilation time. Assigning a value of a particular type to a
+    differently typed variable causes a compilation error. Type inference is used
+    to determine the type of variables if unspecified.[56]
+
+
+    The type `()`
+
+
+    , called the "unit type" in Rust, is a concrete type that has exactly one value.
+    It occupies no memory (as it represents the absence of value). All functions that
+    do not have an indicated return type implicitly return `()`
+
+
+    . It is similar to `void`
+
+
+    in other C-style languages, however `void`
+
+
+    denotes the absence of a type and cannot have any value.
+
+
+    The default integer type is `i32`
+
+
+    , and the default floating point type is `f64`
+
+
+    . If the type of a literal number is not explicitly provided, it is either inferred
+    from the context or the default type is used.[57]
+
+
+    Integer types in Rust are named based on the signedness and the number of bits
+    the type takes. For example, `i32`
+
+
+    is a signed integer that takes 32 bits of storage, whereas `u8`
+
+
+    is unsigned and only takes 8 bits of storage. `isize`
+
+
+    and `usize`
+
+
+    take storage depending on the memory address bus width of the compilation target.
+    For example, when building for 32-bit targets, both types will take up 32 bits
+    of space.[58][59]
+
+
+    By default, integer literals are in base-10, but different radices are supported
+    with prefixes, for example, `0b11`
+
+
+    for binary numbers, `0o567`
+
+
+    for octals, and `0xDB`
+
+
+    for hexadecimals. By default, integer literals default to `i32`
+
+
+    as its type. Suffixes such as `4u32`
+
+
+    can be used to explicitly set the type of a literal.[60] Byte literals such as
+    `b''X''`
+
+
+    are available to represent the ASCII value (as a `u8`
+
+
+    ) of a specific character.[61]
+
+
+    The Boolean type is referred to as `bool`
+
+
+    which can take a value of either `true`
+
+
+    or `false`
+
+
+    . A `char`
+
+
+    takes up 32 bits of space and represents a Unicode scalar value:[62] a Unicode
+    codepoint that is not a surrogate.[63] IEEE 754 floating point numbers are supported
+    with `f32`
+
+
+    for single precision floats and `f64`
+
+
+    for double precision floats.[64]
+
+
+    Compound types can contain multiple values. Tuples are fixed-size lists that can
+    contain values whose types can be different. Arrays are fixed-size lists whose
+    values are of the same type. Expressions of the tuple and array types can be written
+    through listing the values, and can be accessed with `.index`
+
+
+    (with tuples) or `[index]`
+
+
+    (with arrays):[65]
+
+
+    ```
+
+    let tuple: (u32, bool) = (3, true);
+
+    let array: [i8; 5] = [1, 2, 3, 4, 5];
+
+    let value = tuple.1; // true
+
+    let value = array[2]; // 3
+
+    ```
+
+
+    Arrays can also be constructed through copying a single value a number of times:[66]
+
+
+    ```
+
+    let array2: [char; 10] = ['' ''; 10];
+
+    ```
+
+
+    Rust''s ownership system consists of rules that ensure memory safety without using
+    a garbage collector. At compile time, each value must be attached to a variable
+    called the *owner* of that value, and every value must have exactly one owner.[67]
+    Values are moved between different owners through assignment or passing a value
+    as a function parameter. Values can also be *borrowed,* meaning they are temporarily
+    passed to a different function before being returned to the owner.[68] With these
+    rules, Rust can prevent the creation and use of dangling pointers:[68][69]
+
+
+    ```
+
+    fn print_string(s: String) {
+
+    println!("{}", s);
+
+    }
+
+    fn main() {
+
+    let s = String::from("Hello, World");
+
+    print_string(s); // s consumed by print_string
+
+    // s has been moved, so cannot be used any more
+
+    // another print_string(s); would result in a compile error
+
+    }
+
+    ```
+
+
+    The function `print_string`
+
+
+    takes ownership over the `String`
+
+
+    value passed in; Alternatively, `&`
+
+
+    can be used to indicate a reference type (in `&String`
+
+
+    ) and to create a reference (in `&s`
+
+
+    ):[70]
+
+
+    ```
+
+    fn print_string(s: &String) {
+
+    println!("{}", s);
+
+    }
+
+    fn main() {
+
+    let s = String::from("Hello, World");
+
+    print_string(&s); // s borrowed by print_string
+
+    print_string(&s); // s has not been consumed; we can call the function many times
+
+    }
+
+    ```
+
+
+    Because of these ownership rules, Rust types are known as *affine types*, meaning
+    each value may be used at most once. This enforces a form of software fault isolation
+    as the owner of a value is solely responsible for its correctness and deallocation.[71]
+
+
+    When a value goes out of scope, it is *dropped* by running its destructor. The
+    destructor may be programmatically defined through implementing the `Drop`
+
+
+    trait. This helps manage resources such as file handles, network sockets, and
+    locks, since when objects are dropped, the resources associated with them are
+    closed or released automatically.[72]
+
+
+    Object lifetime refers to the period of time during which a reference is valid;
+    that is, the time between the object creation and destruction.[73] These *lifetimes*
+    are implicitly associated with all Rust reference types. While often inferred,
+    they can also be indicated explicitly with named lifetime parameters (often denoted
+    `''a`
+
+
+    , `''b`
+
+
+    , and so on).[74]
+
+
+    A value''s lifetime in Rust is inferred from the set of locations in the source
+    code (i.e., function, line, and column numbers) for which a variable is valid.[75]
+    For example, a reference to a local variable has a lifetime from the expression
+    it is declared in up until the last use of it.[75]
+
+
+    ```
+
+    fn main() {
+
+    let mut x = 5; // ------------------+- Lifetime ''a
+
+    // |
+
+    let r = &x; // -+-- Lifetime ''b |
+
+    // | |
+
+    println!("r: {}", r); // -+ |
+
+    // Since r is no longer used, |
+
+    // its lifetime ends |
+
+    let r2 = &mut x; // -+-- Lifetime ''c |
+
+    } // ------------------+
+
+    ```
+
+
+    The borrow checker in the Rust compiler then enforces that references are only
+    used in the locations of the source code where the associated lifetime is valid.[76][77]
+    In the example above, storing a reference to variable `x`
+
+
+    in `r`
+
+
+    is valid, as variable `x`
+
+
+    has a longer lifetime (`''a`
+
+
+    ) than variable `r`
+
+
+    (`''b`
+
+
+    ). However, when `x`
+
+
+    has a shorter lifetime, the borrow checker would reject the program:
+
+
+    ```
+
+    fn main() {
+
+    let r; // ------------------+- Lifetime ''a
+
+    // |
+
+    { // |
+
+    let x = 5; // -+-- Lifetime ''b |
+
+    r = &x; // ERROR: x does | |
+
+    } // not live long -| |
+
+    // enough |
+
+    println!("r: {}", r); // |
+
+    } // ------------------+
+
+    ```
+
+
+    Since the lifetime of the referenced variable (`''b`
+
+
+    ) is shorter than the lifetime of the variable holding the reference (`''a`
+
+
+    ), the borrow checker errors, preventing `x`
+
+
+    from being used from outside its scope.[78]
+
+
+    Lifetimes can be indicated using explicit *lifetime parameters* on function arguments.
+    For example, the following code specifies that the reference returned by the function
+    has the same lifetime as `original`
+
+
+    (and *not* necessarily the same lifetime as `prefix`
+
+
+    ):[79]
+
+
+    ```
+
+    fn remove_prefix<''a>(mut original: &''a str, prefix: &str) -> &''a str {
+
+    if original.starts_with(prefix) {
+
+    original = original[prefix.len()..];
+
+    }
+
+    original
+
+    }
+
+    ```
+
+
+    In the compiler, ownership and lifetimes work together to prevent memory safety
+    issues such as dangling pointers.[80][81]
+
+
+    User-defined types are created with the `struct`
+
+
+    or `enum`
+
+
+    keywords. The `struct`
+
+
+    keyword is used to denote a record type that groups multiple related values.[82]
+    `enum`
+
+
+    s can take on different variants at runtime, with its capabilities similar to
+    algebraic data types found in functional programming languages.[83] Both records
+    and enum variants can contain fields with different types.[84] Alternative names,
+    or aliases, for the same type can be defined with the `type`
+
+
+    keyword.[85]
+
+
+    The `impl`
+
+
+    keyword can define methods for a user-defined type. Data and functions are defined
+    separately. Implementations fulfill a role similar to that of classes within other
+    languages.[86]
+
+
+    The Rust standard library defines and implements many widely used custom data
+    types, including core data structures such as `Vec`
+
+
+    , `Option`
+
+
+    , and `HashMap`
+
+
+    , as well as smart pointer types. Rust provides a way to exclude most of the standard
+    library using the attribute `#![no_std]`
+
+
+    , for applications such as embedded devices. Internally, the standard library
+    is divided into three parts, `core`
+
+
+    , `alloc`
+
+
+    , and `std`
+
+
+    , where `std`
+
+
+    and `alloc`
+
+
+    are excluded by `#![no_std]`
+
+
+    .[87]
+
+
+    Rust uses the option type `Option<T>`
+
+
+    to define optional values, which can be matched using `if let`
+
+
+    or `match`
+
+
+    to access the inner value:[88]
+
+
+    ```
+
+    fn main() {
+
+    let name1: Option<&str> = None;
+
+    // In this case, nothing will be printed out
+
+    if let Some(name) = name1 {
+
+    println!("{name}");
+
+    }
+
+    let name2: Option<&str> = Some("Matthew");
+
+    // In this case, the word "Matthew" will be printed out
+
+    if let Some(name) = name2 {
+
+    println!("{name}");
+
+    }
+
+    }
+
+    ```
+
+
+    Similarly, Rust''s result type `Result<T, E>`
+
+
+    holds either a successfully computed value (the `Ok`
+
+
+    variant) or an error (the `Err`
+
+
+    variant).[89] Like `Option`
+
+
+    , the use of `Result`
+
+
+    means that the inner value cannot be used directly; programmers must use a `match`
+
+
+    expression, syntactic sugar such as `?`
+
+
+    (the "try" operator), or an explicit `unwrap`
+
+
+    assertion to access it. Both `Option`
+
+
+    and `Result`
+
+
+    are used throughout the standard library and are a fundamental part of Rust''s
+    explicit approach to handling errors and missing data.
+
+
+    The `&`
+
+
+    and `&mut`
+
+
+    reference types are guaranteed to not be null and point to valid memory.[90] The
+    raw pointer types `*const`
+
+
+    and `*mut`
+
+
+    opt out of the safety guarantees, thus they may be null or invalid; however, it
+    is impossible to dereference them unless the code is explicitly declared unsafe
+    through the use of an `unsafe`
+
+
+    block.[91] Unlike dereferencing, the creation of raw pointers is allowed inside
+    safe Rust code.[92]
+
+
+    Rust provides no implicit type conversion (coercion) between most primitive types.
+    But, explicit type conversion (casting) can be performed using the `as`
+
+
+    keyword.[93]
+
+
+    ```
+
+    let x: i32 = 1000;
+
+    println!("1000 as a u16 is: {}", x as u16);
+
+    ```
+
+
+    Rust supports polymorphism through traits, generic functions, and trait objects.[94]
+
+
+    Common behavior between types is declared using traits and `impl`
+
+
+    blocks:[95]
+
+
+    ```
+
+    trait Zero: Sized {
+
+    fn zero() -> Self;
+
+    fn is_zero(&self) -> bool
+
+    where
+
+    Self: PartialEq,
+
+    {
+
+    self == &Zero::zero()
+
+    }
+
+    }
+
+    impl Zero for u32 {
+
+    fn zero() -> u32 { 0 }
+
+    }
+
+    impl Zero for f32 {
+
+    fn zero() -> Self { 0.0 }
+
+    }
+
+    ```
+
+
+    The example above includes a method `is_zero`
+
+
+    which provides a default implementation that may be overridden when implementing
+    the trait.[95]
+
+
+    A function can be made generic by adding type parameters inside angle brackets
+    (`<Num>`
+
+
+    ), which only allow types that implement the trait:
+
+
+    ```
+
+    // zero is a generic function with one type parameter, Num
+
+    fn zero<Num: Zero>() -> Num {
+
+    Num::zero()
+
+    }
+
+    fn main() {
+
+    let a: u32 = zero();
+
+    let b: f32 = zero();
+
+    assert!(a.is_zero() && b.is_zero());
+
+    }
+
+    ```
+
+
+    In the examples above, `Num: Zero`
+
+
+    as well as `where Self: PartialEq`
+
+
+    are trait bounds that constrain the type to only allow types that implement `Zero`
+
+
+    or `PartialEq`
+
+
+    .[95] Within a trait or impl, `Self`
+
+
+    refers to the type that the code is implementing.[96]
+
+
+    Generics can be used in functions to allow implementing a behavior for different
+    types without repeating the same code (see bounded parametric polymorphism). Generic
+    functions can be written in relation to other generics, without knowing the actual
+    type.[97]
+
+
+    By default, traits use static dispatch: the compiler monomorphizes the function
+    for each concrete type instance, yielding performance equivalent to type-specific
+    code at the cost of longer compile times and larger binaries.[98]
+
+
+    When the exact type is not known at compile time, Rust provides trait objects
+    `&dyn Trait`
+
+
+    and `Box<dyn Trait>`
+
+
+    .[99] Trait object calls use dynamic dispatch via a lookup table; a trait object
+    is a "fat pointer" carrying both a data pointer and a method table pointer.[98]
+    This indirection adds a small runtime cost, but it keeps a single copy of the
+    code and reduces binary size. Only "object-safe" traits are eligible to be used
+    as trait objects.[100]
+
+
+    This approach is similar to duck typing, where all data types that implement a
+    given trait can be treated as functionally interchangeable.[101] The following
+    example creates a list of objects where each object implements the `Display`
+
+
+    trait:
+
+
+    ```
+
+    use std::fmt::Display;
+
+    let v: Vec<Box<dyn Display>> = vec![
+
+    Box::new(3),
+
+    Box::new(5.0),
+
+    Box::new("hi"),
+
+    ];
+
+    for x in v {
+
+    println!("{x}");
+
+    }
+
+    ```
+
+
+    If an element in the list does not implement the `Display`
+
+
+    trait, it will cause a compile-time error.[102]
+
+
+    Rust does not use garbage collection. Memory and other resources are instead managed
+    through the "resource acquisition is initialization" convention,[103] with optional
+    reference counting. Rust provides deterministic management of resources, with
+    very low overhead.[104] Values are allocated on the stack by default, and all
+    dynamic allocations must be explicit.[105]
+
+
+    The built-in reference types using the `&`
+
+
+    symbol do not involve run-time reference counting. The safety and validity of
+    the underlying pointers is verified at compile time, preventing dangling pointers
+    and other forms of undefined behavior.[106] Rust''s type system separates shared,
+    immutable references of the form `&T`
+
+
+    from unique, mutable references of the form `&mut T`
+
+
+    . A mutable reference can be coerced to an immutable reference, but not vice versa.[107]
+
+
+    Rust''s memory safety checks (See #Safety) may be circumvented through the use
+    of `unsafe`
+
+
+    blocks. This allows programmers to dereference arbitrary raw pointers, call external
+    code, or perform other low-level functionality not allowed by safe Rust.[108]
+    Some low-level functionality enabled in this way includes volatile memory access,
+    architecture-specific intrinsics, type punning, and inline assembly.[109]
+
+
+    Unsafe code is needed, for example, in the implementation of data structures.[110]
+    A frequently cited example is that it is difficult or impossible to implement
+    doubly linked lists in safe Rust.[111][112][113][114]
+
+
+    Programmers using unsafe Rust are considered responsible for upholding Rust''s
+    memory and type safety requirements, for example, that no two mutable references
+    exist pointing to the same location.[115] If programmers write code which violates
+    these requirements, this results in undefined behavior.[115] The Rust documentation
+    includes a list of behavior considered undefined, including accessing dangling
+    or misaligned pointers, or breaking the aliasing rules for references.[116]
+
+
+    Macros allow generation and transformation of Rust code to reduce repetition.
+    Macros come in two forms, with *declarative macros* defined through `macro_rules!`
+
+
+    , and *procedural macros*, which are defined in separate crates.[117][118]
+
+
+    A declarative macro (also called a "macro by example") is a macro, defined using
+    the `macro_rules!`
+
+
+    keyword, that uses pattern matching to determine its expansion.[119][120] Below
+    is an example that sums over all its arguments:
+
+
+    ```
+
+    macro_rules! sum {
+
+    ( $initial:expr $(, $expr:expr )* $(,)? ) => {
+
+    $initial $(+ $expr)*
+
+    }
+
+    }
+
+    fn main() {
+
+    let x = sum!(1, 2, 3);
+
+    println!("{x}"); // prints 6
+
+    }
+
+    ```
+
+
+    In this example, the macro named `sum`
+
+
+    is defined using the form `macro_rules! sum {`
+
+
+    `(...) => { ... } }`
+
+
+    . The first part inside the parentheses of the definition, the macro pattern `(
+    $initial:expr $(, $expr:expr )* $(,)? )`
+
+
+    specifies the structure of input it can take. Here, `$initial:expr`
+
+
+    represents the first expression, while `$(, $expr:expr )*`
+
+
+    means there can be zero or more additional comma-separated expressions after it.
+    The trailing `$(,)?`
+
+
+    allows the caller to optionally include a final comma without causing an error.
+    The second part after the arrow `=>`
+
+
+    describes what code will be generated when the macro is invoked. In this case,
+    `$initial $(+ $expr)*`
+
+
+    means that the generated code will start with the first expression, followed by
+    a `+`
+
+
+    and each of the additional expressions in sequence. The `*`
+
+
+    again means "repeat this pattern zero or more times". This means, when the macro
+    is later called in line 8, as `sum!(1, 2, 3)`
+
+
+    the macro will resolve to `1 + 2 + 3`
+
+
+    representing the addition of all of the passed expressions.
+
+
+    Procedural macros are Rust functions that run and modify the compiler''s input
+    token stream, before any other components are compiled. They are generally more
+    flexible than declarative macros, but are more difficult to maintain due to their
+    complexity.[121][122]
+
+
+    Procedural macros come in three flavors:
+
+
+    `custom!(...)`
+
+
+    `#[derive(CustomDerive)]`
+
+
+    `#[custom_attribute]`
+
+
+    Rust supports the creation of foreign function interfaces (FFI) through the `extern`
+
+
+    keyword. A function that uses the C calling convention can be written using `extern
+    "C" fn`
+
+
+    . Symbols can be exported from Rust to other languages through the `#[unsafe(no_mangle)]`
+
+
+    attribute, and symbols can be imported into Rust through `extern`
+
+
+    blocks:[note 6][124]
+
+
+    ```
+
+    #[unsafe(no_mangle)]
+
+    pub extern "C" fn exported_from_rust(x: i32) -> i32 { x + 1 }
+
+    unsafe extern "C" {
+
+    fn imported_into_rust(x: i32) -> i32;
+
+    }
+
+    ```
+
+
+    The `#[repr(C)]`
+
+
+    attribute enables deterministic memory layouts for `struct`
+
+
+    s and `enum`
+
+
+    s for use across FFI boundaries.[124] External libraries such as `bindgen`
+
+
+    and `cxx`
+
+
+    can generate Rust bindings for C/C++.[124][125]
+
+
+    Safety properties guaranteed by Rust include memory safety, type safety, and data
+    race freedom. As described above, these guarantees can be circumvented by using
+    the `unsafe`
+
+
+    keyword.
+
+
+    Memory safety includes the absence of dereferences to null, dangling, and misaligned
+    pointers, and the absence of buffer overflows and double free errors.[126][127][128][129]
+
+
+    Memory leaks are possible in safe Rust.[130] Memory leaks may occur as a result
+    of creating reference counted pointers that point at each other (a reference cycle)[130]
+    or can be deliberately created through calling `Box::leak`
+
+
+    .[131]
+
+
+    The Rust ecosystem includes its compiler, its standard library, and additional
+    components for software development. Component installation is typically managed
+    by `rustup`
+
+
+    , a Rust toolchain installer developed by the Rust project.[132]
+
+
+    The Rust compiler, `rustc`
+
+
+    , compiles Rust code into binaries. First, the compiler parses the source code
+    into an AST. Next, this AST is lowered to IR. The compiler backend is then invoked
+    as a subcomponent to apply optimizations and translate the resulting IR into object
+    code. Finally, a linker is used to combine the object(s) into a single executable
+    image.[133]
+
+
+    rustc uses LLVM as its compiler backend by default, but it also supports using
+    alternative backends such as GCC and Cranelift.[134] The intention of those alternative
+    backends is to increase platform coverage of Rust or to improve compilation times.[135][136]
+
+
+    Cargo is Rust''s build system and package manager. It downloads, compiles, distributes,
+    and uploads packages—called *crates*—that are maintained in an official registry.
+    It also acts as a front-end for Clippy and other Rust components.[137]
+
+
+    By default, Cargo sources its dependencies from the user-contributed registry
+    *crates.io*, but Git repositories, crates in the local filesystem, and other external
+    sources can also be specified as dependencies.[138]
+
+
+    Cargo supports reproducible builds through two metadata files: Cargo.toml and
+    Cargo.lock.[139] Cargo.toml declares each package used and their version requirements.
+    Cargo.lock is generated automatically during dependency resolution and records
+    exact versions of all dependencies, including transitive dependencies.[140]
+
+
+    Rustfmt is a code formatter for Rust. It formats whitespace and indentation to
+    produce code in accordance with a common style, unless otherwise specified. It
+    can be invoked as a standalone program, or from a Rust project through Cargo.[141]
+
+
+    Clippy is Rust''s built-in linting tool to improve the correctness, performance,
+    and readability of Rust code. As of 2026[update], it has over 800 rules.[142][143]
+
+
+    Following Rust 1.0, new features are developed in *nightly* versions which are
+    released daily. During each six-week release cycle, changes to nightly versions
+    are released to beta, while changes from the previous beta version are released
+    to a new stable version.[144]
+
+
+    Every two or three years, a new "edition" is produced. Editions are released to
+    allow making limited breaking changes, such as promoting `await`
+
+
+    to a keyword to support async/await features. Crates targeting different editions
+    can interoperate with each other, so a crate can upgrade to a new edition even
+    if its callers or its dependencies still target older editions. Migration to a
+    new edition can be assisted with automated tooling.[145]
+
+
+    *rust-analyzer* is a set of utilities that provides integrated development environments
+    (IDEs) and text editors with information about a Rust project through the Language
+    Server Protocol. This enables features including autocomplete, and compilation
+    error display, while editing code.[146]
+
+
+    Since it performs no garbage collection, Rust is often faster than other memory-safe
+    languages.[147][71][148] Most of Rust''s memory safety guarantees impose no runtime
+    overhead,[149] with the exception of array indexing which is checked at runtime
+    by default.[150] The performance impact of array indexing bounds checks varies,
+    but can be significant in some cases.[150]
+
+
+    Many of Rust''s features are so-called *zero-cost abstractions*, meaning they
+    are optimized away at compile time and incur no runtime penalty.[151] The ownership
+    and borrowing system permits zero-copy implementations for some performance-sensitive
+    tasks, such as parsing.[152] Static dispatch is used by default to eliminate method
+    calls, except for methods called on dynamic trait objects.[153] The compiler uses
+    inline expansion to eliminate function calls and statically dispatched method
+    invocations.[154]
+
+
+    Since Rust uses LLVM, all performance improvements in LLVM apply to Rust also.[155]
+    Unlike C and C++, Rust allows the compiler to reorder struct and enum elements
+    unless a `#[repr(C)]`
+
+
+    representation attribute is applied.[156] This allows the compiler to optimize
+    for memory footprint, alignment, and padding, which can be used to produce more
+    efficient code in some cases.[157]
+
+
+    In web services, OpenDNS, a DNS resolution service owned by Cisco, uses Rust internally.[158][159]
+    Amazon Web Services uses Rust in "performance-sensitive components" of services.
+    In 2019, AWS open-sourced Firecracker, a virtualization solution primarily written
+    in Rust.[160] Microsoft Azure IoT Edge, a platform used to run Azure services
+    on IoT devices, has components implemented in Rust.[161] Microsoft also uses Rust
+    to run containerized modules with WebAssembly and Kubernetes.[162] Cloudflare,
+    a company providing content delivery network services, used Rust to build a new
+    web proxy named Pingora for increased performance and efficiency.[163] The npm
+    package manager used Rust for its production authentication service in 2019.[164][165][166]
+
+
+    In operating systems, the Linux kernel began introducing experimental support
+    for Rust code in Version 6.1 in late 2022, as part of the Rust for Linux project.[167][168][169]
+    The first drivers written in Rust were included in version 6.8.[167] In 2025,
+    kernel developers at the Linux Kernel Developers Summit determined the project
+    to be a success, and Rust usage for kernel code will no longer be considered experimental.[170]
+    The Android developers used Rust in 2021 to rewrite existing components.[171][172]
+    Microsoft has rewritten parts of Windows in Rust.[173] The r9 project aims to
+    re-implement Plan 9 from Bell Labs in Rust.[174] Rust has also been used in the
+    development of new operating systems such as Redox, a "Unix-like" operating system
+    and microkernel,[175] Theseus, an experimental operating system with modular state
+    management,[176][177] and most of Fuchsia.[178] Rust is used for command-line
+    tools and operating system components such as stratisd, a file system manager[179][180]
+    and COSMIC, a desktop environment by System76.[181]
+
+
+    In web development, Deno, a secure runtime for JavaScript and TypeScript, is built
+    on top of V8 using Rust and Tokio.[182] Other notable adoptions in this space
+    include Ruffle, an open-source SWF emulator,[183] and Polkadot, an open source
+    blockchain and cryptocurrency platform.[184] Components from the Servo browser
+    engine (funded by Mozilla and Samsung) were incorporated in the Gecko browser
+    engine underlying Firefox.[185] In January 2023, Google (Alphabet) announced support
+    for using third party Rust libraries in Chromium.[186][187]
+
+
+    In other uses, Discord, an instant messaging software company, rewrote parts of
+    its system in Rust for increased performance in 2020. In the same year, Dropbox
+    announced that its file synchronization had been rewritten in Rust. Facebook (Meta)
+    used Rust to redesign its system that manages source code for internal projects.[16]
+
+
+    In the 2025 Stack Overflow Developer Survey, 14.8% of respondents had recently
+    done extensive development in Rust.[188] The survey named Rust the "most admired
+    programming language" annually from 2016 to 2025 (inclusive), as measured by the
+    number of existing developers interested in continuing to work in the language.[189][note
+    7] In 2025, 29.2% of developers not currently working in Rust expressed an interest
+    in doing so.[188]
+
+
+    Rust''s safety and performance have been investigated in programming languages
+    research.[190][110][191]
+
+
+    In other fields, a journal article published to *Proceedings of the International
+    Astronomical Union* used Rust to simulate multi-planet systems.[192] An article
+    published in *Nature* shared stories of bioinformaticians using Rust.[137] Both
+    articles cited Rust''s performance and safety as advantages, and the learning
+    curve as being a primary drawback to Rust adoption.
+
+
+    The 2025 DARPA project TRACTOR aims to automatically translate C to Rust using
+    techniques such as static analysis, dynamic analysis, and large language models.[193]
+
+
+    According to the *MIT Technology Review*, the Rust community has been seen as
+    "unusually friendly" to newcomers and particularly attracted people from the queer
+    community, partly due to its code of conduct.[16] Inclusiveness has been cited
+    as an important factor for some Rust developers.[137] The official Rust blog collects
+    and publishes demographic data each year.[196]
+
+
+    Formation | February 8, 2021 |
+
+    ---|---|
+
+
+    Founders | |
+
+
+    Type | Nonprofit organization |
+
+
+    Location | |
+
+
+    Shane Miller | |
+
+
+    Rebecca Rumbul | |
+
+
+    Website | foundation |
+
+
+
+    The **Rust Foundation** is a non-profit membership organization incorporated in
+    United States; it manages the Rust trademark, infrastructure, and assets.[197][42]
+
+
+    It was established on February 8, 2021, with five founding corporate members (Amazon
+    Web Services, Huawei, Google, Microsoft, and Mozilla).[198] The foundation''s
+    board was chaired by Shane Miller,[199] with Ashley Williams as interim executive
+    director.[42] In late 2021, Rebecca Rumbul became executive director and CEO.[200]
+
+
+    The Rust project is maintained by 8 top-level *teams* as of November 2025[update]:
+    the leadership council, compiler team, dev tools team, infrastructure team, language
+    team, launching pad, library team, and moderation team.[201] The leadership council
+    oversees the project and is formed by representatives among the other teams.[202]
+
+
+    `no_mangle`
+
+
+    with `unsafe`
+
+
+    as well as prefacing the `extern "C"`
+
+
+    block with `unsafe`
+
+
+    are required in the 2024 edition or later.Those of you familiar with the Elm style
+    may recognize that the updated --explain messages draw heavy inspiration from
+    the Elm approach.
+
+
+    They are inspired by ... ownership types and borrowed pointers in the Rust programming
+    language.
+
+
+    Both are curly bracket languages, with C-like syntax that makes them unintimidating
+    for C programmers.
+
+
+    We observe a large variance in the overheads of checked indexing: 23.6% of benchmarks
+    do report significant performance hits from checked indexing, but 64.5% report
+    little-to-no impact and, surprisingly, 11.8% report improved performance ... Ultimately,
+    while unchecked indexing can improve performance, most of the time it does not.
+
+
+    ... While some compilers (e.g., Rust) support structure reordering [82], C & C++
+    compilers are forbidden to reorder data structures (e.g., struct or class) [74]
+    ...
+
+    '
+- slug: linear-marketing
+  url: https://linear.app/
+  class: C_spa
+  task: What product does this company sell, and what is the primary headline / value
+    proposition on the landing page?
+  needs:
+  - content_only
+  criteria:
+  - Identifies Linear as an issue tracker / project management tool for software teams
+  - Captures a substantive headline or tagline from the page
+  - Is not only navigation / cookie banner text
+  content: '# The product development system for teams and agents
+
+
+    Purpose-built for planning and building products. Designed for the AI era.
+
+
+    **A new species of product tool.** Purpose-built for modern teams with AI workflows
+    at its core, Linear sets a new standard for planning and building products.
+
+
+    ## Make product operations self-driving
+
+
+    Turn conversations and customer feedback into actionable issues that are routed,
+    labeled, and prioritized for the right team.
+
+
+    Thread in #feedback
+
+
+    ## Define the product direction
+
+
+    Plan and navigate from idea to launch. Align your team with product initiatives,
+    strategic roadmaps, and clear, up-to-date PRDs.
+
+
+    ## Move work forward across teams and agents
+
+
+    Build and deploy AI agents that work alongside your team. Work on complex tasks
+    together or delegate entire issues end-to-end.
+
+
+    ## Review PRs and agent output
+
+
+    Understand code changes at a glance with structural diffs for human and agent
+    output. Review, discuss, and merge — all within Linear.
+
+
+    ## Understand progress at scale
+
+
+    Take the guesswork out of product development with project updates, analytics,
+    and dashboards that surface what needs your attention.
+
+    '
+- slug: vercel-blog
+  url: https://vercel.com/blog/framework-defined-infrastructure
+  class: C_spa
+  task: What is 'framework-defined infrastructure' according to this post? Give the
+    core idea in 2 sentences.
+  needs:
+  - content_only
+  criteria:
+  - 'Defines framework-defined infrastructure (FDI): inferring infra from framework
+    code / spec rather than hand-configured'
+  - Substantive 2-sentence summary, not just title + nav
+  - Mentions framework as source of infrastructure decisions
+  content: '8 min read
+
+
+    Programmatic framework understanding for automatic infrastructure provisioning
+
+
+    Infrastructure as code (IaC) is the industry-standard practice for provisioning
+    infrastructure in a repeatable and reliable way. **Framework-defined infrastructure
+    (FdI)** is an evolution of IaC, where the deployment environment automatically
+    provisions infrastructure derived from the framework and the applications written
+    in it.
+
+
+    The best way to understand it is that a build-time program parses the source code
+    written to a framework, understands the intent behind the code, and then automatically
+    generates the IaC configuration needed to run the software. This means more predictable,
+    lower cost, and lower risk DevOps through truly serverless—dare we say, *infrastructureless*—architecture.
+
+
+    In this article, we’ll explain how framework-defined infrastructure fits into
+    modern views of infrastructure definition and automation. We’ll then show examples
+    of how framework-defined infrastructure improves the experience of developing
+    in open-source frameworks.
+
+
+    ## Link to headingContextualizing infrastructure as code (IaC)
+
+
+    In the early days of servers and the Internet we `ssh`
+
+
+    -ed (or worse) into individual machines, running install scripts or even configuring
+    production software using graphical user interfaces to provision infrastructure.
+    As the Web scaled, it quickly became clear that this approach wouldn''t scale
+    with it, and together with the DevOps movement, IaC became the best practice for
+    provisioning infrastructure in a repeatable and reliable way.
+
+
+    The code in IaC represents a version-controlled description of the desired state
+    of the infrastructure—which, when executed, will create the described system state.
+    In this scenario, infrastructure can refer to:
+
+
+    Network equipment and setups
+
+
+    Web and application servers
+
+
+    Databases and message queues
+
+
+
+    ## Link to headingWhat is framework-defined infrastructure?
+
+
+    Framework-defined infrastructure abstracts over cloud primitives such as servers,
+    message queues, and serverless functions, making them mere implementation details
+    of the frameworks'' concepts:
+
+
+    Providing portability between different target infrastructure providers
+
+
+    Eliminating the need to manually configure infrastructure to run an application
+    in production
+
+
+    Increasing the time spent writing product code over system management
+
+
+    Allowing the unchanged use of the framework''s native local development tools
+
+
+    Standardizing on pre-reviewed secure services
+
+
+
+    Frameworks use well-established patterns to provide structure and abstraction
+    to applications, making them easier to write and understand. While the word *framework*
+    is hard to define, the Hollywood principle, "Don''t call us, we call you," probably
+    captures best the inversion of control, where the framework manages the high-level
+    application flow while the developer writes code within the hooks provided by
+    it.
+
+
+    Framework-defined infrastructure takes advantage of both this inversion of control
+    and the predictable structure of framework-based applications to automatically
+    map framework concepts onto the appropriate infrastructure without the need for
+    explicit declaration or configuration of the infrastructure.
+
+
+    Note that this post is giving examples based on Vercel''s Platform as a Service
+    offering. The concept, however, can be applied more widely as the basic idea of
+    understanding a framework, and generating IaC configuration for it, can also be
+    used for more traditional infrastructure deployments.
+
+
+    ## Link to headingApplying framework-defined infrastructure
+
+
+    We''ll now show examples of how frameworks automatically map their concepts onto
+    Vercel''s infrastructure. Though we''ll be using the popular Next.js framework
+    here for demonstration, Vercel''s implementation of framework-defined infrastructure
+    supports a multitude of other frameworks based on the same underlying mechanism.
+
+
+    Next.js uses a file-based router that maps files in a directory structure to URLs
+    in a web application. For example, the file `pages/blog/index.ts`
+
+
+    creates a URL route that maps the URL `/blog`
+
+
+    to the code defined in that file.
+
+
+    Framework-defined infrastructure starts by uplifting this understanding of the
+    route table of a web application from an implementation detail of the framework
+    to something that the infrastructure understands. In Vercel’s case, the route
+    table generated from a framework would eventually be deployed to our gateway service,
+    which then knows how to invoke the correct infrastructure primitive for any given
+    route.
+
+
+    The contents of `pages/blog/index.tsx`
+
+
+    might look something like this:
+
+
+    ```
+
+    export default function BlogPosts({ posts }) { return posts.map(post => <BlogPost
+    key={post.id} post={post} />)}
+
+    export async function getServerSideProps() { const posts = await getBlogPosts();
+    return { props: { posts } }}
+
+    ```
+
+
+
+    Example of a dynamically-rendered page in Next.js.
+
+
+    In this example, the user code defines a `getServerSideProps`
+
+
+    function that fetches the blog posts on our site. Next.js invokes this function
+    and passes the output to the default export `BlogPosts`
+
+
+    function which renders a list of posts.
+
+
+    Next.js pages with a `getServerSideProps`
+
+
+    function get rendered dynamically on every page view. That means a production
+    setup needs a compute service (like an application server or a serverless function)
+    to perform this data fetching and rendering operation.
+
+
+    With framework-defined infrastructure, the knowledge that pages with `getServerSideProps`
+
+
+    require a compute resource to perform the rendering operation is utilized to automatically
+    infer that the compute infrastructure to perform the rendering operation must
+    be provisioned. In Vercel’s case, this means that a serverless function based
+    on AWS Lambda is created and deployed with the code necessary to render the page.
+    The knowledge to invoke this function is then deployed to the gateway service
+    as part of the application''s routing table.
+
+
+    Now, let''s slightly modify the code example from above, to change `getServerSideProps`
+
+
+    to `getStaticProps`
+
+
+    :
+
+
+    ```
+
+    export default function BlogPosts({ posts }) { return posts.map(post => <BlogPost
+    key={post.id} post={post} />)}
+
+    export async function getStaticProps() { const posts = await getBlogPosts(); return
+    { props: {posts} }}
+
+    ```
+
+
+
+    The change of getServerSideProps to getStaticProps now generates the HTML at build
+    time.
+
+
+    In Next.js, `getStaticProps`
+
+
+    implies that rather than rendering the page on every view, the function may be
+    invoked at build time to generate a static HTML page which then can be served
+    to the user. Again, with framework-defined infrastructure it can be inferred that
+    no more production compute infrastructure is needed to serve this particular web
+    page. Instead, the artifacts generated at build time can be deployed to lower-cost,
+    static, web-serving infrastructure. In Vercel''s case, this means that **no**
+    serverless function is deployed for this page, and instead, the application''s
+    routing table is updated to point to the respective static file service.
+
+
+    While this is just one example of how changes to the code within a given file
+    can trigger the deployment of various pieces of infrastructure, the concept can
+    be expanded to a multitude of infrastructure resources. For example:
+
+
+    Gatsby has a concept called Deferred Static Generation. When used, a serverless
+    function is deployed to perform the deferred generation on user request similar
+    to server-side rendering. However, the function output is then stored in AWS S3
+    and pushed globally to be servable from Vercel’s edge without another function
+    invocation.
+
+
+    SvelteKit has the concept of form actions. When used, a serverless function is
+    automatically created to perform the action. The same thing happens when using
+    Remix.
+
+
+    Next.js supports the concept of middleware, which triggers the automatic provisioning
+    of edge computing resources which execute the middleware code during the request
+    processing phase.
+
+
+    Using the component for image optimization automatically triggers setup of a high-performance
+    image optimization system tailoring the image for the visiting user’s device.
+
+
+
+    Internally, the framework primitives get compiled to Vercel’s Build Output API
+    which is a more traditional declarative IaC configuration API that gets consumed
+    by Vercel’s platform to provision the production infrastructure.
+
+
+    ## Link to headingServerless in an IaC world
+
+
+    IaC uses machine-readable files, which developers can version much like software,
+    to provision infrastructure such as physical servers, virtual machines, and higher-level
+    services like databases or applications. Serverless architecture—which, despite
+    its name, still uses servers—eliminates the need for developers to manage specific
+    physical or virtual servers.
+
+
+    Serverless products still require developers to define and deploy their respective
+    serverless primitives, much like more traditional infrastructure. For example,
+    in the archetype of serverless products, AWS Lambda, developers need to create
+    a lambda function and deploy code to it.
+
+
+    In other words, the process for creating a lambda function, while somewhat less
+    involved, is similar to the process for creating a new serverful service. Here
+    is a sample for how to create a lambda function using HashiCorp''s Terraform,
+    one of the most popular IaC configuration tools. As you can see, the lambda function
+    is just another resource:
+
+
+    `resource "aws_lambda_function" "my_lambda" { filename = "lambda_function_payload.zip"
+    function_name = "lambda_function_name" role = aws_iam_role.iam_for_lambda.arn
+    handler = "index.test" source_code_hash = filebase64sha256("lambda_function_payload.zip")
+    runtime = "nodejs16.x" environment { variables = { foo = "bar" } }}`
+
+
+
+    Creating a Lambda function leveraging HashiCorp Terraform
+
+
+    ## Link to headingSolving the local development problem for serverless
+
+
+    While serverless architecture greatly simplifies managing production infrastructure,
+    the systems that run serverless code are often complex and proprietary, which
+    can cause problems with local development. In a worst case scenario, local development
+    isn''t possible, and developers must test local changes by making comparatively
+    slow deploys to the production infrastructure. In a best case scenario, developers
+    must create a local simulation of the complex serverless stack, which then has
+    to stay up-to-date with the production environment.
+
+
+    Framework-defined infrastructure completely eliminates this problem. Because framework-defined
+    infrastructure lets the framework itself dictate the production behavior, local
+    development can just use the framework''s own tooling, while production infrastructure
+    is automatically configured to be a scaled and optimized representation of the
+    same underlying behavior.
+
+
+    ## Link to headingFramework-defined infrastructure and immutable deployments
+
+
+    These days application code is developed almost exclusively within version control
+    systems such as Git. IaC maintains infrastructure definition in either the same
+    or a sibling version control system. Often, however, production infrastructure
+    itself can only represent limited points in time of the infrastructure''s version
+    history. This is fundamentally incompatible with framework-defined infrastructure,
+    which expects that production infrastructure directly maps to the framework code
+    at the same commit hash.
+
+
+    Immutable deployments solve this impedance mismatch between an application''s
+    and the infrastructure’s version history. Instead of deploying onto a limited
+    number of infrastructures such as “production” and “staging,” immutable deploys
+    create a completely new infrastructure for every single deployment that is ever
+    made. This infrastructure is then never changed—it is immutable.
+
+
+    Naturally, immutable deployments are impossible to perform in a world where infrastructure
+    is mapped to finite physical resources, which would get used up as new deployments
+    get made. However, in a serverless world, where unused infrastructure can scale
+    to zero, immutable deployments become possible to perform, as unused deployments
+    do not take up physical compute resources beyond the baseline storage needed for
+    their contents. For example, Vercel''s platform creates an immutable deployment
+    for each `git hash`
+
+
+    pushed to a repository which is then mapped onto an entirely new virtual serverless
+    infrastructure.
+
+
+    ### Link to headingAcknowledgements
+
+
+    Framework-defined infrastructures as an idea stands on the shoulder of giants.
+    It relies on IaC as the ultimate infrastructure interface and hence could not
+    work without the amazing work by its community. Furthermore, it relies on infrastructure
+    abstractions such as Kubernetes to actually be feasible given the relatively low
+    amount of detail that can be extracted from the original source code, and the
+    approach is particularly suited for targeting PaaS offerings such as the original
+    Google AppEngine.
+
+
+    ## Link to headingFrameworks, not primitives
+
+
+    Here we have discussed how framework-defined infrastructure builds on IaC by understanding
+    how a framework''s patterns map to infrastructure primitives needed to run code
+    in a scalable production system, greatly simplifying local development.
+
+
+    Immutable deployments based on serverless architecture allow production infrastructure
+    to perfectly map to the version of the code running on the infrastructure while
+    being both exceptionally scalable and cost effective during low usage.
+
+
+    It''s worth repeating: at Vercel, we''re implementing framework-defined infrastructure
+    for more predictable, lower cost, and lower risk DevOps through truly serverless—and,
+    for developers, *infrastructureless—*architecture.
+
+    '
+- slug: github-issue
+  url: https://github.com/anthropics/claude-code/issues/2107
+  class: D_structured
+  task: What does this issue report, and what is the most recent status / conclusion?
+  needs:
+  - content_only
+  criteria:
+  - Captures the issue's reported problem
+  - Mentions whether the issue is open / closed / resolved if visible
+  - Cites at least one substantive detail from the body or a comment
+  content: "# Issue #2107: [BUG] String to replace not found in file.\n**State:**\
+    \ closed | **Author:** liaolunhui\n\n## Environment\n- Platform (select one):\n\
+    \  - [ ] Other: Claude code\n- Claude CLI version: 1.0.24\n- Operating System:\
+    \ Windows 11\n- Terminal:  IDEA Claude code plugin\n\n## Bug Description\nOccasionally\
+    \ updating error: String to replace not found in file.\n\n## Steps to Reproduce\n\
+    Occasionally updating error: String to replace not found in file.\n\n## Expected\
+    \ Behavior\nupdate file successfully.\n\n## Actual Behavior\nOccasionally updating\
+    \ error: String to replace not found in file.\n\n![Image](https://github.com/user-attachments/assets/9d8030e4-5cdd-4bbf-9c59-ad628211794a)\n\
+    \n## Additional Context\nNo\n\n---\n\n## Comments\n\n**github-actions[bot]:**\n\
+    \nThis issue has been inactive for 30 days. If the issue is still occurring, please\
+    \ comment to let us know. Otherwise, this issue will be automatically closed in\
+    \ 30 days for housekeeping purposes.\n\n**catherinewu:**\n\nthanks for reporting\
+    \ - we are continuously working on improving the error rates for the edit tool.\
+    \ it should be much better in the latest claude 4.5 models!\n\n**github-actions[bot]:**\n\
+    \nThis issue has been automatically locked since it was closed and has not had\
+    \ any activity for 7 days. If you're experiencing a similar issue, please file\
+    \ a new issue and reference this one if it's relevant.\n"
+- slug: non-english
+  url: https://habr.com/ru/articles/799471/
+  class: E_edge
+  task: What is this article about? Summarize in English in 2-3 sentences.
+  needs:
+  - content_only
+  criteria:
+  - Provides an English summary of substantive content
+  - Is not only navigation / 'cookie banner' text
+  - Mentions at least one specific concept from the article body
+  content: 'Простой и популярной реализацией закона управления обратным маятником
+    является PID регулятор. Современные средства настройки коэффициентов PID регулятора
+    позволяют решать подобные задачи нажатием пары кнопок даже без знания математики,
+    физики и вообще без каких-либо технических знаний. Рассмотрим пример настройки
+    PID регуляторов в Simulink для классического обратного маятника.
+
+
+    ### Объект управления (Plant)
+
+
+    Модель перевернутого маятника соберем в библиотеке Multibody. Для этого нам не
+    понадобится знание физики и математики. Библиотека Multibody предоставляет нам
+    готовые блоки степеней свободы, твердых тел, преобразований координат, которые
+    нужно только верно соединить. Собираем подсистемы отдельно для маятника и отдельно
+    для тележки, и собираем все вместе. Результат на рисунке, модель в прикрепленных
+    файлах.
+
+
+    Сборка отдельных элементов в подсистемы придает более красивый и структурированный
+    вид модели.
+
+
+    Зададим следующие параметры модели: масса тележки – 5 кг, масса маятника – 1 кг,
+    длинна маятника – 2 м, коэффициент трения для тележки – 0.1/10 N/(m/s), коэффициент
+    трения для маятника – 0.1/10 N*m/(deg/s).
+
+
+    Промоделируем и заценим результаты:
+
+
+    Результат в виде анимации:
+
+
+    ### Система управления
+
+
+    Система управления будет состоять из двух контуров, первый будет отвечать за стабилизацию
+    маятника в положении «вверх», а второй за положение тележки.
+
+
+    В библиотеки Simulink находим блок PID Controller включаем его в систему в соответствие
+    с классическим управлением с отрицательной обратной связью и тут же настраиваем
+    его. Открываем блок, и жмем кнопку Tune как на рисунке:
+
+
+    Происходит автоматическая линеаризация нашего Объекта Управления и автоматическая
+    настройка PID регулятора.
+
+
+    Можем бегунками поднастроить робастность и скорость регулятора, после чего не
+    забываем обновить коэффициенты кнопкой Update Block.
+
+
+    Собираем контур положения тележки и таким же образом, нажав две кнопки, его настраиваем.
+
+
+    Так же добавим отдельный контур для угловой скорости маятника, можно обойтись
+    без него, но по ощущениям он хорошо добавляет устойчивости. В итоге имеем следующую
+    систему управления:
+
+
+    Добавим в выходные сигналы шумов, чтобы сделать модель более правдоподобной:
+
+
+    Добавим в модель фильтр Калмана, чтобы сгладить помехи и иметь доступ ко всем
+    состояниям ОУ:
+
+
+    ### Полная модель обратного маятника
+
+
+    Так, как в своем обычном состоянии маятник имеет положение «вниз», добавим специальный
+    блок и назовем Swing, в котором на глаз запрограммируем сигнал на раскачку системы
+    и в момент, когда маятник достигнет положения «вверх», включим контроллер. Так
+    же добавим внешнее возмущение – импульс в 0.5 сек амплитудой 1 Н, приложенный
+    к маятнику. И ограничим силу, которую может развивать тележка 25 Н.
+
+
+    В итоге вся модель имеет следующий вид:
+
+
+    Промоделируем систему:
+
+
+    В течении примерно 10 сек идет раскачка маятника, пока он не достигнет нулевого
+    значения угла, потом контроллер отрабатывает ошибку и приводит тележку к координате
+    0, в самом конце маятник «толкают».
+
+
+    Создадим анимацию:
+
+
+    Модель получилась довольно устойчивой. Можно ее еще более упростить, оставить
+    только два PID контроллера для угла и координаты.
+
+
+    Для разработки этой модели не было использовано ни одной формулы и ни одного расчета
+    в ручную не было сделано. За нас всю эту рутину сделал Simulink и Multibody.
+
+    '

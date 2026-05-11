@@ -1,0 +1,5 @@
+1. CloakHQ/CloakBrowser — "Stealth Chromium that passes every bot detection test. Drop-in Playwright replacement."
+2. Stable Diffusion web UI — Web interface for Stable Diffusion model usage.
+3. AI-Trader — "100% Fully-Automated Agent-Native Trading."
+4. LLM inference server — "Continuous batching & SSD caching for Apple Silicon — managed from the macOS menu bar."
+5. ARIS — "Lightweight Markdown-only skills for autonomous ML research: cross-model review loops, idea discovery."

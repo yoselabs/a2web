@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer explicitly states the information is absent, invents nothing, and correctly identifies what the content does cover (borrow checker).",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039058350000000006,
+  "latency_ms": 10756,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 53
+  }
+}

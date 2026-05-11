@@ -1,0 +1,1 @@
+The package is `react`, a JavaScript library for creating user interfaces. The provided content does not specify its current version or weekly download count. It emphasizes using React with renderers like `react-dom` and notes development vs. production mode differences. The code example demonstrates a basic counter component.

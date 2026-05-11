@@ -1,0 +1,1 @@
+Rust was created by Graydon Hoare in 2006. The first public release was in 2012. It uses a "borrow checker" for memory safety.

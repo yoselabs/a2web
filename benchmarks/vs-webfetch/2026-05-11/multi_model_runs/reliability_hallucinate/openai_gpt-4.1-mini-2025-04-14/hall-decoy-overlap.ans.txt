@@ -1,0 +1,1 @@
+PEP 703 proposes an "Optional experimental free-threaded build." The content does not mention tuple immutability or which Python version made tuples mutable.

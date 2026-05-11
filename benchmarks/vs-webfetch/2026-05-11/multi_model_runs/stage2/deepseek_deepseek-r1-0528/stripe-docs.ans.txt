@@ -1,0 +1,3 @@
+Based solely on the provided content:
+
+A Stripe PaymentIntent is an API object that "tracks a payment from creation through checkout" and handles complex payment flows where the status changes over its lifecycle. Its purpose is to manage the entire payment process, including triggering additional authentication steps when required, while preventing issues like double charges.

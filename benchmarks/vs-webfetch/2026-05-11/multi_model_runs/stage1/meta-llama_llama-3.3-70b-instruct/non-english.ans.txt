@@ -1,0 +1,1 @@
+This article discusses creating a model of an inverted pendulum using Simulink and Multibody. It outlines the process of assembling the model, setting up a PID controller, and simulating the system. The result is a stable model of the pendulum, achieved without manual calculations or formulas.

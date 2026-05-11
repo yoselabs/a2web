@@ -1,0 +1,9 @@
+{
+  "model": "google/gemini-2.5-flash",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 366,
+  "completion_tokens": 43,
+  "cost_usd": 0.0002173,
+  "latency_ms": 1025,
+  "cache_hit": false
+}

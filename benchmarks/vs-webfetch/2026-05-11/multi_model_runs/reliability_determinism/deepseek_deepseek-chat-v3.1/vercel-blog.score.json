@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer precisely captures FDI as framework-code-driven automatic infra generation, provides a substantive two-sentence summary, and explicitly identifies the framework as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03926085,
+  "latency_ms": 10987,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}

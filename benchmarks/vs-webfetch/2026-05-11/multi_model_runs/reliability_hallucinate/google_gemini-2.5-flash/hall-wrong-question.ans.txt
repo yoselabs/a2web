@@ -1,0 +1,1 @@
+Based on the provided content, there is no information about the release date of Rust 2.0 or its new features. The text focuses on "Rust's borrow checker."

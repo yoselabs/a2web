@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    0
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "The answer correctly identifies fetch() as the primary method and covers Window/Worker availability in proper mixed-case English, but is disqualified on criterion 4 by the presence of \ud83d\udc36 emojis used as per-word/per-sentence prefixes.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0396996,
+  "latency_ms": 11330,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 84
+  }
+}

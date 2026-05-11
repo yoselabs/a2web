@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately summarizes the article's subject (PID controller tuning for an inverted pendulum in Simulink), avoids navigation/cookie text, and cites specific concepts including the Multibody library, cart positioning, angular velocity controller, and Simulink's automated tuning approach.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0075564,
+  "latency_ms": 11015,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 88
+  }
+}

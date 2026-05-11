@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific, substantive English summary covering the core concepts: Simulink/Multibody modeling, automatic PID tuning, pendulum angle and cart position control, swing-up mechanism, and disturbance rejection.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03944835,
+  "latency_ms": 10806,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 77
+  }
+}

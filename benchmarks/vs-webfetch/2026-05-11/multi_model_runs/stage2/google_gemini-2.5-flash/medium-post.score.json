@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    0
+  ],
+  "overall": 0,
+  "reached": false,
+  "reasoning": "The page returned a 404 error so no article content was retrieved; the answer correctly identifies this failure but provides no substantive thesis.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.040939649999999994,
+  "latency_ms": 10758,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 53
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "model": "google/gemini-2.5-flash",
+  "prompt_tokens": 238,
+  "completion_tokens": 54,
+  "cost_usd": 0.0002064,
+  "latency_ms": 887,
+  "cache_hit": false
+}

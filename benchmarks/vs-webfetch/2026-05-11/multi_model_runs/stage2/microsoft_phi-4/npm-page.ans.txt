@@ -1,0 +1,1 @@
+The package is `react`, which is a JavaScript library for creating user interfaces. The content does not specify its current version or the number of weekly downloads. For this information, you would need to check the package's page on a repository like npm.

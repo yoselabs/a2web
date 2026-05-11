@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific, English summary covering the core topic (inverted pendulum with PID in Simulink/Multibody), substantive content beyond navigation, and multiple specific concepts (PID controllers, Kalman filter, noise, cart stabilization, animations).",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03961335,
+  "latency_ms": 10946,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 85
+  }
+}

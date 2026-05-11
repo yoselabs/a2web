@@ -1,0 +1,5 @@
+Based solely on the provided content:
+
+Rust was originally designed by Graydon Hoare, who "created Rust in 2006" while working at Mozilla. The first public release (Rust 0.1) appeared on January 20, 2012.
+
+Rust is known for its memory-safety mechanism called the "borrow checker", which prevents memory safety errors by tracking the "object lifetime of references at compile time" without conventional garbage collection.

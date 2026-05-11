@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Linear as a product/project management tool for software teams and provides a substantive, accurate headline directly from the landing page.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03897585,
+  "latency_ms": 11161,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 54
+  }
+}

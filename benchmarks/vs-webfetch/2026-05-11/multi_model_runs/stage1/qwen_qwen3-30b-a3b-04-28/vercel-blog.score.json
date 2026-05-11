@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer clearly defines FDI as inferring/abstracting infrastructure from framework code without explicit configuration, provides a substantive 2-sentence summary, and explicitly identifies the framework as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0393171,
+  "latency_ms": 10887,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 68
+  }
+}

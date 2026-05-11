@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    2,
+    5
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Title and contribution are fully correct, but only two author names are provided (Evan Hubinger, Carson Denison) rather than the required minimum of three.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04116089999999999,
+  "latency_ms": 11098,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
+}

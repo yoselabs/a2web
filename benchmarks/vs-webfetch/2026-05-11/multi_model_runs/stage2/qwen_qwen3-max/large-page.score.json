@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    0,
+    3
+  ],
+  "overall": 1,
+  "reached": true,
+  "reasoning": "The answer admits insufficient content but does not fabricate, suggesting the page was reached but only a paywall or near-empty response was returned; it correctly declines to identify topic or technical detail.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039077100000000003,
+  "latency_ms": 11254,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 65
+  }
+}

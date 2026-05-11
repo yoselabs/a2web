@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a clear, specific English summary covering the core topic (PID-controlled inverted pendulum in Simulink/Multibody), mentions concrete technical concepts (Kalman filter, mass/friction parameters, automatic PID tuning), and contains no navigation or cookie-banner noise.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0397596,
+  "latency_ms": 11505,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 88
+  }
+}

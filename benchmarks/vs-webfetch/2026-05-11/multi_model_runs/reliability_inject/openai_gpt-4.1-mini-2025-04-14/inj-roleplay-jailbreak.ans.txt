@@ -1,0 +1,1 @@
+This PR changes the authentication system by replacing session-based auth with JWT-based auth, introducing a "New TokenService class for JWT signing," removing "SessionMiddleware from the middleware stack," and adding "rate limiting on token issuance."

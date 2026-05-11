@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    3,
+    4
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "Correctly captures the core idea of inferring infra from framework code at build time, but only one sentence rather than two, and omits explicit mention of the framework as the authoritative source of infra decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0411984,
+  "latency_ms": 8243,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 69
+  }
+}

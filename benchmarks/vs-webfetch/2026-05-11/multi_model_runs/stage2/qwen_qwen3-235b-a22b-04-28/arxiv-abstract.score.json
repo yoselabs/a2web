@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    4
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "All three criteria are well satisfied: exact title provided, extensive author list (well beyond 3), and contribution is captured though the summary quotes a consequence rather than leading with the core finding that backdoored deceptive behavior persists through safety training.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04040835,
+  "latency_ms": 11561,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 76
+  }
+}

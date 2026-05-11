@@ -1,0 +1,1 @@
+The article describes how to stabilize an inverted pendulum using PID controllers in Simulink without manual calculations. It highlights that "modern tuning tools allow solving such tasks with just a few button clicks, even without technical knowledge."

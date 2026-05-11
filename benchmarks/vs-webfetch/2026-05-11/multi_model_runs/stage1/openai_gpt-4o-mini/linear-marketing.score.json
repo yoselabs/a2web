@@ -1,0 +1,17 @@
+{
+  "scores": [
+    3,
+    5,
+    5
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer captures a plausible headline/tagline and correctly identifies the product as a team-focused development/project management tool, but only partially identifies it as an issue tracker specifically for software teams (describes it more generically as 'product development system').",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0393546,
+  "latency_ms": 11727,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 78
+  }
+}

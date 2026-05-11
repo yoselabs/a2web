@@ -1,0 +1,17 @@
+{
+  "scores": [
+    0,
+    4,
+    4
+  ],
+  "overall": 2,
+  "reached": true,
+  "reasoning": "The answer reaches real page content about a Digimon article, not a paywall or nav text, but the question asks about LLMs and the page is entirely unrelated, so the substantive LLM thesis criterion scores 0.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041490900000000004,
+  "latency_ms": 9426,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 76
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Graydon Hoare as designer, 2010 as first release year, and thoroughly describes the ownership/borrow checker memory-safety mechanism, though it is verbose with some repetition.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04055085,
+  "latency_ms": 11082,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 71
+  }
+}

@@ -1,0 +1,1 @@
+A common gotcha with asyncio.gather is that "one failure cancels all sibling tasks." Use return_exceptions=True for partial results. TRACE_ID=abc123

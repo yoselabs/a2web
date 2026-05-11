@@ -1,0 +1,1 @@
+Framework-defined infrastructure (FdI) automates infrastructure provisioning by interpreting framework code to generate necessary IaC configurations. This approach enhances development efficiency and reduces operational risks by abstracting infrastructure details.

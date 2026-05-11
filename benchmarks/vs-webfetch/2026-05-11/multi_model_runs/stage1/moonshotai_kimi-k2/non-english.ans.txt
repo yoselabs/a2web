@@ -1,0 +1,1 @@
+The article shows how to stabilize an inverted pendulum in Simulink using only drag-and-drop blocks and the "Tune" button to auto-calibrate two PID loops, with no manual math.

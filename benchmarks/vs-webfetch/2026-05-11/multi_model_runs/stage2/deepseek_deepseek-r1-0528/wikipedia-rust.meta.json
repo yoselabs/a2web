@@ -1,0 +1,9 @@
+{
+  "model": "deepseek/deepseek-r1-0528",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 9909,
+  "completion_tokens": 341,
+  "cost_usd": 0.00569788,
+  "latency_ms": 15542,
+  "cache_hit": false
+}

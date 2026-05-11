@@ -1,0 +1,1 @@
+Graydon Hoare designed Rust in 2006. The first public release was 0.1 in 2012. Rust's memory-safety mechanism is the "borrow checker", which tracks the object lifetime of references at compile time.

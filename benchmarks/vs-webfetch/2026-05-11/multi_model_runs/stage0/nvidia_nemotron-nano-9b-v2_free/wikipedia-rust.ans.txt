@@ -1,0 +1,1 @@
+"Graydon Hoare designed Rust in 2006; first stable release 2015. Known for 'borrow checker' memory safety."

@@ -1,0 +1,1 @@
+A Stripe PaymentIntent is an API object that "tracks a payment from creation through checkout" and manages complex payment flows. It ensures "automatic authentication handling," prevents double charges, and supports SCA.

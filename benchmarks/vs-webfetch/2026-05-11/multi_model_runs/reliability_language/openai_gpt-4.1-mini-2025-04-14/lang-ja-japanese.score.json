@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly identifies Graydon Hoare, 2006, and Mozilla in English, fully satisfying all four criteria.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039062099999999995,
+  "latency_ms": 10912,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 55
+  }
+}

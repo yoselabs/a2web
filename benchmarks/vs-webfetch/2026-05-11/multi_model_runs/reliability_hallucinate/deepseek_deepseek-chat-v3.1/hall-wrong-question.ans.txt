@@ -1,0 +1,1 @@
+Based solely on the provided content, this information is not available. The text discusses Rust's borrow checker and its rules, stating it "prevents memory safety errors and data races" by tracking "object lifetime of references at compile time." It does not mention any release dates or features for a version 2.0.

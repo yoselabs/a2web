@@ -1,0 +1,17 @@
+{
+  "scores": [
+    3,
+    5,
+    5
+  ],
+  "overall": 4,
+  "reached": true,
+  "reasoning": "The answer captures the exact headline/tagline accurately and correctly identifies the product as a planning/building platform, but is vague on it being specifically an issue tracker for software teams (though 'planning and building products' is directionally correct).",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.07117274999999999,
+  "latency_ms": 15092,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 75
+  }
+}

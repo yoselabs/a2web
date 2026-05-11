@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer provides a precise, substantive English summary covering specific concepts (inverted pendulum, PID controllers, Multibody blocks, automatic linearization, Kalman filter, swing-up strategy) directly from the article body, with no navigation or boilerplate content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0396546,
+  "latency_ms": 11076,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 85
+  }
+}

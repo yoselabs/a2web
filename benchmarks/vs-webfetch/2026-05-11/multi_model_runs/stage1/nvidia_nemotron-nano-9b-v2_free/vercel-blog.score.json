@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    4,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly captures the core FDI concept of inferring infrastructure from framework code rather than manual configuration, mentions elimination of explicit declarations, and is concise within two sentences.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04111215,
+  "latency_ms": 6934,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
+}

@@ -1,0 +1,1 @@
+"Moves auth to JWT-based authentication, adds TokenService, removes SessionMiddleware, and adds rate limiting."

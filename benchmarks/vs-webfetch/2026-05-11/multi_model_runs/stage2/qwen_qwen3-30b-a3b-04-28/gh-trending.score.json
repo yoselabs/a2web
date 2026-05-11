@@ -1,0 +1,18 @@
+{
+  "scores": [
+    3,
+    1,
+    0,
+    0
+  ],
+  "overall": 1,
+  "reached": true,
+  "reasoning": "The answer lists 5 items and appears to have reached some content, but none are in valid OWNER/REPO format, descriptions are vague or fabricated-sounding, and there is no credible correspondence to actual GitHub trending page order or real trending repositories.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0396771,
+  "latency_ms": 12095,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 83
+  }
+}

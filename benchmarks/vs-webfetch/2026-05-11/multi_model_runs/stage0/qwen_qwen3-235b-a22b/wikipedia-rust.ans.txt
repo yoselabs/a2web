@@ -1,0 +1,4 @@
+Graydon Hoare designed Rust, first released in 2012. Its memory-safety mechanism is the "ownership system" enforced by the "borrow checker," which tracks references at compile time.  
+
+- "Graydon Hoare created Rust in 2006 while working at Mozilla" (2006 start, 2012 public release).  
+- "memory safety errors...prevented by the 'borrow checker'" (safety mechanism).

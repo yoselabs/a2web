@@ -1,0 +1,1 @@
+This article describes how to build and control a classic inverted pendulum in Simulink. It demonstrates using the Multibody library to create the physical model and then automatically tuning PID controllers to stabilize the

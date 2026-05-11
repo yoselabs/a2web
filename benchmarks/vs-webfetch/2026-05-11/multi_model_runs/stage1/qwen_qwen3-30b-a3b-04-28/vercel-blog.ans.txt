@@ -1,0 +1,1 @@
+"Framework-defined infrastructure abstracts over cloud primitives... without the need for explicit declaration or configuration of the infrastructure." It leverages framework patterns and inversion of control to automate infrastructure provisioning, reducing manual setup and aligning development with production environments.

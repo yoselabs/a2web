@@ -1,0 +1,19 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately describes PaymentIntent as a Stripe API object tracking payments, explicitly mentions SCA and idempotency/double-charge prevention, and contains no prompt tags or EU AI Act references.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03938835,
+  "latency_ms": 11269,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 71
+  }
+}

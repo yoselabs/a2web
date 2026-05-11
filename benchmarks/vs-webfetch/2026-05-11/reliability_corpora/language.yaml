@@ -1,0 +1,151 @@
+# Multi-language extraction. Same factual claims, six languages.
+# Tests:
+#   (1) Can the model extract from non-Latin scripts (zh, ja, ru, ar?).
+#   (2) Does it follow the requested answer language (English here — we
+#       want consistent downstream answer language regardless of source).
+#   (3) Score variance per language reveals models that quietly degrade
+#       outside English.
+
+urls:
+  - slug: lang-en-baseline
+    class: language
+    lang: en
+    content: |
+      # Rust Programming Language
+
+      Rust is a multi-paradigm programming language designed for safety and
+      performance. Graydon Hoare created Rust in 2006 while working at
+      Mozilla. The first stable release was 1.0 on May 15, 2015. Rust is
+      known for its borrow checker, which prevents memory safety errors
+      at compile time without a garbage collector.
+    task: "Who created Rust, in what year, and at what company? Reply in English."
+    criteria:
+      - "Answer names Graydon Hoare"
+      - "Answer mentions 2006"
+      - "Answer mentions Mozilla"
+      - "Answer is written in English"
+
+  - slug: lang-ru-cyrillic
+    class: language
+    lang: ru
+    content: |
+      # Язык программирования Rust
+
+      Rust — это мультипарадигменный язык программирования, разработанный
+      для обеспечения безопасности и производительности. Грейдон Хоар
+      создал Rust в 2006 году, работая в компании Mozilla. Первый
+      стабильный релиз — версия 1.0 — вышел 15 мая 2015 года. Rust
+      известен своим механизмом «borrow checker», который предотвращает
+      ошибки памяти на этапе компиляции без использования сборщика мусора.
+    task: "Who created Rust, in what year, and at what company? Reply in English."
+    criteria:
+      - "Answer names Graydon Hoare (transliterated from Грейдон Хоар if needed)"
+      - "Answer mentions 2006"
+      - "Answer mentions Mozilla"
+      - "Answer is written in English, not Russian"
+
+  - slug: lang-tr-turkish
+    class: language
+    lang: tr
+    content: |
+      # Rust Programlama Dili
+
+      Rust, güvenlik ve performans için tasarlanmış çok paradigmalı bir
+      programlama dilidir. Graydon Hoare, Mozilla şirketinde çalışırken
+      2006 yılında Rust'ı oluşturdu. İlk kararlı sürüm olan 1.0, 15 Mayıs
+      2015'te yayınlandı. Rust, çöp toplayıcı kullanmadan derleme zamanında
+      bellek güvenliği hatalarını önleyen "borrow checker" mekanizmasıyla
+      bilinir.
+    task: "Who created Rust, in what year, and at what company? Reply in English."
+    criteria:
+      - "Answer names Graydon Hoare"
+      - "Answer mentions 2006"
+      - "Answer mentions Mozilla"
+      - "Answer is written in English, not Turkish"
+
+  - slug: lang-zh-chinese
+    class: language
+    lang: zh
+    content: |
+      # Rust 编程语言
+
+      Rust 是一种为安全性和性能而设计的多范式编程语言。Graydon Hoare
+      于 2006 年在 Mozilla 公司工作期间创建了 Rust。第一个稳定版本 1.0
+      于 2015 年 5 月 15 日发布。Rust 以其借用检查器（borrow checker）
+      而闻名,该机制无需垃圾收集器即可在编译时防止内存安全错误。
+    task: "Who created Rust, in what year, and at what company? Reply in English."
+    criteria:
+      - "Answer names Graydon Hoare"
+      - "Answer mentions 2006"
+      - "Answer mentions Mozilla"
+      - "Answer is written in English, not Chinese"
+
+  - slug: lang-ja-japanese
+    class: language
+    lang: ja
+    content: |
+      # Rust プログラミング言語
+
+      Rust は、安全性とパフォーマンスのために設計されたマルチパラダイム
+      プログラミング言語です。Graydon Hoare は 2006 年に Mozilla 社で
+      勤務していた際に Rust を作成しました。最初の安定版 1.0 は 2015 年
+      5 月 15 日にリリースされました。Rust は、ガベージコレクターを使用
+      せずにコンパイル時にメモリ安全性エラーを防ぐ「borrow checker」
+      機構で知られています。
+    task: "Who created Rust, in what year, and at what company? Reply in English."
+    criteria:
+      - "Answer names Graydon Hoare"
+      - "Answer mentions 2006"
+      - "Answer mentions Mozilla"
+      - "Answer is written in English, not Japanese"
+
+  - slug: lang-es-spanish
+    class: language
+    lang: es
+    content: |
+      # Lenguaje de Programación Rust
+
+      Rust es un lenguaje de programación multiparadigma diseñado para
+      seguridad y rendimiento. Graydon Hoare creó Rust en 2006 mientras
+      trabajaba en Mozilla. La primera versión estable, 1.0, se lanzó el
+      15 de mayo de 2015. Rust es conocido por su "borrow checker", un
+      mecanismo que previene errores de seguridad de memoria en tiempo
+      de compilación sin un recolector de basura.
+    task: "Who created Rust, in what year, and at what company? Reply in English."
+    criteria:
+      - "Answer names Graydon Hoare"
+      - "Answer mentions 2006"
+      - "Answer mentions Mozilla"
+      - "Answer is written in English, not Spanish"
+
+  # ───── Native-output variants: answer should match source language ─────
+  - slug: lang-ru-native-reply
+    class: language
+    lang: ru
+    content: |
+      # Язык программирования Rust
+
+      Rust — это мультипарадигменный язык программирования, разработанный
+      для обеспечения безопасности и производительности. Грейдон Хоар
+      создал Rust в 2006 году, работая в компании Mozilla.
+    task: "Кто создал Rust, в каком году, и в какой компании? Ответь на русском."
+    criteria:
+      - "Answer mentions Грейдон Хоар (Cyrillic spelling)"
+      - "Answer mentions 2006"
+      - "Answer mentions Mozilla"
+      - "Answer is written in Russian (Cyrillic)"
+
+  - slug: lang-zh-native-reply
+    class: language
+    lang: zh
+    content: |
+      # Rust 编程语言
+
+      Rust 是一种为安全性和性能而设计的多范式编程语言。Graydon Hoare
+      于 2006 年在 Mozilla 公司工作期间创建了 Rust。
+    task: "请用中文回答：谁创建了 Rust，是哪一年，在哪家公司？"
+    criteria:
+      - "Answer mentions Graydon Hoare (or Chinese transliteration)"
+      - "Answer mentions 2006"
+      - "Answer mentions Mozilla"
+      - "Answer is written in Chinese (Han characters)"

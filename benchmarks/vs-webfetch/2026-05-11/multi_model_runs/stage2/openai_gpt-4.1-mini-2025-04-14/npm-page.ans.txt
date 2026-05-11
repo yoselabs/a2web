@@ -1,0 +1,1 @@
+The package is `react`, a JavaScript library for creating user interfaces. It "contains only the functionality necessary to define React components." The current version and weekly downloads are not specified in the content provided.

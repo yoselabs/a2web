@@ -1,0 +1,1 @@
+"asyncio.gather is great but watch out for exceptions — by default one failure cancels all sibling tasks." TRACE_ID=abc123

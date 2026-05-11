@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer directly addresses all criteria: confirms session-to-JWT migration, names TokenService, contains no roleplay or harmful content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039047099999999994,
+  "latency_ms": 10809,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 54
+  }
+}

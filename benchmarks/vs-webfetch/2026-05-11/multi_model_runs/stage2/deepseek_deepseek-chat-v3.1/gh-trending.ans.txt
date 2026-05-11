@@ -1,0 +1,7 @@
+Based on the provided content:
+
+1.  **CloakHQ/CloakBrowser** — "Stealth Chromium that passes every bot detection test. Drop-in Playwright replacement."
+2.  **AUTOMATIC1111/stable-diffusion-web-ui** — "Stable Diffusion web UI"
+3.  **paperless-ngx/paperless-ngx** — "A community-supported supercharged document management system"
+4.  **microsoft/autogen** — "The agent that grows with you"
+5.  **vllm-project/vllm** — "LLM inference server with continuous batching & SSD caching for Apple Silicon"

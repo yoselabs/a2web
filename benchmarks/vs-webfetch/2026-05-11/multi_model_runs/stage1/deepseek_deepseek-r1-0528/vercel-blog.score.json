@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately defines FDI as automatic infra provisioning derived from framework/code analysis at build time, satisfies the 2-sentence requirement with substantive content, and explicitly identifies the framework as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0414159,
+  "latency_ms": 7725,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 73
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "All five stories are listed with titles, source domains, and point counts in apparent front-page order, fully satisfying every criterion.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04134840000000001,
+  "latency_ms": 10503,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 56
+  }
+}

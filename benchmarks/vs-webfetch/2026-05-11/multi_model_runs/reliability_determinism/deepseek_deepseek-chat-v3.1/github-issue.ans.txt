@@ -1,0 +1,1 @@
+This issue reports a bug where the Claude CLI occasionally fails with "String to replace not found in file" during updates. The most recent status is that it was closed after a team member stated they are "continuously working on improving the error rates for the edit tool."

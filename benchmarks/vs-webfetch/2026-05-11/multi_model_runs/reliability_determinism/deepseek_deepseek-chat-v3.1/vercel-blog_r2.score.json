@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately captures all three criteria: FDI is defined as inferring infra from framework code, the summary is substantive and within two sentences, and the framework as source of infrastructure decisions is explicitly mentioned.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03934335,
+  "latency_ms": 12795,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 69
+  }
+}

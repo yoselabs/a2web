@@ -1,0 +1,498 @@
+{
+  "stage": 0,
+  "models": [
+    "deepseek/deepseek-v3.2-exp",
+    "deepseek/deepseek-chat-v3.1",
+    "deepseek/deepseek-r1-0528",
+    "qwen/qwen3-30b-a3b",
+    "qwen/qwen3-235b-a22b",
+    "qwen/qwen3-max",
+    "google/gemini-2.5-flash",
+    "google/gemini-2.5-pro",
+    "moonshotai/kimi-k2",
+    "z-ai/glm-4.6",
+    "minimax/minimax-m2",
+    "tencent/hunyuan-large",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "openai/gpt-4o-mini",
+    "openai/gpt-4.1-mini",
+    "anthropic/claude-haiku-4-5",
+    "mistralai/mistral-large-2411",
+    "meta-llama/llama-3.3-70b-instruct",
+    "cohere/command-r-plus-08-2024",
+    "x-ai/grok-2-1212",
+    "amazon/nova-pro-v1",
+    "microsoft/phi-4"
+  ],
+  "slugs": [
+    "wikipedia-rust"
+  ],
+  "wall_seconds": 13,
+  "n_rows": 22,
+  "per_model": {
+    "deepseek/deepseek-v3.2-exp": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.002697,
+      "mean_latency_ms": 6329
+    },
+    "deepseek/deepseek-chat-v3.1": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.005622,
+      "mean_latency_ms": 2519
+    },
+    "deepseek/deepseek-r1-0528": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.005732,
+      "mean_latency_ms": 9358
+    },
+    "qwen/qwen3-30b-a3b-04-28": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.001646,
+      "mean_latency_ms": 9291
+    },
+    "qwen/qwen3-235b-a22b-04-28": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.005264,
+      "mean_latency_ms": 6200
+    },
+    "qwen/qwen3-max": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.008386,
+      "mean_latency_ms": 3434
+    },
+    "google/gemini-2.5-flash": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.003417,
+      "mean_latency_ms": 1150
+    },
+    "google/gemini-2.5-pro": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.023919,
+      "mean_latency_ms": 10123
+    },
+    "moonshotai/kimi-k2": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.00569,
+      "mean_latency_ms": 3403
+    },
+    "z-ai/glm-4.6": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 1,
+      "mean_overall": null,
+      "total_cost_usd": 0.008142,
+      "mean_latency_ms": 15037
+    },
+    "minimax/minimax-m2": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 1,
+      "mean_overall": null,
+      "total_cost_usd": 0.003524,
+      "mean_latency_ms": 10449
+    },
+    "tencent/hunyuan-large": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 1,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 98
+    },
+    "nvidia/nemotron-nano-9b-v2:free": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 9498
+    },
+    "openai/gpt-4o-mini": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.001487,
+      "mean_latency_ms": 3254
+    },
+    "openai/gpt-4.1-mini-2025-04-14": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.004013,
+      "mean_latency_ms": 4310
+    },
+    "anthropic/claude-4.5-haiku-20251001": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.012043,
+      "mean_latency_ms": 3118
+    },
+    "mistralai/mistral-large-2411": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 1,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 5506
+    },
+    "meta-llama/llama-3.3-70b-instruct": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.001289,
+      "mean_latency_ms": 3723
+    },
+    "cohere/command-r-plus-08-2024": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.028647,
+      "mean_latency_ms": 5051
+    },
+    "x-ai/grok-2-1212": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 1,
+      "mean_overall": null,
+      "total_cost_usd": 0.0,
+      "mean_latency_ms": 100
+    },
+    "amazon/nova-pro-v1": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.008779,
+      "mean_latency_ms": 1363
+    },
+    "microsoft/phi-4": {
+      "cells_ok": 1,
+      "errors": 0,
+      "empty": 0,
+      "mean_overall": null,
+      "total_cost_usd": 0.000699,
+      "mean_latency_ms": 2028
+    }
+  },
+  "rows": [
+    {
+      "model": "deepseek/deepseek-v3.2-exp",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9908,
+      "completion_tokens": 53,
+      "cost_usd": 0.00269689,
+      "latency_ms": 6329,
+      "cache_hit": false,
+      "answer_chars": 237,
+      "empty": false
+    },
+    {
+      "model": "deepseek/deepseek-chat-v3.1",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9909,
+      "completion_tokens": 44,
+      "cost_usd": 0.0056224,
+      "latency_ms": 2519,
+      "cache_hit": false,
+      "answer_chars": 189,
+      "empty": false
+    },
+    {
+      "model": "deepseek/deepseek-r1-0528",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9909,
+      "completion_tokens": 366,
+      "cost_usd": 0.0057318,
+      "latency_ms": 9358,
+      "cache_hit": false,
+      "answer_chars": 421,
+      "empty": false
+    },
+    {
+      "model": "qwen/qwen3-30b-a3b-04-28",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10426,
+      "completion_tokens": 559,
+      "cost_usd": 0.00164606,
+      "latency_ms": 9291,
+      "cache_hit": false,
+      "answer_chars": 196,
+      "empty": false
+    },
+    {
+      "model": "qwen/qwen3-235b-a22b-04-28",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10426,
+      "completion_tokens": 286,
+      "cost_usd": 0.00526435,
+      "latency_ms": 6200,
+      "cache_hit": false,
+      "answer_chars": 366,
+      "empty": false
+    },
+    {
+      "model": "qwen/qwen3-max",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10426,
+      "completion_tokens": 65,
+      "cost_usd": 0.00838578,
+      "latency_ms": 3434,
+      "cache_hit": false,
+      "answer_chars": 275,
+      "empty": false
+    },
+    {
+      "model": "google/gemini-2.5-flash",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10975,
+      "completion_tokens": 50,
+      "cost_usd": 0.0034175,
+      "latency_ms": 1150,
+      "cache_hit": false,
+      "answer_chars": 214,
+      "empty": false
+    },
+    {
+      "model": "google/gemini-2.5-pro",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10975,
+      "completion_tokens": 1020,
+      "cost_usd": 0.02391875,
+      "latency_ms": 10123,
+      "cache_hit": false,
+      "answer_chars": 143,
+      "empty": false
+    },
+    {
+      "model": "moonshotai/kimi-k2",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9765,
+      "completion_tokens": 54,
+      "cost_usd": 0.00569025,
+      "latency_ms": 3403,
+      "cache_hit": false,
+      "answer_chars": 217,
+      "empty": false
+    },
+    {
+      "model": "z-ai/glm-4.6",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9817,
+      "completion_tokens": 1024,
+      "cost_usd": 0.00814202,
+      "latency_ms": 15037,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true
+    },
+    {
+      "model": "minimax/minimax-m2",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9725,
+      "completion_tokens": 1024,
+      "cost_usd": 0.003524355,
+      "latency_ms": 10449,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true
+    },
+    {
+      "model": "tencent/hunyuan-large",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "cost_usd": 0.0,
+      "latency_ms": 98,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true
+    },
+    {
+      "model": "nvidia/nemotron-nano-9b-v2:free",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10494,
+      "completion_tokens": 315,
+      "cost_usd": 0.0,
+      "latency_ms": 9498,
+      "cache_hit": false,
+      "answer_chars": 108,
+      "empty": false
+    },
+    {
+      "model": "openai/gpt-4o-mini",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9788,
+      "completion_tokens": 31,
+      "cost_usd": 0.0014868,
+      "latency_ms": 3254,
+      "cache_hit": false,
+      "answer_chars": 140,
+      "empty": false
+    },
+    {
+      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9788,
+      "completion_tokens": 61,
+      "cost_usd": 0.0040128,
+      "latency_ms": 4310,
+      "cache_hit": false,
+      "answer_chars": 302,
+      "empty": false
+    },
+    {
+      "model": "anthropic/claude-4.5-haiku-20251001",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 11148,
+      "completion_tokens": 179,
+      "cost_usd": 0.012043,
+      "latency_ms": 3118,
+      "cache_hit": false,
+      "answer_chars": 770,
+      "empty": false
+    },
+    {
+      "model": "mistralai/mistral-large-2411",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "cost_usd": 0.0,
+      "latency_ms": 5506,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true
+    },
+    {
+      "model": "meta-llama/llama-3.3-70b-instruct",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9815,
+      "completion_tokens": 32,
+      "cost_usd": 0.00128875,
+      "latency_ms": 3723,
+      "cache_hit": false,
+      "answer_chars": 123,
+      "empty": false
+    },
+    {
+      "model": "cohere/command-r-plus-08-2024",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 11263,
+      "completion_tokens": 49,
+      "cost_usd": 0.0286475,
+      "latency_ms": 5051,
+      "cache_hit": false,
+      "answer_chars": 220,
+      "empty": false
+    },
+    {
+      "model": "x-ai/grok-2-1212",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "cost_usd": 0.0,
+      "latency_ms": 100,
+      "cache_hit": false,
+      "answer_chars": 0,
+      "empty": true
+    },
+    {
+      "model": "amazon/nova-pro-v1",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 10842,
+      "completion_tokens": 33,
+      "cost_usd": 0.0087792,
+      "latency_ms": 1363,
+      "cache_hit": false,
+      "answer_chars": 130,
+      "empty": false
+    },
+    {
+      "model": "microsoft/phi-4",
+      "slug": "wikipedia-rust",
+      "class": "A_clean",
+      "template_name": "webfetch_default_v1",
+      "prompt_tokens": 9813,
+      "completion_tokens": 86,
+      "cost_usd": 0.00069895,
+      "latency_ms": 2028,
+      "cache_hit": false,
+      "answer_chars": 425,
+      "empty": false
+    }
+  ]
+}

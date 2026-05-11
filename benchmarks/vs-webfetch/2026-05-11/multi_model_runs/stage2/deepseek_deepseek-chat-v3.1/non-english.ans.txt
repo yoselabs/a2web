@@ -1,0 +1,1 @@
+This article describes using Simulink and its Multibody library to model and control an inverted pendulum system without manual calculations. It details assembling the plant model and then using the software's "Tune" button to automatically configure PID controllers for stabilization. The author concludes that "the entire routine was done for us by Simulink and Multibody."

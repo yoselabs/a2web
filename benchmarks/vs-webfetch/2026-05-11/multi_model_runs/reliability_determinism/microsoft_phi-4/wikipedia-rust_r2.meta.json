@@ -1,0 +1,8 @@
+{
+  "model": "microsoft/phi-4",
+  "prompt_tokens": 9813,
+  "completion_tokens": 63,
+  "cost_usd": 0.00069573,
+  "latency_ms": 2031,
+  "cache_hit": false
+}

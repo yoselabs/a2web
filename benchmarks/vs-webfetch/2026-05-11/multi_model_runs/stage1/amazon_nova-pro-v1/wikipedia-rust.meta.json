@@ -1,0 +1,9 @@
+{
+  "model": "amazon/nova-pro-v1",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 10842,
+  "completion_tokens": 33,
+  "cost_usd": 0.0087792,
+  "latency_ms": 1326,
+  "cache_hit": false
+}

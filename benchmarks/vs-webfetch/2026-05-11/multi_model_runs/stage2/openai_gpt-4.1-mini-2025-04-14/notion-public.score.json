@@ -1,0 +1,17 @@
+{
+  "scores": [
+    4,
+    3,
+    2
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "The answer correctly defines a Notion database as a collection of pages and contrasts it with a regular single-document page, but only vaguely implies structure and does not mention views or properties explicitly.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03912209999999999,
+  "latency_ms": 11183,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 66
+  }
+}

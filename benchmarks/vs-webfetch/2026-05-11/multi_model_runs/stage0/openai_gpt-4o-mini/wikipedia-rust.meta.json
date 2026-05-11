@@ -1,0 +1,9 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "template_name": "webfetch_default_v1",
+  "prompt_tokens": 9788,
+  "completion_tokens": 31,
+  "cost_usd": 0.0014868,
+  "latency_ms": 3254,
+  "cache_hit": false
+}

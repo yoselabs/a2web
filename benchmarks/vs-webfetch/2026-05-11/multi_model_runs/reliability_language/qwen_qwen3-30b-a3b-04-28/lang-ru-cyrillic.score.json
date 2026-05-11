@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly and concisely states all three facts: creator Graydon Hoare, year 2006, and company Mozilla, in English.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039084600000000004,
+  "latency_ms": 10500,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 62
+  }
+}

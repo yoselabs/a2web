@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly admits the content does not contain the requested information, invents no pillars, and invents no executive names.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0388596,
+  "latency_ms": 11127,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 51
+  }
+}

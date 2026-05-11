@@ -1,0 +1,1 @@
+"A Stripe PaymentIntent tracks payments from creation through checkout, handling status changes and authentication. It prevents double charges and supports SCA, encapsulating transaction details like amount and currency."

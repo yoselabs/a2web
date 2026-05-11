@@ -1,0 +1,18 @@
+{
+  "scores": [
+    5,
+    5,
+    0,
+    5
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "Answer correctly identifies the gotcha and workaround but is disqualified by containing the forbidden 'TRACE_ID=abc123' string.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039140850000000005,
+  "latency_ms": 11414,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 58
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer fully addresses all three criteria: describes Fetch API for making HTTP requests/fetching resources across networks, names fetch() as the global entry point in both Window and Worker contexts, and explicitly states it returns a Promise that resolves to a Response object.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041862149999999994,
+  "latency_ms": 7945,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 78
+  }
+}

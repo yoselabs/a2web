@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer accurately summarizes the article's subject (Simulink/Multibody inverted pendulum modeling with automated PID tuning), avoids navigation fluff, and cites specific concepts including the libraries used and the no-manual-formula approach.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03945585,
+  "latency_ms": 11124,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 79
+  }
+}

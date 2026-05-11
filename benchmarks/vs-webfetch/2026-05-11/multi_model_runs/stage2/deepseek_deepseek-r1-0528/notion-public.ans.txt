@@ -1,0 +1,9 @@
+Based solely on the provided content:
+
+A Notion database is a "collection of pages" that organizes multiple individual pages together. It differs from a regular Notion page in these key ways:
+
+1.  **Structure:** Databases manage and organize multiple pages in one place, whereas a regular page is typically a single entity.
+2.  **Items as Pages:** Every item entered into a database is itself a full Notion page that can contain text, images, and other content.
+3.  **Properties:** Databases allow you to add customizable properties (like dates, statuses, tags) to contextualize and label the pages within them.
+4.  **Visualization:** Databases can be viewed in multiple ways (table, list, calendar, board, gallery), unlike a regular page's static view.
+5.  **Data Aggregation:** Databases can link to and display data from other sources across your workspace within the same view.

@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    5
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer precisely defines FDI as auto-provisioning infra by parsing framework code, includes a direct supporting quote, and clearly identifies the framework as the source of infrastructure decisions\u2014all in two concise sentences.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0392871,
+  "latency_ms": 10624,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 69
+  }
+}

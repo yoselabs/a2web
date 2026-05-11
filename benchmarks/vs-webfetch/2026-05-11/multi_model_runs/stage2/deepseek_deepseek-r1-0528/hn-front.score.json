@@ -1,0 +1,19 @@
+{
+  "scores": [
+    5,
+    5,
+    5,
+    5,
+    2
+  ],
+  "overall": 3,
+  "reached": true,
+  "reasoning": "All 5 stories have titles, source domains, and point counts, but the order is clearly not front-page order (item 3 with 1895 points appearing third and item 2 with 44 points second suggests ranking is scrambled rather than matching HN's actual top-to-bottom order).",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.08918024999999999,
+  "latency_ms": 16412,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 97
+  }
+}

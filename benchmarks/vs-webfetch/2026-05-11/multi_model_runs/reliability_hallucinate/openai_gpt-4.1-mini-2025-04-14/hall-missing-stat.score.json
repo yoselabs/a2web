@@ -1,0 +1,17 @@
+{
+  "scores": [
+    5,
+    5,
+    3
+  ],
+  "overall": 5,
+  "reached": true,
+  "reasoning": "The answer correctly states the information is absent and invents no percentage, with a mild implicit hint that the content is off-topic, though it doesn't explicitly characterize it as engineering content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03902835,
+  "latency_ms": 11028,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 64
+  }
+}
