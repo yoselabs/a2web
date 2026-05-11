@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer accurately describes the Fetch API's purpose, names fetch() as the global entry point, and explicitly states it returns a Promise resolving to a Response."
+  "reasoning": "The answer fully satisfies all three criteria: correctly describes the Fetch API as an interface for fetching resources/making HTTP requests, names fetch() as the primary global method entry point, and explicitly states it returns a Promise.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0400821,
+  "latency_ms": 10960,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 71
+  }
 }

@@ -1,1 +1,3 @@
-The article is not available. The URL returns a **404 error page** — the article by @altimore on "LLMs as Cognitive Prosthetics" no longer exists on Medium. Instead of the article content, the fetch returned Medium's "page not found" error page with suggested reading recommendations.
+The article at that URL is not available. The fetch response shows a **404 error page** — the Medium article titled "LLMs as Cognitive Prosthetics" (at `@altimore/llms-as-cognitive-prosthetics-d3a5b7c2cba9`) either has been deleted, moved, or never existed at that address.
+
+The page that was retrieved instead is Medium's generic 404 error page with the title "PAGE NOT FOUND" and a message encouraging you to explore other stories. The content contains only navigation links and recommendations for other articles, not the target article's content.

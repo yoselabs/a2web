@@ -1,20 +1,33 @@
-## What is a Stripe PaymentIntent
+Based on the Stripe documentation fetched, here's what a PaymentIntent is and its purpose:
 
-A **PaymentIntent** is an API object that encapsulates and tracks a payment from creation through completion. It typically corresponds to a single shopping cart or customer session in your application and contains transaction details like the supported payment methods, amount to collect, and currency.
+## What is a PaymentIntent?
+
+A **PaymentIntent** is a Stripe API object that represents a payment transaction and tracks it through its entire lifecycle—from creation through checkout to completion, including any additional authentication steps required.
 
 ## Purpose in the Payment Lifecycle
 
-The PaymentIntent serves as the central coordinator for complex payment flows:
+The PaymentIntent serves several key purposes:
 
-1. **Tracks payment status** — It maintains state throughout the payment lifecycle and triggers additional authentication steps when required (like 3D Secure)
-2. **Creates and confirms payments** — Building an integration involves two core actions: creating the PaymentIntent on the server and confirming it on the client side
-3. **Handles dynamic flows** — If the amount changes during checkout or the process is interrupted and resumes, you can reuse the same PaymentIntent by its unique ID instead of creating a new one
+1. **Transaction Tracking**: Each PaymentIntent typically correlates with a single shopping cart or customer session, encapsulating transaction details like:
+   - Supported payment methods
+   - Amount to collect
+   - Desired currency
+
+2. **Status Management**: It maintains a status that changes over the PaymentIntent's lifecycle, allowing you to monitor the payment from start to finish.
+
+3. **Authentication Handling**: It automatically handles complex payment flows, including triggering additional authentication steps when required (like 3D Secure).
 
 ## Key Advantages
 
-- **Automatic authentication handling** — No manual management of SCA or regulatory authentication
-- **No double charges** — State tracking prevents duplicate payment attempts
-- **Idempotency** — Each PaymentIntent has a unique ID that facilitates retrieval and prevents duplicate creation when combined with idempotency keys
-- **Regulatory compliance** — Supports Strong Customer Authentication and regional payment method requirements
+- **Automatic authentication handling** for regulatory compliance
+- **No double charges** through idempotency protection
+- **No idempotency key issues**
+- **Support for Strong Customer Authentication (SCA)** and regulatory changes
 
-The PaymentIntent essentially standardizes how you handle payments with varying complexity, from simple one-time charges to multi-attempt scenarios with retries.
+## Workflow
+
+Building a PaymentIntent integration involves two main actions:
+1. **Creating** the PaymentIntent on the server
+2. **Confirming** it (typically on the client side using the client secret)
+
+The best practice is to create a PaymentIntent as soon as you know the amount (when checkout begins), and reuse the same PaymentIntent if the checkout process is interrupted and resumes later, rather than creating a new one.

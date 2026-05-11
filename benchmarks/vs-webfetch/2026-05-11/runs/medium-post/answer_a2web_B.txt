@@ -1,1 +1,8 @@
-The page is not available. The fetch returned a **404 error page** — the article at that URL no longer exists or is inaccessible on Medium. The response shows only Medium's "Page Not Found" template with suggested alternative articles, not the actual content of the piece on "LLMs as Cognitive Prosthetics."
+The fetch response indicates that the URL returns a **404 Page Not Found** error. The article you're asking about does not exist or is no longer available at that Medium URL.
+
+The content returned is Medium's standard 404 error page with suggested alternative articles, not the actual article "LLMs as Cognitive Prosthetics" by Altimore. Therefore, I cannot extract or summarize the article's central thesis.
+
+If you're looking for this article, you may want to:
+- Verify the URL is correct
+- Search for the author's name on Medium directly
+- Check if the article was deleted or moved to a different URL

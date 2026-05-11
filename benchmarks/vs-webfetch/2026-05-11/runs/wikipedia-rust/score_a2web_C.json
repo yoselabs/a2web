@@ -1,10 +1,17 @@
 {
   "scores": [
     5,
-    0,
+    3,
     5
   ],
   "overall": 4,
   "reached": true,
-  "reasoning": "Correctly identifies Graydon Hoare and borrow checker, but gives 2006 (personal origin) instead of 2010 (first public appearance), missing the target year."
+  "reasoning": "Correctly identifies Graydon Hoare and describes the borrow checker/ownership system in detail, but gives 2012 as first release rather than 2010 (first appearance/announcement).",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039924600000000005,
+  "latency_ms": 11328,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 68
+  }
 }

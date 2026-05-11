@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer fully satisfies all three criteria: clearly describes Fetch API for HTTP/network requests, names fetch() as the global entry point with both Window and Worker contexts, and explicitly states it returns a Promise resolving to a Response object."
+  "reasoning": "The answer fully covers all three criteria: describes Fetch API for fetching resources/HTTP requests, names fetch() as the primary entry point (with Window and Worker contexts), and explicitly states it returns a Promise.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.007326000000000001,
+  "latency_ms": 11623,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 68
+  }
 }

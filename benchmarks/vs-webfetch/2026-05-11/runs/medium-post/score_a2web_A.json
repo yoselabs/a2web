@@ -1,10 +1,17 @@
 {
   "scores": [
     0,
-    5,
+    3,
     3
   ],
   "overall": 1,
   "reached": false,
-  "reasoning": "Answer honestly reports a 404 and provides no article thesis, which is accurate but scores low on substantive delivery."
+  "reasoning": "The answer correctly identifies a 404 failure and contains no fabricated thesis, but provides no substantive content about the target article.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03932085,
+  "latency_ms": 11633,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 52
+  }
 }

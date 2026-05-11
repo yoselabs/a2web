@@ -1,8 +1,18 @@
-The fetch response doesn't contain the content needed to answer your question. The `content_md` field is empty, which means the extraction failed—I received no substantive content from the page, neither the original post text nor the comments.
+I cannot answer your question based on the fetch response received. The response contains **empty content** — the `content_md` field is an empty string, which means the web fetch did not successfully extract the post body or comments.
 
-This could be due to:
-- Reddit blocking the fetch or requiring authentication
-- The page layout not being parseable by the extraction tool
-- A handler error
+The response shows:
+- **URL**: https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/
+- **Title**: "Reddit" (generic, not the actual post title)
+- **Content**: Empty string (no post content or comments retrieved)
 
-To get the post content and comment sentiment, the fetch would need to be retried, possibly with a browser tier or a Reddit-specific handler that can navigate the page structure.
+This suggests one of several issues:
+1. The fetch encountered a block or authentication wall on Reddit
+2. The page content extraction failed for some reason
+3. The fetch may have returned a page template without substantive content
+
+To get the actual post and sentiment analysis, you'd need to either:
+- Retry the fetch with different parameters (e.g., requesting a different tier like browser rendering)
+- Access the post directly through Reddit's API if you have credentials
+- Try a different archive or cached version of the page
+
+Would you like me to help troubleshoot the fetch or try an alternative approach?

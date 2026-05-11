@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer fully defines Notion databases, clearly contrasts with regular pages, and explicitly covers properties, views, filtering, and structure with concrete examples."
+  "reasoning": "The answer fully defines a Notion database as a collection of pages with shared properties, clearly contrasts it with regular free-form pages, and thoroughly covers views, properties, filtering/sorting, and relational capabilities.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0404796,
+  "latency_ms": 10975,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 69
+  }
 }

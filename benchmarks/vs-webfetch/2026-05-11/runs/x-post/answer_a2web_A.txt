@@ -1,3 +1,14 @@
-The fetch failed to retrieve the post content. The response is a **JavaScript block page** — X requires JavaScript to render tweet content, and the raw fetch couldn't load the dynamic elements. The extracted content (296 characters) fell below the quality threshold ("length_floor" verdict), so the response returned only the error message: "JavaScript is not available. Please enable JavaScript or switch to a supported browser."
+I can't access the content of that X (Twitter) post. The fetch response indicates that the page requires JavaScript to render, and the raw HTTP fetch only returned X's "JavaScript is not available" error page.
 
-I cannot tell you what Karpathy said in that post based on this response.
+The response shows:
+- **Status**: failed
+- **Verdict**: length_floor (extracted content was too short/minimal)
+- **Content**: Only the JavaScript disabled message and boilerplate links/footer
+- **Title**: "JavaScript is not available."
+
+To read Karpathy's actual post, the fetch would need to use a browser tier (which executes JavaScript), but in this case the pipeline stopped at the raw tier and the quality gate rejected it as insufficient.
+
+**What you could do:**
+- Fetch the URL again with browser support enabled (if a2web is configured to allow that tier)
+- Use a different source (e.g., archive.org snapshot, or a third-party X content reader)
+- Check if there's a cached version elsewhere

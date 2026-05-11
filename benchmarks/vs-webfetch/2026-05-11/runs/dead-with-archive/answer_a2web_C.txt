@@ -1,6 +1,8 @@
-The URL returned a **404 error — the page does not exist**. The fetch response contains only the 404 error page itself, not the article content, so I cannot extract the main advice or top 3 points.
+I'm unable to provide the information you requested. The URL you shared (https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/) returned a **404 Not Found error**, meaning the page no longer exists or has been moved.
 
-The URL `https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/` may have been moved, deleted, or the address may be incorrect. You might try:
-- Checking if the article exists at a different URL on kalzumeus.com
-- Using the Wayback Machine (archive.org) to see if an archived version is available
-- Verifying the correct URL with the original source
+The fetch response contains only a generic 404 error page with no actual article content, so I cannot extract the main advice or top 3 points about salary negotiation.
+
+**To help you:**
+- If you know the article has been relocated, you could search for it by title ("Salary Negotiation for Software Developers") to find the new URL
+- You might try checking the Wayback Machine (archive.org) to see if an archived version is available
+- If you have a different URL or article you'd like me to fetch, I'm happy to help with that instead

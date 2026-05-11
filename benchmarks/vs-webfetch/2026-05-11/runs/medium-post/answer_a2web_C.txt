@@ -1,3 +1,8 @@
-The fetch response is a **404 Page Not Found error** from Medium. The content returned is the Medium homepage navigation and a list of suggested articles, not the article you were trying to read.
+I cannot provide the article's central thesis because the fetch response returned a **404 Page Not Found** error from Medium.
 
-I cannot provide the central thesis because the actual article content is not available — the URL either doesn't exist, has been removed, or is inaccessible.
+The response shows Medium's generic error page with suggested articles (including stories by Doc Burford, Natalie Armendariz, Olivia Bussey, and Karla L. Miller), but no actual article content to analyze.
+
+To get the article's thesis, you would need to:
+1. Verify the correct URL is being fetched
+2. Check if the article still exists on Medium
+3. Ensure the link is accessible (not behind a paywall or removed)

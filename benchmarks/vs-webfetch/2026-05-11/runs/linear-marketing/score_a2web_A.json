@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer precisely identifies Linear as a project management/issue tracking tool for software teams, captures the exact headline verbatim, and provides rich substantive page content well beyond navigation or cookie text."
+  "reasoning": "The answer correctly identifies Linear as an issue tracker/project management tool for software teams, captures the exact headline and supporting tagline from the landing page, and provides substantive page content well beyond navigation or cookie banners.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0398721,
+  "latency_ms": 10819,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 69
+  }
 }

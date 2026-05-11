@@ -1,4 +1,6 @@
-This is the **Anthropic Python SDK** — the official Python library for the Claude API.
+Based on the fetch response, here's what I found:
+
+**Package:** Claude SDK for Python (the official Python library for the Anthropic API)
 
 **Latest version:** 0.100.0
 
@@ -7,4 +9,4 @@ This is the **Anthropic Python SDK** — the official Python library for the Cla
 pip install anthropic
 ```
 
-The SDK requires Python 3.9+ and provides access to Claude models from Python applications. Full documentation is available at `platform.claude.com/docs/en/api/sdks/python`.
+The package provides access to the Claude API from Python applications. It requires Python 3.9 or later, and full documentation is available at `platform.claude.com/docs/en/api/sdks/python`.

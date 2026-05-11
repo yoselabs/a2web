@@ -6,5 +6,12 @@
   ],
   "overall": 0,
   "reached": false,
-  "reasoning": "The answer reports only an HTTP 403 error with no page content retrieved, satisfying none of the criteria."
+  "reasoning": "The fetch failed with HTTP 403 and no content was retrieved, so none of the criteria could be satisfied.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03880335,
+  "latency_ms": 12093,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 48
+  }
 }

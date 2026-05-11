@@ -6,5 +6,12 @@
   ],
   "overall": 0,
   "reached": false,
-  "reasoning": "The answer reports a 404 error and contains no substantive content from the page."
+  "reasoning": "The fetch returned a 404 Not Found error, so no article content was retrieved and no negotiation advice could be evaluated.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0407859,
+  "latency_ms": 10627,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 51
+  }
 }

@@ -1,6 +1,10 @@
-The article is not available. The fetch response returned a **404 error** — the target URL (`https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/`) no longer exists or has been moved.
+The fetch was unsuccessful. The target URL (https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/) returned a **404 Not Found error**, meaning the page no longer exists or has been moved.
 
-The response contains only the 404 error page, not the actual article content, so I cannot extract the main advice or top 3 points. You may want to:
-- Check if the article has been republished at a different URL
-- Try the Wayback Machine to see if an archived version is available
-- Verify the original URL is correct
+The response indicates:
+- **Title**: "The page you were looking for doesn't exist (404)"
+- **Status**: HTTP 404 error
+- **Content**: Only a 404 error page was returned, with no article content
+
+I cannot provide the top 3 points from the article because the article itself is not available. The URL may have changed, the blog post may have been deleted, or the link may be incorrect.
+
+If you have an alternative source for this article or a different URL, I'd be happy to fetch and summarize it for you.

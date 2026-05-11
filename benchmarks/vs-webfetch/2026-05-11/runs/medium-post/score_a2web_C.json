@@ -1,10 +1,17 @@
 {
   "scores": [
     0,
-    5,
-    5
+    0,
+    0
   ],
-  "overall": 1,
+  "overall": 0,
   "reached": false,
-  "reasoning": "Honestly reports a 404/fetch failure with no fabrication, but delivers no substantive content."
+  "reasoning": "The fetch returned a 404 error page with no article content, so no thesis could be extracted.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.041123400000000004,
+  "latency_ms": 8834,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 46
+  }
 }

@@ -1,5 +1,14 @@
-**Designer:** Graydon Hoare created Rust in 2006 while working at Mozilla. Mozilla officially sponsored the project in 2009.
+Based on the Wikipedia article fetched about Rust, here are the answers to your questions:
 
-**First Release:** The first public release, Rust 0.1, came out on January 20, 2012. The first stable release, Rust 1.0, was published in May 2015.
+**Original Designer and First Release:**
+Rust was originally designed by **Graydon Hoare**, a Mozilla employee who started the project in 2006. The first public release, **Rust 0.1**, was released on **January 20, 2012**. The first stable release, Rust 1.0, came later on **May 15, 2015**.
 
-**Memory-Safety Mechanism:** Rust is known for its **borrow checker** and **ownership system**. These enforce memory safety without requiring a garbage collector. The borrow checker tracks object lifetimes of references at compile time to prevent memory safety errors and data races. The ownership system consists of rules where each value has exactly one owner, and values can be borrowed temporarily before being returned to the owner. This approach prevents dangling pointers and other undefined behavior while maintaining performance.
+**Memory-Safety Mechanism:**
+Rust is known for its **"borrow checker"** as its primary memory-safety mechanism. Rather than using a conventional garbage collector, Rust enforces memory safety through an ownership system with the following key features:
+
+- **Ownership rules**: Each value must have exactly one owner at any time
+- **Borrowing**: Values can be temporarily borrowed (passed to functions) before being returned to the owner
+- **The borrow checker**: Tracks object lifetimes of references at compile time to prevent dangling pointers and data races
+- **Affine types**: Each value may be used at most once, enforcing software fault isolation
+
+The article emphasizes that this approach ensures "memory safety (i.e., that all references point to valid memory) without a conventional garbage collector," making Rust unique in combining memory safety with performance and eliminating entire classes of bugs like buffer overflows and use-after-free errors at compile time.

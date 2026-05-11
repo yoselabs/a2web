@@ -1,7 +1,15 @@
-Based on the fetch response:
+Based on the fetched content about Rust:
 
-**Designer and Release Year:**
-Graydon Hoare, a Mozilla software developer, originally created Rust in 2006. The first public release, Rust 0.1, came out on January 20, 2012. The first stable release, Rust 1.0, was published in May 2015.
+**Original Designer and First Release:**
+Rust was originally created by **Graydon Hoare** in 2006 as a personal project while working at Mozilla. The first public release, **Rust 0.1**, became available on **January 20, 2012** for Windows, Linux, and macOS.
 
 **Memory-Safety Mechanism:**
-Rust is known for its **borrow checker**. This is a compile-time mechanism that enforces memory safety without requiring a conventional garbage collector. The borrow checker tracks the object lifetime of references at compile time, preventing memory safety errors and data races. As the content states, "Rust enforces memory safety (i.e., that all references point to valid memory) without a conventional garbage collector; instead, memory safety errors and data races are prevented by the 'borrow checker', which tracks the object lifetime of references at compile time."
+Rust is known for its **borrow checker** as its primary memory-safety mechanism. Rather than using a conventional garbage collector, Rust enforces memory safety at compile time through the borrow checker, which:
+
+- Tracks object lifetimes of references at compile time
+- Prevents memory safety errors and data races through an ownership system
+- Ensures that each value has exactly one owner
+- Allows values to be borrowed temporarily (through references) before being returned to the owner
+- Prevents the creation and use of dangling pointers
+
+The ownership system is a core feature that allows Rust to guarantee memory safety without runtime overhead from garbage collection.

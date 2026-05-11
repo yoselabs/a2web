@@ -1,7 +1,18 @@
-Based on the Fetch API documentation:
+Based on the fetched MDN documentation, here's what the Fetch API is used for and its primary entry point:
 
-**Purpose:** The Fetch API provides an interface for fetching resources across the network. It is a more powerful and flexible replacement for `XMLHttpRequest`.
+## Purpose
+The Fetch API provides an interface for **fetching resources across the network**. It's a more powerful and flexible replacement for the older `XMLHttpRequest` API.
 
-**Primary entry point:** The `fetch()` method is the main global method used to make requests and fetch resources. It is available in both `Window` and `Worker` contexts, making it available in most contexts where you might need to fetch resources.
+## Primary Entry Point
+The **`fetch()` method** is the primary entry point. It's a global method available in both:
+- `Window` context (browsers)
+- `Worker` context (web workers)
 
-The `fetch()` method takes the resource path as a mandatory argument and returns a `Promise` that resolves to a `Response` object. Notably, it resolves even if the server returns an HTTP error status—the error status is not treated as a promise rejection.
+## How It Works
+- Takes one mandatory argument: the path to the resource you want to fetch
+- Returns a **`Promise`** that resolves to a `Response` object as soon as the server responds with headers (even for HTTP error statuses)
+- Optionally accepts a second `init` argument for configuration options
+
+Once you have a `Response`, you can use various methods to define what the body content is and how it should be handled.
+
+**Note:** While you can technically create `Request` and `Response` objects directly using their constructors, this is uncommon. They're typically created as results of other API actions (like `fetch()` calls or service worker `FetchEvent.respondWith()`).

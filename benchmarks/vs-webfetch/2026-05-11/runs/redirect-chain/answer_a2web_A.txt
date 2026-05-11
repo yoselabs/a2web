@@ -1,8 +1,24 @@
-I cannot determine where this short link leads or what content is there. The fetch attempt failed with the following issues:
+I cannot determine where this short link leads or what content is at the destination based on the fetch response provided.
 
-1. **Raw tier (curl_cffi)**: Returned a 404 status code — the short link either doesn't exist, has expired, or is inaccessible
-2. **Jina tier fallback**: Returned a 451 status code (Unavailable For Legal Reasons) — suggesting content blocking or geographic restrictions
+**What happened:**
 
-Since `t.co` is Twitter's URL shortener service and requires a redirect to resolve, the 404 suggests the short link itself is invalid or no longer exists. The alternative path via Jina also failed due to content restrictions.
+The fetch operation failed with a two-stage breakdown:
 
-**Bottom line**: The short link could not be resolved to retrieve its destination or content.
+1. **Raw tier (curl_cffi)** — returned HTTP 404 (not found) after 255ms
+2. **Jina tier (r.jina.ai)** — returned HTTP 451 (Unavailable For Legal Reasons) after 372ms
+
+**Why this doesn't work:**
+
+- The t.co short link resolver itself returned 404, indicating the link may be dead, expired, or inaccessible
+- The fallback reader service (Jina) also failed with a 451 error, suggesting it cannot access the resource for legal/policy reasons
+- No content was extracted (`content_md` is empty)
+- The response carries `status: "failed"` with `confidence: "low"`
+
+**What you'd need:**
+
+To resolve a t.co short link, you would typically need to:
+- Visit the link directly in a browser (t.co is Twitter's URL shortener and may require JavaScript/cookies)
+- Check if the original tweet/source is still live
+- Verify the link hasn't expired or been removed
+
+The a2web fetch system has exhausted its standard tiers and cannot proceed further.

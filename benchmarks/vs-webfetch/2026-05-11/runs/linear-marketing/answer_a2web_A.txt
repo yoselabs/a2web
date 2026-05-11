@@ -1,11 +1,19 @@
-**Product:** Linear — a product development/issue tracking system
+Based on the fetch response, **Linear** sells a **product development and issue tracking system** designed for modern software teams and AI agents.
 
-**Primary Headline:** "The product development system for teams and agents"
+The primary headline and value proposition on the landing page is:
 
-**Value Proposition:** "Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products." The page emphasizes it is "Designed for the AI era."
+> **"The product development system for teams and agents"**
 
-The page outlines five core capabilities: making product operations self-driving, defining product direction, moving work forward across teams and agents, reviewing PRs and agent output, and understanding progress at scale.
+With the supporting tagline:
 
----
+> **"Purpose-built for planning and building products. Designed for the AI era."**
 
-**Technical note:** The fetch status is marked "failed" because the gate detected a Cloudflare IUAM (I Am Under Attack) block page. However, the extraction succeeded before that detection, so the substantive content above is reliable.
+The landing page emphasizes that Linear is "a new species of product tool" purpose-built for modern teams with AI workflows at its core. The key capabilities highlighted include:
+
+- Making product operations self-driving
+- Defining product direction (roadmaps, PRDs)
+- Moving work forward across teams and agents
+- Reviewing PRs and agent output
+- Understanding progress at scale
+
+So it's fundamentally an AI-native project management and issue tracking platform—a competitor to tools like Jira, GitHub Issues, or Asana, but positioned specifically for teams integrating AI agents into their workflows.

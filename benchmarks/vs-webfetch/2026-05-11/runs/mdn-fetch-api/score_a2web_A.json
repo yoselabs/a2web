@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer precisely covers all three criteria: HTTP/network fetching, fetch() as global entry point, and Promise return semantics."
+  "reasoning": "The answer accurately describes the Fetch API for fetching network resources, names fetch() as the primary entry point with global availability, and explicitly states it returns a Promise resolving to a Response object.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0401496,
+  "latency_ms": 11345,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 65
+  }
 }

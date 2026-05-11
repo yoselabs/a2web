@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer correctly identifies the full title, names multiple authors, and precisely summarizes the deceptive backdoor persistence contribution."
+  "reasoning": "The answer perfectly identifies the full title, lists well over 3 authors, and accurately summarizes the core contribution about backdoored/deceptive behavior persisting through safety training.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04040835,
+  "latency_ms": 10710,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 63
+  }
 }

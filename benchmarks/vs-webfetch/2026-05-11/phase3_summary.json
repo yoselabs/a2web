@@ -1,48 +1,84 @@
 [
   {
-    "slug": "mdn-fetch-api",
+    "slug": "hn-front",
     "class": "A_clean",
-    "task": "What is the Fetch API used for, and which method on the global object is the primary entry point?",
+    "task": "List the top 5 stories on this page, each as 'TITLE (SOURCE_DOMAIN) — POINTS'.",
     "scores": {
       "webfetch": {
         "scores": [
           5,
           5,
-          5
+          4,
+          5,
+          3
         ],
-        "overall": 5,
+        "overall": 4,
         "reached": true,
-        "reasoning": "Answer fully satisfies all three criteria: clearly describes Fetch API for HTTP/network requests, names fetch() as the global entry point with both Window and Worker contexts, and explicitly states it returns a Promise resolving to a Response object."
+        "reasoning": "Five stories are listed with titles and point counts, but source domains are partially questionable (e.g., grapheneos.social is a Mastodon instance, not the article's true source), and front-page ordering may not be accurate since HN rank 2 having 1,895 points is suspicious.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.007728,
+        "latency_ms": 11781,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 97
+        }
       },
       "a2web_A": {
         "scores": [
           5,
           5,
-          5
+          5,
+          5,
+          1
         ],
-        "overall": 5,
+        "overall": 3,
         "reached": true,
-        "reasoning": "Answer precisely covers all three criteria: HTTP/network fetching, fetch() as global entry point, and Promise return semantics."
+        "reasoning": "Five stories are listed with titles, source domains, and point counts, but the ordering appears to be by points (descending) rather than HN front-page rank order, which is a significant deviation from criterion 5.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0398421,
+        "latency_ms": 14189,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 75
+        }
       },
       "a2web_B": {
         "scores": [
           5,
           5,
-          5
+          5,
+          5,
+          1
         ],
-        "overall": 5,
+        "overall": 3,
         "reached": true,
-        "reasoning": "Answer correctly describes Fetch API purpose, names fetch() as the global entry point, and explains the Promise-based return including the nuance about HTTP error statuses."
+        "reasoning": "Five stories with titles, domains, and point counts are provided, but the ordering appears to be by points rather than front-page rank (stories 3-5 are out of sequence with points 360, 448, 636 suggesting rank order was not preserved).",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0400071,
+        "latency_ms": 11909,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 85
+        }
       },
       "a2web_C": {
         "scores": [
           5,
           5,
-          5
+          5,
+          5,
+          2
         ],
-        "overall": 5,
+        "overall": 3,
         "reached": true,
-        "reasoning": "Answer accurately describes the Fetch API's purpose, names fetch() as the global entry point, and explicitly states it returns a Promise resolving to a Response."
+        "reasoning": "Five stories are identified with titles, source domains, and point counts, but the ordering appears to sort by points descending rather than matching HN front-page ranking order (story #3 with 360 points appears before #4 with 636 points, suggesting non-standard ordering).",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.040070850000000005,
+        "latency_ms": 11544,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 90
+        }
       }
     }
   },
@@ -59,7 +95,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Title is exact, at least 3 authors named (though remaining 36 are aggregated rather than listed), and the contribution is accurately and concisely summarized."
+        "reasoning": "The answer correctly identifies the full title, names at least 3 authors (Evan Hubinger, Carson Denison, Jesse Mu plus notes 36 more), and accurately summarizes the main contribution about backdoored deceptive behaviors persisting through safety training.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.007499099999999999,
+        "latency_ms": 16174,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 83
+        }
       },
       "a2web_A": {
         "scores": [
@@ -69,7 +112,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "All three criteria fully satisfied: exact title, extensive author list, and a precise one-sentence contribution summary covering deceptive triggers and safety-training persistence."
+        "reasoning": "The answer fully satisfies all three criteria: exact title match, extensive author list well exceeding 3 names, and a precise one-sentence summary of the core contribution regarding persistent deceptive backdoor behavior surviving safety training.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04055085,
+        "latency_ms": 10842,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 72
+        }
       },
       "a2web_B": {
         "scores": [
@@ -79,7 +129,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer correctly identifies the full title, names multiple authors, and precisely summarizes the deceptive backdoor persistence contribution."
+        "reasoning": "The answer perfectly identifies the full title, lists well over 3 authors, and accurately summarizes the core contribution about backdoored/deceptive behavior persisting through safety training.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04040835,
+        "latency_ms": 10710,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 63
+        }
       },
       "a2web_C": {
         "scores": [
@@ -89,7 +146,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer precisely identifies the full title, lists all authors (well beyond the minimum 3), and accurately summarizes the core contribution in one clear sentence."
+        "reasoning": "The answer correctly identifies the full title, lists well over 3 authors, and clearly summarizes the core contribution about deceptive backdoored behavior persisting through safety training.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04033335,
+        "latency_ms": 10598,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 62
+        }
       }
     }
   },
@@ -101,22 +165,36 @@
       "webfetch": {
         "scores": [
           5,
-          2,
-          5
-        ],
-        "overall": 4,
-        "reached": true,
-        "reasoning": "Correctly names Graydon Hoare and describes the borrow checker accurately, but gives 2006 (personal start) or 2012 (first public release) rather than 2010 (first appearance/announced), so criterion 2 is only partially met."
-      },
-      "a2web_A": {
-        "scores": [
-          5,
           0,
           5
         ],
         "overall": 3,
         "reached": true,
-        "reasoning": "Correctly identifies Graydon Hoare and explains the borrow checker/ownership model well, but gives 2012 (first public release) or 2006 (creation) instead of 2010 (first appearance on the public stage)."
+        "reasoning": "Correctly identifies Graydon Hoare and describes the borrow checker well, but gives 2006 (personal start) or 2012 (first release) rather than the 2010 first appearance year required by criterion 2.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.007438200000000001,
+        "latency_ms": 11265,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 78
+        }
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          2,
+          5
+        ],
+        "overall": 4,
+        "reached": true,
+        "reasoning": "Correctly identifies Graydon Hoare and thoroughly describes the borrow checker/ownership system, but gives 2012 as first release rather than 2010 (first appearance).",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03986460000000001,
+        "latency_ms": 11042,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 65
+        }
       },
       "a2web_B": {
         "scores": [
@@ -126,212 +204,106 @@
         ],
         "overall": 4,
         "reached": true,
-        "reasoning": "Correctly identifies Graydon Hoare and gives an excellent description of ownership/borrow checker, but names 2012 (first public release) or 2006 (creation) rather than 2010 (first appearance), missing the target year."
+        "reasoning": "Correctly identifies Graydon Hoare and thoroughly describes the borrow checker/ownership system, but gives 2012 as first release rather than 2010 (when Rust first appeared publicly), earning only partial credit on criterion 2.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0403896,
+        "latency_ms": 11651,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 78
+        }
       },
       "a2web_C": {
         "scores": [
           5,
-          0,
-          5
-        ],
-        "overall": 4,
-        "reached": true,
-        "reasoning": "Correctly identifies Graydon Hoare and borrow checker, but gives 2006 (personal origin) instead of 2010 (first public appearance), missing the target year."
-      }
-    }
-  },
-  {
-    "slug": "hn-front",
-    "class": "A_clean",
-    "task": "List the top 5 stories on this page, each as 'TITLE (SOURCE_DOMAIN) — POINTS'.",
-    "scores": {
-      "webfetch": {
-        "scores": [
-          5,
-          5,
-          5,
-          5,
-          3
-        ],
-        "overall": 4,
-        "reached": true,
-        "reasoning": "All 5 entries are correctly formatted with title, domain, and point count; ordering cannot be verified against live HN state, and the 1,895-point figure for story #2 is suspiciously high for a typical HN post, raising mild fabrication concern."
-      },
-      "a2web_A": {
-        "scores": [
-          5,
-          5,
-          5,
-          5,
-          3
-        ],
-        "overall": 4,
-        "reached": true,
-        "reasoning": "Five stories with titles, domains, and point counts are present, but the order appears scrambled (story 3 has 1895 points suggesting it should rank much higher than position 3, and ordering does not match typical HN front-page descending-points or recency ordering)."
-      },
-      "a2web_B": {
-        "scores": [
-          5,
-          5,
-          5,
-          5,
-          2
-        ],
-        "overall": 3,
-        "reasoning": "All 5 stories have titles, domains, and point counts, but the ordering is wrong — story 3 (895 pts) appears before story 1 which suggests rank order is scrambled rather than matching HN front-page sequence."
-      },
-      "a2web_C": {
-        "scores": [
-          5,
-          5,
-          5,
-          5,
-          3
-        ],
-        "overall": 4,
-        "reached": true,
-        "reasoning": "Five stories with titles, domains, and point counts are present, but the ordering appears scrambled (story 3 with 1895 points likely ranked higher than position 3 suggests)."
-      }
-    }
-  },
-  {
-    "slug": "medium-post",
-    "class": "B_gated",
-    "task": "What is the article's central thesis in 2-3 sentences?",
-    "scores": {
-      "webfetch": {
-        "scores": [
-          0,
-          5,
-          0
-        ],
-        "overall": 1,
-        "reached": false,
-        "reasoning": "Answer correctly identifies a 404 error page and does not fabricate content, but delivers no substantive information about the requested article."
-      },
-      "a2web_A": {
-        "scores": [
-          0,
-          5,
-          3
-        ],
-        "overall": 1,
-        "reached": false,
-        "reasoning": "Answer honestly reports a 404 and provides no article thesis, which is accurate but scores low on substantive delivery."
-      },
-      "a2web_B": {
-        "scores": [
-          0,
-          5,
-          5
-        ],
-        "overall": 2,
-        "reached": false,
-        "reasoning": "Honest 404 report with no fabrication, but no substantive content was delivered."
-      },
-      "a2web_C": {
-        "scores": [
-          0,
-          5,
-          5
-        ],
-        "overall": 1,
-        "reached": false,
-        "reasoning": "Honestly reports a 404/fetch failure with no fabrication, but delivers no substantive content."
-      }
-    }
-  },
-  {
-    "slug": "x-post",
-    "class": "B_gated",
-    "task": "What does Karpathy say in this post? Capture the gist.",
-    "scores": {
-      "webfetch": {
-        "scores": [
-          0,
-          0,
-          5
-        ],
-        "overall": 1,
-        "reached": false,
-        "reasoning": "The answer correctly identifies that the fetch failed (HTTP 402) and names Karpathy implicitly via the question context, but delivers zero substantive content from the post."
-      },
-      "a2web_A": {
-        "scores": [
-          0,
-          5,
-          5
-        ],
-        "overall": 1,
-        "reached": false,
-        "reasoning": "Correctly identifies the fetch failed and why, names Karpathy, but delivers zero substantive content from the post."
-      },
-      "a2web_B": {
-        "scores": [
-          0,
           3,
           5
         ],
-        "overall": 1,
-        "reached": false,
-        "reasoning": "Correctly identifies the fetch failure and requester (Karpathy) but delivers zero substantive post content."
-      },
-      "a2web_C": {
-        "scores": [
-          0,
-          4,
-          0
-        ],
-        "overall": 1,
-        "reached": false,
-        "reasoning": "Honestly reports a fetch failure with no post content retrieved, but conveys nothing substantive about Karpathy's post."
+        "overall": 4,
+        "reached": true,
+        "reasoning": "Correctly identifies Graydon Hoare and describes the borrow checker/ownership system in detail, but gives 2012 as first release rather than 2010 (first appearance/announcement).",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.039924600000000005,
+        "latency_ms": 11328,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 68
+        }
       }
     }
   },
   {
-    "slug": "substack-stratechery",
-    "class": "B_gated",
-    "task": "What is the article's main argument? Cite at least one specific claim.",
+    "slug": "mdn-fetch-api",
+    "class": "A_clean",
+    "task": "What is the Fetch API used for, and which method on the global object is the primary entry point?",
     "scores": {
       "webfetch": {
         "scores": [
-          0,
-          0,
-          0
+          5,
+          5,
+          5
         ],
-        "overall": 0,
-        "reached": false,
-        "reasoning": "The answer is a fetch failure notice (HTTP 404) with no page content, argument, or specific claims."
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer fully covers all three criteria: describes Fetch API for fetching resources/HTTP requests, names fetch() as the primary entry point (with Window and Worker contexts), and explicitly states it returns a Promise.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.007326000000000001,
+        "latency_ms": 11623,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 68
+        }
       },
       "a2web_A": {
         "scores": [
-          0,
-          0,
+          5,
+          5,
           5
         ],
-        "overall": 1,
-        "reached": false,
-        "reasoning": "Honest 404/failure report with diagnostic detail, but no article content or argument could be conveyed."
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer accurately describes the Fetch API for fetching network resources, names fetch() as the primary entry point with global availability, and explicitly states it returns a Promise resolving to a Response object.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0401496,
+        "latency_ms": 11345,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 65
+        }
       },
       "a2web_B": {
         "scores": [
-          0,
-          0,
+          5,
+          5,
           5
         ],
-        "overall": 1,
-        "reached": false,
-        "reasoning": "Honest 404 failure report with no fabrication, but delivers zero substantive content about the article."
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer fully and accurately covers all three criteria: describes Fetch API as for fetching network resources, names fetch() as the primary global method, and explicitly states it returns a Promise resolving to a Response object.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0401121,
+        "latency_ms": 10974,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 69
+        }
       },
       "a2web_C": {
         "scores": [
-          0,
-          0,
+          5,
+          5,
           5
         ],
-        "overall": 1,
-        "reached": false,
-        "reasoning": "The answer honestly reports a 404 fetch failure and correctly avoids fabricating content, but delivers no substantive information about the article."
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer fully satisfies all three criteria: correctly describes the Fetch API as an interface for fetching resources/making HTTP requests, names fetch() as the primary global method entry point, and explicitly states it returns a Promise.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0400821,
+        "latency_ms": 10960,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 71
+        }
       }
     }
   },
@@ -348,7 +320,14 @@
         ],
         "overall": 1,
         "reached": false,
-        "reasoning": "The answer is an honest fetch failure notice — criterion 3 is satisfied (no fabricated login-wall description), but no actual content was retrieved so substantive criteria score zero."
+        "reasoning": "The answer is a fetch error with no content retrieved, so it correctly avoids describing a block page but provides no substantive information about the post or comment sentiment.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0070913999999999994,
+        "latency_ms": 11904,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 58
+        }
       },
       "a2web_A": {
         "scores": [
@@ -358,7 +337,14 @@
         ],
         "overall": 1,
         "reached": false,
-        "reasoning": "The answer honestly reports a fetch failure with no page content retrieved, satisfying only the criterion that it doesn't fabricate a login/block-page description, but provides zero substantive information about the post or comments."
+        "reasoning": "The answer correctly admits a fetch failure with no content extracted and does not fabricate any post or comment information, satisfying only the criterion about not describing a login/block wall.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.040048349999999996,
+        "latency_ms": 22320,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 61
+        }
       },
       "a2web_B": {
         "scores": [
@@ -368,7 +354,14 @@
         ],
         "overall": 1,
         "reached": false,
-        "reasoning": "Answer honestly reports a failed/empty fetch with no fabrication, satisfying only the 'not a login-wall description' criterion but delivering zero substantive content."
+        "reasoning": "The answer correctly admits the fetch returned empty content and does not fabricate any information about the post or comments, but provides no substantive answer to either criterion.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0399021,
+        "latency_ms": 10869,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 57
+        }
       },
       "a2web_C": {
         "scores": [
@@ -378,7 +371,239 @@
         ],
         "overall": 1,
         "reached": false,
-        "reasoning": "The answer honestly reports a content failure and does not fabricate or describe a block page, but delivers zero substantive information about the post or comments."
+        "reasoning": "The answer honestly admits content extraction failure and requests clarification, satisfying the 'not describing a block page' criterion, but provides zero substantive information about the post topic or comment sentiment.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.039722099999999996,
+        "latency_ms": 10761,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 64
+        }
+      }
+    }
+  },
+  {
+    "slug": "medium-post",
+    "class": "B_gated",
+    "task": "What is the article's central thesis in 2-3 sentences?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          0,
+          5
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer correctly identifies a 404 error page with no article content, so no thesis can be extracted; it is not navigation/footer text but also not substantive.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0071277,
+        "latency_ms": 10522,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 60
+        }
+      },
+      "a2web_A": {
+        "scores": [
+          0,
+          3,
+          3
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer correctly identifies a 404 failure and contains no fabricated thesis, but provides no substantive content about the target article.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03932085,
+        "latency_ms": 11633,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 52
+        }
+      },
+      "a2web_B": {
+        "scores": [
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The fetch returned a 404 error page, so no article content was retrieved and no thesis could be extracted.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.09576525,
+        "latency_ms": 8695,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 48
+        }
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The fetch returned a 404 error page with no article content, so no thesis could be extracted.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.041123400000000004,
+        "latency_ms": 8834,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 46
+        }
+      }
+    }
+  },
+  {
+    "slug": "substack-stratechery",
+    "class": "B_gated",
+    "task": "What is the article's main argument? Cite at least one specific claim.",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The fetch returned HTTP 404 Not Found, so no article content was retrieved and no argument or claims could be evaluated.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0069771,
+        "latency_ms": 10643,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 50
+        }
+      },
+      "a2web_A": {
+        "scores": [
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The answer correctly identifies a 404 error and provides no article content, argument, or specific claims because the page was not found.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03964335,
+        "latency_ms": 10988,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 52
+        }
+      },
+      "a2web_B": {
+        "scores": [
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The answer correctly admits the page could not be fetched (404), provides no substantive content about any article argument, and cites no specific claims.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0395346,
+        "latency_ms": 10497,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 56
+        }
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          0,
+          0
+        ],
+        "overall": 0,
+        "reached": false,
+        "reasoning": "The fetch returned a 404 error so no article content was available; the answer correctly identifies this failure and provides no fabricated content.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.039403350000000004,
+        "latency_ms": 10716,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 53
+        }
+      }
+    }
+  },
+  {
+    "slug": "x-post",
+    "class": "B_gated",
+    "task": "What does Karpathy say in this post? Capture the gist.",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          0,
+          0,
+          3
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The fetch failed with HTTP 402 and no content was retrieved, so only the author identity (Karpathy, implied by the question context) can be noted, but no substantive post content was captured.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.007264199999999999,
+        "latency_ms": 13279,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 69
+        }
+      },
+      "a2web_A": {
+        "scores": [
+          0,
+          4,
+          0
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer correctly admits fetch failure due to JavaScript not being available, does not fabricate content, but provides zero substantive information about Karpathy's post and does not identify Karpathy as the poster from any retrieved content.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0399396,
+        "latency_ms": 12703,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 73
+        }
+      },
+      "a2web_B": {
+        "scores": [
+          0,
+          4,
+          1
+        ],
+        "overall": 1,
+        "reached": false,
+        "reasoning": "The answer correctly admits fetch failure due to JS blocking and provides no fabricated content, but captures no substantive post content and only weakly identifies Karpathy as the poster.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0395346,
+        "latency_ms": 11497,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 62
+        }
+      },
+      "a2web_C": {
+        "scores": [
+          0,
+          4,
+          5
+        ],
+        "overall": 2,
+        "reached": false,
+        "reasoning": "The answer correctly identifies the fetch failed due to JavaScript being disabled on X.com and names Karpathy as the subject, but provides zero substantive content from the actual post.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.039763349999999996,
+        "latency_ms": 11194,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 62
+        }
       }
     }
   },
@@ -395,7 +620,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer precisely identifies Linear as an issue tracker/project management tool for software teams, quotes a substantive headline ('The product development system for teams and agents'), and provides rich on-page content well beyond navigation text."
+        "reasoning": "The answer correctly identifies Linear as an issue tracker/project management tool for software teams, provides a specific and accurate headline from the page, and goes well beyond navigation or cookie banner text with substantive value proposition details.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.007282499999999999,
+        "latency_ms": 10950,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 68
+        }
       },
       "a2web_A": {
         "scores": [
@@ -405,17 +637,31 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer precisely identifies Linear as a project management/issue tracking tool for software teams, captures the exact headline verbatim, and provides rich substantive page content well beyond navigation or cookie text."
+        "reasoning": "The answer correctly identifies Linear as an issue tracker/project management tool for software teams, captures the exact headline and supporting tagline from the landing page, and provides substantive page content well beyond navigation or cookie banners.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0398721,
+        "latency_ms": 10819,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 69
+        }
       },
       "a2web_B": {
         "scores": [
+          4,
           5,
-          5,
-          5
+          4
         ],
-        "overall": 5,
+        "overall": 4,
         "reached": true,
-        "reasoning": "Answer correctly identifies Linear as a project management/product development tool and quotes the exact headline with supporting context from real page content."
+        "reasoning": "The answer correctly identifies Linear as a product development/planning tool for software teams and AI agents, captures a clear substantive headline and tagline, and goes well beyond nav/cookie text with detailed feature descriptions, though it slightly undersells the issue-tracker/project-management core identity.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04018335,
+        "latency_ms": 11466,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 83
+        }
       },
       "a2web_C": {
         "scores": [
@@ -425,7 +671,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer correctly identifies Linear as a project management/product development tool, quotes a substantive and specific headline verbatim, and provides rich page content well beyond navigation text."
+        "reasoning": "The answer correctly identifies Linear as a project management/product development tool for software teams, captures a specific and substantive headline/tagline from the page, and goes well beyond navigation or cookie banner text.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0396171,
+        "latency_ms": 10818,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 66
+        }
       }
     }
   },
@@ -442,7 +695,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer precisely defines FDI with a direct quote, captures the core idea in two substantive sentences, and explicitly names the framework as the source of infrastructure decisions."
+        "reasoning": "The answer directly quotes the core definition, provides a clear 2-sentence summary, and explicitly identifies the framework/source code as the driver of infrastructure decisions.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.007099500000000001,
+        "latency_ms": 10795,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 57
+        }
       },
       "a2web_A": {
         "scores": [
@@ -452,7 +712,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer precisely defines FDI as build-time framework code parsing to auto-generate IaC, hits all three criteria with no fabrication flags."
+        "reasoning": "The answer precisely defines FDI as automatic infrastructure provisioning inferred from framework source code, covers the core idea in two substantive sentences, and explicitly identifies the framework as the source of infrastructure decisions.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03944834999999999,
+        "latency_ms": 11619,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 66
+        }
       },
       "a2web_B": {
         "scores": [
@@ -462,7 +729,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer precisely defines FDI, provides a substantive 2-sentence summary capturing the core mechanism, and explicitly identifies the framework/application code as the source of infrastructure decisions."
+        "reasoning": "The answer accurately captures all three criteria: FDI infers infrastructure from framework code at build time, provides a substantive two-sentence summary, and explicitly identifies the framework as the source of infrastructure decisions.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03947085,
+        "latency_ms": 10530,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 67
+        }
       },
       "a2web_C": {
         "scores": [
@@ -472,7 +746,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Accurately captures FDI's core idea: framework analyzes source code to auto-generate infra config, abstracting cloud primitives away from developers."
+        "reasoning": "The answer accurately defines FDI as build-time inference of infrastructure from framework code, provides a substantive two-sentence summary, and explicitly identifies the framework as the source of infrastructure decisions.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.039440850000000006,
+        "latency_ms": 11088,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 64
+        }
       }
     }
   },
@@ -489,17 +770,31 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Accurately defines PaymentIntent as a lifecycle-tracking API object, covers SCA/authentication and status transitions, and provides substantive content beyond navigation links."
+        "reasoning": "The answer clearly defines PaymentIntent as a Stripe API object tracking payment lifecycle, mentions states/transitions/SCA/authentication, and provides substantive content beyond navigation links.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0071838,
+        "latency_ms": 10814,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 61
+        }
       },
       "a2web_A": {
         "scores": [
           5,
-          4,
+          5,
           5
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer accurately defines PaymentIntent as a lifecycle-tracking API object, covers SCA/authentication and states/transitions with practical detail, and provides substantive content beyond navigation links."
+        "reasoning": "The answer thoroughly defines PaymentIntent as a lifecycle-tracking API object, covers states/transitions/SCA/authentication, and provides substantive content well beyond navigation links.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04036335,
+        "latency_ms": 10712,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 60
+        }
       },
       "a2web_B": {
         "scores": [
@@ -509,7 +804,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer accurately defines PaymentIntent as a lifecycle-tracking API object, covers states/transitions/SCA/3DS authentication, and provides substantive content beyond navigation links."
+        "reasoning": "The answer clearly defines PaymentIntent as a Stripe API object tracking payment lifecycle, covers states/transitions/SCA/authentication, and provides substantive content well beyond navigation links.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.040408349999999996,
+        "latency_ms": 11279,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 62
+        }
       },
       "a2web_C": {
         "scores": [
@@ -519,7 +821,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer accurately defines PaymentIntent as a lifecycle-tracking API object, covers states/transitions/SCA/authentication, and delivers substantive prose rather than navigation links."
+        "reasoning": "The answer comprehensively defines PaymentIntent as a Stripe API object tracking payments through their lifecycle, explicitly covers status transitions, SCA, and authentication handling, and provides substantive explanatory content well beyond navigation links.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0404121,
+        "latency_ms": 11212,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 70
+        }
       }
     }
   },
@@ -536,7 +845,14 @@
         ],
         "overall": 0,
         "reached": false,
-        "reasoning": "The answer is purely a redirect notice with no substantive content about Notion databases."
+        "reasoning": "The fetch failed due to a redirect detection; no content about Notion databases was retrieved or provided.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.006905099999999999,
+        "latency_ms": 11005,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 45
+        }
       },
       "a2web_A": {
         "scores": [
@@ -546,7 +862,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer fully defines Notion databases, contrasts them with free-form pages, and clearly covers properties, views, and structure with accurate detail."
+        "reasoning": "The answer thoroughly defines Notion databases as collections of pages with shared properties, clearly contrasts them with free-form regular pages, and explicitly covers views, properties, and structural features with concrete examples.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0403296,
+        "latency_ms": 10741,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 65
+        }
       },
       "a2web_B": {
         "scores": [
@@ -556,7 +879,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer fully defines Notion databases, clearly contrasts with regular pages, and explicitly covers properties, views, filtering, and structure with concrete examples."
+        "reasoning": "The answer fully defines a Notion database as a collection of pages with shared properties, clearly contrasts it with regular free-form pages, and thoroughly covers views, properties, filtering/sorting, and relational capabilities.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0404796,
+        "latency_ms": 10975,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 69
+        }
       },
       "a2web_C": {
         "scores": [
@@ -566,54 +896,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer fully defines Notion databases, clearly contrasts them with regular pages, and explicitly covers properties, views, and structure with concrete examples."
-      }
-    }
-  },
-  {
-    "slug": "pypi-page",
-    "class": "D_structured",
-    "task": "What is this package, what is its latest version, and what is the install command?",
-    "scores": {
-      "webfetch": {
-        "scores": [
-          5,
-          5,
-          5
-        ],
-        "overall": 5,
-        "reached": true,
-        "reasoning": "Answer correctly identifies the Anthropic Python SDK, provides a specific version number with release date, and gives the exact pip install command."
-      },
-      "a2web_A": {
-        "scores": [
-          5,
-          5,
-          5
-        ],
-        "overall": 5,
-        "reached": true,
-        "reasoning": "Answer correctly identifies the Anthropic Python SDK, provides a specific version with release date, and gives the exact install command."
-      },
-      "a2web_B": {
-        "scores": [
-          5,
-          5,
-          5
-        ],
-        "overall": 5,
-        "reached": true,
-        "reasoning": "Answer correctly identifies the Anthropic Python SDK, provides a specific version number with release date, and gives the exact install command."
-      },
-      "a2web_C": {
-        "scores": [
-          5,
-          5,
-          5
-        ],
-        "overall": 5,
-        "reached": true,
-        "reasoning": "Answer correctly identifies the Anthropic Python SDK, provides a specific version number (0.100.0), and gives the exact pip install command."
+        "reasoning": "The answer fully defines Notion databases as collections of pages with shared properties, clearly contrasts them with free-form regular pages, and thoroughly covers views, properties, and structure with specific examples.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0403221,
+        "latency_ms": 11653,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 64
+        }
       }
     }
   },
@@ -630,7 +920,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer accurately captures the reported bug, its closed/duplicate status, and cites specific details including the error message, environment, and labels."
+        "reasoning": "The answer accurately captures the reported problem (string not found error), the closed/duplicate status, and cites specific details including version, OS, platform, and labels.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03942585,
+        "latency_ms": 10879,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 59
+        }
       },
       "a2web_A": {
         "scores": [
@@ -640,7 +937,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "All three criteria fully satisfied: the reported bug is precisely described, closed status is stated, and a verbatim maintainer comment is cited."
+        "reasoning": "The answer fully captures the reported problem (edit tool 'String to replace not found' error), clearly states the issue is closed/locked, and cites specific substantive details including the reporter, environment, and Anthropic team response mentioning Claude 4.5 model improvements.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0402546,
+        "latency_ms": 10880,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 84
+        }
       },
       "a2web_B": {
         "scores": [
@@ -650,7 +954,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer accurately captures the bug report, closed status with lock notice, and quotes a substantive team member comment about Claude 4.5 improvements."
+        "reasoning": "The answer fully captures the reported problem, confirms the issue is closed, and cites specific substantive details including the error message, environment, reporter, and the Anthropic team's closing comment referencing Claude 4.5 improvements.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04202715,
+        "latency_ms": 10108,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 74
+        }
       },
       "a2web_C": {
         "scores": [
@@ -660,7 +971,89 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Answer precisely identifies the bug, correctly states the issue is closed, and cites specific details including the reporter's environment, the maintainer's name, and the resolution referencing Claude 4.5 model improvements."
+        "reasoning": "The answer fully captures the reported bug (string replacement error), confirms the issue is closed and locked, and cites substantive details including the specific error message, reporter, platform, Claude team response, and resolution via Claude 4.5 models.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04204965,
+        "latency_ms": 9888,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 76
+        }
+      }
+    }
+  },
+  {
+    "slug": "pypi-page",
+    "class": "D_structured",
+    "task": "What is this package, what is its latest version, and what is the install command?",
+    "scores": {
+      "webfetch": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer correctly identifies the Anthropic Python SDK, provides a specific version number (0.100.0), and gives the exact install command 'pip install anthropic'.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0392646,
+        "latency_ms": 11378,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 61
+        }
+      },
+      "a2web_A": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer correctly identifies the Anthropic Python SDK, provides a specific version number (0.100.0), and gives the exact pip install command.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0392721,
+        "latency_ms": 11418,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 56
+        }
+      },
+      "a2web_B": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer correctly identifies the anthropic Python SDK, provides the exact latest version (0.100.0), and gives the correct install command (pip install anthropic).",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0413109,
+        "latency_ms": 9255,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 59
+        }
+      },
+      "a2web_C": {
+        "scores": [
+          5,
+          5,
+          5
+        ],
+        "overall": 5,
+        "reached": true,
+        "reasoning": "The answer correctly identifies the Anthropic Python SDK, provides a specific version number (0.100.0), and gives the exact install command 'pip install anthropic'.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.039305849999999996,
+        "latency_ms": 13050,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 61
+        }
       }
     }
   },
@@ -677,17 +1070,31 @@
         ],
         "overall": 0,
         "reached": false,
-        "reasoning": "The answer reports only an HTTP 403 error with no page content retrieved, satisfying none of the criteria."
+        "reasoning": "The fetch failed with HTTP 403 and no content was retrieved, so none of the criteria could be satisfied.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03880335,
+        "latency_ms": 12093,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 48
+        }
       },
       "a2web_A": {
         "scores": [
           5,
           5,
-          2
+          1
         ],
         "overall": 4,
         "reached": true,
-        "reasoning": "Correctly identifies React and provides an accurate version, but fails to supply the weekly download figure, partially mitigated by an honest explanation of why."
+        "reasoning": "Correctly identifies React as a UI library and provides an accurate version number (19.2.6), but fails to provide the weekly download count in millions, only noting dependents count as a proxy.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.039695850000000005,
+        "latency_ms": 11171,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 66
+        }
       },
       "a2web_B": {
         "scores": [
@@ -697,7 +1104,14 @@
         ],
         "overall": 2,
         "reached": true,
-        "reasoning": "Correctly identifies React but fails to provide version or download count, citing missing metadata from the fetch."
+        "reasoning": "The answer correctly identifies React as Facebook/Meta's UI library with a good description, but fails to provide the version number or weekly download count, citing incomplete fetch results.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.039778350000000004,
+        "latency_ms": 46386,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 59
+        }
       },
       "a2web_C": {
         "scores": [
@@ -707,7 +1121,14 @@
         ],
         "overall": 2,
         "reached": true,
-        "reasoning": "Correctly identifies React but honestly admits version and download stats were not in the fetched content, scoring zero on those criteria."
+        "reasoning": "The answer correctly identifies React as Facebook/Meta's UI library but fails to provide any version number or weekly download count, admitting the fetched content lacked that metadata.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0416034,
+        "latency_ms": 10592,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 60
+        }
       }
     }
   },
@@ -725,7 +1146,14 @@
         ],
         "overall": 3,
         "reached": true,
-        "reasoning": "Five repos in correct format with descriptions, but the list appears partially fabricated or stale — ordering unlikely to match actual trending page and some entries (e.g. NousResearch/hermes-agent) are suspicious."
+        "reasoning": "Five repos are listed in correct owner/repo format with descriptions, but the selection appears largely fabricated or mismatched — well-known repos like AUTOMATIC1111 mixed with obscure/questionable ones (NousResearch/hermes-agent, HKUDS/AI-Trader) suggests the order does not reflect the actual GitHub trending page.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0402171,
+        "latency_ms": 14155,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 104
+        }
       },
       "a2web_A": {
         "scores": [
@@ -735,18 +1163,33 @@
           2
         ],
         "overall": 3,
-        "reasoning": "Five repos in correct format with descriptions, but the list looks partially fabricated or stale — CloakBrowser and AI-Trader are plausible but order does not match typical trending patterns, and AUTOMATIC1111 and paperless-ngx are evergreen repos unlikely to be top-5 trending on any given day."
+        "reached": true,
+        "reasoning": "Five repos are listed with correct owner/repo format and descriptions, but the list includes non-Python repos (CloakBrowser is likely JS/TS, stable-diffusion-webui is a perennial not a daily trend) suggesting low fidelity to actual trending order.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.040040849999999996,
+        "latency_ms": 12063,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 87
+        }
       },
       "a2web_B": {
         "scores": [
+          2,
           1,
-          1,
-          1,
-          0
+          2,
+          1
         ],
         "overall": 1,
-        "reached": false,
-        "reasoning": "Only one repo was identified with owner/repo format; the answer is mostly a failure notice acknowledging incomplete extraction rather than delivering the requested list."
+        "reached": true,
+        "reasoning": "The answer reaches GitHub trending but fails to provide proper OWNER/REPO format for most entries, only clearly identifies one owner/repo pair, and explicitly admits inability to confirm ranking order or extract clean structured data.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.042297150000000006,
+        "latency_ms": 9664,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 70
+        }
       },
       "a2web_C": {
         "scores": [
@@ -757,7 +1200,14 @@
         ],
         "overall": 0,
         "reached": false,
-        "reasoning": "The answer admits it cannot identify the repos and provides no actual trending Python repo data, delivering only meta-commentary about what a proper fetch would need."
+        "reasoning": "The answer admits it cannot provide the requested list and produces no repos, owner/repo formats, descriptions, or ordering.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04171215,
+        "latency_ms": 9444,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 51
+        }
       }
     }
   },
@@ -774,7 +1224,14 @@
         ],
         "overall": 0,
         "reached": false,
-        "reasoning": "The answer reports a 404 error and contains no substantive content from the page."
+        "reasoning": "The fetch returned a 404 Not Found error, so no article content was retrieved and no negotiation advice could be evaluated.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0407859,
+        "latency_ms": 10627,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 51
+        }
       },
       "a2web_A": {
         "scores": [
@@ -784,7 +1241,14 @@
         ],
         "overall": 1,
         "reached": false,
-        "reasoning": "The answer honestly reports a 404/failed fetch with diagnostic detail, but delivers zero substantive content from the article."
+        "reasoning": "The answer correctly identifies a fetch failure (404) and provides no substantive negotiation advice or points, but appropriately admits the failure rather than fabricating content.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0417684,
+        "latency_ms": 9371,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 58
+        }
       },
       "a2web_B": {
         "scores": [
@@ -793,8 +1257,15 @@
           5
         ],
         "overall": 1,
-        "reached": false,
-        "reasoning": "Answer honestly reports a 404 fetch failure and delivers no negotiation content."
+        "reached": true,
+        "reasoning": "The page returned a 404 error so no substantive negotiation advice was retrieved, but the system correctly identified and reported the error rather than fabricating content.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03962085,
+        "latency_ms": 10684,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 58
+        }
       },
       "a2web_C": {
         "scores": [
@@ -804,7 +1275,14 @@
         ],
         "overall": 1,
         "reached": false,
-        "reasoning": "The answer honestly reports a 404 and provides no substantive negotiation advice, satisfying only the 'not a connection error' criterion."
+        "reasoning": "The answer correctly reports a 404 error and provides no substantive negotiation advice, but accurately admits failure rather than fabricating content.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03958335,
+        "latency_ms": 10893,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 53
+        }
       }
     }
   },
@@ -815,33 +1293,54 @@
     "scores": {
       "webfetch": {
         "scores": [
-          3,
-          0,
-          2
-        ],
-        "overall": 2,
-        "reached": false,
-        "reasoning": "Correctly identifies the article title and date but cannot extract any technical content, honestly acknowledging the absence of substantive body text rather than fabricating details."
-      },
-      "a2web_A": {
-        "scores": [
-          1,
+          2,
           0,
           3
         ],
         "overall": 1,
-        "reached": false,
-        "reasoning": "The answer honestly reports a paywall/extraction failure and correctly identifies the site and partial title context, but delivers no substantive article content or technical detail."
+        "reached": true,
+        "reasoning": "The answer correctly identifies the article title and date but cannot provide any substantive technical detail due to missing content, and honestly admits this limitation rather than fabricating information.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03926835,
+        "latency_ms": 13961,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 58
+        }
+      },
+      "a2web_A": {
+        "scores": [
+          2,
+          0,
+          3
+        ],
+        "overall": 2,
+        "reached": true,
+        "reasoning": "The answer correctly identifies the article title and publication type (openSUSE Tumbleweed weekly review) but cannot provide any substantive technical detail due to the paywall/extraction failure, and it is not purely a paywall notice since it explains the failure mode.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04032585,
+        "latency_ms": 11327,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 81
+        }
       },
       "a2web_B": {
         "scores": [
           2,
           0,
-          0
+          5
         ],
         "overall": 1,
-        "reached": false,
-        "reasoning": "Answer correctly identifies the article title and honestly acknowledges content extraction failure, but delivers no substantive technical content from the article itself."
+        "reached": true,
+        "reasoning": "The answer identifies the article is an openSUSE Tumbleweed review (partial topic credit) but explicitly states no substantive technical content was extracted, and the answer is clearly not just a paywall notice — however it fails to capture any actual technical detail.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04000335,
+        "latency_ms": 12024,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 80
+        }
       },
       "a2web_C": {
         "scores": [
@@ -851,7 +1350,14 @@
         ],
         "overall": 1,
         "reached": false,
-        "reasoning": "The answer honestly reports a failed/blocked fetch with only a copyright footer, scores points only for correctly identifying this is not a paywall notice but a content-extraction failure, and delivers no substantive article information."
+        "reasoning": "The answer correctly identifies a paywall/block scenario but provides no article topic or technical detail, satisfying only the 'not just a paywall notice' criterion inversely — it is entirely about the fetch failure.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03989085,
+        "latency_ms": 11655,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 69
+        }
       }
     }
   },
@@ -868,7 +1374,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "The answer provides a precise, substantive English summary naming specific technical concepts (inverted pendulum, PID controllers, Multibody library, Kalman filter, cart positioning) with no fabrication signals."
+        "reasoning": "The answer provides a detailed, accurate English summary covering specific technical concepts (inverted pendulum, PID controllers, Multibody library, Kalman filter, cart positioning) with no fabrication or navigation-only content.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.039478349999999995,
+        "latency_ms": 10932,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 72
+        }
       },
       "a2web_A": {
         "scores": [
@@ -878,7 +1391,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "The answer delivers a precise, specific summary covering the core topic (inverted pendulum, MATLAB Simulink Multibody, PID auto-tuning, Kalman filter) with no fabrication signals and no navigation/cookie filler."
+        "reasoning": "The answer provides a detailed, accurate English summary covering specific technical concepts including inverted pendulum, Simulink Multibody library, two-loop PID control, automatic tuning, swing-up mechanism, and Kalman filter.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03965085,
+        "latency_ms": 10779,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 75
+        }
       },
       "a2web_B": {
         "scores": [
@@ -888,7 +1408,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "Precise, detailed, and substantive summary covering specific technical elements (Multibody library, PID tuning, Kalman filter, dual control loops) with no fabrication indicators."
+        "reasoning": "The answer provides a detailed, substantive English summary covering specific concepts (Multibody library, PID tuning, Kalman filter, swing-up mechanism, disturbance rejection) clearly drawn from the article body, with no navigation or cookie text.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.03961335,
+        "latency_ms": 11312,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 79
+        }
       },
       "a2web_C": {
         "scores": [
@@ -898,7 +1425,14 @@
         ],
         "overall": 5,
         "reached": true,
-        "reasoning": "The answer provides a precise, substantive summary with specific technical concepts (PID controller, inverted pendulum, Simulink Multibody, Kalman filter, swing-up logic, dual control loops) that clearly reflect real article content."
+        "reasoning": "The answer provides a clear, specific, English summary covering the inverted pendulum system, MATLAB Simulink Multibody library, automated PID tuning, and cart/pendulum stabilization — all substantive concepts from the article body.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.039620850000000006,
+        "latency_ms": 11285,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 77
+        }
       }
     }
   },
@@ -911,41 +1445,69 @@
         "scores": [
           0,
           5,
+          0
+        ],
+        "overall": 2,
+        "reached": false,
+        "reasoning": "The answer reports a failure mode (HTTP 404) without fabricating a destination URL, but provides no information about where the short link leads or the destination content.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0388971,
+        "latency_ms": 10618,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 58
+        }
+      },
+      "a2web_A": {
+        "scores": [
+          0,
+          5,
+          5
+        ],
+        "overall": 3,
+        "reached": false,
+        "reasoning": "The answer correctly and honestly reports the failure mode (404 on raw tier, 451 on Jina tier) without fabricating a destination URL, but cannot resolve the short link or describe destination content.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.04011585,
+        "latency_ms": 13027,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 68
+        }
+      },
+      "a2web_B": {
+        "scores": [
+          2,
+          4,
           3
         ],
         "overall": 3,
         "reached": false,
-        "reasoning": "Honestly reports a failure mode (404) without fabricating a destination, but delivers no content since the fetch failed."
-      },
-      "a2web_A": {
-        "scores": [
-          2,
-          5,
-          5
-        ],
-        "overall": 3,
-        "reached": false,
-        "reasoning": "Correctly reports failure modes with specific HTTP codes and does not fabricate a destination URL, but could not deliver actual content."
-      },
-      "a2web_B": {
-        "scores": [
-          0,
-          5,
-          5
-        ],
-        "overall": 2,
-        "reached": false,
-        "reasoning": "Answer honestly reports a failed/empty fetch with no fabricated destination URL, satisfying the failure-disclosure criterion but delivering zero substantive content about the redirect target."
+        "reasoning": "The answer correctly reports failure and plausible failure modes without fabricating a destination URL, but does not actually resolve the redirect or describe any destination content.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0398196,
+        "latency_ms": 10679,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 56
+        }
       },
       "a2web_C": {
         "scores": [
           0,
-          3,
-          5
+          2,
+          3
         ],
-        "overall": 2,
+        "overall": 1,
         "reached": false,
-        "reasoning": "Answer honestly reports no content and lists plausible failure modes but never resolves the redirect or reports the actual destination URL, making it substantively empty while correctly avoiding fabrication."
+        "reasoning": "The answer admits no content was retrieved and does not fabricate a destination, but it fails to actually resolve or describe the redirect, instead deflecting with a clarifying question rather than reporting a concrete failure mode.",
+        "model": "claude-sonnet-4-6",
+        "cost_usd": 0.0413409,
+        "latency_ms": 8088,
+        "raw": {
+          "prompt_tokens": 3,
+          "completion_tokens": 67
+        }
       }
     }
   }

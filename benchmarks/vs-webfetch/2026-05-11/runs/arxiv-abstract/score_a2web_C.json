@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer precisely identifies the full title, lists all authors (well beyond the minimum 3), and accurately summarizes the core contribution in one clear sentence."
+  "reasoning": "The answer correctly identifies the full title, lists well over 3 authors, and clearly summarizes the core contribution about deceptive backdoored behavior persisting through safety training.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04033335,
+  "latency_ms": 10598,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 62
+  }
 }

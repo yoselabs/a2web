@@ -1,5 +1,19 @@
-The Fetch API provides an interface for **fetching resources across the network**. It is a more powerful and flexible replacement for `XMLHttpRequest`.
+Based on the fetched MDN documentation, here's what the Fetch API is used for and its primary entry point:
 
-The primary entry point is the **`fetch()` method**, which is a global method available in both `Window` and `Worker` contexts. 
+## Purpose
+The Fetch API provides an interface for **fetching resources across the network**. It's a more powerful and flexible replacement for `XMLHttpRequest`.
 
-The `fetch()` method takes one mandatory argument—the path to the resource you want to fetch—and returns a `Promise` that resolves to the `Response` for that request, as soon as the server responds with headers (even if the response is an HTTP error status). You can optionally pass an `init` options object as the second argument to configure the request.
+## Primary Entry Point
+The **`fetch()` method** is the primary entry point. It's a global method available in both:
+- `Window` context (browser)
+- `Worker` context (web workers)
+
+## How It Works
+- **Takes one mandatory argument**: the path to the resource you want to fetch
+- **Returns a Promise** that resolves to a `Response` object as soon as the server responds with headers (even if it's an HTTP error status)
+- **Optionally accepts a second argument**: an `init` options object to configure the request
+
+## Key Concepts
+The Fetch API uses core objects like `Request` and `Response`, along with related concepts such as CORS and HTTP Origin header semantics. Once you have a `Response`, there are multiple methods available to handle the response body content.
+
+There's also a newer **`fetchLater()` method** for deferred fetches that can be sent after a delay or when the page closes/navigates away, but `fetch()` remains the standard entry point for immediate resource fetching.

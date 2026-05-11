@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer correctly describes Fetch API purpose, names fetch() as the global entry point, and explains the Promise-based return including the nuance about HTTP error statuses."
+  "reasoning": "The answer fully and accurately covers all three criteria: describes Fetch API as for fetching network resources, names fetch() as the primary global method, and explicitly states it returns a Promise resolving to a Response object.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0401121,
+  "latency_ms": 10974,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 69
+  }
 }

@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer correctly identifies the Anthropic Python SDK, provides a specific version with release date, and gives the exact install command."
+  "reasoning": "The answer correctly identifies the Anthropic Python SDK, provides a specific version number (0.100.0), and gives the exact pip install command.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0392721,
+  "latency_ms": 11418,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 56
+  }
 }

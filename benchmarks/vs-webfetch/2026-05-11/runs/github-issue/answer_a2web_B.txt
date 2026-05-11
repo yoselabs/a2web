@@ -1,11 +1,18 @@
 ## Issue Summary
 
-**What it reports:**
-Issue #2107 is a bug where the Edit tool occasionally fails with the error **"String to replace not found in file."** The reporter (liaolunhui, using Claude CLI v1.0.24 on Windows 11 with the IDEA plugin) experienced intermittent file update failures, though no clear reproduction steps are provided beyond "it happens occasionally."
+**Issue #2107** reports a bug in Claude Code where the file editing tool occasionally fails with the error: **"String to replace not found in file."**
 
-**Status & Conclusion:**
-The issue is **closed**. The most recent response is from **catherinewu** (team member), who acknowledged the issue and stated:
+### Details:
+- **Reporter:** liaolunhui
+- **Environment:** Claude CLI v1.0.24 on Windows 11 (via IDEA Claude Code plugin)
+- **Problem:** The file update operation fails intermittently with no clear reproduction steps
+- **Expected:** Successful file updates
+- **Actual:** Occasional failures with the "String to replace not found" error
+
+### Most Recent Status / Conclusion:
+
+The issue is **closed**. The final response from **catherinewu** (Anthropic team) indicates:
 
 > "thanks for reporting - we are continuously working on improving the error rates for the edit tool. it should be much better in the latest claude 4.5 models!"
 
-The issue has since been automatically locked (7 days after closure with no further activity). The team's resolution was to improve error handling in the Edit tool in newer Claude 4.5 models rather than provide a specific fix for this ticket.
+**Conclusion:** The underlying problem was acknowledged as an error-rate issue in the edit tool. Anthropic indicated the issue should be significantly improved in the latest Claude 4.5 models, suggesting the root cause was addressed in that version release rather than through a specific bug fix to the existing tool logic.

@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer accurately defines PaymentIntent as a lifecycle-tracking API object, covers states/transitions/SCA/3DS authentication, and provides substantive content beyond navigation links."
+  "reasoning": "The answer clearly defines PaymentIntent as a Stripe API object tracking payment lifecycle, covers states/transitions/SCA/authentication, and provides substantive content well beyond navigation links.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.040408349999999996,
+  "latency_ms": 11279,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 62
+  }
 }

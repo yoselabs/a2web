@@ -1,3 +1,7 @@
-The article could not be accessed. The URL `https://stratechery.com/2025/the-end-of-the-beginning/` returned a **404 error** — the page does not exist or has been removed.
+I cannot provide the article's main argument or cite specific claims because the fetch response indicates a **404 Not Found error**. The URL `https://stratechery.com/2025/the-end-of-the-beginning/` does not exist or is no longer available.
 
-The response contains only Stratechery's 404 error page with navigation menus, sidebar content (recent articles and podcasts from May 2026), and a search interface—not the article content itself. Therefore, I cannot provide the article's main argument or cite specific claims from it.
+The response shows only Stratechery's 404 error page template with navigation, recent articles, and podcast listings—but no actual article content to analyze. The warning at the top of the response explicitly states: "Target URL returned error 404: Not Found."
+
+To get the article you're looking for, you would need:
+- A corrected/working URL, or
+- To search Stratechery's archives directly to locate the intended piece

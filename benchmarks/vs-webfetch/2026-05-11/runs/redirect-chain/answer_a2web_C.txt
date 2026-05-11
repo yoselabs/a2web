@@ -1,8 +1,6 @@
-The fetch response contains **no content** — the `content_md` field is empty. This indicates the destination returned one of:
+I don't see a short link in your message to resolve. The fetch response you've shared shows an empty `content_md` field, which suggests either:
 
-- **Block page** (access denied/blocked by filter)
-- **404** (page not found)
-- **Login wall** (requires authentication)
-- **Other error** (timeout, redirect loop, unreadable page)
+1. **No URL was provided** — you mentioned "this short link" but didn't include it
+2. **The fetch failed** — if a URL was attempted, it returned no content (blank page, 404, or access restriction)
 
-However, I can't tell you where the short link leads without seeing the original URL. The response shows only the outcome (no readable content), not the destination. Could you provide the short link URL itself?
+Could you please provide the short link URL you'd like me to resolve? Once you share it, I can fetch and analyze its destination content for you.

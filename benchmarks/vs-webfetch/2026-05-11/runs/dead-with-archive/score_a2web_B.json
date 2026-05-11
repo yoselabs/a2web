@@ -5,6 +5,13 @@
     5
   ],
   "overall": 1,
-  "reached": false,
-  "reasoning": "Answer honestly reports a 404 fetch failure and delivers no negotiation content."
+  "reached": true,
+  "reasoning": "The page returned a 404 error so no substantive negotiation advice was retrieved, but the system correctly identified and reported the error rather than fabricating content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03962085,
+  "latency_ms": 10684,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 58
+  }
 }

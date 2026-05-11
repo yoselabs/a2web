@@ -1,5 +1,13 @@
-The target URL returned a **404 error** — the article does not exist or is not accessible. 
+The fetch response indicates that **the requested article does not exist**. The URL `https://stratechery.com/2025/the-end-of-the-beginning/` returned a **404 Not Found error**.
 
-The response contains only the 404 error page from Stratechery's website, not the actual article content. The diagnostics show that the raw tier received a 404 status code, and while the Jina tier successfully retrieved a 200 response, that response was the 404 error page itself, not substantive article content.
+The response shows:
+- **Status**: `ok` (the fetch succeeded in retrieving a page)
+- **Content**: A 404 error page from Stratechery
+- **Diagnostics**: The raw tier failed with `verdict: "not_found"` (status code 404), then Jina successfully retrieved the error page itself
 
-There is no main argument or specific claims to cite because the article is not available at the requested URL (`https://stratechery.com/2025/the-end-of-the-beginning/`).
+The fetched content is only the Stratechery website's 404 page layout (navigation, podcast links, recent articles), not the article you're asking about. There is no article text, argument, or specific claims to cite.
+
+**To proceed**, you would need to:
+1. Verify the correct URL for the article
+2. Check if the article title or publication date is different
+3. Search Stratechery's site directly to locate the intended piece

@@ -1,5 +1,12 @@
-**Product:** Linear — a product development system for teams and agents.
+Based on the fetched content, this is **Linear** — a product development and project management system.
 
-**Primary Headline/Value Proposition:** "A new species of product tool. Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products."
+**Primary value proposition:** "A new species of product tool. Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products."
 
-The landing page positions Linear as a modern planning and project management tool designed specifically for teams that incorporate AI workflows, offering features like converting feedback into actionable issues, defining product direction, collaborating with AI agents, reviewing code changes, and tracking progress across teams.
+**Key offerings include:**
+- Converting conversations and customer feedback into actionable, routed issues
+- Product planning from idea to launch with roadmaps and PRDs
+- AI agent integration for collaborative or delegated work
+- Code review with structural diffs for human and agent output
+- Progress visibility through analytics and dashboards
+
+The product is explicitly positioned as designed for the "AI era" and emphasizes making "product operations self-driving" through AI workflows.

@@ -1,3 +1,15 @@
-The article is not available. The fetch returned a **404 Not Found** error for the URL `https://stratechery.com/2025/the-end-of-the-beginning/`. 
+I cannot provide the main argument or specific claims from this article because **the URL returns a 404 error** — the page does not exist.
 
-The page displays a standard 404 error page with navigation and sidebar content from Stratechery, but no article content. There is no main argument or specific claims to cite from the requested article.
+The fetch response shows:
+- **Status**: "Target URL returned error 404: Not Found"
+- **Content**: Only a Stratechery 404 page with navigation/sidebar elements, not article content
+
+The URL you requested (`https://stratechery.com/2025/the-end-of-the-beginning/`) appears to be either:
+1. Deleted or moved
+2. Behind a paywall (Stratechery Plus membership required)
+3. Misspelled or incorrect
+
+To help you, I would need either:
+- A corrected URL
+- A direct link to an accessible version of the article
+- The article text if you have another copy

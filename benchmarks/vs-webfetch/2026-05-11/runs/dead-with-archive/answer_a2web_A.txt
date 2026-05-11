@@ -1,8 +1,17 @@
-The article is not available. The fetch returned a **404 error** — the URL `https://www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/` no longer exists or has been moved.
+I cannot provide the main advice or top 3 points from this article because the fetch failed to retrieve the actual content.
 
-The response shows:
-- **Raw tier** hit the original URL and got a 404
-- **Jina tier** returned 200 but served back the 404 error page itself
-- **Gate detector** rejected the response as too short (only contains the 404 error message)
+**What happened:**
 
-I cannot provide the top 3 points since the article content is not accessible.
+The fetch response shows that:
+1. **The original URL returned a 404 error** — the article at `www.kalzumeus.com/2014/04/03/salary-negotiation-for-software-developers/` no longer exists or has moved
+2. **Jina (a reader service) also returned a 404 page** — it couldn't extract meaningful content from the broken link
+3. **The quality gate rejected the result** — the content was flagged as below the minimum length threshold (`length_floor` verdict)
+
+The `content_md` that was captured is just the 404 error page itself, not the actual article content.
+
+**To get the article, you could:**
+- Try the Wayback Machine to see if an archived version exists
+- Search for the article title or author to find a working link
+- Verify the correct URL for this resource
+
+Would you like me to help you locate an archived or alternative version of this article?

@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Precise, detailed, and substantive summary covering specific technical elements (Multibody library, PID tuning, Kalman filter, dual control loops) with no fabrication indicators."
+  "reasoning": "The answer provides a detailed, substantive English summary covering specific concepts (Multibody library, PID tuning, Kalman filter, swing-up mechanism, disturbance rejection) clearly drawn from the article body, with no navigation or cookie text.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03961335,
+  "latency_ms": 11312,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 79
+  }
 }

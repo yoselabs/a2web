@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer accurately captures the reported bug, its closed/duplicate status, and cites specific details including the error message, environment, and labels."
+  "reasoning": "The answer accurately captures the reported problem (string not found error), the closed/duplicate status, and cites specific details including version, OS, platform, and labels.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03942585,
+  "latency_ms": 10879,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 59
+  }
 }

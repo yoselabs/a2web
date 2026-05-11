@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer precisely defines FDI with a direct quote, captures the core idea in two substantive sentences, and explicitly names the framework as the source of infrastructure decisions."
+  "reasoning": "The answer directly quotes the core definition, provides a clear 2-sentence summary, and explicitly identifies the framework/source code as the driver of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.007099500000000001,
+  "latency_ms": 10795,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 57
+  }
 }

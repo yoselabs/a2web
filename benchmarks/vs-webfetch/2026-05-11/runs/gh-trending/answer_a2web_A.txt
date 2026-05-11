@@ -1,11 +1,11 @@
-Based on the GitHub trending page for Python (today), here are the top 5 trending repos:
+Based on the fetch response, here are the top 5 trending Python repositories on GitHub today:
 
-1. **CloakHQ/CloakBrowser** — Stealth Chromium that passes every bot detection test. Drop-in Playwright replacement with source-level fingerprint patches.
+1. **CloakHQ/CloakBrowser** — Stealth Chromium that passes every bot detection test. Drop-in Playwright replacement with source-level fingerprint patches. 30/30 tests passed.
 
 2. **AUTOMATIC1111/stable-diffusion-webui** — Stable Diffusion web UI
 
 3. **NousResearch/hermes-agent** — The agent that grows with you
 
-4. **paperless-ngx/paperless-ngx** — Community-supported supercharged document management system for scanning, indexing and archiving documents
+4. **paperless-ngx/paperless-ngx** — A community-supported supercharged document management system: scan, index and archive all your documents
 
 5. **HKUDS/AI-Trader** — 100% Fully-Automated Agent-Native Trading

@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer correctly identifies Linear as a project management/product development tool, quotes a substantive and specific headline verbatim, and provides rich page content well beyond navigation text."
+  "reasoning": "The answer correctly identifies Linear as a project management/product development tool for software teams, captures a specific and substantive headline/tagline from the page, and goes well beyond navigation or cookie banner text.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0396171,
+  "latency_ms": 10818,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 66
+  }
 }

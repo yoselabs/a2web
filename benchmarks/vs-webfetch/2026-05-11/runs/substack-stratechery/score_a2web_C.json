@@ -2,9 +2,16 @@
   "scores": [
     0,
     0,
-    5
+    0
   ],
-  "overall": 1,
+  "overall": 0,
   "reached": false,
-  "reasoning": "The answer honestly reports a 404 fetch failure and correctly avoids fabricating content, but delivers no substantive information about the article."
+  "reasoning": "The fetch returned a 404 error so no article content was available; the answer correctly identifies this failure and provides no fabricated content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039403350000000004,
+  "latency_ms": 10716,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 53
+  }
 }

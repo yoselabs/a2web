@@ -1,1 +1,8 @@
-The fetch response contains no content — `content_md` is empty. This indicates the page either failed to load, returned a block page, hit a login wall, or otherwise didn't yield substantive text. I cannot determine what the original post is about or analyze comment sentiment without the actual page content.
+I received a fetch response with an empty `content_md` field, which means the page content could not be extracted or retrieved. This is insufficient to answer your question about the original post's topic and the sentiment in its comments.
+
+To help you, I would need:
+
+1. **The URL** of the post you're asking about — so I can attempt to fetch it again, possibly with different strategies (e.g., browser rendering, archive fallback, or site-specific handlers)
+2. **Clarification** on whether this is a Reddit post, HN discussion, forum thread, or other type of discussion platform
+
+Could you provide the URL? If you already tried fetching it and got an empty result, there may be a block page, paywall, or extraction failure — in which case we can try alternative retrieval methods.

@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer precisely defines FDI as build-time framework code parsing to auto-generate IaC, hits all three criteria with no fabrication flags."
+  "reasoning": "The answer precisely defines FDI as automatic infrastructure provisioning inferred from framework source code, covers the core idea in two substantive sentences, and explicitly identifies the framework as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03944834999999999,
+  "latency_ms": 11619,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 66
+  }
 }

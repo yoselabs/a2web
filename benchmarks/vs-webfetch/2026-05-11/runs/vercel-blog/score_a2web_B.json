@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "Answer precisely defines FDI, provides a substantive 2-sentence summary capturing the core mechanism, and explicitly identifies the framework/application code as the source of infrastructure decisions."
+  "reasoning": "The answer accurately captures all three criteria: FDI infers infrastructure from framework code at build time, provides a substantive two-sentence summary, and explicitly identifies the framework as the source of infrastructure decisions.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.03947085,
+  "latency_ms": 10530,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 67
+  }
 }

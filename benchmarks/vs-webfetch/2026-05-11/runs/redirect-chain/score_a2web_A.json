@@ -1,10 +1,17 @@
 {
   "scores": [
-    2,
+    0,
     5,
     5
   ],
   "overall": 3,
   "reached": false,
-  "reasoning": "Correctly reports failure modes with specific HTTP codes and does not fabricate a destination URL, but could not deliver actual content."
+  "reasoning": "The answer correctly and honestly reports the failure mode (404 on raw tier, 451 on Jina tier) without fabricating a destination URL, but cannot resolve the short link or describe destination content.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.04011585,
+  "latency_ms": 13027,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 68
+  }
 }

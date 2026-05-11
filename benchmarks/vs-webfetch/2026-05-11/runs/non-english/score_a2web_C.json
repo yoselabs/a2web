@@ -6,5 +6,12 @@
   ],
   "overall": 5,
   "reached": true,
-  "reasoning": "The answer provides a precise, substantive summary with specific technical concepts (PID controller, inverted pendulum, Simulink Multibody, Kalman filter, swing-up logic, dual control loops) that clearly reflect real article content."
+  "reasoning": "The answer provides a clear, specific, English summary covering the inverted pendulum system, MATLAB Simulink Multibody library, automated PID tuning, and cart/pendulum stabilization — all substantive concepts from the article body.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.039620850000000006,
+  "latency_ms": 11285,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 77
+  }
 }

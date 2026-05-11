@@ -6,5 +6,12 @@
   ],
   "overall": 0,
   "reached": false,
-  "reasoning": "The answer is a fetch failure notice (HTTP 404) with no page content, argument, or specific claims."
+  "reasoning": "The fetch returned HTTP 404 Not Found, so no article content was retrieved and no argument or claims could be evaluated.",
+  "model": "claude-sonnet-4-6",
+  "cost_usd": 0.0069771,
+  "latency_ms": 10643,
+  "raw": {
+    "prompt_tokens": 3,
+    "completion_tokens": 50
+  }
 }
