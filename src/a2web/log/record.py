@@ -1,9 +1,4 @@
-"""a2web seam — `LogRecord` re-export + domain-coupled constructors.
-
-The dataclass itself lives in `packages.ndjson_log.record` (no a2web
-imports). `from_response()` is the domain-coupled bit that turns a
-`FetchResponse` into a `LogRecord`; it stays at the seam.
-"""
+"""a2web seam — `LogRecord` re-export + domain-coupled constructors."""
 
 from __future__ import annotations
 
@@ -11,7 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-from ..packages.ndjson_log.record import LogRecord, dominant_verdict
+from ..packages.ndjson_log import LogRecord, dominant_verdict
 
 if TYPE_CHECKING:
     from ..models import FetchResponse
@@ -25,18 +20,9 @@ def from_response(
     input_url: str | None = None,
     error: str | None = None,
 ) -> LogRecord:
-    """Derive a `LogRecord` from a `FetchResponse`.
-
-    `input_url` allows preserving the user-supplied URL when the response
-    carries the post-redirect `final_url`; defaults to `response.url`.
-    `error` is populated only on pathological extract/log paths.
-    """
+    """Derive a `LogRecord` from a `FetchResponse`."""
     diagnostics_compact = [
-        {
-            "step": d.step,
-            "verdict": d.verdict.value,
-            "dur_ms": d.dur_ms,
-        }
+        {"step": d.step, "verdict": d.verdict.value, "dur_ms": d.dur_ms}
         for d in response.diagnostics
     ]
     host = urlparse(response.url).hostname or ""

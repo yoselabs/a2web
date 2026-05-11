@@ -700,9 +700,7 @@ def _regate_after_escalation(fc: FetchContext) -> None:
 async def _escalate_browser(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext) -> None:
     """Dispatch the browser tier out-of-band; install its result on success."""
     browser_tier = REGISTRY["browser"]
-    br_start_ms = await _emit_tier_started(
-        ctx, step="browser", host=_host(fc.final_url), start_perf=fc.start_perf
-    )
+    br_start_ms = await _emit_tier_started(ctx, step="browser", host=_host(fc.final_url), start_perf=fc.start_perf)
     browser_result = await browser_tier.fetch(fc.final_url, state=state)
     fc.browser_dispatches += 1
     br_dur_ms = await _emit_tier_ended(

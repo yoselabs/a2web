@@ -1,7 +1,11 @@
-"""sqlite-backed conditional-GET cache primitives + Resource wrapper.
+"""sqlite-backed conditional-GET cache — in-tree microsofware.
 
-Schema: one table, profile-scoped, content-hash dedup. Caller controls
-the cache write gate (block pages must never reach `cache_put`).
+Pure cache primitives: schema bootstrap, content-hash dedup, conditional
+GET, gzip-compressed body. Zero a2web-domain imports.
+
+Boundary types (`CacheRow`, `SqliteResource`) are package-owned. Domain
+policy (profile-hash composition, live-only host bypass) lives at the
+a2web seam.
 """
 
 from __future__ import annotations
@@ -9,13 +13,47 @@ from __future__ import annotations
 import asyncio
 import gzip
 import hashlib
+import os
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import aiosqlite
 
-from .paths import cache_dir
-from .row import CacheRow
+# --------------------------------------------------------------------- #
+# Paths
+# --------------------------------------------------------------------- #
+
+
+def cache_dir() -> Path:
+    """Resolve the cache directory, honoring `$A2WEB_CACHE_DIR`."""
+    override = os.environ.get("A2WEB_CACHE_DIR")
+    return Path(override).expanduser() if override else Path.home() / ".a2web"
+
+
+# --------------------------------------------------------------------- #
+# Boundary type
+# --------------------------------------------------------------------- #
+
+
+@dataclass(slots=True)
+class CacheRow:
+    url: str
+    profile_hash: str
+    etag: str | None
+    last_modified: str | None
+    fetched_at: int
+    expires_at: int
+    status_code: int
+    content_type: str | None
+    content_hash: str
+    body: bytes
+
+
+# --------------------------------------------------------------------- #
+# Schema + primitives
+# --------------------------------------------------------------------- #
+
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS cache (
@@ -113,6 +151,11 @@ async def cache_put(
     await conn.commit()
 
 
+# --------------------------------------------------------------------- #
+# Resource (lazy-init, lock-in-resource)
+# --------------------------------------------------------------------- #
+
+
 class SqliteResource:
     """Lazy aiosqlite connection + schema bootstrap.
 
@@ -126,7 +169,6 @@ class SqliteResource:
         self._lock = asyncio.Lock()
 
     async def _ensure(self) -> aiosqlite.Connection:
-        """Open + schema-bootstrap on first call; cached thereafter."""
         if self._conn is not None:
             return self._conn
         async with self._lock:
@@ -135,7 +177,6 @@ class SqliteResource:
             return self._conn
 
     async def get(self, url: str, profile_hash: str) -> CacheRow | None:
-        """Return a non-expired cache row for (url, profile_hash) or None."""
         conn = await self._ensure()
         return await cache_get(conn, url, profile_hash)
 
@@ -151,7 +192,6 @@ class SqliteResource:
         body: bytes,
         ttl_s: int,
     ) -> None:
-        """Insert or replace one cache row. Caller MUST gate-check first."""
         conn = await self._ensure()
         await cache_put(
             conn,
@@ -166,10 +206,19 @@ class SqliteResource:
         )
 
     async def close(self) -> None:
-        """Idempotent close. Re-`_ensure()` after close reopens."""
         if self._conn is None:
             return
         async with self._lock:
             if self._conn is not None:
                 await self._conn.close()
                 self._conn = None
+
+
+__all__ = (
+    "CacheRow",
+    "SqliteResource",
+    "cache_dir",
+    "cache_get",
+    "cache_put",
+    "open_sqlite_with_schema",
+)
