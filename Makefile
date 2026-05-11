@@ -1,4 +1,4 @@
-.PHONY: lint fix test check build bootstrap coverage-diff security ty
+.PHONY: lint fix test check build bootstrap coverage-diff security ty eval eval-baseline eval-detail
 
 check: lint ty test
 
@@ -27,3 +27,15 @@ build:
 
 dev:
 	uv run a2web serve --transport=stdio
+
+# Eval suite — runs WebFetchBaseline + A2WebDetail + A2WebExtract against the
+# default corpus, judges with Sonnet, writes a dated report under eval/runs/.
+# Requires `[llm]` extras (`uv sync --extra llm`) and ANTHROPIC_API_KEY.
+eval:
+	uv run python -m a2web.llm.eval
+
+eval-baseline:
+	uv run python -m a2web.llm.eval --mode baseline
+
+eval-detail:
+	uv run python -m a2web.llm.eval --mode detail
