@@ -15,6 +15,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
+from enum import Enum
 
 import a2kit
 import a2kit.ldd
@@ -45,7 +46,7 @@ from .models import (
     Verdict,
 )
 from .state import AppState
-from .tiers import REGISTRY, TIER_ORDER, Rendered
+from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
 from .tiers.jina import JinaTier
 from .tiers.raw import RawTier
 from .utils.time import fmt_dur
@@ -343,6 +344,87 @@ async def _phase_cache_check(fc: FetchContext) -> None:
         fc.cached_row = await fc.sqlite.get(fc.url, fc.profile_hash)
 
 
+class _AfterTier(Enum):
+    """Outcome of `_apply_after_tier_action` — drives outer-loop control flow."""
+
+    NONE = "none"  # no rewrite / archive — continue normal tier-loop flow
+    REWRITE = "rewrite"  # URL was rewritten — restart the loop
+    ARCHIVE_INSTALLED = "archive_installed"  # archive content installed onto fc
+
+
+def _install_won_tier(
+    fc: FetchContext,
+    tier_result: TierResult,
+    tier_name: str,
+    tier: Tier,
+) -> None:
+    """Install a winning (`Verdict.ok`) tier result onto FetchContext."""
+    fc.body = tier_result.body
+    fc.content_type = tier_result.content_type
+    fc.status_code = tier_result.status_code
+    fc.final_url = tier_result.final_url
+    fc.tier_used = tier_result.handler_name or (tier.name if hasattr(tier, "name") else tier_name)
+    fc.final_verdict = Verdict.ok
+    fc.etag = tier_result.headers.get("etag")
+    fc.last_modified = tier_result.headers.get("last-modified")
+    fc.pre_rendered_payload = tier_result.pre_rendered
+
+
+def _install_archive_payload(fc: FetchContext, outcome: _ArchiveOutcome) -> None:
+    """Install a successful archive escalation outcome onto FetchContext."""
+    fc.body = outcome.body
+    fc.content_type = outcome.content_type
+    fc.final_url = outcome.final_url
+    fc.tier_used = "archive"
+    fc.pre_rendered_payload = outcome.pre_rendered
+    fc.status_code = outcome.status_code
+    fc.final_verdict = Verdict.ok
+
+
+async def _apply_after_tier_action(
+    fc: FetchContext,
+    tier_result: TierResult,
+    *,
+    state: AppState,
+    ctx: a2kit.ToolContext,
+) -> _AfterTier:
+    """Run the after-tier action (URL rewrite, archive retry) and report outcome.
+
+    Caps: `RewriteUrl` and `RetryViaArchive` each fire at most once per
+    fetch. On `REWRITE`, the new URL is installed on `fc` and the
+    cached row is reloaded. On `ARCHIVE_INSTALLED`, the archive payload
+    is installed on `fc` (caller can return from the tier loop).
+    """
+    tier_action = next_action_after_tier(tier_result, fc.url)
+
+    if isinstance(tier_action, RewriteUrl) and fc.url_rewrites < 1:
+        fc.url_rewrites += 1
+        fc.url = tier_action.new_url
+        fc.final_url = fc.url
+        # Reset cached_row — new URL likely has its own cache entry.
+        if fc.sqlite is not None:
+            fc.cached_row = await fc.sqlite.get(fc.url, fc.profile_hash)
+        else:
+            fc.cached_row = None
+        return _AfterTier.REWRITE
+
+    if isinstance(tier_action, RetryViaArchive) and fc.archive_dispatches < 1:
+        fc.archive_dispatches += 1
+        outcome = await _dispatch_archive(
+            tier_action.url,
+            state=state,
+            ctx=ctx,
+            start_perf=fc.start_perf,
+            diagnostics=fc.diagnostics,
+        )
+        if outcome.success:
+            _install_archive_payload(fc, outcome)
+            return _AfterTier.ARCHIVE_INSTALLED
+        # Archive failed — keep trying tiers (fall through).
+
+    return _AfterTier.NONE
+
+
 async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext) -> None:
     """Walk TIER_ORDER, dispatch each tier, run after-tier actions, until one wins or all fail.
 
@@ -354,7 +436,6 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
 
     while True:
         restart_loop = False
-        archive_break_payload: dict | None = None
         for tier_name in TIER_ORDER:
             tier = REGISTRY[tier_name]
             tier_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
@@ -421,7 +502,8 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
                 },
             )
 
-            # Conditional 304 → reuse cached body
+            # Conditional 304 → reuse cached body. Distinct return path (no
+            # after-tier action, no further tiers, no extract/gate ahead).
             if tier_result.status_code == 304 and fc.cached_row is not None and tier_result.conditional_hit:
                 fc.body = fc.cached_row.body
                 fc.content_type = fc.cached_row.content_type or "text/html"
@@ -458,65 +540,21 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
                 )
             )
 
-            # After-tier action: URL rewrite or archive escalation
-            tier_action = next_action_after_tier(tier_result, fc.url)
-            if isinstance(tier_action, RewriteUrl) and fc.url_rewrites < 1:
-                fc.url_rewrites += 1
-                fc.url = tier_action.new_url
-                fc.final_url = fc.url
-                # Reset cached_row — new URL likely has its own cache entry.
-                if fc.sqlite is not None:
-                    fc.cached_row = await fc.sqlite.get(fc.url, fc.profile_hash)
-                else:
-                    fc.cached_row = None
+            after = await _apply_after_tier_action(fc, tier_result, state=state, ctx=ctx)
+            if after is _AfterTier.REWRITE:
                 restart_loop = True
-                break  # break inner for; while True continues
-            if isinstance(tier_action, RetryViaArchive) and fc.archive_dispatches < 1:
-                fc.archive_dispatches += 1
-                outcome = await _dispatch_archive(
-                    tier_action.url,
-                    state=state,
-                    ctx=ctx,
-                    start_perf=fc.start_perf,
-                    diagnostics=fc.diagnostics,
-                )
-                if outcome.success:
-                    archive_break_payload = {
-                        "body": outcome.body,
-                        "content_type": outcome.content_type,
-                        "final_url": outcome.final_url,
-                        "pre_rendered": outcome.pre_rendered,
-                        "status_code": outcome.status_code,
-                    }
-                    break
-                # Archive failed — keep trying tiers (fallthrough).
+                break  # break inner for; while True restarts
+            if after is _AfterTier.ARCHIVE_INSTALLED:
+                return
 
             if tier_result.verdict == Verdict.ok:
-                fc.body = tier_result.body
-                fc.content_type = tier_result.content_type
-                fc.status_code = tier_result.status_code
-                fc.final_url = tier_result.final_url
-                fc.tier_used = tier_result.handler_name or (tier.name if hasattr(tier, "name") else tier_name)
-                fc.final_verdict = Verdict.ok
-                fc.etag = tier_result.headers.get("etag")
-                fc.last_modified = tier_result.headers.get("last-modified")
-                fc.pre_rendered_payload = tier_result.pre_rendered
-                break
+                _install_won_tier(fc, tier_result, tier_name, tier)
+                return
 
             fc.final_verdict = tier_result.verdict
 
-        # If after-tier dispatch landed archive content, install it.
-        if archive_break_payload is not None:
-            fc.body = archive_break_payload["body"]
-            fc.content_type = archive_break_payload["content_type"]
-            fc.final_url = archive_break_payload["final_url"]
-            fc.tier_used = "archive"
-            fc.pre_rendered_payload = archive_break_payload["pre_rendered"]
-            fc.status_code = archive_break_payload["status_code"]
-            fc.final_verdict = Verdict.ok
-
         if not restart_loop:
-            break
+            return
 
 
 async def _phase_extract(fc: FetchContext, *, ctx: a2kit.ToolContext) -> None:
