@@ -219,6 +219,50 @@ async def fetch(
 
 
 # --------------------------------------------------------------------- #
+# Tier emission helpers — shared by tier loop + escalators
+# --------------------------------------------------------------------- #
+
+
+async def _emit_tier_started(
+    ctx: a2kit.ToolContext,
+    *,
+    step: str,
+    host: str | None,
+    start_perf: float,
+) -> int:
+    """Emit `TierStarted` at the current perf-clock tick; return the relative ms."""
+    start_ms = int((time.perf_counter() - start_perf) * 1000)
+    await a2kit.ldd.event(ctx, TierStarted(t_ms=start_ms, step=step, host=host))
+    return start_ms
+
+
+async def _emit_tier_ended(
+    ctx: a2kit.ToolContext,
+    *,
+    step: str,
+    engine: str | None,
+    verdict: Verdict,
+    start_ms: int,
+    start_perf: float,
+    extra: dict[str, str | int] | None = None,
+) -> int:
+    """Emit `TierEnded` and return the elapsed `dur_ms` (relative to `start_ms`)."""
+    dur_ms = int((time.perf_counter() - start_perf) * 1000) - start_ms
+    await a2kit.ldd.event(
+        ctx,
+        TierEnded(
+            t_ms=start_ms,
+            step=step,
+            engine=engine,
+            verdict=verdict,
+            dur_ms=dur_ms,
+            extra=extra or {},
+        ),
+    )
+    return dur_ms
+
+
+# --------------------------------------------------------------------- #
 # Archive escalation helper (shared by after-tier + after-gate)
 # --------------------------------------------------------------------- #
 
@@ -251,21 +295,17 @@ async def _dispatch_archive(
     installs into orchestrator state.
     """
     archive_tier = REGISTRY["archive"]
-    arch_start_ms = int((time.perf_counter() - start_perf) * 1000)
-    await a2kit.ldd.event(ctx, TierStarted(t_ms=arch_start_ms, step="archive", host=_host(url)))
+    arch_start_ms = await _emit_tier_started(ctx, step="archive", host=_host(url), start_perf=start_perf)
     archive_result = await archive_tier.fetch(url, state=state)
-    arch_dur_ms = int((time.perf_counter() - start_perf) * 1000) - arch_start_ms
     engine = archive_result.archive_source or "archive"
-    await a2kit.ldd.event(
+    arch_dur_ms = await _emit_tier_ended(
         ctx,
-        TierEnded(
-            t_ms=arch_start_ms,
-            step="archive",
-            engine=engine,
-            verdict=archive_result.verdict,
-            dur_ms=arch_dur_ms,
-            extra={"status_code": archive_result.status_code},
-        ),
+        step="archive",
+        engine=engine,
+        verdict=archive_result.verdict,
+        start_ms=arch_start_ms,
+        start_perf=start_perf,
+        extra={"status_code": archive_result.status_code},
     )
     archive_pre = archive_result.pre_rendered
     if archive_result.verdict != Verdict.ok or archive_pre is None:
@@ -358,8 +398,6 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
             else:
                 tier_result = await tier.fetch(fc.url, state=state)
 
-            tier_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - tier_start_ms
-
             # Silent skip — no diagnostic row
             if tier_result.no_match or tier_result.skipped:
                 continue
@@ -369,20 +407,18 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
                 success=tier_result.verdict not in (Verdict.proxy_unavailable, Verdict.connection_error, Verdict.timeout),
             )
 
-            await a2kit.ldd.event(
+            tier_dur_ms = await _emit_tier_ended(
                 ctx,
-                TierEnded(
-                    t_ms=tier_start_ms,
-                    step=tier_result.handler_name or tier_name,
-                    engine="curl_cffi" if tier_name == "raw" else None,
-                    verdict=tier_result.verdict,
-                    dur_ms=tier_dur_ms,
-                    extra={
-                        "status_code": tier_result.status_code,
-                        "route.proxy_id": handle.proxy_id,
-                        "route.matched_rule": str(handle.matched_rule_index) if handle.matched_rule_index is not None else "none",
-                    },
-                ),
+                step=tier_result.handler_name or tier_name,
+                engine="curl_cffi" if tier_name == "raw" else None,
+                verdict=tier_result.verdict,
+                start_ms=tier_start_ms,
+                start_perf=fc.start_perf,
+                extra={
+                    "status_code": tier_result.status_code,
+                    "route.proxy_id": handle.proxy_id,
+                    "route.matched_rule": str(handle.matched_rule_index) if handle.matched_rule_index is not None else "none",
+                },
             )
 
             # Conditional 304 → reuse cached body
@@ -613,21 +649,19 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState, ctx: a2
 async def _escalate_browser(fc: FetchContext, *, state: AppState, ctx: a2kit.ToolContext) -> None:
     """Dispatch the browser tier out-of-band; install its result on success."""
     browser_tier = REGISTRY["browser"]
-    br_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.ldd.event(ctx, TierStarted(t_ms=br_start_ms, step="browser", host=_host(fc.final_url)))
+    br_start_ms = await _emit_tier_started(
+        ctx, step="browser", host=_host(fc.final_url), start_perf=fc.start_perf
+    )
     browser_result = await browser_tier.fetch(fc.final_url, state=state)
-    br_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - br_start_ms
     fc.browser_dispatches += 1
-    await a2kit.ldd.event(
+    br_dur_ms = await _emit_tier_ended(
         ctx,
-        TierEnded(
-            t_ms=br_start_ms,
-            step="browser",
-            engine="camoufox",
-            verdict=browser_result.verdict,
-            dur_ms=br_dur_ms,
-            extra={"status_code": browser_result.status_code},
-        ),
+        step="browser",
+        engine="camoufox",
+        verdict=browser_result.verdict,
+        start_ms=br_start_ms,
+        start_perf=fc.start_perf,
+        extra={"status_code": browser_result.status_code},
     )
     fc.diagnostics.append(
         Diagnostic(
