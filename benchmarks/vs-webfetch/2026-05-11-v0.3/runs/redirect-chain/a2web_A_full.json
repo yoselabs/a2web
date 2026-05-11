@@ -1,0 +1,22 @@
+{
+  "url": "https://t.co/abcdef",
+  "status": "failed",
+  "tier": "none",
+  "confidence": "low",
+  "title": null,
+  "byline": null,
+  "published": null,
+  "started_at": "2026-05-11T17:38:46.902639Z",
+  "total_ms": 693,
+  "tokens": null,
+  "cache": "miss",
+  "narrative": "none → connection_error (693ms).",
+  "diagnostics_summary": "tier=none verdict=connection_error total_ms=693",
+  "diagnostics": [],
+  "meta": {},
+  "links": [],
+  "headings": [],
+  "content_md": "",
+  "fit_md": null,
+  "operator_hints": []
+}

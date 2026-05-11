@@ -1,0 +1,15 @@
+{
+  "slug": "gh-trending",
+  "url": "https://github.com/trending/python?since=daily",
+  "class": "D_structured",
+  "task": "List the top 5 trending Python repos on GitHub today, each as 'OWNER/REPO — short description'.",
+  "needs": [
+    "content+links"
+  ],
+  "criteria": [
+    "Identifies 5 repos",
+    "Each has owner/repo format",
+    "Each has a description (when GitHub provides one)",
+    "Roughly matches trending page order"
+  ]
+}

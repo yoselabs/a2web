@@ -1,0 +1,22 @@
+{
+  "url": "https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/",
+  "status": "failed",
+  "tier": "raw",
+  "confidence": "low",
+  "title": "Reddit",
+  "byline": null,
+  "published": "2026-01-01",
+  "started_at": "2026-05-11T17:37:42.510071Z",
+  "total_ms": 1340,
+  "tokens": null,
+  "cache": "bypass",
+  "narrative": "raw → length_floor (1.3s).",
+  "diagnostics_summary": "tier=raw verdict=length_floor total_ms=1340",
+  "diagnostics": [],
+  "meta": {},
+  "links": [],
+  "headings": [],
+  "content_md": "",
+  "fit_md": null,
+  "operator_hints": []
+}

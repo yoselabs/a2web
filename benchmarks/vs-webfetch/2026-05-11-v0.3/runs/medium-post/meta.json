@@ -1,0 +1,44 @@
+{
+  "slug": "medium-post",
+  "class": "B_gated",
+  "url": "https://medium.com/@altimore/llms-as-cognitive-prosthetics-d3a5b7c2cba9",
+  "a2web": {
+    "status": "ok",
+    "tier": "raw",
+    "verdict": "medium",
+    "wall_ms_cli": 2681,
+    "wall_ms_internal": 789,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 316,
+      "fit_md": 0,
+      "title": 1,
+      "byline": 0,
+      "published": 6,
+      "narrative": 7,
+      "links": 1,
+      "headings": 193,
+      "diagnostics": 1,
+      "operator_hints": 1,
+      "meta": 30,
+      "tokens": 12,
+      "url": 25,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 1,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 739,
+      "B_meta": 389,
+      "C_content_only": 336
+    },
+    "links_count": 0,
+    "headings_count": 10,
+    "content_chars": 967,
+    "fit_equals_content": false
+  }
+}

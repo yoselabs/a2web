@@ -1,0 +1,14 @@
+{
+  "slug": "npm-page",
+  "url": "https://www.npmjs.com/package/react",
+  "class": "D_structured",
+  "task": "What is this package, what is its current version, and how many weekly downloads does it have (approximately)?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Identifies React (Facebook/Meta's UI library)",
+    "Provides a version number",
+    "Provides an approximate weekly download count (millions)"
+  ]
+}

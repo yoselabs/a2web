@@ -1,0 +1,14 @@
+{
+  "slug": "vercel-blog",
+  "url": "https://vercel.com/blog/framework-defined-infrastructure",
+  "class": "C_spa",
+  "task": "What is 'framework-defined infrastructure' according to this post? Give the core idea in 2 sentences.",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Defines framework-defined infrastructure (FDI): inferring infra from framework code / spec rather than hand-configured",
+    "Substantive 2-sentence summary, not just title + nav",
+    "Mentions framework as source of infrastructure decisions"
+  ]
+}

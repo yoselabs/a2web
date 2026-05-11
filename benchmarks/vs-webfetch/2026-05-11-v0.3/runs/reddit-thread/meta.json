@@ -1,0 +1,44 @@
+{
+  "slug": "reddit-thread",
+  "class": "B_gated",
+  "url": "https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/",
+  "a2web": {
+    "status": "failed",
+    "tier": "raw",
+    "verdict": "low",
+    "wall_ms_cli": 3144,
+    "wall_ms_internal": 1340,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 0,
+      "fit_md": 0,
+      "title": 1,
+      "byline": 0,
+      "published": 6,
+      "narrative": 10,
+      "links": 1,
+      "headings": 1,
+      "diagnostics": 1,
+      "operator_hints": 1,
+      "meta": 1,
+      "tokens": 0,
+      "url": 27,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 2,
+      "total_ms": 2,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 185,
+      "B_meta": 60,
+      "C_content_only": 6
+    },
+    "links_count": 0,
+    "headings_count": 0,
+    "content_chars": 0,
+    "fit_equals_content": false
+  }
+}

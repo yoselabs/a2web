@@ -1,0 +1,25 @@
+{
+  "url": "https://news.ycombinator.com/",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "high",
+  "title": "Hacker News",
+  "byline": null,
+  "published": "2026-05-11",
+  "started_at": "2026-05-11T17:37:30.059375Z",
+  "total_ms": 2861,
+  "tokens": {
+    "full": 4041,
+    "fit": 0
+  },
+  "cache": "bypass",
+  "narrative": "raw → ok (2.9s).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=2861",
+  "diagnostics": [],
+  "meta": {},
+  "links": [],
+  "headings": [],
+  "content_md": "Hacker News\nnew\n|\npast\n|\ncomments\n|\nask\n|\nshow\n|\njobs\n|\nsubmit\nlogin\n1.\nCUDA-oxide: Nvidia's official Rust to CUDA compiler\n(\nnvlabs.github.io\n)\n92 points\nby\nadamnemecek\n1 hour ago\n|\nhide\n|\n9 comments\n2.\nNullsoft, 1997-2004 AOL kills off the last maverick tech company (2004)\n(\nslate.com\n)\n57 points\nby\ndownbad_\n2 hours ago\n|\nhide\n|\n20 comments\n3.\nRatty – A terminal emulator with inline 3D graphics\n(\nratty-term.org\n)\n468 points\nby\norhunp_\n7 hours ago\n|\nhide\n|\n165 comments\n4.\nTraining an LLM in Swift, Part 1: Taking matrix mult from Gflop/s to Tflop/s\n(\ncocoawithlove.com\n)\n125 points\nby\nzdw\n4 hours ago\n|\nhide\n|\n8 comments\n5.\nAMÁLIA and the future of European Portuguese LLMs\n(\nduarteocarmo.com\n)\n57 points\nby\njohnbarron\n3 hours ago\n|\nhide\n|\n25 comments\n6.\nGmail registration now requires scanning a QR code and sending a text message\n(\nprivacyguides.net\n)\n318 points\nby\nnegura\n10 hours ago\n|\nhide\n|\n174 comments\n7.\nShow HN: TikTok but for Scientific Papers\n(\nandreaturchet.github.io\n)\n15 points\nby\nciwrl\n1 hour ago\n|\nhide\n|\n9 comments\n8.\nVenom and Hot Peppers Offer a Key to Killing Resistant Bacteria\n(\nwired.com\n)\n112 points\nby\nlittlexsparkee\n8 hours ago\n|\nhide\n|\n27 comments\n9.\nI'm going back to writing code by hand\n(\nk10s.dev\n)\n770 points\nby\ndropbox_miner\n16 hours ago\n|\nhide\n|\n435 comments\n10.\nInterfaze: A new model architecture built for high accuracy at scale\n(\ninterfaze.ai\n)\n9 points\nby\nyoeven\n1 hour ago\n|\nhide\n|\n2 comments\n11.\nBuilding a web server in aarch64 assembly to give my life (a lack of) meaning\n(\nimtomt.github.io\n)\n48 points\nby\ntheanonymousone\n4 hours ago\n|\nhide\n|\n16 comments\n12.\nSoftware engineering may no longer be a lifetime career\n(\nseangoedecke.com\n)\n110 points\nby\nmovis\n3 hours ago\n|\nhide\n|\n180 comments\n13.\nRunning local models on an M4 with 24GB memory\n(\njola.dev\n)\n486 points\nby\nshintoist\n18 hours ago\n|\nhide\n|\n146 comments\n14.\nHolding Community Space\n(\nsupernuclear.substack.com\n)\n4 points\nby\nsurprisetalk\n1 hour ago\n|\nhide\n|\ndiscuss\n15.\nShould you leave red herrings about yourself online?\n(\nalcazarsec.com\n)\n6 points\nby\nalcazar\n1 hour ago\n|\nhide\n|\n3 comments\n16.\nGuitar tuner that uses phone accelerometer\n(\ntautme.github.io\n)\n119 points\nby\nadm4\n11 hours ago\n|\nhide\n|\n66 comments\n17.\nThe greatest shot in television: James Burke had one chance to nail this scene (2024)\n(\nopenculture.com\n)\n288 points\nby\nsusam\n14 hours ago\n|\nhide\n|\n171 comments\n18.\nHardware Attestation as Monopoly Enabler\n(\ngrapheneos.social\n)\n1985 points\nby\nChuckMcM\n23 hours ago\n|\nhide\n|\n669 comments\n19.\nWhy we lose our friends as we age (2023)\n(\ntheatlantic.com\n)\n40 points\nby\npaulpauper\n1 hour ago\n|\nhide\n|\n19 comments\n20.\nAn AI coding agent, used to write code, needs to reduce your maintenance costs\n(\njamesshore.com\n)\n301 points\nby\ncratermoon\n17 hours ago\n|\nhide\n|\n87 comments\n21.\nLocal AI needs to be the norm\n(\nunix.foo\n)\n1637 points\nby\ncylo\n1 day ago\n|\nhide\n|\n641 comments\n22.\nScaffold a 1990s Geocities-themed static website\n(\npypi.org\n)\n35 points\nby\nwhatsupdog\n4 hours ago\n|\nhide\n|\n15 comments\n23.\nObsidian plugin was abused to deploy a remote access trojan\n(\nnetsecops.io\n)\n314 points\nby\ncmbailey\n19 hours ago\n|\nhide\n|\n187 comments\n24.\nClassification of amino acids\n(\nkhanacademy.org\n)\n47 points\nby\nkamaraju\n6 hours ago\n|\nhide\n|\n2 comments\n25.\nMythos Finds a Curl Vulnerability\n(\nhaxx.se\n)\n494 points\nby\nTangerineDream\n10 hours ago\n|\nhide\n|\n210 comments\n26.\nStudents Boo Commencement Speaker After She Calls AI Next Industrial Revolution\n(\n404media.co\n)\n22 points\nby\ncdrnsf\n1 hour ago\n|\nhide\n|\ndiscuss\n27.\nBliss (Photograph)\n(\nwikipedia.org\n)\n81 points\nby\ncainxinth\n9 hours ago\n|\nhide\n|\n39 comments\n28.\nA.I. note takers are making lawyers nervous\n(\nnytimes.com\n)\n155 points\nby\nJumpCrisscross\n7 hours ago\n|\nhide\n|\n115 comments\n29.\nThe Adventure Family Tree (2024)\n(\nmipmip.org\n)\n45 points\nby\nexvi\n9 hours ago\n|\nhide\n|\n7 comments\n30.\nThe OpenAI Deployment Company\n(\nopenai.com\n)\n30 points\nby\nj4mie\n4 hours ago\n|\nhide\n|\n27 comments\nMore\nGuidelines\n|\nFAQ\n|\nLists\n|\nAPI\n|\nSecurity\n|\nLegal\n|\nApply to YC\n|\nContact\nSearch:\n",
+  "fit_md": null,
+  "operator_hints": []
+}

@@ -1,0 +1,14 @@
+{
+  "slug": "linear-marketing",
+  "url": "https://linear.app/",
+  "class": "C_spa",
+  "task": "What product does this company sell, and what is the primary headline / value proposition on the landing page?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Identifies Linear as an issue tracker / project management tool for software teams",
+    "Captures a substantive headline or tagline from the page",
+    "Is not only navigation / cookie banner text"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "slug": "arxiv-abstract",
+  "url": "https://arxiv.org/abs/2401.05566",
+  "class": "A_clean",
+  "task": "What is the paper's title, who are the authors, and what is the main contribution in one sentence?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Identifies paper title ('Sleeper Agents: Training Deceptive LLMs...')",
+    "Lists at least 3 author names",
+    "Summarizes contribution: training LLMs that behave deceptively / backdoored behavior persists through safety training"
+  ]
+}

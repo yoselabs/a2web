@@ -1,0 +1,116 @@
+{
+  "url": "https://www.npmjs.com/package/react",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "medium",
+  "title": "react",
+  "byline": null,
+  "published": "2026-05-06",
+  "started_at": "2026-05-11T17:38:28.851974Z",
+  "total_ms": 515,
+  "tokens": {
+    "full": 926,
+    "fit": 0
+  },
+  "cache": "miss",
+  "narrative": "raw → ok (515ms).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=515",
+  "diagnostics": [],
+  "meta": {
+    "og.image": "https://static-production.npmjs.com/a12c728e90758ccd16976b394b964317.png",
+    "og.description": "React is a JavaScript library for building user interfaces.. Latest version: 19.2.6, last published: 5 days ago. Start using react in your project by running `npm i react`. There are 210636 other projects in the npm registry using react.",
+    "og.title": "react",
+    "og.url": "https://www.npmjs.com/package/react",
+    "og.site_name": "npm",
+    "twitter.card": "summary",
+    "twitter.url": "https://www.npmjs.com/package/react",
+    "twitter.title": "npm: react",
+    "twitter.description": "React is a JavaScript library for building user interfaces.. Latest version: 19.2.6, last published: 5 days ago. Start using react in your project by running `npm i react`. There are 210636 other projects in the npm registry using react."
+  },
+  "links": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "react"
+    },
+    {
+      "level": 1,
+      "text": "react"
+    },
+    {
+      "level": 2,
+      "text": "Usage"
+    },
+    {
+      "level": 2,
+      "text": "Documentation"
+    },
+    {
+      "level": 2,
+      "text": "API"
+    },
+    {
+      "level": 2,
+      "text": "Readme"
+    },
+    {
+      "level": 2,
+      "text": "Package Sidebar"
+    },
+    {
+      "level": 2,
+      "text": "Footer"
+    },
+    {
+      "level": 3,
+      "text": "Keywords"
+    },
+    {
+      "level": 3,
+      "text": "Install"
+    },
+    {
+      "level": 3,
+      "text": "Repository"
+    },
+    {
+      "level": 3,
+      "text": "Homepage"
+    },
+    {
+      "level": 3,
+      "text": "DownloadsWeekly Downloads"
+    },
+    {
+      "level": 3,
+      "text": "Version"
+    },
+    {
+      "level": 3,
+      "text": "License"
+    },
+    {
+      "level": 3,
+      "text": "Last publish"
+    },
+    {
+      "level": 3,
+      "text": "Collaborators"
+    },
+    {
+      "level": 3,
+      "text": "Support"
+    },
+    {
+      "level": 3,
+      "text": "Company"
+    },
+    {
+      "level": 3,
+      "text": "Terms & Policies"
+    }
+  ],
+  "content_md": "React is a JavaScript library for creating user interfaces.\n\nThe `react`\n\npackage contains only the functionality necessary to define React components. It is typically used together with a React renderer like `react-dom`\n\nfor the web, or `react-native`\n\nfor the native environments.\n\n**Note:** by default, React will be in development mode. The development version includes extra warnings about common mistakes, whereas the production version includes extra performance optimizations and strips all error messages. Don't forget to use the production build when deploying your application.\n\n```\nimport { useState } from 'react';\nimport { createRoot } from 'react-dom/client';\nfunction Counter() {\nconst [count, setCount] = useState(0);\nreturn (\n<>\n<h1>{count}</h1>\n<button onClick={() => setCount(count + 1)}>\nIncrement\n</button>\n</>\n);\n}\nconst root = createRoot(document.getElementById('root'));\nroot.render(<Counter />);\n```\n",
+  "fit_md": null,
+  "operator_hints": []
+}

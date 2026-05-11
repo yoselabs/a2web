@@ -1,0 +1,44 @@
+{
+  "slug": "linear-marketing",
+  "class": "C_spa",
+  "url": "https://linear.app/",
+  "a2web": {
+    "status": "failed",
+    "tier": "raw",
+    "verdict": "low",
+    "wall_ms_cli": 16872,
+    "wall_ms_internal": 14824,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 222,
+      "fit_md": 0,
+      "title": 7,
+      "byline": 6,
+      "published": 6,
+      "narrative": 14,
+      "links": 1,
+      "headings": 301,
+      "diagnostics": 1,
+      "operator_hints": 1,
+      "meta": 113,
+      "tokens": 0,
+      "url": 5,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 2,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 839,
+      "B_meta": 291,
+      "C_content_only": 247
+    },
+    "links_count": 0,
+    "headings_count": 17,
+    "content_chars": 1152,
+    "fit_equals_content": false
+  }
+}

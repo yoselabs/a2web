@@ -1,0 +1,44 @@
+{
+  "slug": "large-page",
+  "class": "E_edge",
+  "url": "https://lwn.net/Articles/991060/",
+  "a2web": {
+    "status": "failed",
+    "tier": "raw",
+    "verdict": "low",
+    "wall_ms_cli": 2659,
+    "wall_ms_internal": 803,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 36,
+      "fit_md": 0,
+      "title": 15,
+      "byline": 3,
+      "published": 6,
+      "narrative": 8,
+      "links": 1,
+      "headings": 28,
+      "diagnostics": 1,
+      "operator_hints": 1,
+      "meta": 58,
+      "tokens": 0,
+      "url": 11,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 1,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 300,
+      "B_meta": 95,
+      "C_content_only": 42
+    },
+    "links_count": 0,
+    "headings_count": 1,
+    "content_chars": 148,
+    "fit_equals_content": false
+  }
+}

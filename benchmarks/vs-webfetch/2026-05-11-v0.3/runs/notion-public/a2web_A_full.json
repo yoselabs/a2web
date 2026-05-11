@@ -1,0 +1,138 @@
+{
+  "url": "https://www.notion.com/help/intro-to-databases",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "high",
+  "title": "Intro to databases – Notion Help Center",
+  "byline": null,
+  "published": "2021-07-20",
+  "started_at": "2026-05-11T17:38:20.598440Z",
+  "total_ms": 1002,
+  "tokens": {
+    "full": 10910,
+    "fit": 0
+  },
+  "cache": "miss",
+  "narrative": "raw → ok (1.0s).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=1002",
+  "diagnostics": [],
+  "meta": {
+    "og.url": "https://www.notion.com/help/intro-to-databases",
+    "og.title": "Intro to databases – Notion Help Center",
+    "og.description": "Databases in Notion are collections of pages. Here, we'll introduce you to the general structure of a database, walk you through the different menus and options, and deep dive into how to open and edit pages within a database. 🗃",
+    "og.image": "https://www.notion.comhttps://img.youtube.com/vi/Nx114VWepoI/maxresdefault.jpg",
+    "og.locale": "en-US",
+    "og.site_name": "Notion",
+    "og.type": "website",
+    "twitter.card": "summary_large_image",
+    "twitter.site": "@NotionHQ",
+    "twitter.title": "Intro to databases – Notion Help Center",
+    "twitter.description": "Databases in Notion are collections of pages. Here, we'll introduce you to the general structure of a database, walk you through the different menus and options, and deep dive into how to open and edit pages within a database. 🗃",
+    "twitter.url": "/",
+    "twitter.image": "https://www.notion.comhttps://img.youtube.com/vi/Nx114VWepoI/maxresdefault.jpg",
+    "jsonld[0].@context": "https://schema.org",
+    "jsonld[0].@type": "BreadcrumbList"
+  },
+  "links": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Intro to databases"
+    },
+    {
+      "level": 2,
+      "text": "AI features"
+    },
+    {
+      "level": 2,
+      "text": "Explore use cases"
+    },
+    {
+      "level": 2,
+      "text": "Teams"
+    },
+    {
+      "level": 2,
+      "text": "Company size"
+    },
+    {
+      "level": 2,
+      "text": "Use Cases"
+    },
+    {
+      "level": 2,
+      "text": "Browse"
+    },
+    {
+      "level": 2,
+      "text": "Discover"
+    },
+    {
+      "level": 2,
+      "text": "Learn"
+    },
+    {
+      "level": 2,
+      "text": "Databases in Notion are collections of pages. Here, we'll introduce you to the general structure of a database, walk you through the different menus and options, and deep dive into how to open and edit pages within a database. 🗃"
+    },
+    {
+      "level": 2,
+      "text": "Create a database"
+    },
+    {
+      "level": 2,
+      "text": "Full-page vs. inline databases"
+    },
+    {
+      "level": 2,
+      "text": "Duplicate a database"
+    },
+    {
+      "level": 2,
+      "text": "Add and open database pages"
+    },
+    {
+      "level": 2,
+      "text": "Collaborating in a database"
+    },
+    {
+      "level": 2,
+      "text": "Contents"
+    },
+    {
+      "level": 3,
+      "text": "Full-page databases"
+    },
+    {
+      "level": 3,
+      "text": "Inline databases"
+    },
+    {
+      "level": 3,
+      "text": "Item options"
+    },
+    {
+      "level": 3,
+      "text": "Customize database pages"
+    },
+    {
+      "level": 3,
+      "text": "\"Can edit content\" permission level"
+    },
+    {
+      "level": 3,
+      "text": "Lock views"
+    },
+    {
+      "level": 3,
+      "text": "Was this resource helpful?"
+    },
+    {
+      "level": 3,
+      "text": "Intro to formulas"
+    }
+  ],
+  "content_md": "# Intro to databases\n\nUh-oh! It looks like your ad blocker is preventing the video from playing.\n\nPlease watch it on YouTube\n\n## Databases in Notion are collections of pages. Here, we'll introduce you to the general structure of a database, walk you through the different menus and options, and deep dive into how to open and edit pages within a database. 🗃\n\nDatabases are one of Notion’s fundamental features. They help you manage and organize multiple pages in one place. Notion databases are unique because:\n\n**Every item is its own page:**Every item you enter into your database is a Notion page. Open a database item to add more information in the form of text, images, and more, as you would with any other Notion page!**You can customize properties:**Add properties to contextualize, label, and augment any database item with things like dates, status, and links. Learn more about database properties here →**You can visualize your data in different ways:**Your data isn't limited to a table. Organize your database as a list, calendar, chart, and more**You can view multiple sets of data in one database.**For example:You can build an all-in-one CRM database where information on contacts, companies, and deals are managed all in the same database, while also being treated as separate sources of data.\n\nMaybe your team is currently managing projects and tasks in one database, and OKRs in another. You can link the OKR database in your projects and tasks database, bring all of this data into one place so you can see all of your team’s progress side by side without jumping from one part of your workspace to another.\n\n\n\nTo create a database in Notion, create a new page and under `Get started with`\n\n, select `Table`\n\n. You can also open an existing page and use the slash command `/database`\n\n.\n\nWhen you create a database, you can start from scratch or pull in data from another part of your workspace. If you want to create a database that’s a variation of another database that exists in your workspace, we suggest selecting an existing data source. Search for an existing database and then choose the one you'd like to use.\n\nNeed inspiration or help getting started? Creating a new database will also give you the option to `Build with AI`\n\nand give Notion AI a prompt to use to build you a database. You’ll also be able to choose from a `Suggested`\n\ntemplate.\n\nLet’s walk through some of the first steps you can take to set up a new database.\n\n**Create a new database page:**Click`New page`\n\nto add a new page to your database. For example, if your database is a task tracker, your first page might be the first task you want to track.**Add a property**: Give your database properties so you have more options for how to organize each page. A task tracking database might include a status property and a due date property.**Add a new view**: Views allow you to organize the information in your database in different ways. By default, your database will be displayed in Table view, but you can add as many views as you’d like.You can also use views to display data sources from across your workspace in the same database. Add a linked view of another data source, or even a view built using a new data source.\n\n\n**Edit your view**: For each view, you can edit its name, its layout, the properties that are shown or hidden in it, and more. You can also filter, sort, and group the items in your database. For example, you might want to see a task requestor in one view but not in another.\n\n### Full-page databases\n\nFull page databases appear just like any other page in your sidebar.\n\nYou can lock a full page database so that other people can't change properties and value options by selecting\n\n`•••`\n\nat the top of your database →`Lock database`\n\n.To turn a full page database into an inline database, drag the database into another page in the sidebar, which will turn it into a subpage. Then navigate into the page, and select\n\n\n→**⋮⋮**`Turn into inline`\n\n.\n\n### Inline databases\n\nControls and menus for your inline database are hidden until you hover over it.\n\nYou can expand an inline database to a full page database by selecting\n\n`⤡`\n\nat the top.You can turn an inline database into a full page database by clicking\n\n\nand dragging it into the sidebar as a top-level page.**⋮⋮**You can\n\n`Delete`\n\n,`Duplicate`\n\n, move, or copy the link to your inline database by selecting, which will appear on hover to the side.`⋮⋮`\n\nIn your sidebar, your inline database will appear as a subpage of the page it's in.\n\n\nYou can make a copy of a database.\n\n**For inline databases:**\n\nHover over the database, then select\n\n`⋮⋮`\n\n.Select\n\n`Duplicate`\n\n. You can choose to`Duplicate with content`\n\nor, if you want to use the same database setup to organize other pages,`Duplicate without content`\n\n.\n\n**For full pages:**\n\nClick the\n\n`•••`\n\nbutton in the top right.Select\n\n`Duplicate`\n\n. You can choose to`Duplicate with content`\n\nor, if you want to use the same database setup to organize other pages,`Duplicate without content`\n\n.\n\nEvery item in your database, whether it's a row in a table or a card on a board or calendar, is its own Notion page that you can build, format, and nest content in like any other page.\n\n**Note:** When a database contains more than 1,000 items, new pages may appear in the middle of the collection instead of at the end. This is due to the way large collections are sorted and indexed.\n\nTo add database items:\n\nFor all databases: Click the blue\n\n`New`\n\nbutton at the top right.For a\n\n`table`\n\n,`list`\n\nor`board`\n\n: Click`+ New`\n\nat the bottom to add a new item.For a\n\n`calendar`\n\n: Click the`+`\n\nicon that appears when you hover over any day. This creates a new event on that day.For a\n\n`gallery`\n\n: Click the`+ New`\n\nbutton in the empty card at the bottom of your gallery to add a new image frame right there.\n\nTo open database items as pages:\n\nIn\n\n`tables`\n\n, hover over your first column and click the`OPEN`\n\nbutton that appears.In\n\n`lists`\n\n, just click on the title of the item.In\n\n`boards`\n\n,`calendars`\n\n, and`galleries`\n\n, click anywhere on the card.Pages will always open in a peek preview. Click\n\n`⤡`\n\nat the top left to view in full page mode.\n\nIn this page, you'll see all your database properties at the top. Each row is one property, with a name, type, and a value. Click on the value to edit.\n\nClick the\n\n`⋮⋮`\n\nthat appears to the left of each property on hover in order to: drag it up or down, change the`Property type`\n\n, rename it,`Duplicate`\n\nor`Delete`\n\nit.\n\nUnderneath your properties is free page space, where you can add any type of content block, including sub-pages or an inline database.\n\nBecause database items are pages, any other type of content you drag into a database (like bullets or to-do items), will automatically turn into pages.\n\n\n### Item options\n\nRight click on an item to reveal a list of actions. Those actions include:\n\n`Delete`\n\n: Deletes the item from your database.`Duplicate`\n\n: Creates an exact copy of the item.`Copy link`\n\n: Copies an anchor link to that specific item to your clipboard.`Rename`\n\n: Lets you rename the page in your row without opening it.`Move to`\n\n: Lets you move the row to another workspace or page (where it will show up as a subpage).`Edit property`\n\n: Brings up a menu with all your table's properties. Click the one you want and then click the new value for it.\n\n### Customize database pages\n\nThe top section of any page in a Notion database can include several things:\n\n**Properties**provide data about the page you're looking at, like project owner, due date, tags, and more.**Comments**capture conversation between you and your teammates. You can use them to tag each other, ask questions, provide feedback and more.**Backlinks**indicate all the pages that link to the current page so you can easily navigate between them.\n\nAs with everything in Notion, you can customize the look and feel of these components. To access these options:\n\nClick the\n\n`•••`\n\nat the top right of any Notion page in a database and select`Customize page`\n\n.\n\nFor **properties**, you can use this menu to choose which property fields you want to show at the top of the page, and how. For each one, select from:\n\n**Always show:**Nothing changes, you continue to see the property field.**Hide when empty:**The property field will disappear from the top of your page if it has no value in it.**Always hide:**The property field will not show up at the top of your page.\n\nYou can also access the `Customize page`\n\nmenu by clicking the `⋮⋮`\n\nicon next to any property in the list at the top of your database page. This `⋮⋮`\n\nicon can also be clicked and dragged up or down to reorder how properties are displayed on your page.\n\n**Tip:** If you have a database with dozens of properties, hiding some properties is a great way to keep your pages clear.\n\n**Note:** When you hide properties, they get aggregated in a single menu item at the bottom of the list. You can click this to easily show any hidden properties.\n\nFor **backlinks**, you can choose:\n\n**Expanded:**See all the pages that link to the current page listed in full.**Show in popover:**In case you don't want to see all the pages, you can choose to see just the number of backlinks. Click to open a popup displaying all the pages.**Off:**Just hide all backlinks entirely.\n\nFor **comments**, you can choose to show them:\n\n**Expanded:**Show the full conversation at the top of the page.**Off:**Hide comments on the page for a minimalist view.\n\nWhen using a database in a shared workspace, Notion has features in place to prevent accidental edits that could impact other teammates.\n\n### \"Can edit content\" permission level\n\nClick `Share`\n\nat the top of a database to see and manage all users' permission levels. Learn more about sharing and permissions here →\n\nThe `Can edit content`\n\npermission level is only found on database pages, and allows users to:\n\nCreate, edit, and delete pages within the database.\n\nEdit property values for those pages.\n\n\nUsers with `Can edit content`\n\npermissions in a database will **not **be able to:\n\nAdd, edit, or remove database properties or views.\n\nChange filters or sorts.\n\nLock or unlock the database.\n\n\n**Note:** Users with `Can edit content`\n\naccess will still be able to create linked databases and edit views, sorts, and filters in that linked database. Learn more about linked databases →\n\n### Lock views\n\nFind this option in the `•••`\n\nmenu at the very top right of the Notion window. Switch it on to prevent anyone from changing properties and views in your database. They'll still be able to edit the data it contains.\n\nNote that anyone with editing access can toggle this lock on or off at any time. This is helpful as a quick safeguard against accidental edits in a database that you'd like many people to be able to change structurally.\n\nLearn more about how to optimize your databases' performance and load times here →\n",
+  "fit_md": null,
+  "operator_hints": []
+}

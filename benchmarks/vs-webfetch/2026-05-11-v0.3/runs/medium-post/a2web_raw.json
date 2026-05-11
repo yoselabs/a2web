@@ -1,0 +1,70 @@
+{
+  "url": "https://medium.com/@altimore/llms-as-cognitive-prosthetics-d3a5b7c2cba9",
+  "status": "ok",
+  "tier": "raw",
+  "confidence": "medium",
+  "title": "404",
+  "byline": null,
+  "published": "2026-04-17",
+  "started_at": "2026-05-11T17:37:45.764220Z",
+  "total_ms": 789,
+  "tokens": {
+    "full": 967,
+    "fit": 0
+  },
+  "cache": "miss",
+  "narrative": "raw → ok (789ms).",
+  "diagnostics_summary": "tier=raw verdict=ok total_ms=789",
+  "diagnostics": [],
+  "meta": {
+    "og.site_name": "Medium",
+    "twitter.app:name:iphone": "Medium",
+    "twitter.app:id:iphone": "828256236"
+  },
+  "links": [],
+  "headings": [
+    {
+      "level": 2,
+      "text": "404"
+    },
+    {
+      "level": 2,
+      "text": "Out of nothing, something."
+    },
+    {
+      "level": 4,
+      "text": "digimon is one of the most important things in my life, and i will endeavor to tell you why"
+    },
+    {
+      "level": 4,
+      "text": "digimon is one of the most important things in my life, and i will endeavor to tell you why"
+    },
+    {
+      "level": 4,
+      "text": "Coming Back to Center"
+    },
+    {
+      "level": 4,
+      "text": "Coming Back to Center"
+    },
+    {
+      "level": 4,
+      "text": "Whose wars are we allowed to forget?"
+    },
+    {
+      "level": 4,
+      "text": "Whose wars are we allowed to forget?"
+    },
+    {
+      "level": 4,
+      "text": "Minor mendings"
+    },
+    {
+      "level": 4,
+      "text": "Minor mendings"
+    }
+  ],
+  "content_md": "Sitemap\nOpen in app\nSign up\nSign in\nMedium Logo\nGet app\nWrite\nSearch\nSign up\nSign in\nPAGE NOT FOUND\n404\nOut of nothing, something.\nYou can find (just about) anything on Medium — apparently even a page that doesn’t exist. Maybe these stories will take you somewhere new?\nHome\ndigimon is one of the most important things in my life, and i will endeavor to tell you why\nDoc Burford\nMay 9, 2026\n·\n55 min read\ndigimon is one of the most important things in my life, and i will endeavor to tell you why\nDoc Burford\nMay 9, 2026\n·\n55 min read\nComing Back to Center\nNatalie Armendariz\nMay 7, 2026\n·\n5 min read\nComing Back to Center\nNatalie Armendariz\nMay 7, 2026\n·\n5 min read\nWhose wars are we allowed to forget?\nOlivia Bussey\nin Modern Women\nApr 17, 2026\n·\n8 min read\nWhose wars are we allowed to forget?\nOlivia Bussey\nin Modern Women\nApr 17, 2026\n·\n8 min read\nMinor mendings\nKarla L. Miller\nApr 29, 2026\n·\n4 min read\nMinor mendings\nKarla L. Miller\nApr 29, 2026\n·\n4 min read\n",
+  "fit_md": null,
+  "operator_hints": []
+}

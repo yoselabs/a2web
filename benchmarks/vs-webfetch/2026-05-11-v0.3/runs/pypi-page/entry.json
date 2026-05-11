@@ -1,0 +1,14 @@
+{
+  "slug": "pypi-page",
+  "url": "https://pypi.org/project/anthropic/",
+  "class": "D_structured",
+  "task": "What is this package, what is its latest version, and what is the install command?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Identifies the anthropic Python SDK",
+    "Provides a version number",
+    "Provides 'pip install anthropic' (or equivalent)"
+  ]
+}

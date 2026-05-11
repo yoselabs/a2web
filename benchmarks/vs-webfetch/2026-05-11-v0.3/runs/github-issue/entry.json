@@ -1,0 +1,14 @@
+{
+  "slug": "github-issue",
+  "url": "https://github.com/anthropics/claude-code/issues/2107",
+  "class": "D_structured",
+  "task": "What does this issue report, and what is the most recent status / conclusion?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Captures the issue's reported problem",
+    "Mentions whether the issue is open / closed / resolved if visible",
+    "Cites at least one substantive detail from the body or a comment"
+  ]
+}

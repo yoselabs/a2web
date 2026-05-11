@@ -1,0 +1,44 @@
+{
+  "slug": "notion-public",
+  "class": "C_spa",
+  "url": "https://www.notion.so/help/intro-to-databases",
+  "a2web": {
+    "status": "ok",
+    "tier": "raw",
+    "verdict": "high",
+    "wall_ms_cli": 2994,
+    "wall_ms_internal": 1002,
+    "from_archive": false,
+    "from_browser": false,
+    "field_tokens": {
+      "content_md": 2458,
+      "fit_md": 0,
+      "title": 8,
+      "byline": 0,
+      "published": 6,
+      "narrative": 9,
+      "links": 1,
+      "headings": 383,
+      "diagnostics": 1,
+      "operator_hints": 1,
+      "meta": 295,
+      "tokens": 13,
+      "url": 12,
+      "status": 1,
+      "tier": 1,
+      "confidence": 1,
+      "cache": 1,
+      "total_ms": 2,
+      "started_at": 16
+    },
+    "variant_tokens": {
+      "A_full": 3589,
+      "B_meta": 2779,
+      "C_content_only": 2732
+    },
+    "links_count": 0,
+    "headings_count": 24,
+    "content_chars": 10910,
+    "fit_equals_content": false
+  }
+}

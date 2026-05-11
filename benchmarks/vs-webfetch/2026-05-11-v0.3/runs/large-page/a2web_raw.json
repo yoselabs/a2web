@@ -1,0 +1,32 @@
+{
+  "url": "https://lwn.net/Articles/991060/",
+  "status": "failed",
+  "tier": "raw",
+  "confidence": "low",
+  "title": "openSUSE Tumbleweed Review of the Week (September 20)",
+  "byline": "[Posted September",
+  "published": "2024-09-22",
+  "started_at": "2026-05-11T17:38:41.331676Z",
+  "total_ms": 803,
+  "tokens": null,
+  "cache": "miss",
+  "narrative": "raw → length_floor (803ms).",
+  "diagnostics_summary": "tier=raw verdict=length_floor total_ms=803",
+  "diagnostics": [],
+  "meta": {
+    "og.title": "openSUSE Tumbleweed Review of the Week (September 20)",
+    "og.site_name": "LWN.net",
+    "og.type": "article",
+    "og.description": "  openSUSE Tumbleweed Review of the Week September 20  "
+  },
+  "links": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "openSUSE Tumbleweed Review of the Week (September 20)"
+    }
+  ],
+  "content_md": "\nCopyright © 2024, Eklektix, Inc. Comments and public postings are copyrighted by their creators. Linux is a registered trademark of Linus Torvalds\n",
+  "fit_md": null,
+  "operator_hints": []
+}

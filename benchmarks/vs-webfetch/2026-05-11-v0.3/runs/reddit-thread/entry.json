@@ -1,0 +1,14 @@
+{
+  "slug": "reddit-thread",
+  "url": "https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/",
+  "class": "B_gated",
+  "task": "What is the original post about, and what is the dominant sentiment in the comments?",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Identifies that the post is about state of software engineering / AI's impact on jobs in 2026",
+    "Captures any comment-thread sentiment (e.g. cautious, doom, pragmatic, mixed)",
+    "Does NOT only describe a login wall / CF block page"
+  ]
+}

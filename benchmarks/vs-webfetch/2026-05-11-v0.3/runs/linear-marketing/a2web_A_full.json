@@ -1,0 +1,101 @@
+{
+  "url": "https://linear.app/",
+  "status": "failed",
+  "tier": "raw",
+  "confidence": "low",
+  "title": "Linear – The system for product development",
+  "byline": "Gabriel Peal OpenAI",
+  "published": "2020-12-03",
+  "started_at": "2026-05-11T17:37:58.037040Z",
+  "total_ms": 14824,
+  "tokens": null,
+  "cache": "miss",
+  "narrative": "raw → block_page_detected:cf_iuam (14s).",
+  "diagnostics_summary": "tier=raw verdict=block_page_detected total_ms=14824 extras=cf_iuam",
+  "diagnostics": [],
+  "meta": {
+    "og.title": "Linear – The system for product development",
+    "og.description": "Purpose-built for planning and building products with AI agents.",
+    "og.image": "https://linear.app/static/og/homepage.jpg",
+    "twitter.card": "summary_large_image",
+    "twitter.site": "@linear",
+    "twitter.creator": "@linear",
+    "twitter.title": "Linear – The system for product development",
+    "twitter.description": "Purpose-built for planning and building products with AI agents.",
+    "twitter.image": "https://linear.app/static/og/homepage.jpg"
+  },
+  "links": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "The productdevelopmentsystem for teamsand agentsThe product developmentsystem for teams and agentsThe product development system for teams and agents"
+    },
+    {
+      "level": 2,
+      "text": "A new species of product tool. Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products."
+    },
+    {
+      "level": 2,
+      "text": "Make product \noperations self-driving"
+    },
+    {
+      "level": 2,
+      "text": "Define the \nproduct direction"
+    },
+    {
+      "level": 2,
+      "text": "Move work forward \nacross teams and agents"
+    },
+    {
+      "level": 2,
+      "text": "Review PRs and agent output"
+    },
+    {
+      "level": 2,
+      "text": "Understand \nprogress at scale"
+    },
+    {
+      "level": 2,
+      "text": "Changelog"
+    },
+    {
+      "level": 2,
+      "text": "Built for the future. Available today."
+    },
+    {
+      "level": 3,
+      "text": "Faster app launch"
+    },
+    {
+      "level": 3,
+      "text": "Product"
+    },
+    {
+      "level": 3,
+      "text": "Features"
+    },
+    {
+      "level": 3,
+      "text": "Company"
+    },
+    {
+      "level": 3,
+      "text": "Resources"
+    },
+    {
+      "level": 3,
+      "text": "Connect"
+    },
+    {
+      "level": 3,
+      "text": "Legal"
+    },
+    {
+      "level": 4,
+      "text": "Activity"
+    }
+  ],
+  "content_md": "# The product development system for teams and agents\n\nPurpose-built for planning and building products. Designed for the AI era.\n\n**A new species of product tool.** Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products.\n\n## Make product operations self-driving\n\nTurn conversations and customer feedback into actionable issues that are routed, labeled, and prioritized for the right team.\n\nThread in #feedback\n\n## Define the product direction\n\nPlan and navigate from idea to launch. Align your team with product initiatives, strategic roadmaps, and clear, up-to-date PRDs.\n\n## Move work forward across teams and agents\n\nBuild and deploy AI agents that work alongside your team. Work on complex tasks together or delegate entire issues end-to-end.\n\n## Review PRs and agent output\n\nUnderstand code changes at a glance with structural diffs for human and agent output. Review, discuss, and merge — all within Linear.\n\n## Understand progress at scale\n\nTake the guesswork out of product development with project updates, analytics, and dashboards that surface what needs your attention.\n",
+  "fit_md": null,
+  "operator_hints": []
+}

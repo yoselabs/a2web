@@ -1,0 +1,14 @@
+{
+  "slug": "x-post",
+  "url": "https://x.com/karpathy/status/1759031023815639423",
+  "class": "B_gated",
+  "task": "What does Karpathy say in this post? Capture the gist.",
+  "needs": [
+    "content_only"
+  ],
+  "criteria": [
+    "Captures the substantive content of Karpathy's post",
+    "Is not only 'log in to view' or 'something went wrong'",
+    "Identifies who posted (Karpathy)"
+  ]
+}
