@@ -1,53 +1,877 @@
-# Extraction-quality corpus for the Reader-LM v2 trip decision.
+# Extraction-quality corpus — Reader-LM v2 trip decision (v0.6.0 starter).
 #
-# Goal: measure whether trafilatura + readability (a2web's current
-# extraction pipeline) miss enough content to justify a Reader-LM v2
-# fallback tier.
+# Honest caveat about how this gold was built: each gold_md was produced
+# by Claude WebFetch with a "extract main content as clean markdown,
+# drop nav/footer/sidebar" prompt. That's LLM-summarized, not raw
+# hand-edit — which means:
+#   - It's biased toward what a capable LLM thinks the clean content is
+#   - Wikipedia / longer pages got light paraphrasing in places
+#   - Trafilatura might score "low" against this gold yet still produce
+#     a perfectly valid extraction — that's a "gold is wrong" signal,
+#     not an extraction miss
 #
-# Trip condition (default): ≥10% of URLs scoring below 0.7 token-F1
-# against the gold_md → recommend Reader-LM v2.
+# Recommended workflow:
+#   1. Run the eval once
+#   2. For any URL with token_f1 < 0.7 AND length_ratio in [0.8, 1.2]:
+#      open the URL and the extracted markdown side-by-side; if the
+#      extraction is fine, edit gold_md to match it
+#   3. For URLs where extracted is clearly under (<<0.8) or over (>>1.2)
+#      length, gold is the source of truth; trafilatura missed
+#   4. Re-run until the corpus is calibrated, THEN trust the trip verdict
 #
-# Recommended corpus size: 50-100 URLs. Spread classes so the trip
-# decision can be made per-class (e.g., longform_news might trip
-# while docs doesn't).
+# Coverage gaps to fill manually:
+#   - forum (HN thread, Reddit thread) — WebFetch didn't return useful data
+#   - js_heavy_news (paywalled NYT/WSJ) — pick a few and hand-curate
+#   - spa (Notion public, Linear public) — pick a few
 #
-# Classes (suggested, not enforced):
-#   longform_news    — NYT, WSJ, Atlantic, Guardian
-#   blog             — Substack, personal blogs, Medium
-#   docs             — MDN, RTFD, framework docs
-#   forum            — HN comment threads, Reddit, Stack Overflow
-#   aggregator       — PyPI listings, GitHub trending, awesome-lists
-#   spa              — Notion public, Linear public, GitBook
-#   js_heavy_news    — paywalled / anti-bot news (escalates to archive)
-#
-# Workflow per URL:
-#   1. Curl + manual edit → clean markdown for gold_md
-#   2. Run: uv run python -m a2web.llm_eval.extraction_cli corpus.yaml
-#   3. Inspect per-URL scores; iterate gold_md if extraction beats your
-#      hand edit (legitimate sign your gold was too aggressive)
-#
-# Replace these placeholders with real entries before running.
+# Class taxonomy used here:
+#   essay              — long-form thought pieces (PG, Fowler)
+#   blog               — personal/company blog posts
+#   docs_reference     — API reference docs (MDN, Python stdlib)
+#   docs_encyclopedia  — Wikipedia-style
+#   aggregator         — listings (HN front, PyPI page, GitHub repo)
 
 urls:
-  - slug: example-longform
-    url: https://example.com/sample-article
-    class: longform_news
+  - slug: pg-hackers-painters
+    url: https://www.paulgraham.com/hp.html
+    class: essay
     gold_md: |
-      # Replace this with the hand-edited gold markdown
+      # Hackers and Painters
 
-      Body paragraphs as they should appear after extraction. Include
-      blockquotes, lists, code blocks. Drop nav/footer/ads/related
-      links — gold is the clean reading view.
+      May 2003
 
-      ## Subhead
+      _(This essay is derived from a guest lecture at Harvard, which incorporated an earlier talk at Northeastern.)_
 
-      More body.
+      When I finished grad school in computer science I went to art school to study painting. A lot of people seemed surprised that someone interested in computers would also be interested in painting. They seemed to think that hacking and painting were very different kinds of work-- that hacking was cold, precise, and methodical, and that painting was the frenzied expression of some primal urge.
 
-  # - slug: hn-thread-example
-  #   url: https://news.ycombinator.com/item?id=...
-  #   class: forum
-  #   gold_md: |
-  #     # Story title
-  #
-  #     Top-level comments and their threading. Trim deep-nested
-  #     replies if you'd skim them as a reader.
+      Both of these images are wrong. Hacking and painting have a lot in common. In fact, of all the different types of people I've known, hackers and painters are among the most alike.
+
+      What hackers and painters have in common is that they're both makers. Along with composers, architects, and writers, what hackers and painters are trying to do is make good things. They're not doing research per se, though if in the course of trying to make good things they discover some new technique, so much the better.
+
+      I've never liked the term "computer science." The main reason I don't like it is that there's no such thing. Computer science is a grab bag of tenuously related areas thrown together by an accident of history, like Yugoslavia. At one end you have people who are really mathematicians, but call what they're doing computer science so they can get DARPA grants. In the middle you have people working on something like the natural history of computers-- studying the behavior of algorithms for routing data through networks, for example. And then at the other extreme you have the hackers, who are trying to write interesting software, and for whom computers are just a medium of expression, as concrete is for architects or paint for painters.
+
+      Sometimes what the hackers do is called "software engineering," but this term is just as misleading. Good software designers are no more engineers than architects are. The border between architecture and engineering is not sharply defined, but it's there. It falls between what and how: architects decide what to do, and engineers figure out how to do it.
+
+      What and how should not be kept too separate. You're asking for trouble if you try to decide what to do without understanding how to do it. But hacking can certainly be more than just deciding how to implement some spec. At its best, it's creating the spec-- though it turns out the best way to do that is to implement it.
+
+      In the best case, the papers are just a formality. Hackers write cool software, and then write a paper about it, and the paper becomes a proxy for the achievement represented by the software. But often this mismatch causes problems. It's easy to drift away from building beautiful things toward building ugly things that make more suitable subjects for research papers.
+
+      The way to create something beautiful is often to make subtle tweaks to something that already exists, or to combine existing ideas in a slightly new way. This kind of work is hard to convey in a research paper.
+
+      So why do universities and research labs continue to judge hackers by publications? For the same reason that "scholastic aptitude" gets measured by simple-minded standardized tests, or the productivity of programmers gets measured in lines of code. These tests are easy to apply, and there is nothing so tempting as an easy test that kind of works.
+
+      The only external test is time. Over time, beautiful things tend to thrive, and ugly things tend to get discarded. Unfortunately, the amounts of time involved can be longer than human lifetimes.
+
+      Hackers need to understand the theory of computation about as much as painters need to understand paint chemistry. You need to know how to calculate time and space complexity and about Turing completeness. You might also want to remember at least the concept of a state machine, in case you have to write a parser or a regular expression library. Painters in fact have to remember a good deal more about paint chemistry than that.
+
+      I've found that the best sources of ideas are not the other fields that have the word "computer" in their names, but the other fields inhabited by makers. Painting has been a much richer source of ideas than the theory of computation.
+
+      For example, I was taught in college that one ought to figure out a program completely on paper before even going near a computer. I found that I did not program this way. I found that I liked to program sitting in front of a computer, not a piece of paper. Worse still, instead of patiently writing out a complete program and assuring myself it was correct, I tended to just spew out code that was hopelessly broken, and gradually beat it into shape. Debugging, I was taught, was a kind of final pass where you caught typos and oversights. The way I worked, it seemed like programming consisted of debugging.
+
+      Realizing this has real implications for software design. It means that a programming language should, above all, be malleable. A programming language is for thinking of programs, not for expressing programs you've already thought of. It should be a pencil, not a pen.
+
+      A page of formulas just looks so impressive. And so there is a great temptation to work on problems you can treat formally, rather than problems that are, say, important.
+
+      If hackers identified with other makers, like writers and painters, they wouldn't feel tempted to do this. Writers and painters don't suffer from math envy. They feel as if they're doing something completely unrelated.
+
+      Universities and research labs force hackers to be scientists, and companies force them to be engineers.
+
+      The place to fight design wars is in new markets, where no one has yet managed to establish any fortifications. That's where you can win big by taking the bold approach to design, and having the same people both design and implement the product.
+
+      So one way to build great software is to start your own startup. There are two problems with this, though. One is that in a startup you have to do so much besides write software. The other problem with startups is that there is not much overlap between the kind of software that makes money and the kind that's interesting to write.
+
+      I think the answer to this problem, in the case of software, is a concept known to nearly all makers: the day job.
+
+      Because hackers are makers rather than scientists, the right place to look for metaphors is not in the sciences, but among other kinds of makers. What else can painting teach us about hacking?
+
+      One thing we can learn, or at least confirm, from the example of painting is how to learn to hack. You learn to paint mostly by doing it. Ditto for hacking. Most hackers don't learn to hack by taking college courses in programming. They learn to hack by writing programs of their own at age thirteen.
+
+      Hackers, likewise, can learn to program by looking at good programs-- not just at what they do, but the source code too. One of the less publicized benefits of the open-source movement is that it has made it easier to learn to program.
+
+      Another example we can take from painting is the way that paintings are created by gradual refinement. Paintings usually begin with a sketch. Gradually the details get filled in. But it is not merely a process of filling in.
+
+      The right tools can help us avoid this danger. A good programming language should, like oil paint, make it easy to change your mind.
+
+      Great software, likewise, requires a fanatical devotion to beauty. If you look inside good software, you find that parts no one is ever supposed to see are beautiful too.
+
+      In hacking, like painting, work comes in cycles. Sometimes you get excited about some new project and you want to work sixteen hours a day on it. Other times nothing seems interesting.
+
+      The example of painting can teach us not only how to manage our own work, but how to work together.
+
+      Like painting, most software is intended for a human audience. And so hackers, like painters, must have empathy to do really great work. You have to be able to see things from the user's point of view.
+
+      Empathy is probably the single most important difference between a good hacker and a great one. Some hackers are quite smart, but when it comes to empathy are practically solipsists. It's hard for such people to design great software, because they can't see things from the user's point of view.
+
+      Part of what software has to do is explain itself. So to write good software you have to understand how little users understand.
+
+      Source code, too, should explain itself. If I could get people to remember just one quote about programming, it would be the one at the beginning of Structure and Interpretation of Computer Programs.
+
+      > Programs should be written for people to read, and only incidentally for machines to execute.
+
+      So, if hacking works like painting and writing, is it as cool? After all, you only get one life. You might as well spend it working on something great.
+
+      What we can say with some confidence is that these are the glory days of hacking.
+
+  - slug: danluu-postmortem-lessons
+    url: https://danluu.com/postmortem-lessons/
+    class: blog
+    gold_md: |
+      # Reading postmortems
+
+      I love reading postmortems. They're educational, but unlike most educational docs, they tell an entertaining story. I've spent a decent chunk of time reading postmortems at both Google and Microsoft.
+
+      ## Error Handling
+
+      Proper error handling code is hard. Bugs in error handling code are a major cause of bad problems. This means that the probability of having sequential bugs, where an error causes buggy error handling code to run, isn't just the independent probabilities of the individual errors multiplied. It's common to have cascading failures cause a serious outage.
+
+      For more on this, Ding Yuan et al. have a great paper and talk: Simple Testing Can Prevent Most Critical Failures: An Analysis of Production Failures in Distributed Data-Intensive Systems. The authors define a critical failure as something that can take down a whole cluster or cause data corruption, and then look at a couple hundred bugs in Cassandra, HBase, HDFS, MapReduce, and Redis, to find 48 critical failures. They then look at the causes of those failures and find that most bugs were due to bad error handling. 92% of those failures are actually from errors that are handled incorrectly.
+
+      Drilling down further, 25% of bugs are from simply ignoring an error, 8% are from catching the wrong exception, 2% are from incomplete TODOs, and another 23% are easily detectable.
+
+      ## Configuration
+
+      Configuration bugs, not code bugs, are the most common cause I've seen of really bad outages. When I looked at publicly available postmortems, searching for "global outage postmortem" returned about 50% outages caused by configuration changes.
+
+      Except in extreme emergencies, risky code changes are basically never simultaneously pushed out to all machines because of the risk of taking down a service company-wide. But it seems that every company has to learn the hard way that seemingly benign config changes can also cause a company-wide service outage.
+
+      Back in 1985, Jim Gray observed that operator actions, system configuration, and system maintenance was the main source of failures — 42%. Since then, there have been a variety of studies that have found similar results.
+
+      ## Hardware
+
+      Basically every part of a machine can fail. Many components can also cause data corruption, often at rates that are much higher than advertised. For example, Schroeder, Pinherio, and Weber found DRAM error rates were more than an order of magnitude worse than advertised.
+
+      Failover from bad components can also fail. Despite taking reasonable sounding measures to regularly test the generator power failover process, a substantial fraction of AWS East went down when a storm took out power and a set of backup generators failed.
+
+      ## Humans
+
+      This section should probably be called process error and not human error since I consider having humans in a position where they can accidentally cause a catastrophic failure to be a process bug. It's generally accepted that, if you're running large scale systems, you have to have systems that are robust to hardware failures. But humans are even more error prone than machines.
+
+      Postmortems that start with "Because this was a high risk operation, foobar high risk protocol was used" are ubiquitous enough that I now think of extra human-operated steps that are done to mitigate human risk as an ops smell.
+
+      ## Monitoring / Alerting
+
+      The lack of proper monitoring is never the sole cause of a problem, but it's often a serious contributing factor. As is the case for human errors, these seem underrepresented in public postmortems. When I talk to folks at other companies about their worst near disasters, a large fraction of them come from not having the right sort of alerting set up.
+
+      The Northeast blackout of 2003 is a great example of this. It could have been a minor outage, or even just a minor service degradation, but a series of missed alerts caused it to become one of the worst power outages ever.
+
+      ## Not a Conclusion
+
+      This is where the conclusion's supposed to be, but I'd really like to do some serious data analysis before writing some kind of conclusion or call to action.
+
+      One day, I'll get around to the serious analysis, but even without going through and classifying thousands of postmortems, I'll probably do a few things differently as a result of having read a bunch of these. I'll spend relatively more time during my code reviews on errors and error handling code, and relatively less time on the happy path.
+
+      One of the things I find to be curious about these failure modes is that when I talked about what I found with other folks, at least one person told me that each process issue I found was obvious. But these "obvious" things still cause a lot of failures.
+
+  - slug: simonwillison-llms-2024
+    url: https://simonwillison.net/2024/Dec/31/llms-in-2024/
+    class: blog
+    gold_md: |
+      # Things we learned about LLMs in 2024
+
+      A lot has happened in the world of Large Language Models over the course of 2024. Here's a review of things we figured out about the field in the past twelve months.
+
+      ## The GPT-4 barrier was comprehensively broken
+
+      In my December 2023 review I wrote about how no other AI lab had yet managed to release a model that beat the original GPT-4 model from March 2023. OpenAI weren't doing great either, with GPT-4o coming up short.
+
+      This is no longer the case. Eighteen organizations now have models on the Chatbot Arena Leaderboard that rank higher than the original GPT-4 from March 2023. 70 models in total now beat that score.
+
+      Google's Gemini 1.5 Pro from February. As well as producing GPT-4 level outputs, it introduced 1 million (and then later 2 million) token input context length, and the ability to input video.
+
+      An interesting consequence of the increased context length is that everyone now seems to have moved past 8K tokens. Most serious providers now offer 100K+ token models. Gemini's 2M tokens really helps push the boundary here.
+
+      ## Some of those GPT-4 models run on my laptop
+
+      My personal laptop is a 64GB M2 MacBook Pro from 2023. It's a powerful machine, but it's also nearly two years old now—and crucially it's the same laptop I've been using ever since I first ran an LLM on my computer back in March 2023.
+
+      I can now run a GPT-4 class model on my laptop. Multiple, in fact. Meta's Llama 3.3 70B and Qwen2.5-Coder-32B both run on my computer just fine.
+
+      This stuff is genuinely surprising to me. We had assumed that models with the capabilities of GPT-4 and Claude 3 Opus required hundreds of gigabytes of VRAM. These models are now occupying 64GB or less of memory.
+
+      ## LLM prices crashed, thanks to competition and increased efficiency
+
+      The token price for the top tier hosted LLMs has crashed over the past twelve months.
+
+      OpenAI's most expensive model 12 months ago was GPT-4 at $30/million input tokens. Today $30 will buy you 1000x the volume of GPT-4o output.
+
+      Google's Gemini 1.5 Flash 8B (released in October) is at $0.0375/million input tokens — almost 200x cheaper than GPT-4, and 27x cheaper than GPT-3.5.
+
+      The environmental impact of running prompts has dropped enormously. Even if these companies are wildly overcharging today and they could be selling these prompts for 10x cheaper still, the resources required to actually generate a prompt have dropped quite considerably.
+
+      ## Multimodal vision is common, audio and video are starting to emerge
+
+      The biggest innovation here is multi-modal LLMs. A year ago the only notable example was GPT-4 Vision. Today almost every serious provider has multi-modal models. Google's Gemini, Anthropic's Claude, OpenAI's GPT-4o, Meta's Llama 3.2 — they all support image inputs now.
+
+      Audio and video are now starting to emerge. Several models can accept audio input now, including OpenAI's gpt-4o-audio-preview model. Video input support is starting to land too — Google's Gemini AI Studio offers it for free at the time of writing.
+
+      ## Voice and live camera mode are science fiction come to life
+
+      The audio and live video modes that have started to appear are worth special attention.
+
+      The ability to talk to ChatGPT first launched in September 2023, but it was mostly an illusion: OpenAI used their excellent Whisper speech-to-text model and a new text-to-speech model to enable conversations.
+
+      The new Advanced Voice mode that arrived in August built that audio input directly into the model. Native multi-modal voice has so many possibilities for interactive applications.
+
+      ## Prompt driven app generation is a commodity already
+
+      One feature that took me by surprise this year was Claude Artifacts, launched in June. This lets Claude write and run web applications for you on demand—it's a remarkable example of what's possible with prompt-driven application generation.
+
+      ## "Agents" still haven't really happened yet
+
+      I find the term "agents" extremely frustrating. It lacks a single, clear and widely understood meaning. People who use the term often have a model in their heads that's some kind of LLM that books things for them (travel, dinners, hotels), but in many contexts it's used to mean something more like an LLM that has access to tools and can run those tools in a loop as part of solving a problem.
+
+      No matter which definition we end up with, I don't think we've actually "got" agents yet.
+
+      ## Evals really matter
+
+      Building automated evals — measurements of how well your LLM-driven workflow performs — has emerged as one of the most important skill sets when working with LLMs.
+
+      Companies that get good at evals develop a huge advantage. Anyone who can get good at writing automated evals is in a position to ship LLM-driven features and improvements much faster.
+
+      ## The rise of inference-scaling reasoning models
+
+      OpenAI introduced o1 in September—a new approach to building LLMs that involves spending more compute time on inference. The model uses extra time to "think" about the problem before responding.
+
+      This represents a new dimension for scaling LLM capabilities — adding more compute at inference time rather than just at training time.
+
+      ## Was the best currently available LLM trained in China for less than $6m?
+
+      DeepSeek v3 is a huge 685B parameter model — released on December 25th 2024 — that's one of the largest and best open weights models I've seen. It ranks as the 7th best model on the Chatbot Arena.
+
+      The DeepSeek v3 paper claims its training cost was $5.58 million, based on 2.788M H800 hours. The reasonable extrapolation is that the actual cost was nowhere near that — but it's still going to be a fraction of what it cost to train Llama 3.1 405B.
+
+      ## The year of slop
+
+      "Slop" emerged as a great way to describe unrequested and unreviewed AI-generated content—just as "spam" became the standard term for unwanted email.
+
+      I like slop because it captures one of the ways we should NOT be using generative AI.
+
+      ## Synthetic training data works great
+
+      I think the biggest news this year was the consensus emerging that training on synthetic data really does work. Concerns about model collapse from too much AI-generated content in training data have not materialized.
+
+      ## LLMs somehow got even harder to use
+
+      The above is a long list of reasons to be excited. It's still really hard to use LLMs effectively. Building applications powered by LLMs is hard work. Understanding what they can and can't do is hard.
+
+      The challenge for users of LLMs is figuring out what they're good at, what they're bad at, and when (and when not) to use them.
+
+  - slug: mdn-array-map
+    url: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+    class: docs_reference
+    gold_md: |
+      # Array.prototype.map()
+
+      The `map()` method of Array instances creates a new array populated with the results of calling a provided function on every element in the calling array.
+
+      ## Syntax
+
+      ```javascript
+      map(callbackFn)
+      map(callbackFn, thisArg)
+      ```
+
+      ## Parameters
+
+      `callbackFn` — A function to execute for each element in the array. Its return value is added as a single element in the new array. The function is called with the following arguments:
+
+      - `element` — The current element being processed in the array.
+      - `index` — The index of the current element being processed in the array.
+      - `array` — The array `map()` was called upon.
+
+      `thisArg` (Optional) — A value to use as `this` when executing `callbackFn`.
+
+      ## Return value
+
+      A new array with each element being the result of the callback function.
+
+      ## Description
+
+      The `map()` method is an iterative method. It calls a provided `callbackFn` function once for each element in an array and constructs a new array from the results.
+
+      `callbackFn` is invoked only for array indexes which have assigned values. It is not invoked for empty slots in sparse arrays.
+
+      The `map()` method is a copying method. It does not alter `this`. However, the function provided as `callbackFn` can mutate the array.
+
+      Since `map` builds a new array, calling it without using the returned array is an anti-pattern; use `forEach` or `for...of` instead.
+
+      ## Examples
+
+      ### Mapping an array of numbers to an array of square roots
+
+      The following code takes an array of numbers and creates a new array containing the square roots of the numbers in the first array.
+
+      ```javascript
+      const numbers = [1, 4, 9];
+      const roots = numbers.map((num) => Math.sqrt(num));
+      // roots is now     [1, 2, 3]
+      // numbers is still [1, 4, 9]
+      ```
+
+      ### Using map to reformat objects in an array
+
+      ```javascript
+      const kvArray = [
+        { key: 1, value: 10 },
+        { key: 2, value: 20 },
+        { key: 3, value: 30 },
+      ];
+
+      const reformattedArray = kvArray.map(({ key, value }) => ({ [key]: value }));
+
+      console.log(reformattedArray); // [{ 1: 10 }, { 2: 20 }, { 3: 30 }]
+      ```
+
+      ### Using parseInt() with map()
+
+      It is common to use the callback with one argument (the element being traversed). Certain functions are also commonly used with one argument, even though they take additional optional arguments. These habits may lead to confusing behaviors.
+
+      ```javascript
+      ["1", "2", "3"].map(parseInt);
+      ```
+
+      While one might expect `[1, 2, 3]`, the actual result is `[1, NaN, NaN]`.
+
+      `parseInt` is often used with one argument, but takes two. The second is the radix — to the callback function, `Array.prototype.map` passes 3 arguments: the element, the index, and the array.
+
+      To avoid this, define a wrapper function:
+
+      ```javascript
+      ["1", "2", "3"].map((str) => parseInt(str, 10)); // [1, 2, 3]
+      ["1", "2", "3"].map(Number); // [1, 2, 3]
+      ```
+
+      ### Using the third argument of callbackFn
+
+      The `array` argument is useful if you want to access another element in the array, especially when you don't have an existing variable that refers to the array.
+
+      ```javascript
+      const numbers = [3, -1, 1, 4, 1, 5, 9, 2, 6];
+      const averaged = numbers
+        .filter((num) => num > 0)
+        .map((num, idx, arr) => {
+          const prev = arr[idx - 1];
+          const next = arr[idx + 1];
+          let count = 1;
+          let total = num;
+          if (prev !== undefined) {
+            count++;
+            total += prev;
+          }
+          if (next !== undefined) {
+            count++;
+            total += next;
+          }
+          return Math.round((total / count) * 100) / 100;
+        });
+      console.log(averaged);
+      ```
+
+      ### Mapping with synchronous iteration
+
+      ```javascript
+      console.log(
+        [1, , 3].map((x, index) => {
+          console.log(`Visit ${index}`);
+          return x * 2;
+        }),
+      );
+      ```
+
+      `map()` does not visit empty slots, but it does preserve them in the resulting array. The output shows `Visit 0` and `Visit 2` but not `Visit 1`.
+
+      ### Using map() on non-array objects
+
+      The `map()` method reads the length property of `this` and then accesses each property whose key is a nonnegative integer less than length.
+
+      ```javascript
+      const arrayLike = {
+        length: 3,
+        0: 2,
+        1: 3,
+        2: 4,
+      };
+      console.log(Array.prototype.map.call(arrayLike, (x) => x ** 2));
+      // [ 4, 9, 16 ]
+      ```
+
+  - slug: python-asyncio-tasks
+    url: https://docs.python.org/3/library/asyncio-task.html
+    class: docs_reference
+    gold_md: |
+      # Coroutines and Tasks
+
+      This section outlines high-level asyncio APIs to work with coroutines and Tasks.
+
+      ## Coroutines
+
+      Coroutines declared with the async/await syntax is the preferred way of writing asyncio applications.
+
+      ```python
+      import asyncio
+
+      async def main():
+          print('hello')
+          await asyncio.sleep(1)
+          print('world')
+
+      asyncio.run(main())
+      ```
+
+      To actually run a coroutine, asyncio provides the following mechanisms:
+
+      - The `asyncio.run()` function to run the top-level entry point.
+      - Awaiting on a coroutine.
+      - The `asyncio.create_task()` function to run coroutines concurrently as asyncio Tasks.
+      - The `asyncio.TaskGroup` class. Added in version 3.11.
+
+      ## Awaitables
+
+      An object is an awaitable object if it can be used in an `await` expression. There are three main types: coroutines, Tasks, and Futures.
+
+      ### Coroutines
+
+      Python coroutines are awaitables and can be awaited from other coroutines.
+
+      ```python
+      import asyncio
+
+      async def nested():
+          return 42
+
+      async def main():
+          print(await nested())
+      ```
+
+      ### Tasks
+
+      Tasks are used to schedule coroutines concurrently. When a coroutine is wrapped into a Task with functions like `asyncio.create_task()` the coroutine is automatically scheduled to run soon.
+
+      ### Futures
+
+      A Future is a special low-level awaitable object that represents an eventual result of an asynchronous operation. Normally there is no need to create Future objects at the application level.
+
+      ## Creating Tasks
+
+      ### asyncio.create_task(coro, *, name=None, context=None)
+
+      Wrap the coro coroutine into a Task and schedule its execution. Return the Task object.
+
+      Save a reference to the result of this function, to avoid a task disappearing mid-execution.
+
+      An example of a fire-and-forget background task:
+
+      ```python
+      background_tasks = set()
+
+      for i in range(10):
+          task = asyncio.create_task(some_coro(param=i))
+          background_tasks.add(task)
+          task.add_done_callback(background_tasks.discard)
+      ```
+
+      ## Task Cancellation
+
+      Tasks can easily and safely be cancelled. When a task is cancelled, `asyncio.CancelledError` will be raised in the task at the next opportunity.
+
+      It is recommended that coroutines use `try/finally` blocks to robustly perform clean-up logic.
+
+      ```python
+      async def cancel_me():
+          print('cancel_me(): before sleep')
+          try:
+              await asyncio.sleep(3600)
+          except asyncio.CancelledError:
+              print('cancel_me(): cancel sleep')
+              raise
+          finally:
+              print('cancel_me(): after sleep')
+
+      async def main():
+          task = asyncio.create_task(cancel_me())
+          await asyncio.sleep(1)
+          task.cancel()
+          try:
+              await task
+          except asyncio.CancelledError:
+              print("main(): cancel_me is cancelled now")
+
+      asyncio.run(main())
+      ```
+
+      ## Task Groups
+
+      Task groups combine a task creation API with a convenient and reliable way to wait for all tasks in the group to finish.
+
+      ### class asyncio.TaskGroup
+
+      An asynchronous context manager holding a group of tasks. Tasks can be added to the group using `create_task()`. All tasks are awaited when the context manager exits.
+
+      ```python
+      async def main():
+          async with asyncio.TaskGroup() as tg:
+              task1 = tg.create_task(some_coro(...))
+              task2 = tg.create_task(another_coro(...))
+          print(f"Both tasks have completed now: {task1.result()}, {task2.result()}")
+      ```
+
+      The `async with` statement will wait for all tasks in the group to finish. While waiting, new tasks may still be added to the group. Once the last task has finished and the async with block is exited, no new tasks may be added to the group.
+
+      The first time any of the tasks belonging to the group fails with an exception other than `asyncio.CancelledError`, the remaining tasks in the group are cancelled.
+
+      ## Sleeping
+
+      ### coroutine asyncio.sleep(delay, result=None)
+
+      Block for `delay` seconds. If `result` is provided, it is returned to the caller when the coroutine completes.
+
+      ## Running Tasks Concurrently
+
+      ### awaitable asyncio.gather(*aws, return_exceptions=False)
+
+      Run awaitable objects in the aws sequence concurrently.
+
+      If any awaitable in aws is a coroutine, it is automatically scheduled as a Task. If all awaitables are completed successfully, the result is an aggregate list of returned values. The order of result values corresponds to the order of awaitables in aws.
+
+      If `return_exceptions` is False (default), the first raised exception is immediately propagated to the task that awaits on `gather()`.
+
+      ## Timeouts
+
+      ### asyncio.timeout(delay)
+
+      Return an asynchronous context manager that can be used to limit the amount of time spent waiting on something.
+
+      ```python
+      async def main():
+          async with asyncio.timeout(10):
+              await long_running_task()
+      ```
+
+      If `long_running_task` takes more than 10 seconds to complete, the context manager will cancel the current task and handle the resulting `asyncio.CancelledError` internally, transforming it into a `TimeoutError`.
+
+      ### coroutine asyncio.wait_for(aw, timeout)
+
+      Wait for the aw awaitable to complete with a timeout.
+
+      ## Waiting Primitives
+
+      ### coroutine asyncio.wait(aws, *, timeout=None, return_when=ALL_COMPLETED)
+
+      Run Future and Task instances concurrently and block until the condition specified by return_when.
+
+      Returns two sets of Tasks/Futures: (done, pending).
+
+      ## Running in Threads
+
+      ### coroutine asyncio.to_thread(func, /, *args, **kwargs)
+
+      Asynchronously run function func in a separate thread.
+
+      ```python
+      def blocking_io():
+          print(f"start blocking_io at {time.strftime('%X')}")
+          time.sleep(1)
+          print(f"blocking_io complete at {time.strftime('%X')}")
+
+      async def main():
+          print(f"started main at {time.strftime('%X')}")
+          await asyncio.gather(
+              asyncio.to_thread(blocking_io),
+              asyncio.sleep(1))
+          print(f"finished main at {time.strftime('%X')}")
+
+      asyncio.run(main())
+      ```
+
+      ## Introspection
+
+      ### asyncio.current_task(loop=None)
+
+      Return the currently running Task instance, or None if no task is running.
+
+      ### asyncio.all_tasks(loop=None)
+
+      Return a set of not yet finished Task objects run by the loop.
+
+  - slug: hn-front-page
+    url: https://news.ycombinator.com/
+    class: aggregator
+    gold_md: |
+      # Hacker News Front Page
+
+      1. Postmortem: TanStack npm supply-chain compromise — 510 points / 180 comments
+      2. UCLA discovers first stroke rehabilitation drug to repair brain damage — 221 points / 42 comments
+      3. If AI writes your code, why use Python? — 126 points / 133 comments
+      4. Library for fast mapping of Java records to native memory — 108 points / 24 comments
+      5. GitLab announces workforce reduction and end of their CREDIT values — 298 points / 297 comments
+      6. I let AI build a tool to help me figure out what was waking me up at night — 61 points / 59 comments
+      7. Griffin PowerMate driver for modern macOS — 36 points / 14 comments
+      8. Nullsoft, 1997-2004 — 220 points / 70 comments
+      9. Ratty – A terminal emulator with inline 3D graphics — 610 points / 198 comments
+      10. Gmail registration now requires scanning a QR code and sending a text message — 560 points / 402 comments
+      11. Can we code our way out of gentrification? — 10 points / 26 comments
+      12. Google says criminal hackers used AI to find a major software flaw — 113 points / 92 comments
+      13. Abstract Machines for Logic Programs — 8 points / 1 comment
+      14. Interaction Models — 85 points / 9 comments
+      15. Silverback Imfura took a chance, and ended up alone — 27 points / 11 comments
+      16. Training an LLM in Swift, Part 1 — 215 points / 11 comments
+      17. Interfaze: A new model architecture built for high accuracy at scale — 107 points / 29 comments
+      18. The rise and fall of snake oil — 25 points / 16 comments
+      19. Show HN: A modern Music Player Daemon based on Rockbox firmware — 5 points / 1 comment
+      20. Show HN: OpenGravity – A zero-install, BYOK vanilla JS clone of Antigravity — 47 points / 17 comments
+      21. AMÁLIA and the future of European Portuguese LLMs — 117 points / 57 comments
+      22. Bild AI is Hiring Founding Product Engineers
+      23. CUDA-oxide: Nvidia's official Rust to CUDA compiler — 360 points / 106 comments
+      24. The Boston library where you still can borrow a giant puppet — 50 points / 7 comments
+      25. Building a web server in aarch64 assembly to give my life (a lack of) meaning — 102 points / 34 comments
+      26. Show HN: E2a – Open-source email gateway for AI agents — 19 points / 2 comments
+      27. Hardware Attestation as Monopoly Enabler — 2078 points / 703 comments
+      28. Software engineering may no longer be a lifetime career — 359 points / 598 comments
+      29. From Buffon's Needle to Buffon's Noodle — 27 points / 8 comments
+      30. Counting Fast in Erlang with counters and atomics — 69 points / 3 comments
+
+  - slug: pypi-requests
+    url: https://pypi.org/project/requests/
+    class: aggregator
+    gold_md: |
+      # Requests
+
+      Python HTTP for Humans.
+
+      ## Installation
+
+      ```bash
+      python -m pip install requests
+      ```
+
+      Requests officially supports Python 3.10+.
+
+      ## Usage
+
+      ```python
+      >>> import requests
+      >>> r = requests.get('https://httpbin.org/basic-auth/user/pass', auth=('user', 'pass'))
+      >>> r.status_code
+      200
+      >>> r.headers['content-type']
+      'application/json; charset=utf8'
+      >>> r.encoding
+      'utf-8'
+      >>> r.text
+      '{"authenticated": true, ...'
+      >>> r.json()
+      {'authenticated': True, ...}
+      ```
+
+      Requests makes it simple to send HTTP/1.1 requests without manually adding query strings to URLs or form-encoding your PUT and POST data.
+
+      ## Features
+
+      Requests is one of the most downloaded Python packages, with approximately 300M downloads per week, used by 4,000,000+ repositories. It supports:
+
+      - Keep-Alive and Connection Pooling
+      - International Domains and URLs
+      - Sessions with Cookie Persistence
+      - Browser-style TLS/SSL Verification
+      - Basic and Digest Authentication
+      - Familiar dict-like Cookies
+      - Automatic Content Decompression and Decoding
+      - Multi-part File Uploads
+      - SOCKS Proxy Support
+      - Connection Timeouts
+      - Streaming Downloads
+      - Automatic honoring of .netrc
+      - Chunked HTTP Requests
+
+      ## License
+
+      Apache Software License (Apache-2.0)
+
+  - slug: github-psf-requests
+    url: https://github.com/psf/requests
+    class: aggregator
+    gold_md: |
+      # psf/requests
+
+      A simple, yet elegant, HTTP library.
+
+      ## Overview
+
+      Requests is one of the most downloaded Python packages, with approximately 300 million downloads weekly. The library is currently relied upon by over 4 million repositories on GitHub.
+
+      ## Supported Features
+
+      - Keep-Alive and Connection Pooling
+      - International Domains and URLs
+      - Sessions with Cookie Persistence
+      - Browser-style TLS/SSL Verification
+      - Basic and Digest Authentication
+      - Familiar dict-like Cookies
+      - Automatic Content Decompression and Decoding
+      - Multi-part File Uploads
+      - SOCKS Proxy Support
+      - Connection Timeouts
+      - Streaming Downloads
+      - Automatic honoring of .netrc
+      - Chunked HTTP Requests
+
+      ## Installation
+
+      Requests is available on PyPI:
+
+      ```bash
+      python -m pip install requests
+      ```
+
+      Requests officially supports Python 3.10+.
+
+      ## Usage Example
+
+      ```python
+      >>> import requests
+      >>> r = requests.get('https://httpbin.org/basic-auth/user/pass', auth=('user', 'pass'))
+      >>> r.status_code
+      200
+      >>> r.headers['content-type']
+      'application/json; charset=utf8'
+      >>> r.encoding
+      'utf-8'
+      >>> r.text
+      '{"authenticated": true, ...'
+      >>> r.json()
+      {'authenticated': True, ...}
+      ```
+
+      Requests simplifies HTTP operations by eliminating manual query string construction and form encoding requirements.
+
+  - slug: wikipedia-markdown
+    url: https://en.wikipedia.org/wiki/Markdown
+    class: docs_encyclopedia
+    gold_md: |
+      # Markdown
+
+      Markdown is a lightweight markup language for creating formatted text using a plain-text editor. John Gruber created Markdown in 2004 as an easy-to-read markup language. Markdown is widely used for blogging and instant messaging, and also used elsewhere in online forums, collaborative software, documentation pages, and readme files.
+
+      The initial description of Markdown contained ambiguities and raised unanswered questions, causing implementations to both intentionally and accidentally diverge from the original version. This was addressed in 2014 when long-standing Markdown contributors released CommonMark, an unambiguous specification and test suite for Markdown.
+
+      ## History
+
+      Markdown was inspired by pre-existing conventions for marking up plain text in email and usenet posts, such as the earlier markup languages setext (c. 1992), Textile (c. 2002), and reStructuredText (c. 2002). In 2002 Aaron Swartz created atx and referred to it as "the true structured text format". Gruber created the Markdown language in 2004 with Swartz as his "sounding board". The goal of the language was to enable people "to write using an easy-to-read and easy-to-write plain text format, optionally convert it to structurally valid XHTML (or HTML)".
+
+      Its key design goal was readability, that the language be readable as-is, without looking like it has been marked up with tags or formatting instructions, unlike text formatted with "heavier" markup languages, such as Rich Text Format (RTF), HTML, or even wikitext.
+
+      Gruber wrote a Perl script, Markdown.pl, which converts marked-up text input to valid, well-formed XHTML or HTML and replaces angle brackets and ampersands with their corresponding character entity references.
+
+      ## Rise and divergence
+
+      As Markdown's popularity grew rapidly, many Markdown implementations appeared, driven mostly by the need for additional features such as tables, footnotes, definition lists, and Markdown inside HTML blocks. The behavior of a few of these diverged from the reference implementation, as Markdown was only characterized by an informal specification and a Perl implementation for conversion to HTML.
+
+      At the same time, a number of ambiguities in the informal specification had attracted attention. These issues spurred the creation of tools such as Babelmark to compare the output of various implementations, and an effort by some developers of Markdown parsers for standardisation. However, Gruber has argued that complete standardization would be a mistake.
+
+      ## Standardization
+
+      From 2012, a group of people, including Jeff Atwood and John MacFarlane, launched what Atwood characterised as a standardisation effort. A community website now aims to "document various tools and resources available to document authors and developers, as well as implementors of the various Markdown implementations".
+
+      In September 2014, Gruber objected to the usage of "Markdown" in the name of this effort and it was rebranded as CommonMark. CommonMark.org has published several versions of a specification, reference implementation, test suite, and "[plans] to announce a finalized 1.0 spec and test suite in 2019". No 1.0 spec has since been released, as major issues still remain unsolved.
+
+      In March 2016, two relevant informational Internet RFCs were published. RFC 7763 introduced MIME type text/markdown. RFC 7764 discussed and registered the variants MultiMarkdown, GitHub Flavored Markdown (GFM), Pandoc, and Markdown Extra.
+
+      ## Variants
+
+      Websites like Bitbucket, Diaspora, GitHub, OpenStreetMap, Reddit, SourceForge, and Stack Exchange use variants of Markdown to make discussions between users easier.
+
+      ### GitHub Flavored Markdown
+
+      GitHub had been using its own variant of Markdown since as early as 2009, which added support for additional formatting such as tables and nesting block content inside list elements, as well as GitHub-specific features such as auto-linking references to commits, issues, usernames, and so on.
+
+      In 2017, GitHub released a formal specification of their GitHub Flavored Markdown (GFM) that is based on CommonMark. It is a strict superset of CommonMark, following its specification exactly except for tables, strikethrough, autolinks, and task lists, which GFM adds as extensions.
+
+      ### Markdown Extra
+
+      Markdown Extra is a lightweight markup language based on Markdown implemented in PHP (originally), Python and Ruby. It adds features not available with regular Markdown.
+
+      ## Examples
+
+      Markdown supports headings, paragraphs, line breaks, text formatting (italic, bold, monospace), horizontal rules, lists, links, images, blockquotes, and HTML tags.
+
+      ## Implementations
+
+      Implementations of Markdown are available for over a dozen programming languages. People have also extended Markdown for additional uses; for example, Mermaid is a tool for generating diagrams from Markdown-inspired syntax.
+
+  - slug: fowler-microservices
+    url: https://martinfowler.com/articles/microservices.html
+    class: essay
+    gold_md: |
+      # Microservices
+
+      a definition of this new architectural term
+
+      By James Lewis and Martin Fowler — 25 March 2014
+
+      The term "Microservice Architecture" has sprung up over the last few years to describe a particular way of designing software applications as suites of independently deployable services. While there is no precise definition of this architectural style, there are certain common characteristics around organization around business capability, automated deployment, intelligence in the endpoints, and decentralized control of languages and data.
+
+      ## Characteristics of a Microservice Architecture
+
+      We cannot say there is a formal definition of the microservices architectural style, but we can attempt to describe what we see as common characteristics for architectures that fit the label.
+
+      ### Componentization via Services
+
+      For as long as we've been involved in the software industry, there's been a desire to build systems by plugging together components, much in the way we see things are made in the physical world. We define a component as a unit of software that is independently replaceable and upgradeable.
+
+      Microservice architectures will use libraries, but their primary way of componentizing their own software is by breaking down into services. We define libraries as components that are linked into a program and called using in-memory function calls, while services are out-of-process components who communicate with a mechanism such as a web service request, or remote procedure call.
+
+      ### Organized around Business Capabilities
+
+      When looking to split a large application into parts, often management focuses on the technology layer, leading to UI teams, server-side logic teams, and database teams. The microservice approach to division is different, splitting up into services organized around business capability. Such services take a broad-stack implementation of software for that business area, including user-interface, persistant storage, and any external collaborations.
+
+      This is mirrored by Conway's Law: "Any organization that designs a system (defined broadly) will produce a design whose structure is a copy of the organization's communication structure."
+
+      ### Products not Projects
+
+      Most application development efforts that we see use a project model: where the aim is to deliver some piece of software which is then considered to be complete. On completion the software is handed over to a maintenance organization and the project team that built it is disbanded.
+
+      Microservice proponents tend to avoid this model, preferring instead the notion that a team should own a product over its full lifetime. A common inspiration for this is Amazon's notion of "you build, you run it" where a development team takes full responsibility for the software in production.
+
+      ### Smart endpoints and dumb pipes
+
+      When building communication structures between different processes, we've seen many products and approaches that stress putting significant smarts into the communication mechanism itself. A good example of this is the Enterprise Service Bus (ESB), where ESB products often include sophisticated facilities for message routing, choreography, transformation, and applying business rules.
+
+      The microservice community favours an alternative approach: smart endpoints and dumb pipes. Applications built from microservices aim to be as decoupled and as cohesive as possible — they own their own domain logic and act more as filters in the classical Unix sense — receiving a request, applying logic as appropriate and producing a response.
+
+      ### Decentralized Governance
+
+      One of the consequences of centralised governance is the tendency to standardise on single technology platforms. Experience shows that this approach is constricting — not every problem is a nail and not every solution a hammer.
+
+      Splitting the monolith's components out into services we have a choice when building each of them. You want to use Node.js to stand up a simple reports page? Go for it. C++ for a particularly gnarly near-real-time component? Fine.
+
+      ### Decentralized Data Management
+
+      Decentralization of data management presents in a number of different ways. At the most abstract level, it means that the conceptual model of the world will differ between systems. In the large, decentralizing data responsibilities does have implications for managing updates. The common approach to dealing with updates has been to use transactions to guarantee consistency when updating multiple resources. This approach is often used within monoliths.
+
+      Using transactions like this helps with consistency, but imposes significant temporal coupling, which is problematic across multiple services. Distributed transactions are notoriously difficult to implement and as a consequence microservice architectures emphasize transactionless coordination between services, with explicit recognition that consistency may only be eventual consistency.
+
+      ### Infrastructure Automation
+
+      Infrastructure automation techniques have evolved enormously over the last few years — the evolution of the cloud and AWS in particular has reduced the operational complexity of building, deploying and operating microservices.
+
+      Many of the products or systems being built with microservices are being built by teams with extensive experience of Continuous Delivery and its precursor, Continuous Integration. Teams building software this way make extensive use of infrastructure automation techniques.
+
+      ### Design for failure
+
+      A consequence of using services as components, is that applications need to be designed so that they can tolerate the failure of services. Any service call could fail due to unavailability of the supplier, the client has to respond to this as gracefully as possible. This is a disadvantage compared to a monolithic design as it introduces additional complexity to handle it.
+
+      Netflix's Simian Army induces failures of services and even datacenters during the working day to test both the application's resilience and monitoring.
+
+      ### Evolutionary Design
+
+      Microservice practitioners, usually have come from an evolutionary design background and see service decomposition as a further tool to enable application developers to control changes in their application without slowing down change. Change control doesn't necessarily mean change reduction — with the right attitudes and tools you can make frequent, fast, and well-controlled changes to software.
+
+      ## Are Microservices the Future?
+
+      Our main aim in writing this article is to explain the major ideas and principles of microservices. By taking the time to do this we clearly think that the microservices architectural style is an important idea — one worth serious consideration for enterprise applications.
+
+      We don't, however, think it's clear yet that microservices are the way forward.
+
+      One reasonable argument we've heard is that you shouldn't start with a microservices architecture. Instead begin with a monolith, keep it modular, and split it into microservices once the monolith becomes a problem.
+
+      So we write this with cautious optimism. So far, we've seen enough about the microservice style to feel that it can be a worthwhile road to tread. We can't say for sure where we'll end up, but one of the challenges of software development is that you can only make decisions based on the imperfect information that you currently have to hand.
