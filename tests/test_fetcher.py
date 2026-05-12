@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from a2web.cache.sqlite_cache import cache_dir
 from a2web.fetcher import fetch
 from a2web.models import CacheState, FetchStatus, Verdict
+from a2web.packages.http_cache import cache_dir
 from a2web.settings import AppSettings
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult

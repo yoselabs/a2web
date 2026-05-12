@@ -23,12 +23,12 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from ..settings import AppSettings
-from .errors import LLMNotAvailable
+from .packages.llm_extract import LLMNotAvailable
+from .settings import AppSettings
 
 if TYPE_CHECKING:
-    from ..cache.sqlite_cache import SqliteResource
-    from .extractor import ExtractionResult, Extractor
+    from .packages.http_cache import SqliteResource
+    from .packages.llm_extract import ExtractionResult, Extractor
 
 
 class LlmExtractorResource:
@@ -72,9 +72,9 @@ class LlmExtractorResource:
     async def _build(self) -> tuple[Extractor | None, str | None]:
         """Construct an `Extractor` from settings; capture failure as reason."""
         try:
-            from . import ExtractionCache, Extractor, ModelSpec
-            from .providers.anthropic import AnthropicProvider
-            from .providers.claude_code import ClaudeCodeProvider
+            from .packages.llm_extract import ExtractionCache, Extractor, ModelSpec
+            from .packages.llm_extract.providers.anthropic import AnthropicProvider
+            from .packages.llm_extract.providers.claude_code import ClaudeCodeProvider
         except Exception as exc:
             return None, f"llm module import failed: {exc}"
 

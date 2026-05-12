@@ -26,16 +26,16 @@ from typing import Any
 
 import yaml
 
-from a2web.llm import (
+from a2web.packages.llm_extract import (
     Extractor,
     Judge,
     JudgeParseError,
     ModelSpec,
     PromptTemplate,
 )
-from a2web.llm.errors import LLMNotAvailable
-from a2web.llm.providers.anthropic import AnthropicProvider
-from a2web.llm.providers.claude_code import ClaudeCodeProvider
+from a2web.packages.llm_extract import LLMNotAvailable
+from a2web.packages.llm_extract.providers.anthropic import AnthropicProvider
+from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
 
 HERE = Path(__file__).parent
 RUNS = HERE / "runs"

@@ -28,12 +28,12 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import httpx
 
-from ..prompts import WEBFETCH_DEFAULT_V1
-from ..providers.base import Provider
+from ..packages.llm_extract import WEBFETCH_DEFAULT_V1
+from ..packages.llm_extract.providers.base import Provider
 
 if TYPE_CHECKING:
-    from ...models import FetchResponse
-    from ...state import AppState
+    from ..models import FetchResponse
+    from ..state import AppState
 
 
 # WebFetch constants extracted from Claude Code's binary (research/123).
@@ -191,7 +191,7 @@ class A2WebDetail:
         self._state = state
 
     async def fetch(self, *, url: str, ask: str) -> SystemResult:
-        from ...fetcher import fetch as a2web_fetch
+        from ..fetcher import fetch as a2web_fetch
 
         t0 = time.perf_counter()
         response: FetchResponse = await a2web_fetch(url, state=self._state, include_links=False, debug=False)
@@ -220,7 +220,7 @@ class A2WebExtract:
         self._state = state
 
     async def fetch(self, *, url: str, ask: str) -> SystemResult:
-        from ...fetcher import fetch as a2web_fetch
+        from ..fetcher import fetch as a2web_fetch
 
         t0 = time.perf_counter()
         response: FetchResponse = await a2web_fetch(url, state=self._state, ask=ask, include_links=False, debug=False)

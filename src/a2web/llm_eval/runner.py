@@ -26,7 +26,7 @@ from typing import Any
 
 import structlog
 
-from ..judge import Judge, JudgeParseError, JudgeVerdict
+from ..packages.llm_extract import Judge, JudgeParseError, JudgeVerdict
 from .corpus import Corpus, CorpusEntry
 from .systems import EvalSystem, SystemResult
 

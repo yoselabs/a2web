@@ -9,8 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from a2web.log.record import LogRecord
-from a2web.log.writer import LogWriter
+from a2web.packages.ndjson_log import LogRecord, LogWriter
 
 
 def _make_record(i: int = 0) -> LogRecord:

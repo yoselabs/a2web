@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from a2web.log.paths import active_log_path, log_dir
+from a2web.packages.ndjson_log import active_log_path, log_dir
 
 
 def test_log_dir_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

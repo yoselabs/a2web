@@ -16,19 +16,19 @@ from pathlib import Path
 import pytest
 import yaml
 
-from a2web.llm import (
-    Judge,
-    JudgeParseError,
-    JudgeVerdict,
-    ModelSpec,
-)
-from a2web.llm.eval import (
+from a2web.llm_eval import (
     CorpusError,
     EvalSuite,
     SystemResult,
     load_corpus,
     stats_dict,
     write_all,
+)
+from a2web.packages.llm_extract import (
+    Judge,
+    JudgeParseError,
+    JudgeVerdict,
+    ModelSpec,
 )
 
 # --------------------------------------------------------------------- #

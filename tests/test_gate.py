@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from a2web.gate.block_detector import evaluate
 from a2web.models import Verdict
+from a2web.packages.block_detector import evaluate
 
 _FIX = Path(__file__).parent / "fixtures"
 

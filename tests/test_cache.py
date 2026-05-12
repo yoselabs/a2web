@@ -6,11 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from a2web.cache.sqlite_cache import (
+from a2web.domain import compute_profile_hash, is_live_only
+from a2web.packages.http_cache import (
     cache_get,
     cache_put,
-    compute_profile_hash,
-    is_live_only,
     open_sqlite_with_schema,
 )
 from a2web.settings import AppSettings
@@ -23,7 +22,7 @@ def _isolate_cache_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_schema_creation() -> None:
-    conn = await open_sqlite_with_schema(AppSettings())
+    conn = await open_sqlite_with_schema()
     try:
         async with conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='cache'") as cur:
             row = await cur.fetchone()
@@ -34,7 +33,7 @@ async def test_schema_creation() -> None:
 
 @pytest.mark.asyncio
 async def test_put_get_roundtrip() -> None:
-    conn = await open_sqlite_with_schema(AppSettings())
+    conn = await open_sqlite_with_schema()
     try:
         ph = compute_profile_hash(AppSettings())
         await cache_put(
@@ -58,7 +57,7 @@ async def test_put_get_roundtrip() -> None:
 
 @pytest.mark.asyncio
 async def test_profile_hash_isolation() -> None:
-    conn = await open_sqlite_with_schema(AppSettings())
+    conn = await open_sqlite_with_schema()
     try:
         ph_a = compute_profile_hash(AppSettings(default_ua="UA-A"))
         ph_b = compute_profile_hash(AppSettings(default_ua="UA-B"))
@@ -85,7 +84,7 @@ async def test_profile_hash_isolation() -> None:
 
 @pytest.mark.asyncio
 async def test_expired_row_returns_none() -> None:
-    conn = await open_sqlite_with_schema(AppSettings())
+    conn = await open_sqlite_with_schema()
     try:
         ph = compute_profile_hash(AppSettings())
         await cache_put(

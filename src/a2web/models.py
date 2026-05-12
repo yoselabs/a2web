@@ -154,6 +154,6 @@ class FetchResponse(BaseModel):
         a post-redirect `final_url`; defaults to `self.url`. `error` is only
         populated on pathological extract/log paths.
         """
-        from .log.record import from_response
+        from .domain import log_from_response
 
-        return from_response(self, input_url=input_url, error=error)
+        return log_from_response(self, input_url=input_url, error=error)

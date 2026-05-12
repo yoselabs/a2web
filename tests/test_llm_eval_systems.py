@@ -9,16 +9,15 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from a2web.llm import ProviderResponse
-from a2web.llm.eval import (
+from a2web.llm_eval import (
     A2WebDetail,
     A2WebExtract,
     EvalSystem,
     SystemResult,
     WebFetchBaseline,
 )
-from a2web.llm.eval.systems import WEBFETCH_MARKDOWN_CAP, WEBFETCH_MODEL
-from a2web.llm.extractor import Extractor, ModelSpec
+from a2web.llm_eval.systems import WEBFETCH_MARKDOWN_CAP, WEBFETCH_MODEL
+from a2web.packages.llm_extract import Extractor, ModelSpec, ProviderResponse
 from a2web.settings import AppSettings
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TierResult

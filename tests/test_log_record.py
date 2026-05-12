@@ -6,7 +6,7 @@ import dataclasses
 import json
 from datetime import UTC, datetime
 
-from a2web.log.record import LogRecord, from_response
+from a2web.domain import log_from_response as from_response
 from a2web.models import (
     CacheState,
     Confidence,
@@ -15,6 +15,7 @@ from a2web.models import (
     FetchStatus,
     Verdict,
 )
+from a2web.packages.ndjson_log import LogRecord
 
 
 def test_logrecord_is_dataclass_with_slots() -> None:

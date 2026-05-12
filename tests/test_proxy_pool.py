@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from a2web.proxy.pool import ProxyPool
+from a2web.packages.proxy_routing import ProxyPool
 from a2web.settings import AppSettings, ProxyEntry, RouteRule
 
 
@@ -18,7 +18,8 @@ def _settings(**kw: object) -> AppSettings:
 
 
 def test_acquire_direct_when_no_route() -> None:
-    pool = ProxyPool(settings=_settings())
+    s = _settings()
+    pool = ProxyPool(routes=s.routes, proxies=s.proxies)
     h = pool.acquire("any.com", "raw")
     assert h is not None
     assert h.proxy_url is None
@@ -33,7 +34,7 @@ def test_acquire_returns_first_healthy() -> None:
         },
         routes=[RouteRule(host="archive.ph", proxy="p1", fallback=["p2"])],
     )
-    pool = ProxyPool(settings=s)
+    pool = ProxyPool(routes=s.routes, proxies=s.proxies)
     h = pool.acquire("archive.ph", "raw")
     assert h is not None
     assert h.proxy_id == "p1"
@@ -47,7 +48,7 @@ def test_three_failures_quarantine_then_fallback() -> None:
         },
         routes=[RouteRule(host="archive.ph", proxy="p1", fallback=["p2"])],
     )
-    pool = ProxyPool(settings=s)
+    pool = ProxyPool(routes=s.routes, proxies=s.proxies)
     h1 = pool.acquire("archive.ph", "raw")
     assert h1 is not None and h1.proxy_id == "p1"
     pool.report(h1, success=False)
@@ -64,7 +65,7 @@ def test_proxy_required_returns_none_when_all_dead() -> None:
         proxies={"p1": ProxyEntry(url="http://p1:8080", region="x", kind="datacenter")},
         routes=[RouteRule(host="archive.ph", proxy="p1", proxy_required=True)],
     )
-    pool = ProxyPool(settings=s)
+    pool = ProxyPool(routes=s.routes, proxies=s.proxies)
     h = pool.acquire("archive.ph", "raw")
     assert h is not None
     pool.report(h, success=False)
@@ -78,7 +79,7 @@ def test_no_proxy_required_falls_back_to_direct() -> None:
         proxies={"p1": ProxyEntry(url="http://p1:8080", region="x", kind="datacenter")},
         routes=[RouteRule(host="archive.ph", proxy="p1", proxy_required=False)],
     )
-    pool = ProxyPool(settings=s)
+    pool = ProxyPool(routes=s.routes, proxies=s.proxies)
     h = pool.acquire("archive.ph", "raw")
     assert h is not None
     pool.report(h, success=False)
@@ -94,7 +95,7 @@ def test_success_resets_failure_counter() -> None:
         proxies={"p1": ProxyEntry(url="http://p1:8080", region="x", kind="datacenter")},
         routes=[RouteRule(host="archive.ph", proxy="p1")],
     )
-    pool = ProxyPool(settings=s)
+    pool = ProxyPool(routes=s.routes, proxies=s.proxies)
     h = pool.acquire("archive.ph", "raw")
     assert h is not None
     pool.report(h, success=False)
@@ -110,7 +111,8 @@ def test_success_resets_failure_counter() -> None:
 
 @pytest.mark.asyncio
 async def test_close_is_noop() -> None:
-    pool = ProxyPool(settings=_settings())
+    s = _settings()
+    pool = ProxyPool(routes=s.routes, proxies=s.proxies)
     await pool.close()
     await pool.close()  # idempotent
 
@@ -120,7 +122,7 @@ def test_quarantine_duration_is_600s() -> None:
         proxies={"p1": ProxyEntry(url="http://p1:8080", region="x", kind="datacenter")},
         routes=[RouteRule(host="archive.ph", proxy="p1")],
     )
-    pool = ProxyPool(settings=s)
+    pool = ProxyPool(routes=s.routes, proxies=s.proxies)
     h = pool.acquire("archive.ph", "raw")
     assert h is not None
     pool.report(h, success=False)

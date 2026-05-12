@@ -18,8 +18,8 @@ from pathlib import Path
 import pytest
 
 from a2web.fetcher import fetch
-from a2web.llm.extractor import Extractor, ModelSpec
 from a2web.models import FetchStatus
+from a2web.packages.llm_extract import Extractor, ModelSpec
 from a2web.settings import AppSettings
 from a2web.state import AppState, build_state
 from a2web.tiers import REGISTRY, TierResult
@@ -70,7 +70,7 @@ class _StubProvider:
 
     async def complete(self, *, system, user, model, **_):
         self.calls.append({"system": system, "user": user, "model": model})
-        from a2web.llm import ProviderResponse
+        from a2web.packages.llm_extract import ProviderResponse
 
         return ProviderResponse(
             text=self.answer,

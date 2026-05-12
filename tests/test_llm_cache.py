@@ -16,7 +16,7 @@ import asyncio
 import aiosqlite
 import pytest
 
-from a2web.llm import (
+from a2web.packages.llm_extract import (
     ExtractionCache,
     Extractor,
     ModelSpec,

@@ -53,12 +53,12 @@ def _load_dotenv() -> None:
 
 _load_dotenv()
 
-from a2web.llm import Extractor, Judge, JudgeParseError, ModelSpec, PromptTemplate  # noqa: E402
-from a2web.llm.errors import LLMNotAvailable  # noqa: E402
-from a2web.llm.providers.anthropic import AnthropicProvider  # noqa: E402
-from a2web.llm.providers.claude_code import ClaudeCodeProvider  # noqa: E402
-from a2web.llm.providers.ollama import OllamaProvider  # noqa: E402
-from a2web.llm.providers.openrouter import OpenRouterProvider  # noqa: E402
+from a2web.packages.llm_extract import Extractor, Judge, JudgeParseError, ModelSpec, PromptTemplate  # noqa: E402
+from a2web.packages.llm_extract import LLMNotAvailable  # noqa: E402
+from a2web.packages.llm_extract.providers.anthropic import AnthropicProvider  # noqa: E402
+from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider  # noqa: E402
+from a2web.packages.llm_extract.providers.ollama import OllamaProvider  # noqa: E402
+from a2web.packages.llm_extract.providers.openrouter import OpenRouterProvider  # noqa: E402
 
 # --- Model roster --------------------------------------------------------
 # The user-supplied 13 names. Some are best guesses (model IDs evolve);
@@ -139,7 +139,7 @@ LOCAL_MODELS: set[str] = {
 }
 
 # --- Prompt: same as WebFetch parity template ----------------------------
-from a2web.llm.prompts import WEBFETCH_DEFAULT_V1  # noqa: E402
+from a2web.packages.llm_extract.prompts import WEBFETCH_DEFAULT_V1  # noqa: E402
 
 # Judge always uses the same anchor: Sonnet via OS session (no extra spend).
 JUDGE_MODEL = "claude-sonnet-4-6"

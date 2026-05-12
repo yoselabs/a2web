@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-from a2web.cache.sqlite_cache import SqliteResource
-from a2web.llm.resource import LlmExtractorResource
+from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.browser_pool import BrowserPool
+from a2web.packages.http_cache import SqliteResource
 from a2web.settings import AppSettings
 
 # --------------------------------------------------------------------- #
@@ -33,8 +33,7 @@ def cache_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 @pytest.mark.asyncio
 async def test_sqlite_resource_lazy_open(cache_dir: Path) -> None:
     """__init__ does no I/O; _ensure opens the connection."""
-    settings = AppSettings()
-    resource = SqliteResource(settings)
+    resource = SqliteResource(db_path=None)
     assert resource._conn is None
     assert not (cache_dir / "cache.sqlite").exists()
 
@@ -50,8 +49,7 @@ async def test_sqlite_resource_lazy_open(cache_dir: Path) -> None:
 async def test_sqlite_resource_concurrent_first_calls_share_connection(cache_dir: Path) -> None:
     """Double-checked lock: 20 concurrent _ensure calls open exactly one connection."""
     del cache_dir
-    settings = AppSettings()
-    resource = SqliteResource(settings)
+    resource = SqliteResource(db_path=None)
 
     results = await asyncio.gather(*[resource._ensure() for _ in range(20)])
     assert all(r is results[0] for r in results)
@@ -63,7 +61,7 @@ async def test_sqlite_resource_concurrent_first_calls_share_connection(cache_dir
 async def test_sqlite_resource_close_is_idempotent(cache_dir: Path) -> None:
     """Calling close() twice is safe and a no-op the second time."""
     del cache_dir
-    resource = SqliteResource(AppSettings())
+    resource = SqliteResource(db_path=None)
     await resource._ensure()
     await resource.close()
     await resource.close()  # must not raise
@@ -74,7 +72,7 @@ async def test_sqlite_resource_close_is_idempotent(cache_dir: Path) -> None:
 async def test_sqlite_resource_ensure_after_close_reopens(cache_dir: Path) -> None:
     """After close(), a subsequent _ensure() opens a fresh connection."""
     del cache_dir
-    resource = SqliteResource(AppSettings())
+    resource = SqliteResource(db_path=None)
     conn1 = await resource._ensure()
     await resource.close()
     conn2 = await resource._ensure()
@@ -86,7 +84,7 @@ async def test_sqlite_resource_ensure_after_close_reopens(cache_dir: Path) -> No
 async def test_sqlite_resource_get_put_roundtrip(cache_dir: Path) -> None:
     """get/put go through _ensure transparently."""
     del cache_dir
-    resource = SqliteResource(AppSettings())
+    resource = SqliteResource(db_path=None)
     await resource.put(
         "https://example.com/x",
         "profile",
@@ -112,7 +110,7 @@ async def test_sqlite_resource_get_put_roundtrip(cache_dir: Path) -> None:
 @pytest.mark.asyncio
 async def test_llm_resource_init_does_no_work() -> None:
     """__init__ doesn't touch the SDK or env."""
-    resource = LlmExtractorResource(AppSettings(), SqliteResource(AppSettings()))
+    resource = LlmExtractorResource(AppSettings(), SqliteResource(db_path=None))
     assert resource._extractor is None
     assert resource.unavailable_reason is None
 
@@ -122,7 +120,7 @@ async def test_llm_resource_missing_api_key_yields_none(monkeypatch: pytest.Monk
     """Missing key → _ensure returns None and sets unavailable_reason once."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     settings = AppSettings(llm_provider="anthropic")
-    resource = LlmExtractorResource(settings, SqliteResource(settings))
+    resource = LlmExtractorResource(settings, SqliteResource(db_path=None))
     result = await resource._ensure()
     assert result is None
     assert resource.unavailable_reason is not None
@@ -135,7 +133,7 @@ async def test_llm_resource_extract_returns_none_when_unavailable(monkeypatch: p
     """extract() short-circuits to None when LLM is permanently unavailable."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     settings = AppSettings(llm_provider="anthropic")
-    resource = LlmExtractorResource(settings, SqliteResource(settings))
+    resource = LlmExtractorResource(settings, SqliteResource(db_path=None))
     result = await resource.extract(content="hello", ask="what?")
     assert result is None
 
@@ -143,7 +141,7 @@ async def test_llm_resource_extract_returns_none_when_unavailable(monkeypatch: p
 @pytest.mark.asyncio
 async def test_llm_resource_close_is_noop() -> None:
     """close() is a no-op today; verify symmetric for lifecycle hooks."""
-    resource = LlmExtractorResource(AppSettings(), SqliteResource(AppSettings()))
+    resource = LlmExtractorResource(AppSettings(), SqliteResource(db_path=None))
     await resource.close()  # must not raise
     await resource.close()
 

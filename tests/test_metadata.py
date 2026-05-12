@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from a2web.extract.metadata import parse_metadata
+from a2web.packages.content_extract import parse_metadata
 
 _FIXTURE = Path(__file__).parent / "fixtures" / "blog.html"
 

@@ -55,13 +55,13 @@ def _load_dotenv() -> None:
 
 _load_dotenv()
 
-from a2web.llm import Extractor, Judge, JudgeParseError, ModelSpec  # noqa: E402
-from a2web.llm.errors import LLMNotAvailable  # noqa: E402
-from a2web.llm.prompts import WEBFETCH_DEFAULT_V1  # noqa: E402
-from a2web.llm.providers.anthropic import AnthropicProvider  # noqa: E402
-from a2web.llm.providers.claude_code import ClaudeCodeProvider  # noqa: E402
-from a2web.llm.providers.ollama import OllamaProvider  # noqa: E402
-from a2web.llm.providers.openrouter import OpenRouterProvider  # noqa: E402
+from a2web.packages.llm_extract import Extractor, Judge, JudgeParseError, ModelSpec  # noqa: E402
+from a2web.packages.llm_extract import LLMNotAvailable  # noqa: E402
+from a2web.packages.llm_extract.prompts import WEBFETCH_DEFAULT_V1  # noqa: E402
+from a2web.packages.llm_extract.providers.anthropic import AnthropicProvider  # noqa: E402
+from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider  # noqa: E402
+from a2web.packages.llm_extract.providers.ollama import OllamaProvider  # noqa: E402
+from a2web.packages.llm_extract.providers.openrouter import OpenRouterProvider  # noqa: E402
 
 JUDGE_MODEL = "claude-sonnet-4-6"
 import re

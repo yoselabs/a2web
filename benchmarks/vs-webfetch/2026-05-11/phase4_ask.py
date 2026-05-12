@@ -30,10 +30,10 @@ from typing import Any
 import yaml
 
 import a2kit.testing
-from a2web.llm import Judge, JudgeParseError, ModelSpec
-from a2web.llm.errors import LLMNotAvailable
-from a2web.llm.providers.anthropic import AnthropicProvider
-from a2web.llm.providers.claude_code import ClaudeCodeProvider
+from a2web.packages.llm_extract import Judge, JudgeParseError, ModelSpec
+from a2web.packages.llm_extract import LLMNotAvailable
+from a2web.packages.llm_extract.providers.anthropic import AnthropicProvider
+from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
 from a2web.server import app as a2web_app
 
 HERE = Path(__file__).parent

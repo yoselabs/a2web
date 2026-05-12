@@ -12,8 +12,8 @@ from typing import Any
 
 import pytest
 
-from a2web.llm.errors import LLMNotAvailable
-from a2web.llm.providers.claude_code import ClaudeCodeProvider
+from a2web.packages.llm_extract import LLMNotAvailable
+from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
 
 
 @pytest.mark.asyncio
@@ -63,7 +63,7 @@ async def test_complete_collects_text_and_usage(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(claude_agent_sdk, "query", fake_query)
     # The provider re-imports query from inside complete(), so patch both
     # the package attribute and the symbol the provider sees.
-    import a2web.llm.providers.claude_code as cc_mod
+    import a2web.packages.llm_extract.providers.claude_code as cc_mod
 
     provider = cc_mod.ClaudeCodeProvider()
     resp = await provider.complete(

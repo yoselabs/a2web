@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from a2web.llm import (
+from a2web.packages.llm_extract import (
     JUDGE_V1,
     WEBFETCH_DEFAULT_V1,
     ExtractionResult,
@@ -212,12 +212,12 @@ def test_custom_template_overrides_default() -> None:
 
 
 def test_llm_module_importable() -> None:
-    """`from a2web.llm import Extractor, ModelSpec` MUST succeed without
+    """`from a2web.packages.llm_extract import Extractor, ModelSpec` MUST succeed without
     the `[llm]` extra installed. (We HAVE the extra in this test env, so
     this just asserts the import path is healthy; the no-extra case is
     covered by the LLMNotAvailable test on AnthropicProvider.)
     """
-    from a2web.llm import Extractor as E  # noqa: F401
+    from a2web.packages.llm_extract import Extractor as E  # noqa: F401
 
 
 def test_llm_not_available_is_runtime_error() -> None:
@@ -232,7 +232,7 @@ async def test_anthropic_provider_missing_key_raises_llm_not_available(
 ) -> None:
     """No API key in env → AnthropicProvider construction raises with a
     pointer at the env var."""
-    from a2web.llm.providers.anthropic import AnthropicProvider
+    from a2web.packages.llm_extract.providers.anthropic import AnthropicProvider
 
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(LLMNotAvailable) as ei:
@@ -245,7 +245,7 @@ async def test_anthropic_provider_constructs_with_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """With a key present, construction succeeds (no API call made)."""
-    from a2web.llm.providers.anthropic import AnthropicProvider
+    from a2web.packages.llm_extract.providers.anthropic import AnthropicProvider
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-not-real")
     provider = AnthropicProvider()

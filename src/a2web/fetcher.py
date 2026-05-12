@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from dataclasses import dataclass as _dc
 from datetime import UTC, date, datetime
 from enum import Enum
 
@@ -22,16 +23,8 @@ import a2kit.ldd
 import structlog
 
 from .actions import RetryViaArchive, RewriteUrl, next_action_after_gate, next_action_after_tier
-from .cache.sqlite_cache import (
-    CacheRow,
-    SqliteResource,
-    compute_profile_hash,
-    is_live_only,
-)
+from .domain import compute_profile_hash, is_live_only
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
-from .extract.metadata import parse_metadata
-from .extract.trafilatura_ext import extract_markdown
-from .gate.block_detector import evaluate
 from .models import (
     CacheState,
     Confidence,
@@ -45,11 +38,65 @@ from .models import (
     TokenCounts,
     Verdict,
 )
+from .packages.block_detector import evaluate as _package_evaluate
+from .packages.content_extract import (
+    extract_markdown as _package_extract_markdown,
+)
+from .packages.content_extract import (
+    parse_metadata,
+)
+from .packages.http_cache import CacheRow, SqliteResource
 from .state import AppState
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
 from .tiers.jina import JinaTier
 from .tiers.raw import RawTier
 from .utils.time import fmt_dur
+
+
+@_dc(slots=True)
+class _GateResult:
+    """Domain-typed wrapper over `packages.block_detector.BlockResult`."""
+
+    verdict: Verdict
+    subsystem: str | None = None
+    suggested_tier: str | None = None
+
+
+def evaluate(*, content_md: str, raw_html: str, content_type: str | None) -> _GateResult:
+    """Run the package's block detector, map BlockVerdict → Verdict."""
+    result = _package_evaluate(content_md=content_md, raw_html=raw_html, content_type=content_type)
+    return _GateResult(
+        verdict=Verdict(result.verdict.value),
+        subsystem=result.subsystem,
+        suggested_tier=result.suggested_tier,
+    )
+
+
+@_dc(slots=True)
+class _ExtractResult:
+    """Domain-typed wrapper over `packages.content_extract.ExtractedContent`."""
+
+    content_md: str
+    title: str | None
+    byline: str | None
+    published: date | None
+    headings: list[Heading]
+    links: list[Link]
+    score: float | None
+
+
+async def extract_markdown(html: str, url: str) -> _ExtractResult:
+    """Run package extract, map frozen dataclasses → pydantic Heading/Link."""
+    raw = await _package_extract_markdown(html, url)
+    return _ExtractResult(
+        content_md=raw.content_md,
+        title=raw.title,
+        byline=raw.byline,
+        published=raw.published,
+        headings=[Heading(level=h.level, text=h.text) for h in raw.headings],
+        links=[Link(anchor=lk.anchor, href=lk.href) for lk in raw.links],
+        score=raw.score,
+    )
 
 
 def _ttl_for(content_type: str | None, settings_obj: object) -> int:

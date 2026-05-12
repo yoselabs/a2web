@@ -13,7 +13,7 @@ import json
 
 import pytest
 
-from a2web.llm import (
+from a2web.packages.llm_extract import (
     Judge,
     JudgeParseError,
     JudgeVerdict,

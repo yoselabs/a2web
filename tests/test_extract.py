@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from a2web.extract.trafilatura_ext import extract_markdown
+from a2web.packages.content_extract import extract_markdown
 
 _FIX = Path(__file__).parent / "fixtures"
 

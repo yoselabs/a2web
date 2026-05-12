@@ -14,14 +14,15 @@ inside resources, never on AppState.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from purgatory import AsyncCircuitBreakerFactory
 
-from .cache.sqlite_cache import SqliteResource
-from .llm.resource import LlmExtractorResource
-from .log.writer import LogWriter
+from .llm_resource import LlmExtractorResource
 from .packages.browser_pool import BrowserPool
-from .proxy.pool import ProxyPool
+from .packages.http_cache import SqliteResource
+from .packages.ndjson_log import LogWriter
+from .packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from .settings import AppSettings, get_settings
 
 
@@ -50,12 +51,15 @@ def build_state(settings: AppSettings | None = None) -> AppState:
     on first use via each resource's `_ensure()`.
     """
     resolved = settings or get_settings()
-    sqlite = SqliteResource(resolved)
+    sqlite = SqliteResource(db_path=None)
     return AppState(
         settings=resolved,
         breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
         log_writer=LogWriter(disabled=not resolved.log_enabled),
-        proxy_pool=ProxyPool(settings=resolved),
+        proxy_pool=ProxyPool(
+            routes=cast("list[RouteRuleShape]", resolved.routes),
+            proxies=cast("dict[str, ProxyEntryShape]", resolved.proxies),
+        ),
         sqlite=sqlite,
         browser_pool=BrowserPool(
             max_pool=resolved.browser_max_pool,
