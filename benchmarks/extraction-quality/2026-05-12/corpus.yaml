@@ -1,0 +1,53 @@
+# Extraction-quality corpus for the Reader-LM v2 trip decision.
+#
+# Goal: measure whether trafilatura + readability (a2web's current
+# extraction pipeline) miss enough content to justify a Reader-LM v2
+# fallback tier.
+#
+# Trip condition (default): ≥10% of URLs scoring below 0.7 token-F1
+# against the gold_md → recommend Reader-LM v2.
+#
+# Recommended corpus size: 50-100 URLs. Spread classes so the trip
+# decision can be made per-class (e.g., longform_news might trip
+# while docs doesn't).
+#
+# Classes (suggested, not enforced):
+#   longform_news    — NYT, WSJ, Atlantic, Guardian
+#   blog             — Substack, personal blogs, Medium
+#   docs             — MDN, RTFD, framework docs
+#   forum            — HN comment threads, Reddit, Stack Overflow
+#   aggregator       — PyPI listings, GitHub trending, awesome-lists
+#   spa              — Notion public, Linear public, GitBook
+#   js_heavy_news    — paywalled / anti-bot news (escalates to archive)
+#
+# Workflow per URL:
+#   1. Curl + manual edit → clean markdown for gold_md
+#   2. Run: uv run python -m a2web.llm_eval.extraction_cli corpus.yaml
+#   3. Inspect per-URL scores; iterate gold_md if extraction beats your
+#      hand edit (legitimate sign your gold was too aggressive)
+#
+# Replace these placeholders with real entries before running.
+
+urls:
+  - slug: example-longform
+    url: https://example.com/sample-article
+    class: longform_news
+    gold_md: |
+      # Replace this with the hand-edited gold markdown
+
+      Body paragraphs as they should appear after extraction. Include
+      blockquotes, lists, code blocks. Drop nav/footer/ads/related
+      links — gold is the clean reading view.
+
+      ## Subhead
+
+      More body.
+
+  # - slug: hn-thread-example
+  #   url: https://news.ycombinator.com/item?id=...
+  #   class: forum
+  #   gold_md: |
+  #     # Story title
+  #
+  #     Top-level comments and their threading. Trim deep-nested
+  #     replies if you'd skim them as a reader.
