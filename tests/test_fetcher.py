@@ -488,7 +488,7 @@ async def test_wrap_skips_empty_content() -> None:
     """No wrapping when content_md is empty — wrapping nothing is just noise."""
     from datetime import UTC, datetime
 
-    from a2web.fetcher import _wrap_content_md
+    from a2web.fetcher_response import _wrap_content_md
 
     out = _wrap_content_md("", source="https://x/", fetched_at=datetime.now(UTC))
     assert out == ""
@@ -498,7 +498,7 @@ def test_wrap_markers_invisible_to_markdown_renderers() -> None:
     """HTML comments don't render — agents see the cue but humans / renderers don't."""
     from datetime import UTC, datetime
 
-    from a2web.fetcher import _wrap_content_md
+    from a2web.fetcher_response import _wrap_content_md
 
     body = "# Hello\n\nWorld."
     wrapped = _wrap_content_md(body, source="https://x/", fetched_at=datetime.now(UTC))
