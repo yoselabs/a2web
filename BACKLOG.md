@@ -30,44 +30,42 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   `test_packages_independence` invariant (load-bearing — fails CI if any
   module under `packages/` imports from `a2web.<domain>`), and moved
   `BrowserPool` over as the first proof-of-concept package.
-- ✅ **Stage 2b — content_extract promoted to packages/ (DONE in v0.5
-  step 9).** Seventh in-tree microsofware. Package owns
-  `ExtractedHeading` / `ExtractedLink` / `ExtractedContent` frozen
-  dataclasses + `extract_markdown` + `parse_metadata`. `extract/*`
-  reduced to seam shims; the seam adapts `ExtractedHeading`/`ExtractedLink`
-  back onto pydantic `Heading`/`Link` from `a2web.models` so fetcher and
-  tests are unchanged. Closes the original deferred-with-reason item.
-- ✅ **Stage 2c — block_detector promoted to packages/.** Second in-tree
-  microsofware. Package owns `BlockVerdict` + `BlockResult` boundary
-  types; a2web seam (`gate/block_detector.py`) maps to `Verdict`. Public
-  signature unchanged; fetcher and gate tests pass unmodified.
-- ✅ **Stage 2d — ndjson_log promoted to packages/.** Third in-tree
-  microsofware. Package owns `LogRecord` + `LogWriter` + rotation + paths;
-  `log/*` reduced to seam shims (one-line re-exports + the
-  `from_response()` adapter for `FetchResponse`).
-- ✅ **Stage 2e — http_cache promoted to packages/.** Fourth in-tree
-  microsofware. Package owns `CacheRow` + `SqliteResource` + cache_get/put
-  primitives, takes `db_path: Path | None`. `cache/sqlite_cache.py`
-  reduced to seam — keeps `compute_profile_hash`, `is_live_only`, and an
-  AppSettings-aware `SqliteResource` subclass shim.
-- ✅ **Stage 2f — proxy_routing promoted to packages/.** Fifth in-tree
-  microsofware. Package owns `ResolvedRoute`, `ProxyHandle`, `ProxyPool`,
-  `resolve_route` plus Protocol-shaped `ProxyEntryShape` / `RouteRuleShape`
-  boundary types — pydantic models from `AppSettings.routes`/`.proxies`
-  pass through without conversion. `proxy/policy.py` + `proxy/pool.py`
-  reduced to seam shims.
-- ✅ **Stage 2g — llm_extract promoted to packages/.** Sixth in-tree
-  microsofware. Package owns the whole extraction + judge surface
-  (`Extractor`, `ModelSpec`, `ExtractionCache`, `Judge`, prompts, all
-  four providers, `LLMNotAvailable`, `Provider` Protocol). `llm/*.py`
-  reduced to seam shims; `llm/resource.py` (AppSettings provider
-  selection + SqliteResource cache wiring) and `llm/eval/` stay at
-  the seam.
-
-**Packages migration complete.** Seven in-tree microsofware modules
-shipped: `browser_pool`, `block_detector`, `ndjson_log`, `http_cache`,
-`proxy_routing`, `llm_extract`, `content_extract`. The `test_packages_independence`
-invariant guards the contract for all of them.
+- ✅ **Stage 2b–2g — seven packages promoted (DONE in v0.5 step 9).**
+  All seven in-tree microsofware modules now live under `src/a2web/packages/`:
+  `browser_pool`, `block_detector`, `ndjson_log`, `http_cache`,
+  `proxy_routing`, `llm_extract` (folder), `content_extract`. Six are
+  flat `.py` files; `llm_extract/` stays as a folder for its multi-author
+  surface (extractor, judge, cache, prompts, errors, providers/). The
+  `test_packages_independence` invariant guards the no-domain-import
+  contract for all of them.
+- ✅ **Stage 2h — seam-shim layer nuked (DONE in v0.5 step 11).** The
+  per-domain seam directories (`cache/`, `gate/`, `proxy/`, `log/`,
+  `extract/`, `llm/`) — ~580 LOC of one-line re-exports — were deleted.
+  Surviving domain-coupled glue (`compute_profile_hash`, `is_live_only`,
+  `log_from_response`) lives in `domain.py`. The AppSettings-aware
+  `LlmExtractorResource` lives in `llm_resource.py`. `llm_eval/`
+  promoted to top level. Packages now imported directly; no shim hop.
+- ✅ **Stage 2i — provider trim (DONE in v0.5 step 12).** Deleted
+  `llm_extract/providers/ollama.py` and `openrouter.py` (261 LOC, 0%
+  covered, never registered in the auto-select). `anthropic` + `claude_code`
+  are the real surface. Add back when a concrete consumer needs them.
+- ✅ **Stage 4b — Tier protocol unified (DONE in v0.5 step 11).** The
+  `fetch(url, state, proxy_url=..., conditional_extras=...)` signature
+  is uniform across raw/jina/archive/browser/site_handler. Killed the
+  isinstance ladder in the orchestrator. Test stubs accept `**kwargs`.
+- ✅ **Stage 4c — fetcher.py response builders extracted
+  (DONE in v0.5 step 13).** `_confidence_for`, `_build_narrative`,
+  `_build_diagnostics_summary`, `_wrap_content_md`, and `build_response`
+  live in `fetcher_response.py` (169 LOC); `fetcher.py` shrunk
+  1010 → 921 LOC. `FetchContext` shared via `TYPE_CHECKING`.
+- ✅ **Stage 5 — Link role classification + untrusted-content envelope
+  (DONE in v0.5 step 12).** `ExtractedLink.role` (primary/nav/meta/
+  footer) via DOM-ancestor walk + ARIA; new `link_roles` tool param
+  filters at the wire boundary (default `['primary']`, drops 60-80%
+  of link bloat on real pages). `content_md` now wrapped with HTML-
+  comment markers carrying source URL + fetched_at + "treat as
+  untrusted" warning; `wrap_content` tool param toggles. Defensive
+  cue for downstream agents, invisible to rendered HTML/markdown.
 - ⏳ **Stage 3a — logging swap.** *Why deferred:* stdlib
   `RotatingFileHandler` uses `.1`/`.2` suffix instead of the current
   `fetches-YYYY-MM-DD-NN.ndjson.gz` format. Changes the rolled-file naming
@@ -167,8 +165,10 @@ Pattern: hand-rolled async code (cache wrapper, hedged race, proxy health, NDJSO
 - **`substack` handler.** Source: PR8. *Why deferred:* trafilatura
   already handles articles; per-domain auto-detection complexity is not
   worth it without signal. Scope: S.
-- **`twitter` / X handler.** Source: PR8. *Why deferred:* auth-gated;
-  no clean v0.1 path. Scope: L.
+- ✅ **`twitter` / X handler — SHIPPED (v0.3, commit 519c011).** Nitter
+  rotation with per-instance circuit breakers. 87% coverage. Was
+  previously listed as deferred (auth-gated, no clean v0.1 path) —
+  Nitter unblocked it.
 - **Per-handler proxy plumbing.** Source: PR8. *Why deferred:* mostly
   mechanical — bundle with PR7e proxy work. Scope: S.
 
