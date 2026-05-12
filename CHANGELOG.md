@@ -8,6 +8,10 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+(no unreleased work)
+
+## [0.6.0] - 2026-05-12
+
 Post-v0.5.0 simplification sweep. The codebase finished v0.5.0 still
 carrying a per-domain seam-shim layer (`cache/`, `gate/`, `proxy/`,
 `log/`, `extract/`, `llm/`) — one-line re-exports preserving import
@@ -60,13 +64,20 @@ outright; consumer compat is explicitly disclaimed pre-1.0.
   to LLMs scanning the raw string. `wrap_content` tool param toggles
   (default True). `FetchResponse.is_user_authored: bool = False` is
   the defensive flag for downstream consumers.
+- **Extraction-quality eval harness.** New
+  `src/a2web/llm_eval/extraction.py` + `extraction_cli.py` measure
+  trafilatura+readability against a hand-curated `gold_md` corpus
+  with bag-of-tokens F1 + length-ratio scoring. Drives the Reader-LM
+  v2 trip decision (default: ≥10% URLs below 0.7 F1 → recommend
+  fallback). Pure-Python; no LLM dependency for the verdict. Corpus
+  skeleton at `benchmarks/extraction-quality/2026-05-12/corpus.yaml`.
 
 ### Coverage
 
 - Tier suite gaps filled: `raw.py` 20% → 96%, `archive.py` 86% → 100%,
   plus browser/jina/site_handler closeouts.
-- Test count 320 → 354; coverage 85.90% → 90.59%
-  (NDJSON suite removed alongside the package).
+- Test count 320 → 374; coverage 85.90% → 89.60%
+  (NDJSON suite removed; extraction-eval suite added).
 
 ### Docs
 
