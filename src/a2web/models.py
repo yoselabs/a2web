@@ -76,6 +76,7 @@ class Heading(BaseModel):
 class Link(BaseModel):
     anchor: str
     href: str
+    role: str = "primary"  # "primary" | "nav" | "meta" | "footer"
 
 
 class OperatorHint(BaseModel):

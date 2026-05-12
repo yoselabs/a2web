@@ -34,6 +34,18 @@ class WebRouter(a2kit.Router):
                 ),
             ),
         ] = False,
+        link_roles: Annotated[
+            list[str] | None,
+            a2kit.Param(
+                description=(
+                    "When include_links=True, filter to these DOM roles. Choices: "
+                    "'primary' (article body, default), 'nav', 'meta' (header/aside), "
+                    "'footer'. Pass None to keep everything (verbose). Defaults to "
+                    "['primary'] — kills nav/footer bloat that's typically 60-80%% of "
+                    "link entries on real pages."
+                ),
+            ),
+        ] = None,
         debug: Annotated[
             bool,
             a2kit.Param(
@@ -81,11 +93,13 @@ class WebRouter(a2kit.Router):
         and observers can subscribe to phase boundaries and slow-tier
         heartbeats for live visibility.
         """
+        roles_filter = frozenset(link_roles) if link_roles is not None else frozenset({"primary"})
         return await orchestrate(
             url,
             state=state,
             ctx=ctx,
             include_links=include_links,
+            link_roles=roles_filter,
             debug=debug,
             ask=ask,
         )

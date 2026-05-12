@@ -92,7 +92,7 @@ async def extract_markdown(html: str, url: str) -> _ExtractResult:
         byline=raw.byline,
         published=raw.published,
         headings=[Heading(level=h.level, text=h.text) for h in raw.headings],
-        links=[Link(anchor=lk.anchor, href=lk.href) for lk in raw.links],
+        links=[Link(anchor=lk.anchor, href=lk.href, role=lk.role) for lk in raw.links],
         score=raw.score,
     )
 
@@ -139,6 +139,9 @@ class FetchContext:
     # Response-shape opt-ins (v0.3 envelope diet)
     include_links: bool = False
     debug: bool = False
+    # v0.6 link-role filter — None keeps all roles, otherwise a frozenset of
+    # roles to keep. Default keeps only "primary" when links are included.
+    link_roles: frozenset[str] | None = frozenset({"primary"})
     # v0.4: optional LLM extraction question + outputs
     ask: str | None = None
     extracted_answer: str | None = None
@@ -187,6 +190,7 @@ async def fetch(
     state: AppState,
     ctx: a2kit.ToolContext | None = None,
     include_links: bool = False,
+    link_roles: frozenset[str] | None = frozenset({"primary"}),
     debug: bool = False,
     ask: str | None = None,
 ) -> FetchResponse:
@@ -228,6 +232,7 @@ async def fetch(
         url=url,
         final_url=url,
         include_links=include_links,
+        link_roles=link_roles,
         debug=debug,
         ask=ask,
         cache_state=CacheState.bypass if bypass_cache else CacheState.miss,
@@ -245,8 +250,14 @@ async def fetch(
     # v0.3 envelope diet: apply opt-in gates AT THE WIRE BOUNDARY. Logging
     # has already consumed the full diagnostics; agents see the slim version.
     # `diagnostics_summary` is always populated and carries verdict + timing.
+    # v0.6 link-role filter: even when links are included, default to
+    # role=primary only — kills nav/footer/aside payload bloat.
     if not fc.include_links:
         response.links = []
+    else:
+        allowed_roles = fc.link_roles
+        if allowed_roles is not None:
+            response.links = [lk for lk in response.links if lk.role in allowed_roles]
     if not fc.debug:
         response.diagnostics = []
 

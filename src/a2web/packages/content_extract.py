@@ -35,6 +35,14 @@ class ExtractedHeading:
 class ExtractedLink:
     anchor: str
     href: str
+    role: str = "primary"
+    # role ∈ {"primary", "nav", "meta", "footer"}.
+    # "primary" = parent ∈ <article>/<main>/.content (the article body)
+    # "nav"     = parent ∈ <nav> or role="navigation"
+    # "footer"  = parent ∈ <footer>
+    # "meta"    = parent ∈ <header>/<aside>
+    # Defensive default is "primary" — unclassified links keep showing
+    # up in the response. Filtering is a caller-side concern.
 
 
 @dataclass(slots=True)
@@ -51,6 +59,44 @@ class ExtractedContent:
 # --------------------------------------------------------------------- #
 # Trafilatura wrapper (sync, async-chokepointed)
 # --------------------------------------------------------------------- #
+
+
+# Tags / role attributes that flag each link role. Walked toward the
+# DOM root from the anchor; first match wins.
+_ROLE_TAG_MAP: dict[str, str] = {
+    "nav": "nav",
+    "footer": "footer",
+    "header": "meta",
+    "aside": "meta",
+    "article": "primary",
+    "main": "primary",
+}
+
+
+def _classify_link_role(node: Any) -> str:
+    """Walk ancestors; return the first matching role, else 'primary'.
+
+    Cheap O(depth) traversal — typical anchor sits 3-8 levels deep.
+    Falls back to 'primary' so unclassified links keep flowing to callers.
+    """
+    parent = node.parent
+    while parent is not None:
+        tag = (parent.tag or "").lower()
+        if tag in _ROLE_TAG_MAP:
+            return _ROLE_TAG_MAP[tag]
+        attrs = parent.attributes
+        if attrs:
+            role = (attrs.get("role") or "").lower()
+            if role == "navigation":
+                return "nav"
+            if role == "contentinfo":
+                return "footer"
+            if role == "banner":
+                return "meta"
+            if role in {"main", "article"}:
+                return "primary"
+        parent = parent.parent
+    return "primary"
 
 
 def _parse_date(value: str | None) -> date | None:
@@ -99,7 +145,8 @@ def _extract_sync(html: str, url: str) -> ExtractedContent:
             href = a.attributes.get("href") or ""
             anchor = (a.text() or "").strip()
             if href and anchor:
-                links.append(ExtractedLink(anchor=anchor, href=href))
+                role = _classify_link_role(a)
+                links.append(ExtractedLink(anchor=anchor, href=href, role=role))
     except Exception:  # noqa: S110
         # selectolax parse errors are non-fatal — extraction's primary output is content_md
         pass
