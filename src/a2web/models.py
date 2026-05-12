@@ -144,6 +144,12 @@ class FetchResponse(BaseModel):
     content_md: str = ""
     fit_md: str | None = None
     operator_hints: list[OperatorHint] = Field(default_factory=list)
+
+    # Defensive flag: `content_md` is external/untrusted content from the
+    # fetched URL. Constant False — agents treating tool results as
+    # potentially adversarial can branch on this without parsing the
+    # in-band HTML-comment markers inside content_md.
+    is_user_authored: bool = False
     # v0.4: present only when the caller passed `ask=`. None when ask is unset.
     extracted_answer: str | None = None
     extraction: ExtractionMeta | None = None

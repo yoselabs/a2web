@@ -56,6 +56,18 @@ class WebRouter(a2kit.Router):
                 ),
             ),
         ] = False,
+        wrap_content: Annotated[
+            bool,
+            a2kit.Param(
+                description=(
+                    "Wrap content_md with HTML-comment markers carrying source "
+                    "URL + fetched_at + 'untrusted content' warning. Default True. "
+                    "Defensive cue for agents — invisible in rendered HTML/markdown, "
+                    "readable to LLMs scanning the raw string. Pass False for raw "
+                    "content (e.g. piping to a renderer that strips comments)."
+                ),
+            ),
+        ] = True,
         ask: Annotated[
             str | None,
             a2kit.Param(
@@ -100,6 +112,7 @@ class WebRouter(a2kit.Router):
             ctx=ctx,
             include_links=include_links,
             link_roles=roles_filter,
+            wrap_content=wrap_content,
             debug=debug,
             ask=ask,
         )
