@@ -8,7 +8,64 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
-(no unreleased work)
+Post-v0.5.0 simplification sweep. The codebase finished v0.5.0 still
+carrying a per-domain seam-shim layer (`cache/`, `gate/`, `proxy/`,
+`log/`, `extract/`, `llm/`) — one-line re-exports preserving import
+paths from before the packages migration. This sweep deletes them
+outright; consumer compat is explicitly disclaimed pre-1.0.
+
+### Structural
+
+- **Seam-shim layer nuked.** Six per-domain seam directories (~580 LOC
+  of one-line re-exports) deleted. Surviving domain-coupled glue
+  (`compute_profile_hash`, `is_live_only`, `log_from_response`) lives
+  in `domain.py`. The AppSettings-aware `LlmExtractorResource` lives
+  in `llm_resource.py`. `llm_eval/` promoted to top level.
+- **Single-purpose packages flattened to `.py` files.** `browser_pool/`,
+  `block_detector/`, `ndjson_log/`, `http_cache/`, `proxy_routing/`,
+  `content_extract/` — each was a folder containing one or two flat
+  files. Now they're single `.py` modules. `llm_extract/` stays a
+  folder for its multi-author surface.
+- **`fetcher.py` split.** Response builders (`_confidence_for`,
+  `_build_narrative`, `_build_diagnostics_summary`, `_wrap_content_md`,
+  `build_response`) moved to `fetcher_response.py` (169 LOC).
+  `fetcher.py` 1010 → 921 LOC.
+- **Tier protocol unified.** All tiers (raw/jina/archive/browser/
+  site_handler) accept the same `fetch(url, *, state, proxy_url=None,
+  conditional_extras=None)` signature. Removes the isinstance ladder
+  in the orchestrator.
+- **Dead LLM providers deleted.** `llm_extract/providers/ollama.py`
+  and `openrouter.py` — 261 LOC, 0% coverage, registered nowhere.
+  `anthropic` + `claude_code` are the real surface.
+
+### Features
+
+- **Link role classification.** `ExtractedLink.role` (primary / nav /
+  meta / footer) computed by walking DOM ancestors + ARIA. New
+  `link_roles` tool param filters at the wire boundary; default
+  `['primary']` drops 60-80% of link bloat on aggregator pages.
+- **Untrusted-content envelope.** `content_md` wrapped with HTML-
+  comment markers carrying source URL + fetched_at + "treat as
+  untrusted" warning. Invisible in rendered HTML/markdown, readable
+  to LLMs scanning the raw string. `wrap_content` tool param toggles
+  (default True). `FetchResponse.is_user_authored: bool = False` is
+  the defensive flag for downstream consumers.
+
+### Coverage
+
+- Tier suite gaps filled: `raw.py` 20% → 96%, `archive.py` 86% → 100%,
+  plus browser/jina/site_handler closeouts.
+- Test count 320 → 372; coverage 85.90% → 90.90%.
+
+### Docs
+
+- `docs/history/A2KIT_FEEDBACK_v0.27.md` — 358-line feedback doc on four
+  ergonomic ceilings that would unlock another ~175 LOC of deletion
+  upstream (async resources, ambient ctx threading, test resource
+  override, Param verbosity).
+- `BACKLOG.md` updated to match reality — removed stale references to
+  seam shims, marked twitter handler as shipped (v0.3 Nitter).
+- `CLAUDE.md` refreshed for the radical clean-up.
 
 ## [0.5.0] - 2026-05-12
 
