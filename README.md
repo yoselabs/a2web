@@ -65,27 +65,6 @@ export A2WEB_JINA_KEY=...        # optional Jina free-tier API key
 export A2WEB_STEALTH=true        # any field overridable via A2WEB_<FIELD>
 ```
 
-## Inspecting the log
-
-Every fetch writes one NDJSON record to `~/.a2web/logs/fetches-YYYY-MM-DD.ndjson`
-(override the directory with `$A2WEB_LOG_DIR`, disable entirely with
-`A2WEB_LOG_ENABLED=false`). Use stdlib Unix tools to inspect:
-
-```bash
-# Most recent 20 fetches
-tail -n 20 ~/.a2web/logs/fetches-*.ndjson | jq
-
-# All non-ok fetches grouped by host
-grep -h '"status":"failed"' ~/.a2web/logs/fetches-*.ndjson \
-  | jq -r '"\(.host)\t\(.verdict)"' | sort | uniq -c | sort -rn
-
-# p50/p95 total_ms across the active log
-jq -s 'sort_by(.total_ms) | {p50:.[(length*0.5|floor)].total_ms, p95:.[(length*0.95|floor)].total_ms}' \
-  ~/.a2web/logs/fetches-*.ndjson
-```
-
-Active files rotate at 16 MiB and gzip on rollover (`fetches-YYYY-MM-DD-NN.ndjson.gz`).
-
 ## Architecture
 
 a2kit owns the framework surface — MCP server, CLI builder, ConnectionStore, formatter, DI container, schema discovery, testing fixtures, LDD kill-switches.

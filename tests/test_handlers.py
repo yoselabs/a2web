@@ -108,7 +108,7 @@ def test_hn_render_item_includes_story_and_quoted_replies() -> None:
 def _make_state() -> AppState:
     from a2web.state import build_state
 
-    return build_state(settings=AppSettings(log_enabled=False))
+    return build_state(settings=AppSettings())
 
 
 def test_to_old_reddit_url_drops_json_and_query() -> None:
@@ -269,7 +269,7 @@ async def test_reddit_handler_skips_fallback_when_json_succeeds(
 def _make_state_with_nitter(*instances: str) -> AppState:
     from a2web.state import build_state
 
-    s = AppSettings(nitter_instances=list(instances), log_enabled=False)
+    s = AppSettings(nitter_instances=list(instances))
     return build_state(settings=s)
 
 

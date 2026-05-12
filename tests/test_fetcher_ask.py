@@ -55,7 +55,7 @@ def _swap_raw(monkeypatch: pytest.MonkeyPatch, body: bytes) -> None:
 
 
 def _make_state(**overrides) -> AppState:
-    s = AppSettings(log_enabled=False, **overrides)
+    s = AppSettings(**overrides)
     return build_state(settings=s)
 
 

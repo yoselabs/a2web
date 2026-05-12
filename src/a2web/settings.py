@@ -106,12 +106,9 @@ class AppSettings(BaseSettings):
     cache_ttl_static_h: int = 168
     cache_ttl_article_h: int = 24
     cache_ttl_live_m: int = 5
-    log_retention_days: int = 30
 
     diagnostics_default: Literal["off", "brief", "full"] = "off"
     live_only_hosts: list[str] = Field(default_factory=lambda: ["reddit.com", "news.ycombinator.com"])
-
-    log_enabled: bool = True
 
     jina_key: str = ""
     jina_deny_hosts: list[str] = Field(default_factory=list)

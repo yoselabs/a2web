@@ -235,15 +235,7 @@ async def fetch(
 
     response = await _run_pipeline(fc, state=state, ctx=ctx)
 
-    if state.log_writer is not None:
-        try:
-            await state.log_writer.write_record(response.to_log_record(input_url=url))
-        except Exception as exc:
-            response.operator_hints.append(OperatorHint(code="log_write_failed", message=str(exc)))
-            _LOG.warning("log_write_failed", error=str(exc), url=url)
-
-    # v0.3 envelope diet: apply opt-in gates AT THE WIRE BOUNDARY. Logging
-    # has already consumed the full diagnostics; agents see the slim version.
+    # v0.3 envelope diet: apply opt-in gates AT THE WIRE BOUNDARY.
     # `diagnostics_summary` is always populated and carries verdict + timing.
     # v0.6 link-role filter: even when links are included, default to
     # role=primary only — kills nav/footer/aside payload bloat.

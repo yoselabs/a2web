@@ -29,7 +29,6 @@ def test_build_state_returns_complete_non_optional_state() -> None:
     s = build_state()
     assert s.settings is not None
     assert s.breakers is not None
-    assert s.log_writer is not None
     assert s.proxy_pool is not None
     assert s.sqlite is not None  # SqliteResource — lazy-opens on first use
     assert s.browser_pool is not None  # BrowserPool — lazy-launches on first acquire

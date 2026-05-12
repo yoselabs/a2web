@@ -37,6 +37,16 @@ outright; consumer compat is explicitly disclaimed pre-1.0.
 - **Dead LLM providers deleted.** `llm_extract/providers/ollama.py`
   and `openrouter.py` — 261 LOC, 0% coverage, registered nowhere.
   `anthropic` + `claude_code` are the real surface.
+- **NDJSON fetch log deleted.** `packages/ndjson_log.py` (118 LOC),
+  `LogWriter` / `LogRecord` / `dominant_verdict`, `AppState.log_writer`,
+  `FetchResponse.to_log_record()`, `domain.log_from_response()`, the
+  `log_enabled` and `log_retention_days` settings, the README
+  "Inspecting the log" section, and 3 test files. The cache covers
+  replay-style use cases; the per-fetch `diagnostics` array in the
+  response envelope covers structured observability. NDJSON was pure
+  duplication.
+- **a2kit pin: commit SHA → tag `v0.28.0`.** Cleaner version reference;
+  no behavioral change.
 
 ### Features
 
@@ -55,7 +65,8 @@ outright; consumer compat is explicitly disclaimed pre-1.0.
 
 - Tier suite gaps filled: `raw.py` 20% → 96%, `archive.py` 86% → 100%,
   plus browser/jina/site_handler closeouts.
-- Test count 320 → 372; coverage 85.90% → 90.90%.
+- Test count 320 → 354; coverage 85.90% → 90.59%
+  (NDJSON suite removed alongside the package).
 
 ### Docs
 

@@ -228,7 +228,7 @@ class _MockRawTier:
 def _make_state() -> AppState:
     from a2web.state import build_state
 
-    return build_state(settings=AppSettings(log_enabled=False))
+    return build_state(settings=AppSettings())
 
 
 @pytest.mark.asyncio

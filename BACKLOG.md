@@ -32,10 +32,11 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   `BrowserPool` over as the first proof-of-concept package.
 - ✅ **Stage 2b–2g — seven packages promoted (DONE in v0.5 step 9).**
   All seven in-tree microsofware modules now live under `src/a2web/packages/`:
-  `browser_pool`, `block_detector`, `ndjson_log`, `http_cache`,
-  `proxy_routing`, `llm_extract` (folder), `content_extract`. Six are
-  flat `.py` files; `llm_extract/` stays as a folder for its multi-author
-  surface (extractor, judge, cache, prompts, errors, providers/). The
+  `browser_pool`, `block_detector`, `http_cache`, `proxy_routing`,
+  `llm_extract` (folder), `content_extract`. Five are flat `.py` files;
+  `llm_extract/` stays a folder for its multi-author surface
+  (extractor, judge, cache, prompts, errors, providers/).
+  *NDJSON log package deleted post-v0.5.0 — see Stage 2j.* The
   `test_packages_independence` invariant guards the no-domain-import
   contract for all of them.
 - ✅ **Stage 2h — seam-shim layer nuked (DONE in v0.5 step 11).** The
@@ -66,12 +67,17 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   comment markers carrying source URL + fetched_at + "treat as
   untrusted" warning; `wrap_content` tool param toggles. Defensive
   cue for downstream agents, invisible to rendered HTML/markdown.
-- ⏳ **Stage 3a — logging swap.** *Why deferred:* stdlib
-  `RotatingFileHandler` uses `.1`/`.2` suffix instead of the current
-  `fetches-YYYY-MM-DD-NN.ndjson.gz` format. Changes the rolled-file naming
-  contract — downstream wire change for log consumers. Worth its own
-  focused PR with explicit format-migration plan. Current `log/*` works,
-  is well-tested, and rotation/gzip is correct.
+- ✅ **Stage 2j — NDJSON log nuked (post-v0.5.0).** The fetch log
+  existed primarily to support replay-from-cache (PR10b). With the
+  cache covering hit-keyed lookup and the structured `diagnostics`
+  trace already in the response envelope, the NDJSON layer was pure
+  duplication. Deleted: `packages/ndjson_log.py` (118 LOC),
+  `LogWriter`/`LogRecord`/`dominant_verdict` + 3 test files, plus
+  `state.log_writer`, `FetchResponse.to_log_record()`,
+  `domain.log_from_response()`, the `log_enabled` /
+  `log_retention_days` settings, and the README "Inspecting the log"
+  section. Supersedes deferred Stage 3a (logging swap) and PR10b
+  (replay) — both items removed.
 - ⏳ **Stage 3b — proxy → purgatory.** *Why deferred:* purgatory's API is
   context-manager-flavored (`async with brk: ...`), not report-flavored.
   Swapping cleanly requires either making `ProxyPool.acquire/report` async
@@ -104,9 +110,9 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 - **Phase D — extract as uv workspace packages.** Source:
   `migrate-to-a2kit-v026-and-simplify` Phase D (tasks 4.1–4.6).
-  *Superseded by v0.5's in-tree `packages/` migration.* All seven
-  candidate microsofware modules (`browser_pool`, `block_detector`,
-  `ndjson_log`, `http_cache`, `proxy_routing`, `llm_extract`,
+  *Superseded by v0.5's in-tree `packages/` migration.* All six
+  remaining candidate microsofware modules (`browser_pool`,
+  `block_detector`, `http_cache`, `proxy_routing`, `llm_extract`,
   `content_extract`) now live under `src/a2web/packages/` with the
   contract enforced by `test_packages_independence`. Promoting one
   to a separate uv workspace package is a mechanical move from there
@@ -120,9 +126,7 @@ Four OSS swaps the research recommended that turned out to be wrong fits on clos
 - **hishel for HTTP cache.** Source: `migrate-to-a2kit-v026-and-simplify` Phase B 2.1+2.2. *Why deferred:* hishel v1.2's `AsyncCacheProxy` requires owning the HTTP transport via a `request_sender` callback. a2web's cache is an orchestrator-level before/after wrapper around the tier loop — it doesn't own transport. Adopting hishel would mean restructuring every tier to delegate raw HTTP to hishel, which is a fundamental architectural shift, not a shim. Reconsider if v0.3 collapses tiers to a single curl_cffi-backed transport. Scope: L.
 - **aiometer for hedged archive requests.** Source: 2.7. *Why deferred:* `aiometer.run_any` returns the FIRST result regardless of value (first finisher wins, losers cancelled). Our archive tier wants "first SUCCESS" semantics — if Wayback returns None, we want to keep waiting for archive.ph. aiometer cancels and returns None instead. Custom 30 LOC of anyio task-group + capacity-1 stream stays. Scope: S.
 - **purgatory for proxy quarantine.** Source: 2.6. *Why deferred:* ProxyPool's API is sync (`.acquire()`, `.report()`); purgatory's breakers are async (`.get_breaker()`, `breaker.context()`). Swap would force ProxyPool async, propagating through the orchestrator's tier loop. Net: more code, not less. Custom 30 LOC health state machine stays. Purgatory's redis-persistence value-add is the PR7e win; defer until PR7e actually needs redis. Scope: S.
-- **stdlib RotatingFileHandler for NDJSON log.** Source: 2.3. *Why deferred:* current async writer is 98 LOC of `aiofiles`-based code (research estimated 250). Stdlib `RotatingFileHandler` is sync — wrapping in `asyncio.to_thread` to preserve `await write_record(record)` adds a thread hop per write and worse async semantics. Hand-rolled async beats sync-wrapped-stdlib here. Scope: S.
-
-Pattern: hand-rolled async code (cache wrapper, hedged race, proxy health, NDJSON writer) is hard to beat with sync libraries even when the library "covers" the use case. Trafilatura's bundled metadata (which DID land — drops htmldate) was the one clean OSS swap because the API shape genuinely matched.
+Pattern: hand-rolled async code (cache wrapper, hedged race, proxy health) is hard to beat with sync libraries even when the library "covers" the use case. Trafilatura's bundled metadata (which DID land — drops htmldate) was the one clean OSS swap because the API shape genuinely matched. (RotatingFileHandler-for-NDJSON entry deleted: the NDJSON layer itself was removed post-v0.5.0 — the cache covers replay.)
 
 ---
 
@@ -172,20 +176,15 @@ Pattern: hand-rolled async code (cache wrapper, hedged race, proxy health, NDJSO
 - **Per-handler proxy plumbing.** Source: PR8. *Why deferred:* mostly
   mechanical — bundle with PR7e proxy work. Scope: S.
 
-## PR10b — Replay from cache
-
-- **`a2web fetch --replay <ts>`.** Source: PR10. *Why deferred:* needs
-  body storage in the NDJSON log; the v0.1 log records metadata only.
-  Scope: M.
-- **`a2web logs stats` / `--format csv` export.** Source: PR10. *Why
-  deferred:* defer until usage signals which aggregations matter; do
-  not pre-build dashboards no one reads. Scope: S.
-
 ## v0.2 candidates
 
-- **Reader-LM v2 fallback.** Source: engineering.md §10. *Why deferred:*
-  trip only if a benchmark shows trafilatura + readability misses ≥10%
-  of content; otherwise the cost isn't justified. Scope: L.
+- 🟢 **Reader-LM v2 fallback.** Source: engineering.md §10. *Status:*
+  greenlit post-v0.5.0 — Denis OK with running benchmarks + deep
+  research. Trip condition: corpus run shows trafilatura + readability
+  miss ≥10% of content on a representative set. Scope: L (corpus
+  selection + extraction harness + Reader-LM v2 wrapping + threshold
+  picker). Next step: pick benchmark corpus (~50-100 URLs across
+  article / docs / forum / aggregator / SPA classes).
 - **Multimodal fetch (screenshot + DOM as response).** Source:
   engineering.md §10. *Why deferred:* requires the browser tier to
   emit screenshots and a response-shape change; v0.2 contract decision.

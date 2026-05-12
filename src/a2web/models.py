@@ -153,14 +153,3 @@ class FetchResponse(BaseModel):
     # v0.4: present only when the caller passed `ask=`. None when ask is unset.
     extracted_answer: str | None = None
     extraction: ExtractionMeta | None = None
-
-    def to_log_record(self, *, input_url: str | None = None, error: str | None = None):
-        """Derive a LogRecord (NDJSON fetch row) from this response.
-
-        `input_url` preserves the user-supplied URL when the response carries
-        a post-redirect `final_url`; defaults to `self.url`. `error` is only
-        populated on pathological extract/log paths.
-        """
-        from .domain import log_from_response
-
-        return log_from_response(self, input_url=input_url, error=error)

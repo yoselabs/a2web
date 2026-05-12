@@ -21,7 +21,6 @@ from purgatory import AsyncCircuitBreakerFactory
 from .llm_resource import LlmExtractorResource
 from .packages.browser_pool import BrowserPool
 from .packages.http_cache import SqliteResource
-from .packages.ndjson_log import LogWriter
 from .packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from .settings import AppSettings, get_settings
 
@@ -37,7 +36,6 @@ class AppState:
 
     settings: AppSettings
     breakers: AsyncCircuitBreakerFactory
-    log_writer: LogWriter
     proxy_pool: ProxyPool
     sqlite: SqliteResource
     browser_pool: BrowserPool
@@ -55,7 +53,6 @@ def build_state(settings: AppSettings | None = None) -> AppState:
     return AppState(
         settings=resolved,
         breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        log_writer=LogWriter(disabled=not resolved.log_enabled),
         proxy_pool=ProxyPool(
             routes=cast("list[RouteRuleShape]", resolved.routes),
             proxies=cast("dict[str, ProxyEntryShape]", resolved.proxies),
