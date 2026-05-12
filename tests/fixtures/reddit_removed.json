@@ -1,0 +1,26 @@
+[
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t3",
+          "data": {
+            "title": "An interesting question",
+            "author": "[deleted]",
+            "subreddit": "AskPython",
+            "permalink": "/r/AskPython/comments/rmv/an_interesting_question/",
+            "selftext": "[removed]",
+            "id": "rmv"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "kind": "Listing",
+    "data": {
+      "children": []
+    }
+  }
+]

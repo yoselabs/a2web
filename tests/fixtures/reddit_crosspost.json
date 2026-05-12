@@ -1,0 +1,44 @@
+[
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t3",
+          "data": {
+            "title": "Repost: How agent fetchers handle paywalls",
+            "author": "reposter",
+            "subreddit": "programming",
+            "permalink": "/r/programming/comments/xyz/repost_how_agent_fetchers_handle_paywalls/",
+            "selftext": "",
+            "id": "xyz",
+            "crosspost_parent_list": [
+              {
+                "subreddit": "MachineLearning",
+                "author": "original_author",
+                "permalink": "/r/MachineLearning/comments/orig/how_agent_fetchers_handle_paywalls/",
+                "title": "How agent fetchers handle paywalls"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t1",
+          "data": {
+            "id": "c1",
+            "author": "discusser",
+            "body": "Discussion in the crosspost subreddit.",
+            "replies": ""
+          }
+        }
+      ]
+    }
+  }
+]

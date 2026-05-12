@@ -36,6 +36,7 @@ Action = RetryViaArchive | RewriteUrl | Skip
 
 
 _ARXIV_PDF_RE = re.compile(r"^https?://arxiv\.org/pdf/([^/?#]+?)(?:\.pdf)?(?:[/?#].*)?$", re.IGNORECASE)
+_REDDIT_HOST_RE = re.compile(r"^https?://(?:www\.|old\.|np\.)?reddit\.com/", re.IGNORECASE)
 
 
 def _is_cloudflare(tier_result: TierResult) -> bool:
@@ -64,6 +65,12 @@ def next_action_after_tier(tier_result: TierResult, url: str) -> Action | None:
 
     # Rule 2: Cloudflare 403/429 → archive
     if tier_result.status_code in (403, 429) and _is_cloudflare(tier_result):
+        return RetryViaArchive(url=url)
+
+    # Rule 3: site handler returned not_found on a reddit URL → archive.
+    # Used when reddit's .json + old.reddit both confirm deletion; Wayback
+    # typically has a public snapshot from before removal.
+    if tier_result.verdict is Verdict.not_found and _REDDIT_HOST_RE.match(url):
         return RetryViaArchive(url=url)
 
     return None

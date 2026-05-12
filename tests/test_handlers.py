@@ -389,3 +389,224 @@ async def test_match_handler_includes_twitter() -> None:
     """The dispatcher returns TwitterHandler for x.com status URLs."""
     handler = match_handler("https://x.com/karpathy/status/1759031023815639423")
     assert isinstance(handler, TwitterHandler)
+
+
+# --------------------------------------------------------------------- #
+# v0.6 Reddit: permalink focus + crosspost + archive escalation + short URL
+# --------------------------------------------------------------------- #
+
+
+def test_reddit_matches_short_url() -> None:
+    """redd.it/<id> is claimed by the handler for HEAD-resolution."""
+    assert RedditHandler().matches("https://redd.it/abc123")
+
+
+def test_reddit_matches_np_subdomain() -> None:
+    """np.reddit.com (no-participation) URLs are recognized."""
+    assert RedditHandler().matches("https://np.reddit.com/r/x/comments/abc/title/")
+
+
+def test_reddit_permalink_detection() -> None:
+    """Trailing base36 segment after slug is the focused comment id."""
+    from a2web.handlers.reddit import _detect_permalink
+
+    # Permalink — slug + comment id
+    assert _detect_permalink("https://www.reddit.com/r/x/comments/abc/some_title/k7x9z2/") == "k7x9z2"
+    # Bare thread — slug only, no permalink
+    assert _detect_permalink("https://www.reddit.com/r/x/comments/abc/some_title/") is None
+    # Slug-only with no trailing slash
+    assert _detect_permalink("https://www.reddit.com/r/x/comments/abc/some_title") is None
+    # Underscore in trailing segment → it's a slug, not a comment id
+    assert _detect_permalink("https://www.reddit.com/r/x/comments/abc/slug/another_slug/") is None
+
+
+def test_reddit_render_permalink_includes_target_and_ancestors() -> None:
+    """Focused render shows the target comment with ancestor context."""
+    from a2web.handlers.reddit import _render_thread
+
+    payload = json.loads((_FIX / "reddit_permalink.json").read_text())
+    rendered = _render_thread(payload, target_comment="target99")
+
+    md = rendered["content_md"]
+    assert "Focused comment" in md
+    assert "🎯 Focused comment by u/charlie" in md
+    assert "This is the focused target comment." in md
+    # Ancestor block-quoted with context label.
+    assert "Context — ancestors of the focused comment" in md
+    assert "Top-level ancestor comment." in md
+    assert "Mid-level ancestor." in md
+    # Reply to the target is included.
+    assert "Reply to the focused comment." in md
+
+
+def test_reddit_render_permalink_falls_back_when_target_missing() -> None:
+    """If the target id isn't in the tree, fall back to full thread render."""
+    from a2web.handlers.reddit import _render_thread
+
+    payload = json.loads((_FIX / "reddit_thread.json").read_text())
+    rendered = _render_thread(payload, target_comment="nonexistent")
+
+    md = rendered["content_md"]
+    # Standard "## Comments" section instead of focused view.
+    assert "## Comments" in md
+    assert "Focused comment" not in md
+
+
+def test_reddit_render_crosspost_includes_source_annotation() -> None:
+    """Posts with crosspost_parent_list get a source annotation line."""
+    from a2web.handlers.reddit import _render_thread
+
+    payload = json.loads((_FIX / "reddit_crosspost.json").read_text())
+    rendered = _render_thread(payload)
+
+    md = rendered["content_md"]
+    assert "🔁 Crossposted from" in md
+    assert "r/MachineLearning" in md
+    assert "u/original_author" in md
+    # Original title surfaced in the annotation.
+    assert "How agent fetchers handle paywalls" in md
+
+
+def test_reddit_render_removed_post_marks_body() -> None:
+    """selftext == '[removed]' is replaced with a visible marker."""
+    from a2web.handlers.reddit import _render_thread
+
+    payload = json.loads((_FIX / "reddit_removed.json").read_text())
+    rendered = _render_thread(payload)
+
+    md = rendered["content_md"]
+    assert "_[post body removed]_" in md
+    # Title still rendered.
+    assert "An interesting question" in md
+
+
+@pytest.mark.asyncio
+async def test_reddit_handler_signals_archive_on_404_when_old_reddit_also_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When .json 404 AND old.reddit 404, return not_found with archive hint.
+
+    The playbook reads `verdict=not_found` on a reddit URL and dispatches
+    the archive tier next.
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    real_cls = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+
+    result = await RedditHandler().fetch(
+        "https://www.reddit.com/r/x/comments/dead/title/", state=_make_state()
+    )
+
+    assert result.verdict == Verdict.not_found
+    assert result.pre_rendered is None
+    assert result.operator_hint is not None
+    assert result.operator_hint.code == "reddit_deleted_try_archive"
+
+
+@pytest.mark.asyncio
+async def test_reddit_handler_signals_archive_on_403(monkeypatch: pytest.MonkeyPatch) -> None:
+    """403 (quarantined/NSFW/private) skips old.reddit and asks for archive."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403)
+
+    transport = httpx.MockTransport(handler)
+    real_cls = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+
+    result = await RedditHandler().fetch(
+        "https://www.reddit.com/r/x/comments/abc/title/", state=_make_state()
+    )
+
+    assert result.verdict == Verdict.not_found
+    assert result.operator_hint is not None
+    assert result.operator_hint.code == "reddit_forbidden_try_archive"
+
+
+@pytest.mark.asyncio
+async def test_reddit_handler_resolves_short_url_then_renders(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """redd.it/<id> → HEAD-resolved (via 301) → recursed → renders the thread."""
+    payload = json.loads((_FIX / "reddit_thread.json").read_text())
+    resolved_url = "https://www.reddit.com/r/x/comments/abc/some_title/"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if request.method == "HEAD" and "redd.it" in url:
+            return httpx.Response(301, headers={"location": resolved_url})
+        if request.method == "HEAD":
+            return httpx.Response(200)
+        if ".json" in url:
+            return httpx.Response(200, json=payload)
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    real_cls = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+
+    result = await RedditHandler().fetch("https://redd.it/abc", state=_make_state())
+
+    assert result.verdict == Verdict.ok
+    assert result.pre_rendered is not None
+    assert result.pre_rendered.title == "Best Local LLMs in April 2026"
+
+
+@pytest.mark.asyncio
+async def test_reddit_handler_short_url_no_match_for_non_thread_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """If redd.it resolves to a non-thread URL, return no_match=True."""
+    resolved_url = "https://www.reddit.com/r/x/"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if request.method == "HEAD" and "redd.it" in url:
+            return httpx.Response(301, headers={"location": resolved_url})
+        return httpx.Response(200)
+
+    transport = httpx.MockTransport(handler)
+    real_cls = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+
+    result = await RedditHandler().fetch("https://redd.it/abc", state=_make_state())
+
+    assert result.no_match is True
+    assert result.final_url == resolved_url
+
+
+def test_playbook_escalates_reddit_not_found_to_archive() -> None:
+    """next_action_after_tier: reddit URL + not_found → RetryViaArchive."""
+    from a2web.actions import RetryViaArchive, next_action_after_tier
+    from a2web.tiers import TierResult
+
+    tr = TierResult(
+        body=b"",
+        content_type="",
+        status_code=0,
+        final_url="https://www.reddit.com/r/x/comments/dead/",
+        verdict=Verdict.not_found,
+    )
+    action = next_action_after_tier(tr, "https://www.reddit.com/r/x/comments/dead/")
+    assert isinstance(action, RetryViaArchive)
+    assert action.url == "https://www.reddit.com/r/x/comments/dead/"
+
+
+def test_playbook_does_not_escalate_not_found_on_other_hosts() -> None:
+    """The reddit not_found rule does not fire for non-reddit hosts."""
+    from a2web.actions import next_action_after_tier
+    from a2web.tiers import TierResult
+
+    tr = TierResult(
+        body=b"",
+        content_type="",
+        status_code=0,
+        final_url="https://example.com/page",
+        verdict=Verdict.not_found,
+    )
+    action = next_action_after_tier(tr, "https://example.com/page")
+    assert action is None
