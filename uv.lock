@@ -8,8 +8,8 @@ resolution-markers = [
 
 [[package]]
 name = "a2kit"
-version = "0.27.2"
-source = { git = "https://github.com/yoselabs/a2kit.git?rev=3fffc3bc594d282cb2e5b9c48a873122e181cb29#3fffc3bc594d282cb2e5b9c48a873122e181cb29" }
+version = "0.28.0"
+source = { git = "https://github.com/yoselabs/a2kit.git?tag=v0.28.0#4d067fddea7b7e7d1ecb7856ce6cc04b0c3c0b76" }
 dependencies = [
     { name = "anyio" },
     { name = "cel-python" },
@@ -69,7 +69,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "a2kit", git = "https://github.com/yoselabs/a2kit.git?rev=3fffc3bc594d282cb2e5b9c48a873122e181cb29" },
+    { name = "a2kit", git = "https://github.com/yoselabs/a2kit.git?tag=v0.28.0" },
     { name = "aiofiles", specifier = ">=25.1.0" },
     { name = "aiosqlite", specifier = ">=0.20,<1" },
     { name = "anthropic", marker = "extra == 'llm'", specifier = ">=0.40,<1" },
