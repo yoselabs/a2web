@@ -70,14 +70,42 @@ outright; consumer compat is explicitly disclaimed pre-1.0.
   with bag-of-tokens F1 + length-ratio scoring. Drives the Reader-LM
   v2 trip decision (default: ≥10% URLs below 0.7 F1 → recommend
   fallback). Pure-Python; no LLM dependency for the verdict. Corpus
-  skeleton at `benchmarks/extraction-quality/2026-05-12/corpus.yaml`.
+  skeleton at `benchmarks/extraction-quality/2026-05-12/corpus.yaml`
+  (10 starter entries spanning essay / blog / docs / aggregator).
+- **Reddit handler: all content-carrying cases covered.**
+  - **Permalink focus.** `/r/X/comments/Y/slug/Z/` (Z = comment id)
+    is detected; `.json` fetched with `?context=3`; renderer
+    highlights the target comment with quoted ancestor context and
+    direct replies. Falls back to full-thread render when the target
+    isn't in the returned tree.
+  - **Crosspost annotation.** Threads with `crosspost_parent_list`
+    get a "🔁 Crossposted from r/X (u/Y) — <permalink> — original:
+    '...'" header. Local discussion is the rendered content.
+  - **Archive escalation for deleted / removed / forbidden.**
+    Handler returns `Verdict.not_found` with an operator hint when
+    `.json` 404 + old.reddit 404, or on `.json` 403 (quarantined /
+    NSFW / private). New playbook rule
+    (`next_action_after_tier` → `RetryViaArchive` on reddit
+    `not_found`) dispatches the Wayback tier — captures from before
+    removal are common.
+  - **Short-URL HEAD resolution.** `redd.it/<id>` now matches;
+    handler does a HEAD with `follow_redirects`, recurses on the
+    resolved comments URL, or surfaces `no_match` when the
+    resolution points at non-thread content.
+  - **`np.reddit.com`** host added.
+  - Mod-removed bodies (`selftext == "[removed]"`) rendered as
+    `_[post body removed]_` instead of empty selftext.
 
 ### Coverage
 
 - Tier suite gaps filled: `raw.py` 20% → 96%, `archive.py` 86% → 100%,
   plus browser/jina/site_handler closeouts.
-- Test count 320 → 374; coverage 85.90% → 89.60%
-  (NDJSON suite removed; extraction-eval suite added).
+- Reddit handler coverage: 13 new tests (permalink detection +
+  focused render, crosspost annotation, removed-body marker,
+  archive-escalation signal on 404 + 403, short-URL HEAD resolution
+  + non-thread no_match, playbook escalation rule).
+- Test count 320 → 387; coverage 85.90% → 89.71%
+  (NDJSON suite removed; extraction-eval + reddit suites added).
 
 ### Docs
 
