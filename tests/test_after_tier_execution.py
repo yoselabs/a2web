@@ -94,7 +94,7 @@ class _CloudflareBlockedRawTier:
 class _RecoveringArchiveTier:
     name = "archive"
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
         del state
         markdown = "# Recovered\n\n" + ("Real content. " * 80)
         return TierResult(

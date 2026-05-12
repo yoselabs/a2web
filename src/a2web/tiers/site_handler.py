@@ -21,7 +21,15 @@ class SiteHandlerTier:
 
     name: str = "site_handler"
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(
+        self,
+        url: str,
+        *,
+        state: AppState,
+        proxy_url: str | None = None,
+        conditional_extras: dict[str, str] | None = None,
+    ) -> TierResult:
+        del proxy_url, conditional_extras  # Handlers manage their own transport today.
         from . import TierResult
 
         handler = match_handler(url)

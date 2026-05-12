@@ -45,7 +45,15 @@ class BrowserTier:
 
     name: str = "browser"
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(
+        self,
+        url: str,
+        *,
+        state: AppState,
+        proxy_url: str | None = None,
+        conditional_extras: dict[str, str] | None = None,
+    ) -> TierResult:
+        del proxy_url, conditional_extras  # Browser tier ignores both today.
         from . import Rendered, TierResult  # local - circular with package init
 
         if not state.settings.browser_enabled:

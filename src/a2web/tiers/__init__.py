@@ -77,11 +77,22 @@ class Tier(Protocol):
     They translate connection errors / timeouts / bad statuses into a closed
     `Verdict` value and return. Exceptions cross the boundary only on truly
     unexpected programmer errors.
+
+    Unified signature: every tier accepts `proxy_url` and `conditional_extras`
+    kwargs. Tiers that don't use them just ignore them. This lets the
+    orchestrator dispatch uniformly without an isinstance ladder.
     """
 
     name: str
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult: ...
+    async def fetch(
+        self,
+        url: str,
+        *,
+        state: AppState,
+        proxy_url: str | None = None,
+        conditional_extras: dict[str, str] | None = None,
+    ) -> TierResult: ...
 
 
 from .archive import ArchiveTier  # noqa: E402

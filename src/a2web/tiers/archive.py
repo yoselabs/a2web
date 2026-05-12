@@ -120,7 +120,15 @@ class ArchiveTier:
 
     name: str = "archive"
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(
+        self,
+        url: str,
+        *,
+        state: AppState,
+        proxy_url: str | None = None,
+        conditional_extras: dict[str, str] | None = None,
+    ) -> TierResult:
+        del proxy_url, conditional_extras  # Archive tier ignores both today.
         from . import TierResult  # local import — circular with package init
 
         del state  # archive tier needs no breakers in v0.1

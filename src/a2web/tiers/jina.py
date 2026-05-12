@@ -53,7 +53,15 @@ class JinaTier:
 
     name: str = "jina"
 
-    async def fetch(self, url: str, *, state: AppState, proxy_url: str | None = None) -> TierResult:
+    async def fetch(
+        self,
+        url: str,
+        *,
+        state: AppState,
+        proxy_url: str | None = None,
+        conditional_extras: dict[str, str] | None = None,
+    ) -> TierResult:
+        del conditional_extras  # Jina doesn't use conditional GET — always fresh fetch.
         from . import TierResult  # local import — avoid circular at module load
 
         if _is_denied(url, state.settings.jina_deny_hosts):

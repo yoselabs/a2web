@@ -215,7 +215,7 @@ class _MockRawTier:
     def __init__(self, body: bytes) -> None:
         self._body = body
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
         return TierResult(
             body=self._body,
             content_type="text/html",

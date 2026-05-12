@@ -32,7 +32,7 @@ class _MockTier:
         self._body = body
         self._content_type = content_type
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
         return TierResult(
             body=self._body,
             content_type=self._content_type,
@@ -115,7 +115,7 @@ async def test_cache_hit_on_second_call(monkeypatch: pytest.MonkeyPatch) -> None
     class _NotModifiedTier:
         name = "raw"
 
-        async def fetch(self, url: str, *, state: AppState, conditional_extras=None):
+        async def fetch(self, url: str, *, state: AppState, **kwargs: object):
             return TierResult(
                 body=b"",
                 content_type="text/html",
@@ -227,7 +227,7 @@ async def test_pre_rendered_handler_skips_extraction(monkeypatch: pytest.MonkeyP
     class _PreRenderedHandler:
         name = "site_handler:reddit"
 
-        async def fetch(self, url: str, *, state: AppState) -> TierResult:
+        async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
             return TierResult(
                 body=b'{"foo":"bar"}',
                 content_type="application/json",
@@ -323,7 +323,7 @@ async def test_pre_rendered_handler_returns_fit_md_none(
     class _PreRendered:
         name = "site_handler:reddit"
 
-        async def fetch(self, url: str, *, state: AppState) -> TierResult:
+        async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
             return TierResult(
                 body=b"{}",
                 content_type="application/json",

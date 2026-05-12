@@ -24,7 +24,7 @@ class _NotFoundArchiveTier:
 
     name: str = "archive"
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
         del state
         return TierResult(
             body=b"",
@@ -41,7 +41,7 @@ class _UnavailableBrowserTier:
 
     name: str = "browser"
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
         del state
         return TierResult(
             body=b"",

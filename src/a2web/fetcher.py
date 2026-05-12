@@ -48,8 +48,6 @@ from .packages.content_extract import (
 from .packages.http_cache import CacheRow, SqliteResource
 from .state import AppState
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
-from .tiers.jina import JinaTier
-from .tiers.raw import RawTier
 from .utils.time import fmt_dur
 
 
@@ -514,17 +512,12 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState, ctx: a2kit.Tool
 
             await a2kit.ldd.event(ctx, TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
 
-            if isinstance(tier, RawTier):
-                tier_result = await tier.fetch(
-                    fc.url,
-                    state=state,
-                    conditional_extras=conditional_extras,
-                    proxy_url=handle.proxy_url,
-                )
-            elif isinstance(tier, JinaTier):
-                tier_result = await tier.fetch(fc.url, state=state, proxy_url=handle.proxy_url)
-            else:
-                tier_result = await tier.fetch(fc.url, state=state)
+            tier_result = await tier.fetch(
+                fc.url,
+                state=state,
+                proxy_url=handle.proxy_url,
+                conditional_extras=conditional_extras,
+            )
 
             # Silent skip — no diagnostic row
             if tier_result.no_match or tier_result.skipped:

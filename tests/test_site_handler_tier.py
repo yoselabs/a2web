@@ -35,7 +35,7 @@ async def test_matched_handler_is_delegated_to(monkeypatch: pytest.MonkeyPatch) 
         def matches(self, url: str) -> bool:
             return "matched.example" in url
 
-        async def fetch(self, url: str, *, state: AppState) -> TierResult:
+        async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
             del state
             return TierResult(
                 body=b"<html>handler output</html>",
@@ -66,7 +66,7 @@ async def test_matched_handler_preserves_its_own_handler_name(monkeypatch: pytes
     class _FakeHandler:
         name = "outer-name"
 
-        async def fetch(self, url: str, *, state: AppState) -> TierResult:
+        async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
             del state
             return TierResult(
                 body=b"x",

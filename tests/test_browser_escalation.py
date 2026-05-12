@@ -28,7 +28,7 @@ class _AnubisRawTier:
 class _RecoveringBrowserTier:
     name = "browser"
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
         del state
         markdown = "# Real Article\n\n" + ("Real body content. " * 80)
         return TierResult(
@@ -86,7 +86,7 @@ async def test_browser_dispatch_capped_at_one(monkeypatch: pytest.MonkeyPatch) -
     class _StillBlockedBrowserTier:
         name = "browser"
 
-        async def fetch(self, url: str, *, state: AppState) -> TierResult:
+        async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
             del state
             dispatches["n"] += 1
             # Return content that will re-trigger anubis on re-gate
