@@ -6,7 +6,6 @@
 `claude_code.py` — Claude Code OS-session via `claude-agent-sdk` (no
                    API key needed; uses whatever Claude Code is logged
                    into — OAuth subscription or API key).
-`openrouter.py`  — lands in v0.5.
 """
 
 from __future__ import annotations

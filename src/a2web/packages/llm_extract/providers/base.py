@@ -37,7 +37,7 @@ class ProviderResponse:
 class Provider(Protocol):
     """A completion backend. Implementations live under `providers/`."""
 
-    name: str  # "anthropic", "openrouter", ...
+    name: str  # "anthropic", "claude_code"
 
     async def complete(
         self,
