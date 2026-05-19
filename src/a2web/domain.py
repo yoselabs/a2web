@@ -132,9 +132,7 @@ def json_to_markdown_rows(payload: JsonPayload) -> str:
     data = payload.data
     if payload.source == "ld_json":
         return _ld_json_to_markdown(data)
-    if payload.source in ("next_data", "nuxt_data"):
-        return _framework_state_to_markdown(data)
-    if payload.source == "generic":
+    if payload.source in ("next_data", "nuxt_data", "window_var", "generic"):
         return _framework_state_to_markdown(data)
     return ""
 

@@ -148,3 +148,56 @@ def test_rank_within_bucket_prefers_larger() -> None:
     ranked = rank_payloads([a, b])
     assert ranked[0] is b
     assert ranked[1] is a
+
+
+def test_window_var_state_assignment_detected() -> None:
+    """`window.state = {...}` inside a text/javascript script is extracted."""
+    html = (
+        '<html><body>'
+        '<script type="text/javascript">'
+        'window.state = {"products":[{"name":"X","price":10}],"pageId":"search"};'
+        '</script>'
+        '</body></html>'
+    )
+    payloads = extract_json_payloads(html)
+    wv = [p for p in payloads if p.source == "window_var"]
+    assert len(wv) == 1
+    assert wv[0].script_id == "state"
+    assert wv[0].data["products"][0]["name"] == "X"
+
+
+def test_window_var_initial_state_with_strings_containing_braces() -> None:
+    """String-aware bracket counting handles braces inside string literals."""
+    html = (
+        '<script type="text/javascript">'
+        'window.__INITIAL_STATE__ = {"label":"a{b}c","items":[{"id":1}]};'
+        'var other = 42;</script>'
+    )
+    payloads = extract_json_payloads(html)
+    wv = [p for p in payloads if p.source == "window_var"]
+    assert len(wv) == 1
+    assert wv[0].data["items"][0]["id"] == 1
+    assert wv[0].data["label"] == "a{b}c"
+
+
+def test_window_var_not_extracted_when_followed_by_code_not_object() -> None:
+    """`window.state = computeState()` (function call) is silently skipped."""
+    html = '<script>window.state = computeState();</script>'
+    assert [p for p in extract_json_payloads(html) if p.source == "window_var"] == []
+
+
+def test_window_var_unknown_name_not_scanned() -> None:
+    """Random `window.foo = {...}` (not in seed list) is not picked up."""
+    html = '<script>window.foo = {"a":1};</script>'
+    assert [p for p in extract_json_payloads(html) if p.source == "window_var"] == []
+
+
+def test_window_var_ranks_after_ld_json_and_next_data() -> None:
+    """LD-JSON strong > next_data > weak LD > window_var > generic."""
+    from a2web.packages.json_in_script import JsonPayload, rank_payloads
+
+    wv = JsonPayload(source="window_var", data={"x": 1}, script_id="state", byte_size=100)
+    nd = JsonPayload(source="next_data", data={"x": 1}, script_id="__NEXT_DATA__", byte_size=100)
+    ranked = rank_payloads([wv, nd])
+    assert ranked[0] is nd
+    assert ranked[1] is wv

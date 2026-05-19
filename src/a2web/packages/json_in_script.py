@@ -37,12 +37,13 @@ Gherkin (mirrors spec at openspec/changes/harsh-test-session-fixes/specs/json-ex
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Literal
 
 from selectolax.parser import HTMLParser
 
-JsonSource = Literal["next_data", "nuxt_data", "ld_json", "generic"]
+JsonSource = Literal["next_data", "nuxt_data", "ld_json", "generic", "window_var"]
 
 
 @dataclass(slots=True, frozen=True)
@@ -122,6 +123,30 @@ def extract_json_payloads(html: str) -> list[JsonPayload]:
         if payload is not None:
             out.append(JsonPayload(source="generic", data=payload, script_id=node.attributes.get("id"), byte_size=len(body)))
 
+    # 5. window.<name> = {...} JS-variable assignments inside text/javascript
+    # scripts. Targets initial-state patterns common to older / custom SPAs
+    # (Yandex's `window.state`, classic Redux `window.__INITIAL_STATE__`,
+    # generic `window.__PRELOADED_STATE__` / `window.__APP_DATA__`).
+    for node in tree.css('script'):
+        script_type = (node.attributes.get("type") or "").lower()
+        # Skip the application/json paths handled above and external scripts.
+        if script_type and script_type not in ("text/javascript", "application/javascript", "module"):
+            continue
+        body = node.text(strip=False) or ""
+        if not body or len(body) < 32:
+            continue
+        for var_name, expr in _scan_window_var_assignments(body):
+            parsed = _try_parse(expr)
+            if parsed is not None:
+                out.append(
+                    JsonPayload(
+                        source="window_var",
+                        data=parsed,
+                        script_id=var_name,  # repurpose: carries the window.<name>
+                        byte_size=len(expr),
+                    )
+                )
+
     return out
 
 
@@ -145,7 +170,9 @@ def rank_payloads(payloads: list[JsonPayload]) -> list[JsonPayload]:
             return 1
         if p.source == "ld_json":
             return 2
-        return 3  # generic
+        if p.source == "window_var":
+            return 3
+        return 4  # generic
 
     return sorted(payloads, key=lambda p: (bucket(p), -p.byte_size))
 
@@ -179,6 +206,71 @@ def _ld_json_strong(data: dict | list) -> bool:
         if populated >= _MIN_LD_FIELDS:
             return True
     return False
+
+
+# Names worth scanning. Conservative list — only patterns that, when present,
+# carry initial app/page state. NOT generic `window.foo` (would over-match).
+_WINDOW_VAR_NAMES: tuple[str, ...] = (
+    "state",
+    "__INITIAL_STATE__",
+    "__PRELOADED_STATE__",
+    "__APP_DATA__",
+    "__APP_STATE__",
+    "__DATA__",
+    "__REDUX_STATE__",
+    "__SSR__",
+    "__APOLLO_STATE__",
+    "__NUXT__",
+)
+_WINDOW_VAR_PREFIXES: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(rf"\bwindow\.{re.escape(name)}\s*=\s*") for name in _WINDOW_VAR_NAMES
+)
+
+
+def _scan_window_var_assignments(js: str) -> list[tuple[str, str]]:
+    """Find `window.<NAME> = {...}` assignments in a JS body.
+
+    Returns a list of `(var_name, json_expression_text)` tuples. The
+    expression text is the substring from the first `{` (or `[`) after the
+    `=` up through the matching balanced closer, scanned with string-aware
+    bracket counting. Only NAMEs in `_WINDOW_VAR_NAMES` are scanned.
+
+    No JS evaluation — only patterns where the right-hand side parses as
+    JSON survive `_try_parse` downstream.
+    """
+    out: list[tuple[str, str]] = []
+    for name, prefix_re in zip(_WINDOW_VAR_NAMES, _WINDOW_VAR_PREFIXES, strict=True):
+        for m in prefix_re.finditer(js):
+            start = m.end()
+            if start >= len(js):
+                continue
+            opener = js[start]
+            if opener not in "{[":
+                continue
+            closer = "}" if opener == "{" else "]"
+            depth = 0
+            in_string: str | None = None  # quote char when inside a string
+            i = start
+            n = len(js)
+            while i < n:
+                ch = js[i]
+                if in_string is not None:
+                    if ch == "\\":
+                        i += 2
+                        continue
+                    if ch == in_string:
+                        in_string = None
+                elif ch in ('"', "'"):
+                    in_string = ch
+                elif ch == opener:
+                    depth += 1
+                elif ch == closer:
+                    depth -= 1
+                    if depth == 0:
+                        out.append((name, js[start : i + 1]))
+                        break
+                i += 1
+    return out
 
 
 def _try_parse(body: str) -> dict | list | None:
