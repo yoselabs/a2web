@@ -8,6 +8,14 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-05-19
+
+Cycle bundles the harsh-test-session-fixes change + carry-over work that
+accumulated on the branch (v0.39 a2kit migration, v0.7 link-discovery,
+v0.8 cookie jar). All shipped together because they touched overlapping
+files. v0.11 follow-up + post-release docs landed same day; see
+sub-sections.
+
 ### Added (v0.10 harsh-test-session-fixes, 2026-05-19)
 
 - **JSON-in-script extractor** (`src/a2web/packages/json_in_script.py`). Detects `__NEXT_DATA__`, `__NUXT_DATA__`, `application/ld+json`, and generic `application/json` script blobs; ranks LD-JSON `Product` / `Article` / `ItemList` (with >=3 populated fields) above framework app-state. Boundary type `JsonPayload`; package-independent. Synthesizes a markdown table at the a2web seam (`domain.py::json_to_markdown_rows`) — only known shapes are converted, do-no-harm on unknown JSON. JSON path runs only when trafilatura output is thin (<2KB OR <3 sentences) and replaces only when synthetic is >=2x original. Emits `json_synth` LDD events.
