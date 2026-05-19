@@ -1075,6 +1075,13 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
         fc.tier_used = "browser"
         fc.pre_rendered_payload = browser_pre
         fc.status_code = browser_result.status_code
+        # v0.11: when browser-rendered markdown is thin (Trendyol pattern —
+        # __NEXT_DATA__ exposed post-hydration but trafilatura still gets nav
+        # chrome), try the JSON-in-script path against the rendered DOM
+        # before re-gating. Replaces fc.content_md when synth >= 2x original.
+        rendered_html = browser_result.body.decode("utf-8", errors="replace") if browser_result.body else ""
+        if rendered_html:
+            await _maybe_synthesize_from_json(fc, raw_html=rendered_html, extract_dur_start=br_start_ms)
         _regate_after_escalation(fc)
     elif browser_result.operator_hint is not None:
         fc.operator_hints.append(browser_result.operator_hint)

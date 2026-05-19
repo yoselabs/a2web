@@ -22,10 +22,14 @@ All notable changes to **a2web** are recorded here. The format follows
 - **`playwright` dropped as explicit dep.** Transitive via camoufox, was a redundant pin.
 - **`claude-agent-sdk` provider always passes explicit `system_prompt` (even empty).** SDK treats `None` as "load the claude_code preset" (~23k tokens of agentic system prompt). Explicit empty string opts out → drops ~12k tokens / ~50-77% per Haiku call. Verified on arXiv re-fetch ($0.0132 -> $0.0032).
 
-### Known Limitations (v0.10)
+### Added (v0.11, 2026-05-19 — small follow-up)
+
+- **JSON synth now runs against browser-tier rendered DOM.** `_escalate_browser` previously installed browser output directly and re-gated without calling the JSON-in-script path. Now the synth runs against the rendered HTML (`browser_result.body`) before the re-gate, so sites that expose `__NEXT_DATA__` / LD-JSON only post-hydration get the same treatment as raw-tier SSR. Closes the v0.10 known limitation.
+
+### Known Limitations (post-v0.11)
 
 - **Camoufox subprocess stderr leak unfixed.** Spike (`docs/history/spike-camoufox-stderr-2026-05-19.md`) confirmed no supported knob in camoufox / playwright to redirect the Node child process's stderr without monkey-patching internals or `os.dup2`. Operators can redirect at shell level: `a2web ... 2>/tmp/a2web.stderr.log`.
-- **JSON synth doesn't run on browser-tier output.** When the orchestrator escalates to browser, the browser tier's pre-rendered markdown bypasses `_phase_extract` and the JSON-synth path. Browser-rendered Trendyol still extracts thin. Tracked for v0.11.
+- **Trendyol remains a2web-unsolvable on the public surface.** Verified post-v0.11: Trendyol does NOT expose product state via `__NEXT_DATA__` even after hydration — React fiber memory only. Would require a Playwright `evaluate()` reading `window.__APOLLO_STATE__`-shape internals or calling Trendyol's private API. Out of scope without a Trendyol-specific handler.
 
 ### Added (v0.7 link-discovery — `next_links`, 2026-05-18)
 
