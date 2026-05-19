@@ -12,11 +12,14 @@ from a2web.server import app, main
 from a2web.state import AppState
 
 
-def test_web_router_registers_fetch_tool() -> None:
-    """`WebRouter.fetch` is the sole user-facing tool (plus a2kit's _meta.health)."""
-    names = {tool.__name__ for tool in app.tools()}
-    # _meta.health (aggregated_health) is auto-registered when health_tool=True
-    assert "fetch" in names
+def test_web_router_registers_ask_and_fetch_raw_tools() -> None:
+    """v0.7 split: `ask` (primary) + `fetch_raw` (fallback) are the user-facing web tools."""
+    # v0.36+: app.tools() returns list[ToolDescriptor]; tool fn is `descriptor.fn`.
+    names = {desc.name for desc in app.tools()}
+    # _meta.health is auto-installed by the @app.health_check decorator.
+    assert "ask" in names
+    assert "fetch_raw" in names
+    assert "fetch" not in names  # renamed in v0.7
 
 
 def test_app_has_no_connections_subcommand() -> None:
@@ -25,9 +28,9 @@ def test_app_has_no_connections_subcommand() -> None:
     assert all(getattr(extra, "name", "") != "connections" for extra in extras)
 
 
-def test_server_app_has_appstate_singleton() -> None:
-    """Server composition registers AppState via `app.singleton`."""
-    assert app.has_singleton(AppState) is True
+def test_server_app_has_appstate_provider() -> None:
+    """Server composition registers AppState via `app.provide` (v0.36+)."""
+    assert app.has_provider(AppState) is True
 
 
 def test_main_entrypoint_exists_and_callable() -> None:

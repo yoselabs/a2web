@@ -265,6 +265,23 @@ Still deferred:
   fields, killing both the bloat and the list-extraction failure mode.
   Scope: M per handler.
 
+### v0.4+ (link addressing / aliases)
+
+- **🟡 Alias-addressed links for drilldown flows.** Source: 2026-05-18
+  discovery design chat. *Problem:* multi-step research (Reddit thread →
+  linked page; AliExpress listing → product detail; HN front page →
+  comments) currently round-trips full URLs through the agent, which is
+  expensive on listing-style pages where 50+ candidate URLs may each be
+  100+ chars. *Idea:* return short alias IDs (e.g. 6-char) alongside
+  `next_links`; store alias → URL in sqlite with short TTL scoped
+  per agent session; agent passes `alias=` to the next `fetch` call.
+  *Why deferred:* prerequisite (curated `next_links` field) shipped in
+  v0.7 link-discovery (2026-05-18) — see CHANGELOG. Aliasing earns its
+  keep only once we measure full-URL pass-through as the actual bottleneck
+  on real agent traces; today's benchmark corpus doesn't yet show it.
+  Adds a stateful layer that breaks the current stateless fetch contract.
+  Scope: M.
+
 ### v0.3+ (untrusted-content envelope) — security posture
 
 - **🟡 Wrap fetched content in a structural envelope** (e.g.

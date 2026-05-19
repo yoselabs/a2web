@@ -20,6 +20,7 @@ from .models import (
     Confidence,
     FetchResponse,
     FetchStatus,
+    NextLink,
     OperatorHint,
     TokenCounts,
     Verdict,
@@ -102,6 +103,36 @@ def _build_diagnostics_summary(
 
 
 # --------------------------------------------------------------------- #
+# Link discovery — composition rule (v0.7)
+# --------------------------------------------------------------------- #
+
+_NEXT_LINKS_CAP = 10
+
+
+def _compose_next_links(fc: FetchContext) -> list[NextLink]:
+    """Fold handler + LLM candidate lists into the final wire list.
+
+    Matrix per `link-discovery` spec:
+    - both empty → []
+    - handler only (no ask=) → handler list
+    - ask= only → LLM list (already validated against markdown)
+    - both → LLM list (LLM re-ranked handler candidates in the extract call)
+
+    The tool-param off-switch suppresses the whole field regardless.
+    Cap=10 enforced as the last step.
+    """
+    if not fc.next_links_enabled:
+        return []
+    if fc.next_links_llm:
+        composed = fc.next_links_llm
+    elif fc.next_links_handler:
+        composed = fc.next_links_handler
+    else:
+        return []
+    return list(composed[:_NEXT_LINKS_CAP])
+
+
+# --------------------------------------------------------------------- #
 # Top-level builder
 # --------------------------------------------------------------------- #
 
@@ -161,8 +192,10 @@ def build_response(fc: FetchContext) -> FetchResponse:
         content_md=wrapped_md,
         fit_md=fit_md,
         operator_hints=op_hints,
+        next_links=_compose_next_links(fc),
         extracted_answer=fc.extracted_answer,
         extraction=fc.extraction_meta,
+        original_url=fc.original_url,
     )
 
 

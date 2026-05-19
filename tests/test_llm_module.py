@@ -207,15 +207,15 @@ def test_custom_template_overrides_default() -> None:
 
 
 # --------------------------------------------------------------------- #
-# Bare-install posture: importing a2web.llm without [llm] doesn't crash
+# Module import posture
 # --------------------------------------------------------------------- #
 
 
 def test_llm_module_importable() -> None:
-    """`from a2web.packages.llm_extract import Extractor, ModelSpec` MUST succeed without
-    the `[llm]` extra installed. (We HAVE the extra in this test env, so
-    this just asserts the import path is healthy; the no-extra case is
-    covered by the LLMNotAvailable test on AnthropicProvider.)
+    """`from a2web.packages.llm_extract import Extractor, ModelSpec` MUST succeed.
+
+    v0.7+: `anthropic` + `claude-agent-sdk` are baseline deps, so the import
+    is always safe. This canary catches regressions in the module layout.
     """
     from a2web.packages.llm_extract import Extractor as E  # noqa: F401
 
@@ -250,3 +250,81 @@ async def test_anthropic_provider_constructs_with_key(
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-not-real")
     provider = AnthropicProvider()
     assert provider.name == "anthropic"
+
+
+# --------------------------------------------------------------------- #
+# v0.7 link-discovery — Tier 2 next_links extension
+# --------------------------------------------------------------------- #
+
+
+def _provider_with_canned(answer_with_fence: str) -> MockProvider:
+    return MockProvider(answer=answer_with_fence)
+
+
+@pytest.mark.asyncio
+async def test_extract_returns_next_links_from_fenced_json() -> None:
+    """Single provider call returns both `answer` and `next_links`."""
+    canned = (
+        "The page mentions octopuses and cephalopods.\n\n"
+        "```next_links\n"
+        '[{"anchor":"Cephalopod","url":"https://en.wikipedia.org/wiki/Cephalopod",'
+        '"reason":"deeper taxonomy","kind":"related"}]\n'
+        "```\n"
+    )
+    provider = _provider_with_canned(canned)
+    ex = Extractor(
+        provider=provider,
+        model=ModelSpec("mock", "mock-1"),
+        template=WEBFETCH_DEFAULT_V1,
+    )
+    md = "content with link [x](https://en.wikipedia.org/wiki/Cephalopod)"
+    result = await ex.extract(content=md, ask="what?", request_next_links=True)
+    assert len(provider.calls) == 1, "Single provider call expected"
+    assert "octopuses and cephalopods" in result.answer
+    assert "```next_links" not in result.answer, "Fence must be stripped from answer"
+    assert len(result.next_links) == 1
+    assert result.next_links[0].anchor == "Cephalopod"
+    assert result.next_links[0].kind == "related"
+
+
+@pytest.mark.asyncio
+async def test_extract_handles_missing_fence_gracefully() -> None:
+    """Provider that ignores the next_links instruction → empty list, full text as answer."""
+    provider = _provider_with_canned("plain answer with no fence")
+    ex = Extractor(provider=provider, model=ModelSpec("mock", "m"), template=WEBFETCH_DEFAULT_V1)
+    result = await ex.extract(content="c", ask="q", request_next_links=True)
+    assert result.answer == "plain answer with no fence"
+    assert result.next_links == []
+
+
+@pytest.mark.asyncio
+async def test_extract_drops_unknown_kinds() -> None:
+    """Entries with invalid `kind` are silently dropped at parse time."""
+    canned = (
+        "answer.\n\n```next_links\n"
+        '[{"anchor":"x","url":"https://e.com/a","reason":"r","kind":"bogus"},'
+        '{"anchor":"y","url":"https://e.com/b","reason":"r","kind":"drilldown"}]\n```'
+    )
+    provider = _provider_with_canned(canned)
+    ex = Extractor(provider=provider, model=ModelSpec("mock", "m"), template=WEBFETCH_DEFAULT_V1)
+    result = await ex.extract(content="c", ask="q", request_next_links=True)
+    assert len(result.next_links) == 1
+    assert result.next_links[0].kind == "drilldown"
+
+
+@pytest.mark.asyncio
+async def test_extract_handler_candidates_appear_in_prompt() -> None:
+    """When `handler_candidates` is non-empty, the prompt cites them for re-ranking."""
+    from a2web.packages.llm_extract import LlmNextLink
+
+    provider = _provider_with_canned("a")
+    ex = Extractor(provider=provider, model=ModelSpec("mock", "m"), template=WEBFETCH_DEFAULT_V1)
+    handler = [
+        LlmNextLink(anchor="Top post", url="https://r/x/1", reason="100 score", kind="drilldown"),
+    ]
+    await ex.extract(content="c", ask="q", request_next_links=True, handler_candidates=handler)
+    assert len(provider.calls) == 1
+    user = provider.calls[0]["user"]
+    assert "site handler suggests" in user.lower()
+    assert "Top post" in user
+    assert "https://r/x/1" in user

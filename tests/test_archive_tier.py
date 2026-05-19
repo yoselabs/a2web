@@ -6,12 +6,13 @@ import httpx
 import pytest
 
 from a2web.models import Verdict
-from a2web.state import AppState, build_state
+from a2web.state import AppState
 from a2web.tiers.archive import ArchiveTier
+from tests.conftest import make_default_state
 
 
 def _state() -> AppState:
-    return build_state()
+    return make_default_state()
 
 
 @pytest.fixture(autouse=True)

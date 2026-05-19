@@ -21,7 +21,7 @@ import time
 from typing import Any
 
 from ..errors import LLMNotAvailable
-from .base import ProviderResponse
+from .base import ProviderResponse, extract_token_counts
 
 
 class ClaudeCodeProvider:
@@ -36,14 +36,9 @@ class ClaudeCodeProvider:
     name: str = "claude-code"
 
     def __init__(self) -> None:
-        try:
-            import claude_agent_sdk  # noqa: F401 — import-side check
-        except ImportError as exc:
-            raise LLMNotAvailable(
-                "The `claude-agent-sdk` package is not installed. Run "
-                "`pip install a2web[llm]` (or add `claude-agent-sdk` to "
-                "your environment)."
-            ) from exc
+        # a2web v0.7+: `claude-agent-sdk` is a baseline dep, no ImportError gate.
+        # OAuth/session detection happens at first `complete()` call.
+        return
 
     async def complete(
         self,
@@ -71,14 +66,17 @@ class ClaudeCodeProvider:
         else:
             system_str = system
 
+        # NOTE: claude-agent-sdk treats `system_prompt=None` as "load the
+        # claude_code preset" (~23k extra prompt tokens per call — verified
+        # via probe_sdk.py, 2026-05-19). Pass an explicit string (even "")
+        # to opt out of the preset and drop ~12k tokens / ~43% per fetch.
         options_kwargs: dict[str, Any] = {
             "model": model,
             "tools": [],  # pure completion — no tool use
             "max_turns": 1,
             "max_thinking_tokens": 0 if thinking_disabled else None,
+            "system_prompt": system_str,  # always — None silently activates claude_code preset
         }
-        if system_str:
-            options_kwargs["system_prompt"] = system_str
         if thinking_disabled:
             options_kwargs["thinking"] = ThinkingConfigDisabled(type="disabled")
 
@@ -122,9 +120,7 @@ class ClaudeCodeProvider:
         cost_usd = 0.0
         if result_msg is not None:
             cost_usd = float(result_msg.total_cost_usd or 0.0)
-            usage = result_msg.usage or {}
-            prompt_tokens = int(usage.get("input_tokens", 0) or 0)
-            completion_tokens = int(usage.get("output_tokens", 0) or 0)
+            prompt_tokens, completion_tokens, _, _ = extract_token_counts(result_msg.usage or {})
             if max_tokens and completion_tokens > max_tokens:
                 # SDK doesn't expose a max_tokens knob; report what actually
                 # came back instead of clamping silently.

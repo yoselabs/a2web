@@ -7,8 +7,7 @@ TTL elapses. Different model = separate cache entry — model swaps never
 read stale answers.
 
 Lives in the SAME sqlite file as the HTTP cache (`AppState.sqlite`)
-under a different table. The schema is created lazily on first use so the
-core a2web install (no `[llm]` extra) is unaffected.
+under a different table. The schema is created lazily on first use.
 """
 
 from __future__ import annotations

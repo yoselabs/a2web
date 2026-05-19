@@ -14,7 +14,7 @@ from urllib.parse import unquote, urlparse
 import httpx
 import trafilatura
 
-from ..models import Verdict
+from ..models import NextLink, Verdict
 
 if TYPE_CHECKING:
     from ..state import AppState
@@ -97,6 +97,8 @@ class WikipediaHandler:
 
         from ..tiers import Rendered
 
+        next_links = _wikilink_candidates(html, lang=lang)
+
         return TierResult(
             body=html.encode("utf-8"),
             content_type="text/html",
@@ -104,8 +106,51 @@ class WikipediaHandler:
             final_url=url,
             headers=dict(response.headers),
             pre_rendered=Rendered(content_md=markdown, title=title),
+            next_links=next_links,
             verdict=Verdict.ok,
         )
+
+
+# --------------------------------------------------------------------- #
+# Wikilink extraction (v0.7 link-discovery)
+# --------------------------------------------------------------------- #
+
+_WIKILINK_RE = re.compile(
+    r'<a\s+[^>]*href="/wiki/(?P<target>[^"#:?]+)"[^>]*>(?P<anchor>[^<]+)</a>',
+    re.IGNORECASE,
+)
+
+
+def _wikilink_candidates(html: str, *, lang: str) -> list[NextLink]:
+    """Pull up to 10 outbound article wikilinks from Parsoid HTML.
+
+    Wikipedia's REST output renders internal article links as `<a href="/wiki/X">Y</a>`.
+    Namespaced links (File:, Category:, Help:, etc.) carry a `:` in the target and
+    are filtered out — we want article-to-article links only. Deduplicates on target.
+    External citations (`<a class="external" href="https://...">`) live elsewhere
+    and are not in scope for v0.7 (deferred per spec).
+    """
+    seen: set[str] = set()
+    out: list[NextLink] = []
+    for match in _WIKILINK_RE.finditer(html):
+        if len(out) >= 10:
+            break
+        target = match.group("target")
+        if target in seen:
+            continue
+        anchor = (match.group("anchor") or "").strip()
+        if not anchor or not target:
+            continue
+        seen.add(target)
+        out.append(
+            NextLink(
+                anchor=anchor,
+                url=f"https://{lang}.wikipedia.org/wiki/{target}",
+                reason="related article",
+                kind="related",
+            ),
+        )
+    return out
 
 
 def _empty_result(url: str, verdict: Verdict) -> TierResult:

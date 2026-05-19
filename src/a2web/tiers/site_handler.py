@@ -6,7 +6,7 @@ URL; the orchestrator skips the diagnostic row and falls through.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..handlers import match_handler
 from ..models import Verdict
@@ -28,8 +28,9 @@ class SiteHandlerTier:
         state: AppState,
         proxy_url: str | None = None,
         conditional_extras: dict[str, str] | None = None,
+        **kwargs: Any,
     ) -> TierResult:
-        del proxy_url, conditional_extras  # Handlers manage their own transport today.
+        del proxy_url, conditional_extras, kwargs  # Handlers manage their own transport today.
         from . import TierResult
 
         handler = match_handler(url)

@@ -10,13 +10,14 @@ import pytest
 
 from a2web.handlers import ArxivHandler, match_handler
 from a2web.models import Verdict
-from a2web.state import AppState, build_state
+from a2web.state import AppState
+from tests.conftest import make_default_state
 
 _FIX = Path(__file__).parent / "fixtures"
 
 
 def _state() -> AppState:
-    return build_state()
+    return make_default_state()
 
 
 def test_match_handler_returns_arxiv() -> None:
@@ -33,8 +34,48 @@ def test_arxiv_does_not_match_pdf_path() -> None:
     assert not ArxivHandler().matches("https://arxiv.org/pdf/2401.12345")
 
 
-def test_arxiv_does_not_match_listing() -> None:
-    assert not ArxivHandler().matches("https://arxiv.org/list/cs.DC/2401")
+def test_arxiv_matches_listing() -> None:
+    """v0.7 link-discovery: arxiv handler matches `/list/<cat>/<window>` for candidate population."""
+    assert ArxivHandler().matches("https://arxiv.org/list/cs.DC/2401")
+    assert ArxivHandler().matches("https://arxiv.org/list/cs.LG/recent")
+
+
+def test_arxiv_listing_candidates_shape() -> None:
+    """`_listing_candidates` yields up to 10 NextLink entries with drilldown kind."""
+    from a2web.handlers.arxiv import _listing_candidates
+
+    entries = [{"id": f"2401.{1000 + i}", "title": f"Paper {i}", "authors": "Alice, Bob"} for i in range(15)]
+    cands = _listing_candidates(entries)
+    assert len(cands) == 10
+    assert cands[0].kind == "drilldown"
+    assert cands[0].url == "https://arxiv.org/abs/2401.1000"
+    assert cands[0].anchor == "Paper 0"
+    assert cands[0].reason == "Alice, Bob"
+
+
+def test_arxiv_listing_html_parser_extracts_entries() -> None:
+    """`_parse_listing_entries` pulls (id, title, authors) per `<dt><dd>` block."""
+    from a2web.handlers.arxiv import _parse_listing_entries
+
+    html = """
+    <dl>
+      <dt><a href="/abs/2401.0001">arXiv:2401.0001</a></dt>
+      <dd>
+        <div class="list-title mathjax"><span class="descriptor">Title:</span> First paper</div>
+        <div class="list-authors"><span class="descriptor">Authors:</span> <a href="x">Alice</a>, <a href="y">Bob</a></div>
+      </dd>
+      <dt><a href="/abs/2401.0002">arXiv:2401.0002</a></dt>
+      <dd>
+        <div class="list-title mathjax"><span class="descriptor">Title:</span> Second paper</div>
+        <div class="list-authors"><span class="descriptor">Authors:</span> Carol</div>
+      </dd>
+    </dl>
+    """
+    entries = _parse_listing_entries(html)
+    assert len(entries) == 2
+    assert entries[0] == {"id": "2401.0001", "title": "First paper", "authors": "Alice, Bob"}
+    assert entries[1]["id"] == "2401.0002"
+    assert entries[1]["authors"] == "Carol"
 
 
 @pytest.mark.asyncio

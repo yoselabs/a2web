@@ -36,20 +36,315 @@ def test_reddit_matches_old_subdomain() -> None:
     assert RedditHandler().matches("https://old.reddit.com/r/x/comments/abc/")
 
 
-def test_reddit_does_not_match_subreddit_listing() -> None:
-    assert not RedditHandler().matches("https://www.reddit.com/r/x/")
+def test_reddit_matches_subreddit_listing() -> None:
+    """v0.7: bare subreddit + sorted listings (top/hot/new/...) are claimed."""
+    assert RedditHandler().matches("https://www.reddit.com/r/x/")
+    assert RedditHandler().matches("https://www.reddit.com/r/x/top/?t=year")
+    assert RedditHandler().matches("https://www.reddit.com/r/x/hot/")
+    assert RedditHandler().matches("https://www.reddit.com/r/x/new")
 
 
 def test_reddit_does_not_match_user_page() -> None:
     assert not RedditHandler().matches("https://www.reddit.com/user/somebody/")
 
 
+def test_reddit_matches_subreddit_search() -> None:
+    """v0.7: subreddit-scoped search URLs are claimed by the handler."""
+    assert RedditHandler().matches("https://www.reddit.com/r/projectors/search/?q=Wanbo+Mozart+1+Pro&restrict_sr=on")
+
+
+def test_reddit_matches_unscoped_search() -> None:
+    """v0.7: site-wide `/search/?q=...` is also claimed."""
+    assert RedditHandler().matches("https://www.reddit.com/search/?q=projector")
+
+
+def test_reddit_render_search_produces_list() -> None:
+    """`_render_search` emits a terse markdown list of t3 results."""
+    from a2web.handlers.reddit import _render_search
+
+    payload = {
+        "kind": "Listing",
+        "data": {
+            "children": [
+                {
+                    "kind": "t3",
+                    "data": {
+                        "title": "Wanbo Mozart 1 Pro upside down with Gimbal?",
+                        "subreddit": "projectors",
+                        "author": "alice",
+                        "score": 4,
+                        "num_comments": 9,
+                        "permalink": "/r/projectors/comments/abc/foo/",
+                        "created_utc": 1700000000.0,
+                    },
+                },
+                {
+                    "kind": "t3",
+                    "data": {
+                        "title": "Does this look too good to be true?",
+                        "subreddit": "projectors",
+                        "author": "bob",
+                        "score": 1,
+                        "num_comments": 2,
+                        "permalink": "/r/projectors/comments/def/bar/",
+                        "created_utc": 1700001000.0,
+                    },
+                },
+            ]
+        },
+    }
+    rendered = _render_search(payload, query="Wanbo Mozart 1 Pro")
+
+    assert rendered["is_empty"] is False
+    md = rendered["content_md"]
+    assert md.startswith("# Search: Wanbo Mozart 1 Pro")
+    assert "## Results (2)" in md
+    assert "Wanbo Mozart 1 Pro upside down with Gimbal?" in md
+    assert "Does this look too good to be true?" in md
+    assert "r/projectors" in md
+    assert "u/alice" in md
+    assert "https://www.reddit.com/r/projectors/comments/abc/foo/" in md
+
+
+def test_reddit_render_listing_produces_list() -> None:
+    """`_render_listing` renders `/r/SUB/top/?t=year` as a terse post list."""
+    from a2web.handlers.reddit import _render_listing
+
+    payload = {
+        "kind": "Listing",
+        "data": {
+            "children": [
+                {
+                    "kind": "t3",
+                    "data": {
+                        "title": "Enlightened Equipment: What You Should Know",
+                        "subreddit": "Ultralight",
+                        "author": "RekeMarie",
+                        "score": 1529,
+                        "num_comments": 590,
+                        "permalink": "/r/Ultralight/comments/1qx6qni/enlightened_equipment_what_you_should_know/",
+                        "created_utc": 1700000000.0,
+                    },
+                },
+                {
+                    "kind": "t3",
+                    "data": {
+                        "title": "Trip Report - PCT YoYo - 5,192 Miles",
+                        "subreddit": "Ultralight",
+                        "author": "velocd",
+                        "score": 364,
+                        "num_comments": 59,
+                        "permalink": "/r/Ultralight/comments/1rkmr09/trip_report/",
+                        "created_utc": 1700001000.0,
+                    },
+                },
+            ]
+        },
+    }
+    rendered = _render_listing(payload, subreddit="Ultralight", sort="top", time_window="year")
+    assert rendered["is_empty"] is False
+    md = rendered["content_md"]
+    assert md.startswith("# r/Ultralight · top · year")
+    assert "## Posts (2)" in md
+    assert "Enlightened Equipment" in md
+    assert "u/velocd" in md
+    assert "https://www.reddit.com/r/Ultralight/comments/1qx6qni/" in md
+    # next_links — Tier 1 candidates from the listing payload
+    candidates = rendered["next_links"]
+    assert len(candidates) == 2
+    assert candidates[0].kind == "drilldown"
+    assert candidates[0].anchor == "Enlightened Equipment: What You Should Know"
+    assert candidates[0].url == "https://www.reddit.com/r/Ultralight/comments/1qx6qni/enlightened_equipment_what_you_should_know/"
+    assert candidates[0].reason == "1529 score, 590 comments"
+
+
+def test_reddit_listing_candidates_skip_nsfw_when_subreddit_is_sfw() -> None:
+    """NSFW posts on a SFW subreddit listing are dropped from next_links."""
+    from a2web.handlers.reddit import _render_listing
+
+    payload = {
+        "kind": "Listing",
+        "data": {
+            "over18": False,
+            "children": [
+                {
+                    "kind": "t3",
+                    "data": {
+                        "title": "Clean post",
+                        "subreddit": "x",
+                        "author": "a",
+                        "score": 100,
+                        "num_comments": 5,
+                        "permalink": "/r/x/comments/1/clean/",
+                        "created_utc": 1700000000.0,
+                        "over_18": False,
+                    },
+                },
+                {
+                    "kind": "t3",
+                    "data": {
+                        "title": "NSFW post",
+                        "subreddit": "x",
+                        "author": "b",
+                        "score": 90,
+                        "num_comments": 4,
+                        "permalink": "/r/x/comments/2/nsfw/",
+                        "created_utc": 1700000001.0,
+                        "over_18": True,
+                    },
+                },
+                {
+                    "kind": "t3",
+                    "data": {
+                        "title": "Also clean",
+                        "subreddit": "x",
+                        "author": "c",
+                        "score": 80,
+                        "num_comments": 3,
+                        "permalink": "/r/x/comments/3/clean2/",
+                        "created_utc": 1700000002.0,
+                        "over_18": False,
+                    },
+                },
+            ],
+        },
+    }
+    rendered = _render_listing(payload, subreddit="x", sort="hot", time_window="")
+    titles = [c.anchor for c in rendered["next_links"]]
+    assert titles == ["Clean post", "Also clean"]
+
+
+def test_reddit_listing_candidates_capped_at_10() -> None:
+    """Listing with 15 children produces exactly 10 next_links entries."""
+    from a2web.handlers.reddit import _render_listing
+
+    children = [
+        {
+            "kind": "t3",
+            "data": {
+                "title": f"Post {i}",
+                "subreddit": "x",
+                "author": "a",
+                "score": 100 - i,
+                "num_comments": 5,
+                "permalink": f"/r/x/comments/{i}/post/",
+                "created_utc": 1700000000.0 + i,
+            },
+        }
+        for i in range(15)
+    ]
+    rendered = _render_listing({"data": {"children": children}}, subreddit="x", sort="hot", time_window="")
+    assert len(rendered["next_links"]) == 10
+
+
+def test_reddit_permalink_returns_empty_next_links() -> None:
+    """Single-thread `_render_thread` does not populate next_links — no drilldown layer."""
+    from a2web.handlers.reddit import _render_thread
+
+    post_data = {
+        "title": "T",
+        "subreddit": "x",
+        "author": "a",
+        "score": 1,
+        "num_comments": 0,
+        "selftext": "body",
+    }
+    payload = [
+        {"data": {"children": [{"kind": "t3", "data": post_data}]}},
+        {"data": {"children": []}},
+    ]
+    rendered = _render_thread(payload)
+    assert "next_links" not in rendered or rendered.get("next_links", []) == []
+
+
+def test_reddit_render_listing_omits_time_window_for_non_top() -> None:
+    """Hot/new don't take `?t=`; suffix should be omitted."""
+    from a2web.handlers.reddit import _render_listing
+
+    payload = {
+        "kind": "Listing",
+        "data": {
+            "children": [
+                {
+                    "kind": "t3",
+                    "data": {
+                        "title": "Hot post",
+                        "subreddit": "x",
+                        "author": "a",
+                        "score": 1,
+                        "num_comments": 0,
+                        "permalink": "/r/x/comments/1/p/",
+                        "created_utc": 1700000000.0,
+                    },
+                }
+            ]
+        },
+    }
+    rendered = _render_listing(payload, subreddit="x", sort="hot", time_window="year")
+    assert rendered["content_md"].startswith("# r/x · hot\n")
+
+
+def test_reddit_render_search_empty_listing_is_empty() -> None:
+    """Zero results → `is_empty=True` so orchestrator surfaces no_match."""
+    from a2web.handlers.reddit import _render_search
+
+    payload = {"kind": "Listing", "data": {"children": []}}
+    rendered = _render_search(payload, query="nothing-matches-here")
+    assert rendered["is_empty"] is True
+    assert rendered["content_md"] == ""
+
+
+def test_reddit_human_age_compact() -> None:
+    from a2web.handlers.reddit import human_age
+
+    assert human_age(0) == "0s"
+    assert human_age(45) == "45s"
+    assert human_age(120) == "2m"
+    assert human_age(7200) == "2h"
+    assert human_age(86400 * 3) == "3d"
+    assert human_age(86400 * 365 * 2) == "2y"
+
+
 def test_hn_matches_item_url() -> None:
     assert HNHandler().matches("https://news.ycombinator.com/item?id=12345")
 
 
-def test_hn_does_not_match_front_page() -> None:
-    assert not HNHandler().matches("https://news.ycombinator.com/")
+def test_hn_matches_front_page() -> None:
+    """v0.7 link-discovery: HN handler matches `/` and `/news` to populate next_links."""
+    assert HNHandler().matches("https://news.ycombinator.com/")
+    assert HNHandler().matches("https://news.ycombinator.com/news")
+
+
+def test_hn_front_page_candidates_external_and_text_only() -> None:
+    """External-URL stories drill into external URL; text-only stories drill into the discussion page."""
+    from a2web.handlers.hn import _front_page_candidates
+
+    payload = {
+        "hits": [
+            {"title": "External story", "objectID": "111", "url": "https://example.com/article", "points": 200, "num_comments": 80},
+            {"title": "Ask HN: thoughts?", "objectID": "222", "url": None, "points": 50, "num_comments": 30},
+        ],
+    }
+    cands = _front_page_candidates(payload)
+    assert len(cands) == 2
+    assert cands[0].url == "https://example.com/article"
+    assert cands[0].kind == "drilldown"
+    assert cands[0].reason == "200 points, 80 comments"
+    assert cands[1].url == "https://news.ycombinator.com/item?id=222"
+    assert cands[1].anchor == "Ask HN: thoughts?"
+
+
+def test_hn_front_page_candidates_capped_at_10() -> None:
+    """Front page with 15 hits → exactly 10 candidates."""
+    from a2web.handlers.hn import _front_page_candidates
+
+    payload = {
+        "hits": [
+            {"title": f"Story {i}", "objectID": str(i), "url": f"https://e.com/{i}", "points": 100 - i, "num_comments": 5}
+            for i in range(15)
+        ],
+    }
+    assert len(_front_page_candidates(payload)) == 10
 
 
 def test_hn_does_not_match_user_page() -> None:
@@ -106,9 +401,9 @@ def test_hn_render_item_includes_story_and_quoted_replies() -> None:
 
 
 def _make_state() -> AppState:
-    from a2web.state import build_state
+    from tests.conftest import make_default_state
 
-    return build_state(settings=AppSettings())
+    return make_default_state(settings=AppSettings())
 
 
 def test_to_old_reddit_url_drops_json_and_query() -> None:
@@ -267,10 +562,10 @@ async def test_reddit_handler_skips_fallback_when_json_succeeds(
 
 
 def _make_state_with_nitter(*instances: str) -> AppState:
-    from a2web.state import build_state
+    from tests.conftest import make_default_state
 
     s = AppSettings(nitter_instances=list(instances))
-    return build_state(settings=s)
+    return make_default_state(settings=s)
 
 
 def test_twitter_handler_matches_x_status_urls() -> None:
@@ -497,9 +792,7 @@ async def test_reddit_handler_signals_archive_on_404_when_old_reddit_also_fails(
     real_cls = httpx.AsyncClient
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
 
-    result = await RedditHandler().fetch(
-        "https://www.reddit.com/r/x/comments/dead/title/", state=_make_state()
-    )
+    result = await RedditHandler().fetch("https://www.reddit.com/r/x/comments/dead/title/", state=_make_state())
 
     assert result.verdict == Verdict.not_found
     assert result.pre_rendered is None
@@ -518,9 +811,7 @@ async def test_reddit_handler_signals_archive_on_403(monkeypatch: pytest.MonkeyP
     real_cls = httpx.AsyncClient
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
 
-    result = await RedditHandler().fetch(
-        "https://www.reddit.com/r/x/comments/abc/title/", state=_make_state()
-    )
+    result = await RedditHandler().fetch("https://www.reddit.com/r/x/comments/abc/title/", state=_make_state())
 
     assert result.verdict == Verdict.not_found
     assert result.operator_hint is not None

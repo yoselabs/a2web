@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from ..models import Heading, OperatorHint, Verdict
+from ..models import Heading, NextLink, OperatorHint, Verdict
 from ..state import AppState
 
 
@@ -69,6 +69,10 @@ class TierResult:
     handler_name: str | None = None
     conditional_hit: bool = False
     archive_source: str | None = None  # "wayback" | "archive.ph"
+    # v0.7 link-discovery: candidates populated by site handlers on listing-
+    # style URLs. Empty list when the URL is terminal (single thread, single
+    # paper, etc.) or no handler knows the page schema.
+    next_links: list[NextLink] = field(default_factory=list)
 
 
 class Tier(Protocol):
@@ -92,6 +96,7 @@ class Tier(Protocol):
         state: AppState,
         proxy_url: str | None = None,
         conditional_extras: dict[str, str] | None = None,
+        **kwargs: Any,
     ) -> TierResult: ...
 
 

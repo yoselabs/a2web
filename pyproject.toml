@@ -1,6 +1,6 @@
 [project]
 name = "a2web"
-version = "0.6.0"
+version = "0.9.0"
 description = "Agent-to-Web — adaptive web fetching MCP server and CLI for AI agents."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -15,10 +15,14 @@ classifiers = [
 ]
 dependencies = [
     # framework — handles MCP server, CLI, ConnectionStore, formatter, DI, schema, testing
-    "a2kit>=0.28,<1",
+    "a2kit>=0.39,<1",
     # http + extraction
     "curl_cffi>=0.7,<1",
     "httpx>=0.27,<1",
+    # cookie decryption (Chrome v10/v11 AES-GCM). Already pulled in
+    # transitively by curl_cffi; promoted to direct in v0.8 so the
+    # dependency is explicit at the boundary where we use it.
+    "cryptography>=43,<46",
     "trafilatura>=1.12,<2",
     "selectolax>=0.3,<1",
     # async + observability
@@ -35,15 +39,11 @@ dependencies = [
     "pydantic-settings>=2.5,<3",
     "PyYAML>=6,<7",
     "aiofiles>=25.1.0",
-]
-
-[project.optional-dependencies]
-browser = ["camoufox>=0.4,<1", "playwright>=1.45,<2"]
-paid = ["firecrawl-py>=1,<2"]
-# v0.4: optional LLM-backed extraction + evaluation. Bare install of a2web
-# stays LLM-dep-free; install with `pip install a2web[llm]` to enable the
-# `ask=` parameter on the fetch tool and the eval suite.
-llm = [
+    # v0.7: LLM extraction (was the `[llm]` extra) is now baseline. `--ask`
+    # works out of the box; install size jumps ~210MB because claude-agent-sdk
+    # bundles the Claude Code binary in `_bundled/`. Most a2web callers run
+    # inside Claude Code and rely on the OAuth piggyback — bundling is the
+    # right ergonomic call. `[llm]` extra was removed in v0.7 — no alias.
     "anthropic>=0.40,<1",
     "openai>=1.40,<3",
     # markdownify is the Python equivalent of WebFetch's Turndown — used by
@@ -53,7 +53,20 @@ llm = [
     # session (OAuth subscription or whichever auth `claude` CLI is logged
     # into) — no separate API key required when this is preferred.
     "claude-agent-sdk>=0.1.80,<1",
+    # v0.10 (2026-05-19): browser tier moves to baseline. The default escalation
+    # chain routes paywalls / anti-bot sites / JS SPAs to camoufox; keeping it
+    # optional meant `pip install a2web` produced an uncaught ImportError when
+    # the gate decided to escalate. Install size grows ~150MB (camoufox firefox
+    # binary + playwright wheels) but the failure mode was worse than the bloat.
+    # First-time browser use still requires `python -m camoufox fetch` to pull
+    # the Firefox binary — that's a runtime asset, not a Python dep.
+    # `playwright` is a transitive dep of camoufox (camoufox is a stealth-patched
+    # Firefox driven through Playwright's API) — not pinned here separately.
+    "camoufox>=0.4,<1",
 ]
+
+[project.optional-dependencies]
+paid = ["firecrawl-py>=1,<2"]
 
 [dependency-groups]
 dev = [
@@ -69,7 +82,7 @@ dev = [
 a2web = "a2web.server:main"
 
 [tool.uv.sources]
-a2kit = { git = "https://github.com/yoselabs/a2kit.git", tag = "v0.28.0" }
+a2kit = { git = "https://github.com/yoselabs/a2kit.git", tag = "v0.39.3" }
 
 [build-system]
 requires = ["hatchling"]
@@ -100,7 +113,7 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]  # asserts allowed in tests
+"tests/**" = ["S101", "S105", "S106"]  # asserts + literal test secrets allowed in tests
 "src/a2web/llm_eval/__main__.py" = ["T201"]  # CLI entry — print() is the output mechanism
 "src/a2web/llm_eval/extraction_cli.py" = ["T201"]  # CLI entry — print() is the output mechanism
 "benchmarks/**" = ["T201"]  # ad-hoc benchmark scripts — print() is the output mechanism

@@ -8,8 +8,36 @@ question) pair into an answer string, nothing more.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
+
+
+def extract_token_counts(usage: Mapping[str, Any] | Any) -> tuple[int, int, int, int]:
+    """Pull (prompt_total, output, cache_creation, cache_read) from an Anthropic usage object.
+
+    Anthropic's usage shape (both raw API and claude-agent-sdk) splits the
+    prompt across three counters: fresh ``input_tokens`` plus
+    ``cache_creation_input_tokens`` (writes) and ``cache_read_input_tokens``
+    (reads). Reporting only ``input_tokens`` understates the prompt by
+    100-1000x on warm sessions where the bulk of the prompt is served from
+    cache. Returns the summed ``prompt_total`` plus the individual
+    breakdown so callers can compute accurate ``cost_usd`` using cache-tier
+    pricing. Accepts a dict (claude-agent-sdk) or an attribute-style
+    object (anthropic.types.Usage) transparently.
+    """
+
+    def _read(key: str) -> int:
+        if isinstance(usage, Mapping):
+            return int(usage.get(key) or 0)
+        return int(getattr(usage, key, 0) or 0)
+
+    fresh = _read("input_tokens")
+    cache_creation = _read("cache_creation_input_tokens")
+    cache_read = _read("cache_read_input_tokens")
+    output = _read("output_tokens")
+    prompt_total = fresh + cache_creation + cache_read
+    return prompt_total, output, cache_creation, cache_read
 
 
 @dataclass(slots=True)

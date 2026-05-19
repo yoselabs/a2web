@@ -226,9 +226,9 @@ class _MockRawTier:
 
 
 def _make_state() -> AppState:
-    from a2web.state import build_state
+    from tests.conftest import make_default_state
 
-    return build_state(settings=AppSettings())
+    return make_default_state(settings=AppSettings())
 
 
 @pytest.mark.asyncio
@@ -255,11 +255,15 @@ async def test_a2web_extract_runs_extractor_when_available(
     monkeypatch.setitem(REGISTRY, "raw", _MockRawTier(body))
     state = _make_state()
 
-    # Inject a stub extractor on the state to bypass real API construction.
-    provider = _RecordingProvider(answer="Extract speaks.")
-    state.llm_extractor._extractor = Extractor(provider=provider, model=ModelSpec("rec", "rec-model"))
+    # Inject a stub extractor: build a fresh LlmExtractorResource (v0.36+:
+    # not on AppState anymore) and pre-seed its private `_extractor`.
+    from a2web.llm_resource import LlmExtractorResource
 
-    system = A2WebExtract(state=state)
+    provider = _RecordingProvider(answer="Extract speaks.")
+    extractor_res = LlmExtractorResource(state.settings, state.sqlite)
+    extractor_res._extractor = Extractor(provider=provider, model=ModelSpec("rec", "rec-model"))
+
+    system = A2WebExtract(state=state, extractor=extractor_res)
     result = await system.fetch(url="https://example.com/p", ask="What does it say?")
 
     assert result.system == "a2web_extract"
@@ -279,10 +283,13 @@ async def test_a2web_extract_falls_back_to_content_md_when_no_extractor(
     content_md (the extracted markdown) as the answer — graceful degrade."""
     body = b"<!doctype html><html><body><article><h1>NoLLM</h1>" + b"<p>content. </p>" * 80 + b"</article></body></html>"
     monkeypatch.setitem(REGISTRY, "raw", _MockRawTier(body))
-    state = _make_state()
-    state.llm_extractor._unavailable_reason = "No API key in env."
+    from a2web.llm_resource import LlmExtractorResource
 
-    system = A2WebExtract(state=state)
+    state = _make_state()
+    extractor_res = LlmExtractorResource(state.settings, state.sqlite)
+    extractor_res._unavailable_reason = "No API key in env."
+
+    system = A2WebExtract(state=state, extractor=extractor_res)
     result = await system.fetch(url="https://example.com/p", ask="ignored")
 
     assert result.system == "a2web_extract"

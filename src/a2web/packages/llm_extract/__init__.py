@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from .cache import ExtractionCache, ExtractionCacheRow, hash_text
 from .errors import LLMNotAvailable
-from .extractor import ExtractionResult, Extractor, ModelSpec
+from .extractor import ExtractionResult, Extractor, LlmNextLink, ModelSpec
 from .judge import Judge, JudgeParseError, JudgeVerdict
 from .prompts import (
     JUDGE_V1,
@@ -37,6 +37,7 @@ __all__ = [
     "JudgeParseError",
     "JudgeVerdict",
     "LLMNotAvailable",
+    "LlmNextLink",
     "ModelSpec",
     "PromptTemplate",
     "Provider",

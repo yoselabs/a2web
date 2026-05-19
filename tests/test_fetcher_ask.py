@@ -1,7 +1,7 @@
 """v0.4: end-to-end `ask=` wire-up through fetcher.
 
-Uses a mock LLM extractor injected directly on the AppState, so no real API
-calls are made. Verifies:
+Uses a mock LLM extractor wrapped in a `Lazy[T]` thunk (a2kit v0.36+) and
+passed directly to `fetch()`. No real API calls are made. Verifies:
 - `ask=` unset → extracted_answer / extraction stay None; LLM module is
   never invoked.
 - `ask=` set with a working extractor → extracted_answer + extraction
@@ -16,13 +16,16 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from a2kit.testing import lazy
 
 from a2web.fetcher import fetch
+from a2web.llm_resource import LlmExtractorResource
 from a2web.models import FetchStatus
 from a2web.packages.llm_extract import Extractor, ModelSpec
 from a2web.settings import AppSettings
-from a2web.state import AppState, build_state
+from a2web.state import AppState
 from a2web.tiers import REGISTRY, TierResult
+from tests.conftest import make_default_state
 
 _FIX = Path(__file__).parent / "fixtures"
 
@@ -56,7 +59,7 @@ def _swap_raw(monkeypatch: pytest.MonkeyPatch, body: bytes) -> None:
 
 def _make_state(**overrides) -> AppState:
     s = AppSettings(**overrides)
-    return build_state(settings=s)
+    return make_default_state(settings=s)
 
 
 class _StubProvider:
@@ -82,14 +85,29 @@ class _StubProvider:
         )
 
 
-def _inject_extractor(state: AppState, *, answer: str) -> _StubProvider:
-    """Bypass LlmExtractorResource._build by seeding the inner Extractor."""
-    provider = _StubProvider(answer=answer)
-    state.llm_extractor._extractor = Extractor(
-        provider=provider,
-        model=ModelSpec("stub", "stub-model"),
-    )
-    return provider
+def _make_extractor_resource(
+    state: AppState,
+    *,
+    answer: str | None,
+    unavailable_reason: str | None = None,
+) -> tuple[LlmExtractorResource, _StubProvider | None]:
+    """Construct a LlmExtractorResource pre-seeded with a stub Extractor.
+
+    With `answer`: build a working stub provider and Extractor.
+    With `unavailable_reason`: leave `_extractor` None, set the reason —
+    simulates LlmExtractorResource._build's failure path.
+    """
+    res = LlmExtractorResource(state.settings, state.sqlite)
+    provider: _StubProvider | None = None
+    if unavailable_reason is not None:
+        res._unavailable_reason = unavailable_reason
+    elif answer is not None:
+        provider = _StubProvider(answer=answer)
+        res._extractor = Extractor(
+            provider=provider,
+            model=ModelSpec("stub", "stub-model"),
+        )
+    return res, provider
 
 
 # --------------------------------------------------------------------- #
@@ -105,14 +123,18 @@ async def test_ask_unset_does_not_invoke_llm(monkeypatch: pytest.MonkeyPatch) ->
     _swap_raw(monkeypatch, body)
 
     state = _make_state()
-    # Even if an extractor is configured, it must not be called when ask is None.
-    provider = _inject_extractor(state, answer="should not be called")
+    extractor_res, provider = _make_extractor_resource(state, answer="should not be called")
 
-    result = await fetch("https://example.org/post", state=state)
+    result = await fetch(
+        "https://example.org/post",
+        state=state,
+        llm_extractor=lazy(extractor_res),
+    )
 
     assert result.status == FetchStatus.ok
     assert result.extracted_answer is None
     assert result.extraction is None
+    assert provider is not None
     assert len(provider.calls) == 0
 
 
@@ -126,12 +148,13 @@ async def test_ask_set_populates_extracted_answer(
     _swap_raw(monkeypatch, body)
 
     state = _make_state()
-    provider = _inject_extractor(state, answer="The article is about adaptive web fetching.")
+    extractor_res, provider = _make_extractor_resource(state, answer="The article is about adaptive web fetching.")
 
     result = await fetch(
         "https://example.org/post",
         state=state,
         ask="What is this article about?",
+        llm_extractor=lazy(extractor_res),
     )
 
     assert result.status == FetchStatus.ok
@@ -142,11 +165,10 @@ async def test_ask_set_populates_extracted_answer(
     assert result.extraction.completion_tokens == 20
     assert result.extraction.cost_usd == pytest.approx(0.0005)
     assert result.extraction.cache_hit is False
-    # Provider received the content + ask.
+    assert provider is not None
     assert len(provider.calls) == 1
     user_payload = provider.calls[0]["user"]
     assert "What is this article about?" in user_payload
-    # The fetched content (or the WebFetch prompt template) is in there.
     assert "Web page content:" in user_payload
 
 
@@ -159,13 +181,19 @@ async def test_ask_skipped_on_failed_fetch(
     _swap_raw(monkeypatch, body)
 
     state = _make_state()
-    provider = _inject_extractor(state, answer="should not be called")
+    extractor_res, provider = _make_extractor_resource(state, answer="should not be called")
 
-    result = await fetch("https://blocked.example/page", state=state, ask="anything")
+    result = await fetch(
+        "https://blocked.example/page",
+        state=state,
+        ask="anything",
+        llm_extractor=lazy(extractor_res),
+    )
 
     assert result.status == FetchStatus.failed
     assert result.extracted_answer is None
     assert result.extraction is None
+    assert provider is not None
     assert len(provider.calls) == 0
 
 
@@ -179,14 +207,13 @@ async def test_ask_without_llm_available_records_operator_hint(
     _swap_raw(monkeypatch, body)
 
     state = _make_state()
-    # Pre-set unavailable reason — simulates LlmExtractorResource._build's
-    # failure path (missing extra OR missing API key).
-    state.llm_extractor._unavailable_reason = "No Anthropic API key found."
+    extractor_res, _ = _make_extractor_resource(state, answer=None, unavailable_reason="No Anthropic API key found.")
 
     result = await fetch(
         "https://example.org/post",
         state=state,
         ask="What is this article about?",
+        llm_extractor=lazy(extractor_res),
     )
 
     assert result.status == FetchStatus.ok

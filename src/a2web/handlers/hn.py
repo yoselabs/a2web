@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 
-from ..models import Heading, Verdict
+from ..models import Heading, NextLink, Verdict
 
 if TYPE_CHECKING:
     from ..state import AppState
@@ -18,10 +18,11 @@ if TYPE_CHECKING:
 _DEFAULT_TIMEOUT_S = 10
 _HN_HOST = "news.ycombinator.com"
 _ID_RE = re.compile(r"^\d+$")
+_FRONT_PAGE_PATHS = frozenset({"/", "/news", "/news/"})
 
 
 class HNHandler:
-    """Tier-0 handler for Hacker News items."""
+    """Tier-0 handler for Hacker News items and front page."""
 
     name: str = "site_handler:hn"
 
@@ -29,26 +30,36 @@ class HNHandler:
         parsed = urlparse(url)
         if (parsed.hostname or "") != _HN_HOST:
             return False
-        if (parsed.path or "/") != "/item":
+        path = parsed.path or "/"
+        if path in _FRONT_PAGE_PATHS:
+            return True
+        if path != "/item":
             return False
         item_id = parse_qs(parsed.query).get("id", [""])[0]
         return bool(_ID_RE.match(item_id))
 
     async def fetch(self, url: str, *, state: AppState) -> TierResult:
-        from ..tiers import TierResult
+        from ..tiers import Rendered, TierResult
 
-        item_id = parse_qs(urlparse(url).query).get("id", [""])[0]
-        if not item_id:
-            return _empty_result(url, Verdict.not_found)
+        parsed = urlparse(url)
+        path = parsed.path or "/"
+        is_front_page = path in _FRONT_PAGE_PATHS
 
-        algolia_url = f"https://hn.algolia.com/api/v1/items/{item_id}"
+        if is_front_page:
+            api_url = "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30"
+        else:
+            item_id = parse_qs(parsed.query).get("id", [""])[0]
+            if not item_id:
+                return _empty_result(url, Verdict.not_found)
+            api_url = f"https://hn.algolia.com/api/v1/items/{item_id}"
+
         try:
             async with httpx.AsyncClient(
                 timeout=_DEFAULT_TIMEOUT_S,
                 follow_redirects=True,
                 headers={"User-Agent": state.settings.default_ua},
             ) as client:
-                response = await client.get(algolia_url)
+                response = await client.get(api_url)
         except httpx.TimeoutException:
             return _empty_result(url, Verdict.timeout)
         except httpx.HTTPError:
@@ -66,8 +77,12 @@ class HNHandler:
         except ValueError:
             return _empty_result(url, Verdict.content_type_mismatch)
 
-        rendered = _render_item(payload)
-        from ..tiers import Rendered
+        if is_front_page:
+            rendered = _render_front_page(payload)
+            next_links = _front_page_candidates(payload)
+        else:
+            rendered = _render_item(payload)
+            next_links = []
 
         return TierResult(
             body=response.content,
@@ -76,8 +91,69 @@ class HNHandler:
             final_url=url,
             headers=dict(response.headers),
             pre_rendered=Rendered.from_dict(rendered),
+            next_links=next_links,
             verdict=Verdict.ok,
         )
+
+
+def _render_front_page(payload: Any) -> dict[str, Any]:
+    """Render the HN front page (Algolia `tags=front_page` search) as a list."""
+    hits = payload.get("hits", []) if isinstance(payload, dict) else []
+    parts: list[str] = ["# Hacker News\n", f"## Front page ({min(len(hits), 30)})\n"]
+    count = 0
+    for hit in hits[:30]:
+        if not isinstance(hit, dict):
+            continue
+        title = (hit.get("title") or "").strip()
+        if not title:
+            continue
+        points = hit.get("points", 0) or 0
+        num_comments = hit.get("num_comments", 0) or 0
+        link = hit.get("url") or f"https://news.ycombinator.com/item?id={hit.get('objectID')}"
+        parts.append(f"- **{title}** ({points} points, {num_comments} comments)\n  <{link}>")
+        count += 1
+    headings = [
+        Heading(level=1, text="Hacker News"),
+        Heading(level=2, text=f"Front page ({count})"),
+    ]
+    return {
+        "content_md": "\n".join(parts).strip() + "\n",
+        "title": "Hacker News",
+        "byline": None,
+        "headings": headings,
+    }
+
+
+def _front_page_candidates(payload: Any) -> list[NextLink]:
+    """Build up to 10 NextLink entries from the front-page hits.
+
+    External-link stories → drilldown to the external URL. Text-only stories
+    → drilldown to the discussion page on news.ycombinator.com.
+    """
+    hits = payload.get("hits", []) if isinstance(payload, dict) else []
+    out: list[NextLink] = []
+    for hit in hits:
+        if len(out) >= 10:
+            break
+        if not isinstance(hit, dict):
+            continue
+        title = (hit.get("title") or "").strip()
+        object_id = hit.get("objectID")
+        if not title or not object_id:
+            continue
+        points = hit.get("points", 0) or 0
+        num_comments = hit.get("num_comments", 0) or 0
+        external_url = hit.get("url")
+        link = external_url or f"https://news.ycombinator.com/item?id={object_id}"
+        out.append(
+            NextLink(
+                anchor=title,
+                url=link,
+                reason=f"{points} points, {num_comments} comments",
+                kind="drilldown",
+            ),
+        )
+    return out
 
 
 def _render_item(item: Any) -> dict[str, Any]:

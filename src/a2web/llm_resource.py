@@ -1,10 +1,12 @@
-"""LlmExtractorResource — lazy-init Extractor wrapper for AppState.
+"""LlmExtractorResource — lazy-init Extractor wrapper.
 
-Resource pattern (a2kit v0.27 canonical): sync __init__, async _ensure
-under internal lock, non-Optional on AppState. The underlying Extractor
-is constructed on first use because the `anthropic`/`claude-agent-sdk`
-SDKs are optional deps behind the `[llm]` install extra — bare a2web
-installs must not crash on import.
+a2kit v0.36+ Lazy[T] resource: framework enters via `__aenter__` only when
+a tool actually awaits its `Lazy[LlmExtractorResource]` param. The
+underlying Extractor builds on first `_ensure()` to keep construction
+cheap and decouple provider selection from import time.
+
+As of a2web v0.7, `anthropic` + `claude-agent-sdk` are baseline deps —
+the prior `[llm]` extra was removed. `--ask` works out of the box.
 
 Provider selection follows `settings.llm_provider`:
 - ``auto``         — try ClaudeCode (OS session via `claude-agent-sdk`)
@@ -13,7 +15,7 @@ Provider selection follows `settings.llm_provider`:
 - ``claude-code``  — Claude Code OS session only.
 
 The `_ensure()` contract returns `None` on permanent unavailability
-(missing extra, missing API key, no provider usable). Transient SDK
+(missing API key AND no Claude Code OAuth session). Transient SDK
 errors propagate normally. Callers branch on the None return and
 populate an OperatorHint without retrying construction.
 """
@@ -28,7 +30,7 @@ from .settings import AppSettings
 
 if TYPE_CHECKING:
     from .packages.http_cache import SqliteResource
-    from .packages.llm_extract import ExtractionResult, Extractor
+    from .packages.llm_extract import ExtractionResult, Extractor, LlmNextLink
 
 
 class LlmExtractorResource:
@@ -120,20 +122,52 @@ class LlmExtractorResource:
         )
         return extractor, None
 
-    async def extract(self, *, content: str, ask: str) -> ExtractionResult | None:
+    async def extract(
+        self,
+        *,
+        content: str,
+        ask: str,
+        request_next_links: bool = False,
+        handler_candidates: list[LlmNextLink] | None = None,
+        max_content_chars: int | None = None,
+    ) -> ExtractionResult | None:
         """Run extraction or return None when LLM is permanently unavailable.
 
         On None, caller should populate an OperatorHint from
         `unavailable_reason` and skip the extraction phase.
+
+        `request_next_links` and `handler_candidates` opt into v0.7
+        link-discovery Tier 2 output. `handler_candidates` is `list[LlmNextLink]`
+        but typed as `list[Any]` here to avoid leaking the package boundary
+        type onto the resource signature; the extractor enforces shape.
+
+        `max_content_chars` overrides the extractor's per-call default for
+        a single fetch (v0.10 harsh-test-session-fixes). `None` = use the
+        extractor's configured default.
         """
         extractor = await self._ensure()
         if extractor is None:
             return None
-        return await extractor.extract(content=content, ask=ask)
+        return await extractor.extract(
+            content=content,
+            ask=ask,
+            request_next_links=request_next_links,
+            handler_candidates=handler_candidates,
+            max_content_chars=max_content_chars,
+        )
 
     async def close(self) -> None:
         """No-op today; symmetric with sqlite/browser for lifecycle hooks."""
         return None
+
+    # Framework-facing async-CM protocol (a2kit v0.36+). Thin wrappers around
+    # the existing idempotent `_ensure` / `close` internal surface.
+    async def __aenter__(self) -> LlmExtractorResource:
+        await self._ensure()
+        return self
+
+    async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
+        await self.close()
 
 
 __all__ = ["LlmExtractorResource"]

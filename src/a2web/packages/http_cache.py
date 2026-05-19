@@ -160,7 +160,8 @@ class SqliteResource:
     """Lazy aiosqlite connection + schema bootstrap.
 
     Opens the underlying sqlite connection on first `_ensure()` call under
-    an internal lock. Callers invoke `get` / `put` / `close` directly.
+    an internal lock. App lifespan warms it eagerly for fail-fast; tests that
+    don't touch the cache never trigger an open.
     """
 
     def __init__(self, db_path: Path | None = None) -> None:
@@ -175,6 +176,14 @@ class SqliteResource:
             if self._conn is None:
                 self._conn = await open_sqlite_with_schema(self._db_path)
             return self._conn
+
+    @property
+    def conn(self) -> aiosqlite.Connection:
+        """Raw connection — must call `_ensure()` first. Used by ExtractionCache."""
+        if self._conn is None:
+            msg = "SqliteResource.conn accessed before _ensure() opened the connection"
+            raise RuntimeError(msg)
+        return self._conn
 
     async def get(self, url: str, profile_hash: str) -> CacheRow | None:
         conn = await self._ensure()
@@ -212,6 +221,16 @@ class SqliteResource:
             if self._conn is not None:
                 await self._conn.close()
                 self._conn = None
+
+    # Framework-facing async-CM protocol (a2kit v0.36+). Thin wrappers around
+    # the existing idempotent `_ensure` / `close` internal surface — lazy
+    # callers inside the class keep calling `_ensure()` unchanged.
+    async def __aenter__(self) -> SqliteResource:
+        await self._ensure()
+        return self
+
+    async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
+        await self.close()
 
 
 __all__ = (

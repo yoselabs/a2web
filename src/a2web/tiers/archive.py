@@ -14,7 +14,7 @@ import asyncio
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import anyio
 import httpx
@@ -127,8 +127,9 @@ class ArchiveTier:
         state: AppState,
         proxy_url: str | None = None,
         conditional_extras: dict[str, str] | None = None,
+        **kwargs: Any,
     ) -> TierResult:
-        del proxy_url, conditional_extras  # Archive tier ignores both today.
+        del proxy_url, conditional_extras, kwargs  # Archive tier ignores all today.
         from . import TierResult  # local import — circular with package init
 
         del state  # archive tier needs no breakers in v0.1

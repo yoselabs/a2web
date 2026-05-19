@@ -1,67 +1,61 @@
-"""Per-App shared state — typed DI container for long-lived resources.
+"""Per-App shared state — always-on resource bundle.
 
-`AppState` carries the resource handles tools and tiers depend on. Lifecycle is
-owned by a2kit v0.27+ via DI-aware `@app.on_startup` / `@app.on_shutdown` /
-`@app.health_check` hooks plus `app.singleton(AppState, build_state)` — see
-`server.py` for the wiring.
+`AppState` carries the four resources every fetch needs: settings, breakers,
+proxy_pool, sqlite. Heavy/conditional resources (browser_pool, llm_extractor)
+are independently provided by a2kit v0.36+ DI and surfaced at the tool seam
+as `Lazy[T]` so the cold-start cost is paid only when the path needs them.
 
-Resource pattern (a2kit v0.27 canonical): every long-lived resource is a
-class with sync `__init__`, internal `_lock`, lazy `_ensure()`, and
-idempotent `close()`. AppState fields are **non-Optional**. Locks live
-inside resources, never on AppState.
+Lifecycle is owned by a2kit v0.36+: each resource registered via
+`app.provide(...)` enters on first resolution (lazy first-use) and exits in
+LIFO order on app shutdown. Resources expose `__aenter__`/`__aexit__` as
+thin wrappers around their existing idempotent `_ensure()` / `close()`
+methods (kept as the internal lazy-call surface).
+
+AppState fields are non-Optional. Locks live inside resources, never on
+AppState. AppState itself is a pure data bundle — no `__aenter__` needed
+(framework gracefully skips singletons that don't expose the CM protocol).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import cast
 
 from purgatory import AsyncCircuitBreakerFactory
 
-from .llm_resource import LlmExtractorResource
-from .packages.browser_pool import BrowserPool
 from .packages.http_cache import SqliteResource
-from .packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
-from .settings import AppSettings, get_settings
+from .packages.proxy_routing import ProxyPool
+from .settings import AppSettings
 
 
 @dataclass(slots=True)
 class AppState:
-    """Shared resources for the fetch pipeline. Per-App singleton.
+    """Always-on resources for the fetch pipeline. Per-App singleton.
 
-    Every field is non-Optional. Resources that need an event loop to open
-    (sqlite, browser, LLM extractor) are wrapped in Resource classes that
-    self-initialize on first use under their own internal locks.
+    `browser_pool` and `llm_extractor` are NOT here — they're independent
+    providers surfaced at the tool seam via `Lazy[T]` (see `routers.py`).
     """
 
     settings: AppSettings
     breakers: AsyncCircuitBreakerFactory
     proxy_pool: ProxyPool
     sqlite: SqliteResource
-    browser_pool: BrowserPool
-    llm_extractor: LlmExtractorResource
 
 
-def build_state(settings: AppSettings | None = None) -> AppState:
-    """Factory for the AppState singleton. Sync — a2kit v0.27 requires this.
+def build_state(
+    settings: AppSettings,
+    breakers: AsyncCircuitBreakerFactory,
+    proxy_pool: ProxyPool,
+    sqlite: SqliteResource,
+) -> AppState:
+    """Bundle the four always-on resources into AppState.
 
-    Every resource is constructed cheaply here (no I/O). Async opens happen
-    on first use via each resource's `_ensure()`.
+    The container chain-resolves each dep via its own provider registered
+    in `server.py`. No I/O here — each resource opens lazily on first use
+    via its `__aenter__`.
     """
-    resolved = settings or get_settings()
-    sqlite = SqliteResource(db_path=None)
     return AppState(
-        settings=resolved,
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        proxy_pool=ProxyPool(
-            routes=cast("list[RouteRuleShape]", resolved.routes),
-            proxies=cast("dict[str, ProxyEntryShape]", resolved.proxies),
-        ),
+        settings=settings,
+        breakers=breakers,
+        proxy_pool=proxy_pool,
         sqlite=sqlite,
-        browser_pool=BrowserPool(
-            max_pool=resolved.browser_max_pool,
-            idle_timeout_s=resolved.browser_idle_timeout_s,
-            page_budget_s=resolved.browser_page_budget_s,
-        ),
-        llm_extractor=LlmExtractorResource(resolved, sqlite),
     )

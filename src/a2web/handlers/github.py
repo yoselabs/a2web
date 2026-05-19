@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-from ..models import Heading, Verdict
+from ..models import Heading, NextLink, Verdict
 
 if TYPE_CHECKING:
     from ..state import AppState
@@ -113,6 +113,10 @@ async def _fetch_repo(client: httpx.AsyncClient, url: str, parts: tuple[str, ...
             except (ValueError, TypeError):
                 readme_md = ""
 
+    # v0.7 link-discovery: top 5 open issues + top 5 open PRs as `related` candidates.
+    # Best-effort: API errors here MUST NOT fail the whole fetch.
+    next_links = await _fetch_repo_candidates(client, owner, repo)
+
     rendered = _render_repo(repo_data, readme_md)
     return TierResult(
         body=repo_resp.content,
@@ -121,8 +125,85 @@ async def _fetch_repo(client: httpx.AsyncClient, url: str, parts: tuple[str, ...
         final_url=url,
         headers=dict(repo_resp.headers),
         pre_rendered=Rendered.from_dict(rendered),
+        next_links=next_links,
         verdict=Verdict.ok,
     )
+
+
+async def _fetch_repo_candidates(
+    client: httpx.AsyncClient,
+    owner: str,
+    repo: str,
+) -> list[NextLink]:
+    """Fetch top 5 open issues + top 5 open PRs, return as NextLink candidates.
+
+    Best-effort: errors on either call return what we have so far rather than
+    failing the parent repo fetch. GitHub's /pulls endpoint returns PRs; the
+    /issues endpoint returns BOTH issues and PRs unless filtered — we filter
+    out items with `pull_request` to keep them disjoint.
+    """
+    out: list[NextLink] = []
+    try:
+        issues_resp = await client.get(
+            f"{_API_BASE}/repos/{owner}/{repo}/issues",
+            params={"state": "open", "per_page": 10, "sort": "comments", "direction": "desc"},
+        )
+        if issues_resp.status_code == 200:
+            issues_data = issues_resp.json()
+            issue_count = 0
+            for it in issues_data if isinstance(issues_data, list) else []:
+                if issue_count >= 5:
+                    break
+                if not isinstance(it, dict) or it.get("pull_request"):
+                    continue
+                title = (it.get("title") or "").strip()
+                number = it.get("number")
+                if not title or not number:
+                    continue
+                comments = it.get("comments", 0) or 0
+                out.append(
+                    NextLink(
+                        anchor=title,
+                        url=f"https://github.com/{owner}/{repo}/issues/{number}",
+                        reason=f"issue · {comments} comments",
+                        kind="related",
+                    ),
+                )
+                issue_count += 1
+    except httpx.HTTPError:
+        pass
+
+    try:
+        pulls_resp = await client.get(
+            f"{_API_BASE}/repos/{owner}/{repo}/pulls",
+            params={"state": "open", "per_page": 5, "sort": "popularity", "direction": "desc"},
+        )
+        if pulls_resp.status_code == 200:
+            pulls_data = pulls_resp.json()
+            pr_count = 0
+            for pr in pulls_data if isinstance(pulls_data, list) else []:
+                if pr_count >= 5:
+                    break
+                if not isinstance(pr, dict):
+                    continue
+                title = (pr.get("title") or "").strip()
+                number = pr.get("number")
+                if not title or not number:
+                    continue
+                comments = pr.get("comments", 0) or 0
+                out.append(
+                    NextLink(
+                        anchor=title,
+                        url=f"https://github.com/{owner}/{repo}/pull/{number}",
+                        reason=f"PR · {comments} comments",
+                        kind="related",
+                    ),
+                )
+                pr_count += 1
+    except httpx.HTTPError:
+        pass
+
+    return out
 
 
 async def _fetch_issue(client: httpx.AsyncClient, url: str, parts: tuple[str, ...]) -> TierResult:

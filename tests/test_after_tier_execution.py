@@ -6,12 +6,13 @@ import pytest
 
 from a2web.fetcher import fetch
 from a2web.models import FetchStatus, Verdict
-from a2web.state import AppState, build_state
+from a2web.state import AppState
 from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult
+from tests.conftest import make_default_state
 
 
 def _make_state() -> AppState:
-    return build_state()
+    return make_default_state()
 
 
 class _CountingRawTier:

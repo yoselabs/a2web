@@ -75,7 +75,10 @@ class RawTier:
         state: AppState,
         conditional_extras: dict[str, Any] | None = None,
         proxy_url: str | None = None,
+        cookies: dict[str, str] | None = None,
+        **kwargs: Any,
     ) -> TierResult:
+        del kwargs  # accept-and-ignore for protocol-uniform dispatch
         from . import TierResult
 
         settings: AppSettings = state.settings
@@ -97,6 +100,8 @@ class RawTier:
             }
             if proxy_url:
                 request_kwargs["proxies"] = {"http": proxy_url, "https": proxy_url}
+            if cookies:
+                request_kwargs["cookies"] = dict(cookies)
             async with curl_requests.AsyncSession(**session_kwargs) as session:
                 try:
                     response = await session.get(url, **request_kwargs)

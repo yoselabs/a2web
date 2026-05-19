@@ -17,12 +17,13 @@ dispatches the archive tier.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
-from urllib.parse import urlparse, urlunparse
+import time as _time
+from typing import TYPE_CHECKING, Any, Literal
+from urllib.parse import parse_qs, urlparse, urlunparse
 
 import httpx
 
-from ..models import Heading, OperatorHint, Verdict
+from ..models import Heading, NextLink, OperatorHint, Verdict
 
 if TYPE_CHECKING:
     from ..state import AppState
@@ -36,12 +37,32 @@ if TYPE_CHECKING:
 # Captures everything: /r/<sub>/comments/<id> with an optional /slug/ and
 # an optional /<comment_id>/ (permalink to a specific comment).
 _COMMENTS_PATH_RE = re.compile(r"^/r/[^/]+/comments/[^/]+(/|$)")
-_PERMALINK_PATH_RE = re.compile(
-    r"^/r/(?P<sub>[^/]+)/comments/(?P<post>[^/]+)/(?P<slug>[^/]+)/(?P<comment>[a-z0-9]+)/?$"
-)
+_PERMALINK_PATH_RE = re.compile(r"^/r/(?P<sub>[^/]+)/comments/(?P<post>[^/]+)/(?P<slug>[^/]+)/(?P<comment>[a-z0-9]+)/?$")
+# Search paths: `/r/<sub>/search/` (subreddit-scoped) or `/search/` (site-wide).
+# Both rewrite to `<path>.json?q=...` and return a Listing of t3 post stubs.
+_SEARCH_PATH_RE = re.compile(r"^(/r/[^/]+)?/search/?$")
+# Listing paths: subreddit root or a sort suffix. Same Listing-of-t3 JSON
+# shape as search, but driven by `?t=year&limit=...` rather than `?q=...`.
+_LISTING_SORTS = ("top", "hot", "new", "rising", "best", "controversial")
+_LISTING_PATH_RE = re.compile(r"^/r/(?P<sub>[^/]+)(?:/(?P<sort>top|hot|new|rising|best|controversial))?/?$")
 _REDDIT_HOSTS = frozenset({"reddit.com", "www.reddit.com", "old.reddit.com", "np.reddit.com"})
 _SHORT_HOSTS = frozenset({"redd.it"})
 _DEFAULT_TIMEOUT_S = 10
+
+_UrlShape = Literal["comments", "permalink", "search", "listing"]
+
+
+def _url_shape(url: str) -> _UrlShape | None:
+    """Classify a Reddit URL into one of the handled shapes."""
+    parsed = urlparse(url)
+    path = parsed.path or ""
+    if _SEARCH_PATH_RE.match(path):
+        return "search"
+    if _COMMENTS_PATH_RE.match(path):
+        return "permalink" if _detect_permalink(url) else "comments"
+    if _LISTING_PATH_RE.match(path):
+        return "listing"
+    return None
 
 
 def _is_reddit_host(host: str) -> bool:
@@ -87,9 +108,10 @@ class RedditHandler:
         host = parsed.hostname or ""
         if _is_short_host(host):
             return True
-        if _is_reddit_host(host) and _COMMENTS_PATH_RE.match(parsed.path or ""):
-            return True
-        return False
+        if not _is_reddit_host(host):
+            return False
+        path = parsed.path or ""
+        return bool(_COMMENTS_PATH_RE.match(path) or _SEARCH_PATH_RE.match(path) or _LISTING_PATH_RE.match(path))
 
     async def fetch(self, url: str, *, state: AppState) -> TierResult:
         from ..tiers import TierResult
@@ -114,7 +136,8 @@ class RedditHandler:
                 verdict=Verdict.other,
             )
 
-        permalink_id = _detect_permalink(url)
+        shape = _url_shape(url)
+        permalink_id = _detect_permalink(url) if shape == "permalink" else None
         json_url = _to_json_url(url, permalink_focus=permalink_id is not None)
 
         try:
@@ -130,10 +153,16 @@ class RedditHandler:
             return _empty_result(url, Verdict.connection_error)
 
         if response.status_code == 404:
+            # Search/listing hits don't escalate to archive (Wayback doesn't
+            # usefully cache dynamic surfaces); return not_found cleanly.
+            if shape in ("search", "listing"):
+                return _empty_result(url, Verdict.not_found)
             return await _fetch_old_reddit_or_archive_signal(url, state=state)
         if response.status_code == 429:
             return _empty_result(url, Verdict.rate_limited)
         if response.status_code == 403:
+            if shape in ("search", "listing"):
+                return _empty_result(url, Verdict.connection_error)
             # Quarantined / NSFW (unauth) / private — Wayback often has a
             # public capture from before the gate dropped.
             return _archive_escalation_signal(
@@ -149,11 +178,33 @@ class RedditHandler:
         except ValueError:
             return _empty_result(url, Verdict.content_type_mismatch)
 
-        rendered = _render_thread(payload, target_comment=permalink_id)
+        if shape == "search":
+            query = (parse_qs(parsed.query).get("q") or [""])[0]
+            rendered = _render_search(payload, query=query)
+        elif shape == "listing":
+            listing_match = _LISTING_PATH_RE.match(parsed.path or "")
+            sub = listing_match.group("sub") if listing_match else "?"
+            sort = (listing_match.group("sort") if listing_match else None) or "hot"
+            time_window = (parse_qs(parsed.query).get("t") or [""])[0]
+            rendered = _render_listing(payload, subreddit=sub, sort=sort, time_window=time_window)
+        else:
+            rendered = _render_thread(payload, target_comment=permalink_id)
         body_bytes = response.content
         from ..tiers import Rendered
 
         if rendered.get("is_empty"):
+            if shape in ("search", "listing"):
+                # Empty search/listing — surface no_match so orchestrator
+                # does NOT fall through to raw/jina (both 403 on this
+                # surface anyway).
+                return TierResult(
+                    body=b"",
+                    content_type="",
+                    status_code=response.status_code,
+                    final_url=url,
+                    no_match=True,
+                    verdict=Verdict.ok,
+                )
             # Empty thread (deleted / removed). Try old.reddit; if that
             # also fails, signal archive.
             return await _fetch_old_reddit_or_archive_signal(url, state=state)
@@ -165,6 +216,7 @@ class RedditHandler:
             final_url=url,
             headers=dict(response.headers),
             pre_rendered=Rendered.from_dict(rendered),
+            next_links=list(rendered.get("next_links") or []),
             verdict=Verdict.ok,
         )
 
@@ -275,6 +327,182 @@ def _render_thread(payload: Any, *, target_comment: str | None = None) -> dict[s
     }
 
 
+def _render_search(payload: Any, *, query: str) -> dict[str, Any]:
+    """Render a Reddit search Listing to a terse markdown result list.
+
+    Payload shape: `{kind: "Listing", data: {children: [{kind: "t3", data: {...}}, ...]}}`.
+    Cap at 25 entries (Reddit's natural page size).
+    """
+    if not isinstance(payload, dict):
+        return _empty_render()
+    children = payload.get("data", {}).get("children", []) if isinstance(payload, dict) else []
+    if not isinstance(children, list) or not children:
+        return _empty_render()
+
+    title_text = f"Search: {query}" if query else "Search"
+    parts: list[str] = [f"# {title_text}\n"]
+    rendered_count = 0
+    now = _time.time()
+    for child in children[:25]:
+        if not isinstance(child, dict) or child.get("kind") != "t3":
+            continue
+        data = child.get("data", {})
+        if not isinstance(data, dict):
+            continue
+        post_title = (data.get("title") or "").strip()
+        if not post_title:
+            continue
+        subreddit = data.get("subreddit") or "?"
+        author = data.get("author") or "[deleted]"
+        score = data.get("score", 0) or 0
+        num_comments = data.get("num_comments", 0) or 0
+        permalink = data.get("permalink") or ""
+        created_utc = data.get("created_utc")
+        age = human_age(now - created_utc) if isinstance(created_utc, (int, float)) else "?"
+        meta = f"r/{subreddit} · u/{author}, score {score}, {num_comments} comments, {age}"
+        link = f"https://www.reddit.com{permalink}" if permalink else ""
+        if link:
+            parts.append(f"- **{post_title}** ({meta})\n  <{link}>")
+        else:
+            parts.append(f"- **{post_title}** ({meta})")
+        rendered_count += 1
+
+    if rendered_count == 0:
+        return _empty_render()
+
+    parts.insert(1, f"## Results ({rendered_count})\n")
+    headings: list[Heading] = [
+        Heading(level=1, text=title_text),
+        Heading(level=2, text=f"Results ({rendered_count})"),
+    ]
+    return {
+        "content_md": "\n".join(parts).strip() + "\n",
+        "title": title_text,
+        "byline": None,
+        "headings": headings,
+        "more_stubs": 0,
+        "is_empty": False,
+    }
+
+
+def _render_listing(
+    payload: Any,
+    *,
+    subreddit: str,
+    sort: str,
+    time_window: str,
+) -> dict[str, Any]:
+    """Render a subreddit listing (top/hot/new/...) to a terse markdown table.
+
+    Same Listing-of-t3 JSON shape as search; differs only in framing.
+    `sort` is one of `_LISTING_SORTS` (defaults to "hot" when the URL omits
+    the suffix); `time_window` is the `?t=` value for "top" / "controversial"
+    (one of: hour, day, week, month, year, all). Empty when not applicable.
+    """
+    if not isinstance(payload, dict):
+        return _empty_render()
+    children = payload.get("data", {}).get("children", []) if isinstance(payload, dict) else []
+    if not isinstance(children, list) or not children:
+        return _empty_render()
+
+    suffix = f" · {time_window}" if time_window and sort in ("top", "controversial") else ""
+    title_text = f"r/{subreddit} · {sort}{suffix}"
+    parts: list[str] = [f"# {title_text}\n"]
+    rendered_count = 0
+    now = _time.time()
+    for child in children[:25]:
+        if not isinstance(child, dict) or child.get("kind") != "t3":
+            continue
+        data = child.get("data", {})
+        if not isinstance(data, dict):
+            continue
+        post_title = (data.get("title") or "").strip()
+        if not post_title:
+            continue
+        author = data.get("author") or "[deleted]"
+        score = data.get("score", 0) or 0
+        num_comments = data.get("num_comments", 0) or 0
+        permalink = data.get("permalink") or ""
+        created_utc = data.get("created_utc")
+        age = human_age(now - created_utc) if isinstance(created_utc, (int, float)) else "?"
+        meta = f"u/{author}, score {score}, {num_comments} comments, {age}"
+        link = f"https://www.reddit.com{permalink}" if permalink else ""
+        if link:
+            parts.append(f"- **{post_title}** ({meta})\n  <{link}>")
+        else:
+            parts.append(f"- **{post_title}** ({meta})")
+        rendered_count += 1
+
+    if rendered_count == 0:
+        return _empty_render()
+
+    parts.insert(1, f"## Posts ({rendered_count})\n")
+    headings: list[Heading] = [
+        Heading(level=1, text=title_text),
+        Heading(level=2, text=f"Posts ({rendered_count})"),
+    ]
+    listing_over_18 = bool(payload.get("data", {}).get("over18")) if isinstance(payload, dict) else False
+    next_links = _listing_candidates(children, sfw_only=not listing_over_18)
+    return {
+        "content_md": "\n".join(parts).strip() + "\n",
+        "title": title_text,
+        "byline": None,
+        "headings": headings,
+        "more_stubs": 0,
+        "is_empty": False,
+        "next_links": next_links,
+    }
+
+
+def _listing_candidates(children: list[Any], *, sfw_only: bool) -> list[NextLink]:
+    """Build up to 10 NextLink entries from a Reddit listing payload's children.
+
+    Skips NSFW posts when `sfw_only` is True (the listing's own `over18` flag
+    is False). Children are already in the listing's natural order
+    (top/hot/new) — we just take the first 10 valid t3 entries.
+    """
+    out: list[NextLink] = []
+    for child in children:
+        if len(out) >= 10:
+            break
+        if not isinstance(child, dict) or child.get("kind") != "t3":
+            continue
+        data = child.get("data", {})
+        if not isinstance(data, dict):
+            continue
+        if sfw_only and bool(data.get("over_18")):
+            continue
+        title = (data.get("title") or "").strip()
+        permalink = data.get("permalink") or ""
+        if not title or not permalink:
+            continue
+        score = data.get("score", 0) or 0
+        num_comments = data.get("num_comments", 0) or 0
+        out.append(
+            NextLink(
+                anchor=title,
+                url=f"https://www.reddit.com{permalink}",
+                reason=f"{score} score, {num_comments} comments",
+                kind="drilldown",
+            ),
+        )
+    return out
+
+
+def human_age(seconds_ago: float) -> str:
+    """Compact age string: '3d', '2y', '5h', '12m', '45s'. Negative → '0s'."""
+    s = max(0.0, float(seconds_ago))
+    if s < 60:
+        return f"{int(s)}s"
+    if s < 3600:
+        return f"{int(s // 60)}m"
+    if s < 86400:
+        return f"{int(s // 3600)}h"
+    if s < 86400 * 365:
+        return f"{int(s // 86400)}d"
+    return f"{int(s // (86400 * 365))}y"
+
+
 def _empty_render() -> dict[str, Any]:
     return {
         "content_md": "",
@@ -311,9 +539,7 @@ def _crosspost_metadata(post_data: dict[str, Any]) -> str | None:
     return line
 
 
-def _render_permalink_focus(
-    comments_data: list[Any], *, target_id: str
-) -> tuple[str, int]:
+def _render_permalink_focus(comments_data: list[Any], *, target_id: str) -> tuple[str, int]:
     """Render a focused permalink view.
 
     The Reddit API with `?context=N` returns the comment ancestry as

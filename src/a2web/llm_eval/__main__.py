@@ -7,7 +7,7 @@ Three modes:
   detail   — only the two a2web systems; faster for engine-only checks.
 
 Reads `ANTHROPIC_API_KEY` from the environment. Aborts with a clear message
-if missing or if `[llm]` extras are not installed.
+if missing.
 """
 
 from __future__ import annotations
@@ -18,9 +18,15 @@ import json
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
+from purgatory import AsyncCircuitBreakerFactory
+
+from ..llm_resource import LlmExtractorResource
+from ..packages.http_cache import SqliteResource
 from ..packages.llm_extract import Judge, LLMNotAvailable, ModelSpec
 from ..packages.llm_extract.providers.anthropic import AnthropicProvider
+from ..packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from ..settings import AppSettings
 from ..state import build_state
 from .corpus import CorpusError, load_corpus
@@ -81,14 +87,27 @@ async def _amain(argv: list[str]) -> int:
         return 3
 
     settings = AppSettings()
-    state = build_state(settings)
+    # Build the always-on state bundle directly — eval CLI bypasses the App
+    # container; we construct the four resources here and inject the
+    # extractor explicitly into A2WebExtract.
+    sqlite = SqliteResource()
+    state = build_state(
+        settings=settings,
+        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
+        proxy_pool=ProxyPool(
+            routes=cast("list[RouteRuleShape]", settings.routes),
+            proxies=cast("dict[str, ProxyEntryShape]", settings.proxies),
+        ),
+        sqlite=sqlite,
+    )
+    extractor = LlmExtractorResource(settings, sqlite)
 
     systems: list[EvalSystem] = []
     if args.mode in ("default", "baseline"):
         systems.append(WebFetchBaseline(provider=provider))
     if args.mode in ("default", "detail"):
         systems.append(A2WebDetail(state=state))
-        systems.append(A2WebExtract(state=state))
+        systems.append(A2WebExtract(state=state, extractor=extractor))
 
     judge = Judge(provider=provider, model=ModelSpec("anthropic", args.judge_model))
 

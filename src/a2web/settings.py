@@ -120,6 +120,12 @@ class AppSettings(BaseSettings):
     browser_idle_timeout_s: int = 300
     browser_page_budget_s: int = 30
 
+    # v0.10: hosts known to be JS-heavy CSR apps. When the gate sees a
+    # thin browser-tier response (<1KB) from one of these hosts, it
+    # downgrades to length_floor so escalation continues. Combined with
+    # the seed list at fetcher._JS_HEAVY_HOSTS_SEED.
+    js_heavy_hosts_extra: list[str] = Field(default_factory=list)
+
     # v0.3: Twitter / X handler via Nitter rotation. Empty list = handler
     # effectively disabled (`matches` returns False) so the orchestrator
     # falls through to raw + browser tiers as before. Public Nitter
@@ -127,9 +133,10 @@ class AppSettings(BaseSettings):
     # commits to a maintained list.
     nitter_instances: list[str] = Field(default_factory=list)
 
-    # v0.4: optional LLM-backed extraction. Activated by the `ask=` param on
-    # the fetch tool. Requires the `[llm]` install extra. Default model
-    # matches Claude Code's WebFetch sub-call (research/123).
+    # v0.4/v0.7: LLM-backed extraction. Activated by the `ask=` param on
+    # the fetch tool. As of v0.7 the SDKs are baseline deps — no extra
+    # install needed. Default model matches Claude Code's WebFetch
+    # sub-call (research/123).
     #
     # `auto`         — prefer ClaudeCodeProvider if `claude-agent-sdk` + the
     #                  `claude` CLI are available (uses the OS session, no
@@ -141,6 +148,21 @@ class AppSettings(BaseSettings):
     llm_api_key_env: str = "ANTHROPIC_API_KEY"
     extraction_max_chars: int = 100_000  # matches WebFetch's BD_ constant
     extraction_cache_ttl_s: int = 900  # matches WebFetch's sg5 (15 min)
+
+    # v0.7: when true, only the `ask` tool is exposed on the MCP/CLI
+    # surface — `fetch_raw` is hidden. Forces calling agents through the
+    # cheap server-side Haiku extractor for cost discipline. Stop-gap
+    # toggle until a2kit absorbs proper per-tool selection upstream
+    # (see docs/history/A2KIT_FEEDBACK_v0.39.md).
+    ask_only: bool = False
+
+    # v0.8: opt-in browser cookie source. Default `none` keeps the subsystem
+    # inert — no resource construction, no DB access, no Keychain prompts.
+    # `chrome` is macOS-only in v0.8; Linux/Windows deferred. `firefox`
+    # reads `cookies.sqlite` directly (plaintext, no Keychain).
+    cookie_source: Literal["none", "chrome", "firefox"] = "none"
+    cookie_profile: str = "Default"
+    cookie_stale_after_hours: int = 24
 
     @classmethod
     def settings_customise_sources(

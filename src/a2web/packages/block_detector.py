@@ -65,6 +65,21 @@ _AKAMAI_BMP_MARKER = re.compile(r"_abck=|bm_sz=|akam/\d+/[0-9a-f]{6,}", re.IGNOR
 _CF_INTERSTITIAL_MARKER = re.compile(r"\bcf-chl-bypass\b|\bJust a moment\b", re.IGNORECASE)
 _SCRIPT_TAG_RE = re.compile(r"<script\b", re.IGNORECASE)
 
+# Search-engine captcha markers — second-line defense for captcha redirects
+# that escape the upfront `rewrite_captcha_host` pre-routing in `domain.py`
+# (e.g. an inbound Google redirect we don't recognize that lands on
+# /sorry/index). The gate maps `subsystem="captcha_redirect"` to an
+# OperatorHint pointing the caller at DDG/Brave.
+_SEARCH_CAPTCHA_MARKER = re.compile(
+    r"Our systems have detected unusual traffic"  # Google /sorry/index body
+    r"|/sorry/index"  # /sorry path leaked into HTML/JS
+    r"|We're sorry\.\.\."  # Google sorry-page heading
+    r"|Bing/Block/CaptchaChallenge"  # Bing captcha intermediate
+    r"|<title>Bing</title>.{0,400}captcha"  # Bing's captcha page title cluster
+    r"|/fd/ls/lsp\.aspx",  # Bing block-page asset path
+    re.IGNORECASE | re.DOTALL,
+)
+
 _JS_SHELL_ROOT_MARKERS = re.compile(
     r'id="__next"'
     r'|id="root"'
@@ -98,6 +113,11 @@ def evaluate(
         return BlockResult(BlockVerdict.anti_bot, subsystem="akamai_bmp", suggested_tier="browser")
     if _ANUBIS_MARKER.search(raw_html) and len(content_md) < LENGTH_FLOOR:
         return BlockResult(BlockVerdict.anti_bot, subsystem="anubis", suggested_tier="browser")
+    if _SEARCH_CAPTCHA_MARKER.search(raw_html):
+        # Belt-and-suspenders for any Google/Bing redirect that escapes
+        # `domain.rewrite_captcha_host`. Gate phase maps the subsystem
+        # to an operator_hint pointing the caller at DDG.
+        return BlockResult(BlockVerdict.block_page_detected, subsystem="captcha_redirect")
 
     if len(content_md) < LENGTH_FLOOR:
         if _CF_INTERSTITIAL_MARKER.search(raw_html):

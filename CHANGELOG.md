@@ -8,7 +8,119 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
-(no unreleased work)
+### Added (v0.10 harsh-test-session-fixes, 2026-05-19)
+
+- **JSON-in-script extractor** (`src/a2web/packages/json_in_script.py`). Detects `__NEXT_DATA__`, `__NUXT_DATA__`, `application/ld+json`, and generic `application/json` script blobs; ranks LD-JSON `Product` / `Article` / `ItemList` (with >=3 populated fields) above framework app-state. Boundary type `JsonPayload`; package-independent. Synthesizes a markdown table at the a2web seam (`domain.py::json_to_markdown_rows`) — only known shapes are converted, do-no-harm on unknown JSON. JSON path runs only when trafilatura output is thin (<2KB OR <3 sentences) and replaces only when synthetic is >=2x original. Emits `json_synth` LDD events.
+- **Paywall classifier — jina stub recognition.** Gate now recognizes jina-tier responses carrying `Target URL returned error 40[13]` stubs (NYT, WSJ shape) as `Verdict.paywall` instead of `Verdict.length_floor`. Archive escalation playbook now fires on these (previously a silent failure).
+- **Thin-browser-response heuristic.** When the browser tier returns 200 OK with <1KB content from a host in the `JS_HEAVY_HOSTS` set (x.com, twitter.com, instagram.com, tiktok.com, trendyol.com, aliexpress.com — operator-extensible via `A2WEB_JS_HEAVY_HOSTS_EXTRA`), the gate downgrades to `length_floor` so escalation continues instead of returning a thin success.
+- **Browser tier: scroll-on-thin retry.** After `wait_until="networkidle"`, if the first DOM capture is <4KB and the host is JS-heavy, scroll to bottom + wait 2s + re-snapshot. Keeps the larger capture. Never raises — page-eval errors fall back to the original. Emits `browser_scroll_retry` LDD events with outcome (larger / smaller / timeout).
+- **`--max-content-chars` CLI flag + MCP kwarg on `ask`.** Caps content sent to the extractor LLM per-fetch. `None` (default) preserves the 100,000-char default. Reduces cost on pages dumping JSON app state — verified Hepsiburada drop 53,842 -> 11,964 prompt tokens (-78%) on a real benchmark.
+
+### Changed (v0.10 — same cycle)
+
+- **`camoufox` moved to baseline dependencies.** Previously `[browser]` extra; an uninstalled browser dep produced uncaught `ImportError` on the first browser-tier escalation. Install size grows ~150MB; first browser use still requires `python -m camoufox fetch` (runtime asset, not a wheel dep).
+- **`playwright` dropped as explicit dep.** Transitive via camoufox, was a redundant pin.
+- **`claude-agent-sdk` provider always passes explicit `system_prompt` (even empty).** SDK treats `None` as "load the claude_code preset" (~23k tokens of agentic system prompt). Explicit empty string opts out → drops ~12k tokens / ~50-77% per Haiku call. Verified on arXiv re-fetch ($0.0132 -> $0.0032).
+
+### Known Limitations (v0.10)
+
+- **Camoufox subprocess stderr leak unfixed.** Spike (`docs/history/spike-camoufox-stderr-2026-05-19.md`) confirmed no supported knob in camoufox / playwright to redirect the Node child process's stderr without monkey-patching internals or `os.dup2`. Operators can redirect at shell level: `a2web ... 2>/tmp/a2web.stderr.log`.
+- **JSON synth doesn't run on browser-tier output.** When the orchestrator escalates to browser, the browser tier's pre-rendered markdown bypasses `_phase_extract` and the JSON-synth path. Browser-rendered Trendyol still extracts thin. Tracked for v0.11.
+
+### Added (v0.7 link-discovery — `next_links`, 2026-05-18)
+
+- **New response field `FetchResponse.next_links: list[NextLink]`.** Up to 10 curated "what to fetch next" links per response. Each entry carries `anchor`, `url`, `reason` (one phrase, ≤80 chars), and `kind` (`drilldown` / `related` / `source`). Empty when no drilldown layer exists. Replaces the agent's "scan `links[]` and guess" pattern on listing-style pages.
+- **Tier 1 — site handlers populate candidates from structured upstream payloads.**
+  - **Reddit:** subreddit listings (`/r/<sub>/`, `/r/<sub>/hot/`, etc.) emit up to 10 permalinks with `reason="<score> score, <num_comments> comments"`. NSFW posts filtered when the subreddit's own `over18` flag is False.
+  - **HN:** front page (`news.ycombinator.com/` and `/news`) — now matched (previously unmatched) — emits up to 10 stories; external-URL stories drill to the external link, text-only stories drill to the discussion page.
+  - **arXiv:** category listings (`/list/<cat>/<window>`) — newly matched — emit up to 10 abs URLs with authors as `reason`.
+  - **GitHub:** repo URLs emit up to 5 top open issues + 5 top open PRs as `kind="related"`. Issue/PR URLs return empty (terminal).
+  - **Wikipedia:** up to 10 deduped outbound wikilinks parsed from Parsoid HTML as `kind="related"`. `File:`/`Category:` namespace links filtered. Same source-language host invariant.
+- **Tier 2 — LLM curation in the `ask=` extraction call.** When `ask=` is set, the extraction prompt asks the LLM to also return up to 10 candidates inside a fenced JSON block (`` ```next_links ``` ``). Same provider call, no second round-trip. Boundary type `LlmNextLink` lives in `packages/llm_extract`; conversion to the domain `NextLink` happens at the a2web seam.
+- **Hallucination defense.** LLM-supplied URLs are validated against the markdown content the LLM was given; absent URLs are dropped with an `extraction_drift` diagnostic. Handler-supplied URLs (Tier 1+2 re-rank) are exempt.
+- **Tier 1+2 composition.** When both fire, the handler's candidate list is passed into the `ask=` prompt as context and the LLM re-ranks, filters, and rewrites each `reason` against the user's question. The LLM-returned list replaces (not unions with) the handler's list.
+- **New tool parameter `next_links: bool = True`** on both `fetch` (ask=) and `fetch_raw` tools. Default-on; pass `False` on terminal fetches to suppress the field.
+- **Out of scope (deferred):** alias-addressed URLs (`alias=` parameter for short-ID drilldown — only worth it once we measure full-URL pass-through as the actual bottleneck), server-side recursive drilldown (`follow_depth=N`).
+
+### Added (v0.8 browser cookies, 2026-05-18)
+
+- **Opt-in browser cookie source.** New settings `cookie_source: Literal["none","chrome","firefox"]` (default `none`), `cookie_profile: str` (default `Default`), `cookie_stale_after_hours: int` (default `24`). When enabled, a2web reads cookies from the user's local Chrome (macOS) or Firefox profile and threads them through the raw (curl_cffi) and browser (Playwright) tiers. Jina tier intentionally skips (third-party reader — would leak the session). Default `none` keeps the subsystem inert with zero observable change.
+- **New tool + CLI: `a2web cookies refresh`.** Reads the configured browser profile, decrypts any encrypted values (macOS Keychain via `security` CLI + AES-GCM via `cryptography`), and atomically replaces the mirror inside the existing `SqliteResource` (new tables `a2web_cookies`, `cookies_meta`). The macOS Keychain prompt only appears here, not per fetch — Chrome can keep running.
+- **Staleness signal as `OperatorHint(code="cookies_stale", ...)`.** Every fetch where the mirror is older than `cookie_stale_after_hours` (or has never been refreshed) gets one operator hint with the age + threshold + fix command. Agents can branch on `code == "cookies_stale"`. An `a2kit.ldd.event(CookiesStale(...))` is emitted in parallel for operator-facing observability.
+- **`OperatorHint` docstring updated.** The `code` field is now explicitly an agent-readable branch point. Existing codes (`llm_unavailable`, `browser_unavailable`, `captcha_redirect`) already served both audiences; the prior "agents never read these" claim was descriptive of original intent, not a constraint. Schema unchanged.
+- **`cryptography` promoted to direct dependency** (already transitive via curl_cffi). Used only for PBKDF2-HMAC-SHA1 and AES-GCM decrypt in the Chrome reader.
+- **Hand-written cookie readers under `packages/cookie_store/`.** No third-party cookie-extraction library — `rookiepy` and `browser-cookie3` both audited YELLOW (dormant single-maintainer projects, no PyPI Trusted Publishing). Our macOS Chrome path is ~120 LOC; Firefox is plaintext sqlite. Less third-party trust surface, fewer moving parts on Chrome encryption changes.
+- **Redaction discipline.** Cookie values never appear in LDD event payloads, structlog records, or diagnostic rows. Helper `redact_cookie_for_event(cookie)` returns `{name, host_key, path, value_length}`. The `CookiesAttached` event carries cookie *names* only.
+- **Out of scope (v0.8):** LDD severity levels (upstream a2kit ask — emit at single level today, swap to `warn` when supported); Camoufox `user_data_dir=` profile inheritance; Linux/Windows Chrome; multi-profile merge; automatic background refresh; Safari / Edge / Brave / Arc.
+
+### Changed (a2kit v0.38 → v0.39 migration, 2026-05-16)
+
+- **a2kit pin: v0.38.0 → v0.39.0.** Adopts round-10 friction fixes shipped upstream on 2026-05-16. No wire-surface change; all 414 tests green at 89% coverage.
+- **Drop `ctx: a2kit.ToolContext` from `WebRouter.fetch`.** v0.39 binds ambient ctx unconditionally inside any framework dispatch — the `ctx` parameter is no longer needed in tools that don't read ctx in the body. `del ctx` is gone.
+- **Drop `await sqlite._ensure()` from `_check_sqlite`.** v0.39 `OPERATIONAL_CONTRACTS Q-HealthChecks` pins the contract: kwarg resolution enters the resource. The health probe receiving `sqlite` is the readiness assertion; no internal probe call needed. The surrounding try/except is gone too — sqlite open-time failures are catastrophic and should crash the probe loudly, not soften to a "degraded" check.
+- **`conftest.py` helpers swapped to `a2kit.testing.*`:**
+  - `lazy_of(value)` → `a2kit.testing.lazy(value)` (deleted from conftest; tests import directly).
+  - Local `_ambient_ldd` autouse fixture → re-export `a2kit.testing.ambient_for_tests` under `pytest.fixture(autouse=True)` using the documented `__wrapped__` unwrap pattern.
+  - `make_default_state(...)` kept as-is — it's the deliberate "AppState without an app" test seam (not boilerplate; `a2kit.testing.resolve` is for the orthogonal "AppState inside an app scope" use case, which a2web does not currently use).
+- **Round-10 Friction E retracted.** v0.39 shipped `Lazy[T]` recognition in factory parameters (closes a real spec drift), enabling `AppState` to absorb `Lazy[BrowserPool]` / `Lazy[LlmExtractorResource]` as fields. a2web reviewed and **did not adopt** — the architectural split (`AppState` for always-on data, separate `Lazy[T]` DI kwargs at the tool seam for orthogonal services) is correct design, not friction. Mixing services into the data bundle would blur the seam and force tests to fake services they don't exercise. Tool signature stays at three injectables (`state`, `browser_pool`, `llm_extractor`).
+- **CLAUDE.md updated** to reflect v0.39 invariants: unconditional ambient ctx; no `_ensure()` in health bodies; canonical `a2kit.testing.*` import path; `ToolContext` is now a `@runtime_checkable typing.Protocol`.
+
+### Added (v0.7 MCP feature wave, 2026-05-15)
+
+- **Reddit search URL handler.** `RedditHandler` now claims `/r/<sub>/search/?q=...` and unscoped `/search/?q=...`. Rewrites to `.json`, renders a terse markdown list (`# Search: <q>` + `## Results (N)` + per-result `**title** (r/sub · u/author, score N, M comments, age) <permalink>`). Caps at 25 entries. Closes the highest-value research gap from v0.6 feedback (search was 100% fail across raw/jina/archive previously).
+- **Captcha-host pre-routing.** Google/Bing `/search?q=...` URLs are rewritten to `https://duckduckgo.com/html/?q=<urlencoded-q>` before tier dispatch. New pure function `a2web.domain.rewrite_captcha_host(url)` is the single source of truth. `FetchResponse.original_url` preserves the URL the caller originally asked for so diagnostics stay honest. Non-search paths on captcha hosts (Maps, Drive, Images) pass through unchanged.
+- **`FetchResponse.original_url` field** — set when an upfront URL rewrite occurred (e.g. captcha → DDG); `None` when no rewrite. `response.url` always reflects the URL actually fetched.
+
+### Breaking (v0.7 LLM extras → core, 2026-05-15)
+
+- **`[llm]` install extra REMOVED.** `pip install a2web[llm]` now errors loudly. `anthropic` + `claude-agent-sdk` are baseline deps. `--ask` works out of the box. Install size jumps from ~30MB to ~240MB (claude-agent-sdk bundles ~210MB Claude Code binary in `_bundled/`) — the bundling is intentional: most a2web callers run inside Claude Code and rely on the OAuth piggyback. Migration: drop `[llm]` from your install command.
+- `LLMNotAvailable` only fires now for "no API key AND no Claude Code OAuth session" — the "SDK not installed" branch is dead. Operator hints updated.
+
+### Changed (a2kit v0.32 → v0.38 migration, 2026-05-15)
+
+- **a2kit pin: v0.32.0 → v0.38.0.** Six upstream releases on 2026-05-13 → 2026-05-15 closed feedback rounds 7, 8, and 9 — most importantly, the round-8 MCP `ctx`-binding bug that 100%-broke `mcp__a2web__fetch` in a2web v0.6.0. POC-verified: tool returns structured `FetchResponse` over MCP stdio, LDD events stream as `notifications/message` on the wire, no `TypeError`.
+- **DI re-architected for v0.36+ native shape.** Each long-lived resource is now its own provider via `app.provide(...)`. Per-resource singletons enter lazily on first resolution (lazy first-use, replaces eager `async with app:` entry). Resources expose `__aenter__`/`__aexit__` as thin wrappers around existing idempotent `_ensure()` / `close()` methods — both surfaces kept; framework drives the CM protocol while internal lazy callers keep using `_ensure()`.
+- **`AppState` slimmed to always-on resources** (settings, breakers, proxy_pool, sqlite). `browser_pool` and `llm_extractor` moved off `AppState` — they're independently provided and surfaced at the tool seam via `Lazy[T]`. The orchestrator awaits the Lazy callable only at the consuming phase (`_escalate_browser` for browser, `_phase_extract_answer` for LLM). Browser pool never enters on the happy path; LLM resource never enters when `ask=` is not passed.
+- **`server.py` rewritten** for v0.38: no `@asynccontextmanager` lifespan, no `lifespan=` kwarg, no `health_tool=`. Imperative per-resource `app.provide(...)` registrations in deps-first order (Settings → Breakers → ProxyPool → SqliteResource → BrowserPool → LlmExtractor → AppState). Named factory functions; no lambdas.
+- **`@a2kit.read(idempotent=True)`** dropped from `routers.py` per v0.33 — reads are spec-idempotent.
+- **`Router.slug`** declaration switched from `ClassVar[str] = "web"` to plain `slug = "web"` per v0.36's `slug: str` instance-variable annotation.
+- **BrowserTier signature** gains `pool: BrowserPool | None = None`. The orchestrator's `_escalate_browser` resolves `Lazy[BrowserPool]` and threads it.
+- **`Tier` protocol** gains `**kwargs: Any` for protocol-uniform dispatch.
+- **`@app.health_check`** signature changed from `(state: AppState)` to `(sqlite: SqliteResource)` — DI resolves the resource directly, the framework enters it for the probe.
+
+### Removed (a2kit v0.32 → v0.38 migration)
+
+- **`@asynccontextmanager` lifespan** in `server.py`. `App(lifespan=cm)` was removed in a2kit v0.35; resource lifecycle now flows through each resource's `__aenter__`/`__aexit__`.
+- **`app.singleton(...)`** — replaced by `app.provide(...)` in v0.36.
+- **Eager-warm-on-startup pattern** — v0.36 made all resource entry lazy. Sqlite misconfig now surfaces as a structured `ToolError` envelope on the first fetch instead of crashing at server boot. `a2web health` still warms sqlite eagerly via the health-check path.
+- **`browser_pool: BrowserPool`** and **`llm_extractor: LlmExtractorResource`** fields from `AppState`. They live as independent providers, surfaced via `Lazy[T]` at the tool seam.
+
+---
+
+### Previously changed (a2kit v0.28.0 → v0.32.0 migration, 2026-05-13)
+
+- **a2kit pin: v0.28.0 → v0.32.0.** Six upstream releases on 2026-05-12 → 2026-05-13 closed every open ergonomic gap from a2web feedback rounds 5 + 6 plus fixed the FastMCP 3.x compatibility break that was blocking `a2web serve` as a global Claude Code MCP server.
+- **Lifespan over lifecycle hooks.** `@app.on_startup` / `@app.on_shutdown` (removed in a2kit v0.31) replaced by a single `lifespan=` async context manager in `server.py`. Pre-`yield` warms sqlite (fail-fast); `finally` block closes resources LIFO with each close error-isolated.
+- **Explicit Router contract.** `WebRouter` declares `slug = "web"` and `tools = (fetch,)` ClassVars per a2kit v0.31's removal of `_derive_slug` and the `dir(self)` walk.
+- **`a2kit.Param` → `pydantic.Field`.** Six call sites in `routers.py` migrated. The `Param` wrapper was removed in a2kit v0.31 (was a one-line forwarder); explicit `Annotated[T, pydantic.Field(description="...")]` is now the canonical form.
+- **Ambient `ctx` for LDD primitives.** Per a2kit v0.29.0+, `a2kit.ldd.event(...)` reads ctx from a `ContextVar` set by the dispatcher. Stripped `ctx` kwarg from 9 phase / helper signatures in `fetcher.py` and 16 `a2kit.ldd.event(ctx, ...)` call sites. The tool body still declares `ctx: a2kit.ToolContext` for the dispatcher to bind ambient (per OPERATIONAL_CONTRACTS Q8).
+- **`null_context()` import + branch removed** from `fetcher.py::fetch()`.
+- **LDD import path** in `events/sinks.py`: `from a2kit.ldd import LddEmission` → `from a2kit.packages.ldd import LddEmission` (v0.32 namespace trim).
+
+### Added
+
+- **`tests/conftest.py::_ambient_ldd` autouse fixture.** Wraps every test in `ldd_state_for_call(ctx=null_context(), events_enabled=False, reports_enabled=False)` so direct `fetch()` calls from tests don't raise `AmbientContextMissing` (a2kit v0.29+ requires LDD primitives to run inside an active dispatch scope).
+
+### Removed
+
+- **`SqliteResource` / `BrowserPool` / `LlmExtractorResource` close-from-`@on_shutdown` ceremony.** Cleanup now lives inside the App lifespan's `finally` block.
+
+### Notes
+
+- Free wins inherited on the bump: CLI cold-start −75% (v0.27.1/2), WARN_ONCE on five framework-internal silent-swallow sites (v0.31.0), `@a2kit.list_` parameter parity (v0.32.0).
+- The docstring `Args:` auto-pull shipped in a2kit v0.29.0 was reverted in v0.30.0 — our round-5 caution about silent description-loss drift was vindicated by upstream removal within 24 hours of release. Param descriptions stay in `Annotated[T, pydantic.Field(description=...)]`.
+- Two original round-3 wishes (streaming response API, `@a2kit.read(timeout="60s")` decorator kwarg) remain deferred — see `docs/history/A2KIT_WISHES_DEFERRED.md` along with three new round-7 candidates surfaced during the migration (singleton teardown kwarg, `tools` tuple completeness lint, sharper `AmbientContextMissing` message for no-ctx tools).
+- Acceptance: `make check` green (387 tests, 89.45% coverage); `claude mcp list` shows `a2web: ✓ Connected`; CLI smokes (example.com, news.ycombinator.com, arxiv.org) return populated `FetchResponse` with diagnostics.
 
 ## [0.6.0] - 2026-05-12
 

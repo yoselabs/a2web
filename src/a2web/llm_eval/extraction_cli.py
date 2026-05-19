@@ -14,7 +14,12 @@ import argparse
 import asyncio
 import sys
 from pathlib import Path
+from typing import cast
 
+from purgatory import AsyncCircuitBreakerFactory
+
+from ..packages.http_cache import SqliteResource
+from ..packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from ..settings import AppSettings
 from ..state import build_state
 from .extraction import (
@@ -57,7 +62,16 @@ async def _amain(argv: list[str]) -> int:
         print(f"corpus error: {exc}", file=sys.stderr)
         return 2
 
-    state = build_state(AppSettings())
+    settings = AppSettings()
+    state = build_state(
+        settings=settings,
+        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
+        proxy_pool=ProxyPool(
+            routes=cast("list[RouteRuleShape]", settings.routes),
+            proxies=cast("dict[str, ProxyEntryShape]", settings.proxies),
+        ),
+        sqlite=SqliteResource(),
+    )
     results = await run_extraction_eval(corpus, state, bypass_cache=not args.use_cache)
     summary = summarize(results, threshold=args.threshold, miss_rate=args.miss_rate)
 

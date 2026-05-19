@@ -7,12 +7,13 @@ import pytest
 
 from a2web.models import Verdict
 from a2web.settings import AppSettings
-from a2web.state import AppState, build_state
+from a2web.state import AppState
 from a2web.tiers.jina import JinaTier
+from tests.conftest import make_default_state
 
 
 def _state(**kwargs: object) -> AppState:
-    return build_state(settings=AppSettings(**kwargs))
+    return make_default_state(settings=AppSettings(**kwargs))
 
 
 @pytest.mark.asyncio

@@ -1,174 +1,225 @@
-# a2kit feedback — round 3
+# a2kit feedback — round 7
 
-From: a2web (currently planning migration to `a2kit v0.25`)
-Audience: a2kit dev
-Context: rounds 1 + 2 (the previous contents of this file) were addressed in v0.24 + v0.25. Thank you — the lifecycle + singleton + testing.client triple is exactly what we asked for. `OPERATIONAL_CONTRACTS.md` is the right move; we now know what to trust and what to handle ourselves.
+From: a2web v0.7 (post v0.28→v0.32 migration) on `a2kit v0.32.0`
+Audience: a2kit dev (AI agent or human — written self-contained either way)
+Context: rounds 1-6 addressed across v0.24 → v0.32.0, with v0.28.1 + v0.29.0/.1 + v0.30.0 + v0.31.0 + v0.32.0 shipping in a tight 2026-05-12 → 2026-05-13 window. Thank you — the lifespan-over-hooks rewrite, explicit Router contract, ambient-ctx LDD, `TestClient.override` / `call_wire`, and the `_meta` namespace docs all landed cleanly. The docstring-pull reversal in v0.30 was the right call.
 
-This round is **one question + three wishes**. None blocks the migration.
+This round is **one production bug + three round-7 wishes that surfaced during the v0.32 migration**. None blocks anything; the bug is the only thing that breaks a real user-facing command.
 
 ---
 
-## Question — how does an external sink subscribe to LDD emissions?
+## Bug — `<app> health` crashes when pytest isn't installed
 
-### Context
-
-a2web emits structured events from its fetch orchestrator (tier started, tier ended, gate evaluated, cache write, etc.). Today we run our own anyio `MemoryObjectStream` bus with two subscribers:
+### Repro
 
 ```
-   orchestrator ──► EventBus ──┬──► mcp_progress_sink ──► ctx.event + ctx.report_progress
-                               └──► otel_sink          ──► OpenTelemetry spans
+$ uvx --from . a2web health
+...
+File ".../a2kit/packages/cli/builder.py", line 475, in health_cmd
+    from a2kit.packages.testing.client import client as _client
+File ".../a2kit/packages/testing/__init__.py", line 16, in <module>
+    from a2kit.packages.testing.fixtures import app, cassette
+File ".../a2kit/packages/testing/fixtures.py", line 14, in <module>
+    import pytest
+ModuleNotFoundError: No module named 'pytest'
 ```
 
-v0.25's typed event registry + free-function `a2kit.ldd.event/report` lets us drop the `mcp_progress_sink` half — we just emit via a2kit and the wire side is handled. **But the OTel side loses its subscription point.** That sink needs to see every event the orchestrator emits, regardless of transport, regardless of MCP wire format.
+100% reproducible on a fresh install without dev extras. Any consumer who installs a2web (or any a2kit app) via `pipx`, `uv tool install`, `uvx`, or system Python and runs the auto-generated `<app> health` subcommand hits this on the first invocation.
 
-### The question
+### What's happening
 
-How does an external in-process consumer (OTel exporter, custom NDJSON sink, anything that wants to observe ldd emissions for its own purposes) subscribe to the emission stream of a given `App`?
+`packages/cli/builder.py:475` imports the test client to build the health command. The test-client import chain ultimately reaches `a2kit/packages/testing/fixtures.py`, which `import pytest`s at module load (line 14). `pytest` is a dev/test dependency, not a runtime dependency of a2kit.
 
-Three shapes we can imagine:
+### Asks
 
-```python
-# (a) Sink registration on the event registry
-app.ldd.events.add_sink(my_sink)
+1. **Guard the pytest import** — make it lazy, conditional, or `TYPE_CHECKING`. A minimal fix:
 
-# (b) Callback / hook
-app.ldd.on_emit(lambda event, ctx: ...)
+   ```python
+   # a2kit/packages/testing/fixtures.py
+   from typing import TYPE_CHECKING
+   if TYPE_CHECKING:
+       import pytest  # only for type hints
+   ```
 
-# (c) Async iterator
-async for evt in app.ldd.events.stream():
-    ...
-```
+   …or move the pytest-using fixtures into a separate module that's not auto-imported by `packages/testing/__init__.py`.
 
-If one of these exists and we missed it, just point us at the docs. If none exists and the answer is "double-emit in the orchestrator (call `a2kit.ldd.event(...)` AND push to your own channel)," that works too — we just want to confirm before we refactor `events/sinks.py`.
+2. **Decouple the health subcommand from the test client.** `health_cmd` reaches into `packages/testing/client` to build an in-process invocation. The health probe doesn't need a test client — it needs the App's container and the registered health checks. A small refactor would let `<app> health` run without ever loading the testing surface.
 
-### Why we'd prefer a first-class subscription API
+3. **Add a smoke test for the production CLI without dev extras.** A 5-line CI job that does:
 
-If a2kit's emission chain is the canonical place tools advertise milestones, then **every observability tool** (OTel, Datadog, Honeycomb, Prometheus push gateway, plain audit logs) will want to consume it. Forcing each app to maintain a parallel "double-emit" channel means every a2kit-using project re-invents the same fan-out.
+   ```
+   uv venv --no-dev-deps
+   uv pip install . --no-deps
+   uv pip install <runtime deps only>
+   ./venv/bin/<app> health
+   ```
 
-Counter-argument we'd accept: "Use FastMCP middleware to observe the wire-level notifications; OTel is wire concern, not domain concern." If that's the recommendation, document it and we're happy.
+   …catches this regression class.
 
 ### Impact on a2web
 
-- If subscription API exists → we delete `EventBus`, `mcp_progress_sink`, `otel_sink` becomes ~15 LOC, all events flow through a2kit's chain.
-- If no subscription API and double-emit is the answer → orchestrator emits `await event(ctx, ...)` AND `await otel_channel.send(...)`; we keep a tiny ~20 LOC internal channel for OTel only. Manageable but a duplication smell.
-
-A one-line answer unblocks us.
+Currently `a2web health` is broken end-to-end for any non-dev install. The `serve` and `web fetch` paths are unaffected (verified — they don't reach the testing import chain). Low blast radius for a2web specifically (operators rarely invoke `health` directly), but it's a foot-gun for any new a2kit consumer.
 
 ---
 
-## Wish 1 — `@a2kit.read(timeout="60s")` as a decorator kwarg
+## Wish 1 — `app.singleton(T, factory, teardown=fn)` for singleton-owned cleanup
 
-`OPERATIONAL_CONTRACTS.md` Q2 documents the current contract: no built-in timeout, use `anyio.fail_after(seconds)` inside the tool body. Reasonable default. But:
+### Context
 
-- Every network-facing tool wants this. Web fetch wants 60s, DB query wants 5s, a quick API call wants 2s.
-- Wrapping every tool body in `async with anyio.fail_after(...):` is repetitive.
-- A decorator kwarg keeps the budget visible at the tool's signature site (where someone reading `list_tools` output cares most about it).
-- The implementation is trivial — the dispatcher wraps the body in `fail_after` before calling.
-
-Proposed:
+Surfaced during the v0.32 lifespan rewrite. With `@app.on_shutdown` removed (v0.31), every consumer with async resources hand-rolls cleanup in the lifespan body's `finally` block:
 
 ```python
-@a2kit.read(idempotent=True, open_world=True, title="Fetch Web Page", timeout="60s")
-async def fetch(*, url: str) -> FetchResponse:
-    ...
+@asynccontextmanager
+async def lifespan(app):
+    state = app.container().resolve(AppState)
+    await state.sqlite._ensure()
+    try:
+        yield
+    finally:
+        # Reverse-of-open order. Each close error-isolated.
+        for closer in (state.llm_extractor.close, state.browser_pool.close, state.sqlite.close):
+            try:
+                await closer()
+            except Exception:
+                pass
+```
+
+Three resources, three closers. Scales linearly with resource count. Every consumer reinvents:
+- the error-isolation wrapping
+- the close-ordering convention
+- the "what if the resource was never resolved" guard
+
+### Proposal
+
+```python
+app.singleton(SqliteResource, factory=build_sqlite, teardown=lambda r: r.close())
+app.singleton(BrowserPool, factory=build_pool, teardown=lambda p: p.close())
+app.singleton(LlmExtractorResource, factory=build_llm, teardown=lambda x: x.close())
 ```
 
 Semantics:
-- `timeout=None` (default) — no enforcement, tool body handles its own budgets (current behavior).
-- `timeout="60s"` or `timeout=60.0` — dispatcher wraps body in `anyio.fail_after(60)`. On timeout, a `TimeoutError` bubbles per Q1/Q5 conventions.
-- The CLI / MCP wire surfaces the configured timeout in the tool description / annotations so agents can decide on retry policy.
+- `teardown` is invoked at lifespan exit on every singleton that was *resolved* during the app's lifetime. Unresolved singletons don't trigger their teardown.
+- Order is reverse-of-registration (LIFO).
+- Each teardown is shielded — exceptions are logged via `a2kit.ldd.error` (under `a2kit.lifecycle` or similar) with traceback, and siblings continue to unwind.
+- The user's lifespan body just yields (or runs business logic that doesn't touch resource cleanup).
 
-Cost to a2kit: probably ~30 LOC + one test. Cost to every a2kit consumer that re-derives the same wrap: scales with adoption.
+### Why it matters
 
-Not urgent. We'll use `anyio.fail_after` until you ship it (or decide not to).
+If a2kit ships first-class teardown, every a2kit app with N async resources deletes O(N) LOC of repetitive close-ordering + error-isolation boilerplate. Same logic applies as the round-5 "async resource pattern" wish: the workaround is mechanical, the framework can own the mechanism.
 
----
+### Alternative shape
 
-## Wish 2 — Streaming response for large outputs (Q6)
-
-`OPERATIONAL_CONTRACTS.md` doesn't cover Q6. Our `FetchResponse.content_md` can be 100KB+ for big articles. Today the agent waits for the entire body before any of it is visible. MCP supports chunked / streaming responses for this exact case.
-
-Two API shapes we'd like:
-
-```python
-# (a) Yield from the tool body — async iterator
-@a2kit.read(streaming=True)
-async def fetch(*, url: str) -> AsyncIterator[FetchChunk]:
-    async for chunk in fetcher.stream_fetch(url):
-        yield chunk
-
-# (b) Explicit chunk emit via ctx, terminal return for final shape
-@a2kit.read(streaming=True)
-async def fetch(*, url: str, ctx: a2kit.ToolContext) -> FetchResponse:
-    async for chunk in fetcher.stream_fetch(url):
-        await ctx.chunk(chunk.markdown)
-    return final_response
-```
-
-Either works. The (a) form composes better with type-driven format routing; the (b) form mirrors how `event` / `report` already work.
-
-This is genuinely a v0.x scope concern — leaving it un-addressed is fine. Filing for the backlog so it's not lost.
+If `teardown=` proves complex (e.g., needs DI-injected helpers), an `app.on_teardown(T, fn)` registry would work too — same effect, separate registration call.
 
 ---
 
-## Wish 3 — Documentation lead with imperative composition, not fluent
+## Wish 2 — Decorator-time enforcement of `Router.tools` tuple completeness
 
-You shipped imperative APIs in v0.24 (`@app.on_startup`, `@app.singleton`, `@app.health_check`) — thank you. But the README's leading example is still:
+### Context
 
-```python
-app = (
-    a2kit.App("tracker")
-    .add_router(ProjectsRouter())
-    .add_router(TasksRouter())
-    .provide(TrackerStore)                   # class-as-factory; container reads __init__
-    .add_cli(connections_cli(TrackerConn))   # auto-installs TrackerConn provider
-)
+v0.31's CHANGELOG notes:
+
+> a decorated-but-unlisted method silently does NOT register (a follow-up lint rule will flag this drift statically)
+
+The lint rule is "follow-up" — not yet shipped. Without it, adding a `@a2kit.read/write/list_/tool`-decorated method to a Router and forgetting to add it to the `tools` tuple silently produces a tool that's invisible on every transport. No error, no warning at decoration time. No error at Router init (the orphan method just isn't enumerated).
+
+### Asks
+
+Either of:
+
+1. **Ship the planned static lint rule.** Walk every `Router` subclass, collect `@a2kit.read/write/list_/tool`-decorated methods, diff against `tools` tuple. Emit `A2K-ROUTER-ORPHAN` (or similar) on drift. Runs at lint time, no runtime cost.
+
+2. **Raise at `Router.__init__`** if any class-level callable has `_a2kit` meta but isn't in `tools`. Catches at App composition; same as the existing `slug`/`tools`-required checks already there.
+
+The two are not mutually exclusive — lint catches it at IDE / pre-commit time; runtime check catches it for callers who skip lint.
+
+### Why it matters
+
+a2web has only one tool today so the drift is easy to spot mentally. But the v0.31 explicit-Router-surface design assumes the framework can trust what authors wrote *and* what they didn't write. Silent absence is the worst failure mode — the tool is gone, but the developer doesn't notice until an MCP client reports "no such tool."
+
+---
+
+## Wish 3 — Sharper `AmbientContextMissing` message when ctx is None vs missing scope
+
+### Context
+
+Surfaced during the v0.32 migration. I initially stripped `ctx: a2kit.ToolContext` from `WebRouter.fetch` along with the phase functions. All transports broke with:
+
+```
+a2kit.exceptions.AmbientContextMissing: a2kit.ldd.event called outside an active
+tool dispatch. LDD primitives only work inside a tool body (or any code reached
+from one). Move the call into a tool, use the test harness's
+ldd_state_for_call(ctx=...) context manager, or remove the call.
 ```
 
-This still has the two problems we raised in round 1 item 11:
+The actual fix was to re-declare `ctx: a2kit.ToolContext` on the tool body (per OPERATIONAL_CONTRACTS Q8: "active dispatch is the conjunction of an `ldd_state_for_call` scope **and** a declared ctx param"). But the error message says "called outside an active tool dispatch" — which is misleading. The dispatch IS active; what's missing is the `ctx` parameter declaration on the tool.
 
-1. **Hidden side effect.** `.add_cli(connections_cli(TrackerConn))` "auto-installs TrackerConn provider" — the comment admits the chain does two unrelated things.
-2. **Class-as-factory introspection.** `.provide(TrackerStore)` reading `__init__` is implicit container behavior; signature drift breaks registration at runtime, not at composition time.
+### The two distinct failure modes today produce the same message
 
-New contributors copying the docs will copy this pattern, including its smells.
+- **Mode A**: LDD primitive called from module-level code, `@health_check` (without ctx param), or any pre-dispatch context. The contextvar isn't set at all. → Correct message: "called outside an active tool dispatch."
+- **Mode B**: LDD primitive called from inside a tool body, BUT the tool body didn't declare `ctx: ToolContext`. The contextvar IS set (by `ldd_state_for_call`), but its `ctx` field is `None`. → Current message is wrong. Better message: "tool body called LDD primitive but did not declare `ctx: a2kit.ToolContext` parameter — add it to the signature, or remove the LDD call."
 
-The wish (small): **make the imperative form the canonical example in the README**, and call out the fluent form as a shorthand:
+### Proposal
+
+Distinguish the two paths in `_require_ambient_state` (or wherever the raise happens):
 
 ```python
-# Canonical:
-app = a2kit.App("tracker", health_tool=True)
-app.add_router(ProjectsRouter())
-app.add_router(TasksRouter())
-app.provide(TrackerStore, factory=lambda conn: TrackerStore(conn))  # explicit
-app.add_cli(connections_cli(TrackerConn))
-app.provide(TrackerConn)  # explicit, no longer hidden in add_cli
-
-# Shorthand (chained, when it fits in 3-4 lines):
-app = a2kit.App("tracker").add_router(R()).provide(S)
+def _require_ambient_state(primitive_name: str) -> _LddState:
+    state = _LDD_STATE.get(None)
+    if state is None:
+        raise AmbientContextMissing(
+            f"{primitive_name} called outside an active tool dispatch. ..."
+        )
+    if state.ctx is None:
+        raise AmbientContextMissing(
+            f"{primitive_name} called from a tool body that did not declare "
+            f"'ctx: a2kit.ToolContext' as a parameter. Add the parameter to "
+            f"the tool signature (the dispatcher will bind it ambient), or "
+            f"remove the LDD call."
+        )
+    return state
 ```
 
-Documentation-only change. Reframes the patterns the ecosystem will copy.
+Pure DX — points the developer at the actual fix without them having to grep OPERATIONAL_CONTRACTS Q8.
 
-Bonus ask: if `.add_cli(connections_cli(X))` continues to auto-install providers, **document the side effect on the method itself**, not in adjacent comments. The chain-call signature is the contract; what it does shouldn't depend on a `# this also …` comment.
+---
+
+## Soft note — v0.32 migration was the smoothest of the six rounds
+
+A2kit v0.32 was the third breaking release in 30 hours (v0.30, v0.31, v0.32 all on 2026-05-12 → 2026-05-13). For a2web — which holds the only consumer surface most of these breakings touch — the cumulative migration was **~250 LOC across 9 files** + one autouse pytest fixture, executed cleanly in one session. The breaking changes were each individually small, well-documented, and produced loud errors that pointed at the fix.
+
+Specifically:
+- `a2kit.Param` removal: error message was "module 'a2kit' has no attribute 'Param'" — instant pointer to migration.
+- `slug`/`tools` missing: error named the Router class, gave an example.
+- FastMCP build error: documented its own migration in the exception text.
+- `AmbientContextMissing`: pointed at OPERATIONAL_CONTRACTS Q8 (modulo Wish 3 above).
+
+If there's a takeaway: a2kit's "loud failure with embedded migration hint" pattern is excellent. The bug above (`<app> health` + pytest) is the one place that doesn't follow this pattern — silent at install time, blows up at first invocation with a stack trace that doesn't mention "you need pytest, or this is a a2kit bug."
 
 ---
 
 ## What we're NOT asking for this round
 
-To save you reading: we explicitly do not need the following, even though we discussed them earlier:
+To save you reading: explicitly not blocking, parked in `docs/history/A2KIT_WISHES_DEFERRED.md`:
 
-- Per-tool retry policy (we own retry semantics at the tier layer).
-- Built-in caching layer (hishel works).
-- Built-in proxy support (out of scope, app concern).
-- Auto-reload (Q4) — `watchexec` is the documented answer; that's fine.
-- Cancellation cleanup hooks — Q1's "tool author's responsibility" is the right contract.
+- Streaming response API (Q6, round 3) — no current pressure
+- `@a2kit.read(timeout="60s")` decorator kwarg (round 3) — `anyio.fail_after` works
+- Per-tool retry policy — owned at the tier layer (a2web)
+- Built-in caching layer — hishel works
+- Auto-reload — `watchexec` is the documented answer
+- `Optional[T]` / `Union` as singleton key — **verified working** in v0.32; no fallback `Handle` dataclass needed
 
 ---
 
 ## Migration status
 
-Migrating a2web v0.23.0 → v0.25.0 imminently. Expected impact: **~190 LOC dropped from a2web** (lifecycle + singleton + testing.client + tool annotations + docstring rewrites + EventBus deletion modulo the question above). Plus additional ~510 LOC dropped in a separate phase (hishel + stdlib RotatingFileHandler + trafilatura bundled metadata + purgatory for proxy quarantine).
+a2web v0.6.0 → v0.7 (unreleased) on a2kit v0.32.0 — migration shipped in `openspec/changes/archive/2026-05-13-a2kit-v032-migration/`.
 
-We'll send a "post-migration debrief" if anything turns up that's not in `OPERATIONAL_CONTRACTS.md`.
+- 387 tests green
+- coverage 89.45% (≥85% gate)
+- `claude mcp list` shows a2web ✓ Connected as global MCP server (the round-6 blocker)
+- CLI smokes pass across raw / site_handler / handler-with-archive paths
 
-Thanks again for the v0.24 + v0.25 turnaround. The shape is right.
+Happy to contribute the smoke test for `<app> health` without dev extras, run experimental APIs against the suite, or repro any of the wishes with a concrete branch.
+
+Thanks again for the cascade.

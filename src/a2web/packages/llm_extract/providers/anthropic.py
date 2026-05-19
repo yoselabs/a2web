@@ -5,10 +5,8 @@ behavior parity with Claude Code's WebFetch sub-call when paired with
 `WEBFETCH_DEFAULT_V1` — empty system, thinking disabled, no tools, single
 turn, temperature=0.
 
-The `anthropic` SDK is imported at construction time (or lazily on the
-first call) so a bare `from a2web.llm.providers import anthropic` import
-without `[llm]` installed does NOT crash; instantiating `AnthropicProvider`
-without the SDK raises `LLMNotAvailable` with an actionable hint.
+a2web v0.7+: `anthropic` is a baseline dep — the import is guaranteed
+safe. The remaining unavailable case is "no API key" (handled below).
 """
 
 from __future__ import annotations
@@ -18,7 +16,7 @@ import time
 from typing import Any
 
 from ..errors import LLMNotAvailable
-from .base import ProviderResponse
+from .base import ProviderResponse, extract_token_counts
 
 # Per-1M-token pricing (USD), Anthropic public list as of 2026-05.
 # Used to compute cost_usd. Update when the table moves.
@@ -47,19 +45,12 @@ class AnthropicProvider:
 
     Construction reads the API key from `os.environ` via the configured
     env var (default `ANTHROPIC_API_KEY`). Missing key → LLMNotAvailable.
-    Missing `anthropic` SDK (no `[llm]` extra installed) → LLMNotAvailable.
     """
 
     name: str = "anthropic"
 
     def __init__(self, *, api_key_env: str = "ANTHROPIC_API_KEY") -> None:
-        try:
-            import anthropic  # noqa: F401  — import-side check only
-        except ImportError as exc:
-            raise LLMNotAvailable(
-                "The `anthropic` SDK is not installed. Run `pip install a2web[llm]` (or add `anthropic` to your environment)."
-            ) from exc
-
+        # a2web v0.7+: `anthropic` is a baseline dep, no ImportError gate.
         api_key = os.environ.get(api_key_env, "").strip()
         if not api_key:
             raise LLMNotAvailable(
@@ -124,15 +115,21 @@ class AnthropicProvider:
                 text_parts.append(getattr(block, "text", ""))
         text = "".join(text_parts)
 
-        usage = response.usage
-        prompt_tokens = getattr(usage, "input_tokens", 0)
-        completion_tokens = getattr(usage, "output_tokens", 0)
+        prompt_tokens, completion_tokens, cache_creation, cache_read = extract_token_counts(response.usage)
 
         prices = _price_for(response.model)
         cost_usd = 0.0
         if prices is not None:
             input_price, output_price = prices
-            cost_usd = prompt_tokens / 1_000_000 * input_price + completion_tokens / 1_000_000 * output_price
+            # Anthropic pricing tiers (public list): cache-read at 10% of
+            # fresh-input, cache-write at 125%. Fresh-input is the remainder.
+            fresh_input = prompt_tokens - cache_creation - cache_read
+            cost_usd = (
+                fresh_input / 1_000_000 * input_price
+                + cache_creation / 1_000_000 * input_price * 1.25
+                + cache_read / 1_000_000 * input_price * 0.10
+                + completion_tokens / 1_000_000 * output_price
+            )
 
         return ProviderResponse(
             text=text,

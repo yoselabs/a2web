@@ -32,6 +32,7 @@ from ..packages.llm_extract import WEBFETCH_DEFAULT_V1
 from ..packages.llm_extract.providers.base import Provider
 
 if TYPE_CHECKING:
+    from ..llm_resource import LlmExtractorResource
     from ..models import FetchResponse
     from ..state import AppState
 
@@ -212,18 +213,34 @@ class A2WebDetail:
 
 class A2WebExtract:
     """Invokes a2web's fetch(url, ask=...) with server-side extraction.
-    Matches the WebFetch use case — caller gets back only the answer."""
+    Matches the WebFetch use case — caller gets back only the answer.
+
+    v0.36+: `LlmExtractorResource` is no longer on AppState; it must be
+    injected explicitly. Wrap with an async thunk so the fetch tool's
+    `Lazy[LlmExtractorResource]` param accepts it.
+    """
 
     name: str = "a2web_extract"
 
-    def __init__(self, *, state: AppState) -> None:
+    def __init__(self, *, state: AppState, extractor: LlmExtractorResource) -> None:
         self._state = state
+        self._extractor = extractor
 
     async def fetch(self, *, url: str, ask: str) -> SystemResult:
         from ..fetcher import fetch as a2web_fetch
 
+        async def _lazy_extractor() -> LlmExtractorResource:
+            return self._extractor
+
         t0 = time.perf_counter()
-        response: FetchResponse = await a2web_fetch(url, state=self._state, ask=ask, include_links=False, debug=False)
+        response: FetchResponse = await a2web_fetch(
+            url,
+            state=self._state,
+            llm_extractor=_lazy_extractor,
+            ask=ask,
+            include_links=False,
+            debug=False,
+        )
         latency_ms = int((time.perf_counter() - t0) * 1000)
         ex = response.extraction
         cost = ex.cost_usd if ex else 0.0

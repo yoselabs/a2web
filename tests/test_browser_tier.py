@@ -8,9 +8,11 @@ from typing import Any
 import pytest
 
 from a2web.models import Verdict
+from a2web.packages.browser_pool import BrowserPool
 from a2web.settings import AppSettings
-from a2web.state import AppState, build_state
+from a2web.state import AppState
 from a2web.tiers import REGISTRY
+from tests.conftest import make_default_state
 
 
 @pytest.fixture(autouse=True)
@@ -22,7 +24,12 @@ def _restore_real_browser(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _make_state() -> AppState:
-    return build_state()
+    return make_default_state()
+
+
+def _make_pool() -> BrowserPool:
+    """BrowserPool injected into the tier — v0.36+ no longer lives on AppState."""
+    return BrowserPool()
 
 
 @pytest.mark.asyncio
@@ -30,7 +37,7 @@ async def test_disabled_returns_unavailable() -> None:
     state = _make_state()
     state.settings = AppSettings(browser_enabled=False)
     tier = REGISTRY["browser"]
-    result = await tier.fetch("https://example.com/", state=state)
+    result = await tier.fetch("https://example.com/", state=state, pool=_make_pool())
     assert result.verdict == Verdict.connection_error
     hint = result.operator_hint
     assert hint.code == "browser_unavailable"
@@ -50,7 +57,7 @@ async def test_import_error_yields_unavailable(monkeypatch: pytest.MonkeyPatch) 
 
     state = _make_state()
     tier = REGISTRY["browser"]
-    result = await tier.fetch("https://example.com/", state=state)
+    result = await tier.fetch("https://example.com/", state=state, pool=_make_pool())
     assert result.verdict == Verdict.connection_error
     assert result.operator_hint.code == "browser_unavailable"
     assert "camoufox" in result.operator_hint.message.lower()
@@ -96,9 +103,9 @@ async def test_successful_fetch_via_stub_pool(monkeypatch: pytest.MonkeyPatch) -
             return None
 
     state = _make_state()
-    state.browser_pool = _StubPool()  # type: ignore[assignment]
+    stub_pool = _StubPool()
     tier = REGISTRY["browser"]
-    result = await tier.fetch("https://example.com/", state=state)
+    result = await tier.fetch("https://example.com/", state=state, pool=stub_pool)  # type: ignore[arg-type]
 
     assert result.verdict == Verdict.ok
     assert result.from_browser is True
@@ -143,10 +150,10 @@ async def test_navigation_timeout_yields_timeout_verdict(monkeypatch: pytest.Mon
             return None
 
     state = _make_state()
-    state.browser_pool = _StubPool()  # type: ignore[assignment]
+    stub_pool = _StubPool()
     state.settings = AppSettings(browser_page_budget_s=1)
     tier = REGISTRY["browser"]
-    result = await tier.fetch("https://slow.example/", state=state)
+    result = await tier.fetch("https://slow.example/", state=state, pool=stub_pool)  # type: ignore[arg-type]
 
     assert result.verdict == Verdict.timeout
     assert result.js_executed is True
@@ -164,9 +171,9 @@ async def test_launch_failure_yields_unavailable() -> None:
             return None
 
     state = _make_state()
-    state.browser_pool = _BoomPool()  # type: ignore[assignment]
+    boom_pool = _BoomPool()
     tier = REGISTRY["browser"]
-    result = await tier.fetch("https://example.com/", state=state)
+    result = await tier.fetch("https://example.com/", state=state, pool=boom_pool)  # type: ignore[arg-type]
 
     assert result.verdict == Verdict.connection_error
     assert result.operator_hint.code == "browser_unavailable"
@@ -209,9 +216,9 @@ async def test_navigation_exception_yields_connection_error() -> None:
             return None
 
     state = _make_state()
-    state.browser_pool = _StubPool()  # type: ignore[assignment]
+    stub_pool = _StubPool()
     tier = REGISTRY["browser"]
-    result = await tier.fetch("https://example.com/", state=state)
+    result = await tier.fetch("https://example.com/", state=state, pool=stub_pool)  # type: ignore[arg-type]
 
     assert result.verdict == Verdict.connection_error
     assert result.from_browser is True

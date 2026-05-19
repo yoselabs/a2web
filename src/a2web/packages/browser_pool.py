@@ -100,6 +100,15 @@ class BrowserPool:
             self._camoufox = None
             self._browser = None
 
+    # Framework-facing async-CM protocol (a2kit v0.36+). Thin wrappers around
+    # the existing idempotent `_ensure` / `close` internal surface.
+    async def __aenter__(self) -> BrowserPool:
+        await self._ensure()
+        return self
+
+    async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
+        await self.close()
+
     @asynccontextmanager
     async def acquire(self, url: str) -> AsyncIterator[Any]:
         """Yield a fresh page for `url`'s host. Closes the page on exit.

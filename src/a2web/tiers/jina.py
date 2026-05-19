@@ -11,7 +11,7 @@ opt out.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 import httpx
@@ -60,8 +60,9 @@ class JinaTier:
         state: AppState,
         proxy_url: str | None = None,
         conditional_extras: dict[str, str] | None = None,
+        **kwargs: Any,
     ) -> TierResult:
-        del conditional_extras  # Jina doesn't use conditional GET — always fresh fetch.
+        del conditional_extras, kwargs  # Jina doesn't use conditional GET — always fresh fetch.
         from . import TierResult  # local import — avoid circular at module load
 
         if _is_denied(url, state.settings.jina_deny_hosts):

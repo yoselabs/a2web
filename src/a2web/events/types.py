@@ -62,4 +62,33 @@ class TierHeartbeat:
     detail: dict[str, str] = field(default_factory=dict)
 
 
-Event = TierStarted | TierEnded | StageStarted | StageEnded | TierHeartbeat
+@dataclass(slots=True)
+class CookiesAttached:
+    """Emitted once per fetch when cookies are attached for the request host.
+
+    Carries names + counts but NEVER values — `value` is redacted at the
+    emission seam. See `redact_cookie_for_event` in `a2web.cookie_jar`.
+    """
+
+    t_ms: int
+    host: str
+    cookie_count: int
+    cookie_names: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class CookiesStale:
+    """Emitted at most once per fetch when the cookie mirror is past threshold.
+
+    `age_hours == -1.0` signals "never refreshed". The hint that lands on the
+    response is the agent-visibility channel; this event is for operators.
+    """
+
+    t_ms: int
+    profile: str
+    browser: str
+    age_hours: float
+    threshold_hours: int
+
+
+Event = TierStarted | TierEnded | StageStarted | StageEnded | TierHeartbeat | CookiesAttached | CookiesStale

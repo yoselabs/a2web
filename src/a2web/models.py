@@ -13,8 +13,9 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import StrEnum
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Verdict(StrEnum):
@@ -80,15 +81,50 @@ class Link(BaseModel):
 
 
 class OperatorHint(BaseModel):
-    """Human-readable hint about how an operator could improve fetch outcomes.
+    """Structured hint about how the fetch could be improved.
 
-    Distinct from the calling-agent flow: the AI agent never reads these to
-    decide a next action — they're for the human running a2web.
+    `code` is a stable agent-readable identifier (e.g. `llm_unavailable`,
+    `browser_unavailable`, `captcha_redirect`, `cookies_stale`). Agents may
+    branch on `code` to take a next action; humans read `message` and `fix`
+    for context and remediation. Both audiences are first-class — the field
+    landed under the "operator" name historically, not because agents
+    shouldn't read it.
     """
 
     code: str
     message: str
     fix: str | None = None
+
+
+NextLinkKind = Literal["drilldown", "related", "source"]
+
+
+class NextLink(BaseModel):
+    """One curated "what to fetch next" candidate.
+
+    Returned on `FetchResponse.next_links`. `anchor` and `reason` are
+    truncated (not rejected) when over-cap so a misbehaving handler or
+    provider can never fail the whole fetch.
+    """
+
+    anchor: str = Field(max_length=120)
+    url: str
+    reason: str = Field(max_length=80)
+    kind: NextLinkKind
+
+    @field_validator("anchor", mode="before")
+    @classmethod
+    def _truncate_anchor(cls, v: object) -> object:
+        if isinstance(v, str) and len(v) > 120:
+            return v[:120]
+        return v
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _truncate_reason(cls, v: object) -> object:
+        if isinstance(v, str) and len(v) > 80:
+            return v[:80]
+        return v
 
 
 class TokenCounts(BaseModel):
@@ -144,6 +180,7 @@ class FetchResponse(BaseModel):
     content_md: str = ""
     fit_md: str | None = None
     operator_hints: list[OperatorHint] = Field(default_factory=list)
+    next_links: list[NextLink] = Field(default_factory=list)
 
     # Defensive flag: `content_md` is external/untrusted content from the
     # fetched URL. Constant False — agents treating tool results as
@@ -153,3 +190,8 @@ class FetchResponse(BaseModel):
     # v0.4: present only when the caller passed `ask=`. None when ask is unset.
     extracted_answer: str | None = None
     extraction: ExtractionMeta | None = None
+    # v0.7: set when the orchestrator rewrote the input URL before tier
+    # dispatch (e.g. captcha host → DDG). None when no rewrite occurred.
+    # `url` always reflects the URL actually fetched; this field tells the
+    # caller what they originally asked for.
+    original_url: str | None = None
