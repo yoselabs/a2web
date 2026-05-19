@@ -29,7 +29,7 @@ All notable changes to **a2web** are recorded here. The format follows
 ### Known Limitations (post-v0.11)
 
 - **Camoufox subprocess stderr leak unfixed.** Spike (`docs/history/spike-camoufox-stderr-2026-05-19.md`) confirmed no supported knob in camoufox / playwright to redirect the Node child process's stderr without monkey-patching internals or `os.dup2`. Operators can redirect at shell level: `a2web ... 2>/tmp/a2web.stderr.log`.
-- **Trendyol remains a2web-unsolvable on the public surface.** Verified post-v0.11: Trendyol does NOT expose product state via `__NEXT_DATA__` even after hydration — React fiber memory only. Would require a Playwright `evaluate()` reading `window.__APOLLO_STATE__`-shape internals or calling Trendyol's private API. Out of scope without a Trendyol-specific handler.
+- **Trendyol is a fingerprint-blocked target, not a CSR-architecture issue.** Diagnostic probe (camoufox headless against `/sr?q=...`): DOM contains zero products, no `__NEXT_DATA__`, no `__APOLLO_STATE__`, no state globals. Only analytics stubs and a custom "Mergen" loader. Trendyol detects headless via TLS/canvas/WebGL fingerprinting and serves an empty React shell intentionally. Same bucket as X.com / Instagram — out of scope without authenticated cookies or a non-headless approach. Building a site handler doesn't help (handler still needs a browser, browser still gets the empty shell).
 
 ### Added (v0.7 link-discovery — `next_links`, 2026-05-18)
 
