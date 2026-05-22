@@ -8,6 +8,55 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-05-22
+
+The `fetch-response-diet` change: `fetch_raw` / `FetchResponse` get the same lean wire treatment `ask` already received. A typical `fetch_raw` payload drops from ~22 keys (most of them `null` / `[]` / `{}`) to the handful that carry signal. The omit-empty + TSV serialization logic is now shared with `AskResponse` via a common helper.
+
+### Changed
+
+- **BREAKING — `fetch_raw` omits empty/null optional fields from the wire.** `title`, `byline`, `published`, `original_url`, `meta`, `links`, `headings`, `next_links`, `operator_hints`, `extraction`, and `extracted_answer` are absent when empty rather than serialized as `null` / `[]` / `{}`. On `fetch_raw` the LLM fields (`extraction`, `extracted_answer`) are always empty and simply disappear.
+- **BREAKING — `status` is failure-only on `fetch_raw`.** Omitted when the fetch succeeds; present on `failed` / `partial`. Absence of `status` means success.
+- **BREAKING — `narrative` / `diagnostics_summary` are failure-only on `fetch_raw`**; `started_at`, `total_ms`, `cache`, `tokens`, and `diagnostics` are `debug`-only. `tokens` joined the `debug` tier — the agent already holds `content_md` and can measure it.
+- **BREAKING — `fetch_raw` `links` and `next_links` render as TSV blocks** (header row + one tab-separated row per entry) instead of JSON arrays of objects. `links` columns are `anchor` / `href` / `role`; `next_links` drops its `kind` column when every row is `drilldown`.
+
+`ask` / `AskResponse` are unaffected — the wire shape was already lean; only its serializer implementation is refactored onto the shared `_prune_wire` helper.
+
+## [0.12.0] — 2026-05-22
+
+Follow-up to `ask-response-diet` (`ask-response-trim`): three further trims to the `ask` wire envelope.
+
+### Changed
+
+- **BREAKING — `extraction` is `debug`-only on `ask`.** The `extraction` object no longer appears on the default wire (it was `{"truncated": false}` — zero information — on nearly every response). When the extractor truncated an over-cap page, that now surfaces as an `operator_hint` with `code: "answer_truncated"`. Full extraction metadata still appears under `debug=True` and on LDD events.
+- **BREAKING — `status` is failure-only on `ask`.** Omitted when the fetch succeeds; present on `failed` / `partial`. Absence of `status` means success. Joins `narrative` / `diagnostics_summary` in the failure-only tier.
+- **BREAKING — `ask` `next_links` renders as a TSV block** (header row + one tab-separated row per link) instead of a JSON array of objects. The `kind` column is dropped when every link is `drilldown` and kept when the list mixes kinds.
+
+`fetch_raw` / `FetchResponse` are unaffected by all three.
+
+## [0.11.0] — 2026-05-22
+
+The `ask-response-diet` change: the `ask` tool returns a lean answer-shaped
+envelope instead of the page-shaped `FetchResponse`. Cuts ~70% of the wire
+payload on a typical fetch — `ask` carries the extracted answer, not the page.
+
+### Changed
+
+- **BREAKING — `ask` returns the new `AskResponse` envelope.** `content_md`, `headings`, `tokens`, and `is_user_authored` are no longer on the `ask` surface. `content_md` (with the `headings` index) returns only when the caller passes the new `include_content=True` parameter. The page-shaped `FetchResponse` is unchanged and still returned by `fetch_raw`.
+- **`ask` omits empty/null optional fields from the wire.** `byline`, `published`, `operator_hints`, `next_links`, `original_url`, and `meta` are absent when empty rather than serialized as `null` / `[]` / `{}`.
+- **`ask` `narrative` / `diagnostics_summary` are failure-only**; `started_at`, `total_ms`, `cache`, and `diagnostics` are `debug`-only.
+- **`ask` `extraction` metadata is slimmed to `truncated`** on the default wire path; full metadata (`model`, token counts, cost, latency, cache) is `debug`-only and stays on LDD events.
+- **HN front page renders both URLs.** External-link stories now expose the article URL *and* the `news.ycombinator.com/item?id=` discussion URL in `content_md`.
+- **`Heading` serializes as a compact `[level, text]` tuple** on the wire.
+
+### Removed
+
+- **BREAKING — `FetchResponse.fit_md` deleted.** Unconditionally `None` since v0.3; the pruning filter it reserved space for never shipped (superseded by JSON-synth and the LLM extractor). `TokenCounts.fit` removed with it.
+- **`FetchResponse.is_user_authored` deleted** — a constant-`False` flag carrying no information.
+
+### Added
+
+- **Golden API-contract tests** (`tests/test_contracts.py` + `tests/contracts/`). Scenario goldens for the `ask` / `fetch_raw` wire envelopes, invoked through the in-process MCP client; `make bless-contracts` re-blesses after an intentional envelope change.
+
 ## [0.10.0] — 2026-05-19
 
 Cycle bundles the harsh-test-session-fixes change + carry-over work that

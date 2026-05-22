@@ -1,0 +1,28 @@
+{
+  "hits": [
+    {
+      "objectID": "101",
+      "title": "Flipper One - we need your help",
+      "url": "https://blog.example.com/flipper-one",
+      "points": 961,
+      "num_comments": 396,
+      "author": "alice"
+    },
+    {
+      "objectID": "102",
+      "title": "Python 3.15: features that did not make the headlines",
+      "url": "https://blog.example.com/python-315",
+      "points": 300,
+      "num_comments": 133,
+      "author": "bob"
+    },
+    {
+      "objectID": "103",
+      "title": "Ask HN: How do you self-host your tooling?",
+      "points": 84,
+      "num_comments": 51,
+      "author": "carol"
+    }
+  ],
+  "nbHits": 3
+}

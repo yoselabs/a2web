@@ -63,7 +63,8 @@ async def test_paywall_escalates_to_archive(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setitem(REGISTRY, "archive", _RecoveringArchiveTier())
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
 
-    result = await fetch("https://nyt.com/article", state=_make_state())
+    # debug=True — `cache` is debug-only on the envelope (v0.13).
+    result = await fetch("https://nyt.com/article", state=_make_state(), debug=True)
 
     assert result.status == FetchStatus.ok
     assert result.tier == "archive"

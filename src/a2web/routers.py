@@ -26,8 +26,9 @@ from a2kit.packages.di import Lazy
 
 from .cookie_jar import CookieJarResource, CookiesRefreshResult
 from .fetcher import fetch as orchestrate
+from .fetcher_response import build_ask_response
 from .llm_resource import LlmExtractorResource
-from .models import FetchResponse
+from .models import AskResponse, FetchResponse
 from .packages.browser_pool import BrowserPool
 from .packages.cookie_store.models import ChromeCookieAccessError
 from .settings import AppSettings
@@ -101,7 +102,23 @@ class WebRouter(a2kit.Router):
         debug: Annotated[
             bool,
             pydantic.Field(
-                description=("Return the full `diagnostics` trace. Default False — `diagnostics_summary` is always populated."),
+                description=(
+                    "Return the full `diagnostics` trace plus timing/cache "
+                    "metadata. Default False — `diagnostics_summary` is "
+                    "populated on failures regardless."
+                ),
+            ),
+        ] = False,
+        include_content: Annotated[
+            bool,
+            pydantic.Field(
+                description=(
+                    "Also return the full page markdown in `content_md` (plus "
+                    "the `headings` index) for grounding. Default False — `ask` "
+                    "returns the extracted answer, not the page; the small "
+                    "server-side model already read the page for you. Pass True "
+                    "only when you need to verify the answer against source."
+                ),
             ),
         ] = False,
         wrap_content: Annotated[
@@ -138,15 +155,15 @@ class WebRouter(a2kit.Router):
         browser_pool: Lazy[BrowserPool],
         llm_extractor: Lazy[LlmExtractorResource],
         cookie_jar: Lazy[CookieJarResource],
-    ) -> FetchResponse:
+    ) -> AskResponse:
         """**Primary web-fetch tool. Use this for any question about a web page.**
 
         Fetches the URL via the adaptive tier cascade (site handlers → raw
         HTTP with TLS impersonation → Jina reader → archive fallback →
         Camoufox browser as last resort), then runs the server-side LLM
         extractor over the content to answer your `question`. Returns the
-        focused answer in `extracted_answer` plus the full markdown in
-        `content_md` for grounding.
+        focused answer in `extracted_answer`. Pass `include_content=True` to
+        also get the page markdown in `content_md` for grounding.
 
         Prefer this over `fetch_raw` for ~95%% of web reads. The
         extraction model is small and cheap (Haiku 4.5), so server-side
@@ -160,7 +177,7 @@ class WebRouter(a2kit.Router):
         Emits typed events on a2kit's LDD channel during the fetch.
         """
         roles_filter = frozenset(link_roles) if link_roles is not None else frozenset({"primary"})
-        return await orchestrate(
+        response = await orchestrate(
             url,
             state=state,
             browser_pool=browser_pool,
@@ -174,6 +191,7 @@ class WebRouter(a2kit.Router):
             next_links=next_links,
             max_content_chars=max_content_chars,
         )
+        return build_ask_response(response, include_content=include_content, debug=debug)
 
     @a2kit.read(
         open_world=True,

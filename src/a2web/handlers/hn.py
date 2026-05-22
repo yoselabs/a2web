@@ -109,8 +109,15 @@ def _render_front_page(payload: Any) -> dict[str, Any]:
             continue
         points = hit.get("points", 0) or 0
         num_comments = hit.get("num_comments", 0) or 0
-        link = hit.get("url") or f"https://news.ycombinator.com/item?id={hit.get('objectID')}"
-        parts.append(f"- **{title}** ({points} points, {num_comments} comments)\n  <{link}>")
+        discussion = f"https://news.ycombinator.com/item?id={hit.get('objectID')}"
+        external = hit.get("url")
+        # External-link stories expose both the article and the HN discussion;
+        # text-only stories have just the discussion page.
+        if external:
+            links_md = f"[article]({external}) · [discussion]({discussion})"
+        else:
+            links_md = f"[discussion]({discussion})"
+        parts.append(f"- **{title}** ({points} points, {num_comments} comments)\n  {links_md}")
         count += 1
     headings = [
         Heading(level=1, text="Hacker News"),

@@ -1,4 +1,4 @@
-.PHONY: lint fix test check build bootstrap coverage-diff security ty eval eval-baseline eval-detail
+.PHONY: lint fix test check build bootstrap coverage-diff security ty eval eval-baseline eval-detail bless-contracts
 
 check: lint ty test
 
@@ -17,6 +17,11 @@ test:
 
 coverage-diff:
 	@uv run diff-cover coverage.xml --compare-branch=origin/main --fail-under=95
+
+# Re-bless the golden API-contract files after an intentional envelope change.
+# Review the resulting diff under tests/contracts/ before committing.
+bless-contracts:
+	@A2WEB_BLESS_CONTRACTS=1 uv run pytest tests/test_contracts.py -q -p no:cacheprovider
 
 bootstrap:
 	uv sync --all-extras

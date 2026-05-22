@@ -16,8 +16,11 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from .models import (
+    AskExtraction,
+    AskResponse,
     CacheState,
     Confidence,
+    ExtractionMeta,
     FetchResponse,
     FetchStatus,
     NextLink,
@@ -142,11 +145,6 @@ def build_response(fc: FetchContext) -> FetchResponse:
     total_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     status = FetchStatus.ok if fc.final_verdict == Verdict.ok else FetchStatus.failed
 
-    # v0.3: fit_md is None until a real pruning filter ships. The field stays
-    # on the model for forward-compat; we stopped populating it as a duplicate
-    # of content_md (saved ~19% of total payload across the benchmark corpus).
-    fit_md: str | None = None
-
     narrative = _build_narrative(
         tier_used=fc.tier_used,
         cache_state=fc.cache_state,
@@ -155,10 +153,8 @@ def build_response(fc: FetchContext) -> FetchResponse:
         gate_subsystem=fc.gate_subsystem,
     )
 
-    # Wrap once, reuse — TokenCounts reflects the actual payload size
-    # callers see on the wire (including untrusted-content markers).
     wrapped_md = _wrap_content_md(fc.content_md, source=fc.final_url, fetched_at=fc.started_at) if fc.wrap_content else fc.content_md
-    tokens = TokenCounts(full=len(wrapped_md), fit=len(fit_md or "")) if fc.final_verdict == Verdict.ok and fc.content_md else None
+    tokens = TokenCounts(full=len(wrapped_md)) if fc.debug and fc.final_verdict == Verdict.ok and fc.content_md else None
     op_hints: list[OperatorHint] = list(fc.operator_hints)
 
     diagnostics_summary = _build_diagnostics_summary(
@@ -168,9 +164,10 @@ def build_response(fc: FetchContext) -> FetchResponse:
         gate_subsystem=fc.gate_subsystem,
     )
 
-    # v0.3 envelope diet is applied at the wire boundary in `fetch()` AFTER
-    # the log writer reads the response — so this builder always emits the
-    # full diagnostics + links.
+    # narrative / diagnostics_summary stay populated for internal callers (the
+    # eval harness reads them); the serializer drops them on a successful wire.
+    # Timing / cache / tokens are debug-only — the serializer drops them when
+    # absent, so leaving them None here is the gate.
     return FetchResponse(
         url=fc.final_url,
         status=status,
@@ -179,10 +176,10 @@ def build_response(fc: FetchContext) -> FetchResponse:
         title=fc.title,
         byline=fc.byline,
         published=fc.published,
-        started_at=fc.started_at,
-        total_ms=total_ms,
+        started_at=fc.started_at if fc.debug else None,
+        total_ms=total_ms if fc.debug else None,
         tokens=tokens,
-        cache=fc.cache_state,
+        cache=fc.cache_state if fc.debug else None,
         narrative=narrative,
         diagnostics_summary=diagnostics_summary,
         diagnostics=fc.diagnostics,
@@ -190,7 +187,6 @@ def build_response(fc: FetchContext) -> FetchResponse:
         links=fc.links,
         headings=fc.headings,
         content_md=wrapped_md,
-        fit_md=fit_md,
         operator_hints=op_hints,
         next_links=_compose_next_links(fc),
         extracted_answer=fc.extracted_answer,
@@ -199,4 +195,78 @@ def build_response(fc: FetchContext) -> FetchResponse:
     )
 
 
-__all__ = ("build_response",)
+# --------------------------------------------------------------------- #
+# ask projection — FetchResponse → AskResponse
+# --------------------------------------------------------------------- #
+
+
+def _debug_extraction(meta: ExtractionMeta | None, *, debug: bool) -> AskExtraction | None:
+    """Project full `ExtractionMeta` into `AskExtraction` — debug path only.
+
+    `extraction` is absent from the default wire entirely; the truncation
+    signal travels as an `answer_truncated` operator hint instead. Only
+    `debug=True` carries the full observability set.
+    """
+    if meta is None or not debug:
+        return None
+    return AskExtraction(
+        truncated=meta.truncated,
+        model=meta.model,
+        template_name=meta.template_name,
+        prompt_tokens=meta.prompt_tokens,
+        completion_tokens=meta.completion_tokens,
+        cost_usd=meta.cost_usd,
+        latency_ms=meta.latency_ms,
+        cache_hit=meta.cache_hit,
+    )
+
+
+def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool) -> AskResponse:
+    """Project a full `FetchResponse` into the lean `AskResponse` envelope.
+
+    `ask` runs the same orchestrator as `fetch_raw` (which returns the full
+    `FetchResponse`); this projection drops the page-shaped payload the
+    answer-shaped tool does not need. Field-tier rules are documented on
+    `AskResponse`; empty optionals are dropped at serialization time, not here.
+    """
+    is_ok = fr.status == FetchStatus.ok
+
+    # Truncation (the extractor saw only part of an over-cap page) travels as
+    # an operator hint — the actionable signal — regardless of `debug`. The
+    # full `extraction` object is debug-only.
+    op_hints = list(fr.operator_hints)
+    if fr.extraction is not None and fr.extraction.truncated:
+        op_hints.append(
+            OperatorHint(
+                code="answer_truncated",
+                message="The page was truncated before extraction; the answer may be incomplete.",
+                fix="Re-run with a higher max_content_chars, or use fetch_raw to read the full page.",
+            ),
+        )
+
+    return AskResponse(
+        url=fr.url,
+        status=fr.status,
+        tier=fr.tier,
+        confidence=fr.confidence,
+        extracted_answer=fr.extracted_answer,
+        title=fr.title,
+        byline=fr.byline,
+        published=fr.published,
+        operator_hints=op_hints,
+        next_links=list(fr.next_links),
+        original_url=fr.original_url,
+        meta=dict(fr.meta),
+        extraction=_debug_extraction(fr.extraction, debug=debug),
+        content_md=fr.content_md if include_content else "",
+        headings=list(fr.headings) if include_content else [],
+        narrative="" if is_ok else fr.narrative,
+        diagnostics_summary="" if is_ok else fr.diagnostics_summary,
+        started_at=fr.started_at if debug else None,
+        total_ms=fr.total_ms if debug else None,
+        cache=fr.cache if debug else None,
+        diagnostics=list(fr.diagnostics) if debug else [],
+    )
+
+
+__all__ = ("build_ask_response", "build_response")

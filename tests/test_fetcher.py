@@ -67,7 +67,8 @@ async def test_blog_fixture_yields_real_envelope(monkeypatch: pytest.MonkeyPatch
     _swap_tier(monkeypatch, _MockTier(body))
 
     state = _make_state()
-    result = await fetch("https://example.org/post", state=state)
+    # debug=True — `cache` is debug-only on the wire/envelope (v0.13).
+    result = await fetch("https://example.org/post", state=state, debug=True)
 
     assert result.status == FetchStatus.ok
     assert result.tier == "mock"
@@ -107,7 +108,8 @@ async def test_cache_hit_on_second_call(monkeypatch: pytest.MonkeyPatch) -> None
     first_tier = _MockTier(body)
     _swap_tier(monkeypatch, first_tier)
     state = await _make_state_with_sqlite()
-    first = await fetch("https://example.org/post", state=state)
+    # debug=True — `cache` is debug-only on the envelope (v0.13).
+    first = await fetch("https://example.org/post", state=state, debug=True)
     assert first.cache == CacheState.miss
     assert first.status == FetchStatus.ok
 
@@ -126,7 +128,7 @@ async def test_cache_hit_on_second_call(monkeypatch: pytest.MonkeyPatch) -> None
             )
 
     _swap_tier(monkeypatch, _NotModifiedTier())
-    second = await fetch("https://example.org/post", state=state)
+    second = await fetch("https://example.org/post", state=state, debug=True)
     assert second.cache == CacheState.hit
     assert second.status == FetchStatus.ok
     assert second.title is not None
@@ -140,7 +142,8 @@ async def test_live_only_host_bypass(monkeypatch: pytest.MonkeyPatch) -> None:
 
     settings = AppSettings(live_only_hosts=["live.example"])
     state = _make_state(settings=settings)
-    result = await fetch("https://live.example/article", state=state)
+    # debug=True — `cache` is debug-only on the envelope (v0.13).
+    result = await fetch("https://live.example/article", state=state, debug=True)
 
     assert result.cache == CacheState.bypass
     db_path = cache_dir() / "cache.sqlite"
@@ -205,31 +208,24 @@ async def test_no_match_handler_emits_no_diagnostic(monkeypatch: pytest.MonkeyPa
 
 
 @pytest.mark.asyncio
-async def test_successful_fetch_populates_tokens_and_leaves_fit_md_none(
+async def test_successful_fetch_populates_token_count(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """v0.3 envelope diet: fit_md stays None until a real pruning filter ships.
-
-    The field is preserved on the model for forward-compat (see CLAUDE.md
-    architecture note). What changed in v0.3 is that we no longer populate it
-    as a byte-for-byte copy of content_md — that was 19% of total tokens on
-    the benchmark corpus with zero quality benefit.
-    """
+    """A successful fetch populates `tokens.full` with the content_md char count."""
     body = (_FIX / "blog.html").read_bytes()
     monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
 
     state = _make_state()
-    result = await fetch("https://example.org/post", state=state)
+    # debug=True — `tokens` is debug-only on the envelope (v0.13).
+    result = await fetch("https://example.org/post", state=state, debug=True)
 
     assert result.status == FetchStatus.ok
-    assert result.fit_md is None
     assert result.tokens is not None
     assert result.tokens.full == len(result.content_md)
-    assert result.tokens.fit == 0
 
 
 @pytest.mark.asyncio
-async def test_failed_fetch_leaves_fit_md_none(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_failed_fetch_leaves_tokens_none(monkeypatch: pytest.MonkeyPatch) -> None:
     body = (_FIX / "cloudflare_block.html").read_bytes()
     monkeypatch.setitem(REGISTRY, "raw", _MockTier(body))
 
@@ -237,18 +233,14 @@ async def test_failed_fetch_leaves_fit_md_none(monkeypatch: pytest.MonkeyPatch) 
     result = await fetch("https://blocked.example/page", state=state)
 
     assert result.status == FetchStatus.failed
-    assert result.fit_md is None
     assert result.tokens is None
 
 
 @pytest.mark.asyncio
-async def test_pre_rendered_handler_returns_fit_md_none(
+async def test_pre_rendered_handler_returns_content(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """v0.3: even with pre-rendered content from a handler, fit_md is None.
-
-    No pruning filter ran. fit_md only populates when a future filter ships.
-    """
+    """Pre-rendered handler content flows through `content_md` unchanged."""
     from a2web.models import Heading
 
     class _PreRendered:
@@ -274,7 +266,6 @@ async def test_pre_rendered_handler_returns_fit_md_none(
     result = await fetch("https://www.reddit.com/r/x/comments/abc/", state=state)
 
     assert result.status == FetchStatus.ok
-    assert result.fit_md is None
     assert result.content_md  # non-empty
 
 
@@ -546,16 +537,6 @@ async def test_wrap_content_opt_out_returns_raw(monkeypatch: pytest.MonkeyPatch)
 
     assert result.status == FetchStatus.ok
     assert not result.content_md.startswith("<!-- a2web:")
-
-
-@pytest.mark.asyncio
-async def test_is_user_authored_is_constant_false(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The defensive flag is always False — fetched content is never user-authored."""
-    body = (_FIX / "blog.html").read_bytes()
-    _swap_tier(monkeypatch, _MockTier(body))
-    state = await _make_state_with_sqlite()
-    result = await fetch("https://example.org/post", state=state)
-    assert result.is_user_authored is False
 
 
 @pytest.mark.asyncio

@@ -1,0 +1,58 @@
+{
+  "cache": "<volatile>",
+  "confidence": "medium",
+  "diagnostics": [
+    {
+      "dur_ms": "<volatile>",
+      "engine": "curl_cffi",
+      "extra": {
+        "status_code": 200
+      },
+      "host": "example.org",
+      "proxy": "direct",
+      "step": "raw",
+      "subsystem": null,
+      "t_ms": "<volatile>",
+      "verdict": "ok"
+    },
+    {
+      "dur_ms": "<volatile>",
+      "engine": "trafilatura",
+      "extra": {
+        "chars": 1919
+      },
+      "host": null,
+      "proxy": null,
+      "step": "extract",
+      "subsystem": null,
+      "t_ms": "<volatile>",
+      "verdict": "ok"
+    },
+    {
+      "dur_ms": "<volatile>",
+      "engine": "block_detector",
+      "extra": {},
+      "host": null,
+      "proxy": null,
+      "step": "gate",
+      "subsystem": null,
+      "t_ms": "<volatile>",
+      "verdict": "ok"
+    }
+  ],
+  "extracted_answer": "The page is about adaptive web fetching.",
+  "extraction": {
+    "cache_hit": false,
+    "completion_tokens": 14,
+    "cost_usd": 0.0003,
+    "latency_ms": "<volatile>",
+    "model": "stub-model",
+    "prompt_tokens": 120,
+    "template_name": "webfetch_default_v1",
+    "truncated": false
+  },
+  "started_at": "<volatile>",
+  "tier": "raw",
+  "total_ms": "<volatile>",
+  "url": "https://example.org/debugged"
+}

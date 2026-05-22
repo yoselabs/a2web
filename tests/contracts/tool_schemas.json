@@ -1,0 +1,1056 @@
+{
+  "ask": {
+    "inputSchema": {
+      "properties": {
+        "debug": {
+          "default": false,
+          "title": "Debug",
+          "type": "boolean"
+        },
+        "include_content": {
+          "default": false,
+          "title": "Include Content",
+          "type": "boolean"
+        },
+        "include_links": {
+          "default": false,
+          "title": "Include Links",
+          "type": "boolean"
+        },
+        "link_roles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Link Roles"
+        },
+        "max_content_chars": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Content Chars"
+        },
+        "next_links": {
+          "default": true,
+          "title": "Next Links",
+          "type": "boolean"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "wrap_content": {
+          "default": true,
+          "title": "Wrap Content",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "url",
+        "question"
+      ],
+      "title": "ask_in",
+      "type": "object"
+    },
+    "outputModel": {
+      "$defs": {
+        "AskExtraction": {
+          "description": "Slim per-ask extraction metadata for the wire.\n\n`truncated` is the one field an agent branches on (the answer may be\nincomplete) and is always present. The observability fields (`model`,\ntoken counts, cost, latency, cache) are populated only when `ask` was\ncalled with `debug=True`; otherwise they are None and omitted from the\nwire. The full metadata always reaches LDD events regardless of debug.",
+          "properties": {
+            "cache_hit": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cache Hit"
+            },
+            "completion_tokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Completion Tokens"
+            },
+            "cost_usd": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cost Usd"
+            },
+            "latency_ms": "<volatile>",
+            "model": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Model"
+            },
+            "prompt_tokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Prompt Tokens"
+            },
+            "template_name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Template Name"
+            },
+            "truncated": {
+              "title": "Truncated",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "truncated"
+          ],
+          "title": "AskExtraction",
+          "type": "object"
+        },
+        "CacheState": {
+          "enum": [
+            "hit",
+            "miss",
+            "bypass"
+          ],
+          "title": "CacheState",
+          "type": "string"
+        },
+        "Confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "Diagnostic": {
+          "description": "One row of the diagnostics table \u2014 a tier or stage step.\n\n`subsystem` carries the anti-bot family identifier (cloudflare, datadome,\nanubis\u2026) when `verdict == anti_bot`; None otherwise.",
+          "properties": {
+            "dur_ms": "<volatile>",
+            "engine": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Engine"
+            },
+            "extra": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "title": "Extra",
+              "type": "object"
+            },
+            "host": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Host"
+            },
+            "proxy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Proxy"
+            },
+            "step": {
+              "title": "Step",
+              "type": "string"
+            },
+            "subsystem": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Subsystem"
+            },
+            "t_ms": "<volatile>",
+            "verdict": {
+              "$ref": "#/$defs/Verdict"
+            }
+          },
+          "required": [
+            "t_ms",
+            "step",
+            "verdict",
+            "dur_ms"
+          ],
+          "title": "Diagnostic",
+          "type": "object"
+        },
+        "FetchStatus": {
+          "enum": [
+            "ok",
+            "failed",
+            "partial"
+          ],
+          "title": "FetchStatus",
+          "type": "string"
+        },
+        "Heading": {
+          "properties": {
+            "level": {
+              "maximum": 6,
+              "minimum": 1,
+              "title": "Level",
+              "type": "integer"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "level",
+            "text"
+          ],
+          "title": "Heading",
+          "type": "object"
+        },
+        "NextLink": {
+          "description": "One curated \"what to fetch next\" candidate.\n\nReturned on `FetchResponse.next_links`. `anchor` and `reason` are\ntruncated (not rejected) when over-cap so a misbehaving handler or\nprovider can never fail the whole fetch.",
+          "properties": {
+            "anchor": {
+              "maxLength": 120,
+              "title": "Anchor",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "drilldown",
+                "related",
+                "source"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "reason": {
+              "maxLength": 80,
+              "title": "Reason",
+              "type": "string"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "anchor",
+            "url",
+            "reason",
+            "kind"
+          ],
+          "title": "NextLink",
+          "type": "object"
+        },
+        "OperatorHint": {
+          "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `captcha_redirect`, `cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
+          "properties": {
+            "code": {
+              "title": "Code",
+              "type": "string"
+            },
+            "fix": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fix"
+            },
+            "message": {
+              "title": "Message",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "title": "OperatorHint",
+          "type": "object"
+        },
+        "Verdict": {
+          "enum": [
+            "ok",
+            "paywall",
+            "block_page_detected",
+            "anti_bot",
+            "length_floor",
+            "content_type_mismatch",
+            "connection_error",
+            "timeout",
+            "not_found",
+            "rate_limited",
+            "proxy_unavailable",
+            "other"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "description": "Lean response envelope for the `ask` tool.\n\nDistinct from `FetchResponse` (returned by `fetch_raw`). The `ask` wire\npayload carries the extracted answer, not the page. Field tiers:\n\n- Always present: `url`, `status`, `tier`, `confidence`, `extracted_answer`.\n- Optional: omitted from the wire when empty/null (`title`, `byline`,\n  `published`, `operator_hints`, `next_links`, `original_url`, `meta`,\n  `extraction`).\n- Opt-in grounding: `content_md` + `headings` appear only when the caller\n  passed `include_content=True`.\n- Failure-only: `narrative` + `diagnostics_summary` appear only when\n  `status != ok`.\n- Debug-only: `started_at`, `total_ms`, `cache`, `diagnostics` appear only\n  when the caller passed `debug=True`.\n\nThe builder (`build_ask_response`) decides which fields to populate; the\nserializer below only drops empties. Required fields are never dropped.",
+      "properties": {
+        "byline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Byline"
+        },
+        "cache": "<volatile>",
+        "confidence": {
+          "$ref": "#/$defs/Confidence"
+        },
+        "content_md": {
+          "default": "",
+          "title": "Content Md",
+          "type": "string"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "diagnostics_summary": {
+          "default": "",
+          "title": "Diagnostics Summary",
+          "type": "string"
+        },
+        "extracted_answer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extracted Answer"
+        },
+        "extraction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AskExtraction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "headings": {
+          "items": {
+            "$ref": "#/$defs/Heading"
+          },
+          "title": "Headings",
+          "type": "array"
+        },
+        "meta": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Meta",
+          "type": "object"
+        },
+        "narrative": {
+          "default": "",
+          "title": "Narrative",
+          "type": "string"
+        },
+        "next_links": {
+          "items": {
+            "$ref": "#/$defs/NextLink"
+          },
+          "title": "Next Links",
+          "type": "array"
+        },
+        "operator_hints": {
+          "items": {
+            "$ref": "#/$defs/OperatorHint"
+          },
+          "title": "Operator Hints",
+          "type": "array"
+        },
+        "original_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Url"
+        },
+        "published": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published"
+        },
+        "started_at": "<volatile>",
+        "status": {
+          "$ref": "#/$defs/FetchStatus"
+        },
+        "tier": {
+          "title": "Tier",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "total_ms": "<volatile>",
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "status",
+        "tier",
+        "confidence"
+      ],
+      "title": "AskResponse",
+      "type": "object"
+    }
+  },
+  "fetch_raw": {
+    "inputSchema": {
+      "properties": {
+        "debug": {
+          "default": false,
+          "title": "Debug",
+          "type": "boolean"
+        },
+        "include_links": {
+          "default": false,
+          "title": "Include Links",
+          "type": "boolean"
+        },
+        "link_roles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Link Roles"
+        },
+        "next_links": {
+          "default": true,
+          "title": "Next Links",
+          "type": "boolean"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "wrap_content": {
+          "default": true,
+          "title": "Wrap Content",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "fetch_raw_in",
+      "type": "object"
+    },
+    "outputModel": {
+      "$defs": {
+        "CacheState": {
+          "enum": [
+            "hit",
+            "miss",
+            "bypass"
+          ],
+          "title": "CacheState",
+          "type": "string"
+        },
+        "Confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "Diagnostic": {
+          "description": "One row of the diagnostics table \u2014 a tier or stage step.\n\n`subsystem` carries the anti-bot family identifier (cloudflare, datadome,\nanubis\u2026) when `verdict == anti_bot`; None otherwise.",
+          "properties": {
+            "dur_ms": "<volatile>",
+            "engine": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Engine"
+            },
+            "extra": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "title": "Extra",
+              "type": "object"
+            },
+            "host": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Host"
+            },
+            "proxy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Proxy"
+            },
+            "step": {
+              "title": "Step",
+              "type": "string"
+            },
+            "subsystem": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Subsystem"
+            },
+            "t_ms": "<volatile>",
+            "verdict": {
+              "$ref": "#/$defs/Verdict"
+            }
+          },
+          "required": [
+            "t_ms",
+            "step",
+            "verdict",
+            "dur_ms"
+          ],
+          "title": "Diagnostic",
+          "type": "object"
+        },
+        "ExtractionMeta": {
+          "description": "Per-fetch LLM extraction metadata.\n\nPopulated by the v0.4 `ask=` pipeline on `FetchResponse.extraction`.\nMirrors what `a2web.llm.ExtractionResult` carries, minus the answer\ntext (which lives on `FetchResponse.extracted_answer` for ergonomic\ndirect access).",
+          "properties": {
+            "cache_hit": {
+              "default": false,
+              "title": "Cache Hit",
+              "type": "boolean"
+            },
+            "completion_tokens": {
+              "default": 0,
+              "title": "Completion Tokens",
+              "type": "integer"
+            },
+            "cost_usd": {
+              "default": 0.0,
+              "title": "Cost Usd",
+              "type": "number"
+            },
+            "latency_ms": "<volatile>",
+            "model": {
+              "title": "Model",
+              "type": "string"
+            },
+            "prompt_tokens": {
+              "default": 0,
+              "title": "Prompt Tokens",
+              "type": "integer"
+            },
+            "template_name": {
+              "title": "Template Name",
+              "type": "string"
+            },
+            "truncated": {
+              "default": false,
+              "title": "Truncated",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "model",
+            "template_name"
+          ],
+          "title": "ExtractionMeta",
+          "type": "object"
+        },
+        "FetchStatus": {
+          "enum": [
+            "ok",
+            "failed",
+            "partial"
+          ],
+          "title": "FetchStatus",
+          "type": "string"
+        },
+        "Heading": {
+          "properties": {
+            "level": {
+              "maximum": 6,
+              "minimum": 1,
+              "title": "Level",
+              "type": "integer"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "level",
+            "text"
+          ],
+          "title": "Heading",
+          "type": "object"
+        },
+        "Link": {
+          "properties": {
+            "anchor": {
+              "title": "Anchor",
+              "type": "string"
+            },
+            "href": {
+              "title": "Href",
+              "type": "string"
+            },
+            "role": {
+              "default": "primary",
+              "title": "Role",
+              "type": "string"
+            }
+          },
+          "required": [
+            "anchor",
+            "href"
+          ],
+          "title": "Link",
+          "type": "object"
+        },
+        "NextLink": {
+          "description": "One curated \"what to fetch next\" candidate.\n\nReturned on `FetchResponse.next_links`. `anchor` and `reason` are\ntruncated (not rejected) when over-cap so a misbehaving handler or\nprovider can never fail the whole fetch.",
+          "properties": {
+            "anchor": {
+              "maxLength": 120,
+              "title": "Anchor",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "drilldown",
+                "related",
+                "source"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "reason": {
+              "maxLength": 80,
+              "title": "Reason",
+              "type": "string"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "anchor",
+            "url",
+            "reason",
+            "kind"
+          ],
+          "title": "NextLink",
+          "type": "object"
+        },
+        "OperatorHint": {
+          "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `captcha_redirect`, `cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
+          "properties": {
+            "code": {
+              "title": "Code",
+              "type": "string"
+            },
+            "fix": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fix"
+            },
+            "message": {
+              "title": "Message",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "title": "OperatorHint",
+          "type": "object"
+        },
+        "TokenCounts": {
+          "properties": {
+            "full": {
+              "title": "Full",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "full"
+          ],
+          "title": "TokenCounts",
+          "type": "object"
+        },
+        "Verdict": {
+          "enum": [
+            "ok",
+            "paywall",
+            "block_page_detected",
+            "anti_bot",
+            "length_floor",
+            "content_type_mismatch",
+            "connection_error",
+            "timeout",
+            "not_found",
+            "rate_limited",
+            "proxy_unavailable",
+            "other"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "description": "The response envelope returned by the `fetch_raw` tool.\n\nField tiers govern what reaches the wire (the serializer below applies\nthem; the builder populates the model in full for internal callers):\n\n- Always present: `url`, `tier`, `confidence`.\n- Failure-only: `status`, `narrative`, `diagnostics_summary` \u2014 dropped\n  from the wire when the fetch succeeded (`status == ok`).\n- Debug-only: `started_at`, `total_ms`, `cache`, `tokens`, `diagnostics`\n  \u2014 populated only when `fetch_raw` is called with `debug=True`.\n- Omitted when empty: `title`, `byline`, `published`, `meta`, `links`,\n  `headings`, `operator_hints`, `next_links`, `extraction`,\n  `extracted_answer`, `original_url` (and `content_md` on a failed fetch).\n- TSV-rendered: `links` and `next_links` ship as tab-separated blocks.",
+      "properties": {
+        "byline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Byline"
+        },
+        "cache": "<volatile>",
+        "confidence": {
+          "$ref": "#/$defs/Confidence"
+        },
+        "content_md": {
+          "default": "",
+          "title": "Content Md",
+          "type": "string"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "diagnostics_summary": {
+          "default": "",
+          "title": "Diagnostics Summary",
+          "type": "string"
+        },
+        "extracted_answer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extracted Answer"
+        },
+        "extraction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExtractionMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "headings": {
+          "items": {
+            "$ref": "#/$defs/Heading"
+          },
+          "title": "Headings",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/Link"
+          },
+          "title": "Links",
+          "type": "array"
+        },
+        "meta": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Meta",
+          "type": "object"
+        },
+        "narrative": {
+          "default": "",
+          "title": "Narrative",
+          "type": "string"
+        },
+        "next_links": {
+          "items": {
+            "$ref": "#/$defs/NextLink"
+          },
+          "title": "Next Links",
+          "type": "array"
+        },
+        "operator_hints": {
+          "items": {
+            "$ref": "#/$defs/OperatorHint"
+          },
+          "title": "Operator Hints",
+          "type": "array"
+        },
+        "original_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Url"
+        },
+        "published": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published"
+        },
+        "started_at": "<volatile>",
+        "status": {
+          "$ref": "#/$defs/FetchStatus"
+        },
+        "tier": {
+          "title": "Tier",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "tokens": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TokenCounts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "total_ms": "<volatile>",
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "status",
+        "tier",
+        "confidence"
+      ],
+      "title": "FetchResponse",
+      "type": "object"
+    }
+  }
+}
