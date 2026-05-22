@@ -1,0 +1,32 @@
+{
+  "fancy_title": "How do I configure the thing?",
+  "title": "How do I configure the thing?",
+  "post_stream": {
+    "posts": [
+      {
+        "post_number": 1,
+        "username": "alice",
+        "name": "Alice",
+        "cooked": "<p>I am trying to configure the thing but the docs are unclear. Any pointers?</p>",
+        "reply_to_post_number": null,
+        "created_at": "2026-05-01T10:00:00Z"
+      },
+      {
+        "post_number": 2,
+        "username": "bob",
+        "name": "Bob",
+        "cooked": "<p>You need to set the <code>flag</code> in the config file. See <a href=\"https://meta.discourse.org/docs\">the docs</a>.</p>",
+        "reply_to_post_number": null,
+        "created_at": "2026-05-01T10:15:00Z"
+      },
+      {
+        "post_number": 3,
+        "username": "alice",
+        "name": "Alice",
+        "cooked": "<p>That worked, thanks Bob!</p>",
+        "reply_to_post_number": 2,
+        "created_at": "2026-05-01T10:30:00Z"
+      }
+    ]
+  }
+}

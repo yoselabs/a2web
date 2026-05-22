@@ -233,8 +233,8 @@ class WebRouter(a2kit.Router):
             pydantic.Field(
                 description=(
                     "Return up to 10 curated 'what to fetch next' links in "
-                    "`next_links` (drilldown / related / source). Tier-1 site "
-                    "handler candidates work without ask=; default True."
+                    "`next_links` (drilldown / related / source / discussion). "
+                    "Tier-1 site handler candidates work without ask=; default True."
                 ),
             ),
         ] = True,

@@ -17,6 +17,7 @@ import trafilatura
 from ..models import NextLink, Verdict
 
 if TYPE_CHECKING:
+    from ..settings import AppSettings
     from ..state import AppState
     from ..tiers import TierResult
 
@@ -42,7 +43,8 @@ class WikipediaHandler:
 
     name: str = "site_handler:wikipedia"
 
-    def matches(self, url: str) -> bool:
+    def matches(self, url: str, settings: AppSettings | None = None) -> bool:
+        del settings
         return _parse(url) is not None
 
     async def fetch(self, url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:

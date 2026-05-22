@@ -1,7 +1,8 @@
 """Integration tests for the JSON-in-script source of the extraction ladder.
 
-`_run_extraction_escalation` runs when the recall trigger reports trafilatura
-under-extracted; the JSON-in-script source is the first ladder rung.
+`_run_extraction_escalation` runs unconditionally after every extraction; the
+JSON-in-script source is the first ladder rung and self-gates on the presence
+of embedded JSON.
 """
 
 from __future__ import annotations
@@ -51,8 +52,9 @@ async def test_ld_json_product_thin_path_synthesizes_entity() -> None:
 
 
 @pytest.mark.asyncio
-async def test_well_extracted_page_skips_the_ladder() -> None:
-    """High recall — trafilatura captured ~all the visible text → no escalation."""
+async def test_well_extracted_page_ladder_self_gates() -> None:
+    """The ladder runs on every page — a plain article has no embedded JSON
+    and no record region, so every rung self-gates and content_md stands."""
     article = "This is a complete article sentence with real prose content here. " * 15
     html = f"<html><body><article>{article}</article></body></html>"
     fc = _FakeFc(content_md=article)

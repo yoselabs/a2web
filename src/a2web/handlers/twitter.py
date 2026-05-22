@@ -29,6 +29,7 @@ from ..models import Heading, Verdict
 _LOG = structlog.get_logger("a2web.handlers.twitter")
 
 if TYPE_CHECKING:
+    from ..settings import AppSettings
     from ..state import AppState
     from ..tiers import TierResult
 
@@ -47,17 +48,17 @@ class TwitterHandler:
 
     name: str = "site_handler:twitter"
 
-    def matches(self, url: str) -> bool:
+    def matches(self, url: str, settings: AppSettings | None = None) -> bool:
+        del settings
         parsed = urlparse(url)
         if not _is_twitter_host(parsed.hostname or ""):
             return False
         if not _STATUS_PATH_RE.match(parsed.path or ""):
             return False
-        # `matches` is sync and the state isn't reachable here. The handler
-        # cannot know whether nitter instances are configured at match time,
-        # so we return True and the fetch() does the empty-list short-circuit.
-        # This is a small wart — matches() being False would be cleaner, but
-        # the orchestrator API doesn't pass state to matches() today.
+        # `nitter_instances` could be consulted here now that settings is
+        # threaded through `matches()`, but the empty-list short-circuit lives
+        # in fetch() — leaving this unconditional keeps matches() behaviour
+        # unchanged. Tightening it is a separate change.
         return True
 
     async def fetch(self, url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:

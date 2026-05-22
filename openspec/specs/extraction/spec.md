@@ -64,28 +64,14 @@ The `Extractor.__init__` already accepts `max_content_chars: int = 100_000`. The
 - **WHEN** an MCP client calls the `fetch` tool with `max_content_chars=50000`
 - **THEN** the same cap applies; the MCP tool schema documents the kwarg via `Annotated[int | None, pydantic.Field(description=...)]`
 
-### Requirement: Recall-based escalation trigger
-
-After `extract_markdown` returns, `_phase_extract` SHALL decide whether to escalate by a recall signal — whether trafilatura under-extracted relative to the substantive content present in the raw HTML — NOT by an absolute length threshold on `content_md`. A `content_md` that is short because the page is genuinely short (high recall — trafilatura kept most of the page's substantive text) SHALL NOT trigger escalation. A `content_md` that is short because trafilatura discarded a large substantive region (low recall) SHALL trigger escalation. An absolute floor MAY still force escalation on near-empty output.
-
-#### Scenario: Complete short article does not escalate
-
-- **WHEN** trafilatura returns a complete short article and the raw HTML carries little additional substantive content
-- **THEN** no escalation is triggered
-
-#### Scenario: Gutted listing escalates
-
-- **WHEN** trafilatura returns a short `content_md` but the raw HTML carries a large repeated record region it discarded
-- **THEN** escalation is triggered
-
-#### Scenario: Near-empty output escalates regardless of recall
-
-- **WHEN** `content_md` is near-empty
-- **THEN** escalation is triggered regardless of the recall signal
-
 ### Requirement: Multi-source extraction escalation ladder
 
-When the recall trigger fires, `_phase_extract` SHALL run an ordered ladder of structured-extraction sources, stopping at the first whose output passes the quality-aware replace check: (1) `json_in_script` payloads (embedded JSON, including JSON-LD); (2) structural record extraction via the `record-extraction` capability. When no source produces a passing result, the cascade SHALL leave `content_md` unchanged and fall through, so the orchestrator's existing browser-tier escalation still applies. Each source attempt SHALL emit `StageStarted` / `StageEnded` LDD events naming the source.
+After `extract_markdown` returns, `_phase_extract` SHALL run an ordered ladder of structured-extraction sources **unconditionally** — there is no recall trigger gating entry to the ladder. Each rung self-gates: it produces output only when its own preconditions hold — `json_in_script` only when embedded JSON is present; structural record extraction only when a record region clears the `record-extraction` detection guards. The ladder runs in order: (1) `json_in_script` payloads (embedded JSON, including JSON-LD); (2) structural record extraction via the `record-extraction` capability. The ladder stops at the first rung whose output passes the quality-aware replace check. When no rung produces a passing result, the cascade SHALL leave `content_md` unchanged and fall through, so the orchestrator's existing browser-tier escalation still applies. Each rung SHALL emit `StageStarted` / `StageEnded` LDD events naming the source.
+
+#### Scenario: Ladder runs without a trigger
+
+- **WHEN** `extract_markdown` returns for any page
+- **THEN** the escalation ladder runs, and each rung self-gates on its own preconditions
 
 #### Scenario: Embedded JSON is tried first
 
@@ -97,29 +83,34 @@ When the recall trigger fires, `_phase_extract` SHALL run an ordered ladder of s
 - **WHEN** the raw HTML is a server-rendered listing with no embedded JSON
 - **THEN** the `json_in_script` source yields nothing and the structural record-extraction source runs
 
+#### Scenario: Article reaches the record rung and it self-gates
+
+- **WHEN** the page is a genuine article
+- **THEN** the structural record-extraction rung runs, returns no record set, and `content_md` is left unchanged
+
 #### Scenario: No source passes — clean fall-through
 
-- **WHEN** no ladder source produces a passing result
+- **WHEN** no ladder rung produces a passing result
 - **THEN** `content_md` is left unchanged and the cascade falls through to the orchestrator's browser-tier escalation
 
 ### Requirement: Quality-aware content replacement
 
-A ladder source's output SHALL replace `content_md` only when it is a dominant substantive result — for record extraction, a record cluster of at least a minimum count where each record carries text and a link. Output SHALL NOT replace `content_md` on length alone: a longer-but-lower-quality candidate (a related-posts widget, a navigation cluster) SHALL NOT win over trafilatura's article output.
+A ladder source's output SHALL replace `content_md` only when it is a higher-quality result than trafilatura's output. For structural record extraction the replace decision SHALL be **depth-aware**: a **threaded** record set (maximum nesting depth > 0) SHALL replace `content_md` whenever the detector produced one — trafilatura cannot represent threading, so rendered length is not a quality proxy for it; a **flat** record set (depth 0) SHALL replace `content_md` only when its rendered length exceeds trafilatura's output. A good article SHALL NOT be clobbered: an article yields no record set because the `record-extraction` detection guards reject it, so the replace check is never reached. A `json_in_script` source SHALL replace `content_md` when its synthetic output exceeds trafilatura's output in length.
 
-#### Scenario: Substantive record cluster replaces gutted output
+#### Scenario: Threaded record set replaces a flattened wall
 
-- **WHEN** a source produces a dominant substantive record cluster larger than trafilatura's output
+- **WHEN** structural record extraction produces a threaded (depth > 0) record set on a page trafilatura flattened into an undifferentiated wall of text
+- **THEN** the threaded render replaces `content_md` even if it is shorter than trafilatura's output
+
+#### Scenario: Flat catalog replaces on length
+
+- **WHEN** structural record extraction produces a flat (depth 0) record set whose rendered length exceeds trafilatura's output
 - **THEN** it replaces `content_md`
-
-#### Scenario: Longer chrome candidate does not replace
-
-- **WHEN** a source produces a longer candidate that is page chrome rather than substantive records
-- **THEN** `content_md` is NOT replaced
 
 #### Scenario: A good article is never clobbered
 
-- **WHEN** trafilatura already produced a substantive article and a competing record cluster is detected on the same page
-- **THEN** the record cluster does NOT replace the article
+- **WHEN** the page is an article
+- **THEN** the record-extraction guards reject it, no record set is produced, and `content_md` keeps trafilatura's output
 
 ### Requirement: JSON-LD ItemList synthesis
 

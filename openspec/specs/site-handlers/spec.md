@@ -301,3 +301,70 @@ The `SiteHandlerTier` dispatch seam SHALL thread the per-fetch resolved cookies 
 - **WHEN** `cookie_source == "none"`, or the cookie jar resolves no cookies for the host
 - **THEN** handlers issue unauthenticated requests exactly as before
 
+### Requirement: Discourse handler renders topics and forum indexes from the .json endpoints
+
+The system SHALL provide `DiscourseHandler` matching URLs whose host is in the configured `AppSettings.discourse_hosts` allowlist (env `A2WEB_DISCOURSE_HOSTS`; default includes `linux.do` and `meta.discourse.org`). For a **topic** URL (path `/t/<slug>/<id>` or `/t/<id>`) the handler SHALL fetch `<topic-url>.json` and populate `TierResult.pre_rendered` with `content_md` (the `post_stream` rendered **threaded** via `reply_to_post_number` — indented by reply depth, each post carrying its author), `title` (`fancy_title`), and `byline` (the first post's author). For a **forum-index** URL (host root, `/latest`, or `/c/<category>`) the handler SHALL fetch `latest.json` and populate `content_md` with the topic list and `next_links` with one `discussion` candidate per topic.
+
+#### Scenario: Topic URL renders a threaded post stream
+
+- **WHEN** the URL is a topic on a configured Discourse host and `<url>.json` returns a valid `post_stream`
+- **THEN** the handler returns `verdict == Verdict.ok` and `pre_rendered.content_md` renders the posts threaded, replies indented under their parent post
+
+#### Scenario: Forum index renders the topic list with next_links
+
+- **WHEN** the URL is the index / `/latest` of a configured Discourse host
+- **THEN** the handler fetches `latest.json` and emits one `discussion` `NextLink` per topic
+
+#### Scenario: Non-allowlisted host is not claimed
+
+- **WHEN** the URL's host is not in `discourse_hosts`
+- **THEN** `DiscourseHandler.matches()` returns `False` and the handler does not claim the URL
+
+#### Scenario: Configured host that is not Discourse falls through
+
+- **WHEN** a configured host returns JSON without `post_stream` / `topic_list`, or a non-200
+- **THEN** the handler returns `verdict == Verdict.not_found` and does not raise
+
+### Requirement: Habr handler renders article and threaded comments from the kek/v2 API
+
+The system SHALL provide `HabrHandler` matching Habr article URLs — `https?://habr.com/(ru|en)/articles/<id>/`, `https?://habr.com/(ru|en)/companies/<slug>/articles/<id>/`, and the legacy `https?://habr.com/(ru|en)/post/<id>/` and `https?://habr.com/(ru|en)/company/<slug>/blog/<id>/` forms (case-insensitive; trailing slash optional). The handler SHALL fetch `https://habr.com/kek/v2/articles/<id>/` and `https://habr.com/kek/v2/articles/<id>/comments/` — both with `fl` / `hl` query parameters derived from the URL's language segment — and populate `TierResult.pre_rendered` with `content_md` (the article body rendered from `textHtml`, followed by a `## Discussion` section rendering the comment tree **threaded** — indented by reply depth, each comment carrying its author), `title` (from `titleHtml`), `byline` (the article author), and `headings`.
+
+#### Scenario: Article URL renders body and threaded discussion
+
+- **WHEN** the URL is a Habr article and both `kek/v2` endpoints return valid JSON
+- **THEN** the handler returns `verdict == Verdict.ok`, `pre_rendered.content_md` contains the article body and a `## Discussion` section, and nested replies are indented by depth
+
+#### Scenario: Comments endpoint failure degrades to article-only
+
+- **WHEN** the article endpoint succeeds but the comments endpoint returns a non-200 or malformed JSON
+- **THEN** the handler returns `verdict == Verdict.ok` with the article body and no `## Discussion` section, and does not raise
+
+#### Scenario: Unknown article id falls through
+
+- **WHEN** the `kek/v2` article endpoint returns a non-200 or an error payload for an unknown id
+- **THEN** the handler returns `verdict == Verdict.not_found` so the orchestrator falls through to the generic path
+
+#### Scenario: Language segment selects the API locale
+
+- **WHEN** the URL's language segment is `/en/`
+- **THEN** the `kek/v2` requests carry `fl=en&hl=en`; when the segment is `/ru/` or absent they carry `fl=ru&hl=ru`
+
+### Requirement: V2EX handler renders topic and replies from the open API v1
+
+The system SHALL provide `V2EXHandler` matching V2EX topic URLs — `https?://(www\.)?v2ex\.com/t/<id>` (case-insensitive; a trailing slug or `#reply` fragment is ignored). The handler SHALL fetch `https://www.v2ex.com/api/topics/show.json?id=<id>` and `https://www.v2ex.com/api/replies/show.json?topic_id=<id>` and populate `TierResult.pre_rendered` with `content_md` (the topic body followed by a `## Replies` section rendering the replies as a flat, chronologically ordered list, each reply carrying its author), `title` (the topic title), and `byline` (the topic author).
+
+#### Scenario: Topic URL renders body and replies
+
+- **WHEN** the URL is a V2EX topic and both API endpoints return valid JSON
+- **THEN** the handler returns `verdict == Verdict.ok`, `pre_rendered.content_md` contains the topic body and a `## Replies` section, and replies are a flat ordered list
+
+#### Scenario: Replies endpoint failure degrades to topic-only
+
+- **WHEN** the topic endpoint succeeds but the replies endpoint returns a non-200 or malformed JSON
+- **THEN** the handler returns `verdict == Verdict.ok` with the topic body and no `## Replies` section, and does not raise
+
+#### Scenario: Unknown topic id falls through
+
+- **WHEN** `api/topics/show.json` returns an empty list for an unknown id
+- **THEN** the handler returns `verdict == Verdict.not_found` so the orchestrator falls through to the generic path
+

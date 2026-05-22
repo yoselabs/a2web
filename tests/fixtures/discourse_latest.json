@@ -1,0 +1,30 @@
+{
+  "topic_list": {
+    "topics": [
+      {
+        "id": 101,
+        "title": "First topic about configuration",
+        "fancy_title": "First topic about configuration",
+        "slug": "first-topic-about-configuration",
+        "posts_count": 5,
+        "reply_count": 4
+      },
+      {
+        "id": 102,
+        "title": "Second topic on plugins",
+        "fancy_title": "Second topic on plugins",
+        "slug": "second-topic-on-plugins",
+        "posts_count": 3,
+        "reply_count": 2
+      },
+      {
+        "id": 103,
+        "title": "Third topic about themes",
+        "fancy_title": "Third topic about themes",
+        "slug": "third-topic-about-themes",
+        "posts_count": 8,
+        "reply_count": 7
+      }
+    ]
+  }
+}

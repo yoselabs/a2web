@@ -33,7 +33,8 @@ async def test_matched_handler_is_delegated_to(monkeypatch: pytest.MonkeyPatch) 
     class _FakeHandler:
         name = "fake-handler"
 
-        def matches(self, url: str) -> bool:
+        def matches(self, url: str, settings: AppSettings | None = None) -> bool:
+            del settings
             return "matched.example" in url
 
         async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
@@ -48,7 +49,8 @@ async def test_matched_handler_is_delegated_to(monkeypatch: pytest.MonkeyPatch) 
 
     fake = _FakeHandler()
 
-    def fake_match_handler(url: str) -> _FakeHandler | None:
+    def fake_match_handler(url: str, settings: AppSettings | None = None) -> _FakeHandler | None:
+        del settings
         return fake if fake.matches(url) else None
 
     monkeypatch.setattr("a2web.tiers.site_handler.match_handler", fake_match_handler)
@@ -78,7 +80,7 @@ async def test_matched_handler_preserves_its_own_handler_name(monkeypatch: pytes
                 handler_name="inner-name",
             )
 
-    monkeypatch.setattr("a2web.tiers.site_handler.match_handler", lambda url: _FakeHandler())
+    monkeypatch.setattr("a2web.tiers.site_handler.match_handler", lambda url, settings=None: _FakeHandler())
 
     result = await SiteHandlerTier().fetch("https://x/", state=_state())
     assert result.handler_name == "inner-name"

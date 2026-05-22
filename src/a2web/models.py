@@ -112,7 +112,7 @@ class OperatorHint(BaseModel):
     fix: str | None = None
 
 
-NextLinkKind = Literal["drilldown", "related", "source"]
+NextLinkKind = Literal["drilldown", "related", "source", "discussion"]
 
 
 class NextLink(BaseModel):

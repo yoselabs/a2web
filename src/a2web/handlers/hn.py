@@ -11,6 +11,7 @@ import httpx
 from ..models import Heading, NextLink, Verdict
 
 if TYPE_CHECKING:
+    from ..settings import AppSettings
     from ..state import AppState
     from ..tiers import TierResult
 
@@ -26,7 +27,8 @@ class HNHandler:
 
     name: str = "site_handler:hn"
 
-    def matches(self, url: str) -> bool:
+    def matches(self, url: str, settings: AppSettings | None = None) -> bool:
+        del settings
         parsed = urlparse(url)
         if (parsed.hostname or "") != _HN_HOST:
             return False

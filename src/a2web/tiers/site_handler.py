@@ -34,7 +34,7 @@ class SiteHandlerTier:
         del proxy_url, conditional_extras, kwargs  # site handlers manage their own transport
         from . import TierResult
 
-        handler = match_handler(url)
+        handler = match_handler(url, state.settings)
         if handler is None:
             return TierResult(
                 body=b"",

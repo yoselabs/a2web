@@ -3,50 +3,76 @@
 ## Purpose
 
 trafilatura is an article extractor — it discards repeated DOM structure as boilerplate, so listing / index pages are gutted. `record-extraction` recovers them: locate the dominant repeated record region in server-rendered HTML, render that bounded subtree to link-preserving markdown, and expose each record so the domain seam can populate `next_links`. It is the structural-record rung of the extraction-escalation ladder.
-
 ## Requirements
-
 ### Requirement: Locate the dominant repeated record region
 
-The `record_extract` package SHALL provide a function that takes parsed listing / index HTML and returns the dominant repeated record region — the container element whose direct children include the largest set of content-bearing repeats of one structural signature, where a content-bearing child carries substantive text AND at least one link. When multiple repeated regions exist, the function SHALL rank them by record count weighted by per-record text volume, so that page chrome (navigation menus, footers, sidebar link lists) ranks below genuine record clusters.
+The `record_extract` package SHALL provide a function that takes listing / index / discussion HTML and returns the dominant repeated record region. Detection SHALL be **tree-aware**: the function counts each `(tag, first-class-token)` signature **document-wide** — not only among the direct children of one container — so that a recursively nested record region (a threaded comment tree) is located as well as a flat sibling list. The occurrences of the chosen signature are the records, rooted at their lowest common ancestor. A record is content-bearing when its **own scope** carries substantive text AND at least one link — own scope excludes text and links inside nested child-records of the same signature, so an outer record is not credited with its children's content.
 
-#### Scenario: Repo-card cluster beats marketing navigation
+The function SHALL reject a candidate signature unless all of these guards hold:
 
-- **WHEN** the function is given GitHub-trending-shaped HTML containing a repeated `<article>` repo-card cluster and a marketing-navigation `<ul>`
-- **THEN** the returned region is the repo-card cluster, not the navigation list
+- **(a) non-empty class token** — the signature's class component is not empty (document structure such as bare `<section>` / `<p>` is excluded; genuine records carry a semantic class).
+- **(b) parent-signature consistency ≥ 0.70** — the records share one dominant parent signature (scattered page chrome does not).
+- **(c) heading-presence ≥ 0.50** — at least half the records contain a heading element (`h1`–`h6` or `[role=heading]`).
 
-#### Scenario: Flat link list is located
+When multiple signatures clear the guards, the function SHALL rank them by record count weighted by per-record own-scope text volume, and SHALL break a near-tie in favour of the outer signature — the candidate whose signature is a parent-signature of another tied candidate.
 
-- **WHEN** the function is given a flat list page — a `<ul>` of many link items
-- **THEN** the returned region is that list
+#### Scenario: Flat sibling list is located
 
-#### Scenario: Article page yields no region
+- **WHEN** the function is given a flat listing page — a container of many repeated content-bearing record elements
+- **THEN** the returned region is that list, with all records at depth 0
 
-- **WHEN** the function is given an article page whose only repeated structures are small chrome blocks below the content-bearing floor
-- **THEN** the function returns no region
+#### Scenario: Nested comment tree is located
+
+- **WHEN** the function is given a threaded discussion page whose comment elements nest recursively inside one another
+- **THEN** the returned region is the comment tree, with records carrying their nesting depth
+
+#### Scenario: Reference-doc sections are rejected
+
+- **WHEN** the function is given a reference-doc page whose repeated heading-bearing `<section>` elements have an empty class
+- **THEN** the non-empty-class guard rejects the signature and the function returns no region
+
+#### Scenario: Scattered chrome is rejected
+
+- **WHEN** a repeated signature's occurrences do not share a dominant parent signature (consistency below 0.70)
+- **THEN** that signature is rejected as page chrome
+
+#### Scenario: Article prose paragraphs are rejected
+
+- **WHEN** a repeated signature's records mostly lack a heading element (heading-presence below 0.50)
+- **THEN** that signature is rejected
 
 ### Requirement: Render the record region to link-preserving markdown
 
-The package SHALL render a located record region to markdown that preserves every link — anchor text and href — within each record. It SHALL NOT select a single "primary" link per record: the first link in a record is frequently chrome (an action button), so all links are retained for a downstream consumer to choose from. Rendering SHALL operate on the bounded region subtree only, never the whole page.
+The package SHALL render a located record region to markdown that preserves every link — anchor text and href — within each record. It SHALL NOT select a single "primary" link per record for the rendered markdown: all links are retained for a downstream consumer to choose from. Rendering SHALL be **depth-aware** — a flat record set renders as a flat list; a threaded record set renders with indentation reflecting the nesting depth of each record. Each record's rendered text and links SHALL be its **own scope**: the text and links of a nested child-record SHALL NOT be duplicated into its parent. Rendering SHALL operate on the bounded region subtree only, never the whole page.
 
-#### Scenario: Each record keeps its slug text and all links
+#### Scenario: Flat catalog renders as a flat list
 
-- **WHEN** a repo-card region is rendered
-- **THEN** each record's markdown contains the repo slug text and every link present in that card
+- **WHEN** a flat (depth 0) record set is rendered
+- **THEN** each record is a list entry carrying its slug text and every link in that record
 
-#### Scenario: Action link and content link both retained
+#### Scenario: Threaded discussion renders with depth
 
-- **WHEN** a record contains a leading action link followed by the content link
-- **THEN** both links appear in the rendered markdown for that record
+- **WHEN** a threaded (depth > 0) record set is rendered
+- **THEN** each record is indented by its nesting depth, and no record's text is duplicated into its parent
 
 ### Requirement: Record extraction emits next_links candidates
 
-Each detected record SHALL also be emitted as a structured candidate carrying the record's most prominent link (its heading link — not link index 0), its anchor text, and a short reason. The domain seam converts these candidates into `NextLink` values, populating `next_links` for listing pages that have no site handler.
+A **flat** record set (depth 0) SHALL emit `next_links` candidates; each record SHALL emit up to two: a **source** candidate carrying the record's heading link (the discussed page) and a **discussion** candidate carrying a same-host permalink to the discussion when one is present — identified generically by an anchor matching a comment-count pattern (e.g. `"N comments"`) or a thread-permalink path. Candidates SHALL be deduplicated by URL, and archive-mirror hosts SHALL be skipped. A **threaded** record set (depth > 0) SHALL NOT emit `next_links` — its records are a conversation already inline on the page, not drilldown targets. The domain seam converts candidates into `NextLink` values, carrying the corresponding `kind` (`source` or `discussion`).
 
-#### Scenario: Un-handled listing page gets next_links
+#### Scenario: Aggregator record emits both destinations
 
-- **WHEN** a listing page with no matching site handler is record-extracted
-- **THEN** the result carries one candidate per detected record, each pointing at the record's prominent link
+- **WHEN** a flat listing record carries both an external article link and an `"N comments"` discussion link
+- **THEN** it emits one `source` candidate and one `discussion` candidate
+
+#### Scenario: Record with only a source link emits one candidate
+
+- **WHEN** a flat listing record carries a heading link but no discussion link
+- **THEN** it emits a single `source` candidate
+
+#### Scenario: Threaded record set emits no next_links
+
+- **WHEN** the detected region is a threaded (depth > 0) discussion
+- **THEN** no `next_links` candidates are emitted
 
 ### Requirement: No dominant region yields a clean empty result
 
@@ -70,3 +96,4 @@ The `record_extract` package SHALL live under `src/a2web/packages/` and SHALL NO
 
 - **WHEN** `tests/test_packages_independence.py` walks every `.py` under `packages/`
 - **THEN** `record_extract` contributes zero imports from `a2web.<domain>`
+

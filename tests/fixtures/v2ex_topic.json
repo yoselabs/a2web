@@ -1,0 +1,13 @@
+[
+  {
+    "id": 12345,
+    "title": "A tool to share AI coding context across sessions",
+    "content": "I keep re-explaining who I am to every AI tool.\r\n\r\nSo I built a small tool. See https://example.com/piia for the details.",
+    "content_rendered": "<p>I keep re-explaining who I am to every AI tool.</p>\n<p>So I built a small tool.</p>",
+    "member": {"id": 28272, "username": "pp3x325", "url": "https://www.v2ex.com/u/pp3x325"},
+    "node": {"name": "create", "title": "Show V2EX"},
+    "replies": 2,
+    "created": 1716400000,
+    "url": "https://www.v2ex.com/t/12345"
+  }
+]

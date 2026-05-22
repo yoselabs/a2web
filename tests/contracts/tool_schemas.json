@@ -305,7 +305,8 @@
               "enum": [
                 "drilldown",
                 "related",
-                "source"
+                "source",
+                "discussion"
               ],
               "title": "Kind",
               "type": "string"
@@ -784,7 +785,8 @@
               "enum": [
                 "drilldown",
                 "related",
-                "source"
+                "source",
+                "discussion"
               ],
               "title": "Kind",
               "type": "string"

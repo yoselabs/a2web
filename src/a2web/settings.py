@@ -28,6 +28,11 @@ from pydantic_settings import (
 
 _ENV_REF_RE = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
 
+# Default Discourse-forum allowlist for `DiscourseHandler.matches()`. Shared
+# between the `AppSettings.discourse_hosts` field default and the handler's
+# no-settings fallback so the two never drift.
+DEFAULT_DISCOURSE_HOSTS: tuple[str, ...] = ("linux.do", "meta.discourse.org")
+
 
 def _resolve_env_refs(value: str) -> str:
     """Replace `${VAR}` with `os.environ[VAR]`; leave literal on miss."""
@@ -132,6 +137,12 @@ class AppSettings(BaseSettings):
     # instances rotate/die constantly — keep this empty until the operator
     # commits to a maintained list.
     nitter_instances: list[str] = Field(default_factory=list)
+
+    # Discourse-forum host allowlist for `DiscourseHandler`. Discourse runs on
+    # arbitrary domains, so the handler claims a URL only when its host is
+    # listed here (env `A2WEB_DISCOURSE_HOSTS`, or YAML). Defaults cover the
+    # named targets; adding a forum is one config line, never code.
+    discourse_hosts: list[str] = Field(default_factory=lambda: list(DEFAULT_DISCOURSE_HOSTS))
 
     # v0.4/v0.7: LLM-backed extraction. Activated by the `ask=` param on
     # the fetch tool. As of v0.7 the SDKs are baseline deps — no extra

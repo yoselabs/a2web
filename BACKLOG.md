@@ -176,6 +176,27 @@ Pattern: hand-rolled async code (cache wrapper, hedged race, proxy health) is ha
 - **Per-handler proxy plumbing.** Source: PR8. *Why deferred:* mostly
   mechanical — bundle with PR7e proxy work. Scope: S.
 
+## Hard-access forums (Tieba / Zhihu / Discuz!)
+
+- **Tieba / Zhihu / Discuz!-engine forums — access-blocked, needs an
+  access spike.** Source: `structural-record-detection` CN-forum probing
+  campaign (2026-05-22). *Finding:* for these targets the blocker is
+  **access, not extraction**. A probe with curl_cffi Chrome-impersonation
+  (a2web's raw-tier engine) got: Tieba → HTTP 403; Zhihu → SPA shell + 403
+  on every content page; Discuz! forums (hostloc, right.com.cn) →
+  login-walls / pages stripped to anonymous fetch. The structural record
+  detector cannot be validated against them because there is no clean HTML
+  to run it on. *Why deferred:* needs its own spike first — does a2web's
+  browser tier (Camoufox) + stealth + `cookie_jar` punch through these
+  anti-bot walls? Until that is known the handling cannot be specified.
+  Discuz! additionally has no API (an engine-specific HTML parser would be
+  needed) and its post wrappers use empty-class `<div id="post_X">` that
+  the structural detector's non-empty-class guard rejects. V2EX, Discourse,
+  and Habr — the accessible CN/RU targets — are covered by their own
+  handler changes (`v2ex-handler`, `discourse-handler`, `habr-handler`);
+  this entry is the residual hard tier. Scope: L (access spike + per-engine
+  handling).
+
 ## v0.2 candidates
 
 - 🟢 **Reader-LM v2 fallback.** Source: engineering.md §10. *Status:*

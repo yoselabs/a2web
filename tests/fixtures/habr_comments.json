@@ -1,0 +1,31 @@
+{
+  "comments": {
+    "30007388": {
+      "id": "30007388",
+      "parentId": null,
+      "level": 0,
+      "status": "published",
+      "message": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>Great article, very useful in practice.</p></div>",
+      "author": {"id": "5725969", "alias": "hren_sobachiy", "fullname": null}
+    },
+    "30007436": {
+      "id": "30007436",
+      "parentId": "30007388",
+      "level": 1,
+      "status": "published",
+      "message": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>I disagree, and here is the reason why.</p></div>",
+      "author": {"id": "111", "alias": "skeptic_dev", "fullname": null}
+    },
+    "30007442": {
+      "id": "30007442",
+      "parentId": null,
+      "level": 0,
+      "status": "published",
+      "message": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p>A separate top-level point worth raising.</p></div>",
+      "author": {"id": "222", "alias": "another_user", "fullname": null}
+    }
+  },
+  "threads": ["30007388", "30007442"],
+  "pinnedCommentIds": [],
+  "commentAccess": {}
+}

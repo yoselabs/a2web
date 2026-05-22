@@ -1,0 +1,16 @@
+[
+  {
+    "id": 900001,
+    "content": "Nice idea, I run into the same problem every day.",
+    "content_rendered": "<p>Nice idea, I run into the same problem every day.</p>",
+    "member": {"id": 1001, "username": "alice"},
+    "created": 1716400100
+  },
+  {
+    "id": 900002,
+    "content": "How is this different from keeping a CLAUDE.md file in the repo?",
+    "content_rendered": "<p>How is this different from keeping a CLAUDE.md file in the repo?</p>",
+    "member": {"id": 1002, "username": "bob"},
+    "created": 1716400200
+  }
+]

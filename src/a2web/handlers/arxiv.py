@@ -19,6 +19,7 @@ import httpx
 from ..models import Heading, NextLink, Verdict
 
 if TYPE_CHECKING:
+    from ..settings import AppSettings
     from ..state import AppState
     from ..tiers import TierResult
 
@@ -59,7 +60,8 @@ class ArxivHandler:
 
     name: str = "site_handler:arxiv"
 
-    def matches(self, url: str) -> bool:
+    def matches(self, url: str, settings: AppSettings | None = None) -> bool:
+        del settings
         return _extract_id(url) is not None or _extract_listing(url) is not None
 
     async def fetch(self, url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:

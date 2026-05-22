@@ -41,7 +41,8 @@ async def test_browser_rendered_thin_synth_replaces() -> None:
 
 @pytest.mark.asyncio
 async def test_browser_rendered_rich_synth_keeps_original() -> None:
-    """Browser tier produced well-extracted markdown (high recall) — ladder skipped."""
+    """Browser tier produced well-extracted markdown — the ladder runs but
+    every rung self-gates (no JSON blob, no record region)."""
     rich = "## Real article\n\n" + "Lorem ipsum dolor sit amet consectetur. " * 60
     html = f"<html><body><article>{rich}</article></body></html>"
     fc = _FakeFc(content_md=rich)

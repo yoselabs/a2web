@@ -34,7 +34,6 @@ from .domain import (
     is_live_only,
     json_to_markdown_rows,
     rewrite_captcha_host,
-    trafilatura_under_extracted,
 )
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .events.types import CookiesAttached, CookiesStale
@@ -63,7 +62,7 @@ from .packages.content_extract import (
 from .packages.http_cache import CacheRow, SqliteResource
 from .packages.json_in_script import extract_json_payloads, rank_payloads
 from .packages.llm_extract import LlmNextLink
-from .packages.record_extract import RecordSet, extract_records
+from .packages.record_extract import Record, RecordSet, extract_records
 from .settings import AppSettings
 from .state import AppState
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
@@ -955,17 +954,17 @@ async def _phase_extract(fc: FetchContext) -> None:
 
 
 async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None:
-    """Multi-source escalation ladder for under-extracted pages.
+    """Multi-source structured-extraction ladder — runs unconditionally.
 
-    Runs only when the recall trigger reports trafilatura under-extracted.
-    Tries structured-extraction sources in order — embedded JSON, then
-    structural record detection — and stops at the first whose output passes
-    the quality-aware replace check. When no source helps, `fc.content_md` is
-    left unchanged and the cascade falls through, so the orchestrator's
+    There is no recall trigger: the ladder runs after every trafilatura
+    extraction and each rung self-gates on its own preconditions —
+    `json_in_script` only fires when embedded JSON is present, structural
+    record extraction only when a record region clears the detector guards.
+    Sources are tried in order and the ladder stops at the first whose output
+    passes the quality-aware replace check. When no source helps, `content_md`
+    is left unchanged and the cascade falls through, so the orchestrator's
     browser-tier escalation still applies.
     """
-    if not trafilatura_under_extracted(fc.content_md or "", raw_html):
-        return  # trafilatura extracted well — no escalation needed
     original_len = len(fc.content_md or "")
     if await _escalate_via_json(fc, raw_html=raw_html, original_len=original_len):
         return
@@ -1011,31 +1010,38 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str, original_len: i
 async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len: int) -> bool:
     """Ladder source 2 — structural record detection. True if it replaced content_md.
 
-    Quality-aware replace: `extract_records` only returns a `RecordSet` when a
-    dominant substantive cluster exists (a minimum count of records, each with
-    text and a link) — so a non-`None` result is already "substantive". The
-    length check guards against a tiny cluster losing to better trafilatura
-    output. Records also populate `next_links` for this otherwise un-handled
-    listing page.
+    `extract_records` returns a `RecordSet` only when a record region clears
+    the detector's self-gating guards — so a non-`None` result is already a
+    confirmed listing or threaded discussion. The replace decision is
+    **depth-aware**: a threaded record set replaces `content_md` whenever
+    produced — trafilatura cannot represent threading, so rendered length is
+    not a quality proxy for it; a flat catalog replaces only when its render
+    is longer than trafilatura's output. A flat record set also populates
+    `next_links` for this otherwise un-handled listing page.
     """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     await a2kit.ldd.event(StageStarted(t_ms=t_ms, step="record_synth"))
     record_set = extract_records(raw_html, base_url=fc.final_url or "")
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
-    synthetic = record_set.to_markdown() if record_set is not None else ""
-    if record_set is not None and len(synthetic) > original_len:
-        fc.content_md = synthetic
-        fc.next_links_handler = _records_to_next_links(record_set)
-        await a2kit.ldd.event(
-            StageEnded(
-                t_ms=t_ms,
-                step="record_synth",
-                verdict=Verdict.ok,
-                dur_ms=dur_ms,
-                extra={"outcome": "replaced", "records": len(record_set.records)},
+    if record_set is not None:
+        synthetic = record_set.to_markdown()
+        if record_set.is_threaded or len(synthetic) > original_len:
+            fc.content_md = synthetic
+            fc.next_links_handler = _records_to_next_links(record_set, page_url=fc.final_url or "")
+            await a2kit.ldd.event(
+                StageEnded(
+                    t_ms=t_ms,
+                    step="record_synth",
+                    verdict=Verdict.ok,
+                    dur_ms=dur_ms,
+                    extra={
+                        "outcome": "replaced",
+                        "records": len(record_set.records),
+                        "threaded": record_set.is_threaded,
+                    },
+                )
             )
-        )
-        return True
+            return True
     outcome = "no_records" if record_set is None else "kept_original"
     await a2kit.ldd.event(
         StageEnded(t_ms=t_ms, step="record_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome})
@@ -1043,18 +1049,69 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len
     return False
 
 
-def _records_to_next_links(record_set: RecordSet) -> list[NextLink]:
+# An anchor that reads like a comment count — "12 comments", "1 comment".
+_COMMENT_COUNT_RE = re.compile(r"\b\d+\s*comments?\b", re.IGNORECASE)
+# Archive-mirror hosts whose links shadow the discussed page in a record's
+# link set — skipped as next_links candidates.
+_ARCHIVE_MIRROR_HOSTS = frozenset(
+    {
+        "web.archive.org",
+        "archive.org",
+        "ghostarchive.org",
+        "archive.ph",
+        "archive.today",
+        "archive.is",
+    }
+)
+
+
+def _is_archive_mirror(url: str) -> bool:
+    """True when `url` points at a known archive-mirror host."""
+    host = (urlparse(url).hostname or "").lower()
+    return host in _ARCHIVE_MIRROR_HOSTS or host.endswith(".archive.org")
+
+
+def _record_discussion_link(record: Record, page_host: str) -> tuple[str, str] | None:
+    """A record's discussion permalink — a same-host link whose anchor reads
+    like a comment count (`"N comments"`). `None` when the record carries no
+    such link (a plain catalog row with only a source link)."""
+    for anchor, url in record.links:
+        if not _COMMENT_COUNT_RE.search(anchor):
+            continue
+        host = (urlparse(url).hostname or "").lower()
+        if not host or host == page_host:
+            return (anchor, url)
+    return None
+
+
+def _records_to_next_links(record_set: RecordSet, *, page_url: str) -> list[NextLink]:
     """Domain seam — convert detected records into `NextLink` candidates.
 
-    Uses each record's prominent link (its heading link, not link index 0,
-    which is frequently chrome). Records without a usable link are skipped.
+    Catalog-only: a threaded record set is a conversation already inline on
+    the page, not a set of drilldown targets, so it emits nothing. Each flat
+    record emits up to two candidates — a `source` link (its heading link, the
+    discussed page) and a `discussion` link (a same-host comment-count
+    permalink). Candidates are deduplicated by URL and archive-mirror hosts
+    are skipped.
     """
+    if record_set.is_threaded:
+        return []
+    page_host = (urlparse(page_url).hostname or "").lower()
     out: list[NextLink] = []
+    seen: set[str] = set()
     for record in record_set.records:
-        if record.primary_link is None:
-            continue
-        anchor, url = record.primary_link
-        out.append(NextLink(anchor=anchor[:120] or url, url=url, reason="listing record", kind="drilldown"))
+        candidates: tuple[tuple[tuple[str, str] | None, NextLinkKind, str], ...] = (
+            (record.primary_link, "source", "discussed page"),
+            (_record_discussion_link(record, page_host), "discussion", "discussion thread"),
+        )
+        for link, kind, reason in candidates:
+            if link is None:
+                continue
+            anchor, url = link
+            if url in seen or _is_archive_mirror(url):
+                continue
+            seen.add(url)
+            out.append(NextLink(anchor=anchor[:120] or url, url=url, reason=reason, kind=kind))
     return out
 
 

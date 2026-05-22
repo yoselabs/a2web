@@ -26,6 +26,7 @@ import httpx
 from ..models import Heading, NextLink, OperatorHint, Verdict
 
 if TYPE_CHECKING:
+    from ..settings import AppSettings
     from ..state import AppState
     from ..tiers import TierResult
 
@@ -103,7 +104,8 @@ class RedditHandler:
 
     name: str = "site_handler:reddit"
 
-    def matches(self, url: str) -> bool:
+    def matches(self, url: str, settings: AppSettings | None = None) -> bool:
+        del settings
         parsed = urlparse(url)
         host = parsed.hostname or ""
         if _is_short_host(host):
