@@ -26,4 +26,4 @@
 
 ## 4. Verify
 
-- [ ] 4.1 Run `make bench` (live-network, spends LLM quota — user-gated); confirm `gh-trending` moves 0 → passing and `next_links` is populated on listing URLs; record findings in `eval/findings_<date>.md`.
+- [x] 4.1 Run `make bench` (live-network, spends LLM quota — user-gated); confirm `gh-trending` moves 0 → passing and `next_links` is populated on listing URLs; record findings in `eval/findings_<date>.md`.

@@ -45,25 +45,6 @@ The system SHALL provide `parse_metadata(html: str) -> dict[str, str]` in `src/a
 - **WHEN** `parse_metadata(html)` is called on a fixture with a JSON-LD `Article` carrying `author` and `datePublished`
 - **THEN** the returned dict contains `jsonld[0].author` and `jsonld[0].datePublished`
 
-### Requirement: JSON-in-script extraction runs when trafilatura is thin
-
-After `extract_markdown` returns, the orchestrator's `_phase_extract` SHALL check `len(result.content_md) < 2_048` OR `count_sentences(result.content_md) < 3`. If either holds, the orchestrator SHALL call the `json_in_script` extractor on the original HTML, rank the returned payloads via `rank_payloads`, and convert the top payload to a synthetic markdown table via a domain-side adapter `json_to_markdown_rows`. The synthetic markdown SHALL replace `result.content_md` ONLY IF the synthetic length exceeds the original by ≥2× (otherwise the original wins — JSON path didn't help). The replacement SHALL emit `StageStarted("json_synth")` / `StageEnded("json_synth", verdict="replaced"|"kept_original")` LDD events.
-
-#### Scenario: Trendyol thin trafilatura output replaced by Next.js product table
-
-- **WHEN** `_phase_extract` runs on the Trendyol search HTML, trafilatura returns 642 chars of nav menu, `json_in_script` finds `__NEXT_DATA__` with `pageProps.products`, and `json_to_markdown_rows` synthesizes a 12 KB product table
-- **THEN** `result.content_md` is the synthetic table; LDD records `json_synth` with `verdict="replaced"`
-
-#### Scenario: SSR article keeps trafilatura output
-
-- **WHEN** trafilatura returns 8 KB of clean article markdown
-- **THEN** the JSON path does not run (above the 2 KB / 3-sentence threshold); no `json_synth` event is emitted
-
-#### Scenario: JSON path runs but doesn't improve
-
-- **WHEN** trafilatura returns 1 KB and `json_in_script` finds payloads but `json_to_markdown_rows` produces only 1.5 KB (below the 2× threshold)
-- **THEN** the original trafilatura output is kept; LDD records `json_synth` with `verdict="kept_original"`
-
 ### Requirement: max_content_chars override flows from CLI / MCP to the extractor
 
 The `Extractor.__init__` already accepts `max_content_chars: int = 100_000`. The orchestrator SHALL accept an optional `max_content_chars: int | None` parameter on `fetch()` that overrides the default for a single call. The CLI SHALL expose this as `--max-content-chars INT` on both `ask` and `fetch_raw` tools (also surfaced as an Annotated kwarg on the MCP tools). When the override is `None` or absent, the existing 100,000-char default applies. When set, the override SHALL be plumbed through `FetchContext.max_content_chars` to `LlmExtractorResource.extract()` to `Extractor.extract()`'s truncation step.
@@ -82,4 +63,75 @@ The `Extractor.__init__` already accepts `max_content_chars: int = 100_000`. The
 
 - **WHEN** an MCP client calls the `fetch` tool with `max_content_chars=50000`
 - **THEN** the same cap applies; the MCP tool schema documents the kwarg via `Annotated[int | None, pydantic.Field(description=...)]`
+
+### Requirement: Recall-based escalation trigger
+
+After `extract_markdown` returns, `_phase_extract` SHALL decide whether to escalate by a recall signal — whether trafilatura under-extracted relative to the substantive content present in the raw HTML — NOT by an absolute length threshold on `content_md`. A `content_md` that is short because the page is genuinely short (high recall — trafilatura kept most of the page's substantive text) SHALL NOT trigger escalation. A `content_md` that is short because trafilatura discarded a large substantive region (low recall) SHALL trigger escalation. An absolute floor MAY still force escalation on near-empty output.
+
+#### Scenario: Complete short article does not escalate
+
+- **WHEN** trafilatura returns a complete short article and the raw HTML carries little additional substantive content
+- **THEN** no escalation is triggered
+
+#### Scenario: Gutted listing escalates
+
+- **WHEN** trafilatura returns a short `content_md` but the raw HTML carries a large repeated record region it discarded
+- **THEN** escalation is triggered
+
+#### Scenario: Near-empty output escalates regardless of recall
+
+- **WHEN** `content_md` is near-empty
+- **THEN** escalation is triggered regardless of the recall signal
+
+### Requirement: Multi-source extraction escalation ladder
+
+When the recall trigger fires, `_phase_extract` SHALL run an ordered ladder of structured-extraction sources, stopping at the first whose output passes the quality-aware replace check: (1) `json_in_script` payloads (embedded JSON, including JSON-LD); (2) structural record extraction via the `record-extraction` capability. When no source produces a passing result, the cascade SHALL leave `content_md` unchanged and fall through, so the orchestrator's existing browser-tier escalation still applies. Each source attempt SHALL emit `StageStarted` / `StageEnded` LDD events naming the source.
+
+#### Scenario: Embedded JSON is tried first
+
+- **WHEN** the raw HTML carries embedded JSON
+- **THEN** the `json_in_script` source is attempted first and, if its output passes the replace check, the ladder stops
+
+#### Scenario: Server-rendered listing reaches record extraction
+
+- **WHEN** the raw HTML is a server-rendered listing with no embedded JSON
+- **THEN** the `json_in_script` source yields nothing and the structural record-extraction source runs
+
+#### Scenario: No source passes — clean fall-through
+
+- **WHEN** no ladder source produces a passing result
+- **THEN** `content_md` is left unchanged and the cascade falls through to the orchestrator's browser-tier escalation
+
+### Requirement: Quality-aware content replacement
+
+A ladder source's output SHALL replace `content_md` only when it is a dominant substantive result — for record extraction, a record cluster of at least a minimum count where each record carries text and a link. Output SHALL NOT replace `content_md` on length alone: a longer-but-lower-quality candidate (a related-posts widget, a navigation cluster) SHALL NOT win over trafilatura's article output.
+
+#### Scenario: Substantive record cluster replaces gutted output
+
+- **WHEN** a source produces a dominant substantive record cluster larger than trafilatura's output
+- **THEN** it replaces `content_md`
+
+#### Scenario: Longer chrome candidate does not replace
+
+- **WHEN** a source produces a longer candidate that is page chrome rather than substantive records
+- **THEN** `content_md` is NOT replaced
+
+#### Scenario: A good article is never clobbered
+
+- **WHEN** trafilatura already produced a substantive article and a competing record cluster is detected on the same page
+- **THEN** the record cluster does NOT replace the article
+
+### Requirement: JSON-LD ItemList synthesis
+
+The synthetic-markdown adapter `json_to_markdown_rows` SHALL render a JSON-LD `ItemList` payload — an `itemListElement` array of `ListItem` entries — into record rows, each carrying the item name and url. `json_in_script` already detects `ld_json` payloads and `rank_payloads` already prefers `ItemList`; this requirement closes the synthesis gap so a detected `ItemList` becomes usable `content_md`.
+
+#### Scenario: ItemList renders to record rows
+
+- **WHEN** a thin page carries a JSON-LD `ItemList` with a populated `itemListElement` array
+- **THEN** `json_to_markdown_rows` renders one row per list item, each with the item name and url
+
+#### Scenario: Empty ItemList yields no rows
+
+- **WHEN** the `ItemList` is empty or malformed
+- **THEN** the adapter yields no rows and the ladder continues to the next source
 
