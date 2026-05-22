@@ -65,7 +65,10 @@ urls:
 
   # ─── Comment threads — deep nesting, the naive-fetcher trap ────────────
   - slug: reddit-comments
-    url: https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/
+    # A long-archived r/programming thread — locked and immutable, so the
+    # comment count never changes and the post won't be deleted. Deeply
+    # nested (5+ reply levels): the naive-fetcher trap this class exists for.
+    url: https://www.reddit.com/r/programming/comments/ddlc78/comments_should_be_sentences/
     class: comments
     task: "What is the original post about, and what are the two most prominent comment viewpoints?"
     needs: [content_only]
@@ -75,7 +78,9 @@ urls:
       - "Does not fabricate specific vote counts it cannot see"
 
   - slug: hn-item
-    url: https://news.ycombinator.com/item?id=40000000
+    # id=9224 is the 2007 Dropbox launch thread — a permanently-stable HN
+    # item (HN never deletes items) with a famously skeptical top comment.
+    url: https://news.ycombinator.com/item?id=9224
     class: comments
     task: "What is this Hacker News discussion about, and what is the prevailing sentiment in the comments?"
     needs: [content_only]
