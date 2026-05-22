@@ -120,4 +120,6 @@ select = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--cov=a2web --cov-report=xml --cov-report=term-missing --cov-fail-under=85"
+# Coverage is NOT in addopts — it ~doubles wall time and is a release-gate
+# concern, not an inner-loop one. `make test` runs bare (fast); `make check`
+# runs `make test-cov` with the coverage flags and the 85% gate.

@@ -1,6 +1,6 @@
-.PHONY: lint fix test check build bootstrap coverage-diff security ty eval eval-baseline eval-detail bless-contracts
+.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty eval eval-baseline eval-detail bless-contracts
 
-check: lint ty test
+check: lint ty test-cov
 
 lint:
 	@uv run ruff check src/ tests/
@@ -14,6 +14,9 @@ ty:
 
 test:
 	@uv run pytest tests/
+
+test-cov:
+	@uv run pytest tests/ --cov=a2web --cov-report=xml --cov-report=term-missing --cov-fail-under=85
 
 coverage-diff:
 	@uv run diff-cover coverage.xml --compare-branch=origin/main --fail-under=95
