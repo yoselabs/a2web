@@ -234,6 +234,10 @@ class FetchContext:
     etag: str | None = None
     last_modified: str | None = None
     pre_rendered_payload: Rendered | None = None
+    # Set when a site handler returned `Verdict.not_found` — the site expert's
+    # authoritative "content is gone" signal. `_phase_reconcile_verdict` restores
+    # it over a vaguer downstream failure verdict when the fetch ultimately fails.
+    handler_not_found: bool = False
 
     # Cache state
     cache_state: CacheState = CacheState.miss
@@ -750,6 +754,12 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
             if tier_result.no_match or tier_result.skipped:
                 continue
 
+            # A site handler's `not_found` is the strongest negative signal in
+            # the pipeline — remember it so a downstream generic tier can't bury
+            # it under a vaguer verdict (`_phase_reconcile_verdict`).
+            if tier_name == "site_handler" and tier_result.verdict == Verdict.not_found:
+                fc.handler_not_found = True
+
             proxy_pool.report(
                 handle,
                 success=tier_result.verdict not in (Verdict.proxy_unavailable, Verdict.connection_error, Verdict.timeout),
@@ -1125,6 +1135,19 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
 # --------------------------------------------------------------------- #
 
 
+def _phase_reconcile_verdict(fc: FetchContext) -> None:
+    """Restore a site handler's `not_found` over a vaguer downstream failure verdict.
+
+    A site handler returning `Verdict.not_found` confirmed the content is gone.
+    When the fetch ultimately fails, that authoritative verdict outranks any
+    vaguer verdict (`length_floor`, `other`) a downstream generic tier left on
+    `final_verdict`. A genuine recovery (`final_verdict == ok`) is left
+    untouched — the precedence rule never degrades a real result.
+    """
+    if fc.final_verdict != Verdict.ok and fc.handler_not_found:
+        fc.final_verdict = Verdict.not_found
+
+
 async def _run_pipeline(
     fc: FetchContext,
     *,
@@ -1137,6 +1160,7 @@ async def _run_pipeline(
     # the agent-facing fields (title, content_md, etc.) are produced by extraction.
     await _phase_extract(fc)
     await _phase_gate_and_escalate(fc, state=state)
+    _phase_reconcile_verdict(fc)
     await _phase_cache_write(fc, state=state)
     # v0.4: optional LLM extraction. Runs only when ask= is set and the fetch
     # succeeded. Graceful when no API key + no Claude Code OAuth available.
