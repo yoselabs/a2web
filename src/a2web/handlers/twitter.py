@@ -60,7 +60,8 @@ class TwitterHandler:
         # the orchestrator API doesn't pass state to matches() today.
         return True
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:
+        del cookies  # handler manages its own transport
         from ..tiers import TierResult
 
         instances = list(state.settings.nitter_instances)

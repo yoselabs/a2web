@@ -38,7 +38,8 @@ class HNHandler:
         item_id = parse_qs(parsed.query).get("id", [""])[0]
         return bool(_ID_RE.match(item_id))
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:
+        del cookies  # handler manages its own transport
         from ..tiers import Rendered, TierResult
 
         parsed = urlparse(url)

@@ -45,7 +45,7 @@ The final verdict SHALL be computed by a pure function `resolve_verdict(log) -> 
 
 ### Requirement: Escalation is decided by a pure planner over the observation log
 
-The orchestrator's next action SHALL be chosen by a pure function `decide_next(log, caps) -> Action` that reads the entire observation log plus the per-fetch caps. `decide_next` SHALL be total. The `Action` vocabulary SHALL include at least: `RewriteUrl`, `RetryViaArchive`, `EscalateBrowser`, `StopLiveTiers`, and a continue / no-op action. `decide_next` SHALL be expressible as a decision table whose rows cover every combination of (resolved verdict, tier-exhaustion, browser budget, archive eligibility), each mapping to exactly one `Action`.
+The orchestrator's next action SHALL be chosen by a pure function `decide_next(log, url, caps) -> Action` that reads the entire observation log, the request URL, and the per-fetch caps. `decide_next` SHALL be total. The `Action` vocabulary SHALL include: `RewriteUrl`, `RetryViaArchive`, `EscalateBrowser`, and a `Continue` no-op action. `decide_next` SHALL be expressible as a decision table whose rows cover every combination of (most-recent observation kind and verdict, escalation evidence, per-fetch caps), each mapping to exactly one `Action`.
 
 #### Scenario: A soft-block observation yields EscalateBrowser with no winning tier
 
@@ -71,11 +71,11 @@ The orchestrator SHALL hold no escalation, rewrite, or stop policy of its own. A
 - **WHEN** a tier result would historically have triggered an inline escalation but `decide_next` returns the continue / no-op action
 - **THEN** the orchestrator performs no escalation and advances to the next `TIER_ORDER` slot
 
-### Requirement: The fetch response is a projection of the observation log
+### Requirement: The fetch response derives its verdict from the observation log
 
-`FetchResponse` SHALL be built by a pure projection over the observation log. The projected response SHALL be identical in shape and content to the response the prior orchestrator produced for the same fetch — this change introduces no wire / envelope change. The response verdict SHALL equal `resolve_verdict(log)`.
+`FetchResponse` SHALL be built by a pure function. Its `status`, `confidence`, `narrative`, and `diagnostics_summary` SHALL be derived from `resolve_verdict(observation log)` — no mutable verdict slot feeds them. The response SHALL be identical in shape and content to the response the prior orchestrator produced for the same fetch — this change introduces no wire / envelope change.
 
 #### Scenario: Response verdict equals the resolved verdict
 
-- **WHEN** a fetch completes and `FetchResponse` is projected from the log
-- **THEN** the verdict reflected in the response equals `resolve_verdict(log)` for that same log
+- **WHEN** a fetch completes and `FetchResponse` is built
+- **THEN** the verdict reflected in `status` / `diagnostics_summary` equals `resolve_verdict(log)` for that fetch's observation log

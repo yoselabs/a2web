@@ -18,15 +18,15 @@
 
 ## 3. Phase 2 — Planner + pure-executor orchestrator
 
-- [ ] 3.1 Define the `Action` vocabulary (`RewriteUrl`, `RetryViaArchive`, `EscalateBrowser`, `StopLiveTiers`, continue / no-op) in `actions/playbook.py`.
-- [ ] 3.2 Implement `decide_next(log, caps) -> Action` as a totality-checked decision table; absorb `next_action_after_tier`, `next_action_after_gate`, and the gate's inline `suggested_tier == "browser"` routing.
-- [ ] 3.3 Property / decision-table tests for `decide_next`: totality, and exactly-one-action for every combination of (resolved verdict × tier-exhaustion × browser budget × archive eligibility).
-- [ ] 3.4 Rewrite the orchestrator tier loop and `_phase_gate_and_escalate` as a pure executor of `decide_next` actions — remove all inline escalation, rewrite, and stop policy.
-- [ ] 3.5 Split `no_match`: in `SiteHandlerTier` / the `Handler` protocol, `no_match` is set only for unclaimed URLs; matched-but-failed handlers return real `Verdict` observations.
-- [ ] 3.6 Thread the resolved cookie set through the `SiteHandlerTier` seam into `Handler.fetch`; the Reddit handler attaches cookies to its `httpx` client and classifies an HTTP-200 `{"error": 429}` / empty-listing body as `rate_limited`.
-- [ ] 3.7 Make `build_response` a pure projection of the observation log; fold in `diagnostics` if 1.3 chose subsumption.
-- [ ] 3.8 Update `tier-pipeline`, `quality-gate`, and `site-handlers` capability tests; re-run the characterization test — response output unchanged.
-- [ ] 3.9 `make check` green for Phase 2 — lint, `ty`, full suite, coverage ≥ 85%.
+- [x] 3.1 Define the `Action` vocabulary (`RewriteUrl`, `RetryViaArchive`, `EscalateBrowser`, `Continue` no-op) in `actions/playbook.py`. — `StopLiveTiers` dropped: the cascade never stops early by design (fall-through to raw/jina + the archive retry is deliberate), so the action would be dead code.
+- [x] 3.2 Implement `decide_next(log, caps) -> Action` as a totality-checked decision table; absorb `next_action_after_tier`, `next_action_after_gate`, and the gate's inline `suggested_tier == "browser"` routing.
+- [x] 3.3 Property / decision-table tests for `decide_next`: totality, and exactly-one-action for every combination of (resolved verdict × tier-exhaustion × browser budget × archive eligibility).
+- [x] 3.4 Rewrite the orchestrator tier loop and `_phase_gate_and_escalate` as a pure executor of `decide_next` actions — remove all inline escalation, rewrite, and stop policy.
+- [x] 3.5 Split `no_match`: in `SiteHandlerTier` / the `Handler` protocol, `no_match` is set only for unclaimed URLs; matched-but-failed handlers return real `Verdict` observations.
+- [x] 3.6 Thread the resolved cookie set through the `SiteHandlerTier` seam into `Handler.fetch`; the Reddit handler attaches cookies to its `httpx` client and classifies an HTTP-200 `{"error": 429}` / empty-listing body as `rate_limited`.
+- [x] 3.7 Make `build_response` a pure projection of the observation log; fold in `diagnostics` if 1.3 chose subsumption.
+- [x] 3.8 Update `tier-pipeline`, `quality-gate`, and `site-handlers` capability tests; re-run the characterization test — response output unchanged.
+- [x] 3.9 `make check` green for Phase 2 — lint, `ty`, full suite, coverage ≥ 85%.
 
 ## 4. Verify
 

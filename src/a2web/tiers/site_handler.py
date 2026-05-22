@@ -28,9 +28,10 @@ class SiteHandlerTier:
         state: AppState,
         proxy_url: str | None = None,
         conditional_extras: dict[str, str] | None = None,
+        cookies: dict[str, str] | None = None,
         **kwargs: Any,
     ) -> TierResult:
-        del proxy_url, conditional_extras, kwargs  # Handlers manage their own transport today.
+        del proxy_url, conditional_extras, kwargs  # site handlers manage their own transport
         from . import TierResult
 
         handler = match_handler(url)
@@ -43,7 +44,7 @@ class SiteHandlerTier:
                 no_match=True,
                 verdict=Verdict.other,
             )
-        result = await handler.fetch(url, state=state)
+        result = await handler.fetch(url, state=state, cookies=cookies)
         if result.handler_name is None:
             result.handler_name = handler.name
         return result

@@ -113,7 +113,7 @@ class RedditHandler:
         path = parsed.path or ""
         return bool(_COMMENTS_PATH_RE.match(path) or _SEARCH_PATH_RE.match(path) or _LISTING_PATH_RE.match(path))
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:
         from ..tiers import TierResult
 
         parsed = urlparse(url)
@@ -126,7 +126,7 @@ class RedditHandler:
             # no_match so the orchestrator falls through to raw/jina.
             resolved_parsed = urlparse(resolved)
             if _is_reddit_host(resolved_parsed.hostname or "") and _COMMENTS_PATH_RE.match(resolved_parsed.path or ""):
-                return await self.fetch(resolved, state=state)
+                return await self.fetch(resolved, state=state, cookies=cookies)
             return TierResult(
                 body=b"",
                 content_type="",
@@ -145,6 +145,7 @@ class RedditHandler:
                 timeout=_DEFAULT_TIMEOUT_S,
                 follow_redirects=True,
                 headers={"User-Agent": state.settings.default_ua},
+                cookies=cookies,
             ) as client:
                 response = await client.get(json_url)
         except httpx.TimeoutException:
@@ -157,7 +158,7 @@ class RedditHandler:
             # usefully cache dynamic surfaces); return not_found cleanly.
             if shape in ("search", "listing"):
                 return _empty_result(url, Verdict.not_found)
-            return await _fetch_old_reddit_or_archive_signal(url, state=state)
+            return await _fetch_old_reddit_or_archive_signal(url, state=state, cookies=cookies)
         if response.status_code == 429:
             return _empty_result(url, Verdict.rate_limited)
         if response.status_code == 403:
@@ -178,6 +179,12 @@ class RedditHandler:
         except ValueError:
             return _empty_result(url, Verdict.content_type_mismatch)
 
+        # Reddit soft-blocks unauthenticated clients with a 200 + a throttle
+        # body (e.g. {"error": 429}) — rate-limiting, not content. Surface it
+        # as a real verdict, never no_match.
+        if isinstance(payload, dict) and payload.get("error"):
+            return _empty_result(url, Verdict.rate_limited)
+
         if shape == "search":
             query = (parse_qs(parsed.query).get("q") or [""])[0]
             rendered = _render_search(payload, query=query)
@@ -194,20 +201,14 @@ class RedditHandler:
 
         if rendered.get("is_empty"):
             if shape in ("search", "listing"):
-                # Empty search/listing — surface no_match so orchestrator
-                # does NOT fall through to raw/jina (both 403 on this
-                # surface anyway).
-                return TierResult(
-                    body=b"",
-                    content_type="",
-                    status_code=response.status_code,
-                    final_url=url,
-                    no_match=True,
-                    verdict=Verdict.ok,
-                )
+                # An empty search / listing is a real outcome — the handler
+                # claimed the URL and got nothing back. Surface not_found;
+                # never no_match, which is reserved for "no handler claims
+                # this URL" and would silently fall through to raw/jina.
+                return _empty_result(url, Verdict.not_found)
             # Empty thread (deleted / removed). Try old.reddit; if that
             # also fails, signal archive.
-            return await _fetch_old_reddit_or_archive_signal(url, state=state)
+            return await _fetch_old_reddit_or_archive_signal(url, state=state, cookies=cookies)
 
         return TierResult(
             body=body_bytes,
@@ -714,9 +715,11 @@ async def _resolve_short_url(url: str, *, state: AppState) -> str | None:
     return final
 
 
-async def _fetch_old_reddit_or_archive_signal(url: str, *, state: AppState) -> TierResult:
+async def _fetch_old_reddit_or_archive_signal(
+    url: str, *, state: AppState, cookies: dict[str, str] | None = None
+) -> TierResult:
     """Try old.reddit HTML; if that also produces nothing, signal archive."""
-    result = await _fetch_old_reddit(url, state=state)
+    result = await _fetch_old_reddit(url, state=state, cookies=cookies)
     if result.verdict == Verdict.ok and result.pre_rendered is not None:
         return result
     # Old.reddit was no help either — this content is gone at source. Ask
@@ -728,7 +731,7 @@ async def _fetch_old_reddit_or_archive_signal(url: str, *, state: AppState) -> T
     )
 
 
-async def _fetch_old_reddit(url: str, *, state: AppState) -> TierResult:
+async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:
     """Fallback: GET old.reddit.com<path> and extract HTML via trafilatura.
 
     Returns a `Rendered` with extracted markdown on success, else an
@@ -745,6 +748,7 @@ async def _fetch_old_reddit(url: str, *, state: AppState) -> TierResult:
             timeout=_DEFAULT_TIMEOUT_S,
             follow_redirects=True,
             headers={"User-Agent": state.settings.default_ua},
+            cookies=cookies,
         ) as client:
             response = await client.get(old_url)
     except httpx.TimeoutException:

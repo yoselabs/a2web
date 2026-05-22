@@ -26,7 +26,7 @@ import a2kit.ldd
 import structlog
 from a2kit.packages.di import Lazy
 
-from .actions import RetryViaArchive, RewriteUrl, next_action_after_gate, next_action_after_tier
+from .actions import Action, EscalateBrowser, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
 from .cookie_jar import Cookie, CookieJarResource
 from .decision_log import Observation, ObservationKind, resolve_verdict
 from .domain import (
@@ -298,11 +298,23 @@ class FetchContext:
         source: str,
         verdict: Verdict,
         authoritative: bool = False,
+        status_code: int = 0,
+        cloudflare: bool = False,
+        suggested_tier: str | None = None,
     ) -> None:
         """Append one immutable observation to the decision log."""
         t_ms = int((time.perf_counter() - self.start_perf) * 1000)
         self.observations.append(
-            Observation(kind=kind, source=source, verdict=verdict, authoritative=authoritative, t_ms=t_ms),
+            Observation(
+                kind=kind,
+                source=source,
+                verdict=verdict,
+                authoritative=authoritative,
+                t_ms=t_ms,
+                status_code=status_code,
+                cloudflare=cloudflare,
+                suggested_tier=suggested_tier,
+            ),
         )
 
     def resolved_verdict(self) -> Verdict:
@@ -630,12 +642,12 @@ async def _phase_cache_check(fc: FetchContext) -> None:
         fc.cached_row = await fc.sqlite.get(fc.url, fc.profile_hash)
 
 
-class _AfterTier(Enum):
-    """Outcome of `_apply_after_tier_action` — drives outer-loop control flow."""
+class _Exec(Enum):
+    """Outcome of executing a planner action — drives tier-loop control flow."""
 
-    NONE = "none"  # no rewrite / archive — continue normal tier-loop flow
-    REWRITE = "rewrite"  # URL was rewritten — restart the loop
-    ARCHIVE_INSTALLED = "archive_installed"  # archive content installed onto fc
+    CONTINUE = "continue"  # advance to the next tier
+    RESTART = "restart"  # URL was rewritten — restart the tier loop
+    STOP = "stop"  # cascade done — a tier won or archive content installed
 
 
 def _install_won_tier(
@@ -644,13 +656,16 @@ def _install_won_tier(
     tier_name: str,
     tier: Tier,
 ) -> None:
-    """Install a winning (`Verdict.ok`) tier result onto FetchContext."""
+    """Install winning tier content onto FetchContext.
+
+    The tier observation is appended separately by the caller before the
+    planner is consulted — this function only installs the content payload.
+    """
     fc.body = tier_result.body
     fc.content_type = tier_result.content_type
     fc.status_code = tier_result.status_code
     fc.final_url = tier_result.final_url
     fc.tier_used = tier_result.handler_name or (tier.name if hasattr(tier, "name") else tier_name)
-    fc.observe(kind=ObservationKind.tier_outcome, source=fc.tier_used, verdict=Verdict.ok)
     fc.etag = tier_result.headers.get("etag")
     fc.last_modified = tier_result.headers.get("last-modified")
     fc.pre_rendered_payload = tier_result.pre_rendered
@@ -659,7 +674,12 @@ def _install_won_tier(
 
 
 def _install_archive_payload(fc: FetchContext, outcome: _ArchiveOutcome) -> None:
-    """Install a successful archive escalation outcome onto FetchContext."""
+    """Install a tier-loop archive escalation outcome onto FetchContext.
+
+    Runs before `_phase_extract`, so it installs the body only — extraction
+    fills `content_md` from `pre_rendered_payload`. Appends the archive's
+    winning observation.
+    """
     fc.body = outcome.body
     fc.content_type = outcome.content_type
     fc.final_url = outcome.final_url
@@ -669,46 +689,77 @@ def _install_archive_payload(fc: FetchContext, outcome: _ArchiveOutcome) -> None
     fc.observe(kind=ObservationKind.tier_outcome, source="archive", verdict=Verdict.ok)
 
 
-async def _apply_after_tier_action(
+def _install_gate_archive(fc: FetchContext, outcome: _ArchiveOutcome) -> None:
+    """Install a gate-path archive escalation outcome onto FetchContext.
+
+    Unlike `_install_archive_payload`, this lands after `_phase_extract` has
+    run — so it sets the extracted fields directly from the archive's
+    pre-rendered payload.
+    """
+    pre = outcome.pre_rendered
+    assert pre is not None  # noqa: S101 — narrowed by the caller
+    fc.content_md = pre.content_md
+    fc.title = pre.title
+    fc.byline = pre.byline
+    fc.headings = pre.headings
+    fc.body = outcome.body
+    fc.content_type = outcome.content_type
+    fc.final_url = outcome.final_url
+    fc.tier_used = "archive"
+    fc.pre_rendered_payload = pre
+
+
+def _planner_caps(fc: FetchContext) -> PlannerCaps:
+    """Snapshot the per-fetch escalation budgets for the planner."""
+    return PlannerCaps(
+        url_rewrites=fc.url_rewrites,
+        archive_dispatches=fc.archive_dispatches,
+        browser_dispatches=fc.browser_dispatches,
+    )
+
+
+def _tier_is_cloudflare(tier_result: TierResult) -> bool:
+    """True when the tier response came through Cloudflare (server / cf-ray header)."""
+    server = tier_result.headers.get("server", "").lower()
+    return "cloudflare" in server or "cf-ray" in tier_result.headers
+
+
+async def _execute_tier_action(
     fc: FetchContext,
+    action: Action,
     tier_result: TierResult,
+    tier_name: str,
+    tier: Tier,
     *,
     state: AppState,
-) -> _AfterTier:
-    """Run the after-tier action (URL rewrite, archive retry) and report outcome.
+) -> _Exec:
+    """Execute a planner action inside the tier loop; report loop control flow.
 
-    Caps: `RewriteUrl` and `RetryViaArchive` each fire at most once per
-    fetch. On `REWRITE`, the new URL is installed on `fc` and the
-    cached row is reloaded. On `ARCHIVE_INSTALLED`, the archive payload
-    is installed on `fc` (caller can return from the tier loop).
+    `RewriteUrl` restarts the loop (cap 1). `RetryViaArchive` dispatches the
+    archive tier (cap 1) and stops on success. Otherwise a winning tier
+    installs its content and stops; a failed tier continues to the next.
     """
-    tier_action = next_action_after_tier(tier_result, fc.url)
-
-    if isinstance(tier_action, RewriteUrl) and fc.url_rewrites < 1:
+    if isinstance(action, RewriteUrl):
         fc.url_rewrites += 1
-        fc.url = tier_action.new_url
+        fc.url = action.new_url
         fc.final_url = fc.url
-        # Reset cached_row — new URL likely has its own cache entry.
-        if fc.sqlite is not None:
-            fc.cached_row = await fc.sqlite.get(fc.url, fc.profile_hash)
-        else:
-            fc.cached_row = None
-        return _AfterTier.REWRITE
+        fc.cached_row = await fc.sqlite.get(fc.url, fc.profile_hash) if fc.sqlite is not None else None
+        return _Exec.RESTART
 
-    if isinstance(tier_action, RetryViaArchive) and fc.archive_dispatches < 1:
+    if isinstance(action, RetryViaArchive):
         fc.archive_dispatches += 1
         outcome = await _dispatch_archive(
-            tier_action.url,
-            state=state,
-            start_perf=fc.start_perf,
-            diagnostics=fc.diagnostics,
+            action.url, state=state, start_perf=fc.start_perf, diagnostics=fc.diagnostics,
         )
         if outcome.success:
             _install_archive_payload(fc, outcome)
-            return _AfterTier.ARCHIVE_INSTALLED
-        # Archive failed — keep trying tiers (fall through).
+            return _Exec.STOP
+        # Archive failed — fall through to the win / continue decision.
 
-    return _AfterTier.NONE
+    if tier_result.verdict is Verdict.ok:
+        _install_won_tier(fc, tier_result, tier_name, tier)
+        return _Exec.STOP
+    return _Exec.CONTINUE
 
 
 async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
@@ -828,24 +879,25 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 )
             )
 
-            after = await _apply_after_tier_action(fc, tier_result, state=state)
-            if after is _AfterTier.REWRITE:
-                restart_loop = True
-                break  # break inner for; while True restarts
-            if after is _AfterTier.ARCHIVE_INSTALLED:
-                return
-
-            if tier_result.verdict == Verdict.ok:
-                _install_won_tier(fc, tier_result, tier_name, tier)
-                return
-
+            # Append the tier observation BEFORE consulting the planner, so
+            # `decide_next` sees the full decision log; then execute its action.
             authoritative = tier_name == "site_handler" and tier_result.verdict is Verdict.not_found
             fc.observe(
                 kind=ObservationKind.tier_outcome,
                 source=tier_result.handler_name or tier_name,
                 verdict=tier_result.verdict,
                 authoritative=authoritative,
+                status_code=tier_result.status_code,
+                cloudflare=_tier_is_cloudflare(tier_result),
             )
+            action = decide_next(fc.observations, url=fc.url, caps=_planner_caps(fc))
+            executed = await _execute_tier_action(fc, action, tier_result, tier_name, tier, state=state)
+            if executed is _Exec.RESTART:
+                restart_loop = True
+                break  # break inner for; while True restarts
+            if executed is _Exec.STOP:
+                return
+            # _Exec.CONTINUE → next tier
 
         if not restart_loop:
             return
@@ -994,7 +1046,12 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
     await a2kit.ldd.event(
         StageEnded(t_ms=gate_dur_start, step="gate", verdict=fc.gate_verdict, dur_ms=gate_dur_ms),
     )
-    fc.observe(kind=ObservationKind.gate_outcome, source="gate", verdict=fc.gate_verdict)
+    fc.observe(
+        kind=ObservationKind.gate_outcome,
+        source="gate",
+        verdict=fc.gate_verdict,
+        suggested_tier=gate_result.suggested_tier,
+    )
 
     # v0.7: search-engine captcha escape — block detector flagged a Google/Bing
     # captcha page that slipped past `rewrite_captcha_host`. Surface an
@@ -1008,31 +1065,23 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
             )
         )
 
-    # Browser escalation — cap=1, only if gate flagged browser
-    if gate_result.suggested_tier == "browser" and fc.browser_dispatches < 1 and fc.gate_verdict != Verdict.ok:
-        await _escalate_browser(fc, state=state)
-
-    # Archive escalation — cap=1 (shared with after-tier archive_dispatches)
-    gate_action = next_action_after_gate(fc.gate_verdict, fc.final_url)
-    if isinstance(gate_action, RetryViaArchive) and fc.archive_dispatches < 1:
-        fc.archive_dispatches += 1
-        outcome = await _dispatch_archive(
-            gate_action.url,
-            state=state,
-            start_perf=fc.start_perf,
-            diagnostics=fc.diagnostics,
-        )
-        if outcome.success and outcome.pre_rendered is not None:
-            fc.content_md = outcome.pre_rendered.content_md
-            fc.title = outcome.pre_rendered.title
-            fc.byline = outcome.pre_rendered.byline
-            fc.headings = outcome.pre_rendered.headings
-            fc.body = outcome.body
-            fc.content_type = outcome.content_type
-            fc.final_url = outcome.final_url
-            fc.tier_used = "archive"
-            fc.pre_rendered_payload = outcome.pre_rendered
-            _regate_after_escalation(fc)
+    # Planner-driven escalation. Consult `decide_next` over the decision log,
+    # execute its action, repeat until it says Continue. Each escalation is
+    # capped at one dispatch, so the loop terminates.
+    while True:
+        action = decide_next(fc.observations, url=fc.final_url, caps=_planner_caps(fc))
+        if isinstance(action, EscalateBrowser):
+            await _escalate_browser(fc, state=state)
+        elif isinstance(action, RetryViaArchive):
+            fc.archive_dispatches += 1
+            outcome = await _dispatch_archive(
+                action.url, state=state, start_perf=fc.start_perf, diagnostics=fc.diagnostics,
+            )
+            if outcome.success and outcome.pre_rendered is not None:
+                _install_gate_archive(fc, outcome)
+                _regate_after_escalation(fc)
+        else:
+            break  # Continue (or a URL rewrite — not used post-gate)
 
 
 def _regate_after_escalation(fc: FetchContext) -> None:

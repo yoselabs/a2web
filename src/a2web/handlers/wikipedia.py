@@ -45,7 +45,8 @@ class WikipediaHandler:
     def matches(self, url: str) -> bool:
         return _parse(url) is not None
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:
+        del cookies  # handler manages its own transport
         from ..tiers import TierResult
 
         parsed = _parse(url)

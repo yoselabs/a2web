@@ -42,6 +42,10 @@ class Observation:
     verdict: Verdict
     authoritative: bool
     t_ms: int
+    # Evidence the planner (`decide_next`) reads to choose escalation.
+    status_code: int = 0
+    cloudflare: bool = False  # tier response came through Cloudflare
+    suggested_tier: str | None = None  # gate's escalation hint ("browser" / "tls_impersonate")
 
 
 def _verdict_rank(verdict: Verdict) -> int:

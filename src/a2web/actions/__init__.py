@@ -1,21 +1,23 @@
-"""Autonomous-action playbook — pure deterministic dispatch."""
+"""Autonomous-action playbook — the pure planner over the decision log."""
 
 from __future__ import annotations
 
 from .playbook import (
     Action,
+    Continue,
+    EscalateBrowser,
+    PlannerCaps,
     RetryViaArchive,
     RewriteUrl,
-    Skip,
-    next_action_after_gate,
-    next_action_after_tier,
+    decide_next,
 )
 
 __all__ = [
     "Action",
+    "Continue",
+    "EscalateBrowser",
+    "PlannerCaps",
     "RetryViaArchive",
     "RewriteUrl",
-    "Skip",
-    "next_action_after_gate",
-    "next_action_after_tier",
+    "decide_next",
 ]

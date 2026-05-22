@@ -33,8 +33,7 @@ After each tier appends its observation, the orchestrator SHALL call the planner
 - `RewriteUrl(new_url)` — restart the tier loop with `new_url`; capped at 1 rewrite per fetch.
 - `RetryViaArchive(url)` — dispatch the archive tier; capped at 1 archive dispatch per fetch (shared with the after-gate archive path).
 - `EscalateBrowser` — dispatch the browser tier; capped at 1 per fetch.
-- `StopLiveTiers` — stop dispatching further live (`TIER_ORDER`) tiers; archive escalation MAY still run.
-- continue / no-op — advance to the next `TIER_ORDER` slot.
+- `Continue` — no escalation; advance to the next `TIER_ORDER` slot, or finish.
 
 #### Scenario: arxiv pdf rewrites to abs page
 
@@ -51,10 +50,10 @@ After each tier appends its observation, the orchestrator SHALL call the planner
 - **WHEN** the raw tier returns 403 from a Cloudflare-fronted host
 - **THEN** `decide_next` returns `RetryViaArchive`, the archive tier is dispatched, and the archive dispatch count is 1
 
-#### Scenario: StopLiveTiers halts live tiers but archive remains allowed
+#### Scenario: The orchestrator holds no escalation policy
 
-- **WHEN** `decide_next` returns `StopLiveTiers` for an observation log
-- **THEN** the orchestrator dispatches no further `TIER_ORDER` tier, while a subsequent `RetryViaArchive` action is still permitted to run
+- **WHEN** a tier produces a result that historically triggered an inline escalation
+- **THEN** the orchestrator escalates only if `decide_next` returns the corresponding action — it contains no escalation decision of its own
 
 ## REMOVED Requirements
 

@@ -65,7 +65,8 @@ class GitHubHandler:
     def matches(self, url: str) -> bool:
         return _classify(url) is not None
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:
+        del cookies  # handler manages its own transport
 
         classified = _classify(url)
         if classified is None:

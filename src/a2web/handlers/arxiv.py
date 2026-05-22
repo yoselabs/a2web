@@ -62,7 +62,8 @@ class ArxivHandler:
     def matches(self, url: str) -> bool:
         return _extract_id(url) is not None or _extract_listing(url) is not None
 
-    async def fetch(self, url: str, *, state: AppState) -> TierResult:
+    async def fetch(self, url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:
+        del cookies  # handler manages its own transport
         from ..tiers import Rendered, TierResult
 
         listing = _extract_listing(url)

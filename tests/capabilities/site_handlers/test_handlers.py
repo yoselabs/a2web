@@ -871,33 +871,22 @@ async def test_reddit_handler_short_url_no_match_for_non_thread_resolution(
 
 
 def test_playbook_escalates_reddit_not_found_to_archive() -> None:
-    """next_action_after_tier: reddit URL + not_found → RetryViaArchive."""
-    from a2web.actions import RetryViaArchive, next_action_after_tier
-    from a2web.tiers import TierResult
+    """decide_next: reddit comment URL + handler not_found → RetryViaArchive."""
+    from a2web.actions import PlannerCaps, RetryViaArchive, decide_next
+    from a2web.decision_log import Observation, ObservationKind
 
-    tr = TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url="https://www.reddit.com/r/x/comments/dead/",
-        verdict=Verdict.not_found,
-    )
-    action = next_action_after_tier(tr, "https://www.reddit.com/r/x/comments/dead/")
+    url = "https://www.reddit.com/r/x/comments/dead/"
+    log = [Observation(ObservationKind.tier_outcome, "site_handler:reddit", Verdict.not_found, True, 1)]
+    action = decide_next(log, url=url, caps=PlannerCaps(0, 0, 0))
     assert isinstance(action, RetryViaArchive)
-    assert action.url == "https://www.reddit.com/r/x/comments/dead/"
+    assert action.url == url
 
 
 def test_playbook_does_not_escalate_not_found_on_other_hosts() -> None:
     """The reddit not_found rule does not fire for non-reddit hosts."""
-    from a2web.actions import next_action_after_tier
-    from a2web.tiers import TierResult
+    from a2web.actions import Continue, PlannerCaps, decide_next
+    from a2web.decision_log import Observation, ObservationKind
 
-    tr = TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url="https://example.com/page",
-        verdict=Verdict.not_found,
-    )
-    action = next_action_after_tier(tr, "https://example.com/page")
-    assert action is None
+    log = [Observation(ObservationKind.tier_outcome, "raw", Verdict.not_found, False, 1)]
+    action = decide_next(log, url="https://example.com/page", caps=PlannerCaps(0, 0, 0))
+    assert isinstance(action, Continue)
