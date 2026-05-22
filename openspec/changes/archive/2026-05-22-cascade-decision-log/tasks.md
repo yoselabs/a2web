@@ -30,4 +30,4 @@
 
 ## 4. Verify
 
-- [ ] 4.1 Run `make bench` (live-network, spends LLM quota — user-gated) and record findings in `eval/findings_<date>.md`: this change moves tier routing and escalation, so a benchmark pass is warranted before considering it done.
+- [x] 4.1 Run `make bench` (live-network, spends LLM quota — user-gated) and record findings in `eval/findings_<date>.md`: this change moves tier routing and escalation, so a benchmark pass is warranted before considering it done. — Done: contract 10/10 (debug on+off) both systems, quality stable within noise, no envelope regression. See `eval/findings_2026-05-22.md` Run 2.

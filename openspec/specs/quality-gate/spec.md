@@ -5,7 +5,9 @@ TBD - created by archiving change pr7c-browser-tier. Update Purpose after archiv
 ## Requirements
 ### Requirement: Gate result carries optional suggested_tier
 
-`GateResult` SHALL gain a `suggested_tier: str | None = None` field. When a detector fires on an anti-bot signal that maps to a specific escalation tier per the engineering.md §2 signal table, the gate SHALL set `suggested_tier` to the mapped value (`"browser"` or `"tls_impersonate"`). When no signal fires or the verdict is `ok`, `suggested_tier` SHALL be `None`. The orchestrator (not the gate) is responsible for acting on this hint.
+`GateResult` SHALL gain a `suggested_tier: str | None = None` field. When a detector fires on an anti-bot signal that maps to a specific escalation tier per the engineering.md §2 signal table, the gate SHALL set `suggested_tier` to the mapped value (`"browser"` or `"tls_impersonate"`). When no signal fires or the verdict is `ok`, `suggested_tier` SHALL be `None`.
+
+The gate SHALL NOT act on this signal and SHALL NOT route escalation. `suggested_tier` is recorded as evidence on the gate's `Observation` in the cascade decision log; the planner `decide_next` — not the gate, and not the orchestrator inline — decides whether and how to escalate (see the `cascade-decision-log` capability).
 
 The signal table for v0.1 is:
 
@@ -26,12 +28,17 @@ The signal table for v0.1 is:
 #### Scenario: Cloudflare interstitial yields suggested_tier = "tls_impersonate"
 
 - **WHEN** the gate sees a "Just a moment" interstitial with `cf-chl-bypass` markers
-- **THEN** `suggested_tier == "tls_impersonate"` (raw with curl_cffi will retry)
+- **THEN** `suggested_tier == "tls_impersonate"`
 
 #### Scenario: Clean article has no suggested_tier
 
 - **WHEN** the gate evaluates a normal article that passes all checks
 - **THEN** `verdict == Verdict.ok` and `suggested_tier is None`
+
+#### Scenario: The gate does not itself escalate
+
+- **WHEN** the gate sets `suggested_tier == "browser"`
+- **THEN** the gate performs no tier dispatch — it only records the signal as evidence; escalation is left to `decide_next`
 
 ### Requirement: Jina stub recognized as paywall
 

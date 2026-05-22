@@ -97,24 +97,29 @@ The orchestrator SHALL check `tier_result.tier_extras` for a `"pre_rendered"` di
 
 ### Requirement: Orchestrator dispatches browser tier on gate suggested_tier
 
-After running the quality gate on each tier's result, the orchestrator SHALL inspect `gate_result.suggested_tier`. When `suggested_tier == "browser"`, the orchestrator SHALL dispatch the browser tier (looked up in `REGISTRY`) as the next step, regardless of its absence from `TIER_ORDER`. Intermediate `TIER_ORDER` slots SHALL be skipped — they would block on the same signal. Browser dispatches SHALL be capped at 1 per fetch via a per-fetch `browser_dispatches` counter on the orchestrator stack.
+Browser-tier dispatch SHALL be decided by the planner `decide_next` over the observation log, not by the orchestrator inspecting a gate result inline. When the log carries a gate observation whose evidence maps to browser escalation, `decide_next` SHALL return an `EscalateBrowser` action; the orchestrator executes it by dispatching the browser tier from `REGISTRY` regardless of its absence from `TIER_ORDER`. Because `decide_next` reads the whole log rather than one won tier's gate result, `EscalateBrowser` MAY fire even when no tier produced gate-passing content — a total-failure case the prior gate-gated design could not reach. Browser dispatches SHALL remain capped at 1 per fetch.
 
-When `suggested_tier == "tls_impersonate"` and the producing tier is `raw`, the orchestrator SHALL no-op (raw already uses curl_cffi). When `suggested_tier == "tls_impersonate"` and the producing tier is something else, the orchestrator SHALL fall back to the next `TIER_ORDER` slot (raw).
+A `tls_impersonate` signal observed on the `raw` tier SHALL be a no-op (raw already uses curl_cffi); on any other tier the cascade advances to the next `TIER_ORDER` slot.
 
-#### Scenario: Anubis at jina tier triggers browser dispatch, skipping archive
+#### Scenario: Anubis at jina tier triggers browser escalation
 
-- **WHEN** raw fails, jina returns 200-OK but gate detects Anubis with `suggested_tier == "browser"`
-- **THEN** the orchestrator dispatches the browser tier next, the archive tier is not invoked, and `browser_dispatches == 1`
+- **WHEN** raw fails, jina returns 200-OK, and the gate observation records an Anubis browser signal
+- **THEN** `decide_next` returns `EscalateBrowser`, the orchestrator dispatches the browser tier, and the browser dispatch count is 1
+
+#### Scenario: Browser escalation fires on a total failure
+
+- **WHEN** every live tier fails and no tier produced gate-passing content, but a tier or gate observation records a soft-block / JS-required signal
+- **THEN** `decide_next` returns `EscalateBrowser` and the orchestrator dispatches the browser tier
 
 #### Scenario: Browser dispatch capped at 1 per fetch
 
-- **WHEN** the browser tier itself returns a result whose gate verdict still suggests browser (pathological case)
-- **THEN** the orchestrator does NOT dispatch the browser tier a second time; the cascade returns `failed` with the last gate verdict
+- **WHEN** the browser tier itself returns a result whose gate observation still carries a browser signal
+- **THEN** `decide_next` does NOT return `EscalateBrowser` a second time; the cascade ends failed with the resolved verdict
 
 #### Scenario: tls_impersonate after raw is a no-op
 
-- **WHEN** the raw tier produces a Cloudflare interstitial and gate sets `suggested_tier == "tls_impersonate"`
-- **THEN** the orchestrator does not retry raw (already curl_cffi); it advances to the next `TIER_ORDER` slot (jina)
+- **WHEN** the raw tier produces a Cloudflare interstitial whose gate observation carries a `tls_impersonate` signal
+- **THEN** the cascade does not retry raw; it advances to the next `TIER_ORDER` slot (jina)
 
 ### Requirement: Browser-rendered results cache normally
 
@@ -143,31 +148,32 @@ When `acquire` returns `None` (all proxies dead AND `proxy_required=True`), the 
 
 ### Requirement: Orchestrator executes after-tier RewriteUrl and RetryViaArchive
 
-After each tier produces a result, the orchestrator SHALL consult `next_action_after_tier(tier_result, current_url, settings)`:
+After each tier appends its observation, the orchestrator SHALL call the planner `decide_next(observation_log, caps)` and execute the returned `Action`. The orchestrator SHALL contain no escalation, rewrite, or stop policy of its own. The actions and their per-fetch caps:
 
-- `RewriteUrl(new_url)` — restart the tier loop with `new_url`. Capped at 1 rewrite per fetch (per-fetch counter `url_rewrites`). Subsequent rewrites SHALL be ignored.
-- `RetryViaArchive(url)` — dispatch the archive tier as in the after-gate path. Shares the existing `archive_dispatches` cap (1 per fetch); after-tier and after-gate are mutually exclusive paths.
-- `Skip` / `None` — no-op.
+- `RewriteUrl(new_url)` — restart the tier loop with `new_url`; capped at 1 rewrite per fetch.
+- `RetryViaArchive(url)` — dispatch the archive tier; capped at 1 archive dispatch per fetch (shared with the after-gate archive path).
+- `EscalateBrowser` — dispatch the browser tier; capped at 1 per fetch.
+- `Continue` — no escalation; advance to the next `TIER_ORDER` slot, or finish.
 
 #### Scenario: arxiv pdf rewrites to abs page
 
 - **WHEN** the URL is `https://arxiv.org/pdf/1234.5678` and any tier returns
-- **THEN** the playbook returns `RewriteUrl("https://arxiv.org/abs/1234.5678")`, `url_rewrites` increments to 1, the tier loop restarts with the new URL, and the response's `url` field reflects the rewritten URL
+- **THEN** `decide_next` returns `RewriteUrl("https://arxiv.org/abs/1234.5678")`, the tier loop restarts with the new URL, and the response's `url` field reflects the rewrite
 
 #### Scenario: Rewrite cap prevents loops
 
 - **WHEN** a chain of rewrites would otherwise fire twice in one fetch
-- **THEN** the second `RewriteUrl` is ignored; the orchestrator continues without restart
+- **THEN** the second `RewriteUrl` is not executed; the cascade continues without restart
 
 #### Scenario: Cloudflare 403 after-tier triggers archive dispatch
 
-- **WHEN** raw returns 403 from a Cloudflare-fronted host (`server: cloudflare`)
-- **THEN** `next_action_after_tier` returns `RetryViaArchive`, the archive tier is dispatched out-of-band, and `archive_dispatches` increments to 1
+- **WHEN** the raw tier returns 403 from a Cloudflare-fronted host
+- **THEN** `decide_next` returns `RetryViaArchive`, the archive tier is dispatched, and the archive dispatch count is 1
 
-#### Scenario: After-tier and after-gate share archive cap
+#### Scenario: The orchestrator holds no escalation policy
 
-- **WHEN** after-tier dispatches archive (cap consumed) and a later gate verdict would also dispatch archive
-- **THEN** the second dispatch is suppressed; the original gate verdict stands
+- **WHEN** a tier produces a result that historically triggered an inline escalation
+- **THEN** the orchestrator escalates only if `decide_next` returns the corresponding action — it contains no escalation decision of its own
 
 ### Requirement: Cookie resolution phase precedes the tier loop
 
@@ -227,25 +233,4 @@ The message SHALL include the numeric `age_hours` (or `"never"` if `last_refresh
 
 - **WHEN** `cookie_source == "none"`
 - **THEN** `response.operator_hints` contains no `cookies_stale` entry and `CookiesStale` is not emitted
-
-### Requirement: Site handler not_found takes precedence over a downstream failure verdict
-
-A site handler returning `Verdict.not_found` is the most authoritative negative signal in the pipeline — the site expert has confirmed the content is gone. When a site handler returns `Verdict.not_found` during the tier loop AND the fetch ultimately fails (no tier produces gate-passing content), the orchestrator SHALL report `not_found` as the final response verdict, overriding any vaguer failure verdict (`length_floor`, `other`) produced by a downstream generic tier.
-
-This precedence SHALL apply only when the fetch fails. When a downstream tier produces real, gate-passing content (final verdict `ok`), that success SHALL stand unchanged — the precedence rule never overrides a genuine recovery. The rule SHALL be scoped to `not_found`; transient handler verdicts (`rate_limited`, `timeout`, `connection_error`) are not covered.
-
-#### Scenario: Deleted page — handler not_found survives a downstream length_floor
-
-- **WHEN** a site handler returns `Verdict.not_found`, then the raw tier returns HTTP 200 with a thin sub-length-floor body and the gate verdict is `length_floor`
-- **THEN** the final `FetchResponse` carries verdict `not_found` (not `length_floor`), and `status` is `failed`
-
-#### Scenario: Downstream recovery still wins over a handler not_found
-
-- **WHEN** a site handler returns `Verdict.not_found`, then a downstream tier returns gate-passing content (final verdict `ok`)
-- **THEN** the final `FetchResponse` carries `status` `ok` — the precedence rule does not override the recovery
-
-#### Scenario: No handler not_found leaves the failure verdict untouched
-
-- **WHEN** no site handler returned `Verdict.not_found` during the fetch and the fetch fails with `length_floor`
-- **THEN** the final `FetchResponse` carries verdict `length_floor` — the precedence rule does not fire
 
