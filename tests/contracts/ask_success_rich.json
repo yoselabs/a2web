@@ -17,7 +17,5 @@
   },
   "next_links": "anchor\turl\treason\tkind\nRelated\thttps://example.org/related\trelated read\trelated\n",
   "published": "2026-04-01",
-  "tier": "raw",
-  "title": "How adaptive web fetching saves agent tokens",
-  "url": "https://example.org/rich"
+  "title": "How adaptive web fetching saves agent tokens"
 }

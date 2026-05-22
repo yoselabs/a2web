@@ -194,9 +194,10 @@ class FetchContext:
     # URL state (rewritten on after-tier RewriteUrl)
     url: str
     final_url: str
-    # Set when an upfront rewrite happened (e.g. captcha host → DDG). Diagnostics
-    # carry it so callers see "you asked for X, I fetched Y — here's why".
-    original_url: str | None = None
+    # The URL the caller actually passed — captured once at fetch() entry,
+    # never mutated by captcha or after-tier rewrites. `build_response`
+    # compares it against `final_url` to decide whether `url` is wire-worthy.
+    requested_url: str = ""
 
     # Lazy handles for heavy/conditional resources (a2kit v0.36+). Phases that
     # actually need browser or LLM extraction `await fc.browser_pool()` /
@@ -321,19 +322,18 @@ async def fetch(
     """
     start_perf = time.perf_counter()
     started_at = datetime.now(UTC)
+    requested_url = url  # the caller's input, before any rewrite
 
     # v0.7: captcha-host pre-routing — Google/Bing search URLs serve captcha
     # pages that pass the length floor. Rewrite to DDG before tier dispatch
-    # so callers get useful results. Keep `original_url` so diagnostics are
-    # honest about what we actually fetched. The rewrite counts against
-    # `fc.url_rewrites` (capped at 1 per fetch by the playbook) — defense
-    # against any future chain where a captcha rewrite stacks with an
+    # so callers get useful results. `requested_url` (captured above) keeps
+    # the wire honest — `url` surfaces the DDG destination as a deviation.
+    # The rewrite counts against `fc.url_rewrites` (capped at 1 per fetch by
+    # the playbook) — defense against a captcha rewrite stacking with an
     # after-tier RewriteUrl.
-    original_url: str | None = None
     initial_url_rewrites = 0
     rewritten = rewrite_captcha_host(url)
     if rewritten is not None:
-        original_url = url
         url = rewritten
         initial_url_rewrites = 1
 
@@ -352,7 +352,7 @@ async def fetch(
         cookie_jar=cookie_jar,
         url=url,
         final_url=url,
-        original_url=original_url,
+        requested_url=requested_url,
         url_rewrites=initial_url_rewrites,
         include_links=include_links,
         link_roles=link_roles,

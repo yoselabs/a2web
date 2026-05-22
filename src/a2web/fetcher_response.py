@@ -164,12 +164,17 @@ def build_response(fc: FetchContext) -> FetchResponse:
         gate_subsystem=fc.gate_subsystem,
     )
 
+    # `url` is redirect-only: carry the final URL only when it differs from
+    # what the caller requested (HTTP redirect, captcha-host rewrite, or
+    # after-tier RewriteUrl); empty otherwise, so the serializer drops it.
+    deviated_url = fc.final_url if fc.final_url != fc.requested_url else ""
+
     # narrative / diagnostics_summary stay populated for internal callers (the
     # eval harness reads them); the serializer drops them on a successful wire.
     # Timing / cache / tokens are debug-only — the serializer drops them when
     # absent, so leaving them None here is the gate.
     return FetchResponse(
-        url=fc.final_url,
+        url=deviated_url,
         status=status,
         tier=fc.tier_used,
         confidence=_confidence_for(fc.final_verdict, fc.content_md),
@@ -191,7 +196,6 @@ def build_response(fc: FetchContext) -> FetchResponse:
         next_links=_compose_next_links(fc),
         extracted_answer=fc.extracted_answer,
         extraction=fc.extraction_meta,
-        original_url=fc.original_url,
     )
 
 
@@ -255,7 +259,6 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         published=fr.published,
         operator_hints=op_hints,
         next_links=list(fr.next_links),
-        original_url=fr.original_url,
         meta=dict(fr.meta),
         extraction=_debug_extraction(fr.extraction, debug=debug),
         content_md=fr.content_md if include_content else "",

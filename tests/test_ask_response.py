@@ -37,13 +37,22 @@ _MINIMAL_HTML = (
 
 
 class _RawStub:
-    """Raw tier stand-in — fixed body, optional handler next_links, no network."""
+    """Fixed-body tier stand-in — no network. Defaults to the `raw` tier;
+    pass `name` / `handler_name` to stand in for a site handler instead.
+    """
 
-    name = "raw"
-
-    def __init__(self, body: bytes, next_links: list | None = None) -> None:
+    def __init__(
+        self,
+        body: bytes,
+        next_links: list | None = None,
+        *,
+        name: str = "raw",
+        handler_name: str | None = None,
+    ) -> None:
+        self.name = name
         self._body = body
         self._next_links = next_links or []
+        self._handler_name = handler_name
 
     async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
         del state, kwargs
@@ -53,6 +62,7 @@ class _RawStub:
             status_code=200,
             final_url=url,
             next_links=self._next_links,
+            handler_name=self._handler_name,
         )
 
 
@@ -106,7 +116,7 @@ async def _ask_wire(
     return json.loads(wire)
 
 
-_REQUIRED = {"url", "tier", "confidence", "extracted_answer"}
+_REQUIRED = {"confidence", "extracted_answer"}
 
 
 # --------------------------------------------------------------------- #
@@ -262,6 +272,7 @@ async def test_ask_failure_carries_narrative(monkeypatch: pytest.MonkeyPatch) ->
 @pytest.mark.asyncio
 async def test_ask_default_omits_timing(monkeypatch: pytest.MonkeyPatch) -> None:
     data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    assert "debug" not in data
     for key in ("started_at", "total_ms", "cache", "diagnostics"):
         assert key not in data
 
@@ -269,8 +280,9 @@ async def test_ask_default_omits_timing(monkeypatch: pytest.MonkeyPatch) -> None
 @pytest.mark.asyncio
 async def test_ask_debug_includes_timing(monkeypatch: pytest.MonkeyPatch) -> None:
     data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?", debug=True)
+    debug = data["debug"]
     for key in ("started_at", "total_ms", "cache"):
-        assert key in data
+        assert key in debug
 
 
 # --------------------------------------------------------------------- #
@@ -301,8 +313,37 @@ async def test_ask_truncation_surfaces_operator_hint(monkeypatch: pytest.MonkeyP
 @pytest.mark.asyncio
 async def test_ask_extraction_full_under_debug(monkeypatch: pytest.MonkeyPatch) -> None:
     data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?", debug=True)
-    extraction = data["extraction"]
+    extraction = data["debug"]["extraction"]
     assert "truncated" in extraction
     assert extraction["model"] == "stub-model"
     assert "prompt_tokens" in extraction
     assert "latency_ms" in extraction
+
+
+# --------------------------------------------------------------------- #
+# deviation-only tier / url
+# --------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_ask_tier_omitted_for_raw(monkeypatch: pytest.MonkeyPatch) -> None:
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    assert "tier" not in data
+
+
+@pytest.mark.asyncio
+async def test_ask_url_omitted_when_no_redirect(monkeypatch: pytest.MonkeyPatch) -> None:
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    assert "url" not in data
+
+
+@pytest.mark.asyncio
+async def test_ask_url_carried_when_host_rewritten(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A Google search URL is captcha-rewritten to DuckDuckGo before tier dispatch.
+    data = await _ask_wire(
+        monkeypatch,
+        body=_MINIMAL_HTML,
+        url="https://www.google.com/search?q=adaptive+web+fetching",
+        question="q?",
+    )
+    assert data["url"].startswith("https://duckduckgo.com/html/")

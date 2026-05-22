@@ -50,15 +50,19 @@ async def test_fetch_raw_success_omits_status_and_empty_optionals(monkeypatch: p
         url="https://example.org/raw",
         next_links=False,
     )
-    # required fields always present
-    for key in ("url", "tier", "confidence"):
-        assert key in data
-    # success → status / narrative / diagnostics_summary absent
-    for key in ("status", "narrative", "diagnostics_summary"):
+    # confidence is the one always-present field
+    assert "confidence" in data
+    # deviation-only: raw tier + no redirect → tier / url / status all absent
+    for key in ("status", "tier", "url"):
+        assert key not in data, f"deviation-only field {key!r} leaked on the default path"
+    # failure-only fields absent on success
+    for key in ("narrative", "diagnostics_summary"):
         assert key not in data, f"failure-only field {key!r} leaked on a successful fetch"
     # empty optionals absent (metadata-free body, no LLM, no links)
-    for key in ("byline", "published", "meta", "links", "next_links", "operator_hints", "extraction", "extracted_answer", "original_url"):
+    for key in ("byline", "published", "meta", "links", "next_links", "operator_hints", "extraction", "extracted_answer"):
         assert key not in data, f"empty optional {key!r} leaked onto the wire"
+    # original_url is gone from the envelope entirely
+    assert "original_url" not in data
 
 
 @pytest.mark.asyncio
@@ -71,23 +75,63 @@ async def test_fetch_raw_failure_carries_status_and_narrative(monkeypatch: pytes
 
 
 # --------------------------------------------------------------------- #
-# Debug-only timing / cache / diagnostics / tokens
+# Debug sub-object — timing / cache / diagnostics / tokens
 # --------------------------------------------------------------------- #
 
 
 @pytest.mark.asyncio
-async def test_fetch_raw_default_omits_timing(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_fetch_raw_default_omits_debug(monkeypatch: pytest.MonkeyPatch) -> None:
     data = await _fetch_raw_wire(monkeypatch, body=_MINIMAL_HTML, url="https://example.org/raw")
+    assert "debug" not in data
     for key in ("started_at", "total_ms", "cache", "diagnostics", "tokens"):
         assert key not in data
 
 
 @pytest.mark.asyncio
-async def test_fetch_raw_debug_includes_full_trace(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_fetch_raw_debug_nests_full_trace(monkeypatch: pytest.MonkeyPatch) -> None:
     data = await _fetch_raw_wire(monkeypatch, body=_MINIMAL_HTML, url="https://example.org/raw", debug=True)
+    debug = data["debug"]
     for key in ("started_at", "total_ms", "cache", "tokens", "diagnostics"):
-        assert key in data
-    assert data["tokens"]["full"] == len(data["content_md"])
+        assert key in debug
+    assert debug["tokens"]["full"] == len(data["content_md"])
+
+
+# --------------------------------------------------------------------- #
+# Deviation-only tier / url
+# --------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_fetch_raw_tier_omitted_for_raw(monkeypatch: pytest.MonkeyPatch) -> None:
+    data = await _fetch_raw_wire(monkeypatch, body=_MINIMAL_HTML, url="https://example.org/raw")
+    assert "tier" not in data
+
+
+@pytest.mark.asyncio
+async def test_fetch_raw_tier_carried_for_site_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A tier-0 site handler wins — its identifier deviates from `raw`.
+    handler = _RawStub(_MINIMAL_HTML, name="site_handler:stub", handler_name="site_handler:stub")
+    monkeypatch.setitem(REGISTRY, "site_handler", handler)
+    async with make_client(app) as client:
+        data = json.loads(await client.call_wire("fetch_raw", url="https://example.org/raw"))
+    assert data.get("tier") == "site_handler:stub"
+
+
+@pytest.mark.asyncio
+async def test_fetch_raw_url_omitted_when_no_redirect(monkeypatch: pytest.MonkeyPatch) -> None:
+    data = await _fetch_raw_wire(monkeypatch, body=_MINIMAL_HTML, url="https://example.org/raw")
+    assert "url" not in data
+
+
+@pytest.mark.asyncio
+async def test_fetch_raw_url_carried_when_host_rewritten(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A Google search URL is captcha-rewritten to DuckDuckGo before tier dispatch.
+    data = await _fetch_raw_wire(
+        monkeypatch,
+        body=_MINIMAL_HTML,
+        url="https://www.google.com/search?q=adaptive+web+fetching",
+    )
+    assert data["url"].startswith("https://duckduckgo.com/html/")
 
 
 # --------------------------------------------------------------------- #

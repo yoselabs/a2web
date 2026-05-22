@@ -8,6 +8,20 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-05-22
+
+The `envelope-deviation-trim` change: one rule across both tool envelopes — *a field appears on the wire only when it deviates from the default*. A trivial successful `ask` collapses to `{confidence, extracted_answer}`; a trivial `fetch_raw` to `{confidence, content_md}`.
+
+### Changed
+
+- **BREAKING — debug observability is a single `debug` sub-object.** `started_at`, `total_ms`, `cache`, `diagnostics`, `tokens`, and `extraction` no longer appear as scattered top-level keys; they regroup into one `debug` object present only when the tool is called with `debug=True`. Applies to both `ask` and `fetch_raw`.
+- **BREAKING — `tier` is deviation-only.** Omitted from the wire when its value is `raw` (the plain-HTTP default); present for `site_handler:*` / `jina` / `archive` / `browser`. Absence means a plain raw fetch.
+- **BREAKING — `url` is redirect-only.** Omitted when the fetched URL equals the requested URL; present (carrying the final URL) only after an HTTP redirect or captcha-host rewrite.
+
+### Removed
+
+- **BREAKING — `original_url` deleted from both envelopes.** The caller already holds the requested URL; the surviving `url` (when present) is the deviation. The internal `FetchContext.original_url` field is gone too — a new `FetchContext.requested_url` captures the caller's input for the `url` deviation comparison.
+
 ## [0.13.0] — 2026-05-22
 
 The `fetch-response-diet` change: `fetch_raw` / `FetchResponse` get the same lean wire treatment `ask` already received. A typical `fetch_raw` payload drops from ~22 keys (most of them `null` / `[]` / `{}`) to the handful that carry signal. The omit-empty + TSV serialization logic is now shared with `AskResponse` via a common helper.

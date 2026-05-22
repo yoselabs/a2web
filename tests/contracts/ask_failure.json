@@ -4,7 +4,5 @@
   "extracted_answer": null,
   "narrative": "raw \u2192 block_page_detected:cf_iuam (<dur>).",
   "status": "failed",
-  "tier": "raw",
-  "title": "Just a moment...",
-  "url": "https://blocked.example/page"
+  "title": "Just a moment..."
 }

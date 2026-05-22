@@ -169,17 +169,19 @@ class ExtractionMeta(BaseModel):
 class FetchResponse(BaseModel):
     """The response envelope returned by the `fetch_raw` tool.
 
-    Field tiers govern what reaches the wire (the serializer below applies
-    them; the builder populates the model in full for internal callers):
+    Field tiers govern what reaches the wire (the serializer regroups /
+    drops; the builder populates the model in full for internal callers):
 
-    - Always present: `url`, `tier`, `confidence`.
-    - Failure-only: `status`, `narrative`, `diagnostics_summary` — dropped
-      from the wire when the fetch succeeded (`status == ok`).
+    - Always present: `confidence`.
+    - Deviation-only: `status` (dropped when `ok`), `tier` (dropped when
+      `raw`), `url` (dropped when it equals the requested URL — absence means
+      the fetch landed exactly where the caller asked).
+    - Failure-only: `narrative`, `diagnostics_summary` — dropped on success.
     - Debug-only: `started_at`, `total_ms`, `cache`, `tokens`, `diagnostics`
-      — populated only when `fetch_raw` is called with `debug=True`.
+      regroup into a nested `debug` object, present only under `debug=True`.
     - Omitted when empty: `title`, `byline`, `published`, `meta`, `links`,
       `headings`, `operator_hints`, `next_links`, `extraction`,
-      `extracted_answer`, `original_url` (and `content_md` on a failed fetch).
+      `extracted_answer` (and `content_md` on a failed fetch).
     - TSV-rendered: `links` and `next_links` ship as tab-separated blocks.
     """
 
@@ -208,11 +210,6 @@ class FetchResponse(BaseModel):
     # v0.4: present only when the caller passed `ask=`. None when ask is unset.
     extracted_answer: str | None = None
     extraction: ExtractionMeta | None = None
-    # v0.7: set when the orchestrator rewrote the input URL before tier
-    # dispatch (e.g. captcha host → DDG). None when no rewrite occurred.
-    # `url` always reflects the URL actually fetched; this field tells the
-    # caller what they originally asked for.
-    original_url: str | None = None
 
     @model_serializer(mode="wrap")
     def _omit_empty(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
@@ -225,7 +222,9 @@ class FetchResponse(BaseModel):
             handler(self),
             required=_FETCH_REQUIRED_FIELDS,
             tsv=tsv,
+            deviation=_WIRE_DEVIATION,
             failure_only=_FAILURE_ONLY_FIELDS,
+            debug_fields=_FETCH_DEBUG_FIELDS,
         )
 
 
@@ -254,20 +253,26 @@ class AskExtraction(BaseModel):
         return {k: v for k, v in data.items() if k == "truncated" or v is not None}
 
 
-# Fields that are part of the `ask` contract and SHALL never be omitted from
-# the wire, even when their value is falsy (e.g. `extracted_answer is None`
-# when the LLM was unavailable). `status` is NOT here — it is failure-only
-# (dropped when `ok`; absence means success).
-_ASK_REQUIRED_FIELDS = frozenset({"url", "tier", "confidence", "extracted_answer"})
+# Fields that SHALL never be omitted from the wire, even when falsy
+# (`extracted_answer is None` when the LLM was unavailable). `url` / `tier` /
+# `status` are NOT here — they are deviation-only (see `_WIRE_DEVIATION`).
+_ASK_REQUIRED_FIELDS = frozenset({"confidence", "extracted_answer"})
 
-# `fetch_raw` always-on fields. `status` is failure-only (handled separately);
-# `extracted_answer` is not here — `fetch_raw` never runs the LLM, so it is
-# always empty and simply dropped.
-_FETCH_REQUIRED_FIELDS = frozenset({"url", "tier", "confidence"})
+# `fetch_raw` always-on field. `extracted_answer` is not here — `fetch_raw`
+# never runs the LLM, so it is always empty and simply dropped.
+_FETCH_REQUIRED_FIELDS = frozenset({"confidence"})
 
 # Fields dropped from the wire on a successful fetch (`status == ok`) — they
 # only carry signal when something went wrong.
 _FAILURE_ONLY_FIELDS = frozenset({"narrative", "diagnostics_summary"})
+
+# Deviation-only fields: dropped when the value equals the boring default.
+# `status` absent → ok; `tier` absent → plain raw fetch.
+_WIRE_DEVIATION = {"status": FetchStatus.ok.value, "tier": "raw"}
+
+# Debug-tier fields regrouped into a nested `debug` object on the wire.
+_ASK_DEBUG_FIELDS = frozenset({"started_at", "total_ms", "cache", "diagnostics", "extraction"})
+_FETCH_DEBUG_FIELDS = frozenset({"started_at", "total_ms", "cache", "tokens", "diagnostics", "extraction"})
 
 
 def _next_links_tsv(links: list[NextLink]) -> str:
@@ -298,32 +303,44 @@ def _prune_wire(
     *,
     required: frozenset[str],
     tsv: dict[str, str],
+    deviation: dict[str, str],
     failure_only: frozenset[str] = frozenset(),
+    debug_fields: frozenset[str] = frozenset(),
 ) -> dict[str, object]:
     """Shared wire-shaping for the `AskResponse` / `FetchResponse` serializers.
 
-    Drops optional fields whose value is `None` / `""` / `[]` / `{}`; keeps
-    every key in `required` regardless of value. `status` is failure-only —
-    dropped when `ok` (absence means success). Keys in `failure_only` are
-    dropped on a successful response. Keys in `tsv` are replaced by their
-    pre-rendered TSV string (callers compute these only for non-empty fields).
+    - `required` keys are kept regardless of value.
+    - `deviation` maps a field to its boring default; the field is dropped when
+      its value equals that default (`status == ok`, `tier == raw`).
+    - `failure_only` keys are dropped on a successful response.
+    - `debug_fields` keys are pruned of empties and regrouped under a nested
+      `debug` object; no `debug` key is emitted when all of them are empty.
+    - `tsv` keys are replaced by their pre-rendered TSV string.
+    - Remaining keys are dropped when `None` / `""` / `[]` / `{}`.
     """
     # `data` is post-serialization — `status` is already its `.value` string.
     is_ok = data.get("status") == FetchStatus.ok.value
     out: dict[str, object] = {}
+    debug: dict[str, object] = {}
     for key, value in data.items():
-        if key in required:
+        is_empty = value is None or value == "" or value == [] or value == {}
+        if key in debug_fields:
+            if not is_empty:
+                debug[key] = value
+        elif key in required:
             out[key] = value
-        elif key == "status" and is_ok:
+        elif key in deviation and value == deviation[key]:
             continue
         elif key in failure_only and is_ok:
             continue
-        elif value is None or value == "" or value == [] or value == {}:
+        elif is_empty:
             continue
         elif key in tsv:
             out[key] = tsv[key]
         else:
             out[key] = value
+    if debug:
+        out["debug"] = debug
     return out
 
 
@@ -333,19 +350,22 @@ class AskResponse(BaseModel):
     Distinct from `FetchResponse` (returned by `fetch_raw`). The `ask` wire
     payload carries the extracted answer, not the page. Field tiers:
 
-    - Always present: `url`, `status`, `tier`, `confidence`, `extracted_answer`.
+    - Always present: `confidence`, `extracted_answer`.
+    - Deviation-only: `status` (dropped when `ok`), `tier` (dropped when
+      `raw`), `url` (dropped when it equals the requested URL).
     - Optional: omitted from the wire when empty/null (`title`, `byline`,
-      `published`, `operator_hints`, `next_links`, `original_url`, `meta`,
-      `extraction`).
+      `published`, `operator_hints`, `next_links`, `meta`).
     - Opt-in grounding: `content_md` + `headings` appear only when the caller
       passed `include_content=True`.
     - Failure-only: `narrative` + `diagnostics_summary` appear only when
       `status != ok`.
-    - Debug-only: `started_at`, `total_ms`, `cache`, `diagnostics` appear only
-      when the caller passed `debug=True`.
+    - Debug-only: `started_at`, `total_ms`, `cache`, `diagnostics`,
+      `extraction` regroup into a nested `debug` object, present only when the
+      caller passed `debug=True`.
 
     The builder (`build_ask_response`) decides which fields to populate; the
-    serializer below only drops empties. Required fields are never dropped.
+    serializer below drops empties, applies the deviation rules, and regroups
+    the debug tier. Required fields are never dropped.
     """
 
     url: str
@@ -359,7 +379,6 @@ class AskResponse(BaseModel):
     published: date | None = None
     operator_hints: list[OperatorHint] = Field(default_factory=list)
     next_links: list[NextLink] = Field(default_factory=list)
-    original_url: str | None = None
     meta: dict[str, str] = Field(default_factory=dict)
     extraction: AskExtraction | None = None
 
@@ -383,5 +402,7 @@ class AskResponse(BaseModel):
             handler(self),
             required=_ASK_REQUIRED_FIELDS,
             tsv=tsv,
+            deviation=_WIRE_DEVIATION,
             failure_only=_FAILURE_ONLY_FIELDS,
+            debug_fields=_ASK_DEBUG_FIELDS,
         )

@@ -295,8 +295,8 @@ async def test_captcha_rewrite_google_search_routes_to_ddg(monkeypatch: pytest.M
     """Google search URL gets rewritten before tier dispatch.
 
     The mock raw tier echoes whatever URL it receives; we assert the URL it
-    saw was the DDG rewrite, AND that response.original_url preserves the
-    Google URL the caller originally asked for.
+    saw was the DDG rewrite, and that `result.url` carries the deviated
+    (final) URL because the fetch landed somewhere other than requested.
     """
     seen_urls: list[str] = []
 
@@ -320,7 +320,6 @@ async def test_captcha_rewrite_google_search_routes_to_ddg(monkeypatch: pytest.M
     assert len(seen_urls) == 1
     assert seen_urls[0].startswith("https://duckduckgo.com/html/?q=")
     assert "reddit.com" in seen_urls[0]
-    assert result.original_url == google_url
     assert result.url.startswith("https://duckduckgo.com/html/?q=")
 
 
@@ -348,7 +347,7 @@ async def test_captcha_rewrite_bing_search_routes_to_ddg(monkeypatch: pytest.Mon
 
     assert len(seen_urls) == 1
     assert seen_urls[0].startswith("https://duckduckgo.com/html/?q=")
-    assert result.original_url == bing_url
+    assert result.url.startswith("https://duckduckgo.com/html/?q=")
 
 
 @pytest.mark.asyncio
@@ -404,7 +403,8 @@ def test_captcha_rewrite_bump_visible_via_fetch_context_construction() -> None:
 
 @pytest.mark.asyncio
 async def test_captcha_rewrite_skipped_for_non_search_google_url(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Google Maps / Drive URLs pass through unchanged — no rewrite, no `original_url`."""
+    """Google Maps / Drive URLs pass through unchanged — no rewrite, so the
+    fetched URL equals the requested URL and `result.url` stays empty."""
     seen_urls: list[str] = []
 
     class _EchoTier:
@@ -425,8 +425,8 @@ async def test_captcha_rewrite_skipped_for_non_search_google_url(monkeypatch: py
     result = await fetch(maps_url, state=state)
 
     assert seen_urls == [maps_url]
-    assert result.original_url is None
-    assert result.url == maps_url
+    # no rewrite → fetched URL equals requested → `url` deviation-empty
+    assert result.url == ""
 
 
 # --------------------------------------------------------------------- #
