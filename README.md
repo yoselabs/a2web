@@ -131,3 +131,29 @@ make check       # lint + ty + test
 make fix         # ruff format + auto-fix
 make dev         # local stdio MCP server
 ```
+
+## Benchmark
+
+`make bench` runs the output benchmark — the maintained, package-resident
+harness at `src/a2web/llm_eval/`. It runs `eval/corpus.yaml` (Reddit comment
+threads, Hacker News comment/item pages, index/listing pages, plus
+clean/gated/SPA controls) against three systems — a faithful local
+reproduction of Claude Code's `WebFetch` and the two a2web modes — and
+scores four axes per (URL, system) cell:
+
+- **answer quality** — LLM judge against per-question criteria
+- **token cost** — per-field tokens of the response envelope the agent reads
+- **output clarity** — LLM judge: can a downstream agent act on it directly
+- **data-contract conformance** — deterministic envelope field-presence check
+
+Listing URLs also get a `next_links_picked_correctly` axis. The run writes a
+dated report under `eval/runs/` — see `axes.md` for the per-system table and
+the vs-WebFetch delta.
+
+```bash
+make bench                          # full matrix
+A2WEB_BENCH_PROVIDER=anthropic make bench   # force the provider
+```
+
+It prefers the Claude Code OS session (OAuth subscription — no
+`ANTHROPIC_API_KEY` needed) and falls back to the Anthropic API provider.

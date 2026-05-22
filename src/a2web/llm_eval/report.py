@@ -19,6 +19,7 @@ import json
 import shutil
 import statistics
 from collections import defaultdict
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -40,6 +41,11 @@ _RESULTS_FIELDS = [
     "judge_cost_usd",
     "judge_latency_ms",
     "judge_error",
+    "envelope_tokens_total",
+    "contract_conformant",
+    "contract_conformant_debug",
+    "clarity_score",
+    "next_links_score",
 ]
 
 
@@ -50,6 +56,7 @@ def write_all(report: EvalReport) -> None:
     _write_results_tsv(report)
     _write_manifest(report)
     _write_leaderboard(report)
+    _write_axes(report)
     _write_cost(report)
     _write_findings(report)
     _copy_corpus(report)
@@ -78,6 +85,11 @@ def _write_results_tsv(report: EvalReport) -> None:
                     "judge_cost_usd": f"{row.judge_cost_usd:.6f}",
                     "judge_latency_ms": row.judge_latency_ms,
                     "judge_error": row.judge_error or "",
+                    "envelope_tokens_total": row.envelope_tokens_total,
+                    "contract_conformant": "" if row.contract_conformant is None else row.contract_conformant,
+                    "contract_conformant_debug": ("" if row.contract_conformant_debug is None else row.contract_conformant_debug),
+                    "clarity_score": row.clarity_score if row.clarity_score is not None else "",
+                    "next_links_score": row.next_links_score if row.next_links_score is not None else "",
                 }
             )
 
@@ -90,6 +102,7 @@ def _write_manifest(report: EvalReport) -> None:
                 "corpus_path": report.corpus_path,
                 "systems": report.systems,
                 "judge_model": report.judge_model,
+                "bench_judge_model": report.bench_judge_model,
                 "started_at": report.started_at.isoformat(),
                 "ended_at": report.ended_at.isoformat(),
                 "wall_seconds": report.wall_seconds,
@@ -147,6 +160,93 @@ def _write_leaderboard(report: EvalReport) -> None:
         lines.append("")
 
     (report.output_dir / "leaderboard.md").write_text("\n".join(lines))
+
+
+def _mean_opt(values: Iterable[float]) -> float | None:
+    """Mean of a value list, or None when empty."""
+    vals = list(values)
+    return statistics.mean(vals) if vals else None
+
+
+def _fmt(value: float | None, places: int = 2) -> str:
+    return f"{value:.{places}f}" if value is not None else "—"
+
+
+def _delta(value: float | None, base: float | None) -> str:
+    """Signed a2web-minus-baseline delta, '—' when either side is missing."""
+    if value is None or base is None:
+        return "—"
+    diff = value - base
+    sign = "+" if diff >= 0 else ""
+    places = 0 if abs(diff) >= 10 else 2
+    return f"{sign}{diff:.{places}f}"
+
+
+def _write_axes(report: EvalReport) -> None:
+    """Per-system four-axis table + a vs-WebFetch delta summary."""
+    lines: list[str] = ["# Output benchmark — four axes\n"]
+    lines.append(
+        "Axes: **answer quality** (judge 0-5), **token cost** (tokens of the "
+        "response envelope the agent reads), **output clarity** (judge 0-5), "
+        "**data-contract conformance** (deterministic envelope check). The "
+        "`next_links` axis is scored on listing URLs only.\n"
+    )
+
+    lines.append("## Per system\n")
+    lines.append("| System | n | quality | env tokens | clarity | contract ok | next_links (n) |")
+    lines.append("|---|---|---|---|---|---|---|")
+    agg: dict[str, dict[str, float | None]] = {}
+    for system in report.systems:
+        rows = [r for r in report.rows if r.system == system]
+        quality = _mean_opt([r.judge_overall for r in rows if r.judge_overall is not None])
+        tokens = _mean_opt([r.envelope_tokens_total for r in rows if r.envelope_tokens_total])
+        clarity = _mean_opt([r.clarity_score for r in rows if r.clarity_score is not None])
+        contract_rows = [r for r in rows if r.contract_conformant is not None]
+        contract_ok = sum(1 for r in contract_rows if r.contract_conformant)
+        nl_rows = [r for r in rows if r.next_links_score is not None]
+        nl_mean = _mean_opt([r.next_links_score for r in rows if r.next_links_score is not None])
+        agg[system] = {"quality": quality, "tokens": tokens, "clarity": clarity}
+        contract_cell = f"{contract_ok}/{len(contract_rows)}" if contract_rows else "—"
+        nl_cell = f"{_fmt(nl_mean)} ({len(nl_rows)})" if nl_rows else "—"
+        tok_cell = _fmt(tokens, 0) if tokens is not None else "—"
+        lines.append(
+            f"| {system} | {len(rows)} | {_fmt(quality)} | {tok_cell} "
+            f"| {_fmt(clarity)} | {contract_cell} | {nl_cell} |"
+        )
+    lines.append("")
+
+    baseline = "webfetch_baseline"
+    if baseline in agg:
+        base = agg[baseline]
+        lines.append("## vs WebFetch baseline\n")
+        lines.append(
+            "Delta = a2web system minus WebFetch. Quality / clarity: higher is "
+            "better. Env tokens: lower is better.\n"
+        )
+        lines.append("| System | Δ quality | Δ env tokens | Δ clarity |")
+        lines.append("|---|---|---|---|")
+        for system in report.systems:
+            if system == baseline:
+                continue
+            sys_agg = agg[system]
+            lines.append(
+                f"| {system} | {_delta(sys_agg['quality'], base['quality'])} "
+                f"| {_delta(sys_agg['tokens'], base['tokens'])} "
+                f"| {_delta(sys_agg['clarity'], base['clarity'])} |"
+            )
+        lines.append("")
+
+    violators = [r for r in report.rows if r.contract_conformant is False or r.contract_conformant_debug is False]
+    if violators:
+        lines.append(f"## Data-contract violations ({len(violators)} rows)\n")
+        for r in violators[:20]:
+            viols = r.contract_violations + r.contract_violations_debug
+            lines.append(f"- `{r.slug}` x `{r.system}` — {'; '.join(viols)}")
+        if len(violators) > 20:
+            lines.append(f"- … and {len(violators) - 20} more")
+        lines.append("")
+
+    (report.output_dir / "axes.md").write_text("\n".join(lines))
 
 
 def _write_cost(report: EvalReport) -> None:
@@ -244,17 +344,40 @@ def _copy_corpus(report: EvalReport) -> None:
 
 
 def stats_dict(report: EvalReport) -> dict[str, Any]:
-    """Headline metrics suitable for log lines / CI artifacts."""
+    """Headline metrics suitable for log lines / CI artifacts — the four axes
+    per system plus cost and timing."""
     by_system_overall: dict[str, list[int]] = defaultdict(list)
     cost_by_system: dict[str, float] = defaultdict(float)
+    tokens_by_system: dict[str, list[int]] = defaultdict(list)
+    clarity_by_system: dict[str, list[int]] = defaultdict(list)
+    next_links_by_system: dict[str, list[int]] = defaultdict(list)
+    contract_by_system: dict[str, list[bool]] = defaultdict(list)
     for row in report.rows:
         if row.judge_overall is not None:
             by_system_overall[row.system].append(row.judge_overall)
         cost_by_system[row.system] += row.fetch_cost_usd + row.judge_cost_usd
+        if row.envelope_tokens_total:
+            tokens_by_system[row.system].append(row.envelope_tokens_total)
+        if row.clarity_score is not None:
+            clarity_by_system[row.system].append(row.clarity_score)
+        if row.next_links_score is not None:
+            next_links_by_system[row.system].append(row.next_links_score)
+        if row.contract_conformant is not None:
+            contract_by_system[row.system].append(row.contract_conformant)
+
+    def _means(buckets: dict[str, list[int]]) -> dict[str, float | None]:
+        return {s: (statistics.mean(v) if v else None) for s, v in buckets.items()}
+
     return {
         "rows": len(report.rows),
         "systems": report.systems,
-        "mean_overall_by_system": {s: (statistics.mean(v) if v else None) for s, v in by_system_overall.items()},
+        "mean_overall_by_system": _means(by_system_overall),
+        "mean_envelope_tokens_by_system": _means(tokens_by_system),
+        "mean_clarity_by_system": _means(clarity_by_system),
+        "mean_next_links_by_system": _means(next_links_by_system),
+        "contract_pass_by_system": {
+            s: f"{sum(1 for c in v if c)}/{len(v)}" for s, v in contract_by_system.items()
+        },
         "cost_by_system_usd": dict(cost_by_system),
         "total_cost_usd": sum(cost_by_system.values()),
         "wall_seconds": report.wall_seconds,

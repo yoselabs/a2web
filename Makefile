@@ -1,4 +1,4 @@
-.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty eval eval-baseline eval-detail bless-contracts
+.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty bench eval eval-baseline eval-detail bless-contracts
 
 check: lint ty test-cov
 
@@ -36,14 +36,20 @@ build:
 dev:
 	uv run a2web serve --transport=stdio
 
-# Eval suite — runs WebFetchBaseline + A2WebDetail + A2WebExtract against the
-# default corpus, judges with Sonnet, writes a dated report under eval/runs/.
-# Requires `[llm]` extras (`uv sync --extra llm`) and ANTHROPIC_API_KEY.
+# Output benchmark — runs WebFetchBaseline + A2WebDetail + A2WebExtract
+# against eval/corpus.yaml, scores four axes (quality, token cost, clarity,
+# data-contract conformance), writes a dated report under eval/runs/.
+# Prefers the Claude Code OS session (no ANTHROPIC_API_KEY needed);
+# `A2WEB_BENCH_PROVIDER` forces the provider.
+bench:
+	uv run python -m a2web.llm_eval
+
+# `make eval` is kept as an alias of `make bench`.
 eval:
-	uv run python -m a2web.llm.eval
+	uv run python -m a2web.llm_eval
 
 eval-baseline:
-	uv run python -m a2web.llm.eval --mode baseline
+	uv run python -m a2web.llm_eval --mode baseline
 
 eval-detail:
-	uv run python -m a2web.llm.eval --mode detail
+	uv run python -m a2web.llm_eval --mode detail

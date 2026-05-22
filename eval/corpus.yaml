@@ -1,0 +1,125 @@
+# a2web output benchmark corpus
+#
+# Tricky-scenario coverage — the cases that break naive fetchers:
+#   listing  — index pages with a drilldown layer (gets the next_links axis)
+#   comments — deeply nested comment threads
+# plus clean / gated / spa controls.
+#
+# Each entry:
+#   slug                — filesystem-safe id
+#   url                 — absolute http(s) URL
+#   class               — listing | comments | clean | gated | spa
+#   task                — natural-language question put to every system
+#   needs               — output fields the task plausibly needs
+#   criteria            — pass/fail rubric for the judge; phrased against
+#                         stable structural facts so the entry survives
+#                         page-content rotation
+#   next_links_expected — true on listing pages; marks the cell for the
+#                         next_links_picked_correctly axis
+
+urls:
+  # ─── Listing / index pages — drilldown layer, next_links axis ──────────
+  - slug: hn-front
+    url: https://news.ycombinator.com/
+    class: listing
+    next_links_expected: true
+    task: "List the top 5 stories on this page, each as 'TITLE — POINTS'."
+    needs: [content+links]
+    criteria:
+      - "Identifies 5 distinct stories from the front page"
+      - "Each story has a title"
+      - "Each story has a numeric points count"
+
+  - slug: reddit-listing
+    url: https://www.reddit.com/r/LocalLLaMA/
+    class: listing
+    next_links_expected: true
+    task: "What are the current top posts in r/LocalLLaMA? Give the title and a one-line gist for the 5 most prominent."
+    needs: [content+links]
+    criteria:
+      - "Identifies at least 5 distinct posts"
+      - "Each post has a title that reads like a real submission, not navigation chrome"
+      - "Posts are on-topic for r/LocalLLaMA (local LLM / inference)"
+
+  - slug: pypi-httpx
+    url: https://pypi.org/project/httpx/
+    class: listing
+    next_links_expected: true
+    task: "What is httpx, what is its current version, and what project links (docs, source) does the page expose?"
+    needs: [content+links]
+    criteria:
+      - "Describes httpx as a Python HTTP client"
+      - "States a version number"
+      - "Identifies project links such as documentation or source repository"
+
+  - slug: gh-trending
+    url: https://github.com/trending/python?since=daily
+    class: listing
+    next_links_expected: true
+    task: "List 5 trending Python repositories today, each with its owner/name slug and a one-line description."
+    needs: [content+links]
+    criteria:
+      - "Identifies at least 5 repositories"
+      - "Each repository has an owner/name slug"
+      - "Each repository has a description or language tag"
+
+  # ─── Comment threads — deep nesting, the naive-fetcher trap ────────────
+  - slug: reddit-comments
+    url: https://www.reddit.com/r/programming/comments/1ka1bxv/the_software_engineering_industry_in_2026/
+    class: comments
+    task: "What is the original post about, and what are the two most prominent comment viewpoints?"
+    needs: [content_only]
+    criteria:
+      - "Summarizes the original post's topic"
+      - "Reports at least two distinct commenter viewpoints"
+      - "Does not fabricate specific vote counts it cannot see"
+
+  - slug: hn-item
+    url: https://news.ycombinator.com/item?id=40000000
+    class: comments
+    task: "What is this Hacker News discussion about, and what is the prevailing sentiment in the comments?"
+    needs: [content_only]
+    criteria:
+      - "Identifies the linked submission's topic"
+      - "Characterizes the comment-thread sentiment or main disagreement"
+      - "Distinguishes the submission from the discussion about it"
+
+  # ─── Clean HTML controls — both systems should succeed ─────────────────
+  - slug: wikipedia-rust
+    url: https://en.wikipedia.org/wiki/Rust_(programming_language)
+    class: clean
+    task: "Who designed Rust originally, what year did it first appear, and what memory-safety mechanism is it known for?"
+    needs: [content_only]
+    criteria:
+      - "Identifies Graydon Hoare as the original designer"
+      - "Names a release/appearance year (2010 first appearance or 2015 for 1.0)"
+      - "Describes ownership / the borrow checker as the memory-safety mechanism"
+
+  - slug: arxiv-abstract
+    url: https://arxiv.org/abs/2401.05566
+    class: clean
+    task: "What is the paper's title and its main contribution in one sentence?"
+    needs: [content_only]
+    criteria:
+      - "Identifies the paper title (Sleeper Agents …)"
+      - "Summarizes the contribution: deceptive behavior persists through safety training"
+
+  # ─── Gated — a2web's expected edge over a naive fetcher ────────────────
+  - slug: medium-tag
+    url: https://medium.com/tag/programming
+    class: gated
+    task: "What programming articles or topics are currently featured on this page?"
+    needs: [content+links]
+    criteria:
+      - "Returns real article topics or titles, not a login/paywall stub"
+      - "The topics are programming-related"
+
+  # ─── SPA — JS-rendered, raw HTML is a near-empty shell ─────────────────
+  - slug: spa-react-dev
+    url: https://react.dev/
+    class: spa
+    task: "What is React and what does this page say it is for?"
+    needs: [content_only]
+    criteria:
+      - "Describes React as a JavaScript library for building user interfaces"
+      - "Returns substantive page content rather than an empty shell"

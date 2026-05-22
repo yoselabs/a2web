@@ -38,6 +38,13 @@ a2kit's in-process test client is the default: `from a2kit.testing import client
 - Tests: `make test` (pytest, asyncio_mode=auto)
 - Local MCP: `make dev`
 - Bootstrap: `make bootstrap` (uv sync --all-extras)
+- Output benchmark: `make bench` (see below)
+
+## Benchmark
+
+`make bench` runs the output benchmark — `src/a2web/llm_eval/`, corpus `eval/corpus.yaml` — scoring three systems (WebFetch reproduction + the two a2web modes) on four axes: answer quality, token cost, output clarity, data-contract conformance (+ `next_links` on listing URLs). It is **live-network and spends LLM quota**, so it is deliberately NOT in `make check` and is not run by default.
+
+Run it after a change that could move output quality or cost: the response envelope shape, the extraction pipeline, tier routing/escalation, handlers, or `next_links`. Skip it for unrelated changes. The four-axis tests under `tests/capabilities/output_benchmark/` keep the harness itself from rotting and DO run in `make check`. Write findings to `eval/findings_<date>.md`; run artifacts land under `eval/runs/` (gitignored, regenerable).
 
 ## Conventions
 

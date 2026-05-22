@@ -8,6 +8,15 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Output benchmark — re-runnable, package-resident.** The `benchmark-harness` change folds the benchmark into the maintained `src/a2web/llm_eval/` harness so it survives envelope changes instead of rotting as dated throwaway scripts. Each (URL, system) cell is scored on four axes: answer quality (judge), token cost (per-field tokens of the response envelope the agent reads), output clarity (judge), and data-contract conformance (deterministic envelope field-presence check). A `next_links_picked_correctly` judge axis is applied to listing URLs. The corpus at `eval/corpus.yaml` emphasizes the tricky cases — Reddit comment threads, Hacker News comment/item pages, index/listing pages — alongside clean/gated/SPA controls. The run produces an `axes.md` report with a per-system table and a vs-WebFetch delta summary.
+- **`make bench`** runs the benchmark; `make eval` is kept as an alias. The benchmark prefers the Claude Code OS session (OAuth subscription — no `ANTHROPIC_API_KEY` required); `A2WEB_BENCH_PROVIDER` forces the provider.
+
+### Removed
+
+- Retired the stale `benchmarks/vs-webfetch/2026-05-11/` runnable scripts (`runner.py`, `judge.py`, `aggregate.py`, `multi_model.py`, `phase4_ask.py`, `reliability_runner.py`) — they predated the v0.11/v0.14 envelopes and could no longer run. The `findings_*.md` notes are kept as history.
+
 ## [0.14.0] — 2026-05-22
 
 The `envelope-deviation-trim` change: one rule across both tool envelopes — *a field appears on the wire only when it deviates from the default*. A trivial successful `ask` collapses to `{confidence, extracted_answer}`; a trivial `fetch_raw` to `{confidence, content_md}`.

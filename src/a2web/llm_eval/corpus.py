@@ -36,6 +36,13 @@ class CorpusEntry:
     needs: list[str] = field(default_factory=list)
     extra: dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def next_links_expected(self) -> bool:
+        """True for listing-style entries — the cell gets the
+        `next_links_picked_correctly` axis. Set via `next_links_expected: true`
+        in the corpus YAML; carried through `extra`."""
+        return bool(self.extra.get("next_links_expected"))
+
 
 @dataclass(slots=True)
 class Corpus:

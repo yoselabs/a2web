@@ -30,6 +30,7 @@ import httpx
 
 from ..packages.llm_extract import WEBFETCH_DEFAULT_V1
 from ..packages.llm_extract.providers.base import Provider
+from .tokens import envelope_token_breakdown, estimate_tokens
 
 if TYPE_CHECKING:
     from ..llm_resource import LlmExtractorResource
@@ -155,8 +156,12 @@ class WebFetchBaseline:
         )
 
         latency_ms = int((time.perf_counter() - t0) * 1000)
+        answer = response.text or "No response from model"
+        # WebFetch returns plain text, not a structured envelope — the
+        # "envelope" an agent reads is the answer itself.
+        answer_tokens = estimate_tokens(answer)
         return SystemResult(
-            answer=response.text or "No response from model",
+            answer=answer,
             system=self.name,
             latency_ms=latency_ms,
             cost_usd=response.cost_usd,
@@ -170,6 +175,7 @@ class WebFetchBaseline:
                 "markdown_length_pre_cap": fetch_meta.get("md_len_pre_cap"),
                 "truncated": truncated,
                 "model": response.model,
+                "envelope_tokens": {"total": answer_tokens, "per_field": {"answer": answer_tokens}},
             },
         )
 
@@ -197,6 +203,13 @@ class A2WebDetail:
         t0 = time.perf_counter()
         response: FetchResponse = await a2web_fetch(url, state=self._state, include_links=False, debug=False)
         latency_ms = int((time.perf_counter() - t0) * 1000)
+        # Second fetch with debug=True — feeds the data-contract axis (the
+        # debug object must appear under debug=True and only then). HTTP +
+        # extraction caches make this near-free.
+        response_debug: FetchResponse = await a2web_fetch(url, state=self._state, include_links=False, debug=True)
+        envelope = response.model_dump(mode="json")
+        envelope_debug = response_debug.model_dump(mode="json")
+        tokens = envelope_token_breakdown(envelope)
         return SystemResult(
             answer=response.content_md or "",
             system=self.name,
@@ -207,6 +220,9 @@ class A2WebDetail:
                 "status": response.status.value,
                 "diagnostics_summary": response.diagnostics_summary,
                 "content_chars": len(response.content_md or ""),
+                "envelope": envelope,
+                "envelope_debug": envelope_debug,
+                "envelope_tokens": {"total": tokens.total, "per_field": tokens.per_field},
             },
         )
 
@@ -228,6 +244,7 @@ class A2WebExtract:
 
     async def fetch(self, *, url: str, ask: str) -> SystemResult:
         from ..fetcher import fetch as a2web_fetch
+        from ..fetcher_response import build_ask_response
 
         async def _lazy_extractor() -> LlmExtractorResource:
             return self._extractor
@@ -242,6 +259,24 @@ class A2WebExtract:
             debug=False,
         )
         latency_ms = int((time.perf_counter() - t0) * 1000)
+        # Second fetch with debug=True for the data-contract axis — HTTP +
+        # extraction caches make the repeat near-free.
+        response_debug: FetchResponse = await a2web_fetch(
+            url,
+            state=self._state,
+            llm_extractor=_lazy_extractor,
+            ask=ask,
+            include_links=False,
+            debug=True,
+        )
+        # Measure the lean `AskResponse` the `ask` tool actually puts on the
+        # wire — NOT the intermediate `FetchResponse`. `build_ask_response`
+        # applies the debug gating and drops the page-shaped payload.
+        ask_response = build_ask_response(response, include_content=False, debug=False)
+        ask_response_debug = build_ask_response(response_debug, include_content=False, debug=True)
+        envelope = ask_response.model_dump(mode="json")
+        envelope_debug = ask_response_debug.model_dump(mode="json")
+        tokens = envelope_token_breakdown(envelope)
         ex = response.extraction
         cost = ex.cost_usd if ex else 0.0
         prompt_tokens = ex.prompt_tokens if ex else 0
@@ -261,6 +296,9 @@ class A2WebExtract:
                 "extraction_model": ex.model if ex else None,
                 "extraction_cache_hit": ex.cache_hit if ex else None,
                 "extraction_truncated": ex.truncated if ex else None,
+                "envelope": envelope,
+                "envelope_debug": envelope_debug,
+                "envelope_tokens": {"total": tokens.total, "per_field": tokens.per_field},
             },
         )
 
