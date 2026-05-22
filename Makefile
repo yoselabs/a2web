@@ -21,7 +21,7 @@ coverage-diff:
 # Re-bless the golden API-contract files after an intentional envelope change.
 # Review the resulting diff under tests/contracts/ before committing.
 bless-contracts:
-	@A2WEB_BLESS_CONTRACTS=1 uv run pytest tests/test_contracts.py -q -p no:cacheprovider
+	@A2WEB_BLESS_CONTRACTS=1 uv run pytest tests/contracts/test_contracts.py -q -p no:cacheprovider
 
 bootstrap:
 	uv sync --all-extras
