@@ -31,10 +31,10 @@ from .cookie_jar import Cookie, CookieJarResource
 from .decision_log import Observation, ObservationKind, resolve_verdict
 from .domain import (
     compute_profile_hash,
-    count_sentences,
     is_live_only,
     json_to_markdown_rows,
     rewrite_captcha_host,
+    trafilatura_under_extracted,
 )
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .events.types import CookiesAttached, CookiesStale
@@ -63,6 +63,7 @@ from .packages.content_extract import (
 from .packages.http_cache import CacheRow, SqliteResource
 from .packages.json_in_script import extract_json_payloads, rank_payloads
 from .packages.llm_extract import LlmNextLink
+from .packages.record_extract import RecordSet, extract_records
 from .settings import AppSettings
 from .state import AppState
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
@@ -928,7 +929,7 @@ async def _phase_extract(fc: FetchContext) -> None:
     fc.headings = extract_result.headings
     fc.links = extract_result.links
     fc.meta_dict = parse_metadata(raw_html)
-    await _maybe_synthesize_from_json(fc, raw_html=raw_html, extract_dur_start=extract_dur_start)
+    await _run_extraction_escalation(fc, raw_html=raw_html)
     extract_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - extract_dur_start
     fc.diagnostics.append(
         Diagnostic(
@@ -953,56 +954,108 @@ async def _phase_extract(fc: FetchContext) -> None:
     )
 
 
-_JSON_SYNTH_THIN_CHARS: int = 2_048
-_JSON_SYNTH_THIN_SENTENCES: int = 3
-_JSON_SYNTH_REPLACE_RATIO: float = 2.0
+async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None:
+    """Multi-source escalation ladder for under-extracted pages.
 
-
-async def _maybe_synthesize_from_json(fc: FetchContext, *, raw_html: str, extract_dur_start: int) -> None:
-    """Run the JSON-in-script path when trafilatura returns thin output.
-
-    Replaces `fc.content_md` with synthetic markdown ONLY IF a ranked payload
-    produces >=2x the original length. Emits a `json_synth` LDD event with
-    verdict in {"replaced","kept_original","no_payloads","no_synth"}.
+    Runs only when the recall trigger reports trafilatura under-extracted.
+    Tries structured-extraction sources in order — embedded JSON, then
+    structural record detection — and stops at the first whose output passes
+    the quality-aware replace check. When no source helps, `fc.content_md` is
+    left unchanged and the cascade falls through, so the orchestrator's
+    browser-tier escalation still applies.
     """
+    if not trafilatura_under_extracted(fc.content_md or "", raw_html):
+        return  # trafilatura extracted well — no escalation needed
     original_len = len(fc.content_md or "")
-    if original_len >= _JSON_SYNTH_THIN_CHARS and count_sentences(fc.content_md or "") >= _JSON_SYNTH_THIN_SENTENCES:
-        return  # not thin — skip
+    if await _escalate_via_json(fc, raw_html=raw_html, original_len=original_len):
+        return
+    await _escalate_via_records(fc, raw_html=raw_html, original_len=original_len)
+
+
+async def _escalate_via_json(fc: FetchContext, *, raw_html: str, original_len: int) -> bool:
+    """Ladder source 1 — embedded JSON (incl. JSON-LD). True if it replaced content_md.
+
+    Quality-aware replace: a synthetic surface wins only when it is longer
+    than trafilatura's (already under-extracted) output — length is a fair
+    proxy here because JSON payloads are structured page data, not chrome.
+    """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     await a2kit.ldd.event(StageStarted(t_ms=t_ms, step="json_synth"))
     payloads = extract_json_payloads(raw_html)
-    if not payloads:
-        await a2kit.ldd.event(
-            StageEnded(t_ms=t_ms, step="json_synth", verdict=Verdict.ok, dur_ms=0, extra={"outcome": "no_payloads"})
-        )
-        return
-    ranked = rank_payloads(payloads)
     synthetic = ""
-    for payload in ranked:
+    for payload in rank_payloads(payloads):
         candidate = json_to_markdown_rows(payload)
         if candidate:
             synthetic = candidate
             break
-    if not synthetic:
-        await a2kit.ldd.event(
-            StageEnded(t_ms=t_ms, step="json_synth", verdict=Verdict.ok, dur_ms=0, extra={"outcome": "no_synth"})
-        )
-        return
-    if len(synthetic) >= max(int(original_len * _JSON_SYNTH_REPLACE_RATIO), 128):
-        fc.content_md = synthetic
-        outcome = "replaced"
-    else:
-        outcome = "kept_original"
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
-    await a2kit.ldd.event(
-        StageEnded(
-            t_ms=t_ms,
-            step="json_synth",
-            verdict=Verdict.ok,
-            dur_ms=dur_ms,
-            extra={"outcome": outcome, "original_chars": original_len, "synth_chars": len(synthetic)},
+    if synthetic and len(synthetic) > original_len:
+        fc.content_md = synthetic
+        await a2kit.ldd.event(
+            StageEnded(
+                t_ms=t_ms,
+                step="json_synth",
+                verdict=Verdict.ok,
+                dur_ms=dur_ms,
+                extra={"outcome": "replaced", "synth_chars": len(synthetic)},
+            )
         )
+        return True
+    outcome = "no_payloads" if not payloads else ("no_synth" if not synthetic else "kept_original")
+    await a2kit.ldd.event(
+        StageEnded(t_ms=t_ms, step="json_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome})
     )
+    return False
+
+
+async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len: int) -> bool:
+    """Ladder source 2 — structural record detection. True if it replaced content_md.
+
+    Quality-aware replace: `extract_records` only returns a `RecordSet` when a
+    dominant substantive cluster exists (a minimum count of records, each with
+    text and a link) — so a non-`None` result is already "substantive". The
+    length check guards against a tiny cluster losing to better trafilatura
+    output. Records also populate `next_links` for this otherwise un-handled
+    listing page.
+    """
+    t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+    await a2kit.ldd.event(StageStarted(t_ms=t_ms, step="record_synth"))
+    record_set = extract_records(raw_html, base_url=fc.final_url or "")
+    dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
+    synthetic = record_set.to_markdown() if record_set is not None else ""
+    if record_set is not None and len(synthetic) > original_len:
+        fc.content_md = synthetic
+        fc.next_links_handler = _records_to_next_links(record_set)
+        await a2kit.ldd.event(
+            StageEnded(
+                t_ms=t_ms,
+                step="record_synth",
+                verdict=Verdict.ok,
+                dur_ms=dur_ms,
+                extra={"outcome": "replaced", "records": len(record_set.records)},
+            )
+        )
+        return True
+    outcome = "no_records" if record_set is None else "kept_original"
+    await a2kit.ldd.event(
+        StageEnded(t_ms=t_ms, step="record_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome})
+    )
+    return False
+
+
+def _records_to_next_links(record_set: RecordSet) -> list[NextLink]:
+    """Domain seam — convert detected records into `NextLink` candidates.
+
+    Uses each record's prominent link (its heading link, not link index 0,
+    which is frequently chrome). Records without a usable link are skipped.
+    """
+    out: list[NextLink] = []
+    for record in record_set.records:
+        if record.primary_link is None:
+            continue
+        anchor, url = record.primary_link
+        out.append(NextLink(anchor=anchor[:120] or url, url=url, reason="listing record", kind="drilldown"))
+    return out
 
 
 async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None:
@@ -1146,13 +1199,14 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
         fc.tier_used = "browser"
         fc.pre_rendered_payload = browser_pre
         fc.status_code = browser_result.status_code
-        # v0.11: when browser-rendered markdown is thin (Trendyol pattern —
-        # __NEXT_DATA__ exposed post-hydration but trafilatura still gets nav
-        # chrome), try the JSON-in-script path against the rendered DOM
-        # before re-gating. Replaces fc.content_md when synth >= 2x original.
+        # When browser-rendered markdown is under-extracted (Trendyol pattern —
+        # __NEXT_DATA__ exposed post-hydration, or a server-rendered listing
+        # trafilatura guts), run the extraction-escalation ladder against the
+        # rendered DOM before re-gating — the ladder covers raw, browser, and
+        # archive results uniformly.
         rendered_html = browser_result.body.decode("utf-8", errors="replace") if browser_result.body else ""
         if rendered_html:
-            await _maybe_synthesize_from_json(fc, raw_html=rendered_html, extract_dur_start=br_start_ms)
+            await _run_extraction_escalation(fc, raw_html=rendered_html)
         _regate_after_escalation(fc)
     elif browser_result.operator_hint is not None:
         fc.operator_hints.append(browser_result.operator_hint)

@@ -48,6 +48,21 @@ def test_github_does_not_match_marketplace() -> None:
     assert not GitHubHandler().matches("https://github.com/marketplace")
 
 
+def test_github_does_not_match_trending() -> None:
+    """`/trending/python` must not be parsed as owner=trending, repo=python."""
+    assert not GitHubHandler().matches("https://github.com/trending/python?since=daily")
+    assert not GitHubHandler().matches("https://github.com/trending/python")
+
+
+def test_github_does_not_match_other_reserved_paths() -> None:
+    for url in (
+        "https://github.com/sponsors/someone",
+        "https://github.com/collections/machine-learning",
+        "https://github.com/explore/projects",
+    ):
+        assert not GitHubHandler().matches(url)
+
+
 def test_github_does_not_match_blob() -> None:
     # blob/<sha>/path is too deep for the repo regex; not classified as repo.
     assert not GitHubHandler().matches("https://github.com/octocat/Hello-World/blob/main/README.md")

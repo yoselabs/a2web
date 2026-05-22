@@ -26,6 +26,19 @@ if TYPE_CHECKING:
 
 
 _GH_HOSTS = frozenset({"github.com", "www.github.com"})
+# Reserved top-level paths on github.com that are NOT user / org accounts —
+# `github.com/<reserved>/<x>` (e.g. `/trending/python`) must not be parsed as
+# the `<owner>/<repo>` shape. GitHub forbids these as account names.
+_GH_RESERVED_PATHS = frozenset(
+    {
+        "about", "account", "apps", "codespaces", "collections", "contact",
+        "customer-stories", "dashboard", "enterprise", "explore", "features",
+        "issues", "join", "login", "logout", "marketplace", "new",
+        "notifications", "orgs", "pricing", "pulls", "readme", "search",
+        "security", "settings", "sponsors", "stars", "topics", "trending",
+        "watching",
+    }
+)
 _REPO_PATH_RE = re.compile(r"^/([^/]+)/([^/]+?)/?$")
 _ISSUE_PATH_RE = re.compile(r"^/([^/]+)/([^/]+)/issues/(\d+)/?$")
 _PULL_PATH_RE = re.compile(r"^/([^/]+)/([^/]+)/pull/(\d+)/?$")
@@ -50,8 +63,8 @@ def _classify(url: str) -> tuple[str, tuple[str, ...]] | None:
         return "pull", m.groups()
     m = _REPO_PATH_RE.match(path)
     if m:
-        # Skip well-known top-level paths that aren't repos.
-        if m.group(1) in {"orgs", "settings", "marketplace", "topics", "search"}:
+        # Skip reserved top-level paths that aren't user/org accounts.
+        if m.group(1).lower() in _GH_RESERVED_PATHS:
             return None
         return "repo", m.groups()
     return None

@@ -16,6 +16,8 @@ import re
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, quote, urlparse
 
+import lxml.html
+
 if TYPE_CHECKING:
     from .packages.json_in_script import JsonPayload
     from .settings import AppSettings
@@ -26,6 +28,7 @@ __all__ = (
     "is_live_only",
     "json_to_markdown_rows",
     "rewrite_captcha_host",
+    "trafilatura_under_extracted",
 )
 
 
@@ -108,6 +111,60 @@ def count_sentences(text: str) -> int:
     if not text:
         return 0
     return len(_SENTENCE_END_RE.findall(text))
+
+
+# --------------------------------------------------------------------- #
+# Recall-based escalation trigger (generic-record-extraction)
+# --------------------------------------------------------------------- #
+
+_UNDER_EXTRACTED_RATIO: float = 0.2
+_NEAR_EMPTY_FLOOR: int = 200
+
+
+def _visible_text_length(html: str) -> int:
+    """Whitespace-collapsed length of the visible text in an HTML body,
+    excluding script/style/noscript/template content.
+
+    Pure, best-effort: an empty or unparseable body yields 0.
+    """
+    if not html or not html.strip():
+        return 0
+    try:
+        tree = lxml.html.fromstring(html)
+    except (ValueError, SyntaxError):
+        return 0
+    for bad in tree.xpath("//script|//style|//noscript|//template"):
+        bad.drop_tree()
+    return len(" ".join(tree.text_content().split()))
+
+
+def trafilatura_under_extracted(
+    content_md: str,
+    raw_html: str,
+    *,
+    ratio_threshold: float = _UNDER_EXTRACTED_RATIO,
+    near_empty_floor: int = _NEAR_EMPTY_FLOOR,
+) -> bool:
+    """Recall signal for the extraction-escalation trigger.
+
+    Returns True when trafilatura appears to have *under-extracted* — i.e.
+    `content_md` is small relative to the substantive text present in the raw
+    HTML — and the escalation ladder should run. A `content_md` that is short
+    merely because the page is genuinely short (it captured most of the
+    visible text) returns False.
+
+    Near-empty output always returns True regardless of recall: a JS-shell
+    page has near-zero visible text, so a recall ratio would falsely call it
+    "well extracted" — the floor keeps such pages reaching the JSON / browser
+    escalators.
+    """
+    content_len = len(content_md or "")
+    if content_len < near_empty_floor:
+        return True
+    visible = _visible_text_length(raw_html)
+    if visible <= 0:
+        return False
+    return content_len < ratio_threshold * visible
 
 
 def json_to_markdown_rows(payload: JsonPayload) -> str:
