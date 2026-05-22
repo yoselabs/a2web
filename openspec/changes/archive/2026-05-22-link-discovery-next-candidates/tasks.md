@@ -64,13 +64,18 @@
 - [x] 9.3 Remove the v0.4+ "discovery / next-link curation" entry from `BACKLOG.md` (now shipped here)
 - [x] 9.4 Update the v0.4+ "alias-addressed links" entry in `BACKLOG.md` with a forward reference to this change as the prerequisite
 
-## 10. Benchmark re-run
+## 10. Benchmark re-run — SUPERSEDED by the `benchmark-harness` change
 
-- [ ] 10.1 Re-run `benchmarks/vs-webfetch/2026-05-11/` against PyPI / gh-trending / Reddit listing URLs
-- [ ] 10.2 Add a `next_links_picked_correctly` judge axis to the benchmark prompts
-- [ ] 10.3 Capture results in `benchmarks/vs-webfetch/<new-date>/findings.md`
+The `benchmarks/vs-webfetch/2026-05-11/` harness predates the v0.11/v0.14 envelope
+and the `ask`/`fetch_raw` split and can no longer run — "re-running" it is not
+possible. The `next_links_picked_correctly` axis is owned by the `benchmark-harness`
+change (capability `output-benchmark`) instead.
+
+- [ ] 10.1 ~~Re-run `benchmarks/vs-webfetch/2026-05-11/`~~ — superseded by `benchmark-harness`
+- [ ] 10.2 ~~Add a `next_links_picked_correctly` judge axis~~ — owned by `benchmark-harness`
+- [ ] 10.3 ~~Capture results in a findings.md~~ — owned by `benchmark-harness`
 
 ## 11. Verify the gate
 
 - [x] 11.1 `make check` passes (lint + ty + test, coverage ≥85%)
-- [ ] 11.2 In-process MCP smoke: `make dev` then `fetch` a Reddit listing + assert `next_links` present in tool result
+- [ ] 11.2 In-process MCP smoke — deferred; the in-process composition path is already covered by `tests/capabilities/tier_pipeline/test_link_discovery_composition.py`
