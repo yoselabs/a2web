@@ -28,6 +28,7 @@ from a2kit.packages.di import Lazy
 
 from .actions import RetryViaArchive, RewriteUrl, next_action_after_gate, next_action_after_tier
 from .cookie_jar import Cookie, CookieJarResource
+from .decision_log import Observation, ObservationKind, resolve_verdict
 from .domain import (
     compute_profile_hash,
     count_sentences,
@@ -225,19 +226,14 @@ class FetchContext:
     extracted_answer: str | None = None
     extraction_meta: ExtractionMeta | None = None
 
-    # Body & verdict state (set by tier loop, mutated by escalations)
+    # Body & content state (set by tier loop, escalations append observations)
     body: bytes = b""
     content_type: str = ""
     status_code: int = 0
     tier_used: str = "none"
-    final_verdict: Verdict = Verdict.other
     etag: str | None = None
     last_modified: str | None = None
     pre_rendered_payload: Rendered | None = None
-    # Set when a site handler returned `Verdict.not_found` — the site expert's
-    # authoritative "content is gone" signal. `_phase_reconcile_verdict` restores
-    # it over a vaguer downstream failure verdict when the fetch ultimately fails.
-    handler_not_found: bool = False
 
     # Cache state
     cache_state: CacheState = CacheState.miss
@@ -261,6 +257,10 @@ class FetchContext:
     gate_verdict: Verdict = Verdict.ok
     gate_subsystem: str | None = None
 
+    # Append-only decision log — the single source of truth for the verdict.
+    # Phases append Observations; the final verdict is the pure projection
+    # `resolve_verdict(observations)`. There is no mutable verdict slot.
+    observations: list[Observation] = field(default_factory=list)
     # Diagnostics + operator-hint accumulators — anywhere in the pipeline can append.
     diagnostics: list[Diagnostic] = field(default_factory=list)
     operator_hints: list[OperatorHint] = field(default_factory=list)
@@ -290,6 +290,24 @@ class FetchContext:
     # v0.10: caller-supplied cap on content chars sent to the extractor LLM.
     # None = inherit Extractor's default (100_000).
     max_content_chars: int | None = None
+
+    def observe(
+        self,
+        *,
+        kind: ObservationKind,
+        source: str,
+        verdict: Verdict,
+        authoritative: bool = False,
+    ) -> None:
+        """Append one immutable observation to the decision log."""
+        t_ms = int((time.perf_counter() - self.start_perf) * 1000)
+        self.observations.append(
+            Observation(kind=kind, source=source, verdict=verdict, authoritative=authoritative, t_ms=t_ms),
+        )
+
+    def resolved_verdict(self) -> Verdict:
+        """Project the current observation log to a verdict (pure, order-independent)."""
+        return resolve_verdict(self.observations)
 
 
 async def fetch(
@@ -632,7 +650,7 @@ def _install_won_tier(
     fc.status_code = tier_result.status_code
     fc.final_url = tier_result.final_url
     fc.tier_used = tier_result.handler_name or (tier.name if hasattr(tier, "name") else tier_name)
-    fc.final_verdict = Verdict.ok
+    fc.observe(kind=ObservationKind.tier_outcome, source=fc.tier_used, verdict=Verdict.ok)
     fc.etag = tier_result.headers.get("etag")
     fc.last_modified = tier_result.headers.get("last-modified")
     fc.pre_rendered_payload = tier_result.pre_rendered
@@ -648,7 +666,7 @@ def _install_archive_payload(fc: FetchContext, outcome: _ArchiveOutcome) -> None
     fc.tier_used = "archive"
     fc.pre_rendered_payload = outcome.pre_rendered
     fc.status_code = outcome.status_code
-    fc.final_verdict = Verdict.ok
+    fc.observe(kind=ObservationKind.tier_outcome, source="archive", verdict=Verdict.ok)
 
 
 async def _apply_after_tier_action(
@@ -736,7 +754,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                         extra={"reason": "all_proxies_dead_required"},
                     )
                 )
-                fc.final_verdict = Verdict.proxy_unavailable
+                fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.proxy_unavailable)
                 continue
 
             await a2kit.ldd.event(TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
@@ -753,12 +771,6 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
             # Silent skip — no diagnostic row
             if tier_result.no_match or tier_result.skipped:
                 continue
-
-            # A site handler's `not_found` is the strongest negative signal in
-            # the pipeline — remember it so a downstream generic tier can't bury
-            # it under a vaguer verdict (`_phase_reconcile_verdict`).
-            if tier_name == "site_handler" and tier_result.verdict == Verdict.not_found:
-                fc.handler_not_found = True
 
             proxy_pool.report(
                 handle,
@@ -788,7 +800,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 fc.etag = fc.cached_row.etag
                 fc.last_modified = fc.cached_row.last_modified
                 fc.tier_used = tier_name
-                fc.final_verdict = Verdict.ok
+                fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.ok)
                 fc.diagnostics.append(
                     Diagnostic(
                         t_ms=tier_start_ms,
@@ -827,7 +839,13 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 _install_won_tier(fc, tier_result, tier_name, tier)
                 return
 
-            fc.final_verdict = tier_result.verdict
+            authoritative = tier_name == "site_handler" and tier_result.verdict is Verdict.not_found
+            fc.observe(
+                kind=ObservationKind.tier_outcome,
+                source=tier_result.handler_name or tier_name,
+                verdict=tier_result.verdict,
+                authoritative=authoritative,
+            )
 
         if not restart_loop:
             return
@@ -846,7 +864,7 @@ async def _phase_extract(fc: FetchContext) -> None:
         fc.headings = fc.pre_rendered_payload.headings
         return
 
-    if not (fc.body and fc.final_verdict == Verdict.ok):
+    if not (fc.body and fc.resolved_verdict() is Verdict.ok):
         return
 
     await a2kit.ldd.event(StageStarted(t_ms=extract_dur_start, step="extract"))
@@ -937,7 +955,7 @@ async def _maybe_synthesize_from_json(fc: FetchContext, *, raw_html: str, extrac
 
 async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None:
     """Run the gate; on signals, escalate to browser or archive (each capped to 1)."""
-    if not (fc.body and fc.final_verdict == Verdict.ok):
+    if not (fc.body and fc.resolved_verdict() is Verdict.ok):
         return
 
     gate_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
@@ -976,8 +994,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
     await a2kit.ldd.event(
         StageEnded(t_ms=gate_dur_start, step="gate", verdict=fc.gate_verdict, dur_ms=gate_dur_ms),
     )
-    if fc.gate_verdict != Verdict.ok:
-        fc.final_verdict = fc.gate_verdict
+    fc.observe(kind=ObservationKind.gate_outcome, source="gate", verdict=fc.gate_verdict)
 
     # v0.7: search-engine captcha escape — block detector flagged a Google/Bing
     # captcha page that slipped past `rewrite_captcha_host`. Surface an
@@ -1021,21 +1038,16 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
 def _regate_after_escalation(fc: FetchContext) -> None:
     """Re-evaluate the gate on freshly-installed escalation content.
 
-    Used after both browser and gate-path archive installs. Mutates
-    `fc.gate_verdict` / `fc.final_verdict` / `fc.gate_subsystem`. The
-    pre-rendered markdown plays both the `content_md` and `raw_html`
-    roles — the underlying body is no longer the discriminator at this
-    point in the pipeline.
+    Used after both browser and gate-path archive installs. Sets
+    `fc.gate_verdict` / `fc.gate_subsystem` and appends a gate-outcome
+    observation to the decision log. The pre-rendered markdown plays both
+    the `content_md` and `raw_html` roles — the underlying body is no
+    longer the discriminator at this point in the pipeline.
     """
     regate = evaluate(content_md=fc.content_md, raw_html=fc.content_md, content_type=None)
-    if regate.verdict == Verdict.ok:
-        fc.final_verdict = Verdict.ok
-        fc.gate_verdict = Verdict.ok
-        fc.gate_subsystem = None
-    else:
-        fc.final_verdict = regate.verdict
-        fc.gate_verdict = regate.verdict
-        fc.gate_subsystem = regate.subsystem
+    fc.gate_verdict = regate.verdict
+    fc.gate_subsystem = None if regate.verdict is Verdict.ok else regate.subsystem
+    fc.observe(kind=ObservationKind.gate_outcome, source="regate", verdict=regate.verdict)
 
 
 async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
@@ -1104,7 +1116,7 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
         fc.sqlite is not None
         and not fc.bypass_cache
         and fc.cache_state != CacheState.hit
-        and fc.final_verdict == Verdict.ok
+        and fc.resolved_verdict() is Verdict.ok
         and fc.body
         and not is_archive_result
     )
@@ -1135,19 +1147,6 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
 # --------------------------------------------------------------------- #
 
 
-def _phase_reconcile_verdict(fc: FetchContext) -> None:
-    """Restore a site handler's `not_found` over a vaguer downstream failure verdict.
-
-    A site handler returning `Verdict.not_found` confirmed the content is gone.
-    When the fetch ultimately fails, that authoritative verdict outranks any
-    vaguer verdict (`length_floor`, `other`) a downstream generic tier left on
-    `final_verdict`. A genuine recovery (`final_verdict == ok`) is left
-    untouched — the precedence rule never degrades a real result.
-    """
-    if fc.final_verdict != Verdict.ok and fc.handler_not_found:
-        fc.final_verdict = Verdict.not_found
-
-
 async def _run_pipeline(
     fc: FetchContext,
     *,
@@ -1160,7 +1159,6 @@ async def _run_pipeline(
     # the agent-facing fields (title, content_md, etc.) are produced by extraction.
     await _phase_extract(fc)
     await _phase_gate_and_escalate(fc, state=state)
-    _phase_reconcile_verdict(fc)
     await _phase_cache_write(fc, state=state)
     # v0.4: optional LLM extraction. Runs only when ask= is set and the fetch
     # succeeded. Graceful when no API key + no Claude Code OAuth available.
@@ -1182,7 +1180,7 @@ async def _phase_extract_answer(
     """
     if fc.ask is None:
         return
-    if fc.final_verdict != Verdict.ok or not fc.content_md:
+    if fc.resolved_verdict() is not Verdict.ok or not fc.content_md:
         # Failed fetches don't get extraction — no content to extract from.
         # The agent will see status=failed + diagnostics_summary explaining why.
         return

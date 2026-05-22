@@ -15,6 +15,7 @@ import time
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from .decision_log import resolve_verdict
 from .models import (
     AskExtraction,
     AskResponse,
@@ -143,23 +144,26 @@ def _compose_next_links(fc: FetchContext) -> list[NextLink]:
 def build_response(fc: FetchContext) -> FetchResponse:
     """Materialize the FetchResponse from accumulated FetchContext state."""
     total_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    status = FetchStatus.ok if fc.final_verdict == Verdict.ok else FetchStatus.failed
+    # The verdict is derived — a pure projection of the append-only observation
+    # log, never a stored field. See `decision_log.resolve_verdict`.
+    final_verdict = resolve_verdict(fc.observations)
+    status = FetchStatus.ok if final_verdict == Verdict.ok else FetchStatus.failed
 
     narrative = _build_narrative(
         tier_used=fc.tier_used,
         cache_state=fc.cache_state,
-        final_verdict=fc.final_verdict,
+        final_verdict=final_verdict,
         total_ms=total_ms,
         gate_subsystem=fc.gate_subsystem,
     )
 
     wrapped_md = _wrap_content_md(fc.content_md, source=fc.final_url, fetched_at=fc.started_at) if fc.wrap_content else fc.content_md
-    tokens = TokenCounts(full=len(wrapped_md)) if fc.debug and fc.final_verdict == Verdict.ok and fc.content_md else None
+    tokens = TokenCounts(full=len(wrapped_md)) if fc.debug and final_verdict == Verdict.ok and fc.content_md else None
     op_hints: list[OperatorHint] = list(fc.operator_hints)
 
     diagnostics_summary = _build_diagnostics_summary(
         tier_used=fc.tier_used,
-        final_verdict=fc.final_verdict,
+        final_verdict=final_verdict,
         total_ms=total_ms,
         gate_subsystem=fc.gate_subsystem,
     )
@@ -177,7 +181,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
         url=deviated_url,
         status=status,
         tier=fc.tier_used,
-        confidence=_confidence_for(fc.final_verdict, fc.content_md),
+        confidence=_confidence_for(final_verdict, fc.content_md),
         title=fc.title,
         byline=fc.byline,
         published=fc.published,
