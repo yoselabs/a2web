@@ -63,6 +63,22 @@ urls:
       - "Each repository has an owner/name slug"
       - "Each repository has a description or language tag"
 
+  - slug: lobste-active
+    # Lobsters has no a2web site-handler, so it falls through to the generic
+    # record-extract path. The structure-aware Record render (heading_text +
+    # heading_link) means each row should read as `[title](url)\n  meta`
+    # rather than the flat smush. This entry is the bench cell that
+    # exercises that path.
+    url: https://lobste.rs/active
+    class: listing
+    next_links_expected: true
+    task: "List the 5 most active stories on this page, each as 'TITLE — TAGS — COMMENT-COUNT'."
+    needs: [content+links]
+    criteria:
+      - "Identifies 5 distinct stories"
+      - "Each story has a title that reads like a real submission, not navigation chrome"
+      - "Each story has at least one tag or a comment count"
+
   # ─── Comment threads — deep nesting, the naive-fetcher trap ────────────
   - slug: reddit-comments
     # A long-archived r/programming thread — locked and immutable, so the
