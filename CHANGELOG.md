@@ -8,6 +8,8 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-05-23
+
 ### Added
 
 - **Handler subsystem unification.** The `handler-subsystem-unification` change resolves three issues surfaced in live evaluation of the just-shipped forum/listing-extraction work: DiscourseHandler failing on Cloudflare-fronted hosts (`linux.do` got an anti-AI banner), HTML entities surfacing raw in Discourse titles (`&rsquo;`), and the generic record renderer flattening the heading the detector had already located.
