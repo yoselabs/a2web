@@ -11,10 +11,10 @@ import re
 from typing import TYPE_CHECKING
 from urllib.parse import unquote, urlparse
 
-import httpx
 import trafilatura
 
 from ..models import NextLink, Verdict
+from ..packages.http_fetch import FetchVerdict, fetch_bytes
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -57,29 +57,22 @@ class WikipediaHandler:
         lang, slug = parsed
 
         api_url = f"https://{lang}.wikipedia.org/api/rest_v1/page/html/{slug}"
-        try:
-            async with httpx.AsyncClient(
-                timeout=_TIMEOUT_S,
-                follow_redirects=True,
-                headers={
-                    "User-Agent": state.settings.default_ua,
-                    "Accept": "text/html",
-                },
-            ) as client:
-                response = await client.get(api_url)
-        except httpx.TimeoutException:
+        outcome = await fetch_bytes(
+            api_url,
+            headers={"User-Agent": state.settings.default_ua, "Accept": "text/html"},
+            timeout_s=_TIMEOUT_S,
+        )
+
+        if outcome.verdict is FetchVerdict.timeout:
             return _empty_result(url, Verdict.timeout)
-        except httpx.HTTPError:
-            return _empty_result(url, Verdict.connection_error)
-
-        if response.status_code == 404:
+        if outcome.verdict is FetchVerdict.not_found:
             return _empty_result(url, Verdict.not_found)
-        if response.status_code == 429:
+        if outcome.verdict is FetchVerdict.rate_limited:
             return _empty_result(url, Verdict.rate_limited)
-        if response.status_code >= 400:
+        if outcome.verdict is not FetchVerdict.ok:
             return _empty_result(url, Verdict.connection_error)
 
-        html = response.text
+        html = outcome.body.decode("utf-8", errors="replace")
         if not html:
             return _empty_result(url, Verdict.length_floor)
 
@@ -103,11 +96,11 @@ class WikipediaHandler:
         next_links = _wikilink_candidates(html, lang=lang)
 
         return TierResult(
-            body=html.encode("utf-8"),
+            body=outcome.body,
             content_type="text/html",
-            status_code=response.status_code,
+            status_code=outcome.status_code,
             final_url=url,
-            headers=dict(response.headers),
+            headers=outcome.headers,
             pre_rendered=Rendered(content_md=markdown, title=title),
             next_links=next_links,
             verdict=Verdict.ok,

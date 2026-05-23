@@ -6,13 +6,13 @@ import base64
 import json
 from typing import Any
 
-import httpx
 import pytest
 
 from a2web.handlers import GitHubHandler, match_handler
 from a2web.models import Verdict
 from a2web.settings import AppSettings
 from a2web.state import AppState
+from tests._helpers.fake_http import FakeCurlResp, patch_curl_session
 from tests.conftest import make_default_state
 from tests.fixtures import FIXTURES_DIR
 
@@ -76,13 +76,13 @@ async def test_github_repo_renders_metadata_and_readme(monkeypatch: pytest.Monke
 
     captured_urls: list[str] = []
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         captured_urls.append(url)
         if url.endswith("/readme"):
-            return httpx.Response(200, text=json.dumps(readme_payload))
-        return httpx.Response(200, text=json.dumps(repo_data))
+            return FakeCurlResp(200, text=json.dumps(readme_payload))
+        return FakeCurlResp(200, text=json.dumps(repo_data))
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await GitHubHandler().fetch("https://github.com/octocat/Hello-World", state=_state())
     assert result.verdict == Verdict.ok
@@ -103,12 +103,12 @@ async def test_github_issue_renders_threaded_comments(monkeypatch: pytest.Monkey
         {"user": {"login": "carol"}, "body": "Workaround: do Z."},
     ]
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         if url.endswith("/comments"):
-            return httpx.Response(200, text=json.dumps(comments))
-        return httpx.Response(200, text=json.dumps(issue_data))
+            return FakeCurlResp(200, text=json.dumps(comments))
+        return FakeCurlResp(200, text=json.dumps(issue_data))
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await GitHubHandler().fetch("https://github.com/octocat/Hello-World/issues/42", state=_state())
     assert result.verdict == Verdict.ok
@@ -124,14 +124,14 @@ async def test_github_pull_renders_reviews(monkeypatch: pytest.MonkeyPatch) -> N
     pr_data = {"number": 7, "title": "Add feature", "body": "This adds X.", "state": "open", "user": {"login": "alice"}}
     reviews = [{"user": {"login": "bob"}, "state": "APPROVED", "body": "LGTM"}]
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         if "/pulls/7/reviews" in url:
-            return httpx.Response(200, text=json.dumps(reviews))
+            return FakeCurlResp(200, text=json.dumps(reviews))
         if "/issues/7/comments" in url:
-            return httpx.Response(200, text=json.dumps([]))
-        return httpx.Response(200, text=json.dumps(pr_data))
+            return FakeCurlResp(200, text=json.dumps([]))
+        return FakeCurlResp(200, text=json.dumps(pr_data))
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await GitHubHandler().fetch("https://github.com/octocat/Hello-World/pull/7", state=_state())
     assert result.verdict == Verdict.ok
@@ -145,11 +145,11 @@ async def test_github_pull_renders_reviews(monkeypatch: pytest.MonkeyPatch) -> N
 async def test_github_token_sent_when_set(monkeypatch: pytest.MonkeyPatch) -> None:
     captured_headers: list[dict[str, str]] = []
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        captured_headers.append(dict(self.headers))
-        return httpx.Response(200, text='{"full_name": "x/y", "owner": {"login": "x"}}')
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        captured_headers.append({k.lower(): v for k, v in (kwargs.get("headers") or {}).items()})
+        return FakeCurlResp(200, text='{"full_name": "x/y", "owner": {"login": "x"}}')
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     await GitHubHandler().fetch("https://github.com/x/y", state=_state(token="ghp_test"))
     assert any(h.get("authorization", "").lower() == "bearer ghp_test" for h in captured_headers)
@@ -159,11 +159,11 @@ async def test_github_token_sent_when_set(monkeypatch: pytest.MonkeyPatch) -> No
 async def test_github_no_token_no_auth_header(monkeypatch: pytest.MonkeyPatch) -> None:
     captured_headers: list[dict[str, str]] = []
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        captured_headers.append(dict(self.headers))
-        return httpx.Response(200, text='{"full_name": "x/y", "owner": {"login": "x"}}')
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        captured_headers.append({k.lower(): v for k, v in (kwargs.get("headers") or {}).items()})
+        return FakeCurlResp(200, text='{"full_name": "x/y", "owner": {"login": "x"}}')
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     await GitHubHandler().fetch("https://github.com/x/y", state=_state(token=""))
     assert all("authorization" not in h for h in captured_headers)
@@ -171,10 +171,10 @@ async def test_github_no_token_no_auth_header(monkeypatch: pytest.MonkeyPatch) -
 
 @pytest.mark.asyncio
 async def test_github_429_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(429, text="")
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(429, text="")
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await GitHubHandler().fetch("https://github.com/x/y", state=_state())
     assert result.verdict == Verdict.rate_limited
@@ -182,10 +182,10 @@ async def test_github_429_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_github_403_with_zero_remaining_is_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(403, text="rate limited", headers={"x-ratelimit-remaining": "0"})
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(403, text="rate limited", headers={"x-ratelimit-remaining": "0"})
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await GitHubHandler().fetch("https://github.com/x/y", state=_state())
     assert result.verdict == Verdict.rate_limited
@@ -193,10 +193,10 @@ async def test_github_403_with_zero_remaining_is_rate_limited(monkeypatch: pytes
 
 @pytest.mark.asyncio
 async def test_github_404(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(404, text="")
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(404, text="")
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await GitHubHandler().fetch("https://github.com/x/missing", state=_state())
     assert result.verdict == Verdict.not_found
@@ -224,16 +224,16 @@ async def test_github_repo_populates_issue_and_pr_candidates(monkeypatch: pytest
         {"title": "Refactor bar", "number": 22, "comments": 1},
     ]
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        if url.endswith("/issues"):
-            return httpx.Response(200, text=json.dumps(issues))
-        if url.endswith("/pulls"):
-            return httpx.Response(200, text=json.dumps(pulls))
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        if "/issues?" in url or url.endswith("/issues"):
+            return FakeCurlResp(200, text=json.dumps(issues))
+        if "/pulls?" in url or url.endswith("/pulls"):
+            return FakeCurlResp(200, text=json.dumps(pulls))
         if url.endswith("/readme"):
-            return httpx.Response(404, text="")
-        return httpx.Response(200, text=json.dumps(repo_data))
+            return FakeCurlResp(404, text="")
+        return FakeCurlResp(200, text=json.dumps(repo_data))
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await GitHubHandler().fetch("https://github.com/x/y", state=_state())
     assert result.verdict == Verdict.ok
@@ -254,12 +254,12 @@ async def test_github_issue_url_returns_empty_next_links(monkeypatch: pytest.Mon
     """Issue URL is terminal — no candidates."""
     issue_data = json.loads((_FIX / "github_issue.json").read_text())
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         if "/comments" in url:
-            return httpx.Response(200, text="[]")
-        return httpx.Response(200, text=json.dumps(issue_data))
+            return FakeCurlResp(200, text="[]")
+        return FakeCurlResp(200, text=json.dumps(issue_data))
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await GitHubHandler().fetch("https://github.com/octocat/Hello-World/issues/1", state=_state())
     assert result.verdict == Verdict.ok

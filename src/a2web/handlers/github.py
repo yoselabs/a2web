@@ -12,13 +12,13 @@ limit. Without a token, unauthenticated calls get 60 req/hr per IP.
 from __future__ import annotations
 
 import base64
+import json
 import re
 from typing import TYPE_CHECKING, Any
-from urllib.parse import urlparse
-
-import httpx
+from urllib.parse import urlencode, urlparse
 
 from ..models import Heading, NextLink, Verdict
+from ..packages.http_fetch import FetchOutcome, FetchVerdict, fetch_bytes
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -97,32 +97,39 @@ class GitHubHandler:
         if token:
             headers["Authorization"] = f"Bearer {token}"
 
-        try:
-            async with httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True, headers=headers) as client:
-                if kind == "repo":
-                    return await _fetch_repo(client, url, parts)
-                if kind == "issue":
-                    return await _fetch_issue(client, url, parts)
-                return await _fetch_pull(client, url, parts)
-        except httpx.TimeoutException:
-            return _empty_result(url, Verdict.timeout)
-        except httpx.HTTPError:
-            return _empty_result(url, Verdict.connection_error)
+        if kind == "repo":
+            return await _fetch_repo(url, parts, headers)
+        if kind == "issue":
+            return await _fetch_issue(url, parts, headers)
+        return await _fetch_pull(url, parts, headers)
 
 
-async def _fetch_repo(client: httpx.AsyncClient, url: str, parts: tuple[str, ...]) -> TierResult:
+async def _get_json(url: str, headers: dict[str, str], params: dict[str, str] | None = None) -> FetchOutcome:
+    """One shared GET helper for the GitHub sub-fetchers — encodes params,
+    calls the primitive, returns the raw FetchOutcome (caller maps to verdict)."""
+    full_url = f"{url}?{urlencode(params)}" if params else url
+    return await fetch_bytes(full_url, headers=headers, timeout_s=_TIMEOUT_S)
+
+
+async def _fetch_repo(url: str, parts: tuple[str, ...], headers: dict[str, str]) -> TierResult:
     from ..tiers import Rendered, TierResult
 
     owner, repo = parts
-    repo_resp = await client.get(f"{_API_BASE}/repos/{owner}/{repo}")
-    if (verdict := _http_verdict(repo_resp)) is not None:
+    repo_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}", headers)
+    if (verdict := _http_verdict(repo_outcome)) is not None:
         return _empty_result(url, verdict)
-    repo_data = repo_resp.json()
+    try:
+        repo_data = json.loads(repo_outcome.body)
+    except (ValueError, json.JSONDecodeError):
+        return _empty_result(url, Verdict.content_type_mismatch)
 
     readme_md = ""
-    readme_resp = await client.get(f"{_API_BASE}/repos/{owner}/{repo}/readme")
-    if readme_resp.status_code == 200:
-        readme_payload = readme_resp.json()
+    readme_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/readme", headers)
+    if readme_outcome.status_code == 200:
+        try:
+            readme_payload = json.loads(readme_outcome.body)
+        except (ValueError, json.JSONDecodeError):
+            readme_payload = None
         if isinstance(readme_payload, dict) and readme_payload.get("encoding") == "base64":
             try:
                 readme_md = base64.b64decode(readme_payload.get("content", "")).decode("utf-8", errors="replace")
@@ -131,15 +138,15 @@ async def _fetch_repo(client: httpx.AsyncClient, url: str, parts: tuple[str, ...
 
     # v0.7 link-discovery: top 5 open issues + top 5 open PRs as `related` candidates.
     # Best-effort: API errors here MUST NOT fail the whole fetch.
-    next_links = await _fetch_repo_candidates(client, owner, repo)
+    next_links = await _fetch_repo_candidates(owner, repo, headers)
 
     rendered = _render_repo(repo_data, readme_md)
     return TierResult(
-        body=repo_resp.content,
+        body=repo_outcome.body,
         content_type="application/json",
         status_code=200,
         final_url=url,
-        headers=dict(repo_resp.headers),
+        headers=repo_outcome.headers,
         pre_rendered=Rendered.from_dict(rendered),
         next_links=next_links,
         verdict=Verdict.ok,
@@ -147,9 +154,9 @@ async def _fetch_repo(client: httpx.AsyncClient, url: str, parts: tuple[str, ...
 
 
 async def _fetch_repo_candidates(
-    client: httpx.AsyncClient,
     owner: str,
     repo: str,
+    headers: dict[str, str],
 ) -> list[NextLink]:
     """Fetch top 5 open issues + top 5 open PRs, return as NextLink candidates.
 
@@ -159,137 +166,160 @@ async def _fetch_repo_candidates(
     out items with `pull_request` to keep them disjoint.
     """
     out: list[NextLink] = []
-    try:
-        issues_resp = await client.get(
-            f"{_API_BASE}/repos/{owner}/{repo}/issues",
-            params={"state": "open", "per_page": 10, "sort": "comments", "direction": "desc"},
-        )
-        if issues_resp.status_code == 200:
-            issues_data = issues_resp.json()
-            issue_count = 0
-            for it in issues_data if isinstance(issues_data, list) else []:
-                if issue_count >= 5:
-                    break
-                if not isinstance(it, dict) or it.get("pull_request"):
-                    continue
-                title = (it.get("title") or "").strip()
-                number = it.get("number")
-                if not title or not number:
-                    continue
-                comments = it.get("comments", 0) or 0
-                out.append(
-                    NextLink(
-                        anchor=title,
-                        url=f"https://github.com/{owner}/{repo}/issues/{number}",
-                        reason=f"issue · {comments} comments",
-                        kind="related",
-                    ),
-                )
-                issue_count += 1
-    except httpx.HTTPError:
-        pass
+    issues_outcome = await _get_json(
+        f"{_API_BASE}/repos/{owner}/{repo}/issues",
+        headers,
+        params={"state": "open", "per_page": "10", "sort": "comments", "direction": "desc"},
+    )
+    if issues_outcome.status_code == 200:
+        try:
+            issues_data = json.loads(issues_outcome.body)
+        except (ValueError, json.JSONDecodeError):
+            issues_data = None
+        issue_count = 0
+        for it in issues_data if isinstance(issues_data, list) else []:
+            if issue_count >= 5:
+                break
+            if not isinstance(it, dict) or it.get("pull_request"):
+                continue
+            title = (it.get("title") or "").strip()
+            number = it.get("number")
+            if not title or not number:
+                continue
+            comments = it.get("comments", 0) or 0
+            out.append(
+                NextLink(
+                    anchor=title,
+                    url=f"https://github.com/{owner}/{repo}/issues/{number}",
+                    reason=f"issue · {comments} comments",
+                    kind="related",
+                ),
+            )
+            issue_count += 1
 
-    try:
-        pulls_resp = await client.get(
-            f"{_API_BASE}/repos/{owner}/{repo}/pulls",
-            params={"state": "open", "per_page": 5, "sort": "popularity", "direction": "desc"},
-        )
-        if pulls_resp.status_code == 200:
-            pulls_data = pulls_resp.json()
-            pr_count = 0
-            for pr in pulls_data if isinstance(pulls_data, list) else []:
-                if pr_count >= 5:
-                    break
-                if not isinstance(pr, dict):
-                    continue
-                title = (pr.get("title") or "").strip()
-                number = pr.get("number")
-                if not title or not number:
-                    continue
-                comments = pr.get("comments", 0) or 0
-                out.append(
-                    NextLink(
-                        anchor=title,
-                        url=f"https://github.com/{owner}/{repo}/pull/{number}",
-                        reason=f"PR · {comments} comments",
-                        kind="related",
-                    ),
-                )
-                pr_count += 1
-    except httpx.HTTPError:
-        pass
+    pulls_outcome = await _get_json(
+        f"{_API_BASE}/repos/{owner}/{repo}/pulls",
+        headers,
+        params={"state": "open", "per_page": "5", "sort": "popularity", "direction": "desc"},
+    )
+    if pulls_outcome.status_code == 200:
+        try:
+            pulls_data = json.loads(pulls_outcome.body)
+        except (ValueError, json.JSONDecodeError):
+            pulls_data = None
+        pr_count = 0
+        for pr in pulls_data if isinstance(pulls_data, list) else []:
+            if pr_count >= 5:
+                break
+            if not isinstance(pr, dict):
+                continue
+            title = (pr.get("title") or "").strip()
+            number = pr.get("number")
+            if not title or not number:
+                continue
+            comments = pr.get("comments", 0) or 0
+            out.append(
+                NextLink(
+                    anchor=title,
+                    url=f"https://github.com/{owner}/{repo}/pull/{number}",
+                    reason=f"PR · {comments} comments",
+                    kind="related",
+                ),
+            )
+            pr_count += 1
 
     return out
 
 
-async def _fetch_issue(client: httpx.AsyncClient, url: str, parts: tuple[str, ...]) -> TierResult:
+async def _fetch_issue(url: str, parts: tuple[str, ...], headers: dict[str, str]) -> TierResult:
     from ..tiers import Rendered, TierResult
 
     owner, repo, number = parts
-    issue_resp = await client.get(f"{_API_BASE}/repos/{owner}/{repo}/issues/{number}")
-    if (verdict := _http_verdict(issue_resp)) is not None:
+    issue_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/issues/{number}", headers)
+    if (verdict := _http_verdict(issue_outcome)) is not None:
         return _empty_result(url, verdict)
-    issue_data = issue_resp.json()
+    try:
+        issue_data = json.loads(issue_outcome.body)
+    except (ValueError, json.JSONDecodeError):
+        return _empty_result(url, Verdict.content_type_mismatch)
 
     comments: list[Any] = []
-    comments_resp = await client.get(f"{_API_BASE}/repos/{owner}/{repo}/issues/{number}/comments")
-    if comments_resp.status_code == 200:
-        loaded = comments_resp.json()
+    comments_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/issues/{number}/comments", headers)
+    if comments_outcome.status_code == 200:
+        try:
+            loaded = json.loads(comments_outcome.body)
+        except (ValueError, json.JSONDecodeError):
+            loaded = None
         if isinstance(loaded, list):
             comments = loaded
 
     rendered = _render_issue(issue_data, comments, kind="Issue")
     return TierResult(
-        body=issue_resp.content,
+        body=issue_outcome.body,
         content_type="application/json",
         status_code=200,
         final_url=url,
-        headers=dict(issue_resp.headers),
+        headers=issue_outcome.headers,
         pre_rendered=Rendered.from_dict(rendered),
         verdict=Verdict.ok,
     )
 
 
-async def _fetch_pull(client: httpx.AsyncClient, url: str, parts: tuple[str, ...]) -> TierResult:
+async def _fetch_pull(url: str, parts: tuple[str, ...], headers: dict[str, str]) -> TierResult:
     from ..tiers import Rendered, TierResult
 
     owner, repo, number = parts
-    pr_resp = await client.get(f"{_API_BASE}/repos/{owner}/{repo}/pulls/{number}")
-    if (verdict := _http_verdict(pr_resp)) is not None:
+    pr_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/pulls/{number}", headers)
+    if (verdict := _http_verdict(pr_outcome)) is not None:
         return _empty_result(url, verdict)
-    pr_data = pr_resp.json()
+    try:
+        pr_data = json.loads(pr_outcome.body)
+    except (ValueError, json.JSONDecodeError):
+        return _empty_result(url, Verdict.content_type_mismatch)
 
     reviews: list[Any] = []
-    reviews_resp = await client.get(f"{_API_BASE}/repos/{owner}/{repo}/pulls/{number}/reviews")
-    if reviews_resp.status_code == 200 and isinstance(loaded := reviews_resp.json(), list):
-        reviews = loaded
+    reviews_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/pulls/{number}/reviews", headers)
+    if reviews_outcome.status_code == 200:
+        try:
+            loaded = json.loads(reviews_outcome.body)
+        except (ValueError, json.JSONDecodeError):
+            loaded = None
+        if isinstance(loaded, list):
+            reviews = loaded
 
     comments: list[Any] = []
-    comments_resp = await client.get(f"{_API_BASE}/repos/{owner}/{repo}/issues/{number}/comments")
-    if comments_resp.status_code == 200 and isinstance(loaded := comments_resp.json(), list):
-        comments = loaded
+    comments_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/issues/{number}/comments", headers)
+    if comments_outcome.status_code == 200:
+        try:
+            loaded = json.loads(comments_outcome.body)
+        except (ValueError, json.JSONDecodeError):
+            loaded = None
+        if isinstance(loaded, list):
+            comments = loaded
 
     rendered = _render_pull(pr_data, reviews, comments)
     return TierResult(
-        body=pr_resp.content,
+        body=pr_outcome.body,
         content_type="application/json",
         status_code=200,
         final_url=url,
-        headers=dict(pr_resp.headers),
+        headers=pr_outcome.headers,
         pre_rendered=Rendered.from_dict(rendered),
         verdict=Verdict.ok,
     )
 
 
-def _http_verdict(resp: httpx.Response) -> Verdict | None:
-    """Map non-200 to a closed verdict; return None on 200."""
-    if resp.status_code == 200:
+def _http_verdict(outcome: FetchOutcome) -> Verdict | None:
+    """Map a non-success `FetchOutcome` to a closed verdict; return None on 200."""
+    if outcome.verdict is FetchVerdict.timeout:
+        return Verdict.timeout
+    if outcome.status_code == 200 and outcome.verdict is FetchVerdict.ok:
         return None
-    if resp.status_code == 404:
+    if outcome.status_code == 404 or outcome.verdict is FetchVerdict.not_found:
         return Verdict.not_found
-    if resp.status_code == 429:
+    if outcome.status_code == 429 or outcome.verdict is FetchVerdict.rate_limited:
         return Verdict.rate_limited
-    if resp.status_code == 403 and resp.headers.get("x-ratelimit-remaining") == "0":
+    if outcome.status_code == 403 and outcome.headers.get("x-ratelimit-remaining") == "0":
         return Verdict.rate_limited
     return Verdict.connection_error
 

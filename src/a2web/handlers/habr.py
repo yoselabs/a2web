@@ -15,16 +15,17 @@ closed `Verdict` values. A failed comments fetch degrades to article-only.
 
 from __future__ import annotations
 
+import json
 import re
 from collections import defaultdict
-from html import unescape
 from typing import TYPE_CHECKING, Any
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 import anyio
-import httpx
 
 from ..models import Heading, Verdict
+from ..packages.html_fragment import to_markdown, to_text
+from ..packages.http_fetch import FetchVerdict, fetch_bytes
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -83,21 +84,14 @@ class HabrHandler:
         params = {"fl": lang, "hl": lang}
 
         results: dict[str, dict[str, Any] | None] = {"article": None, "comments": None}
+        request_headers = {"User-Agent": state.settings.default_ua}
 
-        async def _load(key: str, endpoint: str, client: httpx.AsyncClient) -> None:
-            results[key] = await _fetch_json(client, endpoint, params)
+        async def _load(key: str, endpoint: str) -> None:
+            results[key] = await _fetch_json(endpoint, params, request_headers)
 
-        try:
-            async with httpx.AsyncClient(
-                timeout=_DEFAULT_TIMEOUT_S,
-                follow_redirects=True,
-                headers={"User-Agent": state.settings.default_ua},
-            ) as client:
-                async with anyio.create_task_group() as tg:
-                    tg.start_soon(_load, "article", f"{base}/", client)
-                    tg.start_soon(_load, "comments", f"{base}/comments/", client)
-        except httpx.HTTPError:
-            return _empty_result(url, Verdict.connection_error)
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(_load, "article", f"{base}/")
+            tg.start_soon(_load, "comments", f"{base}/comments/")
 
         article = results["article"]
         if not isinstance(article, dict) or not article.get("textHtml"):
@@ -118,22 +112,21 @@ class HabrHandler:
 
 
 async def _fetch_json(
-    client: httpx.AsyncClient, endpoint: str, params: dict[str, str]
+    endpoint: str, params: dict[str, str], headers: dict[str, str]
 ) -> dict[str, Any] | None:
-    """GET `endpoint` and return parsed JSON, or `None` on any routine failure.
+    """GET `endpoint?params` via the shared primitive and return parsed JSON,
+    or `None` on any routine failure.
 
     Never raises — a per-task failure must not cancel its sibling in the task
     group, so each fetch isolates its own errors.
     """
-    try:
-        response = await client.get(endpoint, params=params)
-    except httpx.HTTPError:
-        return None
-    if response.status_code != 200:
+    url = f"{endpoint}?{urlencode(params)}" if params else endpoint
+    outcome = await fetch_bytes(url, headers=headers, timeout_s=_DEFAULT_TIMEOUT_S)
+    if outcome.verdict is not FetchVerdict.ok or outcome.status_code != 200:
         return None
     try:
-        payload = response.json()
-    except ValueError:
+        payload = json.loads(outcome.body)
+    except (ValueError, json.JSONDecodeError):
         return None
     return payload if isinstance(payload, dict) else None
 
@@ -145,12 +138,12 @@ async def _fetch_json(
 
 def _render_article(article: dict[str, Any], comments: dict[str, Any] | None) -> dict[str, Any]:
     """Render the article body and, when available, a threaded discussion."""
-    title = _text_of(article.get("titleHtml") or "") or None
+    title = to_text(article.get("titleHtml") or "") or None
     author = article.get("author")
     byline = None
     if isinstance(author, dict) and author.get("alias"):
         byline = str(author["alias"])
-    body = _html_to_md(article.get("textHtml") or "")
+    body = to_markdown(article.get("textHtml") or "")
 
     parts: list[str] = []
     if title:
@@ -221,7 +214,7 @@ def _render_comment(
     raw_author = node.get("author")
     if isinstance(raw_author, dict) and raw_author.get("alias"):
         author = str(raw_author["alias"])
-    body = _html_to_md(node.get("message") or "")
+    body = to_markdown(node.get("message") or "")
     quote = ">" * depth
     if body:
         quoted = "\n".join(f"{quote} {line}".rstrip() for line in body.splitlines())
@@ -233,34 +226,6 @@ def _render_comment(
         for child_id in children.get(comment_id, []):
             block += _render_comment(child_id, comments, children, depth=depth + 1, budget=budget)
     return block
-
-
-def _text_of(html: str) -> str:
-    """Plain text of an HTML fragment — strip tags, decode entities, fold nbsp."""
-    text = re.sub(r"<[^>]+>", "", html)
-    return unescape(text).replace("\xa0", " ").strip()
-
-
-def _html_to_md(html: str) -> str:
-    """Convert a Habr `textHtml` / comment-`message` HTML fragment to markdown.
-
-    Lightweight and link-preserving: paragraphs, line breaks, list items,
-    emphasis, and `<a href>` → `[text](href)` are kept; all other tags are
-    stripped and HTML entities decoded.
-    """
-    if not html:
-        return ""
-    text = html
-    text = re.sub(r"<\s*/?\s*(?:p|div)[^>]*>", "\n\n", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*br\s*/?\s*>", "\n", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*li[^>]*>", "\n- ", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*/?\s*(?:i|em)\s*>", "*", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*/?\s*(?:b|strong)\s*>", "**", text, flags=re.IGNORECASE)
-    text = re.sub(r'<a [^>]*href="([^"]+)"[^>]*>(.*?)</a>', r"[\2](\1)", text, flags=re.IGNORECASE | re.DOTALL)
-    text = re.sub(r"<[^>]+>", "", text)
-    text = unescape(text).replace("\xa0", " ")
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
 
 
 def _empty_result(url: str, verdict: Verdict) -> TierResult:

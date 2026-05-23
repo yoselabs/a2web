@@ -11,12 +11,11 @@ from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 from xml.etree import ElementTree as ET
 
-import httpx
-
 from ..models import Heading, NextLink, Verdict
+from ..packages.http_fetch import FetchVerdict, fetch_bytes
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -76,27 +75,23 @@ class ArxivHandler:
         if arxiv_id is None:
             return _empty_result(url, Verdict.not_found)
 
-        try:
-            async with httpx.AsyncClient(
-                timeout=_TIMEOUT_S,
-                follow_redirects=True,
-                headers={"User-Agent": state.settings.default_ua},
-            ) as client:
-                response = await client.get(_API_URL, params={"id_list": arxiv_id})
-        except httpx.TimeoutException:
+        outcome = await fetch_bytes(
+            f"{_API_URL}?{urlencode({'id_list': arxiv_id})}",
+            headers={"User-Agent": state.settings.default_ua},
+            timeout_s=_TIMEOUT_S,
+        )
+
+        if outcome.verdict is FetchVerdict.timeout:
             return _empty_result(url, Verdict.timeout)
-        except httpx.HTTPError:
-            return _empty_result(url, Verdict.connection_error)
-
-        if response.status_code == 404:
+        if outcome.verdict is FetchVerdict.not_found:
             return _empty_result(url, Verdict.not_found)
-        if response.status_code == 429:
+        if outcome.verdict is FetchVerdict.rate_limited:
             return _empty_result(url, Verdict.rate_limited)
-        if response.status_code >= 400:
+        if outcome.verdict is not FetchVerdict.ok:
             return _empty_result(url, Verdict.connection_error)
 
         try:
-            root = ET.fromstring(response.text)  # noqa: S314 — arxiv API is trusted; httpx caps payload
+            root = ET.fromstring(outcome.body.decode("utf-8", errors="replace"))  # noqa: S314 — arxiv API is trusted
         except ET.ParseError:
             return _empty_result(url, Verdict.content_type_mismatch)
 
@@ -107,11 +102,11 @@ class ArxivHandler:
         rendered = _render_entry(entry)
 
         return TierResult(
-            body=response.content,
+            body=outcome.body,
             content_type="application/atom+xml",
-            status_code=response.status_code,
+            status_code=outcome.status_code,
             final_url=url,
-            headers=dict(response.headers),
+            headers=outcome.headers,
             pre_rendered=Rendered.from_dict(rendered),
             verdict=Verdict.ok,
         )
@@ -127,35 +122,31 @@ class ArxivHandler:
 
         cat, window = listing
         list_url = f"{_LIST_URL}/{cat}/{window}"
-        try:
-            async with httpx.AsyncClient(
-                timeout=_TIMEOUT_S,
-                follow_redirects=True,
-                headers={"User-Agent": state.settings.default_ua},
-            ) as client:
-                response = await client.get(list_url)
-        except httpx.TimeoutException:
+        outcome = await fetch_bytes(
+            list_url,
+            headers={"User-Agent": state.settings.default_ua},
+            timeout_s=_TIMEOUT_S,
+        )
+
+        if outcome.verdict is FetchVerdict.timeout:
             return _empty_result(url, Verdict.timeout)
-        except httpx.HTTPError:
-            return _empty_result(url, Verdict.connection_error)
-
-        if response.status_code == 404:
+        if outcome.verdict is FetchVerdict.not_found:
             return _empty_result(url, Verdict.not_found)
-        if response.status_code == 429:
+        if outcome.verdict is FetchVerdict.rate_limited:
             return _empty_result(url, Verdict.rate_limited)
-        if response.status_code >= 400:
+        if outcome.verdict is not FetchVerdict.ok:
             return _empty_result(url, Verdict.connection_error)
 
-        entries = _parse_listing_entries(response.text)
+        entries = _parse_listing_entries(outcome.body.decode("utf-8", errors="replace"))
         rendered = _render_listing(cat, window, entries)
         next_links = _listing_candidates(entries)
 
         return TierResult(
-            body=response.content,
+            body=outcome.body,
             content_type="text/html",
-            status_code=response.status_code,
+            status_code=outcome.status_code,
             final_url=url,
-            headers=dict(response.headers),
+            headers=outcome.headers,
             pre_rendered=Rendered.from_dict(rendered),
             next_links=next_links,
             verdict=Verdict.ok,

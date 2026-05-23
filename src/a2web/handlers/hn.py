@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import re
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlparse
 
-import httpx
-
 from ..models import Heading, NextLink, Verdict
+from ..packages.html_fragment import to_markdown
+from ..packages.http_fetch import FetchVerdict, fetch_bytes
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -56,28 +57,24 @@ class HNHandler:
                 return _empty_result(url, Verdict.not_found)
             api_url = f"https://hn.algolia.com/api/v1/items/{item_id}"
 
-        try:
-            async with httpx.AsyncClient(
-                timeout=_DEFAULT_TIMEOUT_S,
-                follow_redirects=True,
-                headers={"User-Agent": state.settings.default_ua},
-            ) as client:
-                response = await client.get(api_url)
-        except httpx.TimeoutException:
+        outcome = await fetch_bytes(
+            api_url,
+            headers={"User-Agent": state.settings.default_ua},
+            timeout_s=_DEFAULT_TIMEOUT_S,
+        )
+
+        if outcome.verdict is FetchVerdict.timeout:
             return _empty_result(url, Verdict.timeout)
-        except httpx.HTTPError:
-            return _empty_result(url, Verdict.connection_error)
-
-        if response.status_code == 404:
+        if outcome.verdict is FetchVerdict.not_found:
             return _empty_result(url, Verdict.not_found)
-        if response.status_code == 429:
+        if outcome.verdict is FetchVerdict.rate_limited:
             return _empty_result(url, Verdict.rate_limited)
-        if response.status_code >= 400:
+        if outcome.verdict is not FetchVerdict.ok:
             return _empty_result(url, Verdict.connection_error)
 
         try:
-            payload = response.json()
-        except ValueError:
+            payload = json.loads(outcome.body)
+        except (ValueError, json.JSONDecodeError):
             return _empty_result(url, Verdict.content_type_mismatch)
 
         if is_front_page:
@@ -88,11 +85,11 @@ class HNHandler:
             next_links = []
 
         return TierResult(
-            body=response.content,
+            body=outcome.body,
             content_type="application/json",
-            status_code=response.status_code,
+            status_code=outcome.status_code,
             final_url=url,
-            headers=dict(response.headers),
+            headers=outcome.headers,
             pre_rendered=Rendered.from_dict(rendered),
             next_links=next_links,
             verdict=Verdict.ok,
@@ -174,7 +171,7 @@ def _render_item(item: Any) -> dict[str, Any]:
     title = (item.get("title") or "").strip() or None
     author = item.get("author")
     byline = author if author else None
-    text = _strip_html(item.get("text") or "")
+    text = to_markdown(item.get("text") or "")
     item_url = item.get("url")
 
     parts: list[str] = []
@@ -210,7 +207,7 @@ def _render_item(item: Any) -> dict[str, Any]:
 def _render_kid(node: Any, *, depth: int) -> str:
     if not isinstance(node, dict):
         return ""
-    text = _strip_html(node.get("text") or "").strip()
+    text = to_markdown(node.get("text") or "").strip()
     author = node.get("author") or "[deleted]"
     if not text:
         # Item may have been deleted; recurse into kids if any
@@ -222,28 +219,6 @@ def _render_kid(node: Any, *, depth: int) -> str:
     for child in node.get("children") or []:
         block += _render_kid(child, depth=depth + 1)
     return block
-
-
-def _strip_html(html: str) -> str:
-    """Lightweight HTML → text. Algolia returns minimal HTML in `text` fields."""
-    if not html:
-        return ""
-    text = html
-    text = re.sub(r"<\s*p\s*>", "\n\n", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*br\s*/?\s*>", "\n", text, flags=re.IGNORECASE)
-    text = re.sub(r"</?\s*i\s*>", "*", text, flags=re.IGNORECASE)
-    text = re.sub(r"</?\s*b\s*>", "**", text, flags=re.IGNORECASE)
-    text = re.sub(r"<a [^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>", r"[\2](\1)", text, flags=re.IGNORECASE | re.DOTALL)
-    text = re.sub(r"<[^>]+>", "", text)
-    text = (
-        text.replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", '"')
-        .replace("&#x27;", "'")
-        .replace("&#39;", "'")
-    )
-    return text.strip()
 
 
 def _empty_result(url: str, verdict: Verdict) -> TierResult:

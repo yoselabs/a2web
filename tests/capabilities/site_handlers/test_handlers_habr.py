@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
 import pytest
 
 from a2web.handlers import HabrHandler, match_handler
-from a2web.handlers.habr import _html_to_md, _parse
+from a2web.handlers.habr import _parse
 from a2web.models import Verdict
 from a2web.state import AppState
+from tests._helpers.fake_http import FakeCurlResp, patch_curl_session
 from tests.conftest import make_default_state
 from tests.fixtures import FIXTURES_DIR
 
@@ -28,12 +28,15 @@ def _responder(
     article = (_FIX / "habr_article.json").read_text()
     comments = (_FIX / "habr_comments.json").read_text()
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        from urllib.parse import parse_qs, urlparse
+
         if captured is not None:
-            captured[url] = kwargs.get("params") or {}
-        if url.endswith("/comments/"):
-            return httpx.Response(comments_status, text=comments if comments_status == 200 else "")
-        return httpx.Response(article_status, text=article if article_status == 200 else "")
+            qs = parse_qs(urlparse(url).query)
+            captured[url] = {k: v[0] for k, v in qs.items()}
+        if "/comments/" in url:
+            return FakeCurlResp(comments_status, text=comments if comments_status == 200 else "")
+        return FakeCurlResp(article_status, text=article if article_status == 200 else "")
 
     return _fake_get
 
@@ -79,7 +82,7 @@ def test_parse_extracts_id_and_language() -> None:
 
 @pytest.mark.asyncio
 async def test_article_renders_body_and_threaded_discussion(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(httpx.AsyncClient, "get", _responder())
+    patch_curl_session(monkeypatch, _responder())
 
     result = await HabrHandler().fetch("https://habr.com/ru/articles/1032730/", state=_state())
     assert result.verdict == Verdict.ok
@@ -98,7 +101,7 @@ async def test_article_renders_body_and_threaded_discussion(monkeypatch: pytest.
 
 @pytest.mark.asyncio
 async def test_comments_failure_degrades_to_article_only(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(httpx.AsyncClient, "get", _responder(comments_status=500))
+    patch_curl_session(monkeypatch, _responder(comments_status=500))
 
     result = await HabrHandler().fetch("https://habr.com/ru/articles/1032730/", state=_state())
     assert result.verdict == Verdict.ok
@@ -110,7 +113,7 @@ async def test_comments_failure_degrades_to_article_only(monkeypatch: pytest.Mon
 
 @pytest.mark.asyncio
 async def test_unknown_id_falls_through(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(httpx.AsyncClient, "get", _responder(article_status=404))
+    patch_curl_session(monkeypatch, _responder(article_status=404))
 
     result = await HabrHandler().fetch("https://habr.com/ru/articles/9999999/", state=_state())
     assert result.verdict == Verdict.not_found
@@ -119,7 +122,7 @@ async def test_unknown_id_falls_through(monkeypatch: pytest.MonkeyPatch) -> None
 @pytest.mark.asyncio
 async def test_language_segment_selects_api_locale(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
-    monkeypatch.setattr(httpx.AsyncClient, "get", _responder(captured=captured))
+    patch_curl_session(monkeypatch, _responder(captured=captured))
 
     await HabrHandler().fetch("https://habr.com/en/articles/1032730/", state=_state())
     assert all(p == {"fl": "en", "hl": "en"} for p in captured.values())
@@ -129,13 +132,20 @@ async def test_language_segment_selects_api_locale(monkeypatch: pytest.MonkeyPat
     assert all(p == {"fl": "ru", "hl": "ru"} for p in captured.values())
 
 
-# --------------------------------------------------------------------- #
-# Render helper
-# --------------------------------------------------------------------- #
+def test_render_article_decodes_html_entities_in_title() -> None:
+    """Habr's `titleHtml` carries entities; the rendered title MUST decode them."""
+    from a2web.handlers.habr import _render_article
+
+    article = {
+        "titleHtml": "Tom&rsquo;s &amp; Jerry&rsquo;s saga",
+        "textHtml": "<p>body</p>",
+        "author": {"alias": "anon"},
+    }
+    rendered = _render_article(article, None)
+    assert rendered["title"] is not None
+    assert "&rsquo;" not in rendered["title"]
+    assert "&amp;" not in rendered["title"]
+    assert "’" in rendered["title"]  # noqa: RUF001
+    assert "&" in rendered["title"]
 
 
-def test_html_to_md_preserves_links_and_strips_tags() -> None:
-    md = _html_to_md('<div><p>Hello <strong>world</strong> <a href="https://e.com">link</a>.</p></div>')
-    assert "**world**" in md
-    assert "[link](https://e.com)" in md
-    assert "<p>" not in md

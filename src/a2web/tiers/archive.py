@@ -3,26 +3,26 @@
 Out-of-band tier: registered but NOT in `TIER_ORDER`. The orchestrator
 dispatches it only when the playbook returns `RetryViaArchive`.
 
-Hedge strategy: launch both upstreams under an anyio task group, write
-to a single capacity-1 send stream on first success, cancel the loser
-on task-group exit.
+Hedge strategy: launch both upstreams under an anyio task group, write to
+a single capacity-1 send stream on first success, cancel the loser on
+task-group exit. All HTTP goes through the shared `http_fetch` primitive —
+no inline curl_cffi or httpx.
 """
 
 from __future__ import annotations
 
-import asyncio
+import json
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlencode
 
 import anyio
-import httpx
 import trafilatura
-from curl_cffi import requests as curl_requests
-from curl_cffi.requests import exceptions as curl_exceptions
 
 from ..models import Verdict
+from ..packages.http_fetch import FetchVerdict, fetch_bytes
 
 
 @dataclass(slots=True)
@@ -41,7 +41,6 @@ _CDX_URL = "https://web.archive.org/cdx/search/cdx"
 _WAYBACK_SNAPSHOT = "https://web.archive.org/web/{timestamp}id_/{url}"
 _ARCHIVE_PH = "https://archive.ph/newest/{url}"
 _TIMEOUT_S = 12.0
-_IMPERSONATE = "chrome120"
 
 _WAYBACK_CHROME_RE = re.compile(
     r"<!--\s*BEGIN WAYBACK TOOLBAR INSERT.*?<!--\s*END WAYBACK TOOLBAR INSERT\s*-->",
@@ -62,48 +61,32 @@ def _to_markdown(html: str, url: str) -> str:
 
 async def _wayback_lookup(url: str) -> tuple[str, str] | None:
     """Return (timestamp, snapshot_html) or None."""
-    async with httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True) as client:
-        try:
-            resp = await client.get(_CDX_URL, params={"url": url, "output": "json", "limit": 1, "fl": "timestamp,original"})
-        except httpx.HTTPError:
-            return None
-        if resp.status_code != 200:
-            return None
-        try:
-            rows = resp.json()
-        except ValueError:
-            return None
-        # CDX returns a header row + 0+ data rows.
-        if not isinstance(rows, list) or len(rows) < 2:
-            return None
-        timestamp = rows[1][0]
-        try:
-            snap = await client.get(_WAYBACK_SNAPSHOT.format(timestamp=timestamp, url=url))
-        except httpx.HTTPError:
-            return None
-        if snap.status_code != 200:
-            return None
-        return timestamp, snap.text
-
-
-def _archive_ph_sync(url: str) -> str | None:
-    """Synchronous archive.ph fetch via curl_cffi (run in to_thread)."""
+    cdx_qs = urlencode({"url": url, "output": "json", "limit": 1, "fl": "timestamp,original"})
+    cdx_outcome = await fetch_bytes(f"{_CDX_URL}?{cdx_qs}", timeout_s=_TIMEOUT_S)
+    if cdx_outcome.verdict is not FetchVerdict.ok or cdx_outcome.status_code != 200:
+        return None
     try:
-        resp = curl_requests.get(
-            _ARCHIVE_PH.format(url=url),
-            impersonate=_IMPERSONATE,
-            timeout=_TIMEOUT_S,
-            allow_redirects=True,
-        )
-    except (curl_exceptions.RequestException, OSError):
+        rows = json.loads(cdx_outcome.body)
+    except (ValueError, json.JSONDecodeError):
         return None
-    if resp.status_code != 200:
+    # CDX returns a header row + 0+ data rows.
+    if not isinstance(rows, list) or len(rows) < 2:
         return None
-    return resp.text
+    timestamp = rows[1][0]
+    snap_outcome = await fetch_bytes(
+        _WAYBACK_SNAPSHOT.format(timestamp=timestamp, url=url), timeout_s=_TIMEOUT_S
+    )
+    if snap_outcome.verdict is not FetchVerdict.ok or snap_outcome.status_code != 200:
+        return None
+    return timestamp, snap_outcome.body.decode("utf-8", errors="replace")
 
 
 async def _archive_ph_lookup(url: str) -> str | None:
-    return await asyncio.to_thread(_archive_ph_sync, url)
+    """Fetch the archive.ph mirror; returns the snapshot HTML or None."""
+    outcome = await fetch_bytes(_ARCHIVE_PH.format(url=url), timeout_s=_TIMEOUT_S)
+    if outcome.verdict is not FetchVerdict.ok or outcome.status_code != 200:
+        return None
+    return outcome.body.decode("utf-8", errors="replace")
 
 
 def _snapshot_age_days(timestamp: str) -> int | None:

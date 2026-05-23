@@ -170,19 +170,36 @@ def test_each_record_keeps_slug_text_and_all_links() -> None:
     assert len(first.links) >= 2
 
 
-def test_primary_link_is_the_heading_link_not_index_zero() -> None:
+def test_heading_link_is_the_heading_link_not_index_zero() -> None:
     rs = extract_records(_FLAT_LISTING)
     assert rs is not None
     first = rs.records[0]
-    assert first.primary_link is not None
-    # index-0 link is the Star button; primary must be the heading repo link
-    assert first.primary_link[1].endswith("/owner0/repo0")
+    assert first.heading_link is not None
+    # index-0 link is the Star button; heading_link must be the heading repo link
+    assert first.heading_link[1].endswith("/owner0/repo0")
+    # heading_text is populated alongside heading_link when a heading is detected
+    assert first.heading_text == "owner0 / repo0"
 
 
 def test_base_url_resolves_relative_hrefs() -> None:
     rs = extract_records(_FLAT_LISTING, base_url="https://github.com")
     assert rs is not None
-    assert rs.records[0].primary_link == ("owner0 / repo0", "https://github.com/owner0/repo0")
+    assert rs.records[0].heading_link == ("owner0 / repo0", "https://github.com/owner0/repo0")
+
+
+def test_record_markdown_leads_with_heading_link_then_body_without_duplication() -> None:
+    """A heading-led record renders as `- [title](href)\\n  body\\n  links`,
+    and the heading text MUST NOT also appear on the body line."""
+    rs = extract_records(_FLAT_LISTING, base_url="https://github.com")
+    assert rs is not None
+    first = rs.records[0]
+    lines = first.markdown.split("\n")
+    # First line is the heading link
+    assert lines[0] == "- [owner0 / repo0](https://github.com/owner0/repo0)"
+    # The heading_text must not appear again on any body line (no duplicate smush)
+    body_lines = lines[1:]
+    body_blob = " ".join(body_lines)
+    assert "owner0 / repo0" not in body_blob
 
 
 def test_to_markdown_labels_flat_vs_threaded() -> None:

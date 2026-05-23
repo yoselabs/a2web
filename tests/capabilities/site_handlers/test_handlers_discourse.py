@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
 import pytest
 
 from a2web.handlers import DiscourseHandler, match_handler
-from a2web.handlers.discourse import _cooked_to_md, _render_index, _render_topic
+from a2web.handlers.discourse import _render_index, _render_topic
 from a2web.models import Verdict
 from a2web.settings import AppSettings
 from a2web.state import AppState
+from tests._helpers.fake_http import FakeCurlResp, patch_curl_session
 from tests.conftest import make_default_state
 from tests.fixtures import FIXTURES_DIR
 
@@ -61,10 +61,10 @@ def test_discourse_matches_falls_back_to_defaults_without_settings() -> None:
 async def test_topic_url_renders_threaded_post_stream(monkeypatch: pytest.MonkeyPatch) -> None:
     topic = (_FIX / "discourse_topic.json").read_text()
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(200, text=topic, headers={"content-type": "application/json"})
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text=topic, headers={"content-type": "application/json"})
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await DiscourseHandler().fetch("https://linux.do/t/how-do-i-configure/123", state=_state())
     assert result.verdict == Verdict.ok
@@ -82,10 +82,10 @@ async def test_topic_url_renders_threaded_post_stream(monkeypatch: pytest.Monkey
 
 @pytest.mark.asyncio
 async def test_topic_url_without_post_stream_falls_through(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(200, text='{"title": "not a discourse topic"}')
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text='{"title": "not a discourse topic"}')
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await DiscourseHandler().fetch("https://linux.do/t/x/1", state=_state())
     assert result.verdict == Verdict.not_found
@@ -100,10 +100,10 @@ async def test_topic_url_without_post_stream_falls_through(monkeypatch: pytest.M
 async def test_index_url_emits_discussion_next_links(monkeypatch: pytest.MonkeyPatch) -> None:
     latest = (_FIX / "discourse_latest.json").read_text()
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(200, text=latest, headers={"content-type": "application/json"})
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text=latest, headers={"content-type": "application/json"})
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await DiscourseHandler().fetch("https://linux.do/latest", state=_state())
     assert result.verdict == Verdict.ok
@@ -114,10 +114,10 @@ async def test_index_url_emits_discussion_next_links(monkeypatch: pytest.MonkeyP
 
 @pytest.mark.asyncio
 async def test_configured_host_non_discourse_json_falls_through(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(200, text='{"foo": "bar"}')
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text='{"foo": "bar"}')
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await DiscourseHandler().fetch("https://linux.do/", state=_state())
     assert result.verdict == Verdict.not_found
@@ -125,10 +125,10 @@ async def test_configured_host_non_discourse_json_falls_through(monkeypatch: pyt
 
 @pytest.mark.asyncio
 async def test_non_200_falls_through(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(503, text="")
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(503, text="")
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await DiscourseHandler().fetch("https://linux.do/t/x/1", state=_state())
     assert result.verdict == Verdict.connection_error
@@ -139,13 +139,6 @@ async def test_non_200_falls_through(monkeypatch: pytest.MonkeyPatch) -> None:
 # --------------------------------------------------------------------- #
 
 
-def test_cooked_to_md_preserves_links_and_strips_tags() -> None:
-    md = _cooked_to_md('<p>Hello <strong>world</strong>, see <a href="https://e.com">link</a>.</p>')
-    assert "**world**" in md
-    assert "[link](https://e.com)" in md
-    assert "<p>" not in md
-
-
 def test_render_topic_rejects_non_discourse_payload() -> None:
     assert _render_topic({"title": "x"}) is None
     assert _render_topic([]) is None
@@ -153,3 +146,42 @@ def test_render_topic_rejects_non_discourse_payload() -> None:
 
 def test_render_index_rejects_non_discourse_payload() -> None:
     assert _render_index({"foo": "bar"}, "https://linux.do/latest") is None
+
+
+def test_render_topic_decodes_html_entities_in_fancy_title() -> None:
+    """Regression: Discourse `fancy_title` carries HTML entities (`&rsquo;`,
+    `&amp;`); the rendered title MUST be human-readable, not raw entities."""
+    payload = {
+        "id": 1,
+        "fancy_title": "It&rsquo;s a &ldquo;test&rdquo; &amp; should decode",
+        "post_stream": {"posts": [{"id": 1, "post_number": 1, "username": "alice", "cooked": "<p>body</p>"}]},
+    }
+    rendered = _render_topic(payload)
+    assert rendered is not None
+    assert "&rsquo;" not in rendered["title"]
+    assert "&amp;" not in rendered["title"]
+    assert "’" in rendered["title"]  # noqa: RUF001
+    assert "&" in rendered["title"]  # the decoded ampersand
+    # Sanity — the title also appears in the rendered content_md
+    assert "&rsquo;" not in rendered["content_md"]
+
+
+def test_render_index_decodes_html_entities_in_fancy_title() -> None:
+    """The latest-topics index renders `fancy_title` for each entry — same rule."""
+    payload = {
+        "topic_list": {
+            "topics": [
+                {
+                    "id": 99,
+                    "fancy_title": "Tom&rsquo;s thread",
+                    "slug": "toms-thread",
+                    "posts_count": 3,
+                    "reply_count": 2,
+                },
+            ],
+        },
+    }
+    rendered = _render_index(payload, "https://linux.do/latest")
+    assert rendered is not None
+    assert "&rsquo;" not in rendered["content_md"]
+    assert "Tom’s" in rendered["content_md"]  # noqa: RUF001

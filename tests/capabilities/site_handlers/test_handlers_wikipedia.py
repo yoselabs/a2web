@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
 import pytest
 
 from a2web.handlers import WikipediaHandler, match_handler
 from a2web.models import Verdict
 from a2web.state import AppState
+from tests._helpers.fake_http import FakeCurlResp, patch_curl_session
 from tests.conftest import make_default_state
 from tests.fixtures import FIXTURES_DIR
 
@@ -43,11 +43,11 @@ async def test_wikipedia_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
 
     captured: dict[str, str] = {}
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         captured["url"] = url
-        return httpx.Response(200, text=html, headers={"content-type": "text/html"})
+        return FakeCurlResp(200, text=html, headers={"content-type": "text/html"})
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await WikipediaHandler().fetch("https://en.wikipedia.org/wiki/Octopus", state=_state())
     assert result.verdict == Verdict.ok
@@ -62,11 +62,11 @@ async def test_wikipedia_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_wikipedia_uses_url_lang(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, str] = {}
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         captured["url"] = url
-        return httpx.Response(200, text="<html><body><p>" + ("Russian content. " * 80) + "</p></body></html>")
+        return FakeCurlResp(200, text="<html><body><p>" + ("Russian content. " * 80) + "</p></body></html>")
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     await WikipediaHandler().fetch("https://ru.wikipedia.org/wiki/Test", state=_state())
     assert "ru.wikipedia.org" in captured["url"]
@@ -74,10 +74,10 @@ async def test_wikipedia_uses_url_lang(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_wikipedia_404(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(404, text="")
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(404, text="")
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await WikipediaHandler().fetch("https://en.wikipedia.org/wiki/UnknownArticle", state=_state())
     assert result.verdict == Verdict.not_found

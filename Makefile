@@ -1,4 +1,4 @@
-.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty bench eval eval-baseline eval-detail bless-contracts
+.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty bench eval eval-baseline eval-detail bless-contracts handler-probe
 
 check: lint ty test-cov
 
@@ -53,3 +53,10 @@ eval-baseline:
 
 eval-detail:
 	uv run python -m a2web.llm_eval --mode detail
+
+# Live-network handler probe — exercises every registered handler against
+# a real representative URL. Catches transport-layer regressions (e.g.,
+# the linux.do Cloudflare-block) that monkeypatched unit tests miss.
+# NOT wired into `make check` — runs deliberately, hits the open internet.
+handler-probe:
+	uv run python -m a2web.handler_probe

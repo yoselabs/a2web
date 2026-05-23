@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
 import pytest
 
 from a2web.handlers import ArxivHandler, match_handler
 from a2web.models import Verdict
 from a2web.state import AppState
+from tests._helpers.fake_http import FakeCurlResp, patch_curl_session
 from tests.conftest import make_default_state
 from tests.fixtures import FIXTURES_DIR
 
@@ -82,10 +82,10 @@ def test_arxiv_listing_html_parser_extracts_entries() -> None:
 async def test_arxiv_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
     atom = (_FIX / "arxiv_query.atom.xml").read_text()
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(200, text=atom, headers={"content-type": "application/atom+xml"})
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text=atom, headers={"content-type": "application/atom+xml"})
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await ArxivHandler().fetch("https://arxiv.org/abs/2401.12345", state=_state())
     assert result.verdict == Verdict.ok
@@ -101,10 +101,10 @@ async def test_arxiv_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_arxiv_unknown_id_returns_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
     empty_atom = '<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"></feed>'
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(200, text=empty_atom)
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text=empty_atom)
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await ArxivHandler().fetch("https://arxiv.org/abs/9999.99999", state=_state())
     assert result.verdict == Verdict.not_found
@@ -112,10 +112,10 @@ async def test_arxiv_unknown_id_returns_not_found(monkeypatch: pytest.MonkeyPatc
 
 @pytest.mark.asyncio
 async def test_arxiv_malformed_xml(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(200, text="not xml at all <<<")
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text="not xml at all <<<")
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await ArxivHandler().fetch("https://arxiv.org/abs/2401.12345", state=_state())
     assert result.verdict == Verdict.content_type_mismatch
@@ -123,10 +123,10 @@ async def test_arxiv_malformed_xml(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_arxiv_429_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
-        return httpx.Response(429, text="")
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(429, text="")
 
-    monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
+    patch_curl_session(monkeypatch, _fake_get)
 
     result = await ArxivHandler().fetch("https://arxiv.org/abs/2401.12345", state=_state())
     assert result.verdict == Verdict.rate_limited

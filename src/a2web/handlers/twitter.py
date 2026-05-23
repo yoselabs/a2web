@@ -20,11 +20,11 @@ import re
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-import httpx
 import structlog
 import trafilatura
 
 from ..models import Heading, Verdict
+from ..packages.http_fetch import FetchVerdict, fetch_bytes
 
 _LOG = structlog.get_logger("a2web.handlers.twitter")
 
@@ -140,28 +140,23 @@ async def _try_instance(
     base = instance.rstrip("/")
     nitter_url = f"{base}/{user}/status/{status_id}"
 
-    try:
-        async with httpx.AsyncClient(
-            timeout=_DEFAULT_TIMEOUT_S,
-            follow_redirects=True,
-            headers={"User-Agent": state.settings.default_ua},
-        ) as client:
-            response = await client.get(nitter_url)
-    except httpx.TimeoutException:
+    outcome = await fetch_bytes(
+        nitter_url,
+        headers={"User-Agent": state.settings.default_ua},
+        timeout_s=_DEFAULT_TIMEOUT_S,
+    )
+
+    if outcome.verdict is FetchVerdict.timeout:
         return Verdict.timeout, None
-    except httpx.HTTPError:
-        return Verdict.connection_error, None
-
-    if response.status_code == 404:
-        # Specific tweet not on this instance — try the next one (the
-        # instance itself might be a fork without the requested tweet).
+    if outcome.verdict is FetchVerdict.not_found:
+        # Specific tweet not on this instance — try the next one.
         return Verdict.not_found, None
-    if response.status_code == 429:
+    if outcome.verdict is FetchVerdict.rate_limited:
         return Verdict.rate_limited, None
-    if response.status_code >= 400:
+    if outcome.verdict is not FetchVerdict.ok:
         return Verdict.connection_error, None
 
-    html = response.text
+    html = outcome.body.decode("utf-8", errors="replace")
     if not html:
         return Verdict.length_floor, None
 
@@ -188,11 +183,11 @@ async def _try_instance(
         headings.append(Heading(level=1, text=title))
 
     return Verdict.ok, TierResult(
-        body=response.content,
+        body=outcome.body,
         content_type="text/html",
-        status_code=response.status_code,
+        status_code=outcome.status_code,
         final_url=nitter_url,
-        headers=dict(response.headers),
+        headers=outcome.headers,
         pre_rendered=Rendered(
             content_md=markdown,
             title=title,

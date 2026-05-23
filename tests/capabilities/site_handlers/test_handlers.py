@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
-import httpx
 import pytest
 
 from a2web.handlers import HNHandler, RedditHandler, TwitterHandler, match_handler
@@ -13,6 +13,7 @@ from a2web.handlers.reddit import _fetch_old_reddit, _render_thread, _to_old_red
 from a2web.models import Verdict
 from a2web.settings import AppSettings
 from a2web.state import AppState
+from tests._helpers.fake_http import FakeCurlResp, patch_curl_session
 from tests.fixtures import FIXTURES_DIR
 
 _FIX = FIXTURES_DIR
@@ -431,14 +432,12 @@ async def test_old_reddit_fallback_returns_content_on_200(
         "</article></body></html>"
     )
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         # Should be called against old.reddit.com
-        assert "old.reddit.com" in str(request.url)
-        return httpx.Response(200, text=html)
+        assert "old.reddit.com" in url
+        return FakeCurlResp(200, text=html)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     result = await _fetch_old_reddit(
         "https://www.reddit.com/r/programming/comments/abc/title/",
@@ -456,12 +455,10 @@ async def test_old_reddit_fallback_returns_not_found_on_404(
 ) -> None:
     """When old.reddit also 404s, return not_found verdict."""
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(404)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(404)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     result = await _fetch_old_reddit("https://www.reddit.com/r/x/comments/dead/", state=_make_state())
 
@@ -476,17 +473,14 @@ async def test_reddit_handler_falls_back_on_json_404(
     """RedditHandler: .json 404 → tries old.reddit and returns its content."""
     html = "<html><body><article><h1>Recoverable thread</h1><p>" + ("body " * 100) + "</p></article></body></html>"
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        url = str(request.url)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         if ".json" in url:
-            return httpx.Response(404)
+            return FakeCurlResp(404)
         # old.reddit fallback
         assert "old.reddit.com" in url
-        return httpx.Response(200, text=html)
+        return FakeCurlResp(200, text=html)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     handler_obj = RedditHandler()
     result = await handler_obj.fetch("https://www.reddit.com/r/x/comments/abc/title/", state=_make_state())
@@ -504,17 +498,14 @@ async def test_reddit_handler_falls_back_on_empty_thread(
     html = "<html><body><article><h1>Quarantined-but-readable</h1><p>" + ("body " * 100) + "</p></article></body></html>"
     calls: list[str] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        url = str(request.url)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         calls.append(url)
         if ".json" in url:
             # Valid JSON but renders to empty content_md.
-            return httpx.Response(200, json=[{}, {}])
-        return httpx.Response(200, text=html)
+            return FakeCurlResp(200, json=[{}, {}])
+        return FakeCurlResp(200, text=html)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     result = await RedditHandler().fetch("https://www.reddit.com/r/x/comments/abc/title/", state=_make_state())
 
@@ -535,16 +526,13 @@ async def test_reddit_handler_skips_fallback_when_json_succeeds(
     payload = json.loads((_FIX / "reddit_thread.json").read_text())
     calls: list[str] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        url = str(request.url)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         calls.append(url)
         if ".json" in url:
-            return httpx.Response(200, json=payload)
-        return httpx.Response(404)  # would-be old.reddit; shouldn't be hit
+            return FakeCurlResp(200, json=payload)
+        return FakeCurlResp(404)  # would-be old.reddit; shouldn't be hit
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     result = await RedditHandler().fetch("https://www.reddit.com/r/x/comments/abc/title/", state=_make_state())
 
@@ -610,13 +598,11 @@ async def test_twitter_handler_returns_content_from_first_working_instance(
         "</article></body></html>"
     )
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        assert "nitter.example.com" in str(request.url)
-        return httpx.Response(200, text=tweet_html)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        assert "nitter.example.com" in url
+        return FakeCurlResp(200, text=tweet_html)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     state = _make_state_with_nitter("https://nitter.example.com")
     result = await TwitterHandler().fetch("https://x.com/karpathy/status/1759031023815639423", state=state)
@@ -634,17 +620,14 @@ async def test_twitter_handler_rotates_past_failing_instance(
     tweet_html = "<html><body><article><div>" + ("recovered body. " * 60) + "</div></article></body></html>"
     seen: list[str] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        url = str(request.url)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         seen.append(url)
         # First instance always fails (5xx), second succeeds.
         if "fail.example.com" in url:
-            return httpx.Response(503)
-        return httpx.Response(200, text=tweet_html)
+            return FakeCurlResp(503)
+        return FakeCurlResp(200, text=tweet_html)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     # Disable shuffle for deterministic order — patch random.shuffle to no-op.
     monkeypatch.setattr("a2web.handlers.twitter.random.shuffle", lambda _: None)
@@ -665,12 +648,10 @@ async def test_twitter_handler_returns_empty_when_all_instances_fail(
 ) -> None:
     """All instances 5xx → handler returns the last verdict (connection_error)."""
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(503)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(503)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     state = _make_state_with_nitter("https://a.example.com", "https://b.example.com")
     result = await TwitterHandler().fetch("https://x.com/karpathy/status/123", state=state)
@@ -785,12 +766,10 @@ async def test_reddit_handler_signals_archive_on_404_when_old_reddit_also_fails(
     the archive tier next.
     """
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(404)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(404)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     result = await RedditHandler().fetch("https://www.reddit.com/r/x/comments/dead/title/", state=_make_state())
 
@@ -804,12 +783,10 @@ async def test_reddit_handler_signals_archive_on_404_when_old_reddit_also_fails(
 async def test_reddit_handler_signals_archive_on_403(monkeypatch: pytest.MonkeyPatch) -> None:
     """403 (quarantined/NSFW/private) skips old.reddit and asks for archive."""
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(403)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(403)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     result = await RedditHandler().fetch("https://www.reddit.com/r/x/comments/abc/title/", state=_make_state())
 
@@ -826,19 +803,16 @@ async def test_reddit_handler_resolves_short_url_then_renders(
     payload = json.loads((_FIX / "reddit_thread.json").read_text())
     resolved_url = "https://www.reddit.com/r/x/comments/abc/some_title/"
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        url = str(request.url)
-        if request.method == "HEAD" and "redd.it" in url:
-            return httpx.Response(301, headers={"location": resolved_url})
-        if request.method == "HEAD":
-            return httpx.Response(200)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        if "redd.it" in url:
+            # Simulate curl_cffi having followed the 301 redirect — the
+            # final_url is the resolved reddit URL the handler reads.
+            return FakeCurlResp(200, url=resolved_url, json={})
         if ".json" in url:
-            return httpx.Response(200, json=payload)
-        return httpx.Response(404)
+            return FakeCurlResp(200, json=payload)
+        return FakeCurlResp(404)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     result = await RedditHandler().fetch("https://redd.it/abc", state=_make_state())
 
@@ -854,15 +828,13 @@ async def test_reddit_handler_short_url_no_match_for_non_thread_resolution(
     """If redd.it resolves to a non-thread URL, return no_match=True."""
     resolved_url = "https://www.reddit.com/r/x/"
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        url = str(request.url)
-        if request.method == "HEAD" and "redd.it" in url:
-            return httpx.Response(301, headers={"location": resolved_url})
-        return httpx.Response(200)
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        if "redd.it" in url:
+            # Simulate curl_cffi having followed the 301 redirect.
+            return FakeCurlResp(200, url=resolved_url)
+        return FakeCurlResp(200)
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    patch_curl_session(monkeypatch, handler)
 
     result = await RedditHandler().fetch("https://redd.it/abc", state=_make_state())
 

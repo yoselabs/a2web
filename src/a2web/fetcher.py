@@ -1101,7 +1101,7 @@ def _records_to_next_links(record_set: RecordSet, *, page_url: str) -> list[Next
     seen: set[str] = set()
     for record in record_set.records:
         candidates: tuple[tuple[tuple[str, str] | None, NextLinkKind, str], ...] = (
-            (record.primary_link, "source", "discussed page"),
+            (record.heading_link, "source", "discussed page"),
             (_record_discussion_link(record, page_host), "discussion", "discussion thread"),
         )
         for link, kind, reason in candidates:

@@ -16,12 +16,7 @@ from curl_cffi.requests import exceptions as curl_exceptions
 from a2web.models import Verdict
 from a2web.settings import AppSettings
 from a2web.state import AppState
-from a2web.tiers.raw import (
-    RawTier,
-    _conditional_headers,
-    _is_proxy_error,
-    _verdict_for_status,
-)
+from a2web.tiers.raw import RawTier, _verdict_for_status
 from tests.conftest import make_default_state
 
 
@@ -62,46 +57,9 @@ class TestVerdictForStatus:
         assert _verdict_for_status(200, "TEXT/HTML") == Verdict.ok
 
 
-class TestIsProxyError:
-    def test_proxy_keyword_matches(self) -> None:
-        assert _is_proxy_error(RuntimeError("proxy connection failed"))
-
-    def test_socks_keyword_matches(self) -> None:
-        assert _is_proxy_error(RuntimeError("SOCKS5 handshake error"))
-
-    def test_tunnel_keyword_matches(self) -> None:
-        assert _is_proxy_error(RuntimeError("tunnel established failed"))
-
-    def test_non_proxy_error_does_not_match(self) -> None:
-        assert not _is_proxy_error(RuntimeError("connection reset by peer"))
-        assert not _is_proxy_error(ValueError("bad URL"))
-
-    def test_case_insensitive_match(self) -> None:
-        assert _is_proxy_error(RuntimeError("PROXY error"))
-        assert _is_proxy_error(RuntimeError("Socks reset"))
-
-
-class TestConditionalHeaders:
-    def test_empty_extras_yields_empty_headers(self) -> None:
-        assert _conditional_headers({}) == {}
-
-    def test_etag_only(self) -> None:
-        assert _conditional_headers({"etag": '"abc123"'}) == {"If-None-Match": '"abc123"'}
-
-    def test_last_modified_only(self) -> None:
-        result = _conditional_headers({"last_modified": "Wed, 21 Oct 2026 07:28:00 GMT"})
-        assert result == {"If-Modified-Since": "Wed, 21 Oct 2026 07:28:00 GMT"}
-
-    def test_both_headers(self) -> None:
-        result = _conditional_headers({"etag": '"x"', "last_modified": "now"})
-        assert result == {"If-None-Match": '"x"', "If-Modified-Since": "now"}
-
-    def test_empty_string_etag_skipped(self) -> None:
-        assert _conditional_headers({"etag": ""}) == {}
-
-    def test_non_string_etag_skipped(self) -> None:
-        # type-narrow guard — defensive against malformed cache rows.
-        assert _conditional_headers({"etag": 12345}) == {}
+# Helper unit tests for `_is_proxy_error` / `_conditional_headers` moved to
+# `tests/packages/test_http_fetch.py` — those helpers live in the shared
+# `http_fetch` primitive now.
 
 
 # --------------------------------------------------------------------- #
@@ -153,7 +111,7 @@ def _patch_session(monkeypatch: pytest.MonkeyPatch, payload: _FakeResponse | Bas
     """Replace `curl_requests.AsyncSession` with one that yields `payload`."""
     fake = _FakeSession(payload)
     monkeypatch.setattr(
-        "a2web.tiers.raw.curl_requests.AsyncSession",
+        "a2web.packages.http_fetch.fetch.cr.AsyncSession",
         lambda **kw: fake,
     )
     return fake

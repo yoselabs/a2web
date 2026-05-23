@@ -16,14 +16,14 @@ dispatches the archive tier.
 
 from __future__ import annotations
 
+import json
 import re
 import time as _time
 from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import parse_qs, urlparse, urlunparse
 
-import httpx
-
 from ..models import Heading, NextLink, OperatorHint, Verdict
+from ..packages.http_fetch import FetchVerdict, fetch_bytes
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -142,28 +142,24 @@ class RedditHandler:
         permalink_id = _detect_permalink(url) if shape == "permalink" else None
         json_url = _to_json_url(url, permalink_focus=permalink_id is not None)
 
-        try:
-            async with httpx.AsyncClient(
-                timeout=_DEFAULT_TIMEOUT_S,
-                follow_redirects=True,
-                headers={"User-Agent": state.settings.default_ua},
-                cookies=cookies,
-            ) as client:
-                response = await client.get(json_url)
-        except httpx.TimeoutException:
-            return _empty_result(url, Verdict.timeout)
-        except httpx.HTTPError:
-            return _empty_result(url, Verdict.connection_error)
+        outcome = await fetch_bytes(
+            json_url,
+            headers={"User-Agent": state.settings.default_ua},
+            timeout_s=_DEFAULT_TIMEOUT_S,
+            cookies=cookies,
+        )
 
-        if response.status_code == 404:
+        if outcome.verdict is FetchVerdict.timeout:
+            return _empty_result(url, Verdict.timeout)
+        if outcome.verdict is FetchVerdict.not_found:
             # Search/listing hits don't escalate to archive (Wayback doesn't
             # usefully cache dynamic surfaces); return not_found cleanly.
             if shape in ("search", "listing"):
                 return _empty_result(url, Verdict.not_found)
             return await _fetch_old_reddit_or_archive_signal(url, state=state, cookies=cookies)
-        if response.status_code == 429:
+        if outcome.verdict is FetchVerdict.rate_limited:
             return _empty_result(url, Verdict.rate_limited)
-        if response.status_code == 403:
+        if outcome.status_code == 403:
             if shape in ("search", "listing"):
                 return _empty_result(url, Verdict.connection_error)
             # Quarantined / NSFW (unauth) / private — Wayback often has a
@@ -173,12 +169,12 @@ class RedditHandler:
                 reason="reddit_forbidden_try_archive",
                 message="Reddit returned 403 (quarantined/NSFW/private); try archive snapshot.",
             )
-        if response.status_code >= 400:
+        if outcome.verdict is not FetchVerdict.ok:
             return _empty_result(url, Verdict.connection_error)
 
         try:
-            payload = response.json()
-        except ValueError:
+            payload = json.loads(outcome.body)
+        except (ValueError, json.JSONDecodeError):
             return _empty_result(url, Verdict.content_type_mismatch)
 
         # Reddit soft-blocks unauthenticated clients with a 200 + a throttle
@@ -198,7 +194,6 @@ class RedditHandler:
             rendered = _render_listing(payload, subreddit=sub, sort=sort, time_window=time_window)
         else:
             rendered = _render_thread(payload, target_comment=permalink_id)
-        body_bytes = response.content
         from ..tiers import Rendered
 
         if rendered.get("is_empty"):
@@ -213,11 +208,11 @@ class RedditHandler:
             return await _fetch_old_reddit_or_archive_signal(url, state=state, cookies=cookies)
 
         return TierResult(
-            body=body_bytes,
+            body=outcome.body,
             content_type="application/json",
-            status_code=response.status_code,
+            status_code=outcome.status_code,
             final_url=url,
-            headers=dict(response.headers),
+            headers=outcome.headers,
             pre_rendered=Rendered.from_dict(rendered),
             next_links=list(rendered.get("next_links") or []),
             verdict=Verdict.ok,
@@ -701,17 +696,19 @@ def _to_old_reddit_url(url: str) -> str:
 
 
 async def _resolve_short_url(url: str, *, state: AppState) -> str | None:
-    """HEAD `redd.it/<id>` and return the resolved reddit URL, or None."""
-    try:
-        async with httpx.AsyncClient(
-            timeout=_DEFAULT_TIMEOUT_S,
-            follow_redirects=True,
-            headers={"User-Agent": state.settings.default_ua},
-        ) as client:
-            response = await client.head(url)
-    except httpx.HTTPError:
+    """GET `redd.it/<id>` and return the resolved reddit URL, or None.
+
+    The primitive is GET-only; we keep its (modest) body. curl_cffi follows
+    redirects, so `outcome.final_url` carries the resolved URL.
+    """
+    outcome = await fetch_bytes(
+        url,
+        headers={"User-Agent": state.settings.default_ua},
+        timeout_s=_DEFAULT_TIMEOUT_S,
+    )
+    if outcome.verdict is not FetchVerdict.ok:
         return None
-    final = str(response.url)
+    final = outcome.final_url
     if not final or final == url:
         return None
     return final
@@ -745,27 +742,22 @@ async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str
     from ..tiers import Rendered, TierResult
 
     old_url = _to_old_reddit_url(url)
-    try:
-        async with httpx.AsyncClient(
-            timeout=_DEFAULT_TIMEOUT_S,
-            follow_redirects=True,
-            headers={"User-Agent": state.settings.default_ua},
-            cookies=cookies,
-        ) as client:
-            response = await client.get(old_url)
-    except httpx.TimeoutException:
+    outcome = await fetch_bytes(
+        old_url,
+        headers={"User-Agent": state.settings.default_ua},
+        timeout_s=_DEFAULT_TIMEOUT_S,
+        cookies=cookies,
+    )
+    if outcome.verdict is FetchVerdict.timeout:
         return _empty_result(url, Verdict.timeout)
-    except httpx.HTTPError:
-        return _empty_result(url, Verdict.connection_error)
-
-    if response.status_code == 404:
+    if outcome.verdict is FetchVerdict.not_found:
         return _empty_result(url, Verdict.not_found)
-    if response.status_code == 429:
+    if outcome.verdict is FetchVerdict.rate_limited:
         return _empty_result(url, Verdict.rate_limited)
-    if response.status_code >= 400:
+    if outcome.verdict is not FetchVerdict.ok:
         return _empty_result(url, Verdict.connection_error)
 
-    html = response.text
+    html = outcome.body.decode("utf-8", errors="replace")
     if not html:
         return _empty_result(url, Verdict.length_floor)
 
@@ -792,11 +784,11 @@ async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str
         headings.append(Heading(level=1, text=title))
 
     return TierResult(
-        body=response.content,
+        body=outcome.body,
         content_type="text/html",
-        status_code=response.status_code,
+        status_code=outcome.status_code,
         final_url=old_url,
-        headers=dict(response.headers),
+        headers=outcome.headers,
         pre_rendered=Rendered(
             content_md=markdown,
             title=title,

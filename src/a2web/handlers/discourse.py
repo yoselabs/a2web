@@ -15,15 +15,15 @@ non-Discourse responses to closed `Verdict` values.
 
 from __future__ import annotations
 
+import json
 import re
 from collections import defaultdict
-from html import unescape
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse, urlunparse
 
-import httpx
-
 from ..models import Heading, NextLink, Verdict
+from ..packages.html_fragment import to_markdown, to_text
+from ..packages.http_fetch import FetchVerdict, fetch_bytes
 from ..settings import DEFAULT_DISCOURSE_HOSTS
 
 if TYPE_CHECKING:
@@ -62,28 +62,24 @@ class DiscourseHandler:
         else:
             json_url = urlunparse((parsed.scheme or "https", parsed.netloc, "/latest.json", "", "", ""))
 
-        try:
-            async with httpx.AsyncClient(
-                timeout=_DEFAULT_TIMEOUT_S,
-                follow_redirects=True,
-                headers={"User-Agent": state.settings.default_ua},
-            ) as client:
-                response = await client.get(json_url)
-        except httpx.TimeoutException:
+        outcome = await fetch_bytes(
+            json_url,
+            headers={"User-Agent": state.settings.default_ua},
+            timeout_s=_DEFAULT_TIMEOUT_S,
+        )
+
+        if outcome.verdict is FetchVerdict.timeout:
             return _empty_result(url, Verdict.timeout)
-        except httpx.HTTPError:
-            return _empty_result(url, Verdict.connection_error)
-
-        if response.status_code == 404:
+        if outcome.verdict is FetchVerdict.not_found:
             return _empty_result(url, Verdict.not_found)
-        if response.status_code == 429:
+        if outcome.verdict is FetchVerdict.rate_limited:
             return _empty_result(url, Verdict.rate_limited)
-        if response.status_code >= 400:
+        if outcome.verdict is not FetchVerdict.ok:
             return _empty_result(url, Verdict.connection_error)
 
         try:
-            payload = response.json()
-        except ValueError:
+            payload = json.loads(outcome.body)
+        except (ValueError, json.JSONDecodeError):
             # A configured host that is not actually Discourse — fall through.
             return _empty_result(url, Verdict.not_found)
 
@@ -93,11 +89,11 @@ class DiscourseHandler:
             return _empty_result(url, Verdict.not_found)
 
         return TierResult(
-            body=response.content,
+            body=outcome.body,
             content_type="application/json",
-            status_code=response.status_code,
+            status_code=outcome.status_code,
             final_url=url,
-            headers=dict(response.headers),
+            headers=outcome.headers,
             pre_rendered=Rendered.from_dict(rendered),
             next_links=list(rendered.get("next_links") or []),
             verdict=Verdict.ok,
@@ -154,7 +150,7 @@ def _render_topic(payload: Any) -> dict[str, Any] | None:
         parent = rtpn if isinstance(rtpn, int) and rtpn != number and rtpn in by_number else op_number
         children[parent].append(post)
 
-    title = (payload.get("fancy_title") or payload.get("title") or "").strip() or None
+    title = to_text(payload.get("fancy_title") or payload.get("title") or "") or None
     op_author = _post_author(op)
 
     parts: list[str] = []
@@ -162,7 +158,7 @@ def _render_topic(payload: Any) -> dict[str, Any] | None:
         parts.append(f"# {title}\n")
     if op_author:
         parts.append(f"by {op_author}\n")
-    op_body = _cooked_to_md(op.get("cooked") or "")
+    op_body = to_markdown(op.get("cooked") or "")
     if op_body:
         parts.append(op_body + "\n")
     parts.append("---\n")
@@ -186,7 +182,7 @@ def _render_topic(payload: Any) -> dict[str, Any] | None:
 def _render_post(post: dict[str, Any], *, children: dict[int, list[dict[str, Any]]], depth: int) -> str:
     """Render one post and its reply subtree, blockquote-indented by depth."""
     author = _post_author(post) or "[unknown]"
-    body = _cooked_to_md(post.get("cooked") or "")
+    body = to_markdown(post.get("cooked") or "")
     quote = ">" * depth
     if body:
         quoted = "\n".join(f"{quote} {line}".rstrip() for line in body.splitlines())
@@ -222,7 +218,7 @@ def _render_index(payload: Any, url: str) -> dict[str, Any] | None:
     for topic in topics[:_MAX_TOPICS]:
         if not isinstance(topic, dict):
             continue
-        title = (topic.get("fancy_title") or topic.get("title") or "").strip()
+        title = to_text(topic.get("fancy_title") or topic.get("title") or "")
         topic_id = topic.get("id")
         if not title or not isinstance(topic_id, int):
             continue
@@ -255,28 +251,6 @@ def _post_author(post: dict[str, Any]) -> str | None:
     """A post's author — the Discourse `username` (stable), `name` is optional."""
     username = post.get("username")
     return str(username) if username else None
-
-
-def _cooked_to_md(html: str) -> str:
-    """Convert a Discourse `cooked` post-HTML fragment to plain markdown.
-
-    Lightweight and link-preserving: paragraphs, line breaks, list items,
-    emphasis, and `<a href>` → `[text](href)` are kept; all other tags are
-    stripped and HTML entities decoded.
-    """
-    if not html:
-        return ""
-    text = html
-    text = re.sub(r"<\s*/?\s*(?:p|div)[^>]*>", "\n\n", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*br\s*/?\s*>", "\n", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*li[^>]*>", "\n- ", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*/?\s*(?:i|em)\s*>", "*", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*/?\s*(?:b|strong)\s*>", "**", text, flags=re.IGNORECASE)
-    text = re.sub(r'<a [^>]*href="([^"]+)"[^>]*>(.*?)</a>', r"[\2](\1)", text, flags=re.IGNORECASE | re.DOTALL)
-    text = re.sub(r"<[^>]+>", "", text)
-    text = unescape(text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
 
 
 def _empty_result(url: str, verdict: Verdict) -> TierResult:

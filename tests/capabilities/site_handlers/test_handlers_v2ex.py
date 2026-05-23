@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
 import pytest
 
 from a2web.handlers import V2EXHandler, match_handler
 from a2web.handlers.v2ex import _topic_id
 from a2web.models import Verdict
 from a2web.state import AppState
+from tests._helpers.fake_http import FakeCurlResp, patch_curl_session
 from tests.conftest import make_default_state
 from tests.fixtures import FIXTURES_DIR
 
@@ -26,10 +26,10 @@ def _responder(*, topic_status: int = 200, replies_status: int = 200, topic_empt
     topic = "[]" if topic_empty else (_FIX / "v2ex_topic.json").read_text()
     replies = (_FIX / "v2ex_replies.json").read_text()
 
-    async def _fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         if "replies/show" in url:
-            return httpx.Response(replies_status, text=replies if replies_status == 200 else "")
-        return httpx.Response(topic_status, text=topic if topic_status == 200 else "")
+            return FakeCurlResp(replies_status, text=replies if replies_status == 200 else "")
+        return FakeCurlResp(topic_status, text=topic if topic_status == 200 else "")
 
     return _fake_get
 
@@ -70,7 +70,7 @@ def test_topic_id_extraction() -> None:
 
 @pytest.mark.asyncio
 async def test_topic_url_renders_body_and_flat_replies(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(httpx.AsyncClient, "get", _responder())
+    patch_curl_session(monkeypatch, _responder())
 
     result = await V2EXHandler().fetch("https://www.v2ex.com/t/12345", state=_state())
     assert result.verdict == Verdict.ok
@@ -87,7 +87,7 @@ async def test_topic_url_renders_body_and_flat_replies(monkeypatch: pytest.Monke
 
 @pytest.mark.asyncio
 async def test_replies_failure_degrades_to_topic_only(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(httpx.AsyncClient, "get", _responder(replies_status=500))
+    patch_curl_session(monkeypatch, _responder(replies_status=500))
 
     result = await V2EXHandler().fetch("https://www.v2ex.com/t/12345", state=_state())
     assert result.verdict == Verdict.ok
@@ -99,7 +99,7 @@ async def test_replies_failure_degrades_to_topic_only(monkeypatch: pytest.Monkey
 
 @pytest.mark.asyncio
 async def test_unknown_id_falls_through(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(httpx.AsyncClient, "get", _responder(topic_empty=True))
+    patch_curl_session(monkeypatch, _responder(topic_empty=True))
 
     result = await V2EXHandler().fetch("https://www.v2ex.com/t/999999999", state=_state())
     assert result.verdict == Verdict.not_found
@@ -107,7 +107,7 @@ async def test_unknown_id_falls_through(monkeypatch: pytest.MonkeyPatch) -> None
 
 @pytest.mark.asyncio
 async def test_topic_endpoint_non_200_falls_through(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(httpx.AsyncClient, "get", _responder(topic_status=503))
+    patch_curl_session(monkeypatch, _responder(topic_status=503))
 
     result = await V2EXHandler().fetch("https://www.v2ex.com/t/12345", state=_state())
     assert result.verdict == Verdict.not_found

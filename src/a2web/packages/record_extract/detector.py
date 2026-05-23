@@ -131,15 +131,28 @@ def _own_has_heading(el: lxml.html.HtmlElement, record_sig: _Signature) -> bool:
     )
 
 
-def _heading_link(el: lxml.html.HtmlElement, record_sig: _Signature) -> tuple[str, str] | None:
-    """The record's heading link — the first anchor inside an own-scope
-    heading element. This is the discussed page on an aggregator record."""
+def _heading(
+    el: lxml.html.HtmlElement, record_sig: _Signature
+) -> tuple[str, tuple[str, str] | None] | None:
+    """The record's heading — its own-scope text and (optionally) its first
+    anchor's `(anchor_text, href)`.
+
+    Returns:
+      * `(heading_text, link)` when an own-scope heading is found, where
+        `link` is the first anchor inside it (or `None` if the heading has
+        no link).
+      * `None` when no own-scope heading exists at all.
+    """
     for d in _own_elements(el, record_sig):
         if d.tag in _HEADING_TAGS or d.get("role") == "heading":
+            heading_text = _collapse(d.text_content())
+            if not heading_text:
+                continue
             for a in d.iter("a"):
                 href = a.get("href")
                 if href:
-                    return (_collapse(a.text_content()), href)
+                    return heading_text, (_collapse(a.text_content()), href)
+            return heading_text, None
     return None
 
 
@@ -180,15 +193,28 @@ def _lca(elements: list[lxml.html.HtmlElement]) -> lxml.html.HtmlElement | None:
 def _build_record(el: lxml.html.HtmlElement, record_sig: _Signature, depth: int) -> Record:
     text = _collapse(_own_text(el, record_sig))
     links = _own_links(el, record_sig)
-    primary = _heading_link(el, record_sig)
-    if primary is None and links:
-        primary = max(links, key=lambda link: len(link[0]))
+    heading = _heading(el, record_sig)
+    if heading is not None:
+        heading_text, heading_link = heading
+    else:
+        # No own-scope heading. Keep the legacy heading-link fallback so
+        # `_records_to_next_links` still gets a usable source link, but leave
+        # `heading_text` unset so the renderer falls through to the text-led row.
+        heading_text = None
+        heading_link = max(links, key=lambda link: len(link[0])) if links else None
     return Record(
         text=text,
         links=links,
-        primary_link=primary,
+        heading_text=heading_text,
+        heading_link=heading_link,
         depth=depth,
-        markdown=render_record(text, links, depth),
+        markdown=render_record(
+            text,
+            links,
+            depth,
+            heading_text=heading_text,
+            heading_link=heading_link,
+        ),
     )
 
 

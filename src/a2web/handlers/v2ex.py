@@ -15,15 +15,16 @@ closed `Verdict` values. A failed replies fetch degrades to topic-only.
 
 from __future__ import annotations
 
+import json
 import re
-from html import unescape
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 import anyio
-import httpx
 
 from ..models import Heading, Verdict
+from ..packages.html_fragment import to_markdown
+from ..packages.http_fetch import FetchVerdict, fetch_bytes
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -66,21 +67,14 @@ class V2EXHandler:
             return _empty_result(url, Verdict.not_found)
 
         results: dict[str, Any] = {"topic": None, "replies": None}
+        request_headers = {"User-Agent": state.settings.default_ua}
 
-        async def _load(key: str, endpoint: str, client: httpx.AsyncClient) -> None:
-            results[key] = await _fetch_json(client, endpoint)
+        async def _load(key: str, endpoint: str) -> None:
+            results[key] = await _fetch_json(endpoint, request_headers)
 
-        try:
-            async with httpx.AsyncClient(
-                timeout=_DEFAULT_TIMEOUT_S,
-                follow_redirects=True,
-                headers={"User-Agent": state.settings.default_ua},
-            ) as client:
-                async with anyio.create_task_group() as tg:
-                    tg.start_soon(_load, "topic", f"{_API_BASE}/topics/show.json?id={topic_id}", client)
-                    tg.start_soon(_load, "replies", f"{_API_BASE}/replies/show.json?topic_id={topic_id}", client)
-        except httpx.HTTPError:
-            return _empty_result(url, Verdict.connection_error)
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(_load, "topic", f"{_API_BASE}/topics/show.json?id={topic_id}")
+            tg.start_soon(_load, "replies", f"{_API_BASE}/replies/show.json?topic_id={topic_id}")
 
         topic_list = results["topic"]
         if not isinstance(topic_list, list) or not topic_list or not isinstance(topic_list[0], dict):
@@ -101,21 +95,19 @@ class V2EXHandler:
         )
 
 
-async def _fetch_json(client: httpx.AsyncClient, endpoint: str) -> Any:
-    """GET `endpoint` and return parsed JSON, or `None` on any routine failure.
+async def _fetch_json(endpoint: str, headers: dict[str, str]) -> Any:
+    """GET `endpoint` via the shared primitive and return parsed JSON, or
+    `None` on any routine failure.
 
     Never raises — a per-task failure must not cancel its sibling in the task
     group, so each fetch isolates its own errors.
     """
-    try:
-        response = await client.get(endpoint)
-    except httpx.HTTPError:
-        return None
-    if response.status_code != 200:
+    outcome = await fetch_bytes(endpoint, headers=headers, timeout_s=_DEFAULT_TIMEOUT_S)
+    if outcome.verdict is not FetchVerdict.ok or outcome.status_code != 200:
         return None
     try:
-        return response.json()
-    except ValueError:
+        return json.loads(outcome.body)
+    except (ValueError, json.JSONDecodeError):
         return None
 
 
@@ -173,28 +165,7 @@ def _post_body(post: dict[str, Any]) -> str:
     content = (post.get("content") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
     if content:
         return content
-    return _html_to_md(post.get("content_rendered") or "")
-
-
-def _html_to_md(html: str) -> str:
-    """Convert a V2EX `content_rendered` HTML fragment to markdown.
-
-    Lightweight and link-preserving — used only as the fallback when the raw
-    markdown `content` field is empty.
-    """
-    if not html:
-        return ""
-    text = html
-    text = re.sub(r"<\s*/?\s*(?:p|div)[^>]*>", "\n\n", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*br\s*/?\s*>", "\n", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*li[^>]*>", "\n- ", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*/?\s*(?:i|em)\s*>", "*", text, flags=re.IGNORECASE)
-    text = re.sub(r"<\s*/?\s*(?:b|strong)\s*>", "**", text, flags=re.IGNORECASE)
-    text = re.sub(r'<a [^>]*href="([^"]+)"[^>]*>(.*?)</a>', r"[\2](\1)", text, flags=re.IGNORECASE | re.DOTALL)
-    text = re.sub(r"<[^>]+>", "", text)
-    text = unescape(text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
+    return to_markdown(post.get("content_rendered") or "")
 
 
 def _empty_result(url: str, verdict: Verdict) -> TierResult:

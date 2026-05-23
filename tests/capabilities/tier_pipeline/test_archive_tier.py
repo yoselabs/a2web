@@ -1,11 +1,19 @@
-"""Archive tier tests — Wayback hit, archive.ph hit, both miss, hedge cancel."""
+"""Archive tier tests — Wayback hit, archive.ph hit, both miss, branch coverage.
+
+All HTTP now goes through the shared `http_fetch.fetch_bytes` primitive;
+tests monkeypatch it directly with a per-URL router that returns
+`FetchOutcome` values.
+"""
 
 from __future__ import annotations
 
-import httpx
+from collections.abc import Callable
+from typing import Any
+
 import pytest
 
 from a2web.models import Verdict
+from a2web.packages.http_fetch import FetchOutcome, FetchVerdict
 from a2web.state import AppState
 from a2web.tiers.archive import ArchiveTier
 from tests.conftest import make_default_state
@@ -13,6 +21,31 @@ from tests.conftest import make_default_state
 
 def _state() -> AppState:
     return make_default_state()
+
+
+def _ok(body: bytes, *, status: int = 200, content_type: str = "text/html") -> FetchOutcome:
+    return FetchOutcome(
+        body=body,
+        content_type=content_type,
+        status_code=status,
+        final_url="",
+        headers={},
+        verdict=FetchVerdict.ok,
+    )
+
+
+def _fail(verdict: FetchVerdict = FetchVerdict.connection_error, status: int = 0) -> FetchOutcome:
+    return FetchOutcome(
+        body=b"", content_type="", status_code=status, final_url="", headers={}, verdict=verdict
+    )
+
+
+def _patch_fetch(monkeypatch: pytest.MonkeyPatch, router: Callable[[str], FetchOutcome]) -> None:
+    async def _fake(url: str, **kwargs: Any) -> FetchOutcome:
+        del kwargs
+        return router(url)
+
+    monkeypatch.setattr("a2web.tiers.archive.fetch_bytes", _fake)
 
 
 @pytest.fixture(autouse=True)
@@ -27,22 +60,22 @@ def _disable_archive_stub(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_wayback_hit(monkeypatch: pytest.MonkeyPatch) -> None:
     """Wayback CDX returns a row → snapshot fetched + extracted."""
-    cdx_calls = {"n": 0}
 
-    def httpx_handler(request: httpx.Request) -> httpx.Response:
-        cdx_calls["n"] += 1
-        if "cdx/search" in request.url.path:
-            return httpx.Response(200, json=[["timestamp", "original"], ["20240101000000", "https://x.com/"]])
-        if "/web/" in request.url.path:
-            html = "<html><body><article><h1>Snap</h1><p>" + ("body " * 200) + "</p></article></body></html>"
-            return httpx.Response(200, text=html)
-        return httpx.Response(404)
+    snap_html = "<html><body><article><h1>Snap</h1><p>" + ("body " * 200) + "</p></article></body></html>"
 
-    transport = httpx.MockTransport(httpx_handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    def route(url: str) -> FetchOutcome:
+        if "cdx/search" in url:
+            return _ok(
+                b'[["timestamp", "original"], ["20240101000000", "https://x.com/"]]',
+                content_type="application/json",
+            )
+        if "/web/" in url:
+            return _ok(snap_html.encode("utf-8"))
+        return _fail(FetchVerdict.not_found, status=404)
 
-    # Force archive.ph to lose by making it return None
+    _patch_fetch(monkeypatch, route)
+
+    # Force archive.ph to lose by making it return None.
     async def fake_archive_ph(url: str) -> str | None:
         del url
         return None
@@ -62,18 +95,18 @@ async def test_wayback_hit(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_archive_ph_hit(monkeypatch: pytest.MonkeyPatch) -> None:
     """archive.ph wins over an empty Wayback."""
 
-    def httpx_handler(request: httpx.Request) -> httpx.Response:
-        if "cdx/search" in request.url.path:
-            return httpx.Response(200, json=[["timestamp", "original"]])  # no rows
-        return httpx.Response(404)
+    def route(url: str) -> FetchOutcome:
+        if "cdx/search" in url:
+            return _ok(b'[["timestamp", "original"]]', content_type="application/json")  # header only
+        return _fail(FetchVerdict.not_found, status=404)
 
-    transport = httpx.MockTransport(httpx_handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    _patch_fetch(monkeypatch, route)
+
+    mirror_html = "<html><body><article><h1>Mirror</h1><p>" + ("text " * 200) + "</p></article></body></html>"
 
     async def fake_archive_ph(url: str) -> str | None:
         del url
-        return "<html><body><article><h1>Mirror</h1><p>" + ("text " * 200) + "</p></article></body></html>"
+        return mirror_html
 
     monkeypatch.setattr("a2web.tiers.archive._archive_ph_lookup", fake_archive_ph)
 
@@ -86,14 +119,12 @@ async def test_archive_ph_hit(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_both_miss(monkeypatch: pytest.MonkeyPatch) -> None:
-    def httpx_handler(request: httpx.Request) -> httpx.Response:
-        if "cdx/search" in request.url.path:
-            return httpx.Response(200, json=[["timestamp", "original"]])
-        return httpx.Response(404)
+    def route(url: str) -> FetchOutcome:
+        if "cdx/search" in url:
+            return _ok(b'[["timestamp", "original"]]', content_type="application/json")
+        return _fail(FetchVerdict.not_found, status=404)
 
-    transport = httpx.MockTransport(httpx_handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    _patch_fetch(monkeypatch, route)
 
     async def fake_archive_ph(url: str) -> str | None:
         del url
@@ -132,24 +163,15 @@ def test_snapshot_age_days_invalid() -> None:
 
 
 # --------------------------------------------------------------------- #
-# _wayback_lookup error branches (lines 68-69, 71, 74-75, 82-83, 85)
+# _wayback_lookup error branches
 # --------------------------------------------------------------------- #
 
 
-def _patch_httpx(monkeypatch: pytest.MonkeyPatch, handler) -> None:  # type: ignore[no-untyped-def]
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
-
-
 @pytest.mark.asyncio
-async def test_wayback_cdx_http_error_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_wayback_cdx_transport_error_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
     from a2web.tiers.archive import _wayback_lookup
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        raise httpx.ConnectError("DNS failure")
-
-    _patch_httpx(monkeypatch, handler)
+    _patch_fetch(monkeypatch, lambda url: _fail(FetchVerdict.connection_error))
     assert await _wayback_lookup("https://example.com/x") is None
 
 
@@ -157,10 +179,10 @@ async def test_wayback_cdx_http_error_returns_none(monkeypatch: pytest.MonkeyPat
 async def test_wayback_cdx_non_200_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
     from a2web.tiers.archive import _wayback_lookup
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(503, text="upstream down")
-
-    _patch_httpx(monkeypatch, handler)
+    # An "ok" verdict with a 5xx body still has status_code 503 — but fetch_bytes
+    # never returns status_code >= 400 with verdict.ok; a non-200 maps to
+    # connection_error. Verify the lookup tolerates both code paths.
+    _patch_fetch(monkeypatch, lambda url: _fail(FetchVerdict.connection_error, status=503))
     assert await _wayback_lookup("https://example.com/x") is None
 
 
@@ -168,114 +190,79 @@ async def test_wayback_cdx_non_200_returns_none(monkeypatch: pytest.MonkeyPatch)
 async def test_wayback_cdx_invalid_json_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
     from a2web.tiers.archive import _wayback_lookup
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, text="this is not json")
-
-    _patch_httpx(monkeypatch, handler)
+    _patch_fetch(monkeypatch, lambda url: _ok(b"not json at all", content_type="text/plain"))
     assert await _wayback_lookup("https://example.com/x") is None
 
 
 @pytest.mark.asyncio
 async def test_wayback_cdx_header_only_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
-    """CDX returns header row only when no snapshots exist for the URL."""
     from a2web.tiers.archive import _wayback_lookup
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        # Just the header row, no data rows.
-        return httpx.Response(200, json=[["timestamp", "original"]])
-
-    _patch_httpx(monkeypatch, handler)
+    _patch_fetch(
+        monkeypatch,
+        lambda url: _ok(b'[["timestamp", "original"]]', content_type="application/json"),
+    )
     assert await _wayback_lookup("https://example.com/x") is None
 
 
 @pytest.mark.asyncio
-async def test_wayback_snapshot_http_error_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
-    """CDX succeeds, snapshot fetch raises."""
+async def test_wayback_snapshot_transport_error_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CDX succeeds, snapshot fetch fails."""
     from a2web.tiers.archive import _wayback_lookup
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        if "cdx" in str(request.url):
-            return httpx.Response(200, json=[["timestamp", "original"], ["20240101000000", "https://example.com/x"]])
-        raise httpx.ConnectError("snapshot host down")
+    def route(url: str) -> FetchOutcome:
+        if "cdx" in url:
+            return _ok(
+                b'[["timestamp", "original"], ["20240101000000", "https://example.com/x"]]',
+                content_type="application/json",
+            )
+        return _fail(FetchVerdict.connection_error)
 
-    _patch_httpx(monkeypatch, handler)
+    _patch_fetch(monkeypatch, route)
     assert await _wayback_lookup("https://example.com/x") is None
 
 
 @pytest.mark.asyncio
 async def test_wayback_snapshot_non_200_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
-    """CDX succeeds, snapshot returns 404."""
+    """CDX succeeds, snapshot returns not-found."""
     from a2web.tiers.archive import _wayback_lookup
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        if "cdx" in str(request.url):
-            return httpx.Response(200, json=[["timestamp", "original"], ["20240101000000", "https://example.com/x"]])
-        return httpx.Response(404, text="not found")
+    def route(url: str) -> FetchOutcome:
+        if "cdx" in url:
+            return _ok(
+                b'[["timestamp", "original"], ["20240101000000", "https://example.com/x"]]',
+                content_type="application/json",
+            )
+        return _fail(FetchVerdict.not_found, status=404)
 
-    _patch_httpx(monkeypatch, handler)
+    _patch_fetch(monkeypatch, route)
     assert await _wayback_lookup("https://example.com/x") is None
 
 
 # --------------------------------------------------------------------- #
-# _archive_ph_sync (lines 91-102) + _archive_ph_lookup (line 106)
+# _archive_ph_lookup
 # --------------------------------------------------------------------- #
 
 
-class _FakeArchiveResp:
-    def __init__(self, *, status_code: int, text: str = "") -> None:
-        self.status_code = status_code
-        self.text = text
+@pytest.mark.asyncio
+async def test_archive_ph_lookup_transport_error_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    from a2web.tiers.archive import _archive_ph_lookup
 
-
-def test_archive_ph_sync_request_exception_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
-    from curl_cffi.requests import exceptions as curl_exceptions
-
-    from a2web.tiers.archive import _archive_ph_sync
-
-    def boom(*args: object, **kwargs: object) -> object:
-        raise curl_exceptions.RequestException("connection refused")
-
-    monkeypatch.setattr("a2web.tiers.archive.curl_requests.get", boom)
-    assert _archive_ph_sync("https://example.com/x") is None
-
-
-def test_archive_ph_sync_oserror_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
-    """OSError is the other branch of the except clause."""
-    from a2web.tiers.archive import _archive_ph_sync
-
-    def boom(*args: object, **kwargs: object) -> object:
-        raise OSError("network unreachable")
-
-    monkeypatch.setattr("a2web.tiers.archive.curl_requests.get", boom)
-    assert _archive_ph_sync("https://example.com/x") is None
-
-
-def test_archive_ph_sync_non_200_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
-    from a2web.tiers.archive import _archive_ph_sync
-
-    monkeypatch.setattr(
-        "a2web.tiers.archive.curl_requests.get",
-        lambda *a, **kw: _FakeArchiveResp(status_code=503, text="down"),
-    )
-    assert _archive_ph_sync("https://example.com/x") is None
-
-
-def test_archive_ph_sync_200_returns_text(monkeypatch: pytest.MonkeyPatch) -> None:
-    from a2web.tiers.archive import _archive_ph_sync
-
-    monkeypatch.setattr(
-        "a2web.tiers.archive.curl_requests.get",
-        lambda *a, **kw: _FakeArchiveResp(status_code=200, text="<html>archived</html>"),
-    )
-    assert _archive_ph_sync("https://example.com/x") == "<html>archived</html>"
+    _patch_fetch(monkeypatch, lambda url: _fail(FetchVerdict.connection_error))
+    assert await _archive_ph_lookup("https://example.com/x") is None
 
 
 @pytest.mark.asyncio
-async def test_archive_ph_lookup_wraps_sync(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_archive_ph_lookup_non_200_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
     from a2web.tiers.archive import _archive_ph_lookup
 
-    monkeypatch.setattr(
-        "a2web.tiers.archive.curl_requests.get",
-        lambda *a, **kw: _FakeArchiveResp(status_code=200, text="<html>x</html>"),
-    )
-    assert await _archive_ph_lookup("https://example.com/x") == "<html>x</html>"
+    _patch_fetch(monkeypatch, lambda url: _fail(FetchVerdict.not_found, status=404))
+    assert await _archive_ph_lookup("https://example.com/x") is None
+
+
+@pytest.mark.asyncio
+async def test_archive_ph_lookup_200_returns_text(monkeypatch: pytest.MonkeyPatch) -> None:
+    from a2web.tiers.archive import _archive_ph_lookup
+
+    _patch_fetch(monkeypatch, lambda url: _ok(b"<html>archived</html>"))
+    assert await _archive_ph_lookup("https://example.com/x") == "<html>archived</html>"

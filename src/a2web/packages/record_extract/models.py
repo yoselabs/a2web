@@ -14,15 +14,20 @@ class Record:
 
     `links` carries every own-scope link (anchor text, href) — own scope
     excludes links inside nested same-signature child-records, so an outer
-    comment is not credited with its replies' links. `primary_link` is the
-    record's identifying link — its heading link (the discussed page), or the
-    longest-anchor fallback. `depth` is the record's nesting depth within the
-    region: 0 for a flat catalog row, > 0 for a nested comment reply.
+    comment is not credited with its replies' links. `heading_link` is the
+    record's identifying link — the anchor inside its own-scope heading
+    element (the discussed page on an aggregator row); `heading_text` is
+    that heading element's own-scope text (the row title). Both fields are
+    populated together: when a heading is present both are set, otherwise
+    both are `None` and the renderer falls back to a text-led row.
+    `depth` is the record's nesting depth within the region: 0 for a flat
+    catalog row, > 0 for a nested comment reply.
     """
 
     text: str
     links: tuple[tuple[str, str], ...]
-    primary_link: tuple[str, str] | None
+    heading_text: str | None
+    heading_link: tuple[str, str] | None
     depth: int
     markdown: str
 
