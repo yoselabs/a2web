@@ -209,20 +209,14 @@ def _write_axes(report: EvalReport) -> None:
         contract_cell = f"{contract_ok}/{len(contract_rows)}" if contract_rows else "—"
         nl_cell = f"{_fmt(nl_mean)} ({len(nl_rows)})" if nl_rows else "—"
         tok_cell = _fmt(tokens, 0) if tokens is not None else "—"
-        lines.append(
-            f"| {system} | {len(rows)} | {_fmt(quality)} | {tok_cell} "
-            f"| {_fmt(clarity)} | {contract_cell} | {nl_cell} |"
-        )
+        lines.append(f"| {system} | {len(rows)} | {_fmt(quality)} | {tok_cell} | {_fmt(clarity)} | {contract_cell} | {nl_cell} |")
     lines.append("")
 
     baseline = "webfetch_baseline"
     if baseline in agg:
         base = agg[baseline]
         lines.append("## vs WebFetch baseline\n")
-        lines.append(
-            "Delta = a2web system minus WebFetch. Quality / clarity: higher is "
-            "better. Env tokens: lower is better.\n"
-        )
+        lines.append("Delta = a2web system minus WebFetch. Quality / clarity: higher is better. Env tokens: lower is better.\n")
         lines.append("| System | Δ quality | Δ env tokens | Δ clarity |")
         lines.append("|---|---|---|---|")
         for system in report.systems:
@@ -375,9 +369,7 @@ def stats_dict(report: EvalReport) -> dict[str, Any]:
         "mean_envelope_tokens_by_system": _means(tokens_by_system),
         "mean_clarity_by_system": _means(clarity_by_system),
         "mean_next_links_by_system": _means(next_links_by_system),
-        "contract_pass_by_system": {
-            s: f"{sum(1 for c in v if c)}/{len(v)}" for s, v in contract_by_system.items()
-        },
+        "contract_pass_by_system": {s: f"{sum(1 for c in v if c)}/{len(v)}" for s, v in contract_by_system.items()},
         "cost_by_system_usd": dict(cost_by_system),
         "total_cost_usd": sum(cost_by_system.values()),
         "wall_seconds": report.wall_seconds,

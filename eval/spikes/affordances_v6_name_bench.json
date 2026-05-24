@@ -1,0 +1,542 @@
+{
+  "per_name": {
+    "affordances": {
+      "cold": [
+        {
+          "run": 1,
+          "predicted_n": 7,
+          "expected_matched_n": 0,
+          "expected_matched": [],
+          "interpretation": "Affordances represent the possible actions or interactions the user can take with the extracted content or related resources.",
+          "raw": {
+            "name_interpretation": "Affordances represent the possible actions or interactions the user can take with the extracted content or related resources.",
+            "expected_subfields": [
+              "follow_up_queries",
+              "related_links",
+              "actionable_next_steps",
+              "available_filters",
+              "export_formats",
+              "refinement_options",
+              "cached_context_ids"
+            ]
+          }
+        },
+        {
+          "run": 2,
+          "predicted_n": 7,
+          "expected_matched_n": 0,
+          "expected_matched": [],
+          "interpretation": "Interactive actions or capabilities available to the user based on the extracted content.",
+          "raw": {
+            "name_interpretation": "Interactive actions or capabilities available to the user based on the extracted content.",
+            "expected_subfields": [
+              "follow_up_queries",
+              "related_links",
+              "next_actions",
+              "available_tools",
+              "document_sections",
+              "refinement_options",
+              "data_export_formats"
+            ]
+          }
+        },
+        {
+          "run": 3,
+          "predicted_n": 8,
+          "expected_matched_n": 0,
+          "expected_matched": [],
+          "interpretation": "Affordances are the actionable capabilities or next steps available to the user based on the extracted content.",
+          "raw": {
+            "name_interpretation": "Affordances are the actionable capabilities or next steps available to the user based on the extracted content.",
+            "expected_subfields": [
+              "available_actions",
+              "next_steps",
+              "related_links",
+              "clickable_elements",
+              "suggested_queries",
+              "downloadable_resources",
+              "follow_up_prompts",
+              "interactive_controls"
+            ]
+          }
+        }
+      ],
+      "behavioral": [
+        {
+          "run": 1,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "page_kind_confidence",
+            "reasoning"
+          ],
+          "grounded_n": 2,
+          "reasoning": "The extracted answer directly addresses the user's request for a 2-3 sentence summary with high confidence. The affordances indicate high content value and substantial Wikipedia article structure, sug",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted answer directly addresses the user's request for a 2-3 sentence summary with high confidence. The affordances indicate high content value and substantial Wikipedia article structure, suggesting the answer is reliable. No follow-up is needed unless the user asks clarifying questions about specific aspects (borrow checker, adoption, etc.).",
+            "field_references_used": [
+              "page_kind_confidence",
+              "content_value",
+              "reasoning"
+            ]
+          }
+        },
+        {
+          "run": 2,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "follow_up_questions",
+            "page_kind_confidence"
+          ],
+          "grounded_n": 3,
+          "reasoning": "The extracted answer is comprehensive and directly addresses the user's request for a 2-3 sentence summary. The high content_value and high page_kind_confidence indicate the tool successfully extracte",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted answer is comprehensive and directly addresses the user's request for a 2-3 sentence summary. The high content_value and high page_kind_confidence indicate the tool successfully extracted substantial information. The follow_up_questions are available if the user wants to dive deeper, but no proactive fetching is needed unless the user explicitly requests more detail.",
+            "field_references_used": [
+              "content_value",
+              "page_kind_confidence",
+              "follow_up_questions"
+            ]
+          }
+        },
+        {
+          "run": 3,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "page_kind",
+            "page_kind_confidence",
+            "reasoning"
+          ],
+          "grounded_n": 3,
+          "reasoning": "The extracted_answer is already comprehensive and directly addresses the user's request for a 2-3 sentence summary. The page is a high-confidence encyclopedia article with substantial content. The fol",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted_answer is already comprehensive and directly addresses the user's request for a 2-3 sentence summary. The page is a high-confidence encyclopedia article with substantial content. The follow_up_questions are available if the user asks, so proactive fetching or suggestions are unnecessary at this stage.",
+            "field_references_used": [
+              "page_kind",
+              "page_kind_confidence",
+              "content_value",
+              "reasoning"
+            ]
+          }
+        }
+      ],
+      "aggregate": {
+        "cold_avg_match": 0.0,
+        "behavioral_avg_grounded": 2.67,
+        "combined": 1.33
+      }
+    },
+    "signals": {
+      "cold": [
+        {
+          "run": 1,
+          "predicted_n": 8,
+          "expected_matched_n": 1,
+          "expected_matched": [
+            "page_kind_confidence"
+          ],
+          "interpretation": "Metadata and quality indicators about the extraction process and source content reliability.",
+          "raw": {
+            "name_interpretation": "Metadata and quality indicators about the extraction process and source content reliability.",
+            "expected_subfields": [
+              "confidence_score",
+              "source_url",
+              "content_freshness",
+              "extraction_method",
+              "quality_indicators",
+              "has_multimedia",
+              "language_detected",
+              "relevance_score"
+            ]
+          }
+        },
+        {
+          "run": 2,
+          "predicted_n": 8,
+          "expected_matched_n": 1,
+          "expected_matched": [
+            "page_kind_confidence"
+          ],
+          "interpretation": "Metadata and quality indicators about the web-fetching operation and the extracted content.",
+          "raw": {
+            "name_interpretation": "Metadata and quality indicators about the web-fetching operation and the extracted content.",
+            "expected_subfields": [
+              "source_url",
+              "http_status_code",
+              "response_time_ms",
+              "content_length",
+              "extraction_confidence",
+              "language_detected",
+              "is_dynamic_content",
+              "redirect_chain"
+            ]
+          }
+        },
+        {
+          "run": 3,
+          "predicted_n": 8,
+          "expected_matched_n": 1,
+          "expected_matched": [
+            "page_kind_confidence"
+          ],
+          "interpretation": "The `signals` field contains diagnostic metadata about the extraction process\u2014quality indicators, confidence scores, and operational context from the web fetch.",
+          "raw": {
+            "name_interpretation": "The `signals` field contains diagnostic metadata about the extraction process\u2014quality indicators, confidence scores, and operational context from the web fetch.",
+            "expected_subfields": [
+              "confidence_score",
+              "source_url",
+              "extraction_method",
+              "content_freshness",
+              "html_quality",
+              "relevance_score",
+              "processing_time_ms",
+              "warnings"
+            ]
+          }
+        }
+      ],
+      "behavioral": [
+        {
+          "run": 1,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "page_kind_confidence"
+          ],
+          "grounded_n": 2,
+          "reasoning": "The extracted answer directly addresses the user's straightforward request for a 2-3 sentence summary with high confidence (high content_value, high page_kind_confidence). The tool has already deliver",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted answer directly addresses the user's straightforward request for a 2-3 sentence summary with high confidence (high content_value, high page_kind_confidence). The tool has already delivered the requested summary, so the appropriate next step is to present this answer to the user and await any follow-up questions rather than proactively fetching additional content.",
+            "field_references_used": [
+              "page_kind_confidence",
+              "content_value"
+            ]
+          }
+        },
+        {
+          "run": 2,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "page_kind_confidence",
+            "reasoning"
+          ],
+          "grounded_n": 2,
+          "reasoning": "The extracted answer is substantive and directly addresses the user's request for a 2-3 sentence summary. The signals indicate high content value and a comprehensive Wikipedia article with clear struc",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted answer is substantive and directly addresses the user's request for a 2-3 sentence summary. The signals indicate high content value and a comprehensive Wikipedia article with clear structure. No follow-up fetch is needed unless the user asks a clarifying question.",
+            "field_references_used": [
+              "content_value",
+              "page_kind_confidence",
+              "reasoning"
+            ]
+          }
+        },
+        {
+          "run": 3,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "follow_up_questions",
+            "page_kind_confidence"
+          ],
+          "grounded_n": 3,
+          "reasoning": "The extracted answer directly addresses the user's request for a 2-3 sentence summary with high confidence (page_kind_confidence: high). The content is substantive and self-contained. The follow-up su",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted answer directly addresses the user's request for a 2-3 sentence summary with high confidence (page_kind_confidence: high). The content is substantive and self-contained. The follow-up suggestions are prepared in case the user wants deeper exploration, but no proactive fetching is needed unless the user explicitly asks for more detail.",
+            "field_references_used": [
+              "page_kind_confidence",
+              "content_value",
+              "follow_up_questions"
+            ]
+          }
+        }
+      ],
+      "aggregate": {
+        "cold_avg_match": 1.0,
+        "behavioral_avg_grounded": 2.33,
+        "combined": 1.67
+      }
+    },
+    "leads": {
+      "cold": [
+        {
+          "run": 1,
+          "predicted_n": 9,
+          "expected_matched_n": 0,
+          "expected_matched": [],
+          "interpretation": "A collection of potential customer or contact records extracted from web content.",
+          "raw": {
+            "name_interpretation": "A collection of potential customer or contact records extracted from web content.",
+            "expected_subfields": [
+              "company_name",
+              "contact_email",
+              "contact_phone",
+              "contact_name",
+              "job_title",
+              "company_website",
+              "industry",
+              "location",
+              "source_url"
+            ]
+          }
+        },
+        {
+          "run": 2,
+          "predicted_n": 8,
+          "expected_matched_n": 1,
+          "expected_matched": [
+            "page_kind_confidence"
+          ],
+          "interpretation": "A collection of potential contact/prospect records extracted from web content, likely for sales or business development purposes.",
+          "raw": {
+            "name_interpretation": "A collection of potential contact/prospect records extracted from web content, likely for sales or business development purposes.",
+            "expected_subfields": [
+              "contact_name",
+              "email",
+              "phone",
+              "company_name",
+              "job_title",
+              "website_url",
+              "industry",
+              "confidence_score"
+            ]
+          }
+        },
+        {
+          "run": 3,
+          "predicted_n": 8,
+          "expected_matched_n": 1,
+          "expected_matched": [
+            "page_kind_confidence"
+          ],
+          "interpretation": "A collection of potential customer or contact prospects extracted from web content.",
+          "raw": {
+            "name_interpretation": "A collection of potential customer or contact prospects extracted from web content.",
+            "expected_subfields": [
+              "contact_name",
+              "email_address",
+              "company_name",
+              "phone_number",
+              "title_or_role",
+              "website_url",
+              "extracted_from_url",
+              "confidence_score"
+            ]
+          }
+        }
+      ],
+      "behavioral": [
+        {
+          "run": 1,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "page_kind_confidence",
+            "reasoning"
+          ],
+          "grounded_n": 2,
+          "reasoning": "The extracted answer directly addresses the user's request for a 2-3 sentence summary with high confidence and substantial content value. The tool successfully captured Rust's key defining characteris",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted answer directly addresses the user's request for a 2-3 sentence summary with high confidence and substantial content value. The tool successfully captured Rust's key defining characteristics (performance, type safety, memory safety, no GC) plus historical context. No follow-up is warranted unless the user explicitly asks for deeper exploration.",
+            "field_references_used": [
+              "page_kind_confidence",
+              "content_value",
+              "reasoning"
+            ]
+          }
+        },
+        {
+          "run": 2,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "follow_up_questions",
+            "page_kind_confidence"
+          ],
+          "grounded_n": 3,
+          "reasoning": "The extracted answer is comprehensive and directly addresses the user's request for a 2-3 sentence summary. The high content_value and high page_kind_confidence indicate the fetched content is reliabl",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted answer is comprehensive and directly addresses the user's request for a 2-3 sentence summary. The high content_value and high page_kind_confidence indicate the fetched content is reliable and complete. The follow_up_questions in leads suggest rich additional context is available if the user wants to dig deeper, so I should present the summary and let the user drive what comes next rather than proactively fetching more content.",
+            "field_references_used": [
+              "content_value",
+              "page_kind_confidence",
+              "follow_up_questions"
+            ]
+          }
+        },
+        {
+          "run": 3,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "page_kind",
+            "reasoning"
+          ],
+          "grounded_n": 2,
+          "reasoning": "The extracted_answer field provides a complete, substantive 2-3 sentence summary that directly addresses the user's request. The page is a standard encyclopedia article with high content value and no ",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted_answer field provides a complete, substantive 2-3 sentence summary that directly addresses the user's request. The page is a standard encyclopedia article with high content value and no special structural elements (timeline, code, citations) that would require deeper exploration to answer the original question. The follow_up_questions are available if the user requests more detail, but no proactive fetching is needed.",
+            "field_references_used": [
+              "content_value",
+              "page_kind",
+              "reasoning"
+            ]
+          }
+        }
+      ],
+      "aggregate": {
+        "cold_avg_match": 0.67,
+        "behavioral_avg_grounded": 2.33,
+        "combined": 1.5
+      }
+    },
+    "hints": {
+      "cold": [
+        {
+          "run": 1,
+          "predicted_n": 7,
+          "expected_matched_n": 1,
+          "expected_matched": [
+            "page_kind_confidence"
+          ],
+          "interpretation": "A collection of supplementary contextual clues or metadata that helped construct or validate the extracted answer.",
+          "raw": {
+            "name_interpretation": "A collection of supplementary contextual clues or metadata that helped construct or validate the extracted answer.",
+            "expected_subfields": [
+              "source_urls",
+              "confidence_score",
+              "relevant_sections",
+              "key_phrases",
+              "extraction_method",
+              "data_quality_flags",
+              "related_entities"
+            ]
+          }
+        },
+        {
+          "run": 2,
+          "predicted_n": 8,
+          "expected_matched_n": 1,
+          "expected_matched": [
+            "page_kind_confidence"
+          ],
+          "interpretation": "A collection of metadata, context clues, or navigational pointers that help explain or augment the extracted answer.",
+          "raw": {
+            "name_interpretation": "A collection of metadata, context clues, or navigational pointers that help explain or augment the extracted answer.",
+            "expected_subfields": [
+              "source_url",
+              "confidence_score",
+              "page_title",
+              "relevant_sections",
+              "citations",
+              "content_type",
+              "extraction_method",
+              "related_queries"
+            ]
+          }
+        },
+        {
+          "run": 3,
+          "predicted_n": 7,
+          "expected_matched_n": 1,
+          "expected_matched": [
+            "page_kind_confidence"
+          ],
+          "interpretation": "The `hints` field contains metadata about the extraction process, sources, and guidance for understanding or refining the answer.",
+          "raw": {
+            "name_interpretation": "The `hints` field contains metadata about the extraction process, sources, and guidance for understanding or refining the answer.",
+            "expected_subfields": [
+              "source_urls",
+              "confidence_score",
+              "relevant_sections",
+              "extraction_method",
+              "page_structure",
+              "data_quality_notes",
+              "suggested_refinements"
+            ]
+          }
+        }
+      ],
+      "behavioral": [
+        {
+          "run": 1,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "page_kind_confidence",
+            "reasoning"
+          ],
+          "grounded_n": 2,
+          "reasoning": "The extracted answer directly addresses the user's request for a 2-3 sentence summary with high confidence. The tool has already delivered comprehensive, well-sourced information covering Rust's core ",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted answer directly addresses the user's request for a 2-3 sentence summary with high confidence. The tool has already delivered comprehensive, well-sourced information covering Rust's core characteristics, history, and adoption. The hints suggest follow-up questions are available if needed, but presenting the answer first and waiting for user direction is the appropriate next step.",
+            "field_references_used": [
+              "page_kind_confidence",
+              "content_value",
+              "reasoning"
+            ]
+          }
+        },
+        {
+          "run": 2,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "follow_up_questions",
+            "page_kind_confidence"
+          ],
+          "grounded_n": 3,
+          "reasoning": "The extracted answer is comprehensive and directly addresses the user's request for a 2-3 sentence summary. The tool's high confidence rating and 'high' content_value indicate the answer quality is su",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted answer is comprehensive and directly addresses the user's request for a 2-3 sentence summary. The tool's high confidence rating and 'high' content_value indicate the answer quality is sufficient. The follow_up_questions are already provided as breadcrumbs if the user wants to dive deeper, so proactive fetching would be premature.",
+            "field_references_used": [
+              "page_kind_confidence",
+              "content_value",
+              "follow_up_questions"
+            ]
+          }
+        },
+        {
+          "run": 3,
+          "planned_action": "present-answer-and-wait",
+          "field_refs_used": [
+            "content_value",
+            "page_kind_confidence",
+            "reasoning"
+          ],
+          "grounded_n": 2,
+          "reasoning": "The extracted answer directly addresses the user's request for a 2-3 sentence summary with high confidence (page_kind_confidence: 'high', content_value: 'high'). The tool has already provided a compre",
+          "raw": {
+            "planned_next_action": "present-answer-and-wait",
+            "reasoning": "The extracted answer directly addresses the user's request for a 2-3 sentence summary with high confidence (page_kind_confidence: 'high', content_value: 'high'). The tool has already provided a comprehensive summary covering Rust's core features, history, and adoption. Since the user has not asked a follow-up question and the answer fully satisfies the stated request, the appropriate next step is to present the answer and await further queries.",
+            "field_references_used": [
+              "page_kind_confidence",
+              "content_value",
+              "reasoning"
+            ]
+          }
+        }
+      ],
+      "aggregate": {
+        "cold_avg_match": 1.0,
+        "behavioral_avg_grounded": 2.33,
+        "combined": 1.67
+      }
+    }
+  },
+  "total_cost_usd": 0.1422
+}

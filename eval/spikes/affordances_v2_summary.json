@@ -1,0 +1,986 @@
+{
+  "per_url": [
+    {
+      "slug": "tiny-arxiv",
+      "declared_kind": "article-short",
+      "url": "https://arxiv.org/abs/2402.17753",
+      "fetch_status": "ok",
+      "tier": "site_handler:arxiv",
+      "chars": 1853,
+      "gen": {
+        "cost": 0.0267195,
+        "ms": 13687,
+        "parsed_ok": true,
+        "shape_labels": [
+          "citations",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.011609149999999999,
+        "ms": 13697,
+        "parsed_ok": true,
+        "page_kind": "article-long",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "citations",
+          "key-value",
+          "comparison",
+          "timeline"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "tiny-gh-gist",
+      "declared_kind": "code-snippet",
+      "url": "https://gist.github.com/jboner/2841832",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 22132,
+      "gen": {
+        "cost": 0.01982435,
+        "ms": 14184,
+        "parsed_ok": true,
+        "shape_labels": [
+          "comments",
+          "citations",
+          "key-value",
+          "timeline"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0198769,
+        "ms": 11977,
+        "parsed_ok": true,
+        "page_kind": "thread",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "comments",
+          "citations",
+          "timeline"
+        ],
+        "n_follow_ups": 3
+      }
+    },
+    {
+      "slug": "tiny-status-page",
+      "declared_kind": "status",
+      "url": "https://status.openai.com/",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 758,
+      "gen": {
+        "cost": 0.01095085,
+        "ms": 11702,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "table",
+          "timeline"
+        ],
+        "n_follow_ups": 4
+      },
+      "ctx": {
+        "cost": 0.009359000000000001,
+        "ms": 6654,
+        "parsed_ok": true,
+        "page_kind": "status",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "key-value",
+          "table",
+          "timeline"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "huge-wikipedia",
+      "declared_kind": "encyclopedia",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "fetch_status": "ok",
+      "tier": "site_handler:wikipedia",
+      "chars": 42295,
+      "gen": {
+        "cost": 0.01766335,
+        "ms": 11146,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "timeline",
+          "code",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.01859015,
+        "ms": 11809,
+        "parsed_ok": true,
+        "page_kind": "encyclopedia",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "key-value",
+          "timeline",
+          "code",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "huge-mdn-array",
+      "declared_kind": "api-reference",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 40505,
+      "gen": {
+        "cost": 0.01805685,
+        "ms": 11613,
+        "parsed_ok": true,
+        "shape_labels": [
+          "code",
+          "table",
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.01834365,
+        "ms": 11633,
+        "parsed_ok": true,
+        "page_kind": "api-reference",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "table",
+          "code",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "huge-changelog",
+      "declared_kind": "changelog",
+      "url": "https://github.com/pydantic/pydantic/releases",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 10503,
+      "gen": {
+        "cost": 0.020697349999999996,
+        "ms": 14116,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "timeline",
+          "key-value",
+          "citations",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.02062415,
+        "ms": 11965,
+        "parsed_ok": true,
+        "page_kind": "listing",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "timeline",
+          "key-value",
+          "citations",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "listing-hn",
+      "declared_kind": "listing",
+      "url": "https://news.ycombinator.com/",
+      "fetch_status": "ok",
+      "tier": "site_handler:hn",
+      "chars": 6655,
+      "gen": {
+        "cost": 0.015411099999999999,
+        "ms": 10708,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0153984,
+        "ms": 12543,
+        "parsed_ok": true,
+        "page_kind": "listing",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "list",
+          "timeline",
+          "key-value"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "listing-lobste",
+      "declared_kind": "listing",
+      "url": "https://lobste.rs/active",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 20483,
+      "gen": {
+        "cost": 0.02182235,
+        "ms": 13133,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "key-value",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.021534650000000002,
+        "ms": 13287,
+        "parsed_ok": true,
+        "page_kind": "listing",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "list",
+          "key-value",
+          "citations"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "listing-gh-trending",
+      "declared_kind": "listing",
+      "url": "https://github.com/trending/python?since=daily",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 11714,
+      "gen": {
+        "cost": 0.01959265,
+        "ms": 14490,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "key-value",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0196304,
+        "ms": 13316,
+        "parsed_ok": true,
+        "page_kind": "listing",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "list",
+          "comparison",
+          "key-value"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "listing-pypi",
+      "declared_kind": "package-page",
+      "url": "https://pypi.org/project/httpx/",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 6711,
+      "gen": {
+        "cost": 0.01707235,
+        "ms": 13297,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "list",
+          "timeline",
+          "table",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.01729915,
+        "ms": 11708,
+        "parsed_ok": true,
+        "page_kind": "package-page",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "key-value",
+          "timeline",
+          "table",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "comments-hn-item",
+      "declared_kind": "threaded",
+      "url": "https://news.ycombinator.com/item?id=39745700",
+      "fetch_status": "ok",
+      "tier": "site_handler:hn",
+      "chars": 15211,
+      "gen": {
+        "cost": 0.01784185,
+        "ms": 14325,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "list",
+          "list",
+          "code",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.018553649999999998,
+        "ms": 14647,
+        "parsed_ok": true,
+        "page_kind": "thread",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "comments",
+          "code",
+          "key-value",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "comments-lobste",
+      "declared_kind": "threaded",
+      "url": "https://lobste.rs/s/2hu3pq/",
+      "fetch_status": "ok",
+      "tier": "jina",
+      "chars": 880,
+      "gen": {
+        "cost": 0.009951600000000001,
+        "ms": 11986,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "list"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0094034,
+        "ms": 9918,
+        "parsed_ok": true,
+        "page_kind": "status",
+        "page_kind_confidence": "high",
+        "shape_labels": [],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "docs-fastapi",
+      "declared_kind": "tutorial",
+      "url": "https://fastapi.tiangolo.com/tutorial/first-steps/",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 12570,
+      "gen": {
+        "cost": 0.017644,
+        "ms": 8097,
+        "parsed_ok": true,
+        "shape_labels": [
+          "code",
+          "code",
+          "code",
+          "code",
+          "code",
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.01789665,
+        "ms": 12197,
+        "parsed_ok": true,
+        "page_kind": "tutorial",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "code",
+          "timeline",
+          "key-value"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "docs-postgres",
+      "declared_kind": "api-reference",
+      "url": "https://www.postgresql.org/docs/current/sql-select.html",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 61780,
+      "gen": {
+        "cost": 0.018226100000000002,
+        "ms": 12622,
+        "parsed_ok": true,
+        "shape_labels": [
+          "code",
+          "list",
+          "key-value",
+          "comparison"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0187929,
+        "ms": 14233,
+        "parsed_ok": true,
+        "page_kind": "api-reference",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "code",
+          "key-value",
+          "table",
+          "list"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "docs-anthropic",
+      "declared_kind": "api-reference",
+      "url": "https://docs.claude.com/en/api/messages",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 726,
+      "gen": {
+        "cost": 0.010447350000000001,
+        "ms": 13385,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.01087915,
+        "ms": 11237,
+        "parsed_ok": true,
+        "page_kind": "api-reference",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "key-value",
+          "code",
+          "table"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "ref-rfc",
+      "declared_kind": "spec",
+      "url": "https://datatracker.ietf.org/doc/html/rfc9110",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 403182,
+      "gen": {
+        "cost": 0.01691885,
+        "ms": 14842,
+        "parsed_ok": true,
+        "shape_labels": [
+          "table",
+          "list",
+          "key-value",
+          "citations",
+          "code"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.01746015,
+        "ms": 12708,
+        "parsed_ok": true,
+        "page_kind": "spec",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "key-value",
+          "table",
+          "code",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "ref-mdn-fetch",
+      "declared_kind": "api-reference",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 7591,
+      "gen": {
+        "cost": 0.01651635,
+        "ms": 18855,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "key-value",
+          "key-value",
+          "citations",
+          "table",
+          "list",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.01710265,
+        "ms": 12460,
+        "parsed_ok": true,
+        "page_kind": "api-reference",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "list",
+          "key-value",
+          "table",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "news-bbc",
+      "declared_kind": "news-article",
+      "url": "https://www.bbc.com/news/articles/c1k7nzjpz7eo",
+      "fetch_status": "ok",
+      "tier": "jina",
+      "chars": 10652,
+      "gen": {
+        "cost": 0.0197626,
+        "ms": 10738,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "list",
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0184399,
+        "ms": 10894,
+        "parsed_ok": true,
+        "page_kind": "paywalled",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "error_block"
+        ],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "blog-julia-evans",
+      "declared_kind": "blog-post",
+      "url": "https://jvns.ca/blog/2024/01/05/2023-in-review/",
+      "fetch_status": "ok",
+      "tier": "jina",
+      "chars": 1442,
+      "gen": {
+        "cost": 0.010941850000000001,
+        "ms": 12542,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.010273649999999999,
+        "ms": 10275,
+        "parsed_ok": true,
+        "page_kind": "paywalled",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "block"
+        ],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "forum-so-question",
+      "declared_kind": "qa",
+      "url": "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 38038,
+      "gen": {
+        "cost": 0.01859785,
+        "ms": 11575,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "code",
+          "citations",
+          "comments",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.018405150000000002,
+        "ms": 13023,
+        "parsed_ok": true,
+        "page_kind": "qa",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "list",
+          "code",
+          "citations",
+          "comparison"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "code-gh-file",
+      "declared_kind": "source-file",
+      "url": "https://github.com/pydantic/pydantic/blob/main/pydantic/main.py",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 45970,
+      "gen": {
+        "cost": 0.020247849999999998,
+        "ms": 12796,
+        "parsed_ok": true,
+        "shape_labels": [
+          "code",
+          "key-value",
+          "code",
+          "key-value",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.020139650000000002,
+        "ms": 11363,
+        "parsed_ok": true,
+        "page_kind": "source-file",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "code",
+          "key-value",
+          "code"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "code-gh-readme",
+      "declared_kind": "readme",
+      "url": "https://github.com/encode/httpx",
+      "fetch_status": "ok",
+      "tier": "site_handler:github",
+      "chars": 5317,
+      "gen": {
+        "cost": 0.0148016,
+        "ms": 12893,
+        "parsed_ok": true,
+        "shape_labels": [
+          "code",
+          "list",
+          "list",
+          "key-value",
+          "code"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0140239,
+        "ms": 12524,
+        "parsed_ok": true,
+        "page_kind": "package-page",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "key-value",
+          "code",
+          "list",
+          "comparison"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "product-amazon",
+      "declared_kind": "product-page",
+      "url": "https://www.amazon.com/dp/B0BSHF7WHW",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 13101,
+      "gen": {
+        "cost": 0.0197906,
+        "ms": 9379,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "comments",
+          "table"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.020516899999999998,
+        "ms": 10267,
+        "parsed_ok": true,
+        "page_kind": "product-page",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "rating distribution histogram",
+          "review list"
+        ],
+        "n_follow_ups": 3
+      }
+    },
+    {
+      "slug": "media-yt-video",
+      "declared_kind": "video-page",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 1013,
+      "gen": {
+        "cost": 0.0109601,
+        "ms": 11785,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "table"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0113919,
+        "ms": 11349,
+        "parsed_ok": true,
+        "page_kind": "video-page",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "key-value",
+          "video"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "gov-sec-filing",
+      "declared_kind": "filing",
+      "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001318605&type=10-K&dateb=&owner=include&count=40",
+      "fetch_status": "ok",
+      "tier": "browser",
+      "chars": 4571,
+      "gen": {
+        "cost": 0.014930349999999998,
+        "ms": 12145,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "table"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.015422149999999999,
+        "ms": 12238,
+        "parsed_ok": true,
+        "page_kind": "filing",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "table",
+          "key-value"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "spa-react-dev",
+      "declared_kind": "spa",
+      "url": "https://react.dev/learn",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 12130,
+      "gen": {
+        "cost": 0.018180099999999998,
+        "ms": 11688,
+        "parsed_ok": true,
+        "shape_labels": [
+          "code",
+          "list",
+          "comparison",
+          "key-value",
+          "code"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0183769,
+        "ms": 11283,
+        "parsed_ok": true,
+        "page_kind": "tutorial",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "code",
+          "timeline",
+          "comparison"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "data-json-feed",
+      "declared_kind": "json-feed",
+      "url": "https://hnrss.org/frontpage.jsonfeed",
+      "fetch_status": "ok",
+      "tier": "jina",
+      "chars": 18390,
+      "gen": {
+        "cost": 0.016311100000000002,
+        "ms": 13149,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "key-value",
+          "table"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0225279,
+        "ms": 12427,
+        "parsed_ok": true,
+        "page_kind": "json-feed",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "list",
+          "timeline",
+          "key-value"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "gated-nyt",
+      "declared_kind": "paywalled",
+      "url": "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html",
+      "fetch_status": "failed",
+      "tier": "jina",
+      "chars": 536,
+      "gen": {
+        "cost": 0.009775099999999998,
+        "ms": 9952,
+        "parsed_ok": true,
+        "shape_labels": [],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0099969,
+        "ms": 8862,
+        "parsed_ok": true,
+        "page_kind": "paywalled",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "access-block"
+        ],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "paper-arxiv-pdf-stub",
+      "declared_kind": "pdf-stub",
+      "url": "https://arxiv.org/pdf/2402.17753",
+      "fetch_status": "ok",
+      "tier": "site_handler:arxiv",
+      "chars": 1853,
+      "gen": {
+        "cost": 0.01205575,
+        "ms": 12654,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.0119929,
+        "ms": 11782,
+        "parsed_ok": true,
+        "page_kind": "article-long",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "key-value",
+          "citations",
+          "table"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "docs-cf-page",
+      "declared_kind": "marketing",
+      "url": "https://www.cloudflare.com/products/registrar/",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 6042,
+      "gen": {
+        "cost": 0.01459385,
+        "ms": 11358,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "list",
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      },
+      "ctx": {
+        "cost": 0.012445649999999999,
+        "ms": 13791,
+        "parsed_ok": true,
+        "page_kind": "product-page",
+        "page_kind_confidence": "high",
+        "shape_labels": [
+          "key-value",
+          "list",
+          "comparison"
+        ],
+        "n_follow_ups": 5
+      }
+    }
+  ],
+  "totals": {
+    "gen_cost": 0.4963055,
+    "ctx_cost": 0.48630759999999995,
+    "gen_ms": 374842,
+    "ctx_ms": 356067,
+    "fetch_failures": 0
+  }
+}

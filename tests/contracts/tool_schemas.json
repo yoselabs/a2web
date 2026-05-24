@@ -7,6 +7,11 @@
           "title": "Debug",
           "type": "boolean"
         },
+        "include_affordances": {
+          "default": true,
+          "title": "Include Affordances",
+          "type": "boolean"
+        },
         "include_content": {
           "default": false,
           "title": "Include Content",
@@ -72,6 +77,131 @@
     },
     "outputModel": {
       "$defs": {
+        "AffordanceShape": {
+          "description": "One structural shape present on the page.\n\n`label` is a closed-vocabulary enum; values outside the set fail\npydantic validation and the whole affordances payload is dropped at the\nseam (see `fetcher_response.build_ask_response`).",
+          "properties": {
+            "label": {
+              "enum": [
+                "list",
+                "timeline",
+                "key-value",
+                "table",
+                "code",
+                "comments",
+                "citations",
+                "comparison"
+              ],
+              "title": "Label",
+              "type": "string"
+            },
+            "size": {
+              "title": "Size",
+              "type": "string"
+            },
+            "where": {
+              "title": "Where",
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "where",
+            "size"
+          ],
+          "title": "AffordanceShape",
+          "type": "object"
+        },
+        "AffordancesPayload": {
+          "description": "Affordances payload emitted by the `extract_with_affordances_v1` template.\n\nTwo orthogonal signals:\n  - `page_kind_confidence` \u2014 epistemic uncertainty about the LABEL\n  - `content_value` \u2014 how useful the extracted content is downstream\n\nEnvelope discipline: when `page_kind` is an obstacle kind (`paywalled`,\n`error`, `empty`, `blocked`), `content_value` SHALL be None and `shapes`/\n`follow_up_questions` SHALL be empty. The serializer omits all three on\nobstacle pages.",
+          "properties": {
+            "content_value": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Content Value"
+            },
+            "follow_up_questions": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Follow Up Questions",
+              "type": "array"
+            },
+            "page_kind": {
+              "enum": [
+                "listing",
+                "thread",
+                "reference",
+                "api-reference",
+                "tutorial",
+                "article-short",
+                "article-long",
+                "changelog",
+                "code-snippet",
+                "source-file",
+                "readme",
+                "qa",
+                "spec",
+                "filing",
+                "news-article",
+                "blog-post",
+                "product-page",
+                "video-page",
+                "json-feed",
+                "marketing",
+                "encyclopedia",
+                "package-page",
+                "pdf-stub",
+                "spa",
+                "paywalled",
+                "error",
+                "empty",
+                "blocked",
+                "other"
+              ],
+              "title": "Page Kind",
+              "type": "string"
+            },
+            "page_kind_confidence": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "title": "Page Kind Confidence",
+              "type": "string"
+            },
+            "reasoning": {
+              "title": "Reasoning",
+              "type": "string"
+            },
+            "shapes": {
+              "items": {
+                "$ref": "#/$defs/AffordanceShape"
+              },
+              "title": "Shapes",
+              "type": "array"
+            }
+          },
+          "required": [
+            "page_kind",
+            "page_kind_confidence",
+            "reasoning"
+          ],
+          "title": "AffordancesPayload",
+          "type": "object"
+        },
         "AskExtraction": {
           "description": "Slim per-ask extraction metadata for the wire.\n\n`truncated` is the one field an agent branches on (the answer may be\nincomplete) and is always present. The observability fields (`model`,\ntoken counts, cost, latency, cache) are populated only when `ask` was\ncalled with `debug=True`; otherwise they are None and omitted from the\nwire. The full metadata always reaches LDD events regardless of debug.",
           "properties": {
@@ -382,6 +512,17 @@
       },
       "description": "Lean response envelope for the `ask` tool.\n\nDistinct from `FetchResponse` (returned by `fetch_raw`). The `ask` wire\npayload carries the extracted answer, not the page. Field tiers:\n\n- Always present: `confidence`, `extracted_answer`.\n- Deviation-only: `status` (dropped when `ok`), `tier` (dropped when\n  `raw`), `url` (dropped when it equals the requested URL).\n- Optional: omitted from the wire when empty/null (`title`, `byline`,\n  `published`, `operator_hints`, `next_links`, `meta`).\n- Opt-in grounding: `content_md` + `headings` appear only when the caller\n  passed `include_content=True`.\n- Failure-only: `narrative` + `diagnostics_summary` appear only when\n  `status != ok`.\n- Debug-only: `started_at`, `total_ms`, `cache`, `diagnostics`,\n  `extraction` regroup into a nested `debug` object, present only when the\n  caller passed `debug=True`.\n\nThe builder (`build_ask_response`) decides which fields to populate; the\nserializer below drops empties, applies the deviation rules, and regroups\nthe debug tier. Required fields are never dropped.",
       "properties": {
+        "affordances": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AffordancesPayload"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "byline": {
           "anyOf": [
             {
@@ -571,6 +712,131 @@
     },
     "outputModel": {
       "$defs": {
+        "AffordanceShape": {
+          "description": "One structural shape present on the page.\n\n`label` is a closed-vocabulary enum; values outside the set fail\npydantic validation and the whole affordances payload is dropped at the\nseam (see `fetcher_response.build_ask_response`).",
+          "properties": {
+            "label": {
+              "enum": [
+                "list",
+                "timeline",
+                "key-value",
+                "table",
+                "code",
+                "comments",
+                "citations",
+                "comparison"
+              ],
+              "title": "Label",
+              "type": "string"
+            },
+            "size": {
+              "title": "Size",
+              "type": "string"
+            },
+            "where": {
+              "title": "Where",
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "where",
+            "size"
+          ],
+          "title": "AffordanceShape",
+          "type": "object"
+        },
+        "AffordancesPayload": {
+          "description": "Affordances payload emitted by the `extract_with_affordances_v1` template.\n\nTwo orthogonal signals:\n  - `page_kind_confidence` \u2014 epistemic uncertainty about the LABEL\n  - `content_value` \u2014 how useful the extracted content is downstream\n\nEnvelope discipline: when `page_kind` is an obstacle kind (`paywalled`,\n`error`, `empty`, `blocked`), `content_value` SHALL be None and `shapes`/\n`follow_up_questions` SHALL be empty. The serializer omits all three on\nobstacle pages.",
+          "properties": {
+            "content_value": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Content Value"
+            },
+            "follow_up_questions": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Follow Up Questions",
+              "type": "array"
+            },
+            "page_kind": {
+              "enum": [
+                "listing",
+                "thread",
+                "reference",
+                "api-reference",
+                "tutorial",
+                "article-short",
+                "article-long",
+                "changelog",
+                "code-snippet",
+                "source-file",
+                "readme",
+                "qa",
+                "spec",
+                "filing",
+                "news-article",
+                "blog-post",
+                "product-page",
+                "video-page",
+                "json-feed",
+                "marketing",
+                "encyclopedia",
+                "package-page",
+                "pdf-stub",
+                "spa",
+                "paywalled",
+                "error",
+                "empty",
+                "blocked",
+                "other"
+              ],
+              "title": "Page Kind",
+              "type": "string"
+            },
+            "page_kind_confidence": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "title": "Page Kind Confidence",
+              "type": "string"
+            },
+            "reasoning": {
+              "title": "Reasoning",
+              "type": "string"
+            },
+            "shapes": {
+              "items": {
+                "$ref": "#/$defs/AffordanceShape"
+              },
+              "title": "Shapes",
+              "type": "array"
+            }
+          },
+          "required": [
+            "page_kind",
+            "page_kind_confidence",
+            "reasoning"
+          ],
+          "title": "AffordancesPayload",
+          "type": "object"
+        },
         "CacheState": {
           "enum": [
             "hit",
@@ -875,6 +1141,17 @@
       },
       "description": "The response envelope returned by the `fetch_raw` tool.\n\nField tiers govern what reaches the wire (the serializer regroups /\ndrops; the builder populates the model in full for internal callers):\n\n- Always present: `confidence`.\n- Deviation-only: `status` (dropped when `ok`), `tier` (dropped when\n  `raw`), `url` (dropped when it equals the requested URL \u2014 absence means\n  the fetch landed exactly where the caller asked).\n- Failure-only: `narrative`, `diagnostics_summary` \u2014 dropped on success.\n- Debug-only: `started_at`, `total_ms`, `cache`, `tokens`, `diagnostics`\n  regroup into a nested `debug` object, present only under `debug=True`.\n- Omitted when empty: `title`, `byline`, `published`, `meta`, `links`,\n  `headings`, `operator_hints`, `next_links`, `extraction`,\n  `extracted_answer` (and `content_md` on a failed fetch).\n- TSV-rendered: `links` and `next_links` ship as tab-separated blocks.",
       "properties": {
+        "affordances": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AffordancesPayload"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "byline": {
           "anyOf": [
             {

@@ -1,0 +1,661 @@
+{
+  "per_url": [
+    {
+      "slug": "tiny-arxiv",
+      "declared_kind": "article-short",
+      "url": "https://arxiv.org/abs/2402.17753",
+      "fetch_status": "ok",
+      "tier": "site_handler:arxiv",
+      "chars": 1853,
+      "lean": {
+        "cost": 0.010942400000000001,
+        "ms": 11886,
+        "prompt_tokens": 18973,
+        "completion_tokens": 260,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "citations",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "tiny-gh-gist",
+      "declared_kind": "code-snippet",
+      "url": "https://gist.github.com/jboner/2841832",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 22132,
+      "lean": {
+        "cost": 0.01872165,
+        "ms": 9934,
+        "prompt_tokens": 22510,
+        "completion_tokens": 242,
+        "parsed_ok": true,
+        "shape_labels": [
+          "comments",
+          "citations",
+          "timeline"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "tiny-status-page",
+      "declared_kind": "status",
+      "url": "https://status.openai.com/",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 758,
+      "lean": {
+        "cost": 0.01093815,
+        "ms": 21648,
+        "prompt_tokens": 18744,
+        "completion_tokens": 378,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "timeline",
+          "list",
+          "key-value",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "huge-wikipedia",
+      "declared_kind": "encyclopedia",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "fetch_status": "ok",
+      "tier": "site_handler:wikipedia",
+      "chars": 42295,
+      "lean": {
+        "cost": 0.01718065,
+        "ms": 9517,
+        "prompt_tokens": 21734,
+        "completion_tokens": 284,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "timeline",
+          "code",
+          "citations"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "huge-mdn-array",
+      "declared_kind": "api-reference",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 40505,
+      "lean": {
+        "cost": 0.01845865,
+        "ms": 18220,
+        "prompt_tokens": 17412,
+        "completion_tokens": 595,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "code",
+          "code",
+          "list",
+          "code",
+          "table",
+          "code",
+          "key-value",
+          "list",
+          "code"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "huge-changelog",
+      "declared_kind": "changelog",
+      "url": "https://github.com/pydantic/pydantic/releases",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 10503,
+      "lean": {
+        "cost": 0.020244250000000002,
+        "ms": 12807,
+        "prompt_tokens": 10859,
+        "completion_tokens": 407,
+        "parsed_ok": true,
+        "shape_labels": [
+          "timeline",
+          "list",
+          "citations",
+          "key-value",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "listing-hn",
+      "declared_kind": "listing",
+      "url": "https://news.ycombinator.com/",
+      "fetch_status": "ok",
+      "tier": "site_handler:hn",
+      "chars": 6655,
+      "lean": {
+        "cost": 0.0143789,
+        "ms": 14848,
+        "prompt_tokens": 16465,
+        "completion_tokens": 218,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "listing-lobste",
+      "declared_kind": "listing",
+      "url": "https://lobste.rs/active",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 20483,
+      "lean": {
+        "cost": 0.02156465,
+        "ms": 12530,
+        "prompt_tokens": 23658,
+        "completion_tokens": 294,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "citations",
+          "key-value",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "listing-gh-trending",
+      "declared_kind": "listing",
+      "url": "https://github.com/trending/python?since=daily",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 11714,
+      "lean": {
+        "cost": 0.0186559,
+        "ms": 17603,
+        "prompt_tokens": 18397,
+        "completion_tokens": 205,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "listing-pypi",
+      "declared_kind": "package-page",
+      "url": "https://pypi.org/project/httpx/",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 6711,
+      "lean": {
+        "cost": 0.02289925,
+        "ms": 13221,
+        "prompt_tokens": 14231,
+        "completion_tokens": 361,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "key-value",
+          "timeline",
+          "table",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "comments-hn-item",
+      "declared_kind": "threaded",
+      "url": "https://news.ycombinator.com/item?id=39745700",
+      "fetch_status": "ok",
+      "tier": "site_handler:hn",
+      "chars": 15211,
+      "lean": {
+        "cost": 0.01759915,
+        "ms": 12911,
+        "prompt_tokens": 17454,
+        "completion_tokens": 414,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "list",
+          "list",
+          "code",
+          "code",
+          "code",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "comments-lobste",
+      "declared_kind": "threaded",
+      "url": "https://lobste.rs/s/2hu3pq/",
+      "fetch_status": "ok",
+      "tier": "jina",
+      "chars": 880,
+      "lean": {
+        "cost": 0.0099484,
+        "ms": 10212,
+        "prompt_tokens": 18813,
+        "completion_tokens": 150,
+        "parsed_ok": true,
+        "shape_labels": [],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "docs-fastapi",
+      "declared_kind": "tutorial",
+      "url": "https://fastapi.tiangolo.com/tutorial/first-steps/",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 12570,
+      "lean": {
+        "cost": 0.018012149999999998,
+        "ms": 12055,
+        "prompt_tokens": 17642,
+        "completion_tokens": 416,
+        "parsed_ok": true,
+        "shape_labels": [
+          "code",
+          "code",
+          "key-value",
+          "list",
+          "code",
+          "code",
+          "code"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "docs-postgres",
+      "declared_kind": "api-reference",
+      "url": "https://www.postgresql.org/docs/current/sql-select.html",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 61780,
+      "lean": {
+        "cost": 0.0175089,
+        "ms": 12613,
+        "prompt_tokens": 17445,
+        "completion_tokens": 405,
+        "parsed_ok": true,
+        "shape_labels": [
+          "code",
+          "list",
+          "key-value",
+          "code",
+          "list"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "docs-anthropic",
+      "declared_kind": "api-reference",
+      "url": "https://docs.claude.com/en/api/messages",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 726,
+      "lean": {
+        "cost": 0.01031925,
+        "ms": 10820,
+        "prompt_tokens": 7059,
+        "completion_tokens": 134,
+        "parsed_ok": true,
+        "shape_labels": [],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "ref-rfc",
+      "declared_kind": "spec",
+      "url": "https://datatracker.ietf.org/doc/html/rfc9110",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 403182,
+      "lean": {
+        "cost": 0.01568115,
+        "ms": 10219,
+        "prompt_tokens": 16886,
+        "completion_tokens": 287,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "table",
+          "citations",
+          "code"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "ref-mdn-fetch",
+      "declared_kind": "api-reference",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 7591,
+      "lean": {
+        "cost": 0.016603649999999998,
+        "ms": 10330,
+        "prompt_tokens": 16656,
+        "completion_tokens": 577,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "list",
+          "list",
+          "list",
+          "key-value",
+          "list",
+          "list",
+          "list",
+          "list"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "news-bbc",
+      "declared_kind": "news-article",
+      "url": "https://www.bbc.com/news/articles/c1k7nzjpz7eo",
+      "fetch_status": "ok",
+      "tier": "jina",
+      "chars": 10652,
+      "lean": {
+        "cost": 0.0168045,
+        "ms": 5479,
+        "prompt_tokens": 9020,
+        "completion_tokens": 153,
+        "parsed_ok": true,
+        "shape_labels": [],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "blog-julia-evans",
+      "declared_kind": "blog-post",
+      "url": "https://jvns.ca/blog/2024/01/05/2023-in-review/",
+      "fetch_status": "ok",
+      "tier": "jina",
+      "chars": 1442,
+      "lean": {
+        "cost": 0.00962415,
+        "ms": 10427,
+        "prompt_tokens": 14614,
+        "completion_tokens": 97,
+        "parsed_ok": true,
+        "shape_labels": [],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "forum-so-question",
+      "declared_kind": "qa",
+      "url": "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 38038,
+      "lean": {
+        "cost": 0.01760565,
+        "ms": 12500,
+        "prompt_tokens": 17628,
+        "completion_tokens": 342,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "code",
+          "citations",
+          "comments",
+          "timeline"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "code-gh-file",
+      "declared_kind": "source-file",
+      "url": "https://github.com/pydantic/pydantic/blob/main/pydantic/main.py",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 45970,
+      "lean": {
+        "cost": 0.01910515,
+        "ms": 9940,
+        "prompt_tokens": 22636,
+        "completion_tokens": 261,
+        "parsed_ok": true,
+        "shape_labels": [
+          "code",
+          "key-value",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "code-gh-readme",
+      "declared_kind": "readme",
+      "url": "https://github.com/encode/httpx",
+      "fetch_status": "ok",
+      "tier": "site_handler:github",
+      "chars": 5317,
+      "lean": {
+        "cost": 0.013988900000000002,
+        "ms": 10612,
+        "prompt_tokens": 20211,
+        "completion_tokens": 329,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "list",
+          "code",
+          "key-value",
+          "list",
+          "list"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "product-amazon",
+      "declared_kind": "product-page",
+      "url": "https://www.amazon.com/dp/B0BSHF7WHW",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 13101,
+      "lean": {
+        "cost": 0.0196174,
+        "ms": 9523,
+        "prompt_tokens": 22977,
+        "completion_tokens": 213,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "media-yt-video",
+      "declared_kind": "video-page",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 1013,
+      "lean": {
+        "cost": 0.0091874,
+        "ms": 10763,
+        "prompt_tokens": 18917,
+        "completion_tokens": 151,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "gov-sec-filing",
+      "declared_kind": "filing",
+      "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001318605&type=10-K&dateb=&owner=include&count=40",
+      "fetch_status": "ok",
+      "tier": "browser",
+      "chars": 4571,
+      "lean": {
+        "cost": 0.01419765,
+        "ms": 10547,
+        "prompt_tokens": 20486,
+        "completion_tokens": 250,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "table",
+          "timeline"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "spa-react-dev",
+      "declared_kind": "spa",
+      "url": "https://react.dev/learn",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 12130,
+      "lean": {
+        "cost": 0.0178779,
+        "ms": 12113,
+        "prompt_tokens": 17409,
+        "completion_tokens": 493,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "code",
+          "code",
+          "code",
+          "code",
+          "code",
+          "code",
+          "code",
+          "code",
+          "code"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "data-json-feed",
+      "declared_kind": "json-feed",
+      "url": "https://hnrss.org/frontpage.jsonfeed",
+      "fetch_status": "ok",
+      "tier": "jina",
+      "chars": 18390,
+      "lean": {
+        "cost": 0.021333400000000002,
+        "ms": 11312,
+        "prompt_tokens": 23753,
+        "completion_tokens": 204,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "gated-nyt",
+      "declared_kind": "paywalled",
+      "url": "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html",
+      "fetch_status": "failed",
+      "tier": "jina",
+      "chars": 536,
+      "lean": {
+        "cost": 0.0085879,
+        "ms": 10182,
+        "prompt_tokens": 14229,
+        "completion_tokens": 67,
+        "parsed_ok": true,
+        "shape_labels": [],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "paper-arxiv-pdf-stub",
+      "declared_kind": "pdf-stub",
+      "url": "https://arxiv.org/pdf/2402.17753",
+      "fetch_status": "ok",
+      "tier": "site_handler:arxiv",
+      "chars": 1853,
+      "lean": {
+        "cost": 0.010264699999999998,
+        "ms": 11621,
+        "prompt_tokens": 11986,
+        "completion_tokens": 278,
+        "parsed_ok": true,
+        "shape_labels": [
+          "key-value",
+          "citations",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "docs-cf-page",
+      "declared_kind": "marketing",
+      "url": "https://www.cloudflare.com/products/registrar/",
+      "fetch_status": "ok",
+      "tier": "raw",
+      "chars": 6042,
+      "lean": {
+        "cost": 0.01390665,
+        "ms": 12308,
+        "prompt_tokens": 15724,
+        "completion_tokens": 453,
+        "parsed_ok": true,
+        "shape_labels": [
+          "list",
+          "list",
+          "list",
+          "list",
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      }
+    }
+  ],
+  "totals": {
+    "cost": 0.47175845000000005,
+    "ms": 358701,
+    "fetch_failures": 0,
+    "parse_failures": 0
+  }
+}

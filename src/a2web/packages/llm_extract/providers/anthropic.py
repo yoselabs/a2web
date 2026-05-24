@@ -13,10 +13,13 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..errors import LLMNotAvailable
 from .base import ProviderResponse, extract_token_counts
+
+if TYPE_CHECKING:
+    from ..prompts import PromptParts
 
 # Per-1M-token pricing (USD), Anthropic public list as of 2026-05.
 # Used to compute cost_usd. Update when the table moves.
@@ -71,23 +74,50 @@ class AnthropicProvider:
         max_tokens: int = 1024,
         temperature: float = 0.0,
         thinking_disabled: bool = True,
+        parts: PromptParts | None = None,
     ) -> ProviderResponse:
         from anthropic import APIError
 
-        # Normalize system: SDK accepts a string OR an empty omission.
-        if isinstance(system, tuple):
-            system_str = "\n\n".join(system) if system else ""
-        else:
-            system_str = system
-
+        # Cache-aware path: when `parts` carries a non-empty `cache_prefix`,
+        # send system + first user block with `cache_control: ephemeral` so
+        # subsequent calls with the same prefix hit the prompt cache. Two
+        # breakpoints used (system + first user block); 2 of 4 budget.
         kwargs: dict[str, Any] = {
             "model": model,
             "max_tokens": max_tokens,
             "temperature": temperature,
-            "messages": [{"role": "user", "content": user}],
         }
-        if system_str:
-            kwargs["system"] = system_str
+        if parts is not None and parts.cache_prefix != "":
+            system_str = parts.system
+            kwargs["messages"] = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": parts.cache_prefix,
+                            "cache_control": {"type": "ephemeral"},
+                        },
+                        {"type": "text", "text": parts.tail},
+                    ],
+                }
+            ]
+            if system_str:
+                kwargs["system"] = [
+                    {
+                        "type": "text",
+                        "text": system_str,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ]
+        else:
+            if isinstance(system, tuple):
+                system_str = "\n\n".join(system) if system else ""
+            else:
+                system_str = system
+            kwargs["messages"] = [{"role": "user", "content": user}]
+            if system_str:
+                kwargs["system"] = system_str
         if not thinking_disabled:
             # Caller explicitly opted in — leave the SDK default. Anthropic's
             # SDK only emits the thinking field when the user sets it.

@@ -60,9 +60,7 @@ def to_markdown(html: str, *, base_url: str | None = None) -> str:
 
 
 # Tags that act as block-level paragraph separators.
-_BLOCK_TAGS = frozenset(
-    {"p", "div", "section", "article", "header", "footer", "aside", "blockquote", "pre"}
-)
+_BLOCK_TAGS = frozenset({"p", "div", "section", "article", "header", "footer", "aside", "blockquote", "pre"})
 # Heading tags — block-level; we keep their text and surround with blank lines.
 _HEADING_TAGS = frozenset({"h1", "h2", "h3", "h4", "h5", "h6"})
 
@@ -132,16 +130,12 @@ def _render(el: lxml.html.HtmlElement, out: list[str], *, base_url: str | None, 
         out.append(el.tail)
 
 
-def _render_text_and_children(
-    el: lxml.html.HtmlElement, out: list[str], *, base_url: str | None, inside_block: bool
-) -> None:
+def _render_text_and_children(el: lxml.html.HtmlElement, out: list[str], *, base_url: str | None, inside_block: bool) -> None:
     if el.text:
         out.append(el.text)
     _render_children(el, out, base_url=base_url, inside_block=inside_block)
 
 
-def _render_children(
-    el: lxml.html.HtmlElement, out: list[str], *, base_url: str | None, inside_block: bool
-) -> None:
+def _render_children(el: lxml.html.HtmlElement, out: list[str], *, base_url: str | None, inside_block: bool) -> None:
     for child in el:
         _render(child, out, base_url=base_url, inside_block=inside_block)

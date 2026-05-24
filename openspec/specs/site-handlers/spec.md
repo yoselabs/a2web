@@ -99,32 +99,39 @@ The system SHALL provide `GitHubHandler` matching three URL shapes:
 - `github.com/<owner>/<repo>/issues/<n>`
 - `github.com/<owner>/<repo>/pull/<n>`
 
-For each shape it SHALL call the corresponding GitHub REST API endpoint(s) and produce `pre_rendered.content_md`. When `settings.github_token` is non-empty, requests SHALL carry `Authorization: Bearer <token>`; otherwise unauthenticated.
+For each shape it SHALL drive GitHub REST API calls through `gidgethub.sansio.GitHubAPI` over a curl_cffi-backed transport adapter, so every request inherits a2web's existing breakers / proxy routing / TLS-fingerprint behavior. It SHALL produce `pre_rendered.content_md` from the parsed responses. When `settings.github_token` is non-empty, requests SHALL carry `Authorization: Bearer <token>` (set via gidgethub's `oauth_token` parameter); otherwise unauthenticated.
+
+The handler SHALL NOT introduce any GitHub HTTP traffic outside the curl_cffi tier — `gidgethub.aiohttp` / `gidgethub.httpx` / any other transport-owning gidgethub helper SHALL NOT be imported.
 
 #### Scenario: Repo URL returns metadata + README
 
 - **WHEN** the URL is `https://github.com/octocat/Hello-World`
-- **THEN** the handler calls both `/repos/octocat/Hello-World` and `/repos/octocat/Hello-World/readme`, decodes the base64 README content, and returns `pre_rendered.content_md` with the repo description, stars/forks/language, then the README body
+- **THEN** the handler issues `/repos/octocat/Hello-World` and `/repos/octocat/Hello-World/readme` GitHub API calls via gidgethub through the curl_cffi adapter, and returns `pre_rendered.content_md` with the repo description, stars/forks/language, then the README body
 
 #### Scenario: Issue URL returns issue + threaded comments
 
 - **WHEN** the URL is `https://github.com/octocat/Hello-World/issues/42`
-- **THEN** the handler calls `/repos/octocat/Hello-World/issues/42` and its `/comments` endpoint, and renders title + body + comments in chronological order
+- **THEN** the handler issues `/repos/octocat/Hello-World/issues/42` and the comments iterator endpoint via gidgethub, and renders title + body + comments in chronological order
 
 #### Scenario: Pull URL returns PR + reviews + comments
 
 - **WHEN** the URL is `https://github.com/octocat/Hello-World/pull/7`
-- **THEN** the handler calls the pulls endpoint, the reviews endpoint, and the comments endpoint, and renders all three sections
+- **THEN** the handler issues the pulls endpoint, the reviews endpoint, and the comments endpoint via gidgethub, and renders all three sections
 
-#### Scenario: 429 rate limit surfaces as rate_limited verdict
+#### Scenario: 429 / rate-limit headers surface as rate_limited verdict
 
-- **WHEN** any GitHub API call returns 429 (or 403 with `X-RateLimit-Remaining: 0`)
-- **THEN** the handler returns `verdict == Verdict.rate_limited`; operator hint mentions `A2WEB_GITHUB_TOKEN` to raise the limit
+- **WHEN** any GitHub API call raises `gidgethub.RateLimitExceeded` (gidgethub maps both 429 and 403 + `X-RateLimit-Remaining: 0` to this exception)
+- **THEN** the handler returns `verdict == Verdict.rate_limited` and the operator hint mentions `A2WEB_GITHUB_TOKEN` to raise the limit
 
 #### Scenario: Token absence does not block unauthenticated calls
 
 - **WHEN** `settings.github_token` is `""`
-- **THEN** the handler issues requests without an `Authorization` header and otherwise behaves identically (subject to the 60 req/hr unauthenticated limit)
+- **THEN** the handler constructs `GitHubAPI(oauth_token=None)` and otherwise behaves identically (subject to the 60 req/hr unauthenticated limit)
+
+#### Scenario: All GitHub traffic flows through the curl_cffi adapter
+
+- **WHEN** the handler executes any of the three URL shapes
+- **THEN** every outbound HTTP request to `api.github.com` is dispatched through the curl_cffi session (so breakers, proxy routing, and TLS-fingerprint apply) — no socket is opened directly by gidgethub or its bundled helpers
 
 ### Requirement: HN front page renders both article and discussion URLs
 
@@ -240,12 +247,12 @@ The `GitHubHandler` SHALL populate `TierResult.next_links` on a repo URL (`githu
 - `reason` — `f"issue · {comments} comments"` for issues, `f"PR · {comments} comments"` for pulls
 - `kind` — `"related"` (peers of the repo's main content, not deeper layers)
 
-Issue and PR URLs (terminal pages) SHALL return `next_links == []`.
+These candidates SHALL be sourced from a single `gidgethub` `getiter` call per shape with `per_page=5, sort=updated, state=open`; the handler SHALL NOT page beyond the first batch. Issue and PR URLs (terminal pages) SHALL return `next_links == []`.
 
 #### Scenario: Repo URL populates issue + PR candidates
 
 - **WHEN** the handler runs on `https://github.com/octocat/Hello-World`
-- **THEN** the candidate list contains up to 10 entries split between `/issues/<n>` and `/pull/<n>` URLs, each with `kind == "related"`
+- **THEN** the candidate list contains up to 10 entries split between `/issues/<n>` and `/pull/<n>` URLs, each with `kind == "related"`, sourced from one issues `getiter` and one pulls `getiter`
 
 #### Scenario: Issue URL returns empty candidates
 
@@ -368,7 +375,6 @@ The system SHALL provide `V2EXHandler` matching V2EX topic URLs — `https?://(w
 - **WHEN** `api/topics/show.json` returns an empty list for an unknown id
 - **THEN** the handler returns `verdict == Verdict.not_found` so the orchestrator falls through to the generic path
 
-
 ### Requirement: Handlers fetch via the shared handler-transport primitive
 
 Every site handler SHALL perform its HTTP fetches via the shared `handler-transport` primitive (`packages/http_fetch.fetch_bytes`). Handlers SHALL NOT construct `httpx.AsyncClient` or any other ad-hoc HTTP client. This places every handler under the project's anti-bot (`curl_cffi` Chrome TLS impersonation), proxy-routing, and per-host circuit-breaker infrastructure.
@@ -401,3 +407,4 @@ Every site handler that renders an HTML-bearing field — title, post body, comm
 
 - **WHEN** any module under `src/a2web/handlers/` is inspected
 - **THEN** it contains no module-local `_html_to_md` / `_cooked_to_md` / `_strip_html` / `_text_of` regex stripper; HTML-fragment conversion goes through the shared package
+

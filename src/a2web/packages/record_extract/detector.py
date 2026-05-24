@@ -126,14 +126,10 @@ def _own_has_link(el: lxml.html.HtmlElement, record_sig: _Signature) -> bool:
 
 
 def _own_has_heading(el: lxml.html.HtmlElement, record_sig: _Signature) -> bool:
-    return any(
-        d.tag in _HEADING_TAGS or d.get("role") == "heading" for d in _own_elements(el, record_sig)
-    )
+    return any(d.tag in _HEADING_TAGS or d.get("role") == "heading" for d in _own_elements(el, record_sig))
 
 
-def _heading(
-    el: lxml.html.HtmlElement, record_sig: _Signature
-) -> tuple[str, tuple[str, str] | None] | None:
+def _heading(el: lxml.html.HtmlElement, record_sig: _Signature) -> tuple[str, tuple[str, str] | None] | None:
     """The record's heading — its own-scope text and (optionally) its first
     anchor's `(anchor_text, href)`.
 
@@ -250,11 +246,7 @@ def _evaluate(sig: _Signature, members: list[lxml.html.HtmlElement]) -> _Candida
 
 def _select(candidates: list[_Candidate]) -> _Candidate | None:
     """Apply guards (b) + (c), then pick the best with an ancestor tie-break."""
-    passed = [
-        c
-        for c in candidates
-        if c.consistency >= _CONSISTENCY_MIN and c.heading_frac >= _HEADING_FRAC_MIN
-    ]
+    passed = [c for c in candidates if c.consistency >= _CONSISTENCY_MIN and c.heading_frac >= _HEADING_FRAC_MIN]
     if not passed:
         return None
     passed.sort(key=lambda c: c.score, reverse=True)

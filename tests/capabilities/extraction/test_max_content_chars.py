@@ -18,7 +18,7 @@ class _RecordingProvider:
     name = "recording"
     last_user: str = ""
 
-    async def complete(self, *, system, user, model, max_tokens, temperature=0.0, thinking_disabled=True):
+    async def complete(self, *, system, user, model, max_tokens, temperature=0.0, thinking_disabled=True, parts=None):
         type(self).last_user = user
         return ProviderResponse(text="ok", model=model, prompt_tokens=0, completion_tokens=0, cost_usd=0.0, latency_ms=0)
 

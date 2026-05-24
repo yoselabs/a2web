@@ -106,6 +106,211 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-05-23 — prompt cache + affordances followups (v0.19+)
+
+Shipped `make-llm-prompts-cache-compliant` (v0.19): `EXTRACT_CACHEABLE_V1`
+template with byte-stable prefix, `cache_control` markers on Anthropic-direct,
+byte-stable concat on claude-agent-sdk (no marker API), OpenAI auto-cache
+for free. Spike + capability work follows.
+
+### LLM caching — operational follow-ups
+
+- 🟡 **Verify Claude Code SDK auto-cache fires in production.** The probe
+  confirmed the SDK has no `cache_control` API and that we rely on the CLI
+  binary to apply caching given a stable prefix. We have not verified the
+  CLI actually does so for one-shot `query()` calls (it definitely does for
+  multi-turn conversations). Spike: write a small script that runs the
+  production Extractor twice with the same `content` and different `ask`
+  values, inspects `ResultMessage.usage` for non-zero `cache_read_input_tokens`
+  on the second call. Scope: S (~40 LoC + a notes file in `eval/findings/`).
+- 🟡 **Telemetry: cache hit/miss ratio in production.** Add a
+  `tokens.cache_read` / `tokens.cache_creation` rollup on the LDD bus.
+  Today the values flow into `ProviderResponse.prompt_tokens` (aggregated)
+  but the breakdown is not surfaced anywhere observable. Trip condition: we
+  want to know whether the 5-minute TTL is enough or extended cache (1-hour)
+  is justified.
+- 🟢 **Extended cache (1-hour TTL) plumbing.** Anthropic supports `cache_control:
+  {type:"ephemeral", ttl: "1h"}` for higher write cost but longer hits.
+  Defer until telemetry shows enough cache misses that would have hit a
+  1-hour window. Scope: S (one kwarg + a settings toggle).
+
+### Affordances — "what else this page can answer"
+
+- ✅ **Affordances spike v1 (2026-05-24).** 5-URL probe with generic prompt.
+  Findings: `eval/findings_2026-05-24-affordances-v1.md`. Follow-ups + shapes
+  hit quality bar on 4/5 URLs; `missed_sections` is hallucination-prone (arXiv
+  abstract case); standalone Haiku call is $0.013/URL but fold-in marginal cost
+  is ~$0.002/URL (~18% on top of `ask`). Design: fold into
+  `EXTRACT_CACHEABLE_V1` under `include_affordances=True`, drop
+  `missed_sections`, keep `shapes` closed-enum.
+- ✅ **Affordances spikes v2 + v3 (2026-05-24).** 30-URL corpus across content
+  extremes × 3 prompt variants (V_GEN, V_CTX, V_LEAN). Findings:
+  `eval/findings_2026-05-24-affordances-v2-v3.md`. Key results: 100% fetch
+  success, 100% JSON parse success across 90 calls; closed shape vocabulary
+  holds at scale; V_CTX classification 63% literal / ~80% semantic accuracy
+  (model often more right than my declared labels); V_LEAN as standalone 2nd
+  call only ~5% cheaper than V_GEN (page content dominates cost — fold-in is
+  the only economic shape); V_CTX wins on edge cases (paywalled / 404 / unusual
+  pages) at zero cost penalty over V_GEN.
+- ✅ **Affordances spikes v4 + v5 (2026-05-24).** Two-axis rubric calibration.
+  v4 found `page_kind_confidence` was conflating epistemic uncertainty about
+  the label with content usefulness — model returned `high` on everything
+  because it WAS confident, even when wrong. v5 split into two orthogonal
+  axes (`page_kind_confidence` + `content_value`) following RAG-eval
+  literature (Braintrust/Deepchecks/ResearchRubrics). Added hard cluster
+  trigger forcing confidence ≤ medium when label falls in a confusable
+  cluster. Findings: `eval/findings_2026-05-24-affordances-v5-two-axes.md`.
+  Result on full 30: 0 envelope violations, 0 parse failures, 5/30 medium
+  confidence (vs 30 high), content_value well-distributed (18 high / 5 med
+  / 3 low / 4 omitted on obstacles). **Design LOCKED for production.**
+- ✅ **Affordances production wiring (v0.20, 2026-05-24).** Shipped under
+  `openspec/changes/add-affordances-to-ask/`. `AffordancesPayload` boundary
+  type + pydantic mirror with closed `Literal` enums. `EXTRACT_WITH_AFFORDANCES_V1`
+  template extends `EXTRACT_CACHEABLE_V1` byte-for-byte on the cache prefix.
+  Default ON; opt-out via `ask(include_affordances=False)`. Envelope discipline
+  on obstacle pages (paywalled/error/empty/blocked → omit content_value/shapes/
+  follow_ups). G_commerce cluster trigger included to fix Amazon-style
+  miscalibration. 19 tests added (10 parser, 5 wire, 4 cache stability). All
+  gates green: 767 passed, 88.94% coverage. Remaining: output-benchmark A/B
+  (`make bench` — live-network) before declaring quality parity.
+- 🟢 **Corpus refresh**: 3 URLs in the v2-v5 corpus are stale 404s
+  (`news-bbc`, `comments-lobste`, `blog-jvns/2024/01/05/2023-in-review`).
+  Replace before next eval pass.
+- 🟢 **Content-value second-order signal**: `content_value=low` paired with
+  a content-kind page_kind could auto-trigger browser-tier escalation.
+  Telemetry first to confirm the signal is reliable at production scale.
+
+### Reddit `old.reddit.com` raw-tier fetch failure (2026-05-24)
+
+- 🟡 **Repro**: `https://www.reddit.com/r/LocalLLaMA/comments/1iqz5nb/` via
+  `fetch()` (raw tier) returned `status=failed`, `content_md=""`. Surfaced
+  during the affordances spike. Reddit block-page detection probably catching
+  on the login wall. Plausible fixes: (a) rewrite `www.reddit.com/r/.../comments/...`
+  → `old.reddit.com/r/.../comments/...` in a domain-rewrite glue (similar to
+  the Google/Bing captcha rewrite in `domain.py`), (b) add a Reddit handler
+  to `src/a2web/handlers/` that uses the JSON API surface
+  (`{url}.json`), (c) escalate to browser tier on Reddit. Scope: S
+  (domain rewrite is cheapest) → M (full handler with JSON API).
+
+## 2026-05-23 — post-trio followups (v0.18+)
+
+Added after shipping `replace-cookie-store-with-browser-cookie3` (v0.16),
+`replace-github-handler-with-gidgethub` (v0.17), and `add-microdata-rdfa-extraction`
+(v0.18). The mission-driven-library exploration surfaced Tier-2 swaps and
+two new capability ideas; recording them here so they don't slip.
+
+### Library swaps (Tier 2 — defer until a concrete win signal)
+
+- 🟢 **arxiv handler → `arxiv-py`.** Source: 2026-05-23 exploration. Current
+  `handlers/arxiv.py` is ~290 LOC of stdlib `xml.etree.ElementTree` against
+  the arXiv API. `arxiv-py` is a maintained client with sane pagination,
+  retry, and typed results. Sans-IO-adjacent (uses `urllib`/`feedparser`
+  internally — would need a transport adapter similar to gidgethub's
+  `_CurlCffiGitHubAPI` to keep our curl_cffi tier + breakers). Trip
+  condition: bug or maintenance burden on arxiv.py warrants the swap.
+  Scope: M (~150 LOC out, +arxiv-py direct, +feedparser transitive).
+- 🟢 **URL canonicalization → `courlan`.** Source: 2026-05-23 exploration.
+  Multiple sites in domain.py (Google/Bing → DDG rewrite,
+  reddit `.json` API munging, host-normalisation for breakers) reinvent
+  pieces of URL canonicalization. `courlan` (the trafilatura sibling)
+  centralises tracking-param stripping, host normalisation, ccTLD-aware
+  language detection. Small, sans-IO, no transport opinions. Trip
+  condition: a real bug class (e.g. cache-key drift from tracking-param
+  duplication) surfaces. Scope: S.
+- 🔴 **HN handler — NO swap warranted.** Source: 2026-05-23 exploration.
+  Current `handlers/hn.py` already uses `hn.algolia.com/api/v1` and is
+  cleanly structured (~230 LoC). The python-firebase / hn-py libraries
+  do not improve on what we have. Recorded as a "do not pursue" entry.
+- 🔴 **Reddit handler — NO clean swap.** Source: 2026-05-23 exploration.
+  `praw` is async-unfriendly and owns its transport; `asyncpraw` exists
+  but bundles `aiohttp`. Neither composes with our curl_cffi tier +
+  breakers + proxies. The 799-LOC hand-rolled handler stays. Reconsider
+  only if a Reddit-side API contract change forces a rewrite.
+
+### Capability ideas (new — 2026-05-23)
+
+- 🟡 **`llms.txt` / `llm.txt` discovery.** Source: 2026-05-23. Adopt the
+  emerging convention (Mintlify et al. — `/llms.txt` at site root, with
+  optional `/llms-full.txt` for the full corpus) as a tier-0 detector.
+  *Why interesting:* on sites that publish it, `llms.txt` is a curated
+  text surface that already represents what the operator wants an LLM
+  to see — strictly higher signal-to-noise than trafilatura against the
+  HTML chrome. The probe is cheap (one HTTP HEAD/GET to `/llms.txt`)
+  and short-circuits the entire tier cascade when present. Caveats:
+  (a) convention is young — coverage is small but growing fast; need
+  to confirm with a corpus probe before sinking design effort. (b) the
+  spec allows it to be a markdown index pointing at *other* URLs — we'd
+  want to expand referenced URLs only if the prompt asks the agent to
+  drill down, not eagerly. (c) hostile `llms.txt` is a real prompt-
+  injection surface (operator-controlled instructions disguised as
+  content); needs the same untrusted-content envelope as page content.
+  Scope: S (detector + cache hit), M (drill-down expansion + injection
+  defence). Cross-ref: spec/SIG at https://llmstxt.org. Trip condition:
+  corpus probe shows ≥5% of frequently-fetched hosts ship one.
+- 🟡 **Agent-identity stealth (look like a human, not a bot).** Source:
+  2026-05-23. Audit and minimise the signals that mark our requests as
+  "AI agent". Today the default `User-Agent` is a static Safari string
+  (good) but other tells leak: (a) the LLM extractor sometimes
+  fingerprints with referer-less navigation patterns; (b) some handlers
+  set `X-GitHub-Api-Version` (acceptable on api.github.com but a generic
+  fingerprint elsewhere); (c) browser tier may carry telltale headless
+  Camoufox fingerprints under certain configurations; (d) we have no
+  per-host UA pinning to match the canonical browser the host expects
+  (e.g. Reddit serves different content to mobile UA vs desktop).
+  *Concrete pieces of work:*
+  1. **UA rotation strategy** — small pool of real recent Safari/Chrome/
+     Firefox UAs, pinned per-host for the session so requests look
+     coherent.
+  2. **Referer chains** — set realistic `Referer` headers on follow-up
+     requests so we don't look like a fresh-tab fetcher on every URL.
+  3. **`Sec-Fetch-*` header trio** — the modern fingerprint-via-omission
+     signal; we currently omit these, real browsers send them.
+  4. **AcceptedLanguage / Accept jitter** — small per-session variation
+     to break the "exact same fingerprint across 1000s of requests"
+     tell.
+  5. **Tier-0 handler audit** — ensure no handler leaks `a2web` in any
+     outgoing header. GitHub's `_REQUESTER = "a2web"` shows up in
+     `User-Agent` per gidgethub — change to a generic project string.
+  6. **Cookie carry-through** — when we have a `CookieJarResource`
+     mirror for a host, our requests should look like the operator's
+     browser session (same UA + same cookies + same Accept headers).
+     Today the UA isn't pinned to match the cookie profile.
+  *Why important:* Cloudflare / Akamai / DataDome are increasingly
+  scoring requests as "agent vs human" not just "browser vs curl";
+  even a perfect TLS fingerprint loses if the header set is
+  inconsistent. The cumulative cost of looking obvious is silent quality
+  loss — sites return banner-mode content instead of full content. The
+  point is NOT to evade rate limits or impersonate users illegally; it
+  is to avoid the increasingly-common "served degraded content because
+  you look like a bot" failure mode that doesn't even surface in our
+  block detector. Cross-ref: existing `cookie_jar.py` (already steps
+  toward this); `tiers/raw.py` (JA3/JA4 already correct). Scope: M
+  (audit + pinning), L (full Sec-Fetch-* + referer-chain semantics).
+  Trip condition: any benchmark URL that returns degraded content under
+  a2web but full content under a real browser session.
+
+### Speculative — only if signal surfaces
+
+- **Re-adopt `extruct` for RDFa.** Source: 2026-05-23 — extruct was
+  added then removed mid-implementation (see `openspec/changes/archive/
+  2026-05-23-add-microdata-rdfa-extraction/design.md` D1). The
+  rdflib weight is only justified by RDFa coverage; eval corpus
+  shows zero RDFa hit rate today. Reversible — add back if a real
+  RDFa-shaped failure surfaces in a future `make bench` run
+  (academic-publishing URL that ships RDFa but no microdata / LD-JSON).
+  Scope: S.
+- **PDF tier (`pymupdf` or `marker`).** Source: 2026-05-23 — was raised
+  in the mission-driven-library exploration but not pursued in the
+  trio. Tier 4. Many high-value agent destinations (regulatory
+  filings, academic papers, manuals) are PDF-first; the cascade
+  currently 404s or content-type-mismatches them. Choice between
+  `pymupdf` (fast, lightweight, classic) and `marker` (LLM-aware,
+  better tables / figure handling, much heavier). Decide via a
+  small spike on a representative corpus. Scope: M (pymupdf) / L
+  (marker).
+
+---
+
 ## v0.2 workspace-packaging deferral (from `migrate-to-a2kit-v026-and-simplify`)
 
 - **Phase D — extract as uv workspace packages.** Source:

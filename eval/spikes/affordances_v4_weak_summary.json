@@ -1,0 +1,287 @@
+{
+  "per_url": [
+    {
+      "slug": "tiny-arxiv",
+      "declared_kind": "article-short",
+      "url": "https://arxiv.org/abs/2402.17753",
+      "fetch_status": "ok",
+      "chars": 1853,
+      "ctx_v2": {
+        "cost": 0.0132879,
+        "ms": 16070,
+        "page_kind": "reference",
+        "confidence": "high",
+        "reasoning": "This is an arXiv abstract page presenting a peer-reviewed research paper with standard academic structure (title, authors, abstract, categories); the content is substantial (~1850 chars) and unambiguously a research reference.",
+        "shape_labels": [
+          "citations",
+          "key-value",
+          "comparison"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "tiny-gh-gist",
+      "declared_kind": "code-snippet",
+      "url": "https://gist.github.com/jboner/2841832",
+      "fetch_status": "ok",
+      "chars": 22132,
+      "ctx_v2": {
+        "cost": 0.020983349999999998,
+        "ms": 13257,
+        "page_kind": "thread",
+        "confidence": "high",
+        "reasoning": "This is a GitHub Gist comment thread with 30+ nested comments discussing computer operation latencies; the page structure is chronological discussion with replies, citations, and technical debate\u2014classic thread affordance.",
+        "shape_labels": [
+          "comments",
+          "citations",
+          "timeline"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "tiny-status-page",
+      "declared_kind": "status",
+      "url": "https://status.openai.com/",
+      "fetch_status": "ok",
+      "chars": 758,
+      "ctx_v2": {
+        "cost": 0.0109386,
+        "ms": 11860,
+        "page_kind": "product-page",
+        "confidence": "high",
+        "reasoning": "OpenAI status page with system uptime metrics, component dashboards, and service health declarations\u2014classic SaaS status/availability product page.",
+        "shape_labels": [
+          "key-value",
+          "timeline",
+          "table"
+        ],
+        "n_follow_ups": 4
+      }
+    },
+    {
+      "slug": "huge-changelog",
+      "declared_kind": "changelog",
+      "url": "https://github.com/pydantic/pydantic/releases",
+      "fetch_status": "ok",
+      "chars": 10503,
+      "ctx_v2": {
+        "cost": 0.021741350000000003,
+        "ms": 14441,
+        "page_kind": "changelog",
+        "confidence": "high",
+        "reasoning": "GitHub releases page with versioned entries (v2.14.0a1, v2.13.4, v2.13.3, etc.) dating back to 2025-12, showing What's Changed sections, contributors, and assets per version \u2014 textbook changelog structure.",
+        "shape_labels": [
+          "timeline",
+          "key-value",
+          "citations",
+          "comments"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "comments-lobste",
+      "declared_kind": "threaded",
+      "url": "https://lobste.rs/s/2hu3pq/",
+      "fetch_status": "ok",
+      "chars": 880,
+      "ctx_v2": {
+        "cost": 0.00988485,
+        "ms": 8958,
+        "page_kind": "error",
+        "confidence": "high",
+        "reasoning": "HTTP 404 error page with explicit 'Resource Not Found' heading and statement that 'the story has been deleted'; no content body beyond navigation and error messaging.",
+        "shape_labels": [
+          "error-messaging"
+        ],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "docs-anthropic",
+      "declared_kind": "api-reference",
+      "url": "https://docs.claude.com/en/api/messages",
+      "fetch_status": "ok",
+      "chars": 726,
+      "ctx_v2": {
+        "cost": 0.011794099999999998,
+        "ms": 10083,
+        "page_kind": "api-reference",
+        "confidence": "low",
+        "reasoning": "The page is classified as API reference based on URL pattern and og:description, but the fetched content contains ONLY OpenGraph metadata (726 chars)\u2014no actual API documentation body is present.",
+        "shape_labels": [
+          "blocked / content-not-fetched"
+        ],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "news-bbc",
+      "declared_kind": "news-article",
+      "url": "https://www.bbc.com/news/articles/c1k7nzjpz7eo",
+      "fetch_status": "ok",
+      "chars": 10652,
+      "ctx_v2": {
+        "cost": 0.020501600000000002,
+        "ms": 9872,
+        "page_kind": "error",
+        "confidence": "high",
+        "reasoning": "HTTP 404 error page with explicit 'Error 404 - Oops, the page you're looking for is no longer here' heading and search recovery affordance; the requested article (c1k7nzjpz7eo) no longer exists.",
+        "shape_labels": [
+          "error_message",
+          "site_search",
+          "related_stories"
+        ],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "blog-julia-evans",
+      "declared_kind": "blog-post",
+      "url": "https://jvns.ca/blog/2024/01/05/2023-in-review/",
+      "fetch_status": "ok",
+      "chars": 1442,
+      "ctx_v2": {
+        "cost": 0.01216535,
+        "ms": 14389,
+        "page_kind": "error",
+        "confidence": "high",
+        "reasoning": "Server returned HTTP 404 with explicit 'Page not found' messaging; the URL points to a specific blog post that no longer exists or has been removed.",
+        "shape_labels": [
+          "error-message",
+          "navigation-structure"
+        ],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "code-gh-readme",
+      "declared_kind": "readme",
+      "url": "https://github.com/encode/httpx",
+      "fetch_status": "ok",
+      "chars": 5317,
+      "ctx_v2": {
+        "cost": 0.0158556,
+        "ms": 79710,
+        "page_kind": "readme",
+        "confidence": "high",
+        "reasoning": "GitHub README with substantial content (~5300 chars), standard structure (header, installation, features, documentation, contribution links), and clear project overview for the HTTPX Python HTTP client library.",
+        "shape_labels": [
+          "list",
+          "code",
+          "key-value",
+          "list"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "media-yt-video",
+      "declared_kind": "video-page",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "fetch_status": "ok",
+      "chars": 1013,
+      "ctx_v2": {
+        "cost": 0.0117874,
+        "ms": 8321,
+        "page_kind": "video-page",
+        "confidence": "high",
+        "reasoning": "OpenGraph metadata unambiguously identifies this as a YouTube video page with rich video properties (og:type=video.other, video embed URLs, dimensions). Content is thin (~1000 chars) but structural signals are definitive.",
+        "shape_labels": [
+          "key-value",
+          "video-player"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "spa-react-dev",
+      "declared_kind": "spa",
+      "url": "https://react.dev/learn",
+      "fetch_status": "ok",
+      "chars": 12130,
+      "ctx_v2": {
+        "cost": 0.019689099999999998,
+        "ms": 12121,
+        "page_kind": "tutorial",
+        "confidence": "high",
+        "reasoning": "This is React's official Quick Start tutorial\u2014substantial educational content (12K+ chars) with progressive learning objectives, code examples, and interactive demos, structured as guided introduction to core concepts.",
+        "shape_labels": [
+          "learning-objectives",
+          "code",
+          "timeline",
+          "comparison"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "gated-nyt",
+      "declared_kind": "paywalled",
+      "url": "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html",
+      "fetch_status": "failed",
+      "chars": 536,
+      "ctx_v2": {
+        "cost": 0.010482350000000001,
+        "ms": 11227,
+        "page_kind": "blocked",
+        "confidence": "high",
+        "reasoning": "HTTP 403 Forbidden error with explicit CAPTCHA/bot-wall warning; the fetched content is empty except for error metadata. No article content is present.",
+        "shape_labels": [
+          "error-obstacle"
+        ],
+        "n_follow_ups": 0
+      }
+    },
+    {
+      "slug": "paper-arxiv-pdf-stub",
+      "declared_kind": "pdf-stub",
+      "url": "https://arxiv.org/pdf/2402.17753",
+      "fetch_status": "ok",
+      "chars": 1853,
+      "ctx_v2": {
+        "cost": 0.013065099999999998,
+        "ms": 11189,
+        "page_kind": "reference",
+        "confidence": "high",
+        "reasoning": "ArXiv abstract page with clear academic paper metadata (authors, categories, abstract text), structured as a reference document with title, author list, category tags, and scholarly content summary.",
+        "shape_labels": [
+          "metadata",
+          "citations",
+          "key-value"
+        ],
+        "n_follow_ups": 5
+      }
+    },
+    {
+      "slug": "docs-cf-page",
+      "declared_kind": "marketing",
+      "url": "https://www.cloudflare.com/products/registrar/",
+      "fetch_status": "ok",
+      "chars": 6042,
+      "ctx_v2": {
+        "cost": 0.01613785,
+        "ms": 15698,
+        "page_kind": "product-page",
+        "confidence": "high",
+        "reasoning": "Substantial marketing content (>2000 chars) with clear product positioning, benefits, use cases, and CTA buttons; unambiguous SaaS product landing structure.",
+        "shape_labels": [
+          "product-benefits",
+          "use-cases",
+          "features",
+          "key-value",
+          "cta"
+        ],
+        "n_follow_ups": 5
+      }
+    }
+  ],
+  "totals": {
+    "cost": 0.2083145,
+    "ms": 237196,
+    "fetch_failures": 0,
+    "parse_failures": 0
+  }
+}

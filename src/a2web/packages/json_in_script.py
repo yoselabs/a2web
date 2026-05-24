@@ -39,11 +39,19 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 from selectolax.parser import HTMLParser
 
-JsonSource = Literal["next_data", "nuxt_data", "ld_json", "generic", "window_var"]
+JsonSource = Literal[
+    "next_data",
+    "nuxt_data",
+    "ld_json",
+    "generic",
+    "window_var",
+    "microdata",
+    "opengraph",
+]
 
 
 @dataclass(slots=True, frozen=True)
@@ -93,14 +101,14 @@ def extract_json_payloads(html: str) -> list[JsonPayload]:
     out: list[JsonPayload] = []
 
     # 1. __NEXT_DATA__
-    for node in tree.css('script#__NEXT_DATA__'):
+    for node in tree.css("script#__NEXT_DATA__"):
         body = node.text(strip=False) or ""
         payload = _try_parse(body)
         if payload is not None:
             out.append(JsonPayload(source="next_data", data=payload, script_id="__NEXT_DATA__", byte_size=len(body)))
 
     # 2. __NUXT_DATA__
-    for node in tree.css('script#__NUXT_DATA__'):
+    for node in tree.css("script#__NUXT_DATA__"):
         body = node.text(strip=False) or ""
         payload = _try_parse(body)
         if payload is not None:
@@ -123,11 +131,14 @@ def extract_json_payloads(html: str) -> list[JsonPayload]:
         if payload is not None:
             out.append(JsonPayload(source="generic", data=payload, script_id=node.attributes.get("id"), byte_size=len(body)))
 
-    # 5. window.<name> = {...} JS-variable assignments inside text/javascript
+    # 5. Microdata + OpenGraph — selectolax-native attribute walk.
+    out.extend(_extract_microdata_and_og(tree))
+
+    # 6. window.<name> = {...} JS-variable assignments inside text/javascript
     # scripts. Targets initial-state patterns common to older / custom SPAs
     # (Yandex's `window.state`, classic Redux `window.__INITIAL_STATE__`,
     # generic `window.__PRELOADED_STATE__` / `window.__APP_DATA__`).
-    for node in tree.css('script'):
+    for node in tree.css("script"):
         script_type = (node.attributes.get("type") or "").lower()
         # Skip the application/json paths handled above and external scripts.
         if script_type and script_type not in ("text/javascript", "application/javascript", "module"):
@@ -153,12 +164,14 @@ def extract_json_payloads(html: str) -> list[JsonPayload]:
 def rank_payloads(payloads: list[JsonPayload]) -> list[JsonPayload]:
     """Order payloads by descending downstream value.
 
-    Priority rules:
-    - LD-JSON carrying a recognized schema (`Product`, `Article`, `ItemList`,
-      `BreadcrumbList`, `NewsArticle`) with ≥3 populated fields ranks first.
-    - Then `next_data` / `nuxt_data` (framework app state — usually richest).
-    - Then weak LD-JSON (below the field threshold).
-    - Then `generic` app-state.
+    Bucket order (v0.18 — adds microdata + opengraph):
+      0. ld_json strong (Product/Article/ItemList/BreadcrumbList/NewsArticle ≥3 fields)
+      1. microdata strong (same @type set, ≥3 fields)
+      2. next_data, nuxt_data (framework app state)
+      3. opengraph (metadata, not body — always after framework state)
+      4. ld_json weak, microdata weak
+      5. window_var
+      6. generic
 
     Within each bucket, larger payloads rank first (more data to synthesize).
     """
@@ -166,13 +179,17 @@ def rank_payloads(payloads: list[JsonPayload]) -> list[JsonPayload]:
     def bucket(p: JsonPayload) -> int:
         if p.source == "ld_json" and _ld_json_strong(p.data):
             return 0
-        if p.source in ("next_data", "nuxt_data"):
+        if p.source == "microdata" and _microdata_strong(p.data):
             return 1
-        if p.source == "ld_json":
+        if p.source in ("next_data", "nuxt_data"):
             return 2
-        if p.source == "window_var":
+        if p.source == "opengraph":
             return 3
-        return 4  # generic
+        if p.source in ("ld_json", "microdata"):
+            return 4
+        if p.source == "window_var":
+            return 5
+        return 6  # generic
 
     return sorted(payloads, key=lambda p: (bucket(p), -p.byte_size))
 
@@ -222,9 +239,7 @@ _WINDOW_VAR_NAMES: tuple[str, ...] = (
     "__APOLLO_STATE__",
     "__NUXT__",
 )
-_WINDOW_VAR_PREFIXES: tuple[re.Pattern[str], ...] = tuple(
-    re.compile(rf"\bwindow\.{re.escape(name)}\s*=\s*") for name in _WINDOW_VAR_NAMES
-)
+_WINDOW_VAR_PREFIXES: tuple[re.Pattern[str], ...] = tuple(re.compile(rf"\bwindow\.{re.escape(name)}\s*=\s*") for name in _WINDOW_VAR_NAMES)
 
 
 def _scan_window_var_assignments(js: str) -> list[tuple[str, str]]:
@@ -286,6 +301,197 @@ def _try_parse(body: str) -> dict | list | None:
     if isinstance(parsed, (dict, list)):
         return parsed
     return None
+
+
+# --------------------------------------------------------------------- #
+# extruct integration — microdata, RDFa, OpenGraph
+# --------------------------------------------------------------------- #
+
+
+def _extract_microdata_and_og(tree: HTMLParser) -> list[JsonPayload]:
+    """Pull HTML5 microdata + OpenGraph meta tags directly off the selectolax
+    tree. No extruct / rdflib dependency — the spec for both is a tractable
+    attribute walk.
+
+    RDFa is intentionally not covered: open-web hit rate is academic-only and
+    the rdflib-shaped cost (transitive ~MB) isn't justified by the eval
+    corpus today. Add a dedicated path if a real RDFa-shaped failure surfaces.
+    """
+    out: list[JsonPayload] = []
+
+    items = _walk_microdata(tree)
+    if items:
+        try:
+            byte_size = len(json.dumps(items))
+        except (TypeError, ValueError):
+            byte_size = 0
+        out.append(JsonPayload(source="microdata", data=items, script_id=None, byte_size=byte_size))
+
+    og = _collect_opengraph(tree)
+    if og:
+        try:
+            byte_size = len(json.dumps(og))
+        except (TypeError, ValueError):
+            byte_size = 0
+        out.append(JsonPayload(source="opengraph", data=og, script_id=None, byte_size=byte_size))
+
+    return out
+
+
+# Microdata HTML5 value-extraction table (per WHATWG spec §5.2.6 "Values"):
+# the source attribute varies by tag.
+_MICRODATA_VALUE_ATTR: dict[str, str] = {
+    "meta": "content",
+    "audio": "src",
+    "embed": "src",
+    "iframe": "src",
+    "img": "src",
+    "source": "src",
+    "track": "src",
+    "video": "src",
+    "a": "href",
+    "area": "href",
+    "link": "href",
+    "object": "data",
+    "data": "value",
+    "meter": "value",
+    "time": "datetime",
+}
+
+
+def _walk_microdata(tree: HTMLParser) -> list[dict]:
+    """Walk every top-level [itemscope] node and collect its properties.
+
+    Returns a list of `{"type": [<itemtype>, ...], "properties": {<itemprop>:
+    <value or nested item>}}` records. Nested itemscope items recurse as
+    dicts under the parent's properties.
+
+    Top-level = scope nodes whose nearest [itemscope] ancestor is themselves.
+    """
+    scopes = tree.css("[itemscope]")
+    if not scopes:
+        return []
+    out: list[dict] = []
+    for node in scopes:
+        # Skip if a parent is also itemscope (we only want top-level entries).
+        parent = node.parent
+        nested = False
+        while parent is not None:
+            attrs = parent.attributes
+            if attrs is not None and "itemscope" in attrs:
+                nested = True
+                break
+            parent = parent.parent
+        if nested:
+            continue
+        out.append(_extract_microdata_item(node))
+    return out
+
+
+def _extract_microdata_item(scope_node: Any) -> dict:
+    itemtype = (scope_node.attributes.get("itemtype") or "").strip()
+    types = [t for t in itemtype.split() if t]
+    properties: dict[str, Any] = {}
+
+    # Collect [itemprop] descendants that do not belong to a deeper itemscope.
+    for prop in scope_node.css("[itemprop]"):
+        if prop == scope_node:
+            continue
+        # Walk up to confirm `prop` is owned by `scope_node` (not a nested scope).
+        parent = prop.parent
+        owner: Any = None
+        while parent is not None:
+            attrs = parent.attributes
+            if attrs is not None and "itemscope" in attrs:
+                owner = parent
+                break
+            parent = parent.parent
+        if owner != scope_node:
+            continue
+
+        names = (prop.attributes.get("itemprop") or "").split()
+        if not names:
+            continue
+
+        prop_attrs = prop.attributes
+        if prop_attrs is not None and "itemscope" in prop_attrs:
+            value: Any = _extract_microdata_item(prop)
+        else:
+            value = _microdata_value_of(prop)
+
+        for name in names:
+            existing = properties.get(name)
+            if existing is None:
+                properties[name] = value
+            elif isinstance(existing, list):
+                existing.append(value)
+            else:
+                properties[name] = [existing, value]
+
+    return {"type": types, "properties": properties}
+
+
+def _microdata_value_of(node: Any) -> str:
+    tag = (node.tag or "").lower()
+    attr = _MICRODATA_VALUE_ATTR.get(tag)
+    if attr:
+        value = node.attributes.get(attr)
+        if value is not None:
+            return value
+    return (node.text(strip=True) or "").strip()
+
+
+_OG_PROPERTY_PREFIXES: tuple[str, ...] = ("og:", "article:", "product:", "book:", "profile:")
+
+
+def _collect_opengraph(tree: HTMLParser) -> dict[str, str]:
+    """Collect every <meta property="<og|article|product|book|profile>:*">.
+
+    Returns a flat `{property: content}` dict (last-write-wins for duplicates).
+    Empty dict when nothing matches.
+    """
+    out: dict[str, str] = {}
+    for node in tree.css("meta[property]"):
+        prop = (node.attributes.get("property") or "").strip()
+        if not prop.startswith(_OG_PROPERTY_PREFIXES):
+            continue
+        content = (node.attributes.get("content") or "").strip()
+        if not content:
+            continue
+        out[prop] = content
+    return out
+
+
+def _microdata_strong(data: dict | list) -> bool:
+    """Mirror of `_ld_json_strong` for extruct's microdata output.
+
+    Microdata items come through as `{"type": ["https://schema.org/Product"],
+    "properties": {...}}`. Strong = recognized @type set + ≥3 populated
+    non-`@`-prefixed properties.
+    """
+    items: list[dict] = []
+    if isinstance(data, list):
+        items = [it for it in data if isinstance(it, dict)]
+    elif isinstance(data, dict):
+        items = [data]
+
+    for entry in items:
+        raw_types = entry.get("type") or entry.get("@type")
+        types: set[str] = set()
+        if isinstance(raw_types, str):
+            types.add(raw_types.rsplit("/", 1)[-1])
+        elif isinstance(raw_types, list):
+            for t in raw_types:
+                if isinstance(t, str):
+                    types.add(t.rsplit("/", 1)[-1])
+        if not types & _PREFERRED_LD_TYPES:
+            continue
+        raw_props = entry.get("properties")
+        props: dict = raw_props if isinstance(raw_props, dict) else entry
+        populated = sum(1 for k, v in props.items() if not k.startswith("@") and v not in (None, "", [], {}))
+        if populated >= _MIN_LD_FIELDS:
+            return True
+    return False
 
 
 __all__ = ["JsonPayload", "JsonSource", "extract_json_payloads", "rank_payloads"]

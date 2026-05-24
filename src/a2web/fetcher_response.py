@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from .decision_log import resolve_verdict
 from .models import (
+    AffordancesPayload,
     AskExtraction,
     AskResponse,
     CacheState,
@@ -33,6 +34,47 @@ from .utils.time import fmt_dur
 
 if TYPE_CHECKING:
     from .fetcher import FetchContext
+    from .packages.llm_extract import AffordancesPayload as AffordancesBoundary
+
+
+import structlog
+
+_LOG = structlog.get_logger("a2web.fetcher_response")
+
+
+def _project_affordances(boundary: AffordancesBoundary | None) -> AffordancesPayload | None:
+    """Project the package-side boundary type into the pydantic mirror.
+
+    Pydantic validates the closed enums (`page_kind`, `page_kind_confidence`,
+    `content_value`, shape `label`). On validation failure (model returned a
+    label outside the closed vocabulary), we log a warning and return None —
+    the caller still gets `extracted_answer`; affordances are best-effort.
+
+    Uses `model_validate` so pydantic does the closed-enum validation at the
+    boundary (the package-side type carries `str`, the pydantic mirror needs
+    Literal). The type ignores from a static cast would not survive `ty` —
+    `model_validate` accepts a dict at the type level and validates at runtime.
+    """
+    if boundary is None:
+        return None
+    try:
+        return AffordancesPayload.model_validate(
+            {
+                "page_kind": boundary.page_kind,
+                "page_kind_confidence": boundary.page_kind_confidence,
+                "reasoning": boundary.reasoning,
+                "content_value": boundary.content_value,
+                "shapes": [{"label": s.label, "where": s.where, "size": s.size} for s in boundary.shapes],
+                "follow_up_questions": list(boundary.follow_up_questions),
+            }
+        )
+    except Exception as exc:
+        _LOG.warning(
+            "affordances_validation_failed",
+            page_kind=boundary.page_kind,
+            error=str(exc),
+        )
+        return None
 
 
 # --------------------------------------------------------------------- #
@@ -200,6 +242,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
         next_links=_compose_next_links(fc),
         extracted_answer=fc.extracted_answer,
         extraction=fc.extraction_meta,
+        affordances=_project_affordances(fc.affordances),
     )
 
 
@@ -273,6 +316,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         total_ms=fr.total_ms if debug else None,
         cache=fr.cache if debug else None,
         diagnostics=list(fr.diagnostics) if debug else [],
+        affordances=fr.affordances,
     )
 
 

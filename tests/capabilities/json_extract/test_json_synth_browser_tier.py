@@ -54,7 +54,5 @@ async def test_browser_rendered_rich_synth_keeps_original() -> None:
 async def test_browser_no_json_blob_keeps_thin_original() -> None:
     """Browser-rendered HTML with no JSON blob and no record region → no-op."""
     fc = _FakeFc(content_md="thin")
-    await _run_extraction_escalation(
-        fc, raw_html="<html><body><h1>plain rendered article</h1></body></html>"
-    )
+    await _run_extraction_escalation(fc, raw_html="<html><body><h1>plain rendered article</h1></body></html>")
     assert fc.content_md == "thin"

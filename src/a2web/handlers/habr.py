@@ -111,9 +111,7 @@ class HabrHandler:
         )
 
 
-async def _fetch_json(
-    endpoint: str, params: dict[str, str], headers: dict[str, str]
-) -> dict[str, Any] | None:
+async def _fetch_json(endpoint: str, params: dict[str, str], headers: dict[str, str]) -> dict[str, Any] | None:
     """GET `endpoint?params` via the shared primitive and return parsed JSON,
     or `None` on any routine failure.
 

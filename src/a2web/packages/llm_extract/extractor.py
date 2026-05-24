@@ -15,7 +15,8 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from .prompts import WEBFETCH_DEFAULT_V1, PromptTemplate
+from .affordances import AffordanceShape, AffordancesPayload
+from .prompts import EXTRACT_WITH_AFFORDANCES_V1, WEBFETCH_DEFAULT_V1, PromptTemplate
 from .providers.base import Provider
 
 if TYPE_CHECKING:
@@ -71,6 +72,7 @@ class ExtractionResult:
     original_cost_usd: float | None = None
     raw: dict[str, Any] | None = field(default=None)
     next_links: list[LlmNextLink] = field(default_factory=list)
+    affordances: AffordancesPayload | None = None
 
 
 class Extractor:
@@ -118,6 +120,7 @@ class Extractor:
         request_next_links: bool = False,
         handler_candidates: list[LlmNextLink] | None = None,
         max_content_chars: int | None = None,
+        request_affordances: bool = False,
     ) -> ExtractionResult:
         """Run the template over (content, ask). Returns ExtractionResult.
 
@@ -137,6 +140,12 @@ class Extractor:
         produced; when non-empty, the prompt asks the LLM to re-rank /
         rewrite them against the question (Tier 1+2 composition).
         """
+        # When affordances are requested, swap to the affordances-aware template
+        # for THIS call only — the constructor-bound default template is
+        # unchanged. cache_prefix_template is byte-identical between the two
+        # templates, so the v0.19 cache invariant survives the swap.
+        active_template = EXTRACT_WITH_AFFORDANCES_V1 if request_affordances else self._template
+
         cap = max_content_chars if max_content_chars is not None else self._max_content_chars
         truncated, was_truncated = _truncate(content, cap)
         raw_extras: dict[str, Any] | None = {"truncated": True} if was_truncated else None
@@ -144,8 +153,10 @@ class Extractor:
         # Cache lookup uses the (truncated) content we'd actually send; that
         # way two callers with different upstream payloads but the same
         # post-cap content share a cache slot, mirroring WebFetch's behavior.
-        # next-links extraction bypasses cache (skip when request_next_links).
-        if self._cache is not None and not request_next_links:
+        # Skip cache when affordances or next-links are requested — the cached
+        # answer was produced without them; mixing would yield empty payloads
+        # on hits.
+        if self._cache is not None and not request_next_links and not request_affordances:
             from .cache import hash_text
 
             content_hash = hash_text(truncated)
@@ -154,13 +165,13 @@ class Extractor:
                 content_hash=content_hash,
                 ask_hash=ask_hash,
                 model_id=self._model.model,
-                template_name=self._template.name,
+                template_name=active_template.name,
             )
             if hit is not None:
                 return ExtractionResult(
                     answer=hit.answer,
                     model=self._model.model,
-                    template_name=self._template.name,
+                    template_name=active_template.name,
                     prompt_tokens=hit.prompt_tokens,
                     completion_tokens=hit.completion_tokens,
                     cost_usd=0.0,
@@ -170,31 +181,50 @@ class Extractor:
                     raw=raw_extras,
                 )
 
-        user = self._template.user_template.format(content=truncated, ask=ask)
+        parts = active_template.render(content=truncated, ask=ask)
         if request_next_links:
-            user = user + _next_links_suffix(handler_candidates)
+            # Append to `tail` only — keeps `cache_prefix` byte-stable so cache
+            # hits aren't lost. Tail varies per-call already; the next-links
+            # request is just another per-call variation.
+            from .prompts import PromptParts
+
+            parts = PromptParts(
+                system=parts.system,
+                cache_prefix=parts.cache_prefix,
+                tail=parts.tail + _next_links_suffix(handler_candidates),
+            )
+        user = parts.cache_prefix + parts.tail if parts.cache_prefix else parts.tail
 
         response = await self._provider.complete(
-            system=self._template.system,
+            system=active_template.system,
             user=user,
             model=self._model.model,
             max_tokens=self._max_tokens,
             thinking_disabled=True,
+            parts=parts,
         )
 
-        answer_text, parsed_next_links = _split_answer_and_next_links(response.text) if request_next_links else (response.text, [])
+        affordances_payload: AffordancesPayload | None = None
+        if request_affordances:
+            answer_text, affordances_payload = _split_answer_and_affordances(response.text)
+            parsed_next_links: list[LlmNextLink] = []
+        elif request_next_links:
+            answer_text, parsed_next_links = _split_answer_and_next_links(response.text)
+        else:
+            answer_text, parsed_next_links = response.text, []
 
         # Persist a successful answer for re-use within the TTL window.
-        # Skip cache write on next-links runs — the answer text alone (without
-        # the JSON fence) is cached so a later non-next-links call still hits.
-        if self._cache is not None and answer_text and not request_next_links:
+        # Skip cache write on next-links / affordances runs — the answer text
+        # alone (without the JSON envelope) is cached so a later plain call
+        # still hits.
+        if self._cache is not None and answer_text and not request_next_links and not request_affordances:
             from .cache import hash_text
 
             await self._cache.put(
                 content_hash=hash_text(truncated),
                 ask_hash=hash_text(ask),
                 model_id=self._model.model,
-                template_name=self._template.name,
+                template_name=active_template.name,
                 answer=answer_text,
                 prompt_tokens=response.prompt_tokens,
                 completion_tokens=response.completion_tokens,
@@ -205,7 +235,7 @@ class Extractor:
         return ExtractionResult(
             answer=answer_text,
             model=response.model,
-            template_name=self._template.name,
+            template_name=active_template.name,
             prompt_tokens=response.prompt_tokens,
             completion_tokens=response.completion_tokens,
             cost_usd=response.cost_usd,
@@ -213,6 +243,7 @@ class Extractor:
             cache_hit=False,
             raw=raw_extras,
             next_links=parsed_next_links,
+            affordances=affordances_payload,
         )
 
 
@@ -305,6 +336,102 @@ def _split_answer_and_next_links(text: str) -> tuple[str, list[LlmNextLink]]:
             continue
         out.append(LlmNextLink(anchor=anchor, url=url, reason=reason, kind=kind))
     return answer, out
+
+
+# --------------------------------------------------------------------- #
+# Affordances parsing (v0.20 — request_affordances path)
+# --------------------------------------------------------------------- #
+
+
+_OBSTACLE_KINDS = frozenset({"paywalled", "error", "empty", "blocked"})
+
+
+def _split_answer_and_affordances(text: str) -> tuple[str, AffordancesPayload | None]:
+    """Parse the V_CTX_V3 JSON envelope into (answer_text, AffordancesPayload | None).
+
+    The affordances-aware template instructs the model to return a single JSON
+    envelope with `extracted_answer` plus the affordances fields. We tolerate
+    ```json fences and raw JSON. Malformed JSON, missing required fields, or
+    structural anomalies yield (text-as-given, None) — the caller still gets
+    a usable answer; affordances are best-effort.
+
+    Obstacle-page payloads legitimately omit `content_value`, `shapes`, and
+    `follow_up_questions` (per the prompt's envelope discipline); the parser
+    accepts those omissions and emits `content_value=None` + empty tuples.
+    """
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        body = stripped[3:]
+        if body.startswith("json"):
+            body = body[4:]
+        if "```" in body:
+            body = body.split("```", 1)[0]
+        stripped = body.strip()
+    try:
+        parsed = json.loads(stripped)
+    except (ValueError, json.JSONDecodeError):
+        return text, None
+    if not isinstance(parsed, dict):
+        return text, None
+
+    extracted_answer = parsed.get("extracted_answer")
+    if not isinstance(extracted_answer, str) or not extracted_answer:
+        # No answer field — the envelope is malformed beyond recovery.
+        return text, None
+
+    page_kind = parsed.get("page_kind")
+    confidence = parsed.get("page_kind_confidence")
+    reasoning = parsed.get("reasoning", "")
+    if not isinstance(page_kind, str) or not isinstance(confidence, str):
+        return extracted_answer, None
+    if not isinstance(reasoning, str):
+        reasoning = ""
+
+    is_obstacle = page_kind in _OBSTACLE_KINDS
+    content_value_raw = parsed.get("content_value")
+    if is_obstacle:
+        content_value: str | None = None
+    elif isinstance(content_value_raw, str):
+        content_value = content_value_raw
+    else:
+        # Missing content_value on a content page is a soft failure — accept
+        # the payload with content_value=None; the pydantic mirror will surface
+        # the missing field if it's required there.
+        content_value = None
+
+    shapes_raw = parsed.get("shapes", [])
+    shapes: list[AffordanceShape] = []
+    if isinstance(shapes_raw, list) and not is_obstacle:
+        for item in shapes_raw:
+            if not isinstance(item, dict):
+                continue
+            label = item.get("label")
+            where = item.get("where", "")
+            size = item.get("size", "")
+            if not isinstance(label, str):
+                continue
+            shapes.append(
+                AffordanceShape(
+                    label=label,
+                    where=where if isinstance(where, str) else "",
+                    size=size if isinstance(size, str) else "",
+                )
+            )
+
+    follow_ups_raw = parsed.get("follow_up_questions", [])
+    follow_ups: list[str] = []
+    if isinstance(follow_ups_raw, list) and not is_obstacle:
+        follow_ups = [q for q in follow_ups_raw if isinstance(q, str) and q]
+
+    payload = AffordancesPayload(
+        page_kind=page_kind,
+        page_kind_confidence=confidence,
+        reasoning=reasoning,
+        content_value=content_value,
+        shapes=tuple(shapes),
+        follow_up_questions=tuple(follow_ups),
+    )
+    return extracted_answer, payload
 
 
 __all__ = ["ExtractionResult", "Extractor", "LlmNextLink", "ModelSpec"]

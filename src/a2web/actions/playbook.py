@@ -85,12 +85,7 @@ def decide_next(log: Sequence[Observation], *, url: str, caps: PlannerCaps) -> A
         return EscalateBrowser()
 
     # Cloudflare 403 / 429 from a tier → archive snapshot.
-    if (
-        last.kind is ObservationKind.tier_outcome
-        and last.cloudflare
-        and last.status_code in (403, 429)
-        and caps.archive_dispatches < 1
-    ):
+    if last.kind is ObservationKind.tier_outcome and last.cloudflare and last.status_code in (403, 429) and caps.archive_dispatches < 1:
         return RetryViaArchive(url=url)
 
     # A site handler confirmed a Reddit comment thread is gone → archive

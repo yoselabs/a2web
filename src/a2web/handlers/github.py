@@ -7,18 +7,27 @@ Match three URL shapes:
 
 Auth: `A2WEB_GITHUB_TOKEN` (env-only secret) for the 5000 req/hr rate
 limit. Without a token, unauthenticated calls get 60 req/hr per IP.
+
+v0.16: the REST plumbing (URL templates, base64 README unwrap, Link-header
+pagination, `X-RateLimit-Remaining: 0` detection) moves to `gidgethub`.
+gidgethub is sans-IO — its `_request` hook is bound to a curl_cffi transport
+adapter so the handler keeps inheriting our retries / breakers / proxy logic.
+Markdown rendering stays here byte-equivalent to v0.15.
 """
 
 from __future__ import annotations
 
-import base64
-import json
+import asyncio
 import re
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlparse
+
+import gidgethub
+from gidgethub.abc import GitHubAPI
 
 from ..models import Heading, NextLink, Verdict
-from ..packages.http_fetch import FetchOutcome, FetchVerdict, fetch_bytes
+from ..packages.http_fetch import FetchVerdict, fetch_bytes
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -32,19 +41,43 @@ _GH_HOSTS = frozenset({"github.com", "www.github.com"})
 # the `<owner>/<repo>` shape. GitHub forbids these as account names.
 _GH_RESERVED_PATHS = frozenset(
     {
-        "about", "account", "apps", "codespaces", "collections", "contact",
-        "customer-stories", "dashboard", "enterprise", "explore", "features",
-        "issues", "join", "login", "logout", "marketplace", "new",
-        "notifications", "orgs", "pricing", "pulls", "readme", "search",
-        "security", "settings", "sponsors", "stars", "topics", "trending",
+        "about",
+        "account",
+        "apps",
+        "codespaces",
+        "collections",
+        "contact",
+        "customer-stories",
+        "dashboard",
+        "enterprise",
+        "explore",
+        "features",
+        "issues",
+        "join",
+        "login",
+        "logout",
+        "marketplace",
+        "new",
+        "notifications",
+        "orgs",
+        "pricing",
+        "pulls",
+        "readme",
+        "search",
+        "security",
+        "settings",
+        "sponsors",
+        "stars",
+        "topics",
+        "trending",
         "watching",
     }
 )
 _REPO_PATH_RE = re.compile(r"^/([^/]+)/([^/]+?)/?$")
 _ISSUE_PATH_RE = re.compile(r"^/([^/]+)/([^/]+)/issues/(\d+)/?$")
 _PULL_PATH_RE = re.compile(r"^/([^/]+)/([^/]+)/pull/(\d+)/?$")
-_API_BASE = "https://api.github.com"
 _TIMEOUT_S = 15.0
+_REQUESTER = "a2web"
 
 
 def _classify(url: str) -> tuple[str, tuple[str, ...]] | None:
@@ -64,11 +97,71 @@ def _classify(url: str) -> tuple[str, tuple[str, ...]] | None:
         return "pull", m.groups()
     m = _REPO_PATH_RE.match(path)
     if m:
-        # Skip reserved top-level paths that aren't user/org accounts.
         if m.group(1).lower() in _GH_RESERVED_PATHS:
             return None
         return "repo", m.groups()
     return None
+
+
+# --------------------------------------------------------------------- #
+# curl_cffi transport adapter for gidgethub
+# --------------------------------------------------------------------- #
+
+
+class _TimeoutSentinel(gidgethub.GitHubException):
+    """Internal — surfaces a transport-layer timeout from `_request`."""
+
+
+class _ConnectionSentinel(gidgethub.GitHubException):
+    """Internal — surfaces a transport-layer connection failure from `_request`."""
+
+
+class _CurlCffiGitHubAPI(GitHubAPI):
+    """gidgethub.GitHubAPI bound to a2web's `fetch_bytes` transport.
+
+    Keeps gidgethub's auth header injection, rate-limit accounting, and
+    response parsing — but routes every byte through the curl_cffi tier so
+    we inherit JA3/JA4 impersonation, per-host breakers, and proxy routing.
+
+    Transport-layer failures (timeout / connection refused / DNS) are
+    surfaced as `_TimeoutSentinel` / `_ConnectionSentinel`; the handler maps
+    them to closed `Verdict` values. HTTP-layer responses (any non-zero
+    status) are forwarded verbatim — gidgethub interprets 403-with-zero-
+    remaining as `RateLimitExceeded`, 404 as `BadRequest(404)`, etc.
+    """
+
+    async def _request(
+        self,
+        method: str,
+        url: str,
+        headers: Mapping[str, str],
+        body: bytes = b"",
+    ) -> tuple[int, Mapping[str, str], bytes]:
+        del body  # the read-only GitHub surface used here is GET-only
+        if method.upper() != "GET":
+            msg = f"a2web GitHub handler is read-only; refusing {method}"
+            raise gidgethub.GitHubException(msg)
+        outcome = await fetch_bytes(url, headers=dict(headers), timeout_s=_TIMEOUT_S)
+        if outcome.verdict is FetchVerdict.timeout:
+            raise _TimeoutSentinel("transport timeout")
+        if outcome.status_code == 0:
+            raise _ConnectionSentinel("transport connection failure")
+        return outcome.status_code, outcome.headers, outcome.body
+
+    async def sleep(self, seconds: float) -> None:
+        await asyncio.sleep(seconds)
+
+
+def _make_api(settings: AppSettings) -> _CurlCffiGitHubAPI:
+    return _CurlCffiGitHubAPI(
+        _REQUESTER,
+        oauth_token=settings.github_token or None,
+    )
+
+
+# --------------------------------------------------------------------- #
+# Handler
+# --------------------------------------------------------------------- #
 
 
 class GitHubHandler:
@@ -82,246 +175,212 @@ class GitHubHandler:
 
     async def fetch(self, url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:
         del cookies  # handler manages its own transport
-
         classified = _classify(url)
         if classified is None:
             return _empty_result(url, Verdict.not_found)
         kind, parts = classified
+        gh = _make_api(state.settings)
 
-        headers = {
-            "User-Agent": state.settings.default_ua,
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
-        token = state.settings.github_token
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+        try:
+            if kind == "repo":
+                return await _fetch_repo(url, parts, gh)
+            if kind == "issue":
+                return await _fetch_issue(url, parts, gh)
+            return await _fetch_pull(url, parts, gh)
+        except _TimeoutSentinel:
+            return _empty_result(url, Verdict.timeout)
+        except _ConnectionSentinel:
+            return _empty_result(url, Verdict.connection_error)
+        except gidgethub.RateLimitExceeded:
+            return _empty_result(url, Verdict.rate_limited)
+        except gidgethub.InvalidField:
+            return _empty_result(url, Verdict.content_type_mismatch)
+        except gidgethub.BadRequest as err:
+            status = getattr(err, "status_code", 0)
+            # `status_code` may be an HTTPStatus enum; cast to int for comparisons.
+            status_int = int(status) if status else 0
+            if status_int == 404:
+                return _empty_result(url, Verdict.not_found)
+            if status_int == 429:
+                return _empty_result(url, Verdict.rate_limited)
+            return _empty_result(url, Verdict.connection_error)
+        except gidgethub.GitHubException:
+            return _empty_result(url, Verdict.connection_error)
 
-        if kind == "repo":
-            return await _fetch_repo(url, parts, headers)
-        if kind == "issue":
-            return await _fetch_issue(url, parts, headers)
-        return await _fetch_pull(url, parts, headers)
+
+# --------------------------------------------------------------------- #
+# Per-kind fetchers
+# --------------------------------------------------------------------- #
 
 
-async def _get_json(url: str, headers: dict[str, str], params: dict[str, str] | None = None) -> FetchOutcome:
-    """One shared GET helper for the GitHub sub-fetchers — encodes params,
-    calls the primitive, returns the raw FetchOutcome (caller maps to verdict)."""
-    full_url = f"{url}?{urlencode(params)}" if params else url
-    return await fetch_bytes(full_url, headers=headers, timeout_s=_TIMEOUT_S)
-
-
-async def _fetch_repo(url: str, parts: tuple[str, ...], headers: dict[str, str]) -> TierResult:
+async def _fetch_repo(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierResult:
     from ..tiers import Rendered, TierResult
 
     owner, repo = parts
-    repo_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}", headers)
-    if (verdict := _http_verdict(repo_outcome)) is not None:
-        return _empty_result(url, verdict)
-    try:
-        repo_data = json.loads(repo_outcome.body)
-    except (ValueError, json.JSONDecodeError):
-        return _empty_result(url, Verdict.content_type_mismatch)
+    repo_data = await gh.getitem("/repos/{owner}/{repo}", {"owner": owner, "repo": repo})
 
     readme_md = ""
-    readme_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/readme", headers)
-    if readme_outcome.status_code == 200:
-        try:
-            readme_payload = json.loads(readme_outcome.body)
-        except (ValueError, json.JSONDecodeError):
-            readme_payload = None
-        if isinstance(readme_payload, dict) and readme_payload.get("encoding") == "base64":
-            try:
-                readme_md = base64.b64decode(readme_payload.get("content", "")).decode("utf-8", errors="replace")
-            except (ValueError, TypeError):
-                readme_md = ""
+    try:
+        readme_payload = await gh.getitem("/repos/{owner}/{repo}/readme", {"owner": owner, "repo": repo})
+    except gidgethub.BadRequest:
+        readme_payload = None
+    if isinstance(readme_payload, dict) and readme_payload.get("encoding") == "base64":
+        import base64
 
-    # v0.7 link-discovery: top 5 open issues + top 5 open PRs as `related` candidates.
-    # Best-effort: API errors here MUST NOT fail the whole fetch.
-    next_links = await _fetch_repo_candidates(owner, repo, headers)
+        try:
+            readme_md = base64.b64decode(readme_payload.get("content", "")).decode("utf-8", errors="replace")
+        except (ValueError, TypeError):
+            readme_md = ""
+
+    next_links = await _fetch_repo_candidates(owner, repo, gh)
 
     rendered = _render_repo(repo_data, readme_md)
     return TierResult(
-        body=repo_outcome.body,
+        body=b"",
         content_type="application/json",
         status_code=200,
         final_url=url,
-        headers=repo_outcome.headers,
         pre_rendered=Rendered.from_dict(rendered),
         next_links=next_links,
         verdict=Verdict.ok,
     )
 
 
-async def _fetch_repo_candidates(
-    owner: str,
-    repo: str,
-    headers: dict[str, str],
-) -> list[NextLink]:
-    """Fetch top 5 open issues + top 5 open PRs, return as NextLink candidates.
+async def _fetch_repo_candidates(owner: str, repo: str, gh: GitHubAPI) -> list[NextLink]:
+    """Top 5 open issues + top 5 open PRs as `related` candidates.
 
-    Best-effort: errors on either call return what we have so far rather than
-    failing the parent repo fetch. GitHub's /pulls endpoint returns PRs; the
-    /issues endpoint returns BOTH issues and PRs unless filtered — we filter
-    out items with `pull_request` to keep them disjoint.
+    Best-effort: any error returns what we have so far rather than failing.
+    GitHub's /issues endpoint returns BOTH issues and PRs — filter out items
+    with `pull_request` to keep them disjoint.
     """
     out: list[NextLink] = []
-    issues_outcome = await _get_json(
-        f"{_API_BASE}/repos/{owner}/{repo}/issues",
-        headers,
-        params={"state": "open", "per_page": "10", "sort": "comments", "direction": "desc"},
-    )
-    if issues_outcome.status_code == 200:
-        try:
-            issues_data = json.loads(issues_outcome.body)
-        except (ValueError, json.JSONDecodeError):
-            issues_data = None
-        issue_count = 0
-        for it in issues_data if isinstance(issues_data, list) else []:
-            if issue_count >= 5:
-                break
-            if not isinstance(it, dict) or it.get("pull_request"):
-                continue
-            title = (it.get("title") or "").strip()
-            number = it.get("number")
-            if not title or not number:
-                continue
-            comments = it.get("comments", 0) or 0
-            out.append(
-                NextLink(
-                    anchor=title,
-                    url=f"https://github.com/{owner}/{repo}/issues/{number}",
-                    reason=f"issue · {comments} comments",
-                    kind="related",
-                ),
-            )
-            issue_count += 1
+    try:
+        issues_data = await gh.getitem(
+            "/repos/{owner}/{repo}/issues{?state,per_page,sort,direction}",
+            {"owner": owner, "repo": repo, "state": "open", "per_page": "10", "sort": "comments", "direction": "desc"},
+        )
+    except gidgethub.GitHubException:
+        issues_data = None
+    issue_count = 0
+    for it in issues_data if isinstance(issues_data, list) else []:
+        if issue_count >= 5:
+            break
+        if not isinstance(it, dict) or it.get("pull_request"):
+            continue
+        title = (it.get("title") or "").strip()
+        number = it.get("number")
+        if not title or not number:
+            continue
+        comments = it.get("comments", 0) or 0
+        out.append(
+            NextLink(
+                anchor=title,
+                url=f"https://github.com/{owner}/{repo}/issues/{number}",
+                reason=f"issue · {comments} comments",
+                kind="related",
+            ),
+        )
+        issue_count += 1
 
-    pulls_outcome = await _get_json(
-        f"{_API_BASE}/repos/{owner}/{repo}/pulls",
-        headers,
-        params={"state": "open", "per_page": "5", "sort": "popularity", "direction": "desc"},
-    )
-    if pulls_outcome.status_code == 200:
-        try:
-            pulls_data = json.loads(pulls_outcome.body)
-        except (ValueError, json.JSONDecodeError):
-            pulls_data = None
-        pr_count = 0
-        for pr in pulls_data if isinstance(pulls_data, list) else []:
-            if pr_count >= 5:
-                break
-            if not isinstance(pr, dict):
-                continue
-            title = (pr.get("title") or "").strip()
-            number = pr.get("number")
-            if not title or not number:
-                continue
-            comments = pr.get("comments", 0) or 0
-            out.append(
-                NextLink(
-                    anchor=title,
-                    url=f"https://github.com/{owner}/{repo}/pull/{number}",
-                    reason=f"PR · {comments} comments",
-                    kind="related",
-                ),
-            )
-            pr_count += 1
+    try:
+        pulls_data = await gh.getitem(
+            "/repos/{owner}/{repo}/pulls{?state,per_page,sort,direction}",
+            {"owner": owner, "repo": repo, "state": "open", "per_page": "5", "sort": "popularity", "direction": "desc"},
+        )
+    except gidgethub.GitHubException:
+        pulls_data = None
+    pr_count = 0
+    for pr in pulls_data if isinstance(pulls_data, list) else []:
+        if pr_count >= 5:
+            break
+        if not isinstance(pr, dict):
+            continue
+        title = (pr.get("title") or "").strip()
+        number = pr.get("number")
+        if not title or not number:
+            continue
+        comments = pr.get("comments", 0) or 0
+        out.append(
+            NextLink(
+                anchor=title,
+                url=f"https://github.com/{owner}/{repo}/pull/{number}",
+                reason=f"PR · {comments} comments",
+                kind="related",
+            ),
+        )
+        pr_count += 1
 
     return out
 
 
-async def _fetch_issue(url: str, parts: tuple[str, ...], headers: dict[str, str]) -> TierResult:
+async def _fetch_issue(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierResult:
     from ..tiers import Rendered, TierResult
 
     owner, repo, number = parts
-    issue_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/issues/{number}", headers)
-    if (verdict := _http_verdict(issue_outcome)) is not None:
-        return _empty_result(url, verdict)
+    issue_data = await gh.getitem(
+        "/repos/{owner}/{repo}/issues/{number}",
+        {"owner": owner, "repo": repo, "number": number},
+    )
     try:
-        issue_data = json.loads(issue_outcome.body)
-    except (ValueError, json.JSONDecodeError):
-        return _empty_result(url, Verdict.content_type_mismatch)
-
-    comments: list[Any] = []
-    comments_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/issues/{number}/comments", headers)
-    if comments_outcome.status_code == 200:
-        try:
-            loaded = json.loads(comments_outcome.body)
-        except (ValueError, json.JSONDecodeError):
-            loaded = None
-        if isinstance(loaded, list):
-            comments = loaded
+        loaded = await gh.getitem(
+            "/repos/{owner}/{repo}/issues/{number}/comments",
+            {"owner": owner, "repo": repo, "number": number},
+        )
+    except gidgethub.GitHubException:
+        loaded = None
+    comments: list[Any] = loaded if isinstance(loaded, list) else []
 
     rendered = _render_issue(issue_data, comments, kind="Issue")
     return TierResult(
-        body=issue_outcome.body,
+        body=b"",
         content_type="application/json",
         status_code=200,
         final_url=url,
-        headers=issue_outcome.headers,
         pre_rendered=Rendered.from_dict(rendered),
         verdict=Verdict.ok,
     )
 
 
-async def _fetch_pull(url: str, parts: tuple[str, ...], headers: dict[str, str]) -> TierResult:
+async def _fetch_pull(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierResult:
     from ..tiers import Rendered, TierResult
 
     owner, repo, number = parts
-    pr_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/pulls/{number}", headers)
-    if (verdict := _http_verdict(pr_outcome)) is not None:
-        return _empty_result(url, verdict)
+    pr_data = await gh.getitem(
+        "/repos/{owner}/{repo}/pulls/{number}",
+        {"owner": owner, "repo": repo, "number": number},
+    )
     try:
-        pr_data = json.loads(pr_outcome.body)
-    except (ValueError, json.JSONDecodeError):
-        return _empty_result(url, Verdict.content_type_mismatch)
+        loaded = await gh.getitem(
+            "/repos/{owner}/{repo}/pulls/{number}/reviews",
+            {"owner": owner, "repo": repo, "number": number},
+        )
+    except gidgethub.GitHubException:
+        loaded = None
+    reviews: list[Any] = loaded if isinstance(loaded, list) else []
 
-    reviews: list[Any] = []
-    reviews_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/pulls/{number}/reviews", headers)
-    if reviews_outcome.status_code == 200:
-        try:
-            loaded = json.loads(reviews_outcome.body)
-        except (ValueError, json.JSONDecodeError):
-            loaded = None
-        if isinstance(loaded, list):
-            reviews = loaded
-
-    comments: list[Any] = []
-    comments_outcome = await _get_json(f"{_API_BASE}/repos/{owner}/{repo}/issues/{number}/comments", headers)
-    if comments_outcome.status_code == 200:
-        try:
-            loaded = json.loads(comments_outcome.body)
-        except (ValueError, json.JSONDecodeError):
-            loaded = None
-        if isinstance(loaded, list):
-            comments = loaded
+    try:
+        loaded = await gh.getitem(
+            "/repos/{owner}/{repo}/issues/{number}/comments",
+            {"owner": owner, "repo": repo, "number": number},
+        )
+    except gidgethub.GitHubException:
+        loaded = None
+    comments: list[Any] = loaded if isinstance(loaded, list) else []
 
     rendered = _render_pull(pr_data, reviews, comments)
     return TierResult(
-        body=pr_outcome.body,
+        body=b"",
         content_type="application/json",
         status_code=200,
         final_url=url,
-        headers=pr_outcome.headers,
         pre_rendered=Rendered.from_dict(rendered),
         verdict=Verdict.ok,
     )
 
 
-def _http_verdict(outcome: FetchOutcome) -> Verdict | None:
-    """Map a non-success `FetchOutcome` to a closed verdict; return None on 200."""
-    if outcome.verdict is FetchVerdict.timeout:
-        return Verdict.timeout
-    if outcome.status_code == 200 and outcome.verdict is FetchVerdict.ok:
-        return None
-    if outcome.status_code == 404 or outcome.verdict is FetchVerdict.not_found:
-        return Verdict.not_found
-    if outcome.status_code == 429 or outcome.verdict is FetchVerdict.rate_limited:
-        return Verdict.rate_limited
-    if outcome.status_code == 403 and outcome.headers.get("x-ratelimit-remaining") == "0":
-        return Verdict.rate_limited
-    return Verdict.connection_error
+# --------------------------------------------------------------------- #
+# Markdown rendering — preserved byte-equivalent from v0.15
+# --------------------------------------------------------------------- #
 
 
 def _render_repo(data: dict, readme_md: str) -> dict[str, object]:

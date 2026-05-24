@@ -1,6 +1,6 @@
 [project]
 name = "a2web"
-version = "0.15.0"
+version = "0.20.0"
 description = "Agent-to-Web — adaptive web fetching MCP server and CLI for AI agents."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,6 +23,11 @@ dependencies = [
     # transitively by curl_cffi; promoted to direct in v0.8 so the
     # dependency is explicit at the boundary where we use it.
     "cryptography>=43,<46",
+    # v0.16: browser-cookie3 replaces hand-rolled Chrome/Firefox readers.
+    # Cross-platform (macOS/Linux/Windows) + multi-browser (Chrome, Chromium,
+    # Brave, Edge, Firefox, Safari, Vivaldi, Opera, Opera GX). Pulls pycryptodome
+    # transitively — coexists with cryptography (separate import namespaces).
+    "browser-cookie3>=0.20,<1",
     "trafilatura>=1.12,<2",
     "selectolax>=0.3,<1",
     # async + observability
@@ -63,6 +68,7 @@ dependencies = [
     # `playwright` is a transitive dep of camoufox (camoufox is a stealth-patched
     # Firefox driven through Playwright's API) — not pinned here separately.
     "camoufox>=0.4,<1",
+    "gidgethub>=5.4,<6",
 ]
 
 [project.optional-dependencies]

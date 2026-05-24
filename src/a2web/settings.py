@@ -167,11 +167,22 @@ class AppSettings(BaseSettings):
     # (see docs/history/A2KIT_FEEDBACK_v0.39.md).
     ask_only: bool = False
 
-    # v0.8: opt-in browser cookie source. Default `none` keeps the subsystem
+    # v0.16: opt-in browser cookie source. Default `none` keeps the subsystem
     # inert — no resource construction, no DB access, no Keychain prompts.
-    # `chrome` is macOS-only in v0.8; Linux/Windows deferred. `firefox`
-    # reads `cookies.sqlite` directly (plaintext, no Keychain).
-    cookie_source: Literal["none", "chrome", "firefox"] = "none"
+    # Backed by browser-cookie3: cross-platform (macOS / Linux / Windows) and
+    # multi-browser. The Keychain prompt fires only on `cookies_refresh`.
+    cookie_source: Literal[
+        "none",
+        "chrome",
+        "chromium",
+        "brave",
+        "edge",
+        "firefox",
+        "safari",
+        "vivaldi",
+        "opera",
+        "opera_gx",
+    ] = "none"
     cookie_profile: str = "Default"
     cookie_stale_after_hours: int = 24
 

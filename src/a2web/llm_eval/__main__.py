@@ -154,10 +154,7 @@ async def _amain(argv: list[str]) -> int:
         output_dir=output_dir,
     )
 
-    print(
-        f"Running benchmark: {len(corpus)} URLs x {len(systems)} systems "
-        f"(provider={provider_id}) → {output_dir}"
-    )
+    print(f"Running benchmark: {len(corpus)} URLs x {len(systems)} systems (provider={provider_id}) → {output_dir}")
     report = await suite.run()
     write_all(report)
     print(json.dumps(stats_dict(report), indent=2, default=str))

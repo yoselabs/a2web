@@ -30,9 +30,7 @@ _FLAT_LISTING = (
         for x in ("copilot", "actions", "codespaces", "security", "issues", "sponsors")
     )
     + "</ul>"
-    '<div class="Box">'
-    + "".join(_repo_card(i) for i in range(8))
-    + "</div>"
+    '<div class="Box">' + "".join(_repo_card(i) for i in range(8)) + "</div>"
     "</body></html>"
 )
 
@@ -72,9 +70,7 @@ _THREAD = (
 _REFERENCE_DOC = (
     "<html><body><article>"
     + "".join(
-        f"<section><h2>Section {i}</h2>"
-        f'<p>Reference text for section {i} with a <a href="/api/{i}">symbol link</a> here.</p>'
-        "</section>"
+        f'<section><h2>Section {i}</h2><p>Reference text for section {i} with a <a href="/api/{i}">symbol link</a> here.</p></section>'
         for i in range(6)
     )
     + "</article></body></html>"

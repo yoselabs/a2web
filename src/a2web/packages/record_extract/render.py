@@ -70,9 +70,7 @@ def render_record(
     heading_href = heading_link[1] if heading_link is not None else None
     remaining = [(a, h) for (a, h) in links if h != heading_href]
     if remaining:
-        rendered = " · ".join(
-            f"[{anchor or href}]({href})" for anchor, href in remaining[:_MAX_LINKS_PER_RECORD]
-        )
+        rendered = " · ".join(f"[{anchor or href}]({href})" for anchor, href in remaining[:_MAX_LINKS_PER_RECORD])
         lines.append(f"{indent}  {rendered}")
 
     return "\n".join(lines)

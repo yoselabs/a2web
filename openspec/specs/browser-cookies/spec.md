@@ -5,7 +5,7 @@ TBD - created by archiving change add-browser-cookie-jar. Update Purpose after a
 ## Requirements
 ### Requirement: Opt-in cookie source via settings
 
-The system SHALL expose three new `AppSettings` fields: `cookie_source: Literal["none","chrome","firefox"]` (default `"none"`), `cookie_profile: str` (default `"Default"`), `cookie_stale_after_hours: int` (default `24`). When `cookie_source == "none"` the cookie subsystem SHALL be inert — no resource construction, no DB access, no observable behavior change vs. the prior release.
+The system SHALL expose three `AppSettings` fields: `cookie_source: Literal["none","chrome","chromium","brave","edge","firefox","safari","vivaldi","opera","opera_gx"]` (default `"none"`), `cookie_profile: str` (default `"Default"`), `cookie_stale_after_hours: int` (default `24`). When `cookie_source == "none"` the cookie subsystem SHALL be inert — no resource construction, no DB access, no observable behavior change vs. the prior release. The widened Literal SHALL accept the same `"chrome"` and `"firefox"` values as the v0.8 release with identical observable behavior.
 
 #### Scenario: Default settings are inert
 
@@ -17,6 +17,11 @@ The system SHALL expose three new `AppSettings` fields: `cookie_source: Literal[
 - **WHEN** `A2WEB_COOKIE_SOURCE=chrome` is set in the environment
 - **THEN** `AppSettings().cookie_source == "chrome"`
 
+#### Scenario: Env var enables Brave source
+
+- **WHEN** `A2WEB_COOKIE_SOURCE=brave` is set in the environment
+- **THEN** `AppSettings().cookie_source == "brave"`
+
 #### Scenario: YAML overrides default profile
 
 - **WHEN** the YAML config sets `cookie_profile: "Work"` and env vars are unset
@@ -26,6 +31,11 @@ The system SHALL expose three new `AppSettings` fields: `cookie_source: Literal[
 
 - **WHEN** `cookie_source == "none"` and a fetch executes
 - **THEN** the fetch SHALL NOT resolve `CookieJarResource`, SHALL NOT touch `a2web_cookies`/`cookies_meta`, SHALL NOT emit cookie-related LDD events, and SHALL NOT append a `cookies_stale` operator hint
+
+#### Scenario: Unknown cookie_source value fails validation
+
+- **WHEN** `A2WEB_COOKIE_SOURCE=safari_beta` (not in the Literal) is set
+- **THEN** `AppSettings()` raises `pydantic.ValidationError` at construction time
 
 ### Requirement: CookieJarResource mirrors a single browser profile into SqliteResource
 
@@ -146,43 +156,6 @@ The system SHALL place all browser-specific cookie reading and decryption under 
 - **WHEN** static analysis walks `packages.cookie_store.models`
 - **THEN** `CookieRow` is a `@dataclass(slots=True)` with explicit fields (host_key, name, value, path, expires_utc, is_secure, is_httponly, samesite), NOT a `dict[str, Any]` bag
 
-### Requirement: Chrome reader on macOS decrypts via security CLI + AES-GCM
-
-The Chrome reader SHALL, on macOS, locate the Chrome cookies sqlite at `~/Library/Application Support/Google/Chrome/<profile>/Cookies`, copy it to a temporary directory to avoid lock contention with a running Chrome, fetch the AES key by invoking `security find-generic-password -wa "Chrome Safe Storage"` (subprocess), derive the AES-256 key via PBKDF2-HMAC-SHA1 with salt `"saltysalt"` and 1003 iterations, and decrypt `encrypted_value` fields prefixed with the `v10`/`v11` envelope using AES-GCM via `cryptography.hazmat.primitives.ciphers.aead.AESGCM`. Plaintext `value` (legacy unencrypted rows) SHALL be returned as-is when `encrypted_value` is empty.
-
-The reader SHALL raise a typed exception (`ChromeCookieAccessError`) when the sqlite file is missing, when the `security` invocation fails (user denied prompt, keychain locked, item not found), or when decryption fails. The exception message SHALL NOT contain any decrypted cookie value or the AES key.
-
-#### Scenario: Missing profile raises typed error
-
-- **WHEN** the Chrome reader is invoked with a profile name whose directory does not exist
-- **THEN** the reader raises `ChromeCookieAccessError` whose message names the missing path and contains no secret material
-
-#### Scenario: Keychain prompt denied raises typed error
-
-- **WHEN** the `security` subprocess exits non-zero (e.g., user denied the Keychain prompt)
-- **THEN** the reader raises `ChromeCookieAccessError` and does NOT raise a bare `CalledProcessError`
-
-#### Scenario: Plaintext value is returned unchanged
-
-- **WHEN** a cookie row has `encrypted_value = b""` and `value = "abc"`
-- **THEN** the returned `CookieRow.value == "abc"`
-
-### Requirement: Firefox reader reads plaintext cookies sqlite
-
-The Firefox reader SHALL locate `cookies.sqlite` under the configured profile under `~/Library/Application Support/Firefox/Profiles/<profile>/`, copy it to a temporary directory, and read rows from the `moz_cookies` table directly. Values are stored in plaintext; no decryption SHALL be attempted. The reader SHALL normalize columns into the same `CookieRow` shape as the Chrome reader.
-
-The reader SHALL accept the profile name as either a full directory name (e.g. `xxxxxxxx.default-release`) or a release-channel alias (`default-release`, `default`); when an alias is given the reader SHALL pick the lexically-first matching directory.
-
-#### Scenario: Default-release alias resolves to directory
-
-- **WHEN** the profile is `"default-release"` and `~/Library/Application Support/Firefox/Profiles/abc123.default-release/cookies.sqlite` exists
-- **THEN** the reader resolves to that directory
-
-#### Scenario: Cookie row shape matches Chrome
-
-- **WHEN** Firefox returns a cookie with name `sid`, value `xyz`, host `.example.com`, path `/`, expiry 0, isSecure 1, isHttpOnly 0, sameSite 1
-- **THEN** the returned `CookieRow` has the same field values as the equivalent Chrome row would produce
-
 ### Requirement: Cookies wire into raw and browser tiers; jina skips
 
 The system SHALL thread the per-fetch cookie set into the raw tier as a `cookies: dict[str, str]` kwarg passed to `curl_cffi.requests.get` and into the browser tier via `context.add_cookies([...])` after Playwright shape conversion (`is_httponly` → `httpOnly`, `samesite` → `sameSite` with case normalization). The jina tier SHALL NOT receive cookies — its remote reader (`r.jina.ai`) would leak the session to a third party.
@@ -239,4 +212,56 @@ The system SHALL NOT emit decrypted cookie values into any LDD event payload or 
 
 - **WHEN** a fetch with cookies binds context for structlog around the cookie attach step
 - **THEN** the captured log record's bound context contains no cookie value
+
+### Requirement: Browser cookies are extracted via browser-cookie3 adapter
+
+The system SHALL extract browser cookies through a thin adapter (`src/a2web/packages/cookie_store/store.py`) that delegates to `browser_cookie3.<source>(cookie_file=..., domain_name=...)` based on `settings.cookie_source`. The adapter SHALL convert the returned `http.cookiejar.CookieJar` into `list[Cookie]` using the existing `Cookie` boundary dataclass in `packages/cookie_store/models.py`.
+
+The adapter SHALL raise a single typed exception (`CookieAccessError`) when the browser profile is missing, when the OS-keystore unlock fails (user denied prompt, keychain locked, item not found), or when `browser-cookie3` raises any underlying error. The exception message SHALL NOT contain any decrypted cookie value or any key material; the original library exception SHALL be attached via `__cause__` for debugging.
+
+The adapter SHALL be a domain-pure module — zero imports from `a2web.<domain>`. The `tests/test_packages_independence.py` invariant continues to enforce this.
+
+#### Scenario: Chrome source on macOS produces cookies
+
+- **WHEN** `cookie_source = "chrome"` and `browser_cookie3.chrome()` returns a `CookieJar` with one cookie
+- **THEN** the adapter returns a list of one `Cookie` with the same name/value/host/path/expiry/secure/httponly/samesite
+
+#### Scenario: Brave source on Linux produces cookies
+
+- **WHEN** `cookie_source = "brave"` and `browser_cookie3.brave()` returns a `CookieJar` with cookies
+- **THEN** the adapter returns the equivalent `list[Cookie]`
+
+#### Scenario: Missing profile raises typed error
+
+- **WHEN** the adapter is invoked against a profile whose path browser-cookie3 cannot locate
+- **THEN** the adapter raises `CookieAccessError` whose message names the source and contains no secret material; `__cause__` is set to the underlying library exception
+
+#### Scenario: Keychain prompt denied raises typed error
+
+- **WHEN** `browser_cookie3.chrome()` raises because the user denied the macOS Keychain prompt
+- **THEN** the adapter raises `CookieAccessError` and does NOT propagate the bare library exception
+
+#### Scenario: Adapter does not import a2web domain modules
+
+- **WHEN** `python -c "import ast; from pathlib import Path; ..."` walks `src/a2web/packages/cookie_store/` for AST `Import` / `ImportFrom` nodes
+- **THEN** zero imports of any `a2web.<domain>` module are found (matches `tests/test_packages_independence.py`)
+
+### Requirement: Keychain prompt fires only on cookies_refresh
+
+The system SHALL invoke `browser-cookie3` exclusively from within the `cookies_refresh` tool's code path. `CookieJarResource.__aenter__` SHALL NOT call into the adapter; `get_for_host()` SHALL read only from the `a2web_cookies` SQLite mirror; no background timer / startup hook SHALL trigger a refresh.
+
+#### Scenario: Resource enter does not trigger browser-cookie3
+
+- **WHEN** `CookieJarResource.__aenter__()` runs (e.g., when the resource first resolves during a fetch)
+- **THEN** `browser_cookie3.<source>()` is NOT called; no Keychain / gnome-keyring / DPAPI prompt fires
+
+#### Scenario: Fetch path reads only from mirror
+
+- **WHEN** a fetch resolves `Lazy[CookieJarResource]` and calls `get_for_host("reddit.com", ...)`
+- **THEN** the data source is the `a2web_cookies` table; `browser_cookie3` is not invoked
+
+#### Scenario: cookies_refresh is the only invocation site
+
+- **WHEN** `grep -rn "browser_cookie3" src/a2web/` runs over the source tree
+- **THEN** all matches are inside the adapter (`packages/cookie_store/store.py`) and the adapter is only called from the `cookies_refresh` code path in `cookie_jar.py::refresh()`
 

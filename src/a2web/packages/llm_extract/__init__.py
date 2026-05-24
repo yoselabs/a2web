@@ -13,22 +13,30 @@ SqliteResource cache plumbing) lives at the a2web seam in
 
 from __future__ import annotations
 
+from .affordances import AffordanceShape, AffordancesPayload
 from .cache import ExtractionCache, ExtractionCacheRow, hash_text
 from .errors import LLMNotAvailable
 from .extractor import ExtractionResult, Extractor, LlmNextLink, ModelSpec
 from .judge import Judge, JudgeParseError, JudgeVerdict
 from .prompts import (
+    EXTRACT_CACHEABLE_V1,
+    EXTRACT_WITH_AFFORDANCES_V1,
     JUDGE_V1,
     TERSE_V1,
     WEBFETCH_DEFAULT_V1,
+    PromptParts,
     PromptTemplate,
 )
 from .providers import Provider, ProviderResponse
 
 __all__ = [
+    "EXTRACT_CACHEABLE_V1",
+    "EXTRACT_WITH_AFFORDANCES_V1",
     "JUDGE_V1",
     "TERSE_V1",
     "WEBFETCH_DEFAULT_V1",
+    "AffordanceShape",
+    "AffordancesPayload",
     "ExtractionCache",
     "ExtractionCacheRow",
     "ExtractionResult",
@@ -39,6 +47,7 @@ __all__ = [
     "LLMNotAvailable",
     "LlmNextLink",
     "ModelSpec",
+    "PromptParts",
     "PromptTemplate",
     "Provider",
     "ProviderResponse",

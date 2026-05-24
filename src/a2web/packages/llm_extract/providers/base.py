@@ -10,7 +10,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from ..prompts import PromptParts
 
 
 def extract_token_counts(usage: Mapping[str, Any] | Any) -> tuple[int, int, int, int]:
@@ -76,6 +79,7 @@ class Provider(Protocol):
         max_tokens: int = 1024,
         temperature: float = 0.0,
         thinking_disabled: bool = True,
+        parts: PromptParts | None = None,
     ) -> ProviderResponse:
         """Submit one user message + (possibly empty) system content.
 
@@ -86,6 +90,13 @@ class Provider(Protocol):
         `thinking_disabled=True` SHALL disable extended thinking on
         providers that support it. The Extractor always sets this true; the
         eval matrix may flip it for "with thinking" baseline comparisons.
+
+        `parts` (v0.19): when provided AND `parts.cache_prefix != ""`,
+        providers SHOULD place a cache breakpoint between `parts.cache_prefix`
+        and `parts.tail`. Providers without a marker API (claude-agent-sdk)
+        SHALL fall back to byte-equivalent concatenation. When `parts` is
+        `None` or its `cache_prefix` is empty, providers SHALL use the
+        legacy flat-string path.
 
         Implementations MUST NOT raise on routine API errors (rate limits,
         transient network errors) — translate to a `ProviderResponse` with

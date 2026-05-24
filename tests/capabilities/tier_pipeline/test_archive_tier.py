@@ -35,9 +35,7 @@ def _ok(body: bytes, *, status: int = 200, content_type: str = "text/html") -> F
 
 
 def _fail(verdict: FetchVerdict = FetchVerdict.connection_error, status: int = 0) -> FetchOutcome:
-    return FetchOutcome(
-        body=b"", content_type="", status_code=status, final_url="", headers={}, verdict=verdict
-    )
+    return FetchOutcome(body=b"", content_type="", status_code=status, final_url="", headers={}, verdict=verdict)
 
 
 def _patch_fetch(monkeypatch: pytest.MonkeyPatch, router: Callable[[str], FetchOutcome]) -> None:

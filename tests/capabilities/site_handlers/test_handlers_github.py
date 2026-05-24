@@ -152,7 +152,9 @@ async def test_github_token_sent_when_set(monkeypatch: pytest.MonkeyPatch) -> No
     patch_curl_session(monkeypatch, _fake_get)
 
     await GitHubHandler().fetch("https://github.com/x/y", state=_state(token="ghp_test"))
-    assert any(h.get("authorization", "").lower() == "bearer ghp_test" for h in captured_headers)
+    # gidgethub uses `token <pat>` format (the GitHub-canonical scheme for PATs);
+    # v0.15 sent `Bearer <pat>` directly. Both are accepted by api.github.com.
+    assert any(h.get("authorization", "").lower() == "token ghp_test" for h in captured_headers)
 
 
 @pytest.mark.asyncio
@@ -183,7 +185,15 @@ async def test_github_429_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_github_403_with_zero_remaining_is_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
-        return FakeCurlResp(403, text="rate limited", headers={"x-ratelimit-remaining": "0"})
+        return FakeCurlResp(
+            403,
+            text="rate limited",
+            headers={
+                "x-ratelimit-limit": "60",
+                "x-ratelimit-remaining": "0",
+                "x-ratelimit-reset": "0",
+            },
+        )
 
     patch_curl_session(monkeypatch, _fake_get)
 

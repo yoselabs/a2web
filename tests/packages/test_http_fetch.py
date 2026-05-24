@@ -115,9 +115,7 @@ class _FakeSession:
         return self._payload
 
 
-def _patch_session(
-    monkeypatch: pytest.MonkeyPatch, payload: _FakeResponse | BaseException
-) -> _FakeSession:
+def _patch_session(monkeypatch: pytest.MonkeyPatch, payload: _FakeResponse | BaseException) -> _FakeSession:
     fake = _FakeSession(payload)
 
     def _factory(**kw: Any) -> _FakeSession:

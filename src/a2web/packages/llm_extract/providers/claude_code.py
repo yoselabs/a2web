@@ -18,10 +18,13 @@ or 0.0 if the field is absent (subscription / not-billable session).
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..errors import LLMNotAvailable
 from .base import ProviderResponse, extract_token_counts
+
+if TYPE_CHECKING:
+    from ..prompts import PromptParts
 
 
 class ClaudeCodeProvider:
@@ -49,6 +52,7 @@ class ClaudeCodeProvider:
         max_tokens: int = 1024,
         temperature: float = 0.0,
         thinking_disabled: bool = True,
+        parts: PromptParts | None = None,
     ) -> ProviderResponse:
         from claude_agent_sdk import (
             AssistantMessage,
@@ -61,21 +65,42 @@ class ClaudeCodeProvider:
             query,
         )
 
-        if isinstance(system, tuple):
-            system_str = "\n\n".join(system) if system else ""
+        # v0.19: `claude-agent-sdk` exposes no `cache_control` API (probed
+        # 2026-05-23 against SDK ≥0.1.80 — zero references in source). The
+        # CLI binary applies caching internally given a byte-stable prefix.
+        # When `parts` is provided we unpack to (system, prefix+tail) and
+        # rely on `EXTRACT_CACHEABLE_V1` keeping the prefix stable across
+        # different `ask` values.
+        if parts is not None and parts.cache_prefix != "":
+            system_str = parts.system
+            prompt_str = parts.cache_prefix + parts.tail
         else:
-            system_str = system
+            prompt_str = user
+            if isinstance(system, tuple):
+                system_str = "\n\n".join(system) if system else ""
+            else:
+                system_str = system
 
         # NOTE: claude-agent-sdk treats `system_prompt=None` as "load the
         # claude_code preset" (~23k extra prompt tokens per call — verified
         # via probe_sdk.py, 2026-05-19). Pass an explicit string (even "")
         # to opt out of the preset and drop ~12k tokens / ~43% per fetch.
+        #
+        # v0.20 (2026-05-24): three further opt-outs strip another ~22-27k
+        # tokens per call (CLAUDE.md auto-discovery, skill registry, slash
+        # command pre-registration). Eval at
+        # `eval/findings_2026-05-24-claude-code-cli-flag-sweep.md` — net
+        # session cost ~41% lower. `--bare` would do more but kills OAuth, so we
+        # use the narrow opt-outs that keep keychain-based auth working.
         options_kwargs: dict[str, Any] = {
             "model": model,
             "tools": [],  # pure completion — no tool use
             "max_turns": 1,
             "max_thinking_tokens": 0 if thinking_disabled else None,
             "system_prompt": system_str,  # always — None silently activates claude_code preset
+            "setting_sources": [],  # skip user/project/local CLAUDE.md discovery
+            "skills": [],  # don't load skill registry
+            "extra_args": {"disable-slash-commands": None},
         }
         if thinking_disabled:
             options_kwargs["thinking"] = ThinkingConfigDisabled(type="disabled")
@@ -88,7 +113,7 @@ class ClaudeCodeProvider:
 
         t0 = time.perf_counter()
         try:
-            async for msg in query(prompt=user, options=options):
+            async for msg in query(prompt=prompt_str, options=options):
                 if isinstance(msg, AssistantMessage):
                     if msg.model:
                         resolved_model = msg.model
@@ -138,6 +163,7 @@ class ClaudeCodeProvider:
                     "is_error": result_msg.is_error,
                     "stop_reason": result_msg.stop_reason,
                     "session_id": result_msg.session_id,
+                    "usage": result_msg.usage,
                 }
                 if result_msg
                 else None

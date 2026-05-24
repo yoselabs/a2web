@@ -1,0 +1,653 @@
+{
+  "per_url": [
+    {
+      "slug": "tiny-arxiv",
+      "declared_kind": "article-short",
+      "url": "https://arxiv.org/abs/2402.17753",
+      "fetch_status": "ok",
+      "chars": 1853,
+      "v5": {
+        "cost": 0.013719899999999998,
+        "ms": 15725,
+        "page_kind": "reference",
+        "confidence": "medium",
+        "content_value": "high",
+        "reasoning": "ArXiv abstract with clear academic structure (authors, abstract, categories), but sits in Cluster A (article-short/reference/pdf-stub) where pdf-stub is also plausible since it's a metadata stub linking to a full paper; confidence is medium because the distinction between reference and pdf-stub hinges on whether this counts as a usable landing page or a pointer-to-content.",
+        "shape_labels": [
+          "citations",
+          "key-value"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "tiny-gh-gist",
+      "declared_kind": "code-snippet",
+      "url": "https://gist.github.com/jboner/2841832",
+      "fetch_status": "ok",
+      "chars": 22132,
+      "v5": {
+        "cost": 0.02190815,
+        "ms": 13590,
+        "page_kind": "thread",
+        "confidence": "high",
+        "content_value": "medium",
+        "reasoning": "GitHub Gist comments section with 30 discussion threads about latency numbers; substantial but noisy (many 'error while loading' placeholders and truncated comments reduce utility).",
+        "shape_labels": [
+          "comments",
+          "citations",
+          "key-value"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "tiny-status-page",
+      "declared_kind": "status",
+      "url": "https://status.openai.com/",
+      "fetch_status": "ok",
+      "chars": 758,
+      "v5": {
+        "cost": 0.011992899999999999,
+        "ms": 16209,
+        "page_kind": "product-page",
+        "confidence": "medium",
+        "content_value": "low",
+        "reasoning": "OpenAI's status dashboard presents uptime metrics and system health, which is product-page content (service status reporting), but the extracted chunk is mostly chrome and aggregate summaries with minimal substantive body; cluster C (status/product-page) makes confidence medium rather than high.",
+        "shape_labels": [
+          "key-value",
+          "timeline"
+        ],
+        "n_follow_ups": 3,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "huge-wikipedia",
+      "declared_kind": "encyclopedia",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "fetch_status": "ok",
+      "chars": 42295,
+      "v5": {
+        "cost": 0.02071215,
+        "ms": 14004,
+        "page_kind": "reference",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "Wikipedia article on Rust programming language with comprehensive historical, technical, and adoption context; substantial well-structured body (42K+ chars) covering language origins, features, syntax examples, and ecosystem development.",
+        "shape_labels": [
+          "infobox",
+          "code-examples",
+          "timeline",
+          "citations"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "huge-mdn-array",
+      "declared_kind": "api-reference",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+      "fetch_status": "ok",
+      "chars": 40505,
+      "v5": {
+        "cost": 0.01872925,
+        "ms": 22197,
+        "page_kind": "api-reference",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "MDN Array reference page with canonical API documentation, structured sections on array behavior and methods, substantial code examples, and methodical coverage of the JS Array object\u2014unambiguous reference material at >40K chars.",
+        "shape_labels": [
+          "description-blocks",
+          "code",
+          "table",
+          "list"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "huge-changelog",
+      "declared_kind": "changelog",
+      "url": "https://github.com/pydantic/pydantic/releases",
+      "fetch_status": "ok",
+      "chars": 10503,
+      "v5": {
+        "cost": 0.02139615,
+        "ms": 12239,
+        "page_kind": "changelog",
+        "confidence": "medium",
+        "content_value": "medium",
+        "reasoning": "GitHub releases page for Pydantic library showing version history with fixes and features; classified as changelog rather than listing because each entry describes release-specific changes, though the distinction is defensible given the structured record format.",
+        "shape_labels": [
+          "timeline",
+          "key-value"
+        ],
+        "n_follow_ups": 4,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "listing-hn",
+      "declared_kind": "listing",
+      "url": "https://news.ycombinator.com/",
+      "fetch_status": "ok",
+      "chars": 6694,
+      "v5": {
+        "cost": 0.017657399999999997,
+        "ms": 12753,
+        "page_kind": "listing",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "Hacker News front page is a canonical social news aggregator with chronologically sorted, votable story listings; no ambiguity with other kinds.",
+        "shape_labels": [
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "listing-lobste",
+      "declared_kind": "listing",
+      "url": "https://lobste.rs/active",
+      "fetch_status": "ok",
+      "chars": 20744,
+      "v5": {
+        "cost": 0.022059750000000003,
+        "ms": 7356,
+        "page_kind": "listing",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "Lobsters is a curated link-aggregation site; this is its active feed showing 25 recent submissions with metadata (tags, submitter, timestamp, comment count). Clear structured listing with no ambiguity.",
+        "shape_labels": [
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 4,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "listing-gh-trending",
+      "declared_kind": "listing",
+      "url": "https://github.com/trending/python?since=daily",
+      "fetch_status": "ok",
+      "chars": 11714,
+      "v5": {
+        "cost": 0.0215812,
+        "ms": 13361,
+        "page_kind": "listing",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "Clear GitHub trending page with 15 repository entries, each with title, description, stars, forks, and contributor links\u2014unambiguous listing structure with substantial on-topic content.",
+        "shape_labels": [
+          "list",
+          "key-value",
+          "citations"
+        ],
+        "n_follow_ups": 3,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "listing-pypi",
+      "declared_kind": "package-page",
+      "url": "https://pypi.org/project/httpx/",
+      "fetch_status": "ok",
+      "chars": 6711,
+      "v5": {
+        "cost": 0.019286150000000002,
+        "ms": 13619,
+        "page_kind": "package-page",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "PyPI package page with clear project metadata, release history, download links, and feature overview; unambiguous structure and rich extractable data.",
+        "shape_labels": [
+          "project metadata",
+          "key-value",
+          "timeline",
+          "table",
+          "list"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "comments-hn-item",
+      "declared_kind": "threaded",
+      "url": "https://news.ycombinator.com/item?id=39745700",
+      "fetch_status": "ok",
+      "chars": 15211,
+      "v5": {
+        "cost": 0.02099515,
+        "ms": 14240,
+        "page_kind": "thread",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "Hacker News discussion thread (item ID 39745700) with substantial original post about Parakeet LLM project + multi-level nested comments; clear threaded structure with depth and on-topic technical content throughout.",
+        "shape_labels": [
+          "code",
+          "code",
+          "key-value",
+          "comments"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "comments-lobste",
+      "declared_kind": "threaded",
+      "url": "https://lobste.rs/s/2hu3pq/",
+      "fetch_status": "ok",
+      "chars": 880,
+      "v5": {
+        "cost": 0.01168765,
+        "ms": 11814,
+        "page_kind": "error",
+        "confidence": "high",
+        "content_value": null,
+        "reasoning": "HTTP 404 response with explicit 'Resource Not Found' heading and messaging stating the story has been deleted; no ambiguity.",
+        "shape_labels": [],
+        "n_follow_ups": 0,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "docs-fastapi",
+      "declared_kind": "tutorial",
+      "url": "https://fastapi.tiangolo.com/tutorial/first-steps/",
+      "fetch_status": "ok",
+      "chars": 12570,
+      "v5": {
+        "cost": 0.02073315,
+        "ms": 12443,
+        "page_kind": "tutorial",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "Clear step-by-step walkthrough of FastAPI basics (import, instantiate, define path operations, return content, deploy) with code examples, terminal output, and conceptual explanations; unambiguous tutorial structure with no confusable cluster overlap.",
+        "shape_labels": [
+          "code",
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "docs-postgres",
+      "declared_kind": "api-reference",
+      "url": "https://www.postgresql.org/docs/current/sql-select.html",
+      "fetch_status": "ok",
+      "chars": 61780,
+      "v5": {
+        "cost": 0.0207399,
+        "ms": 13374,
+        "page_kind": "api-reference",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "Official PostgreSQL documentation page for the SELECT statement with comprehensive syntax, clause-by-clause explanation, and processing order; unambiguous reference structure with no cluster confusion.",
+        "shape_labels": [
+          "syntax grammar (EBNF)",
+          "ordered clause-by-clause explanation",
+          "key-value (clause \u2192 behavior mapping)",
+          "code examples (implicit)"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "docs-anthropic",
+      "declared_kind": "api-reference",
+      "url": "https://docs.claude.com/en/api/messages",
+      "fetch_status": "ok",
+      "chars": 726,
+      "v5": {
+        "cost": 0.0122639,
+        "ms": 11179,
+        "page_kind": "api-reference",
+        "confidence": "high",
+        "content_value": "low",
+        "reasoning": "OpenGraph metadata clearly identifies this as Claude API Reference documentation for Messages endpoints, but the fetched content contains only metadata tables with no actual API documentation body, making downstream utility minimal.",
+        "shape_labels": [
+          "key-value"
+        ],
+        "n_follow_ups": 4,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "ref-rfc",
+      "declared_kind": "spec",
+      "url": "https://datatracker.ietf.org/doc/html/rfc9110",
+      "fetch_status": "ok",
+      "chars": 403182,
+      "v5": {
+        "cost": 0.019467149999999996,
+        "ms": 14288,
+        "page_kind": "spec",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "RFC 9110 is an IETF standards-track specification document defining HTTP semantics; the fetched content shows the abstract, conformance rules, and introductory sections with clear normative language (MUST, SHOULD, etc.) and formal structure.",
+        "shape_labels": [
+          "table",
+          "key-value",
+          "citations",
+          "code"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "ref-mdn-fetch",
+      "declared_kind": "api-reference",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+      "fetch_status": "ok",
+      "chars": 7591,
+      "v5": {
+        "cost": 0.018150149999999997,
+        "ms": 14566,
+        "page_kind": "api-reference",
+        "confidence": "high",
+        "content_value": "medium",
+        "reasoning": "MDN Fetch API reference page with canonical API documentation structure: overview, interfaces, headers, specifications, and browser compatibility tables; high confidence due to unambiguous MDN reference layout and API-centric content; medium value because the extracted content is heavily truncated (stripped of code examples, detailed method signatures, and compatibility table data).",
+        "shape_labels": [
+          "list",
+          "key-value",
+          "table",
+          "citations"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "news-bbc",
+      "declared_kind": "news-article",
+      "url": "https://www.bbc.com/news/articles/c1k7nzjpz7eo",
+      "fetch_status": "ok",
+      "chars": 10678,
+      "v5": {
+        "cost": 0.0204764,
+        "ms": 11362,
+        "page_kind": "error",
+        "confidence": "high",
+        "content_value": null,
+        "reasoning": "BBC News article URL returns HTTP 404 with explicit error page template; no content body present, only navigation and error messaging.",
+        "shape_labels": [],
+        "n_follow_ups": 0,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "blog-julia-evans",
+      "declared_kind": "blog-post",
+      "url": "https://jvns.ca/blog/2024/01/05/2023-in-review/",
+      "fetch_status": "ok",
+      "chars": 1442,
+      "v5": {
+        "cost": 0.01235015,
+        "ms": 8858,
+        "page_kind": "error",
+        "confidence": "high",
+        "content_value": null,
+        "reasoning": "HTTP 404 response with explicit 'Page not found' message and navigation chrome; unambiguous error page.",
+        "shape_labels": [],
+        "n_follow_ups": 0,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "forum-so-question",
+      "declared_kind": "qa",
+      "url": "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python",
+      "fetch_status": "ok",
+      "chars": 8228,
+      "v5": {
+        "cost": 0.01848665,
+        "ms": 33340,
+        "page_kind": "qa",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "Stack Overflow Q&A page with comprehensive, structured answer explaining Python's yield keyword through iterables \u2192 generators \u2192 yield mechanics, with code examples and practical use cases throughout.",
+        "shape_labels": [
+          "code",
+          "list",
+          "comparison",
+          "key-value"
+        ],
+        "n_follow_ups": 4,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "code-gh-file",
+      "declared_kind": "source-file",
+      "url": "https://github.com/pydantic/pydantic/blob/main/pydantic/main.py",
+      "fetch_status": "ok",
+      "chars": 45970,
+      "v5": {
+        "cost": 0.021881649999999996,
+        "ms": 11997,
+        "page_kind": "source-file",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "GitHub source file view of pydantic/main.py showing BaseModel class definition with extensive docstrings, type annotations, and helper functions; clear structural markers (file path, line numbers, language syntax) and substantial on-topic content.",
+        "shape_labels": [
+          "code",
+          "key-value",
+          "comments"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "code-gh-readme",
+      "declared_kind": "readme",
+      "url": "https://github.com/encode/httpx",
+      "fetch_status": "ok",
+      "chars": 5317,
+      "v5": {
+        "cost": 0.0163704,
+        "ms": 12260,
+        "page_kind": "readme",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "GitHub repository README for encode/httpx with unambiguous structure: project title, feature list, installation, quickstart code, documentation links, and contribution guidance\u2014no cluster ambiguity since readme is distinct from marketing/product-page (which lack code/docs orientation).",
+        "shape_labels": [
+          "list",
+          "code",
+          "key-value"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "product-amazon",
+      "declared_kind": "product-page",
+      "url": "https://www.amazon.com/dp/B0BSHF7WHW",
+      "fetch_status": "ok",
+      "chars": 13101,
+      "v5": {
+        "cost": 0.0222189,
+        "ms": 12360,
+        "page_kind": "listing",
+        "confidence": "high",
+        "content_value": "medium",
+        "reasoning": "Amazon product review page with star-rating distribution and individual review cards; clear listing structure with 18 review records, though content is truncated/clipped throughout.",
+        "shape_labels": [
+          "star rating distribution histogram",
+          "review cards (comments)"
+        ],
+        "n_follow_ups": 4,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "media-yt-video",
+      "declared_kind": "video-page",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "fetch_status": "ok",
+      "chars": 1013,
+      "v5": {
+        "cost": 0.012748899999999999,
+        "ms": 10274,
+        "page_kind": "video-page",
+        "confidence": "high",
+        "content_value": "low",
+        "reasoning": "OpenGraph metadata unambiguously identifies this as a YouTube video page; extracted content is metadata only (no transcript, description body, or comments), limiting downstream utility.",
+        "shape_labels": [
+          "key-value"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "gov-sec-filing",
+      "declared_kind": "filing",
+      "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001318605&type=10-K&dateb=&owner=include&count=40",
+      "fetch_status": "ok",
+      "chars": 4571,
+      "v5": {
+        "cost": 0.01733415,
+        "ms": 11968,
+        "page_kind": "listing",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "SEC EDGAR filing index page for Tesla Inc. (CIK 0001318605) displaying a chronological table of 10-K annual reports and amendments from 2011\u20132026; unambiguous tabular structure with metadata (dates, accession numbers, file sizes).",
+        "shape_labels": [
+          "table",
+          "key-value",
+          "timeline"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "spa-react-dev",
+      "declared_kind": "spa",
+      "url": "https://react.dev/learn",
+      "fetch_status": "ok",
+      "chars": 12130,
+      "v5": {
+        "cost": 0.019968899999999998,
+        "ms": 11404,
+        "page_kind": "tutorial",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "Structural signals unambiguous: titled 'Quick Start', explicit 'You will learn' checklist, progressive multi-section tutorial walking through React fundamentals with live code examples. Not a reference (no API tables/lookup structure), not article (lacks narrative arc/opinion), not listing (no item enumeration).",
+        "shape_labels": [
+          "list",
+          "code",
+          "timeline"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "data-json-feed",
+      "declared_kind": "json-feed",
+      "url": "https://hnrss.org/frontpage.jsonfeed",
+      "fetch_status": "ok",
+      "chars": 18395,
+      "v5": {
+        "cost": 0.0241679,
+        "ms": 19457,
+        "page_kind": "json-feed",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "This is a structured JSON Feed (jsonfeed.org format) from HackerNews RSS, containing a list of current frontpage items with metadata (title, points, comments, URLs, timestamps). The content is well-formed, substantial (~18KB), and directly consumable for news aggregation or feed parsing.",
+        "shape_labels": [
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "gated-nyt",
+      "declared_kind": "paywalled",
+      "url": "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html",
+      "fetch_status": "failed",
+      "chars": 536,
+      "v5": {
+        "cost": 0.01148165,
+        "ms": 9709,
+        "page_kind": "blocked",
+        "confidence": "high",
+        "content_value": null,
+        "reasoning": "HTTP 403 Forbidden with explicit CAPTCHA/bot-wall warning from the fetch gateway indicates access is blocked by the target site, not a content classification issue.",
+        "shape_labels": [],
+        "n_follow_ups": 0,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "paper-arxiv-pdf-stub",
+      "declared_kind": "pdf-stub",
+      "url": "https://arxiv.org/pdf/2402.17753",
+      "fetch_status": "ok",
+      "chars": 1853,
+      "v5": {
+        "cost": 0.013584899999999999,
+        "ms": 12074,
+        "page_kind": "reference",
+        "confidence": "medium",
+        "content_value": "high",
+        "reasoning": "arXiv abstract for an academic paper on LLM conversational memory\u2014structured as reference material with metadata, but clustered ambiguously with article-short due to the abstract-as-primary-content pattern.",
+        "shape_labels": [
+          "metadata",
+          "abstract",
+          "key-value"
+        ],
+        "n_follow_ups": 4,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "docs-cf-page",
+      "declared_kind": "marketing",
+      "url": "https://www.cloudflare.com/products/registrar/",
+      "fetch_status": "ok",
+      "chars": 6042,
+      "v5": {
+        "cost": 0.01325465,
+        "ms": 11765,
+        "page_kind": "product-page",
+        "confidence": "medium",
+        "content_value": "medium",
+        "reasoning": "Core product landing page with clear value prop, benefits, use cases, and CTAs, but content is heavily nav-driven with truncated FAQ and resource sections that lack depth.",
+        "shape_labels": [
+          "key-value",
+          "list",
+          "key-value"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    }
+  ],
+  "totals": {
+    "cost": 0.53740525,
+    "ms": 409785,
+    "fetch_failures": 0,
+    "parse_failures": 0,
+    "envelope_violations": 0
+  }
+}

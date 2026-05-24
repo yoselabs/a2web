@@ -1,4 +1,4 @@
-.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty bench eval eval-baseline eval-detail bless-contracts handler-probe
+.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty bench eval eval-baseline eval-detail bless-contracts handler-probe install-global
 
 check: lint ty test-cov
 
@@ -35,6 +35,12 @@ build:
 
 dev:
 	uv run a2web serve --transport=stdio
+
+# Refresh the globally-installed `a2web` tool from this working tree.
+# Use after shipping a new version when Claude Code's MCP entry points at
+# /Users/iorlas/.local/bin/a2web (see CLAUDE.md → Global install).
+install-global:
+	uv tool install --force --from . a2web
 
 # Output benchmark — runs WebFetchBaseline + A2WebDetail + A2WebExtract
 # against eval/corpus.yaml, scores four axes (quality, token cost, clarity,

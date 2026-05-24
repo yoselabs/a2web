@@ -192,7 +192,7 @@ class _CountingProvider:
         self.cost = cost
         self.calls = 0
 
-    async def complete(self, *, system, user, model, max_tokens=1024, temperature=0.0, thinking_disabled=True):
+    async def complete(self, *, system, user, model, max_tokens=1024, temperature=0.0, thinking_disabled=True, parts=None):
         self.calls += 1
         return ProviderResponse(
             text=self.text,

@@ -37,9 +37,7 @@ if TYPE_CHECKING:
 # add an entry here; the probe will fail loudly otherwise.
 _PROBE_URLS: dict[str, str] = {
     # Reddit: the Obama AMA — durable, permanently archived since 2012.
-    "site_handler:reddit": (
-        "https://www.reddit.com/r/IAmA/comments/z1c9z/i_am_barack_obama_president_of_the_united_states/"
-    ),
+    "site_handler:reddit": ("https://www.reddit.com/r/IAmA/comments/z1c9z/i_am_barack_obama_president_of_the_united_states/"),
     "site_handler:hn": "https://news.ycombinator.com/item?id=39000000",
     "site_handler:arxiv": "https://arxiv.org/abs/2308.08155",
     "site_handler:wikipedia": "https://en.wikipedia.org/wiki/Python_(programming_language)",

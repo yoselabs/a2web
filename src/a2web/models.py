@@ -147,6 +147,106 @@ class TokenCounts(BaseModel):
     full: int
 
 
+# v0.20 — affordances payload (pydantic mirrors of
+# `packages/llm_extract/affordances.py` boundary types). Closed-enum Literal
+# types enforce the prompt's vocabulary at the API edge. Projection from the
+# boundary type to the pydantic model happens in `fetcher_response.py`.
+PageKind = Literal[
+    # Content kinds (24)
+    "listing",
+    "thread",
+    "reference",
+    "api-reference",
+    "tutorial",
+    "article-short",
+    "article-long",
+    "changelog",
+    "code-snippet",
+    "source-file",
+    "readme",
+    "qa",
+    "spec",
+    "filing",
+    "news-article",
+    "blog-post",
+    "product-page",
+    "video-page",
+    "json-feed",
+    "marketing",
+    "encyclopedia",
+    "package-page",
+    "pdf-stub",
+    "spa",
+    # Obstacle kinds (4)
+    "paywalled",
+    "error",
+    "empty",
+    "blocked",
+    # Catch-all
+    "other",
+]
+PageKindConfidence = Literal["low", "medium", "high"]
+ContentValue = Literal["low", "medium", "high"]
+ShapeLabel = Literal[
+    "list",
+    "timeline",
+    "key-value",
+    "table",
+    "code",
+    "comments",
+    "citations",
+    "comparison",
+]
+_OBSTACLE_PAGE_KINDS: frozenset[str] = frozenset({"paywalled", "error", "empty", "blocked"})
+
+
+class AffordanceShape(BaseModel):
+    """One structural shape present on the page.
+
+    `label` is a closed-vocabulary enum; values outside the set fail
+    pydantic validation and the whole affordances payload is dropped at the
+    seam (see `fetcher_response.build_ask_response`).
+    """
+
+    label: ShapeLabel
+    where: str
+    size: str
+
+
+class AffordancesPayload(BaseModel):
+    """Affordances payload emitted by the `extract_with_affordances_v1` template.
+
+    Two orthogonal signals:
+      - `page_kind_confidence` — epistemic uncertainty about the LABEL
+      - `content_value` — how useful the extracted content is downstream
+
+    Envelope discipline: when `page_kind` is an obstacle kind (`paywalled`,
+    `error`, `empty`, `blocked`), `content_value` SHALL be None and `shapes`/
+    `follow_up_questions` SHALL be empty. The serializer omits all three on
+    obstacle pages.
+    """
+
+    page_kind: PageKind
+    page_kind_confidence: PageKindConfidence
+    reasoning: str
+    content_value: ContentValue | None = None
+    shapes: list[AffordanceShape] = Field(default_factory=list)
+    follow_up_questions: list[str] = Field(default_factory=list)
+
+    @model_serializer(mode="wrap")
+    def _envelope_discipline(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        data = handler(self)
+        if self.page_kind in _OBSTACLE_PAGE_KINDS:
+            # Obstacle pages: drop the content-only fields entirely. Their
+            # absence carries the meaning — `page_kind` already names the
+            # obstacle, and the calling agent does not need a `null` /
+            # empty-list noise band.
+            data.pop("content_value", None)
+            data.pop("shapes", None)
+            data.pop("follow_up_questions", None)
+        return data
+
+
 class ExtractionMeta(BaseModel):
     """Per-fetch LLM extraction metadata.
 
@@ -210,6 +310,11 @@ class FetchResponse(BaseModel):
     # v0.4: present only when the caller passed `ask=`. None when ask is unset.
     extracted_answer: str | None = None
     extraction: ExtractionMeta | None = None
+    # v0.20: populated when `ask=` was passed AND `include_affordances=True`
+    # AND the extractor returned a parseable affordances envelope. Carried on
+    # FetchResponse so the seam projector (`build_ask_response`) can lift it
+    # onto AskResponse. `fetch_raw` never sets this (it does not run the LLM).
+    affordances: AffordancesPayload | None = None
 
     @model_serializer(mode="wrap")
     def _omit_empty(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
@@ -392,6 +497,12 @@ class AskResponse(BaseModel):
     total_ms: int | None = None
     cache: CacheState | None = None
     diagnostics: list[Diagnostic] = Field(default_factory=list)
+
+    # v0.20: page kind + content value + shapes + follow-up questions. None when
+    # the caller passed `include_affordances=False` or when extraction was
+    # skipped (no LLM available, fetch failed, parse failure). The serializer
+    # drops the field when None.
+    affordances: AffordancesPayload | None = None
 
     @model_serializer(mode="wrap")
     def _omit_empty(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:

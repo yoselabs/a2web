@@ -8,6 +8,103 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-05-24
+
+### Added
+
+- **`affordances` field on `AskResponse`.** New default-on payload that surfaces what else the page offers beyond the direct answer: `page_kind` (closed 29-value taxonomy: 24 content + 4 obstacle + `other`), `page_kind_confidence` (low/medium/high), `reasoning`, `content_value` (low/medium/high — *omitted on obstacle pages*), `shapes[]` (closed 8-label vocabulary: list, timeline, key-value, table, code, comments, citations, comparison) each with `where` + `size`, and 3-5 `follow_up_questions`. Designed for consumption by AI agents reasoning about next moves. Consumer decides whether to use the data; a2web's job is to surface signal.
+- **`include_affordances: bool = True` kwarg on `ask`.** Opt out to preserve the lean v0.14 envelope shape and save ~500 completion tokens (~18%) per call on high-volume flows.
+- **`AffordancesPayload` boundary type** (`src/a2web/packages/llm_extract/affordances.py`) + pydantic mirror in `src/a2web/models.py` with closed `Literal` enums enforced at the API edge.
+- **`EXTRACT_WITH_AFFORDANCES_V1` prompt template.** Two-axis rubric (`page_kind_confidence` separated from `content_value`) per RAG-eval best practices (Braintrust / Deepchecks / ResearchRubrics arXiv 2511.07685). Hard cluster trigger forces confidence ≤ medium when label falls in any of 7 confusable clusters (academic / landing / dashboard / changelog / feed / longform / commerce). The `EXTRACT_CACHEABLE_V1` template is unchanged and still active when `include_affordances=False`.
+- **Envelope discipline** (matches a2web's `_prune_wire` pattern): when `page_kind` is `paywalled`/`error`/`empty`/`blocked`, the wire-side serializer omits `content_value`, `shapes`, and `follow_up_questions`. Their absence carries the meaning.
+- **Cache-prefix integrity**: `EXTRACT_WITH_AFFORDANCES_V1.cache_prefix_template` is byte-identical to `EXTRACT_CACHEABLE_V1.cache_prefix_template` — the v0.19 byte-stable cache invariant survives the new template (guarded by `test_affordances_template_cache_prefix_matches_base_template`).
+- **`request_affordances: bool = False` on `Extractor.extract`** with fence-tolerant JSON envelope parser (`_split_answer_and_affordances`). Mirrors the existing `request_next_links` pattern. Parse failures degrade gracefully — `extracted_answer` falls back to the raw text; `affordances` is `None`.
+- **`ClaudeCodeProvider` cost reduction (v0.20-pre).** Three new opt-outs strip ~22-27k tokens per call from the Claude Code CLI subprocess: `setting_sources=[]` (skip CLAUDE.md auto-discovery), `skills=[]` (skip skill registry), `extra_args={"disable-slash-commands": None}`. Net session cost ~41% lower. Eval at `eval/findings_2026-05-24-claude-code-cli-flag-sweep.md`.
+
+### Decisions
+
+- **Default ON, opt-out via kwarg.** Consumer decides whether to use the data. Captured in `openspec/changes/add-affordances-to-ask/design.md` §D3.
+- **Field name `affordances` chosen via empirical name-bench.** 4-name × 6-run benchmark (`eval/spikes/affordances_v6_name_bench.py`): `affordances` scored highest behavioral grounding (2.67/5 vs 2.33 for alternatives). `leads` was ruled out (CRM connotation pulled the model into the wrong domain); `hints` was ruled out (RAG-provenance connotation). Findings: `eval/findings_2026-05-24-affordances-v5-two-axes.md`.
+- **Two-axis rubric instead of one.** v4 spike found a single `confidence` field was degenerate (always `high`, even on wrong labels). Splitting into `page_kind_confidence` (epistemic, about the LABEL) + `content_value` (about the extracted CONTENT) followed RAG-eval literature. Confidence calibration on 30 URLs: 25 high / 5 medium / 0 low — the medium hits are honest cluster ambiguity.
+- **Two templates, not one conditional.** Keeps cache-key reasoning local to template constants. Detailed in design.md §D1.
+- **`fetch_raw` does NOT surface affordances** — it does not run the LLM. Defer the LDD telemetry on affordances field usage; defer auto-browser-tier escalation on `content_value=low`.
+
+### Spike trail
+
+- `eval/spikes/affordances_v{1,2,3_lean,4_calibrate,5_two_axes,6_name_bench}.py` — six spike rounds across the design space.
+- `eval/findings_2026-05-24-affordances-{v1,v2-v3,v5-two-axes}.md` — quality / cost / calibration findings.
+- `openspec/changes/add-affordances-to-ask/` — proposal + design + specs (`ask-response`, `extraction`) + tasks.
+
+### Performance
+
+- Marginal cost when affordances are on: ~500 extra completion tokens per `ask` (~$0.002/URL standalone, ~18% on top of existing extraction). Cost is dominated by prompt tokens (page content) which the existing extraction already pays — affordances are essentially free completion-side.
+
+## [0.19.0] — 2026-05-23
+
+### Added
+
+- **Cache-friendly prompt template `EXTRACT_CACHEABLE_V1`.** Static rules in `system`, page content in `cache_prefix_template`, user question in `tail_template`. Production `Extractor` (built by `build_llm_extractor`) now defaults to it; `WebFetchBaseline` continues to use the byte-frozen `WEBFETCH_DEFAULT_V1` eval anchor.
+- **`PromptParts` boundary type** + `PromptTemplate.render(content, ask) -> PromptParts`. Providers consume the three named fields (`system`, `cache_prefix`, `tail`) to place cache breakpoints in the right places.
+- **`AnthropicProvider` cache markers.** When given a non-degenerate `parts`, the provider sends `system` as `[{type:"text", text:..., cache_control:{type:"ephemeral"}}]` and user content as two blocks (prefix block carries `cache_control`, tail block does not). Two breakpoints used out of Anthropic's 4-block budget. Cost accounting (`extract_token_counts` + 1.25× / 0.10× cache-tier pricing) was already wired — the moment markers fire, cache_read/cache_write tokens appear in `response.usage` and `cost_usd` reflects the savings.
+- **Prefix byte-stability snapshot test** (`tests/packages/llm_extract/test_prompt_cache_stability.py`). Asserts `system + cache_prefix` is byte-identical across three different `{ask}` values and that the tails differ. Guards against future prefix drift in any template body edit.
+
+### Decisions
+
+- **No marker code for `ClaudeCodeProvider`.** Probe of installed `claude-agent-sdk` (≥0.1.80) showed zero `cache_control` references. The SDK shells out to the `claude` CLI subprocess and sends `{"role":"user","content": <flat string>}` — there is no API surface to insert breakpoints. The CLI binary applies caching internally given a byte-stable prefix; the new `EXTRACT_CACHEABLE_V1` template guarantees that stability by construction. So the SDK path is compliant via template discipline alone — no code change beyond unpacking `parts.cache_prefix + parts.tail` for the concatenation.
+- **`WEBFETCH_DEFAULT_V1` kept byte-frozen.** Reshaping it would forfeit its value as an eval anchor (byte-equality with Claude Code's WebFetch sub-call). A second named template at +20 LoC was the right trade.
+- **OpenAI / OpenRouter need no code change.** OpenAI auto-caches prefixes ≥1024 tokens with no opt-in; the template reshape alone unlocks it. OpenRouter passes through to the backend.
+
+### Performance
+
+- Multi-Q sessions against the same URL within Anthropic's 5-minute TTL: Q1 pays cache-write (1.25× input price), Q2-N pay cache-read (0.10× input price) on the page-content tokens — which dominate any long-page extraction. Expected ~60-70% reduction in input-token cost on multi-Q traces; ~zero change on single-Q traces.
+
+## [0.18.0] — 2026-05-23
+
+### Added
+
+- **Microdata extraction.** `packages/json_in_script.py` now walks HTML5 microdata (`itemscope` / `itemprop` / `itemtype`) directly off the selectolax tree it already loads for the script-tag detectors. Output flows through the same `JsonPayload` boundary type with `source="microdata"`; `domain.py` flattens it into the existing LD-JSON markdown adapter (same schema.org type set). Lift: Shopify-class storefronts and other long-tail product pages that don't ship LD-JSON now surface structured data to the LLM extractor instead of falling back to trafilatura's body text.
+- **OpenGraph extraction.** Companion walker for `<meta property="og:*">` plus the `article:*` / `product:*` / `book:*` / `profile:*` namespaces. Emits a flat `{property: content}` payload; `domain.py` renders it as a two-column markdown table. Sits at bucket 3 in `rank_payloads` (after `next_data` / `nuxt_data` — OG is metadata, not body).
+- **Ranking buckets** in `rank_payloads` extended: strong-microdata sits at bucket 1 (right after strong LD-JSON), weak-microdata joins weak-LD-JSON at bucket 4, OpenGraph at bucket 3.
+
+### Decisions
+
+- **Rejected extruct mid-implementation; rolled the walker on selectolax.** Initial design called for `extruct` (microdata + RDFa + OpenGraph + JSON-LD + microformats + Dublin Core in one library). Mid-implementation revision: the rdflib transitive weight (~MB-scale) is only justified by RDFa coverage, and RDFa hit rate on the a2web eval corpus is zero — the only segment that ships it heavily (academic publishing) is already covered by the `arxiv` handler. Dropped extruct (and its `rdflib` / `pyrdfa3` / `mf2py` / `w3lib` / `pyparsing` / `webencodings` transitive set) and wrote ~60 LoC of selectolax-native walker + ~80 LoC of adapters. Net new dep surface: zero.
+- **RDFa is out of scope.** Reversible — add a dedicated path if a real RDFa-shaped failure surfaces in a future eval run. Full rationale in `openspec/changes/archive/2026-05-23-add-microdata-rdfa-extraction/design.md` D1.
+
+## [0.17.0] — 2026-05-23
+
+### Changed
+
+- **GitHub handler REST plumbing swapped to `gidgethub`.** The hand-rolled `_get_json` / `_check_rate_limited` / manual `Link:` pagination / base64 README decode in `handlers/github.py` is gone — replaced by a `_CurlCffiGitHubAPI` adapter (subclass of `gidgethub.abc.GitHubAPI`) that routes every request through the existing `fetch_bytes` primitive. gidgethub owns auth-header injection, status-code → exception mapping (`RateLimitExceeded` on 403+remaining=0, `BadRequest(404)`, etc), URI-template expansion, and response decoding. curl_cffi keeps owning the transport — JA3/JA4 impersonation, breakers, proxies all inherited.
+- **Auth header format**: gidgethub uses GitHub's canonical `Authorization: token <pat>` instead of v0.16's `Authorization: Bearer <pat>`. Both are accepted by `api.github.com`; the change is invisible to operators.
+
+### Removed
+
+- ~150 LoC of hand-rolled REST plumbing inside `handlers/github.py` (URL-template constructors, `_get_json`, `_check_rate_limited`, manual `Link:` header pagination parser, manual base64 README decoder).
+
+### Dependencies
+
+- `+gidgethub>=5.4,<6` direct. `+uritemplate` transitive (pure-Python, small).
+
+## [0.16.0] — 2026-05-23
+
+### Changed
+
+- **Browser cookie extraction swapped to `browser-cookie3`.** The hand-rolled `packages/cookie_store/chrome.py` (macOS-only AES-GCM + Keychain CLI) and `firefox.py` (plaintext sqlite) readers are gone — replaced by a thin adapter in `packages/cookie_store/store.py` over [`browser-cookie3`](https://github.com/borisbabic/browser_cookie3). The `CookieJarResource` shape, the `CookiesRouter(slug="cookies")` MCP surface, the `cookies_refresh` tool, the v0.8 "Keychain prompt only on refresh" UX, and the `OperatorHint(code="cookies_stale", ...)` semantics are all preserved.
+- **`AppSettings.cookie_source` Literal widened** to `none | chrome | chromium | brave | edge | firefox | safari | vivaldi | opera | opera_gx`. Pre-existing `chrome` / `firefox` env/YAML values continue to parse.
+
+### Added
+
+- **Cross-platform cookie support.** Chrome / Chromium / Brave / Edge / Vivaldi / Opera / Opera GX on macOS, Linux, and Windows. Safari on macOS. Firefox everywhere. The OS × browser matrix is now `browser-cookie3`'s problem, not ours.
+
+### Removed
+
+- `src/a2web/packages/cookie_store/chrome.py` (~191 LoC) and `firefox.py` (~100 LoC) — the hand-rolled readers and their per-OS file-discovery and decryption code paths. The boundary type (`CookieRow`) and the historical `ChromeCookieAccessError` alias are preserved for callers.
+
+### Dependencies
+
+- `+browser-cookie3>=0.20,<1` direct. `+pycryptodomex`, `+lz4`, `+shadowcopy` (Windows), `+wmi` (Windows) transitive.
+
 ## [0.15.0] — 2026-05-23
 
 ### Added

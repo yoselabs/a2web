@@ -151,6 +151,21 @@ class WebRouter(a2kit.Router):
                 ),
             ),
         ] = None,
+        include_affordances: Annotated[
+            bool,
+            pydantic.Field(
+                description=(
+                    "Include the `affordances` field on the response. Default True. "
+                    "Affordances are a structured summary of what ELSE the page "
+                    "offers: page_kind (closed taxonomy), page_kind_confidence, "
+                    "content_value (how usable the extraction is), shapes (lists, "
+                    "timelines, code blocks, citations, etc. with locations), and "
+                    "3-5 follow_up_questions the page can answer. Same extraction "
+                    "call — adds ~500 completion tokens (~18% cost). Opt out for "
+                    "the lean v0.14 envelope or high-volume cost-sensitive flows."
+                ),
+            ),
+        ] = True,
         state: AppState,
         browser_pool: Lazy[BrowserPool],
         llm_extractor: Lazy[LlmExtractorResource],
@@ -190,6 +205,7 @@ class WebRouter(a2kit.Router):
             ask=question,
             next_links=next_links,
             max_content_chars=max_content_chars,
+            include_affordances=include_affordances,
         )
         return build_ask_response(response, include_content=include_content, debug=debug)
 

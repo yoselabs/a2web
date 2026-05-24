@@ -55,6 +55,7 @@ class MockProvider:
         max_tokens=1024,
         temperature=0.0,
         thinking_disabled=True,
+        parts=None,
     ) -> ProviderResponse:
         self.calls.append(
             {
@@ -64,6 +65,7 @@ class MockProvider:
                 "max_tokens": max_tokens,
                 "temperature": temperature,
                 "thinking_disabled": thinking_disabled,
+                "parts": parts,
             }
         )
         return ProviderResponse(

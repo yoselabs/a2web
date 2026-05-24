@@ -39,6 +39,11 @@ a2kit's in-process test client is the default: `from a2kit.testing import client
 - Local MCP: `make dev`
 - Bootstrap: `make bootstrap` (uv sync --all-extras)
 - Output benchmark: `make bench` (see below)
+- Refresh global install: `make install-global` (see below)
+
+## Global install
+
+`a2web` is installed as a `uv tool` at `/Users/iorlas/.local/bin/a2web` and wired into Claude Code's MCP config (`~/.claude.json` → `mcpServers.a2web` → `command: /Users/iorlas/.local/bin/a2web`, `args: ["serve"]`). The MCP entry points at the installed binary, NOT at `uvx --from <source>`, for fast cold start. Trade-off: source edits don't auto-propagate — after shipping a version bump, run `make install-global` so Claude picks up the new code on the next session.
 
 ## Benchmark
 

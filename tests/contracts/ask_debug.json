@@ -48,7 +48,7 @@
       "latency_ms": "<volatile>",
       "model": "stub-model",
       "prompt_tokens": 120,
-      "template_name": "webfetch_default_v1",
+      "template_name": "extract_with_affordances_v1",
       "truncated": false
     },
     "started_at": "<volatile>",

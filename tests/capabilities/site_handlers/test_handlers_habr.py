@@ -21,9 +21,7 @@ def _state() -> AppState:
     return make_default_state()
 
 
-def _responder(
-    *, article_status: int = 200, comments_status: int = 200, captured: dict[str, Any] | None = None
-):
+def _responder(*, article_status: int = 200, comments_status: int = 200, captured: dict[str, Any] | None = None):
     """Build a fake `httpx.AsyncClient.get` routing on the endpoint path."""
     article = (_FIX / "habr_article.json").read_text()
     comments = (_FIX / "habr_comments.json").read_text()
@@ -147,5 +145,3 @@ def test_render_article_decodes_html_entities_in_title() -> None:
     assert "&amp;" not in rendered["title"]
     assert "’" in rendered["title"]  # noqa: RUF001
     assert "&" in rendered["title"]
-
-

@@ -116,6 +116,10 @@ def json_to_markdown_rows(payload: JsonPayload) -> str:
         return _ld_json_to_markdown(data)
     if payload.source in ("next_data", "nuxt_data", "window_var", "generic"):
         return _framework_state_to_markdown(data)
+    if payload.source == "microdata":
+        return _ld_json_to_markdown(_microdata_to_ld_shape(data))
+    if payload.source == "opengraph":
+        return _opengraph_to_markdown(data)
     return ""
 
 
@@ -191,8 +195,18 @@ def _single_entity_md(entry: dict, *, kind: str) -> str:
     name = entry.get("name") or entry.get("headline") or "unnamed"
     lines = [f"## {kind}: {name}"]
     interesting_keys = (
-        "name", "headline", "brand", "description", "datePublished", "author",
-        "offers", "aggregateRating", "sku", "price", "priceCurrency", "availability",
+        "name",
+        "headline",
+        "brand",
+        "description",
+        "datePublished",
+        "author",
+        "offers",
+        "aggregateRating",
+        "sku",
+        "price",
+        "priceCurrency",
+        "availability",
     )
     for key in interesting_keys:
         if key not in entry:
@@ -234,3 +248,60 @@ def _rows_to_md_table(rows: list[dict], *, title: str) -> str:
         body_lines.append("| " + " | ".join(cells) + " |")
     return f"### {title}\n\n" + "\n".join([header, sep, *body_lines])
 
+
+# --------------------------------------------------------------------- #
+# extruct adapters (v0.18)
+# --------------------------------------------------------------------- #
+
+
+def _microdata_to_ld_shape(data: dict | list) -> list[dict]:
+    """Flatten extruct's microdata output into LD-JSON shape so the existing
+    LD walker can consume it.
+
+    Extruct emits `{"type": ["https://schema.org/Product"], "properties":
+    {"name": "...", "offers": {...}, ...}}`. We map `type` → `@type` (last
+    URL segment, e.g. `Product`), promote `properties` to direct keys.
+    """
+    items: list[dict] = []
+    if isinstance(data, list):
+        items = [it for it in data if isinstance(it, dict)]
+    elif isinstance(data, dict):
+        items = [data]
+    out: list[dict] = []
+    for it in items:
+        raw_types = it.get("type") or it.get("@type")
+        type_value: str | list[str] | None = None
+        if isinstance(raw_types, str):
+            type_value = raw_types.rsplit("/", 1)[-1]
+        elif isinstance(raw_types, list):
+            type_value = [t.rsplit("/", 1)[-1] for t in raw_types if isinstance(t, str)]
+        raw_props = it.get("properties")
+        props: dict = raw_props if isinstance(raw_props, dict) else {}
+        entry: dict[str, Any] = {"@type": type_value} if type_value is not None else {}
+        for k, v in props.items():
+            entry[k] = v
+        out.append(entry)
+    return out
+
+
+def _opengraph_to_markdown(data: dict | list) -> str:
+    """Render the OpenGraph dict as a two-column markdown table. Cap at 50 rows.
+
+    The extractor emits a flat `{property: content}` dict for OG; this adapter
+    treats list input defensively in case a future producer chooses that shape.
+    """
+    flat: dict[str, str] = {}
+    if isinstance(data, dict):
+        flat = {str(k): str(v) for k, v in data.items() if isinstance(v, (str, int, float))}
+    elif isinstance(data, list):
+        for entry in data:
+            if isinstance(entry, dict):
+                for k, v in entry.items():
+                    if isinstance(v, (str, int, float)):
+                        flat[str(k)] = str(v)
+    if not flat:
+        return ""
+    rows = list(flat.items())[:50]
+    lines = ["### OpenGraph", "", "| property | value |", "| --- | --- |"]
+    lines.extend(f"| {k} | {v.replace('|', '/')[:200]} |" for k, v in rows)
+    return "\n".join(lines)

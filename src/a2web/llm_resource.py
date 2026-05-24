@@ -114,9 +114,12 @@ class LlmExtractorResource:
         else:
             cache = ExtractionCache(conn, ttl_s=s.extraction_cache_ttl_s)
 
+        from .packages.llm_extract.prompts import EXTRACT_CACHEABLE_V1
+
         extractor = Extractor(
             provider=provider,
             model=ModelSpec(provider_id, s.llm_model),
+            template=EXTRACT_CACHEABLE_V1,
             max_content_chars=s.extraction_max_chars,
             cache=cache,
         )
@@ -130,6 +133,7 @@ class LlmExtractorResource:
         request_next_links: bool = False,
         handler_candidates: list[LlmNextLink] | None = None,
         max_content_chars: int | None = None,
+        request_affordances: bool = False,
     ) -> ExtractionResult | None:
         """Run extraction or return None when LLM is permanently unavailable.
 
@@ -154,6 +158,7 @@ class LlmExtractorResource:
             request_next_links=request_next_links,
             handler_candidates=handler_candidates,
             max_content_chars=max_content_chars,
+            request_affordances=request_affordances,
         )
 
     async def close(self) -> None:

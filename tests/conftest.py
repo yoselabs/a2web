@@ -42,9 +42,7 @@ if TYPE_CHECKING:
 _orig_aiosqlite_connection_init = aiosqlite.core.Connection.__init__
 
 
-def _daemon_aiosqlite_connection_init(
-    self: aiosqlite.core.Connection, *args: object, **kwargs: object
-) -> None:
+def _daemon_aiosqlite_connection_init(self: aiosqlite.core.Connection, *args: object, **kwargs: object) -> None:
     _orig_aiosqlite_connection_init(self, *args, **kwargs)
     self._thread.daemon = True
 

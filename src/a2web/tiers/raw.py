@@ -77,16 +77,12 @@ class RawTier:
 
         request_headers = {"User-Agent": state.settings.default_ua}
         host = urlparse(url).hostname or ""
-        breaker = (
-            await state.breakers.get_breaker(host) if state.breakers is not None and host else None
-        )
+        breaker = await state.breakers.get_breaker(host) if state.breakers is not None and host else None
         # Forward only the keys the primitive understands.
         primitive_extras: dict[str, str] | None = None
         if conditional_extras:
             primitive_extras = {
-                k: v
-                for k, v in conditional_extras.items()
-                if k in ("etag", "last_modified") and isinstance(v, str)
+                k: v for k, v in conditional_extras.items() if k in ("etag", "last_modified") and isinstance(v, str)
             } or None
 
         outcome = await fetch_bytes(

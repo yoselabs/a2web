@@ -98,9 +98,7 @@ async def _scroll_and_retry(page: Any, original_html: str) -> str:
     except Exception:
         outcome = "timeout"
     dur_ms = int((time.perf_counter() - start) * 1000)
-    await a2kit.ldd.event(
-        StageEnded(t_ms=t_ms, step="browser_scroll_retry", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome})
-    )
+    await a2kit.ldd.event(StageEnded(t_ms=t_ms, step="browser_scroll_retry", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
     return larger
 
 

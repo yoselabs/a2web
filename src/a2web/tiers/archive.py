@@ -73,9 +73,7 @@ async def _wayback_lookup(url: str) -> tuple[str, str] | None:
     if not isinstance(rows, list) or len(rows) < 2:
         return None
     timestamp = rows[1][0]
-    snap_outcome = await fetch_bytes(
-        _WAYBACK_SNAPSHOT.format(timestamp=timestamp, url=url), timeout_s=_TIMEOUT_S
-    )
+    snap_outcome = await fetch_bytes(_WAYBACK_SNAPSHOT.format(timestamp=timestamp, url=url), timeout_s=_TIMEOUT_S)
     if snap_outcome.verdict is not FetchVerdict.ok or snap_outcome.status_code != 200:
         return None
     return timestamp, snap_outcome.body.decode("utf-8", errors="replace")

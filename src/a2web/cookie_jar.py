@@ -30,12 +30,13 @@ import asyncio
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
 from .packages.cookie_store import read_cookies as _read_cookies
 from .packages.cookie_store.models import SameSite
+from .packages.cookie_store.store import CookieSource
 from .packages.http_cache import SqliteResource
 from .settings import AppSettings
 
@@ -76,7 +77,7 @@ class RefreshResult:
     """Internal refresh outcome (the resource's return value)."""
 
     profile: str
-    browser: Literal["chrome", "firefox"]
+    browser: CookieSource
     refreshed_count: int
     refreshed_at: datetime
 
@@ -205,10 +206,10 @@ class CookieJarResource:
                 refreshed_count=0,
                 refreshed_at=datetime.now(UTC),
             )
-        browser: Literal["chrome", "firefox"] = s.cookie_source  # type: ignore[assignment]
+        browser: CookieSource = s.cookie_source  # type: ignore[assignment]
         profile = s.cookie_profile
 
-        # Read in a thread — the reader does subprocess + sqlite I/O.
+        # Read in a thread — browser-cookie3 does subprocess + sqlite I/O.
         rows = await asyncio.to_thread(_read_cookies, browser, profile)
 
         conn = await self._ensure()

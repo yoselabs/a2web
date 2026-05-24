@@ -714,9 +714,7 @@ async def _resolve_short_url(url: str, *, state: AppState) -> str | None:
     return final
 
 
-async def _fetch_old_reddit_or_archive_signal(
-    url: str, *, state: AppState, cookies: dict[str, str] | None = None
-) -> TierResult:
+async def _fetch_old_reddit_or_archive_signal(url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:
     """Try old.reddit HTML; if that also produces nothing, signal archive."""
     result = await _fetch_old_reddit(url, state=state, cookies=cookies)
     if result.verdict == Verdict.ok and result.pre_rendered is not None:

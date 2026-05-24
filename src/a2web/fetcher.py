@@ -61,7 +61,7 @@ from .packages.content_extract import (
 )
 from .packages.http_cache import CacheRow, SqliteResource
 from .packages.json_in_script import extract_json_payloads, rank_payloads
-from .packages.llm_extract import LlmNextLink
+from .packages.llm_extract import AffordancesPayload, LlmNextLink
 from .packages.record_extract import Record, RecordSet, extract_records
 from .settings import AppSettings
 from .state import AppState
@@ -84,10 +84,16 @@ _THIN_BROWSER_MAX_BODY: int = 1_024
 # Hosts known to be JS-heavy CSR apps. When the browser tier returns a thin
 # 200 OK from one of these, the gate downgrades to length_floor so escalation
 # continues (operator can extend via AppSettings.js_heavy_hosts_extra).
-_JS_HEAVY_HOSTS_SEED: frozenset[str] = frozenset({
-    "x.com", "twitter.com", "instagram.com", "tiktok.com",
-    "trendyol.com", "aliexpress.com",
-})
+_JS_HEAVY_HOSTS_SEED: frozenset[str] = frozenset(
+    {
+        "x.com",
+        "twitter.com",
+        "instagram.com",
+        "tiktok.com",
+        "trendyol.com",
+        "aliexpress.com",
+    }
+)
 
 
 def js_heavy_hosts(settings: AppSettings | None = None) -> frozenset[str]:
@@ -225,6 +231,12 @@ class FetchContext:
     ask: str | None = None
     extracted_answer: str | None = None
     extraction_meta: ExtractionMeta | None = None
+    # v0.20 affordances payload — populated when `include_affordances=True`
+    # and the extractor returned a parseable affordances envelope. Boundary
+    # type from packages/llm_extract; projected into pydantic at the seam in
+    # `fetcher_response.build_ask_response`.
+    affordances: AffordancesPayload | None = None
+    include_affordances: bool = True
 
     # Body & content state (set by tier loop, escalations append observations)
     body: bytes = b""
@@ -336,6 +348,7 @@ async def fetch(
     ask: str | None = None,
     next_links: bool = True,
     max_content_chars: int | None = None,
+    include_affordances: bool = True,
 ) -> FetchResponse:
     """Run the v0.1 cascade for one URL.
 
@@ -395,6 +408,7 @@ async def fetch(
         ask=ask,
         next_links_enabled=next_links,
         max_content_chars=max_content_chars,
+        include_affordances=include_affordances,
         cache_state=CacheState.bypass if bypass_cache else CacheState.miss,
     )
 
@@ -749,7 +763,10 @@ async def _execute_tier_action(
     if isinstance(action, RetryViaArchive):
         fc.archive_dispatches += 1
         outcome = await _dispatch_archive(
-            action.url, state=state, start_perf=fc.start_perf, diagnostics=fc.diagnostics,
+            action.url,
+            state=state,
+            start_perf=fc.start_perf,
+            diagnostics=fc.diagnostics,
         )
         if outcome.success:
             _install_archive_payload(fc, outcome)
@@ -1001,9 +1018,7 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str, original_len: i
         )
         return True
     outcome = "no_payloads" if not payloads else ("no_synth" if not synthetic else "kept_original")
-    await a2kit.ldd.event(
-        StageEnded(t_ms=t_ms, step="json_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome})
-    )
+    await a2kit.ldd.event(StageEnded(t_ms=t_ms, step="json_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
     return False
 
 
@@ -1043,9 +1058,7 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len
             )
             return True
     outcome = "no_records" if record_set is None else "kept_original"
-    await a2kit.ldd.event(
-        StageEnded(t_ms=t_ms, step="record_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome})
-    )
+    await a2kit.ldd.event(StageEnded(t_ms=t_ms, step="record_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
     return False
 
 
@@ -1185,7 +1198,10 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
         elif isinstance(action, RetryViaArchive):
             fc.archive_dispatches += 1
             outcome = await _dispatch_archive(
-                action.url, state=state, start_perf=fc.start_perf, diagnostics=fc.diagnostics,
+                action.url,
+                state=state,
+                start_perf=fc.start_perf,
+                diagnostics=fc.diagnostics,
             )
             if outcome.success and outcome.pre_rendered is not None:
                 _install_gate_archive(fc, outcome)
@@ -1372,6 +1388,7 @@ async def _phase_extract_answer(
         request_next_links=request_next_links,
         handler_candidates=handler_candidates_for_llm,
         max_content_chars=fc.max_content_chars,
+        request_affordances=fc.include_affordances,
     )
     if result is None:
         # Graceful degrade: fetch succeeded, extraction skipped, operator
@@ -1430,6 +1447,10 @@ async def _phase_extract_answer(
         cache_hit=result.cache_hit,
         truncated=bool(result.raw and result.raw.get("truncated")),
     )
+    # v0.20 — surface the affordances payload for the seam projector. When
+    # the model returned malformed JSON or `include_affordances=False`, this
+    # is None.
+    fc.affordances = result.affordances
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
     await a2kit.ldd.event(
         StageEnded(

@@ -1,0 +1,299 @@
+{
+  "per_url": [
+    {
+      "slug": "tiny-arxiv",
+      "declared_kind": "article-short",
+      "url": "https://arxiv.org/abs/2402.17753",
+      "fetch_status": "ok",
+      "chars": 1853,
+      "v5": {
+        "cost": 0.013769899999999998,
+        "ms": 18517,
+        "page_kind": "reference",
+        "confidence": "medium",
+        "content_value": "high",
+        "reasoning": "Academic paper abstract with structured metadata (authors, categories, dataset/benchmark description); clearly a reference work, but arxiv abstracts sit at the boundary between reference and article-short, making confidence medium rather than high.",
+        "shape_labels": [
+          "citations",
+          "key-value",
+          "list"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "tiny-gh-gist",
+      "declared_kind": "code-snippet",
+      "url": "https://gist.github.com/jboner/2841832",
+      "fetch_status": "ok",
+      "chars": 22132,
+      "v5": {
+        "cost": 0.021798150000000002,
+        "ms": 13634,
+        "page_kind": "listing",
+        "confidence": "high",
+        "content_value": "medium",
+        "reasoning": "This is a GitHub Gist comments section showing a chronological thread of 30 discussion items about computer latency benchmarks; the core reference material is referenced but not fully present, making the extracted content partial.",
+        "shape_labels": [
+          "comments",
+          "timeline",
+          "citations"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "tiny-status-page",
+      "declared_kind": "status",
+      "url": "https://status.openai.com/",
+      "fetch_status": "ok",
+      "chars": 758,
+      "v5": {
+        "cost": 0.012717399999999998,
+        "ms": 11417,
+        "page_kind": "product-page",
+        "confidence": "medium",
+        "content_value": "low",
+        "reasoning": "OpenAI's status dashboard shows system health metrics and uptime statistics, but the extracted content is mostly chrome/summary data with minimal substantive body; sits in cluster C (status/product-page) where distinction is defensible.",
+        "shape_labels": [
+          "key-value",
+          "timeline"
+        ],
+        "n_follow_ups": 4,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "huge-changelog",
+      "declared_kind": "changelog",
+      "url": "https://github.com/pydantic/pydantic/releases",
+      "fetch_status": "ok",
+      "chars": 10503,
+      "v5": {
+        "cost": 0.02164615,
+        "ms": 14226,
+        "page_kind": "changelog",
+        "confidence": "high",
+        "content_value": "medium",
+        "reasoning": "GitHub releases page for Pydantic library showing version history with dates, changes, and contributors; clear changelog structure but content is heavily truncated with incomplete entries and truncated text.",
+        "shape_labels": [
+          "timeline",
+          "key-value",
+          "citations"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "comments-lobste",
+      "declared_kind": "threaded",
+      "url": "https://lobste.rs/s/2hu3pq/",
+      "fetch_status": "ok",
+      "chars": 880,
+      "v5": {
+        "cost": 0.011572650000000002,
+        "ms": 45536,
+        "page_kind": "error",
+        "confidence": "high",
+        "content_value": null,
+        "reasoning": "HTTP 404 status code with explicit 'Resource Not Found' heading and message stating the story has been deleted or does not exist.",
+        "shape_labels": [],
+        "n_follow_ups": 0,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "docs-anthropic",
+      "declared_kind": "api-reference",
+      "url": "https://docs.claude.com/en/api/messages",
+      "fetch_status": "ok",
+      "chars": 726,
+      "v5": {
+        "cost": 0.0124739,
+        "ms": 10458,
+        "page_kind": "api-reference",
+        "confidence": "high",
+        "content_value": "low",
+        "reasoning": "OpenGraph metadata clearly identifies this as Claude API documentation for the Messages endpoint. The fetched content contains only metadata table (8 rows), no actual API reference body\u2014page body was not captured or is behind dynamic rendering.",
+        "shape_labels": [
+          "key-value"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "news-bbc",
+      "declared_kind": "news-article",
+      "url": "https://www.bbc.com/news/articles/c1k7nzjpz7eo",
+      "fetch_status": "ok",
+      "chars": 10652,
+      "v5": {
+        "cost": 0.0204764,
+        "ms": 10689,
+        "page_kind": "error",
+        "confidence": "high",
+        "content_value": null,
+        "reasoning": "HTTP 404 error explicitly stated in page heading and metadata; page structure is BBC's standard 404 template with navigation and related-links fallback, not article content.",
+        "shape_labels": [],
+        "n_follow_ups": 0,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "blog-julia-evans",
+      "declared_kind": "blog-post",
+      "url": "https://jvns.ca/blog/2024/01/05/2023-in-review/",
+      "fetch_status": "ok",
+      "chars": 1442,
+      "v5": {
+        "cost": 0.01241015,
+        "ms": 9252,
+        "page_kind": "error",
+        "confidence": "high",
+        "content_value": null,
+        "reasoning": "HTTP 404 status code combined with explicit 'Page not found' heading and navigation-only body clearly identifies this as a broken link / 404 error page.",
+        "shape_labels": [],
+        "n_follow_ups": 0,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "code-gh-readme",
+      "declared_kind": "readme",
+      "url": "https://github.com/encode/httpx",
+      "fetch_status": "ok",
+      "chars": 5317,
+      "v5": {
+        "cost": 0.016053900000000003,
+        "ms": 11226,
+        "page_kind": "readme",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "This is the GitHub README for encode/httpx, a mature Python HTTP client library. Clear project landing structure (heading + badges + features + installation + documentation + contribution info) with substantial body content (>2000 chars) directly relevant to understanding the project.",
+        "shape_labels": [
+          "key-value",
+          "code",
+          "list",
+          "list"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "media-yt-video",
+      "declared_kind": "video-page",
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "fetch_status": "ok",
+      "chars": 1013,
+      "v5": {
+        "cost": 0.012798899999999998,
+        "ms": 10694,
+        "page_kind": "video-page",
+        "confidence": "high",
+        "content_value": "low",
+        "reasoning": "OpenGraph metadata clearly identifies this as a YouTube video page (og:type=video.other, video embed URLs present), but only metadata is extracted\u2014no transcript, description body, or comments visible in the fetched content.",
+        "shape_labels": [
+          "key-value"
+        ],
+        "n_follow_ups": 4,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "spa-react-dev",
+      "declared_kind": "spa",
+      "url": "https://react.dev/learn",
+      "fetch_status": "ok",
+      "chars": 12130,
+      "v5": {
+        "cost": 0.019569399999999997,
+        "ms": 17613,
+        "page_kind": "tutorial",
+        "confidence": "high",
+        "content_value": "high",
+        "reasoning": "Unambiguous tutorial structure: step-by-step learning progression from component basics through state management, with interactive code examples and clear learning objectives stated upfront; substantial body (>2000 chars) with on-topic foundational React concepts.",
+        "shape_labels": [
+          "learning objectives list",
+          "code examples with inline demos",
+          "concept progression"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "gated-nyt",
+      "declared_kind": "paywalled",
+      "url": "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html",
+      "fetch_status": "failed",
+      "chars": 536,
+      "v5": {
+        "cost": 0.010737149999999999,
+        "ms": 12077,
+        "page_kind": "blocked",
+        "confidence": "high",
+        "content_value": null,
+        "reasoning": "HTTP 403 Forbidden + explicit CAPTCHA warning indicate bot protection blocking automated access; no content body present.",
+        "shape_labels": [],
+        "n_follow_ups": 0,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "paper-arxiv-pdf-stub",
+      "declared_kind": "pdf-stub",
+      "url": "https://arxiv.org/pdf/2402.17753",
+      "fetch_status": "ok",
+      "chars": 1853,
+      "v5": {
+        "cost": 0.014189899999999998,
+        "ms": 14121,
+        "page_kind": "reference",
+        "confidence": "medium",
+        "content_value": "high",
+        "reasoning": "ArXiv abstract page with full research metadata (authors, categories, abstract text); classified as reference rather than article-short due to academic paper citation format and abstract-only presentation, but medium confidence due to Cluster A (academic/short articles) ambiguity between reference/article-short/pdf-stub.",
+        "shape_labels": [
+          "citations",
+          "key-value",
+          "list"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    },
+    {
+      "slug": "docs-cf-page",
+      "declared_kind": "marketing",
+      "url": "https://www.cloudflare.com/products/registrar/",
+      "fetch_status": "ok",
+      "chars": 6042,
+      "v5": {
+        "cost": 0.01668265,
+        "ms": 14772,
+        "page_kind": "product-page",
+        "confidence": "medium",
+        "content_value": "medium",
+        "reasoning": "Product landing page for Cloudflare Registrar with clear value prop and feature overview, but navigation structure and marketing copy dominate; extracted content is partial/truncated (footer nav cuts off mid-sentence).",
+        "shape_labels": [
+          "list",
+          "key-value",
+          "list"
+        ],
+        "n_follow_ups": 5,
+        "envelope_violations": []
+      }
+    }
+  ],
+  "totals": {
+    "cost": 0.2168966,
+    "ms": 214232,
+    "fetch_failures": 0,
+    "parse_failures": 0,
+    "envelope_violations": 0
+  }
+}

@@ -45,6 +45,7 @@ class _RecordingProvider:
         max_tokens=1024,
         temperature=0.0,
         thinking_disabled=True,
+        parts=None,
     ) -> ProviderResponse:
         self.calls.append(
             {

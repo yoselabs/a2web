@@ -56,11 +56,7 @@ _AGGREGATOR_HTML = (
 
 def _comment(i: int, body: str, replies: str = "") -> str:
     return (
-        "<li class='comment'>"
-        f"<h4><a href='/u/user{i}'>user{i}</a></h4>"
-        f"<div class='ct'>{body}</div>"
-        f"<ol class='comments'>{replies}</ol>"
-        "</li>"
+        f"<li class='comment'><h4><a href='/u/user{i}'>user{i}</a></h4><div class='ct'>{body}</div><ol class='comments'>{replies}</ol></li>"
     )
 
 
@@ -151,9 +147,7 @@ async def test_good_article_not_clobbered_by_record_cluster() -> None:
     html = (
         "<html><body>"
         f"<article>{article_text}</article>"
-        "<ul class='related'>"
-        + "".join(f"<li><a href='/related/{i}'>Related post {i}</a></li>" for i in range(8))
-        + "</ul></body></html>"
+        "<ul class='related'>" + "".join(f"<li><a href='/related/{i}'>Related post {i}</a></li>" for i in range(8)) + "</ul></body></html>"
     )
     fc = _FakeFc(content_md=article_text, final_url="https://example.com/post")
     await _run_extraction_escalation(fc, raw_html=html)
