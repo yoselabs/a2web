@@ -106,6 +106,48 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-05-25 — fetcher-orchestrator-refactor-v1 follow-ups (v0.23+)
+
+Shipped `fetcher-orchestrator-refactor-v1` (v0.23). Closed TIER-1 audit smells
+#1 (dual-semantics state slots), #2 (three construction paths drift),
+#3 (escalation contract scattered), plus TIER-2 #5 (boundary freeze). Four
+follow-up items surfaced during the audit that we deliberately deferred —
+none are blocking, each earns its own design pass.
+
+- 🟢 **`unify-resource-protocol`.** Source: 132-a2kit-structural-audit
+  (TIER-2, Smell #4). Resources today split into "crash on unavailable"
+  (Sqlite required) and "graceful unavailable" (BrowserPool, LlmExtractor
+  via `unavailable_lazy`). Pattern works but is implicit — a future reader
+  has to read `bootstrap_state` and `unavailable_lazy` to learn which is
+  which. Worth promoting to a typed Protocol (`OptionalResource` vs
+  `RequiredResource`) once a third resource needs the choice. Trip
+  condition: third resource arrives. Scope: S.
+- 🟢 **`url-shape-router-helper`.** Source: 132-a2kit-structural-audit
+  (TIER-2 DX). Each handler reimplements URL-pattern matching
+  (`matches(url)`) and there's a per-handler skip-on-no-match
+  bookkeeping convention via `TierResult(no_match=True)`. A shared
+  URL-router helper (host + path-shape declared once per handler) would
+  drop ~50 LOC across 9 handlers and make adding a new handler a
+  three-line registration. Scope: S.
+- 🟢 **`package-folder-vs-flat-convention`.** Source: 132-a2kit-structural-audit
+  (TIER-2 DX). `packages/` currently mixes flat `.py` (browser_pool,
+  block_detector, http_cache, proxy_routing, content_extract, escalation)
+  and folders (`llm_extract/`, `cookie_store/`). Convention: folder when
+  multi-author surface, flat otherwise. Document this in
+  `src/a2web/packages/README.md` and add a one-line test that asserts
+  any folder package exports its public surface from `__init__.py`.
+  Scope: S.
+- 🟢 **`handler-failure-visibility-in-response`.** Source:
+  132-a2kit-structural-audit (TIER-2 operator UX). When a site handler
+  short-circuits with a non-ok FetchVerdict (rate limit, timeout,
+  404 from an API endpoint), the response carries
+  `status=failed` + `narrative` but the operator can't tell from the
+  envelope which tier failed — they have to read `debug.diagnostics`.
+  Worth surfacing `failed_at_tier: "site_handler:reddit"` (or similar)
+  as a top-level failure-only field. Scope: S.
+
+---
+
 ## 2026-05-23 — prompt cache + affordances followups (v0.19+)
 
 Shipped `make-llm-prompts-cache-compliant` (v0.19): `EXTRACT_CACHEABLE_V1`
