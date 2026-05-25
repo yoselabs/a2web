@@ -70,8 +70,23 @@ def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
             }
         )
     except Exception as exc:
+        # Use the unified `llm_wobble` log key so operators grep one event
+        # across every LLM-contract boundary (judge / bench_judge / extractor
+        # / routing-mirror). The violating field is the first loc element of
+        # the pydantic ValidationError; fall back to "unknown" if the error
+        # shape doesn't expose it.
+        offending_field = "unknown"
+        errors_attr = getattr(exc, "errors", None)
+        if callable(errors_attr):
+            errs = errors_attr()
+            if errs and isinstance(errs, list) and errs[0].get("loc"):
+                first = errs[0]["loc"][0]
+                offending_field = str(first)
         _LOG.warning(
-            "routing_validation_failed",
+            "llm_wobble",
+            boundary="fetcher_routing_mirror",
+            field=offending_field,
+            tolerance="skip",
             structural_form=boundary.structural_form,
             shape=boundary.shape,
             error=str(exc),

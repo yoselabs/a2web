@@ -28,6 +28,7 @@ from .prompts import (
 )
 from .providers import Provider, ProviderResponse
 from .router_payload import NextUrlBoundary, RouterPayload
+from .wobble import WobblePolicy, WobbleSkip, WobbleTolerance, apply_policy, emit_wobble
 
 __all__ = [
     "EXTRACT_CACHEABLE_V1",
@@ -51,5 +52,10 @@ __all__ = [
     "Provider",
     "ProviderResponse",
     "RouterPayload",
+    "WobblePolicy",
+    "WobbleSkip",
+    "WobbleTolerance",
+    "apply_policy",
+    "emit_wobble",
     "hash_text",
 ]

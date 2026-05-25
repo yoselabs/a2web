@@ -218,6 +218,31 @@ async def test_clarity_judge_scores_noisy_answer_low() -> None:
 
 
 @pytest.mark.asyncio
+async def test_clarity_judge_tolerates_missing_reasoning() -> None:
+    """Under the unified wobble discipline, a missing `reasoning` no longer
+    fails the clarity axis — DEFAULT to "" so the score still counts."""
+    judge = BenchJudge(
+        provider=_CannedProvider('{"clarity": 4}'),  # reasoning intentionally absent
+        model=ModelSpec("canned", "bench-model"),
+    )
+    verdict = await judge.score_clarity(task="?", answer="x")
+    assert verdict.score == 4
+    assert verdict.reasoning == ""
+
+
+@pytest.mark.asyncio
+async def test_next_links_judge_tolerates_missing_reasoning() -> None:
+    """Same wobble discipline for the next_links axis."""
+    judge = BenchJudge(
+        provider=_CannedProvider('{"next_links_score": 3}'),
+        model=ModelSpec("canned", "bench-model"),
+    )
+    verdict = await judge.score_next_links(task="?", next_links="...")
+    assert verdict.score == 3
+    assert verdict.reasoning == ""
+
+
+@pytest.mark.asyncio
 async def test_next_links_judge_parses_score() -> None:
     judge = BenchJudge(
         provider=_CannedProvider('{"next_links_score": 4, "reasoning": "right drilldown set"}'),

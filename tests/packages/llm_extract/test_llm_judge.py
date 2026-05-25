@@ -204,20 +204,24 @@ async def test_judge_missing_overall_still_raises() -> None:
 
 
 @pytest.mark.asyncio
-async def test_judge_missing_reasoning_still_raises() -> None:
-    """`reasoning` is not derivable — its absence is a hard failure."""
+async def test_judge_missing_reasoning_now_defaults_to_empty() -> None:
+    """`reasoning` is decorative — under the unified wobble discipline it
+    DEFAULTs to "" rather than raising. The verdict still carries usable
+    scores/overall/reached."""
     provider = _MockJudgeProvider(
-        text=json.dumps({"scores": [5], "overall": 5}),
+        text=json.dumps({"scores": [5], "overall": 5, "reached": True}),
     )
     judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
-    with pytest.raises(JudgeParseError):
-        await judge.score(task="?", criteria=["c"], answer="x")
+    verdict = await judge.score(task="?", criteria=["c"], answer="x")
+    assert verdict.reasoning == ""
+    assert verdict.overall == 5
+    assert verdict.reached is True
 
 
 @pytest.mark.asyncio
 async def test_judge_reached_warning_log_emitted() -> None:
-    """When `reached` is derived, a structured warning fires so operators can
-    audit how often the model drops the field."""
+    """When `reached` is derived, a structured `llm_wobble` warning fires so
+    operators can grep one key across all LLM-contract boundaries."""
     from structlog.testing import capture_logs
 
     provider = _MockJudgeProvider(
@@ -226,11 +230,11 @@ async def test_judge_reached_warning_log_emitted() -> None:
     judge = Judge(provider=provider, model=ModelSpec("mock", "test-model"))
     with capture_logs() as logs:
         await judge.score(task="?", criteria=["c"], answer="x")
-    warnings = [r for r in logs if r.get("event") == "judge_reached_missing"]
+    warnings = [r for r in logs if r.get("event") == "llm_wobble" and r.get("field") == "reached"]
     assert len(warnings) == 1
+    assert warnings[0]["boundary"] == "judge"
+    assert warnings[0]["tolerance"] == "derive"
     assert warnings[0]["model"] == "test-model"
-    assert warnings[0]["overall"] == 4
-    assert warnings[0]["derived_reached"] is True
 
 
 @pytest.mark.asyncio

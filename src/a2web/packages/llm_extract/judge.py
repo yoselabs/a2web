@@ -16,18 +16,37 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-import structlog
-
 from .extractor import ModelSpec
 from .prompts import JUDGE_V1
 from .providers.base import Provider
+from .wobble import WobblePolicy, WobbleTolerance, apply_policy
 
 # Threshold for deriving `reached` from `overall` when the model drops the
 # field. Matches the aggregation in `src/a2web/llm_eval/report.py` which
 # treats overall >= 3 as a "reached" verdict for reach-rate stats.
 _REACHED_DERIVED_THRESHOLD: int = 3
 
-_LOG = structlog.get_logger("a2web.packages.llm_extract.judge")
+
+def _derive_reached(parsed: dict[str, Any]) -> bool:
+    """Compute `reached` from `overall` against the report-side threshold.
+
+    Used as the DERIVE-policy callable for the `reached` field. The judge
+    parser separately validates that `overall` is present and an int via
+    the STRICT-policy path, so this derive runs only after `overall` is
+    known-good.
+    """
+    return int(parsed["overall"]) >= _REACHED_DERIVED_THRESHOLD
+
+
+# Per-field policy table for the judge boundary. STRICT fields are
+# load-bearing (an unparseable verdict has no signal to salvage); DERIVE
+# fields recover from a known-derivable peer; DEFAULT fields are decorative.
+_JUDGE_POLICY: dict[str, WobblePolicy] = {
+    "scores": WobblePolicy(WobbleTolerance.STRICT),
+    "overall": WobblePolicy(WobbleTolerance.STRICT),
+    "reached": WobblePolicy(WobbleTolerance.DERIVE, derive=_derive_reached),
+    "reasoning": WobblePolicy(WobbleTolerance.DEFAULT, default=""),
+}
 
 
 class JudgeParseError(ValueError):
@@ -112,45 +131,66 @@ class Judge:
         )
 
         parsed = _parse_verdict_json(response.text)
+
+        # STRICT fields — `scores` and `overall`. Wrap KeyError/TypeError from
+        # `apply_policy` (and the int-coercion below) in JudgeParseError so
+        # the runner's existing `judge_failed` path keeps working.
         try:
-            scores = [int(s) for s in parsed["scores"]]
-            overall = int(parsed["overall"])
-            reasoning = str(parsed["reasoning"])
+            scores_raw = apply_policy(
+                parsed,
+                "scores",
+                _JUDGE_POLICY["scores"],
+                boundary="judge",
+                model=self._model.model,
+                raw_excerpt=response.text,
+            )
+            scores = [int(s) for s in scores_raw]
+            overall = int(
+                apply_policy(
+                    parsed,
+                    "overall",
+                    _JUDGE_POLICY["overall"],
+                    boundary="judge",
+                    model=self._model.model,
+                    raw_excerpt=response.text,
+                )
+            )
         except (KeyError, TypeError, ValueError) as exc:
             raise JudgeParseError(
                 f"judge response missing required fields: {exc}",
                 raw_text=response.text,
             ) from exc
 
-        # `reached` is derivable from `overall` — when the model omits or
-        # nulls it (a real failure mode seen in v0.23 bench), recover by
-        # threshold rather than discarding a fully-scored verdict. Mirrors
-        # the graceful-degradation discipline `_project_routing` uses on the
-        # router-shape boundary.
-        reached_derived = False
-        if "reached" in parsed and parsed["reached"] is not None:
-            try:
-                reached = bool(parsed["reached"])
-            except (TypeError, ValueError) as exc:
-                raise JudgeParseError(
-                    f"judge `reached` field is not coercible to bool: {exc}",
-                    raw_text=response.text,
-                ) from exc
-        else:
-            reached = overall >= _REACHED_DERIVED_THRESHOLD
-            reached_derived = True
-            _LOG.warning(
-                "judge_reached_missing",
+        # `reached` (DERIVE) and `reasoning` (DEFAULT) — wobble-tolerant.
+        # The reached-derive path always runs once `overall` is in scope; the
+        # `apply_policy` call uses the `_derive_reached` callable above.
+        reached_present_before = "reached" in parsed and parsed["reached"] is not None
+        reached = bool(
+            apply_policy(
+                parsed,
+                "reached",
+                _JUDGE_POLICY["reached"],
+                boundary="judge",
                 model=self._model.model,
-                overall=overall,
-                derived_reached=reached,
+                raw_excerpt=response.text,
             )
+        )
+        reasoning = str(
+            apply_policy(
+                parsed,
+                "reasoning",
+                _JUDGE_POLICY["reasoning"],
+                boundary="judge",
+                model=self._model.model,
+                raw_excerpt=response.text,
+            )
+        )
 
         raw: dict[str, Any] = {
             "prompt_tokens": response.prompt_tokens,
             "completion_tokens": response.completion_tokens,
         }
-        if reached_derived:
+        if not reached_present_before:
             raw["reached_derived"] = True
 
         return JudgeVerdict(

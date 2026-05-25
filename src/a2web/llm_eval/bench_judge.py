@@ -21,7 +21,26 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from ..packages.llm_extract import JudgeParseError, ModelSpec, Provider
+from ..packages.llm_extract import (
+    JudgeParseError,
+    ModelSpec,
+    Provider,
+    WobblePolicy,
+    WobbleTolerance,
+    apply_policy,
+)
+
+# Per-field wobble policies for the two bench-judge surfaces. Score fields are
+# STRICT (no signal to salvage if the scoring number is gone); reasoning is
+# decorative — DEFAULTs to "" so a dropped field doesn't fail the axis.
+_CLARITY_POLICY: dict[str, WobblePolicy] = {
+    "clarity": WobblePolicy(WobbleTolerance.STRICT),
+    "reasoning": WobblePolicy(WobbleTolerance.DEFAULT, default=""),
+}
+_NEXT_LINKS_POLICY: dict[str, WobblePolicy] = {
+    "next_links_score": WobblePolicy(WobbleTolerance.STRICT),
+    "reasoning": WobblePolicy(WobbleTolerance.DEFAULT, default=""),
+}
 
 _CLARITY_TEMPLATE = (
     "You are a strict, blind judge assessing OUTPUT CLARITY — how cleanly a "
@@ -114,8 +133,26 @@ class BenchJudge:
         )
         parsed = _parse_json(response.text)
         try:
-            score = int(parsed["clarity"])
-            reasoning = str(parsed["reasoning"])
+            score = int(
+                apply_policy(
+                    parsed,
+                    "clarity",
+                    _CLARITY_POLICY["clarity"],
+                    boundary="bench_judge_clarity",
+                    model=self._model.model,
+                    raw_excerpt=response.text,
+                )
+            )
+            reasoning = str(
+                apply_policy(
+                    parsed,
+                    "reasoning",
+                    _CLARITY_POLICY["reasoning"],
+                    boundary="bench_judge_clarity",
+                    model=self._model.model,
+                    raw_excerpt=response.text,
+                )
+            )
         except (KeyError, TypeError, ValueError) as exc:
             raise JudgeParseError(
                 f"clarity verdict missing required fields: {exc}",
@@ -142,8 +179,26 @@ class BenchJudge:
         )
         parsed = _parse_json(response.text)
         try:
-            score = int(parsed["next_links_score"])
-            reasoning = str(parsed["reasoning"])
+            score = int(
+                apply_policy(
+                    parsed,
+                    "next_links_score",
+                    _NEXT_LINKS_POLICY["next_links_score"],
+                    boundary="bench_judge_next_links",
+                    model=self._model.model,
+                    raw_excerpt=response.text,
+                )
+            )
+            reasoning = str(
+                apply_policy(
+                    parsed,
+                    "reasoning",
+                    _NEXT_LINKS_POLICY["reasoning"],
+                    boundary="bench_judge_next_links",
+                    model=self._model.model,
+                    raw_excerpt=response.text,
+                )
+            )
         except (KeyError, TypeError, ValueError) as exc:
             raise JudgeParseError(
                 f"next_links verdict missing required fields: {exc}",
