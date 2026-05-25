@@ -89,13 +89,28 @@ def decide_next(log: Sequence[Observation], *, url: str, caps: PlannerCaps) -> A
     if last.kind is ObservationKind.tier_outcome and last.cloudflare and last.status_code in (403, 429) and caps.archive_dispatches < 1:
         return RetryViaArchive(url=url)
 
-    # A site handler confirmed a Reddit comment thread is gone → archive
-    # (Wayback often holds a pre-deletion snapshot; listings are not retried).
+    # A Reddit comment thread is genuinely gone → archive snapshot. Requires
+    # two-signal evidence so the rule does not preempt browser escalation on
+    # live-but-JS-shielded pages (v0.23 bench failure mode: Reddit serves an
+    # anti-bot JS interstitial that produces non-authoritative not_found from
+    # raw, gate stamps subsystem="js_required" on a separate observation;
+    # without the veto the archive rule would short-circuit and the
+    # browser-escalation signal would be ignored).
+    #
+    # Discriminator:
+    #   - "truly gone" evidence: handler-confirmed (authoritative) OR hard 404.
+    #   - veto: any prior observation with subsystem="js_required" means the
+    #     page is alive and just JS-shielded — let EscalateBrowser handle it.
+    #
+    # The broader pattern (typed-priority planner rules) is tracked in the
+    # deferred `planner-rules-typed-priority` proposal.
     if (
         last.kind is ObservationKind.tier_outcome
         and last.verdict is Verdict.not_found
+        and (last.authoritative or last.status_code == 404)
         and _REDDIT_COMMENT_RE.match(url) is not None
         and caps.archive_dispatches < 1
+        and not any(o.subsystem == "js_required" for o in log)
     ):
         return RetryViaArchive(url=url)
 

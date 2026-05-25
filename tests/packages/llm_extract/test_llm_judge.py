@@ -151,14 +151,86 @@ async def test_judge_raises_parse_error_on_garbage() -> None:
 
 
 @pytest.mark.asyncio
-async def test_judge_raises_parse_error_on_missing_field() -> None:
-    """Valid JSON but missing required field → JudgeParseError."""
+async def test_judge_derives_reached_when_missing() -> None:
+    """The wikipedia-rust v0.23 bench-failure shape — model omits `reached`
+    but returns a fully-scored verdict. Derive `reached` from `overall`
+    against the report-side threshold rather than discarding the signal."""
     provider = _MockJudgeProvider(
-        text=json.dumps({"scores": [5], "overall": 5}),  # no `reached` / `reasoning`
+        text=json.dumps({"scores": [5, 3, 5], "overall": 4, "reasoning": "good"}),
+    )
+    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    verdict = await judge.score(task="?", criteria=["c"], answer="x")
+    assert verdict.reached is True
+    assert verdict.raw is not None
+    assert verdict.raw.get("reached_derived") is True
+
+
+@pytest.mark.asyncio
+async def test_judge_derives_reached_when_null() -> None:
+    """Explicit null on `reached` is the same wobble — derive from overall."""
+    provider = _MockJudgeProvider(
+        text=json.dumps({"scores": [1, 0], "overall": 1, "reached": None, "reasoning": "miss"}),
+    )
+    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    verdict = await judge.score(task="?", criteria=["c"], answer="x")
+    assert verdict.reached is False
+    assert verdict.raw is not None
+    assert verdict.raw.get("reached_derived") is True
+
+
+@pytest.mark.asyncio
+async def test_judge_explicit_reached_does_not_set_derived_flag() -> None:
+    """When the model returns `reached` explicitly, the raw dict carries
+    no `reached_derived` key — distinguishes recovered from authoritative."""
+    provider = _MockJudgeProvider(
+        text=json.dumps({"scores": [5], "overall": 5, "reached": True, "reasoning": "ok"}),
+    )
+    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    verdict = await judge.score(task="?", criteria=["c"], answer="x")
+    assert verdict.reached is True
+    assert verdict.raw is not None
+    assert "reached_derived" not in verdict.raw
+
+
+@pytest.mark.asyncio
+async def test_judge_missing_overall_still_raises() -> None:
+    """`overall` is not derivable — its absence is a hard failure."""
+    provider = _MockJudgeProvider(
+        text=json.dumps({"scores": [5], "reasoning": "x"}),
     )
     judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
     with pytest.raises(JudgeParseError):
-        await judge.score(task="?", criteria=["?"], answer="x")
+        await judge.score(task="?", criteria=["c"], answer="x")
+
+
+@pytest.mark.asyncio
+async def test_judge_missing_reasoning_still_raises() -> None:
+    """`reasoning` is not derivable — its absence is a hard failure."""
+    provider = _MockJudgeProvider(
+        text=json.dumps({"scores": [5], "overall": 5}),
+    )
+    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    with pytest.raises(JudgeParseError):
+        await judge.score(task="?", criteria=["c"], answer="x")
+
+
+@pytest.mark.asyncio
+async def test_judge_reached_warning_log_emitted() -> None:
+    """When `reached` is derived, a structured warning fires so operators can
+    audit how often the model drops the field."""
+    from structlog.testing import capture_logs
+
+    provider = _MockJudgeProvider(
+        text=json.dumps({"scores": [5, 3, 5], "overall": 4, "reasoning": "ok"}),
+    )
+    judge = Judge(provider=provider, model=ModelSpec("mock", "test-model"))
+    with capture_logs() as logs:
+        await judge.score(task="?", criteria=["c"], answer="x")
+    warnings = [r for r in logs if r.get("event") == "judge_reached_missing"]
+    assert len(warnings) == 1
+    assert warnings[0]["model"] == "test-model"
+    assert warnings[0]["overall"] == 4
+    assert warnings[0]["derived_reached"] is True
 
 
 @pytest.mark.asyncio

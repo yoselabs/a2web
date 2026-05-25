@@ -73,6 +73,7 @@ def _tier(
     authoritative: bool = False,
     status_code: int = 200,
     cloudflare: bool = False,
+    subsystem: str | None = None,
 ) -> Observation:
     return Observation(
         kind=ObservationKind.tier_outcome,
@@ -83,10 +84,11 @@ def _tier(
         status_code=status_code,
         cloudflare=cloudflare,
         escalation=None,
+        subsystem=subsystem,
     )
 
 
-def _gate(verdict: Verdict, *, suggested_tier: str | None = None) -> Observation:
+def _gate(verdict: Verdict, *, suggested_tier: str | None = None, subsystem: str | None = None) -> Observation:
     escalation: EscalationSignal | None = None
     if suggested_tier == "browser":
         escalation = EscalationSignal(next_tier="browser", reason="js_required")
@@ -101,6 +103,7 @@ def _gate(verdict: Verdict, *, suggested_tier: str | None = None) -> Observation
         status_code=0,
         cloudflare=False,
         escalation=escalation,
+        subsystem=subsystem,
     )
 
 
@@ -149,10 +152,40 @@ def test_non_cloudflare_403_does_not_retry_archive() -> None:
     assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), Continue)
 
 
-def test_reddit_comment_not_found_retries_via_archive() -> None:
+def test_reddit_comment_authoritative_not_found_retries_via_archive() -> None:
+    """Handler-confirmed deletion (authoritative=True) → archive snapshot."""
     log = [_tier(Verdict.not_found, source="site_handler:reddit", authoritative=True, status_code=0)]
     url = "https://www.reddit.com/r/x/comments/abc/title/"
     assert decide_next(log, url=url, caps=_FRESH) == RetryViaArchive(url=url)
+
+
+def test_reddit_comment_404_retries_via_archive() -> None:
+    """Hard 404 from raw tier (no handler involvement) → archive snapshot."""
+    log = [_tier(Verdict.not_found, source="raw", status_code=404)]
+    url = "https://www.reddit.com/r/x/comments/abc/title/"
+    assert decide_next(log, url=url, caps=_FRESH) == RetryViaArchive(url=url)
+
+
+def test_reddit_comment_js_required_does_not_retry_archive() -> None:
+    """v0.23 bench failure mode: Reddit serves a JS-shell anti-bot interstitial
+    that produces non-authoritative not_found from raw, with a gate observation
+    carrying subsystem='js_required'. The archive rule must NOT short-circuit;
+    the page is alive and should escalate to browser instead."""
+    log = [
+        _gate(Verdict.length_floor, suggested_tier="browser", subsystem="js_required"),
+        _tier(Verdict.not_found, source="raw", authoritative=False, status_code=200),
+    ]
+    url = "https://www.reddit.com/r/x/comments/abc/title/"
+    action = decide_next(log, url=url, caps=_FRESH)
+    assert not isinstance(action, RetryViaArchive)
+
+
+def test_reddit_comment_not_found_without_evidence_does_not_retry_archive() -> None:
+    """Non-authoritative not_found from raw, no 404 status, no js_required signal
+    — no evidence the page is gone OR shielded. Don't dispatch archive."""
+    log = [_tier(Verdict.not_found, source="raw", authoritative=False, status_code=200)]
+    url = "https://www.reddit.com/r/x/comments/abc/title/"
+    assert isinstance(decide_next(log, url=url, caps=_FRESH), Continue)
 
 
 def test_reddit_listing_not_found_does_not_retry_archive() -> None:

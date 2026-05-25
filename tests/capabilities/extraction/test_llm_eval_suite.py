@@ -288,6 +288,36 @@ async def test_suite_handles_empty_answer(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_eval_row_records_derived_verdict_as_success(tmp_path: Path) -> None:
+    """When the judge LLM omits `reached`, the derived verdict counts as a
+    real reach in the row — not a judge_error. Pins the wikipedia-rust
+    bench regression at the suite level."""
+    import json
+
+    corpus = load_corpus(_two_url_corpus(tmp_path))
+    sys_a = _ConstantSystem(name="a", answer="answer text")
+
+    class _DropReachedProvider:
+        async def complete(self, **_kwargs: object) -> object:
+            class _R:
+                text = json.dumps({"scores": [5, 3, 5], "overall": 4, "reasoning": "good"})
+                model = "mock"
+                cost_usd = 0.0
+                latency_ms = 1
+                prompt_tokens = 0
+                completion_tokens = 0
+            return _R()
+
+    judge = Judge(provider=_DropReachedProvider(), model=ModelSpec("mock", "m"))  # type: ignore[arg-type]
+    suite = EvalSuite(corpus=corpus, systems=[sys_a], judge=judge, output_dir=tmp_path / "out")
+    report = await suite.run()
+    for r in report.rows:
+        assert r.judge_error is None
+        assert r.judge_reached is True
+        assert r.judge_overall == 4
+
+
+@pytest.mark.asyncio
 async def test_suite_records_judge_parse_errors(tmp_path: Path) -> None:
     """JudgeParseError on a row → judge_error populated, judge_overall None,
     judge_raw.txt saved in trace."""

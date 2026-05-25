@@ -16,9 +16,18 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+import structlog
+
 from .extractor import ModelSpec
 from .prompts import JUDGE_V1
 from .providers.base import Provider
+
+# Threshold for deriving `reached` from `overall` when the model drops the
+# field. Matches the aggregation in `src/a2web/llm_eval/report.py` which
+# treats overall >= 3 as a "reached" verdict for reach-rate stats.
+_REACHED_DERIVED_THRESHOLD: int = 3
+
+_LOG = structlog.get_logger("a2web.packages.llm_extract.judge")
 
 
 class JudgeParseError(ValueError):
@@ -106,13 +115,43 @@ class Judge:
         try:
             scores = [int(s) for s in parsed["scores"]]
             overall = int(parsed["overall"])
-            reached = bool(parsed["reached"])
             reasoning = str(parsed["reasoning"])
         except (KeyError, TypeError, ValueError) as exc:
             raise JudgeParseError(
                 f"judge response missing required fields: {exc}",
                 raw_text=response.text,
             ) from exc
+
+        # `reached` is derivable from `overall` — when the model omits or
+        # nulls it (a real failure mode seen in v0.23 bench), recover by
+        # threshold rather than discarding a fully-scored verdict. Mirrors
+        # the graceful-degradation discipline `_project_routing` uses on the
+        # router-shape boundary.
+        reached_derived = False
+        if "reached" in parsed and parsed["reached"] is not None:
+            try:
+                reached = bool(parsed["reached"])
+            except (TypeError, ValueError) as exc:
+                raise JudgeParseError(
+                    f"judge `reached` field is not coercible to bool: {exc}",
+                    raw_text=response.text,
+                ) from exc
+        else:
+            reached = overall >= _REACHED_DERIVED_THRESHOLD
+            reached_derived = True
+            _LOG.warning(
+                "judge_reached_missing",
+                model=self._model.model,
+                overall=overall,
+                derived_reached=reached,
+            )
+
+        raw: dict[str, Any] = {
+            "prompt_tokens": response.prompt_tokens,
+            "completion_tokens": response.completion_tokens,
+        }
+        if reached_derived:
+            raw["reached_derived"] = True
 
         return JudgeVerdict(
             scores=scores,
@@ -122,10 +161,7 @@ class Judge:
             model=response.model,
             cost_usd=response.cost_usd,
             latency_ms=response.latency_ms,
-            raw={
-                "prompt_tokens": response.prompt_tokens,
-                "completion_tokens": response.completion_tokens,
-            },
+            raw=raw,
         )
 
 
