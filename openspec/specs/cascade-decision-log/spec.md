@@ -49,9 +49,13 @@ The final verdict SHALL be computed by a pure function `resolve_verdict(log) -> 
 
 ### Requirement: Escalation is decided by a pure planner over the observation log
 
-The orchestrator's next action SHALL be chosen by a pure function `decide_next(log, url, caps) -> Action` that reads the entire observation log, the request URL, and the per-fetch caps. `decide_next` SHALL be total. The `Action` vocabulary SHALL include: `RewriteUrl`, `RetryViaArchive`, `EscalateBrowser`, and a `Continue` no-op action. `decide_next` SHALL be expressible as a decision table whose rows cover every combination of (most-recent observation kind and verdict, escalation evidence, per-fetch caps), each mapping to exactly one `Action`.
+The orchestrator's next action SHALL be chosen by a pure function `decide_next(log, url, caps) -> Action` that reads the entire observation log, the request URL, and the per-fetch caps. `decide_next` SHALL be total. The `Action` vocabulary SHALL include: `RewriteUrl`, `RetryViaArchive`, `EscalateBrowser`, and a `Continue` no-op action.
 
-The URL-pattern rule that dispatches `RetryViaArchive` on a Reddit-comment URL when the most-recent observation is a tier `not_found` SHALL additionally require one of two pieces of "truly gone" evidence on the most-recent observation: (a) `authoritative == True` (the producing handler vouched the verdict is definitive for its domain), OR (b) `status_code == 404` (a hard HTTP 404). The rule SHALL also be vetoed when any observation in the log carries `subsystem == "js_required"` — that fingerprint identifies an anti-bot JS interstitial whose correct escalation is the browser tier, not archive.
+`decide_next` SHALL be implemented as the enumeration of a module-level immutable tuple of `PlannerRule` instances. Each `PlannerRule` SHALL declare three fields explicitly: (a) a `name: str` identifying the rule, (b) a `priority: RulePriority` drawn from a closed enum with at least four levels (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), and (c) a pure callable returning `Action | None` over the planner's input context (the observation log, the most-recent observation, the URL, and the caps). A rule that returns `None` SHALL defer to the next rule.
+
+`decide_next` SHALL evaluate every rule whose priority can still produce a winning action, pick the highest-priority rule whose callable returned a non-`None` action, and return that action. Within a single priority level, declaration order in the rules tuple SHALL be the tiebreaker. When no rule yields an action, `decide_next` SHALL return `Continue()`.
+
+`decide_next` SHALL remain a pure, total, deterministic function — no rule callable performs I/O, captures mutable state, reads globals, or depends on wall-clock time.
 
 #### Scenario: A soft-block observation yields EscalateBrowser with no winning tier
 
@@ -68,25 +72,20 @@ The URL-pattern rule that dispatches `RetryViaArchive` on a Reddit-comment URL w
 - **WHEN** the `decide_next` decision table is checked over the full product of its input conditions
 - **THEN** every combination maps to exactly one `Action` — no missing row, no conflicting rows
 
-#### Scenario: Handler-confirmed deleted Reddit comment escalates to archive
+#### Scenario: Higher-priority rule outranks lower-priority rule on the same log
 
-- **WHEN** the log's most-recent observation is a tier outcome with `verdict=not_found`, `authoritative=True`, and `source` is the Reddit site handler, on a Reddit-comment URL, with the archive budget unspent, and no observation in the log carries `subsystem="js_required"`
-- **THEN** `decide_next` returns `RetryViaArchive(url=url)`
+- **WHEN** the log carries evidence that triggers both a `HIGH`-priority rule and a `MEDIUM`-priority rule on the same call to `decide_next`
+- **THEN** `decide_next` returns the `HIGH`-priority rule's action; the `MEDIUM`-priority rule does not fire
 
-#### Scenario: Hard-404 Reddit comment escalates to archive
+#### Scenario: Declaration order resolves ties within a priority level
 
-- **WHEN** the log's most-recent observation is a tier outcome with `verdict=not_found` and `status_code=404` on a Reddit-comment URL, with the archive budget unspent, and no observation in the log carries `subsystem="js_required"`
-- **THEN** `decide_next` returns `RetryViaArchive(url=url)`
+- **WHEN** two rules at identical priority both return non-`None` actions for the same `(log, url, caps)`
+- **THEN** the rule declared earlier in the rules tuple wins; the result is deterministic across runs
 
-#### Scenario: JS-shielded Reddit comment does NOT short-circuit to archive
+#### Scenario: Gate-browser signal outranks Reddit-comment archive rule
 
-- **WHEN** the log's most-recent observation is a tier outcome with `verdict=not_found` on a Reddit-comment URL, but `authoritative=False`, `status_code != 404`, and some observation in the log carries `subsystem="js_required"`
-- **THEN** `decide_next` does NOT return `RetryViaArchive` — it falls through to the next planner rule or `Continue`, leaving the JS-shielded page to the browser-escalation path (the existing `escalation.next_tier == "browser"` rule, or a subsequent planner round once the gate appends its observation)
-
-#### Scenario: Reddit comment not_found without authoritative or 404 evidence does not retry archive
-
-- **WHEN** the log's most-recent observation is a tier outcome with `verdict=not_found` on a Reddit-comment URL, `authoritative=False`, and `status_code != 404` (and no `js_required` is present either)
-- **THEN** `decide_next` does NOT return `RetryViaArchive` — there is no evidence the content is truly gone
+- **WHEN** the log carries (a) a tier observation on a Reddit-comment URL with `verdict=not_found` carrying `subsystem="js_required"`, and (b) a later gate observation with `escalation.next_tier="browser"`, with the browser budget unspent
+- **THEN** `decide_next` returns `EscalateBrowser` (the gate-browser rule at `HIGH`), not `RetryViaArchive` (the Reddit-comment rule at `MEDIUM`)
 
 ### Requirement: The orchestrator is a pure executor of planner actions
 
@@ -137,4 +136,34 @@ The signal is evidence-only; the planner remains the sole authority on whether t
 
 - **WHEN** the codebase is grepped for `suggested_tier ==` or `suggested_tier !=`
 - **THEN** zero matches exist; all decisions are made on typed `EscalationSignal.next_tier` Literal values
+
+### Requirement: Every planner rule has an identity and a test pair
+
+Every `PlannerRule` registered in the planner's rules tuple SHALL have a stable string `name` that uniquely identifies the rule across the codebase. The rule's `name` SHALL appear in at least two test functions: one asserting the rule fires when its precondition holds (positive case), and one asserting the rule does not fire when its precondition fails or a higher-priority rule wins (negative case). The convention for the test names SHALL be `test_<rule_name>_fires_when_<condition>` and `test_<rule_name>_does_not_fire_when_<condition>`.
+
+This discipline is enforced by code review, not by a runtime guard — the spec captures the convention so reviewers reject rule additions that lack the test pair.
+
+#### Scenario: A new rule arrives with positive + negative tests
+
+- **WHEN** a contributor adds a new `PlannerRule` to the rules tuple
+- **THEN** the same patch adds at least one `test_<rule_name>_fires_when_*` and at least one `test_<rule_name>_does_not_fire_when_*` test; reviewers reject the patch otherwise
+
+#### Scenario: Rule names are unique
+
+- **WHEN** the rules tuple is enumerated
+- **THEN** every rule's `name` field is distinct from every other rule's `name`
+
+### Requirement: Planner rules live in a single file until the documented threshold
+
+All `PlannerRule` instances SHALL be declared in `src/a2web/actions/playbook.py` (or its successor single-file location) for as long as the rules tuple holds 10 or fewer rules. When the tuple reaches 11 rules, the rules SHALL be split into per-category modules under `src/a2web/actions/playbook/rules/` (one module per priority level), and the planner module re-imports them in a single tuple. This threshold is structural, not advisory — it removes the per-PR "should we split?" debate.
+
+#### Scenario: Rules tuple has 10 or fewer rules
+
+- **WHEN** `_RULES` holds ≤ 10 entries
+- **THEN** every `PlannerRule` instance is declared in the single planner module file
+
+#### Scenario: Rules tuple crosses the threshold
+
+- **WHEN** the rules tuple would grow past 10 entries
+- **THEN** the rules MUST be split into per-category modules before the new rule lands; the patch that adds the 11th rule also performs the split
 

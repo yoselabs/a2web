@@ -204,3 +204,40 @@ def test_browser_cap_spent_suppresses_escalation() -> None:
     caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=1)
     log = [_tier(Verdict.ok), _gate(Verdict.anti_bot, suggested_tier="browser")]
     assert isinstance(decide_next(log, url="https://x.com/", caps=caps), Continue)
+
+
+def test_gate_browser_signal_outranks_reddit_archive_when_both_apply() -> None:
+    """The structural-regression case from `planner-rules-typed-priority`:
+    if both the Reddit-comment archive rule AND the gate-browser-signal rule
+    could fire (counterfactually — the js_required veto on the archive rule
+    already prevents conflict at the precondition level), priority must
+    pick the browser-escalation rule (HIGH > MEDIUM). The veto + the
+    priority ordering converge on the same outcome: browser wins, archive
+    silenced."""
+    from a2web.actions.playbook import EscalateBrowser, decide_next
+
+    log = [
+        _tier(Verdict.not_found, source="site_handler:reddit", authoritative=True),
+        _gate(Verdict.length_floor, suggested_tier="browser"),
+    ]
+    url = "https://www.reddit.com/r/x/comments/abc/title/"
+    action = decide_next(log, url=url, caps=_FRESH)
+    assert isinstance(action, EscalateBrowser)
+
+
+def test_rule_names_are_unique() -> None:
+    """Adding a new PlannerRule must not collide with an existing one."""
+    from a2web.actions.playbook import _RULES
+
+    names = [r.name for r in _RULES]
+    assert len(names) == len(set(names)), names
+
+
+def test_decide_next_is_pure() -> None:
+    """Same (log, url, caps) → same Action across repeated calls."""
+    log = [_tier(Verdict.not_found, source="site_handler:reddit", authoritative=True)]
+    url = "https://www.reddit.com/r/x/comments/abc/title/"
+    first = decide_next(log, url=url, caps=_FRESH)
+    second = decide_next(log, url=url, caps=_FRESH)
+    third = decide_next(log, url=url, caps=_FRESH)
+    assert first == second == third
