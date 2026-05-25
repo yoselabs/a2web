@@ -45,7 +45,7 @@ class ExtractedLink:
     # up in the response. Filtering is a caller-side concern.
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class ExtractedContent:
     content_md: str
     title: str | None = None

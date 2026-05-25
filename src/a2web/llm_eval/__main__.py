@@ -23,18 +23,13 @@ import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 
-from purgatory import AsyncCircuitBreakerFactory
-
-from ..llm_resource import LlmExtractorResource
-from ..packages.http_cache import SqliteResource
 from ..packages.llm_extract import Judge, LLMNotAvailable, ModelSpec, Provider
 from ..packages.llm_extract.providers.anthropic import AnthropicProvider
 from ..packages.llm_extract.providers.claude_code import ClaudeCodeProvider
-from ..packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from ..settings import AppSettings
-from ..state import build_state
+from ..state import bootstrap_state
 from .bench_judge import BenchJudge
 from .corpus import CorpusError, load_corpus
 from .report import stats_dict, write_all
@@ -117,27 +112,18 @@ async def _amain(argv: list[str]) -> int:
     # Thread the provider choice into A2WebExtract's reader path too — its
     # extractor builds its own provider from settings.
     settings = AppSettings(llm_provider=provider_id)
-    # Build the always-on state bundle directly — eval CLI bypasses the App
-    # container; we construct the four resources here and inject the
-    # extractor explicitly into A2WebExtract.
-    sqlite = SqliteResource()
-    state = build_state(
-        settings=settings,
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        proxy_pool=ProxyPool(
-            routes=cast("list[RouteRuleShape]", settings.routes),
-            proxies=cast("dict[str, ProxyEntryShape]", settings.proxies),
-        ),
-        sqlite=sqlite,
-    )
-    extractor = LlmExtractorResource(settings, sqlite)
+    # Single source of truth: bootstrap_state constructs both AppState and
+    # the Resources bundle (browser_pool + llm_extractor + cookie_jar).
+    # Closes the v0.22 bench-harness gap — adding a resource only needs to
+    # extend bootstrap_state, no eval-side wiring drift.
+    state, resources = await bootstrap_state(settings)
 
     systems: list[EvalSystem] = []
     if args.mode in ("default", "baseline"):
         systems.append(WebFetchBaseline(provider=provider))
     if args.mode in ("default", "detail"):
-        systems.append(A2WebDetail(state=state))
-        systems.append(A2WebExtract(state=state, extractor=extractor))
+        systems.append(A2WebDetail(state=state, resources=resources))
+        systems.append(A2WebExtract(state=state, resources=resources))
 
     judge_model = ModelSpec(provider_id, args.judge_model)
     judge = Judge(provider=provider, model=judge_model)
@@ -155,7 +141,10 @@ async def _amain(argv: list[str]) -> int:
     )
 
     print(f"Running benchmark: {len(corpus)} URLs x {len(systems)} systems (provider={provider_id}) → {output_dir}")
-    report = await suite.run()
+    # Lifecycle the browser pool around the run — Camoufox launches lazily on
+    # first acquire, but `__aexit__` is what cleanly closes the browser process.
+    async with resources.browser_pool:
+        report = await suite.run()
     write_all(report)
     print(json.dumps(stats_dict(report), indent=2, default=str))
     print(f"\nReport written to: {output_dir}")

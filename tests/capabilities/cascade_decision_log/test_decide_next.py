@@ -8,7 +8,15 @@ from hypothesis import strategies as st
 from a2web.actions import Continue, EscalateBrowser, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
 from a2web.decision_log import Observation, ObservationKind
 from a2web.models import Verdict
+from a2web.packages.escalation import EscalationSignal
 
+_escalations = st.sampled_from(
+    [
+        None,
+        EscalationSignal(next_tier="browser", reason="js_required"),
+        EscalationSignal(next_tier="tls_impersonate", reason="cf_iuam"),
+    ],
+)
 _observations = st.builds(
     Observation,
     kind=st.sampled_from(ObservationKind),
@@ -18,7 +26,7 @@ _observations = st.builds(
     t_ms=st.integers(min_value=0, max_value=600_000),
     status_code=st.sampled_from([0, 200, 403, 404, 429, 500]),
     cloudflare=st.booleans(),
-    suggested_tier=st.sampled_from([None, "browser", "tls_impersonate"]),
+    escalation=_escalations,
 )
 _logs = st.lists(_observations, max_size=10)
 _caps = st.builds(
@@ -66,11 +74,34 @@ def _tier(
     status_code: int = 200,
     cloudflare: bool = False,
 ) -> Observation:
-    return Observation(ObservationKind.tier_outcome, source, verdict, authoritative, 1, status_code, cloudflare, None)
+    return Observation(
+        kind=ObservationKind.tier_outcome,
+        source=source,
+        verdict=verdict,
+        authoritative=authoritative,
+        t_ms=1,
+        status_code=status_code,
+        cloudflare=cloudflare,
+        escalation=None,
+    )
 
 
 def _gate(verdict: Verdict, *, suggested_tier: str | None = None) -> Observation:
-    return Observation(ObservationKind.gate_outcome, "gate", verdict, False, 2, 0, False, suggested_tier)
+    escalation: EscalationSignal | None = None
+    if suggested_tier == "browser":
+        escalation = EscalationSignal(next_tier="browser", reason="js_required")
+    elif suggested_tier == "tls_impersonate":
+        escalation = EscalationSignal(next_tier="tls_impersonate", reason="cf_iuam")
+    return Observation(
+        kind=ObservationKind.gate_outcome,
+        source="gate",
+        verdict=verdict,
+        authoritative=False,
+        t_ms=2,
+        status_code=0,
+        cloudflare=False,
+        escalation=escalation,
+    )
 
 
 def test_empty_log_continues() -> None:

@@ -19,7 +19,7 @@ from a2web.llm_eval import (
 from a2web.llm_eval.systems import WEBFETCH_MARKDOWN_CAP, WEBFETCH_MODEL
 from a2web.packages.llm_extract import Extractor, ModelSpec, ProviderResponse
 from a2web.settings import AppSettings
-from a2web.state import AppState
+from a2web.state import AppState, Resources
 from a2web.tiers import REGISTRY, TierResult
 
 # --------------------------------------------------------------------- #
@@ -232,13 +232,19 @@ def _make_state() -> AppState:
     return make_default_state(settings=AppSettings())
 
 
+def _make_bundle() -> tuple[AppState, Resources]:
+    from tests.conftest import make_default_bundle
+
+    return make_default_bundle(settings=AppSettings())
+
+
 @pytest.mark.asyncio
 async def test_a2web_detail_returns_content_md(monkeypatch: pytest.MonkeyPatch) -> None:
     body = b"<!doctype html><html><body><article><h1>Detail</h1>" + b"<p>substantive body. </p>" * 80 + b"</article></body></html>"
     monkeypatch.setitem(REGISTRY, "raw", _MockRawTier(body))
-    state = _make_state()
+    state, resources = _make_bundle()
 
-    system = A2WebDetail(state=state)
+    system = A2WebDetail(state=state, resources=resources)
     result = await system.fetch(url="https://example.com/p", ask="ignored")
 
     assert isinstance(result, SystemResult)
@@ -254,17 +260,20 @@ async def test_a2web_extract_runs_extractor_when_available(
 ) -> None:
     body = b"<!doctype html><html><body><article><h1>Extract</h1>" + b"<p>content body. </p>" * 80 + b"</article></body></html>"
     monkeypatch.setitem(REGISTRY, "raw", _MockRawTier(body))
-    state = _make_state()
+    state, resources = _make_bundle()
 
-    # Inject a stub extractor: build a fresh LlmExtractorResource (v0.36+:
-    # not on AppState anymore) and pre-seed its private `_extractor`.
+    # Inject a stub extractor: build a fresh LlmExtractorResource and
+    # pre-seed its private `_extractor`. Swap into a fresh Resources bundle.
+    from dataclasses import replace
+
     from a2web.llm_resource import LlmExtractorResource
 
     provider = _RecordingProvider(answer="Extract speaks.")
     extractor_res = LlmExtractorResource(state.settings, state.sqlite)
     extractor_res._extractor = Extractor(provider=provider, model=ModelSpec("rec", "rec-model"))
+    resources = replace(resources, llm_extractor=extractor_res)
 
-    system = A2WebExtract(state=state, extractor=extractor_res)
+    system = A2WebExtract(state=state, resources=resources)
     result = await system.fetch(url="https://example.com/p", ask="What does it say?")
 
     assert result.system == "a2web_extract"
@@ -284,13 +293,16 @@ async def test_a2web_extract_falls_back_to_content_md_when_no_extractor(
     content_md (the extracted markdown) as the answer — graceful degrade."""
     body = b"<!doctype html><html><body><article><h1>NoLLM</h1>" + b"<p>content. </p>" * 80 + b"</article></body></html>"
     monkeypatch.setitem(REGISTRY, "raw", _MockRawTier(body))
+    from dataclasses import replace
+
     from a2web.llm_resource import LlmExtractorResource
 
-    state = _make_state()
+    state, resources = _make_bundle()
     extractor_res = LlmExtractorResource(state.settings, state.sqlite)
     extractor_res._unavailable_reason = "No API key in env."
+    resources = replace(resources, llm_extractor=extractor_res)
 
-    system = A2WebExtract(state=state, extractor=extractor_res)
+    system = A2WebExtract(state=state, resources=resources)
     result = await system.fetch(url="https://example.com/p", ask="ignored")
 
     assert result.system == "a2web_extract"

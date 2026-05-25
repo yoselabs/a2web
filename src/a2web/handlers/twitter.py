@@ -25,6 +25,7 @@ import trafilatura
 
 from ..models import Heading, Verdict
 from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ._common import empty_result
 
 _LOG = structlog.get_logger("a2web.handlers.twitter")
 
@@ -116,7 +117,7 @@ class TwitterHandler:
                 _LOG.debug("nitter_instance_skipped", instance=instance, error=str(exc))
                 continue
 
-        return _empty_result(url, last_verdict)
+        return empty_result(url, last_verdict)
 
 
 class _NitterInstanceFailure(Exception):
@@ -195,16 +196,4 @@ async def _try_instance(
             headings=headings,
         ),
         verdict=Verdict.ok,
-    )
-
-
-def _empty_result(url: str, verdict: Verdict) -> TierResult:
-    from ..tiers import TierResult
-
-    return TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url=url,
-        verdict=verdict,
     )

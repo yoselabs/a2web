@@ -17,13 +17,20 @@ from typing import TYPE_CHECKING
 import aiosqlite.core
 import pytest
 from a2kit.testing import ambient_for_tests_autouse  # noqa: F401 — autouse fixture by import (v0.39.3+)
-from purgatory import AsyncCircuitBreakerFactory
 
+from a2web.cookie_jar import build_cookie_jar
 from a2web.models import OperatorHint, Verdict
 from a2web.packages.http_cache import SqliteResource
-from a2web.packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from a2web.settings import AppSettings
-from a2web.state import AppState, build_state
+from a2web.state import (
+    AppState,
+    Resources,
+    build_breakers,
+    build_browser_pool,
+    build_llm_extractor,
+    build_proxy_pool,
+    build_state,
+)
 from a2web.tiers import REGISTRY, TierResult
 
 if TYPE_CHECKING:
@@ -51,26 +58,39 @@ aiosqlite.core.Connection.__init__ = _daemon_aiosqlite_connection_init  # type: 
 
 
 def make_default_state(settings: AppSettings | None = None) -> AppState:
-    """Test-only convenience — build an `AppState` with the four always-on
-    resources constructed directly (no DI).
+    """Test-only convenience — build an `AppState` via the same per-resource
+    factories `bootstrap_state` composes (single source of truth).
 
-    Production code resolves AppState via `app.container().get(AppState)` /
-    `a2kit.testing.peek(app, AppState)`. Tests that bypass DI and exercise
-    `fetch()` directly use this helper. NOT a back-compat shim — `build_state`
-    requires its four deps as kwargs per the v0.38 DI architecture.
+    Production code resolves AppState via the DI container; tests that
+    bypass DI and exercise `fetch()` directly use this helper. NOT a
+    back-compat shim — calls the same `build_*` factories so a new
+    always-on resource only needs wiring in `state.py`.
+
+    Tests that also need the Lazy-eligible resources should call
+    `make_default_bundle(...)` instead.
     """
-    from typing import cast
+    state, _ = make_default_bundle(settings)
+    return state
 
+
+def make_default_bundle(settings: AppSettings | None = None) -> tuple[AppState, Resources]:
+    """Test-only convenience — full (AppState, Resources) bundle from the
+    same per-resource factories as `bootstrap_state`. Sync — does not need
+    a running event loop, matches the cheap-construction contract."""
     s = settings or AppSettings()
-    return build_state(
+    sqlite = SqliteResource()
+    state = build_state(
         settings=s,
-        breakers=AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0),
-        proxy_pool=ProxyPool(
-            routes=cast("list[RouteRuleShape]", s.routes),
-            proxies=cast("dict[str, ProxyEntryShape]", s.proxies),
-        ),
-        sqlite=SqliteResource(),
+        breakers=build_breakers(),
+        proxy_pool=build_proxy_pool(s),
+        sqlite=sqlite,
     )
+    resources = Resources(
+        browser_pool=build_browser_pool(s),
+        llm_extractor=build_llm_extractor(s, sqlite),
+        cookie_jar=build_cookie_jar(s, sqlite),
+    )
+    return state, resources
 
 
 class _NotFoundArchiveTier:

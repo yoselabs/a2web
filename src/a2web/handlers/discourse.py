@@ -23,8 +23,9 @@ from urllib.parse import urlparse, urlunparse
 
 from ..models import Heading, NextLink, Verdict
 from ..packages.html_fragment import to_markdown, to_text
-from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ..packages.http_fetch import fetch_bytes
 from ..settings import DEFAULT_DISCOURSE_HOSTS
+from ._common import empty_result, map_non_ok
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -68,25 +69,20 @@ class DiscourseHandler:
             timeout_s=_DEFAULT_TIMEOUT_S,
         )
 
-        if outcome.verdict is FetchVerdict.timeout:
-            return _empty_result(url, Verdict.timeout)
-        if outcome.verdict is FetchVerdict.not_found:
-            return _empty_result(url, Verdict.not_found)
-        if outcome.verdict is FetchVerdict.rate_limited:
-            return _empty_result(url, Verdict.rate_limited)
-        if outcome.verdict is not FetchVerdict.ok:
-            return _empty_result(url, Verdict.connection_error)
+        non_ok = map_non_ok(outcome, url=url)
+        if non_ok is not None:
+            return non_ok
 
         try:
             payload = json.loads(outcome.body)
         except (ValueError, json.JSONDecodeError):
             # A configured host that is not actually Discourse — fall through.
-            return _empty_result(url, Verdict.not_found)
+            return empty_result(url, Verdict.not_found)
 
         rendered = _render_topic(payload) if topic_match is not None else _render_index(payload, url)
         if rendered is None:
             # Valid JSON but not a Discourse topic / index — fall through.
-            return _empty_result(url, Verdict.not_found)
+            return empty_result(url, Verdict.not_found)
 
         return TierResult(
             body=outcome.body,
@@ -251,15 +247,3 @@ def _post_author(post: dict[str, Any]) -> str | None:
     """A post's author — the Discourse `username` (stable), `name` is optional."""
     username = post.get("username")
     return str(username) if username else None
-
-
-def _empty_result(url: str, verdict: Verdict) -> TierResult:
-    from ..tiers import TierResult
-
-    return TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url=url,
-        verdict=verdict,
-    )

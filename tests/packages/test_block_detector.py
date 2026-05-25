@@ -110,39 +110,29 @@ def test_reddit_js_challenge_marker_triggers_browser_escalation() -> None:
     result = _eval(body, content_md="")
     assert result.verdict == BlockVerdict.length_floor
     assert result.subsystem == "js_required"
-    assert result.suggested_tier == "browser"
+    assert result.escalation is not None and result.escalation.next_tier == "browser"
 
 
 def test_generic_custom_element_marker_triggers_browser_escalation() -> None:
     """Any HTML5 custom element (hyphenated tag) with thin content + script
     should route to browser — covers Lit, web-components-in-general, etc."""
-    body = (
-        "<html><body>"
-        "<my-widget><lit-element></lit-element></my-widget>"
-        "<script>console.log('hydrating')</script>"
-        "</body></html>"
-    )
+    body = "<html><body><my-widget><lit-element></lit-element></my-widget><script>console.log('hydrating')</script></body></html>"
     result = _eval(body, content_md="tiny")
     assert result.verdict == BlockVerdict.length_floor
     assert result.subsystem == "js_required"
-    assert result.suggested_tier == "browser"
+    assert result.escalation is not None and result.escalation.next_tier == "browser"
 
 
 def test_hyphenated_attributes_alone_do_not_trigger() -> None:
     """Static HTML with `data-foo="x-y-z"` / `class="my-cmp"` but NO
     hyphenated tag names AND no challenge form must not be misclassified."""
-    body = (
-        "<html><body>"
-        '<div data-foo="x-y-z" class="my-cmp">tiny</div>'
-        '<script>noop()</script>'
-        "</body></html>"
-    )
+    body = '<html><body><div data-foo="x-y-z" class="my-cmp">tiny</div><script>noop()</script></body></html>'
     result = _eval(body, content_md="tiny")
     # length_floor still fires (body IS thin), but no js_required signal —
     # so no `suggested_tier` and the planner does not escalate to browser.
     assert result.verdict == BlockVerdict.length_floor
     assert result.subsystem is None
-    assert result.suggested_tier is None
+    assert result.escalation is None
 
 
 def test_above_length_floor_with_custom_elements_is_ok() -> None:
@@ -150,16 +140,14 @@ def test_above_length_floor_with_custom_elements_is_ok() -> None:
     body that ALSO uses custom elements is NOT a JS shell — verdict ok."""
     body = (
         "<html><body>"
-        "<my-comments>"
-        + ("<p>Real rendered comment body content goes here. </p>" * 200)
-        + "</my-comments>"
+        "<my-comments>" + ("<p>Real rendered comment body content goes here. </p>" * 200) + "</my-comments>"
         '<script src="/x.js"></script>'
         "</body></html>"
     )
     md = "Real rendered comment body content goes here. " * 200
     result = _eval(body, content_md=md)
     assert result.verdict == BlockVerdict.ok
-    assert result.suggested_tier is None
+    assert result.escalation is None
 
 
 def test_generic_solution_field_alone_does_not_trigger() -> None:
@@ -167,16 +155,11 @@ def test_generic_solution_field_alone_does_not_trigger() -> None:
     must NOT trigger js_required on its own. We deliberately scoped the
     Reddit markers tightly (`js_challenge` / `jsc_orig_r`) to avoid this
     false positive."""
-    body = (
-        "<html><body>"
-        '<form><label>Answer:</label><input name="solution" /></form>'
-        "<script>noop()</script>"
-        "</body></html>"
-    )
+    body = '<html><body><form><label>Answer:</label><input name="solution" /></form><script>noop()</script></body></html>'
     result = _eval(body, content_md="tiny")
     assert result.verdict == BlockVerdict.length_floor
     assert result.subsystem is None
-    assert result.suggested_tier is None
+    assert result.escalation is None
 
 
 def test_reddit_shreddit_fixture_routes_to_browser() -> None:
@@ -190,4 +173,4 @@ def test_reddit_shreddit_fixture_routes_to_browser() -> None:
     result = _eval(body, content_md="")
     assert result.verdict == BlockVerdict.length_floor
     assert result.subsystem == "js_required"
-    assert result.suggested_tier == "browser"
+    assert result.escalation is not None and result.escalation.next_tier == "browser"

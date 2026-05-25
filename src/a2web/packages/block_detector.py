@@ -20,6 +20,8 @@ import re
 from dataclasses import dataclass
 from enum import StrEnum
 
+from .escalation import EscalationSignal
+
 LENGTH_FLOOR = 500
 
 
@@ -39,11 +41,14 @@ class BlockVerdict(StrEnum):
     content_type_mismatch = "content_type_mismatch"
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class BlockResult:
     verdict: BlockVerdict
     subsystem: str | None = None
-    suggested_tier: str | None = None
+    # Typed escalation signal (Phase 4). The detector emits typed evidence —
+    # the planner decides whether to act. `reason` mirrors `subsystem` for
+    # the matching marker family ("js_required", "cf_iuam", "turnstile", ...).
+    escalation: EscalationSignal | None = None
 
 
 _BLOCK_PATTERNS = (
@@ -123,11 +128,23 @@ def evaluate(
         return BlockResult(BlockVerdict.content_type_mismatch)
 
     if _TURNSTILE_MARKER.search(raw_html):
-        return BlockResult(BlockVerdict.anti_bot, subsystem="turnstile", suggested_tier="browser")
+        return BlockResult(
+            BlockVerdict.anti_bot,
+            subsystem="turnstile",
+            escalation=EscalationSignal(next_tier="browser", reason="turnstile"),
+        )
     if _AKAMAI_BMP_MARKER.search(raw_html):
-        return BlockResult(BlockVerdict.anti_bot, subsystem="akamai_bmp", suggested_tier="browser")
+        return BlockResult(
+            BlockVerdict.anti_bot,
+            subsystem="akamai_bmp",
+            escalation=EscalationSignal(next_tier="browser", reason="akamai_bmp"),
+        )
     if _ANUBIS_MARKER.search(raw_html) and len(content_md) < LENGTH_FLOOR:
-        return BlockResult(BlockVerdict.anti_bot, subsystem="anubis", suggested_tier="browser")
+        return BlockResult(
+            BlockVerdict.anti_bot,
+            subsystem="anubis",
+            escalation=EscalationSignal(next_tier="browser", reason="anubis"),
+        )
     if _SEARCH_CAPTCHA_MARKER.search(raw_html):
         # Belt-and-suspenders for any Google/Bing redirect that escapes
         # `domain.rewrite_captcha_host`. Gate phase maps the subsystem
@@ -136,14 +153,22 @@ def evaluate(
 
     if len(content_md) < LENGTH_FLOOR:
         if _CF_INTERSTITIAL_MARKER.search(raw_html):
-            return BlockResult(BlockVerdict.block_page_detected, subsystem="cf_iuam", suggested_tier="tls_impersonate")
+            return BlockResult(
+                BlockVerdict.block_page_detected,
+                subsystem="cf_iuam",
+                escalation=EscalationSignal(next_tier="tls_impersonate", reason="cf_iuam"),
+            )
 
         for pattern in _BLOCK_PATTERNS:
             if pattern.search(raw_html):
                 return BlockResult(BlockVerdict.block_page_detected)
 
     if len(content_md) < LENGTH_FLOOR and _SCRIPT_TAG_RE.search(raw_html) and _JS_SHELL_ROOT_MARKERS.search(raw_html):
-        return BlockResult(BlockVerdict.length_floor, subsystem="js_required", suggested_tier="browser")
+        return BlockResult(
+            BlockVerdict.length_floor,
+            subsystem="js_required",
+            escalation=EscalationSignal(next_tier="browser", reason="js_required"),
+        )
 
     if len(content_md) < LENGTH_FLOOR:
         return BlockResult(BlockVerdict.length_floor)

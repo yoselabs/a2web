@@ -24,6 +24,7 @@ from urllib.parse import parse_qs, urlparse, urlunparse
 
 from ..models import Heading, NextLink, OperatorHint, Verdict
 from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ._common import empty_result
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -122,7 +123,7 @@ class RedditHandler:
         if _is_short_host(parsed.hostname or ""):
             resolved = await _resolve_short_url(url, state=state)
             if resolved is None:
-                return _empty_result(url, Verdict.connection_error)
+                return empty_result(url, Verdict.connection_error)
             # If the resolved URL is a comment thread, recurse on it. If
             # not (e.g. resolves to a subreddit listing), surface a
             # no_match so the orchestrator falls through to raw/jina.
@@ -150,18 +151,18 @@ class RedditHandler:
         )
 
         if outcome.verdict is FetchVerdict.timeout:
-            return _empty_result(url, Verdict.timeout)
+            return empty_result(url, Verdict.timeout)
         if outcome.verdict is FetchVerdict.not_found:
             # Search/listing hits don't escalate to archive (Wayback doesn't
             # usefully cache dynamic surfaces); return not_found cleanly.
             if shape in ("search", "listing"):
-                return _empty_result(url, Verdict.not_found)
+                return empty_result(url, Verdict.not_found)
             return await _fetch_old_reddit_or_archive_signal(url, state=state, cookies=cookies)
         if outcome.verdict is FetchVerdict.rate_limited:
-            return _empty_result(url, Verdict.rate_limited)
+            return empty_result(url, Verdict.rate_limited)
         if outcome.status_code == 403:
             if shape in ("search", "listing"):
-                return _empty_result(url, Verdict.connection_error)
+                return empty_result(url, Verdict.connection_error)
             # Quarantined / NSFW (unauth) / private — Wayback often has a
             # public capture from before the gate dropped.
             return _archive_escalation_signal(
@@ -170,18 +171,18 @@ class RedditHandler:
                 message="Reddit returned 403 (quarantined/NSFW/private); try archive snapshot.",
             )
         if outcome.verdict is not FetchVerdict.ok:
-            return _empty_result(url, Verdict.connection_error)
+            return empty_result(url, Verdict.connection_error)
 
         try:
             payload = json.loads(outcome.body)
         except (ValueError, json.JSONDecodeError):
-            return _empty_result(url, Verdict.content_type_mismatch)
+            return empty_result(url, Verdict.content_type_mismatch)
 
         # Reddit soft-blocks unauthenticated clients with a 200 + a throttle
         # body (e.g. {"error": 429}) — rate-limiting, not content. Surface it
         # as a real verdict, never no_match.
         if isinstance(payload, dict) and payload.get("error"):
-            return _empty_result(url, Verdict.rate_limited)
+            return empty_result(url, Verdict.rate_limited)
 
         if shape == "search":
             query = (parse_qs(parsed.query).get("q") or [""])[0]
@@ -202,7 +203,7 @@ class RedditHandler:
                 # claimed the URL and got nothing back. Surface not_found;
                 # never no_match, which is reserved for "no handler claims
                 # this URL" and would silently fall through to raw/jina.
-                return _empty_result(url, Verdict.not_found)
+                return empty_result(url, Verdict.not_found)
             # Empty thread (deleted / removed). Try old.reddit; if that
             # also fails, signal archive.
             return await _fetch_old_reddit_or_archive_signal(url, state=state, cookies=cookies)
@@ -654,18 +655,6 @@ def _render_comment(node: Any, *, depth: int) -> tuple[str, int]:
 # --------------------------------------------------------------------- #
 
 
-def _empty_result(url: str, verdict: Verdict) -> TierResult:
-    from ..tiers import TierResult
-
-    return TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url=url,
-        verdict=verdict,
-    )
-
-
 def _archive_escalation_signal(url: str, *, reason: str, message: str) -> TierResult:
     """Return a TierResult that asks the playbook to dispatch the archive tier.
 
@@ -747,17 +736,17 @@ async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str
         cookies=cookies,
     )
     if outcome.verdict is FetchVerdict.timeout:
-        return _empty_result(url, Verdict.timeout)
+        return empty_result(url, Verdict.timeout)
     if outcome.verdict is FetchVerdict.not_found:
-        return _empty_result(url, Verdict.not_found)
+        return empty_result(url, Verdict.not_found)
     if outcome.verdict is FetchVerdict.rate_limited:
-        return _empty_result(url, Verdict.rate_limited)
+        return empty_result(url, Verdict.rate_limited)
     if outcome.verdict is not FetchVerdict.ok:
-        return _empty_result(url, Verdict.connection_error)
+        return empty_result(url, Verdict.connection_error)
 
     html = outcome.body.decode("utf-8", errors="replace")
     if not html:
-        return _empty_result(url, Verdict.length_floor)
+        return empty_result(url, Verdict.length_floor)
 
     markdown = (
         trafilatura.extract(
@@ -770,7 +759,7 @@ async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str
         or ""
     )
     if not markdown:
-        return _empty_result(url, Verdict.length_floor)
+        return empty_result(url, Verdict.length_floor)
 
     metadata = trafilatura.extract_metadata(html)
     title = (metadata.title if metadata else None) or None

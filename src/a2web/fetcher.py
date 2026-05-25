@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from dataclasses import dataclass as _dc
 from datetime import UTC, date, datetime
 from enum import Enum
-from typing import cast
+from typing import Literal, cast
 from urllib.parse import urlparse
 
 import a2kit
@@ -59,12 +59,13 @@ from .packages.content_extract import (
 from .packages.content_extract import (
     parse_metadata,
 )
+from .packages.escalation import EscalationSignal
 from .packages.http_cache import CacheRow, SqliteResource
 from .packages.json_in_script import extract_json_payloads, rank_payloads
 from .packages.llm_extract import LlmNextLink, RouterPayload
 from .packages.record_extract import Record, RecordSet, extract_records
 from .settings import AppSettings
-from .state import AppState
+from .state import AppState, ResourceUnavailable, unavailable_lazy
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
 
 
@@ -74,7 +75,7 @@ class _GateResult:
 
     verdict: Verdict
     subsystem: str | None = None
-    suggested_tier: str | None = None
+    escalation: EscalationSignal | None = None
 
 
 _JINA_PAYWALL_STUB_RE = re.compile(r"Target URL returned error 40[13]")
@@ -123,12 +124,12 @@ def evaluate(
     result = _package_evaluate(content_md=content_md, raw_html=raw_html, content_type=content_type)
     verdict = Verdict(result.verdict.value)
     subsystem = result.subsystem
-    suggested_tier = result.suggested_tier
+    escalation = result.escalation
 
     if tier == "jina" and len(content_md) < _JINA_STUB_MAX_BODY and _JINA_PAYWALL_STUB_RE.search(content_md):
         verdict = Verdict.paywall
         subsystem = "jina_stub"
-        suggested_tier = None  # archive playbook handles next step
+        escalation = None  # archive playbook handles next step
 
     if tier == "browser" and len(content_md) < _THIN_BROWSER_MAX_BODY and host and verdict in (Verdict.ok, Verdict.length_floor):
         norm_host = host.lower()
@@ -141,7 +142,26 @@ def evaluate(
         verdict = Verdict.length_floor
         subsystem = "thin_browser_response"
 
-    return _GateResult(verdict=verdict, subsystem=subsystem, suggested_tier=suggested_tier)
+    return _GateResult(verdict=verdict, subsystem=subsystem, escalation=escalation)
+
+
+@dataclass(slots=True, frozen=True)
+class ContentCandidate:
+    """One source's bid to fill `FetchContext.content_md`.
+
+    Phase 6 of `fetcher-orchestrator-refactor-v1`: escalators return immutable
+    candidates instead of mutating `fc.content_md` in place. The caller
+    (`_run_extraction_escalation`) decides which candidate wins via the same
+    length / threading policy as before, then assigns once.
+
+    `source` identifies which ladder rung produced the candidate. `next_links`
+    is carried for the records source (which doubles as a next-link producer
+    for un-handled listing pages).
+    """
+
+    source: Literal["trafilatura", "json_synth", "record_synth"]
+    content_md: str
+    next_links: list[NextLink] = field(default_factory=list)
 
 
 @_dc(slots=True)
@@ -210,12 +230,21 @@ class FetchContext:
     # actually need browser or LLM extraction `await fc.browser_pool()` /
     # `await fc.llm_extractor()` to resolve the resource once at the seam.
     # Resources never enter when their consuming phase doesn't fire.
-    # Defaulted to None so legacy direct-call paths (eval / tests) still build a
-    # FetchContext without DI wiring — phases emit a graceful operator hint when
-    # they need a resource that wasn't provisioned.
-    browser_pool: Lazy[BrowserPool] | None = None
-    llm_extractor: Lazy[LlmExtractorResource] | None = None
-    cookie_jar: Lazy[CookieJarResource] | None = None
+    #
+    # Non-optional (Phase 3 of fetcher-orchestrator-refactor-v1): the `fetch()`
+    # entrypoint normalizes any `None` caller-kwarg to an `unavailable_lazy(...)`
+    # stub before constructing FetchContext, so phases never check for `None` —
+    # they `await` uniformly and catch `ResourceUnavailable` to emit the
+    # graceful operator hint.
+    browser_pool: Lazy[BrowserPool] = field(
+        default_factory=lambda: unavailable_lazy(BrowserPool, reason="browser_pool not provisioned"),
+    )
+    llm_extractor: Lazy[LlmExtractorResource] = field(
+        default_factory=lambda: unavailable_lazy(LlmExtractorResource, reason="llm_extractor not provisioned"),
+    )
+    cookie_jar: Lazy[CookieJarResource] = field(
+        default_factory=lambda: unavailable_lazy(CookieJarResource, reason="cookie_jar not provisioned"),
+    )
 
     # Response-shape opt-ins (v0.3 envelope diet)
     include_links: bool = False
@@ -265,10 +294,6 @@ class FetchContext:
     links: list[Link] = field(default_factory=list)
     meta_dict: dict[str, str] = field(default_factory=dict)
 
-    # Gate state
-    gate_verdict: Verdict = Verdict.ok
-    gate_subsystem: str | None = None
-
     # Append-only decision log — the single source of truth for the verdict.
     # Phases append Observations; the final verdict is the pure projection
     # `resolve_verdict(observations)`. There is no mutable verdict slot.
@@ -312,7 +337,8 @@ class FetchContext:
         authoritative: bool = False,
         status_code: int = 0,
         cloudflare: bool = False,
-        suggested_tier: str | None = None,
+        escalation: EscalationSignal | None = None,
+        subsystem: str | None = None,
     ) -> None:
         """Append one immutable observation to the decision log."""
         t_ms = int((time.perf_counter() - self.start_perf) * 1000)
@@ -325,13 +351,44 @@ class FetchContext:
                 t_ms=t_ms,
                 status_code=status_code,
                 cloudflare=cloudflare,
-                suggested_tier=suggested_tier,
+                escalation=escalation,
+                subsystem=subsystem,
             ),
         )
 
     def resolved_verdict(self) -> Verdict:
         """Project the current observation log to a verdict (pure, order-independent)."""
         return resolve_verdict(self.observations)
+
+    def last_gate_outcome(self) -> GateOutcomeProjection | None:
+        """Return the most recent gate observation as a frozen projection.
+
+        Pure read against the decision log — no mutable snapshot. Returns
+        `None` if the gate hasn't run yet. The Phase-2 replacement for the
+        old `fc.gate_verdict` / `fc.gate_subsystem` mutable fields.
+        """
+        for obs in reversed(self.observations):
+            if obs.kind is ObservationKind.gate_outcome:
+                return GateOutcomeProjection(
+                    verdict=obs.verdict,
+                    subsystem=obs.subsystem,
+                    escalation=obs.escalation,
+                )
+        return None
+
+
+@dataclass(frozen=True, slots=True)
+class GateOutcomeProjection:
+    """Frozen projection of the most recent gate observation.
+
+    Read-only view returned by `FetchContext.last_gate_outcome()` — keeps
+    callers from accidentally mutating decision-log state through a
+    pseudo-snapshot.
+    """
+
+    verdict: Verdict
+    subsystem: str | None
+    escalation: EscalationSignal | None
 
 
 async def fetch(
@@ -388,15 +445,43 @@ async def fetch(
     bypass_cache = is_live_only(url, state.settings)
     sqlite = None if bypass_cache else state.sqlite
 
+    # Normalize caller-provided Lazy[T] | None → stub-on-unavailable. This is
+    # the single seam where the optional public API meets the non-optional
+    # FetchContext contract — phases never see `None` again.
+    browser_lazy = (
+        browser_pool
+        if browser_pool is not None
+        else unavailable_lazy(
+            BrowserPool,
+            reason="browser_pool not provisioned by caller",
+        )
+    )
+    llm_lazy = (
+        llm_extractor
+        if llm_extractor is not None
+        else unavailable_lazy(
+            LlmExtractorResource,
+            reason="llm_extractor not provisioned by caller",
+        )
+    )
+    cookie_lazy = (
+        cookie_jar
+        if cookie_jar is not None
+        else unavailable_lazy(
+            CookieJarResource,
+            reason="cookie_jar not provisioned by caller",
+        )
+    )
+
     fc = FetchContext(
         started_at=started_at,
         start_perf=start_perf,
         profile_hash=profile_hash,
         sqlite=sqlite,
         bypass_cache=bypass_cache,
-        browser_pool=browser_pool,
-        llm_extractor=llm_extractor,
-        cookie_jar=cookie_jar,
+        browser_pool=browser_lazy,
+        llm_extractor=llm_lazy,
+        cookie_jar=cookie_lazy,
         url=url,
         final_url=url,
         requested_url=requested_url,
@@ -490,14 +575,12 @@ async def _emit_tier_ended(
 async def _phase_resolve_cookies(fc: FetchContext, *, state: AppState) -> None:
     """Resolve cookies for the current fetch host into FetchContext.
 
-    No-op when `cookie_source == "none"` or no cookie_jar Lazy was provided
-    (legacy direct call paths). Re-resolves when `fc.url`'s host has changed
-    since the last call (e.g. after `RewriteUrl`). Emits a redacted
-    `CookiesAttached` event on a non-empty resolution.
+    No-op when `cookie_source == "none"` or when the cookie_jar Lazy is an
+    unavailable stub (caller didn't provision one). Re-resolves when
+    `fc.url`'s host has changed since the last call (e.g. after `RewriteUrl`).
+    Emits a redacted `CookiesAttached` event on a non-empty resolution.
     """
     if state.settings.cookie_source == "none":
-        return
-    if fc.cookie_jar is None:
         return
     from urllib.parse import urlparse
 
@@ -510,7 +593,10 @@ async def _phase_resolve_cookies(fc: FetchContext, *, state: AppState) -> None:
     scheme = parsed.scheme or "https"
     path = parsed.path or "/"
 
-    jar = await fc.cookie_jar()
+    try:
+        jar = await fc.cookie_jar()
+    except ResourceUnavailable:
+        return
     cookies_full = await jar.get_for_host(host, scheme, path)
     fc.cookies_full = cookies_full
     fc.cookies = {c.name: c.value for c in cookies_full}
@@ -544,11 +630,12 @@ async def _phase_cookies_staleness(fc: FetchContext, *, state: AppState) -> None
     """
     if state.settings.cookie_source == "none":
         return
-    if fc.cookie_jar is None:
-        return
     if fc.cookies_stale_hint_appended:
         return
-    jar = await fc.cookie_jar()
+    try:
+        jar = await fc.cookie_jar()
+    except ResourceUnavailable:
+        return
     info = await jar.staleness()
     if not info.is_stale:
         return
@@ -973,40 +1060,46 @@ async def _phase_extract(fc: FetchContext) -> None:
 async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None:
     """Multi-source structured-extraction ladder — runs unconditionally.
 
-    There is no recall trigger: the ladder runs after every trafilatura
-    extraction and each rung self-gates on its own preconditions —
-    `json_in_script` only fires when embedded JSON is present, structural
-    record extraction only when a record region clears the detector guards.
-    Sources are tried in order and the ladder stops at the first whose output
-    passes the quality-aware replace check. When no source helps, `content_md`
-    is left unchanged and the cascade falls through, so the orchestrator's
-    browser-tier escalation still applies.
+    Each rung returns an immutable `ContentCandidate | None` instead of
+    mutating `fc.content_md`. This function applies the winning candidate
+    once at the end — single assignment point per pipeline invocation.
+
+    Sources are tried in order: json_synth first, then record_synth.
+    The ladder stops at the first whose candidate beats the baseline (the
+    json escalator's length check, or the records escalator's
+    threading-aware-for-records / length-aware-for-flat policy). When no
+    rung produces a winning candidate, `content_md` is left unchanged and
+    the cascade falls through, so the orchestrator's browser-tier
+    escalation still applies.
     """
     original_len = len(fc.content_md or "")
-    if await _escalate_via_json(fc, raw_html=raw_html, original_len=original_len):
-        return
-    await _escalate_via_records(fc, raw_html=raw_html, original_len=original_len)
+    candidate = await _escalate_via_json(fc, raw_html=raw_html, original_len=original_len)
+    if candidate is None:
+        candidate = await _escalate_via_records(fc, raw_html=raw_html, original_len=original_len)
+    if candidate is not None:
+        fc.content_md = candidate.content_md
+        if candidate.next_links:
+            fc.next_links_handler = candidate.next_links
 
 
-async def _escalate_via_json(fc: FetchContext, *, raw_html: str, original_len: int) -> bool:
-    """Ladder source 1 — embedded JSON (incl. JSON-LD). True if it replaced content_md.
+async def _escalate_via_json(fc: FetchContext, *, raw_html: str, original_len: int) -> ContentCandidate | None:
+    """Ladder source 1 — embedded JSON (incl. JSON-LD).
 
-    Quality-aware replace: a synthetic surface wins only when it is longer
-    than trafilatura's (already under-extracted) output — length is a fair
-    proxy here because JSON payloads are structured page data, not chrome.
+    Returns a `ContentCandidate` if its synthetic output beats the baseline
+    (length-aware: structured JSON payloads are page data, not chrome). Pure
+    function — emits its LDD telemetry but does NOT mutate `fc.content_md`.
     """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     await a2kit.ldd.event(StageStarted(t_ms=t_ms, step="json_synth"))
     payloads = extract_json_payloads(raw_html)
     synthetic = ""
     for payload in rank_payloads(payloads):
-        candidate = json_to_markdown_rows(payload)
-        if candidate:
-            synthetic = candidate
+        rendered = json_to_markdown_rows(payload)
+        if rendered:
+            synthetic = rendered
             break
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
     if synthetic and len(synthetic) > original_len:
-        fc.content_md = synthetic
         await a2kit.ldd.event(
             StageEnded(
                 t_ms=t_ms,
@@ -1016,23 +1109,20 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str, original_len: i
                 extra={"outcome": "replaced", "synth_chars": len(synthetic)},
             )
         )
-        return True
+        return ContentCandidate(source="json_synth", content_md=synthetic)
     outcome = "no_payloads" if not payloads else ("no_synth" if not synthetic else "kept_original")
     await a2kit.ldd.event(StageEnded(t_ms=t_ms, step="json_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
-    return False
+    return None
 
 
-async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len: int) -> bool:
-    """Ladder source 2 — structural record detection. True if it replaced content_md.
+async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len: int) -> ContentCandidate | None:
+    """Ladder source 2 — structural record detection.
 
-    `extract_records` returns a `RecordSet` only when a record region clears
-    the detector's self-gating guards — so a non-`None` result is already a
-    confirmed listing or threaded discussion. The replace decision is
-    **depth-aware**: a threaded record set replaces `content_md` whenever
-    produced — trafilatura cannot represent threading, so rendered length is
-    not a quality proxy for it; a flat catalog replaces only when its render
-    is longer than trafilatura's output. A flat record set also populates
-    `next_links` for this otherwise un-handled listing page.
+    Returns a `ContentCandidate` (with `next_links`) when the record set
+    clears the threading-aware / length-aware policy. Threaded record sets
+    always beat trafilatura (which can't represent threading); flat record
+    sets beat only when their render is longer. Pure function — no mutation
+    of `fc.content_md` / `fc.next_links_handler`.
     """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     await a2kit.ldd.event(StageStarted(t_ms=t_ms, step="record_synth"))
@@ -1041,8 +1131,7 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len
     if record_set is not None:
         synthetic = record_set.to_markdown()
         if record_set.is_threaded or len(synthetic) > original_len:
-            fc.content_md = synthetic
-            fc.next_links_handler = _records_to_next_links(record_set, page_url=fc.final_url or "")
+            next_links = _records_to_next_links(record_set, page_url=fc.final_url or "")
             await a2kit.ldd.event(
                 StageEnded(
                     t_ms=t_ms,
@@ -1056,10 +1145,10 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len
                     },
                 )
             )
-            return True
+            return ContentCandidate(source="record_synth", content_md=synthetic, next_links=next_links)
     outcome = "no_records" if record_set is None else "kept_original"
     await a2kit.ldd.event(StageEnded(t_ms=t_ms, step="record_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
-    return False
+    return None
 
 
 # An anchor that reads like a comment count — "12 comments", "1 comment".
@@ -1150,8 +1239,6 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
         host=urlparse(fc.final_url).hostname if fc.final_url else None,
         settings=state.settings,
     )
-    fc.gate_verdict = gate_result.verdict
-    fc.gate_subsystem = gate_result.subsystem
     gate_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - gate_dur_start
     fc.diagnostics.append(
         Diagnostic(
@@ -1160,26 +1247,27 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
             engine="block_detector",
             host=None,
             proxy=None,
-            verdict=fc.gate_verdict,
-            subsystem=fc.gate_subsystem,
+            verdict=gate_result.verdict,
+            subsystem=gate_result.subsystem,
             dur_ms=gate_dur_ms,
             extra={},
         )
     )
     await a2kit.ldd.event(
-        StageEnded(t_ms=gate_dur_start, step="gate", verdict=fc.gate_verdict, dur_ms=gate_dur_ms),
+        StageEnded(t_ms=gate_dur_start, step="gate", verdict=gate_result.verdict, dur_ms=gate_dur_ms),
     )
     fc.observe(
         kind=ObservationKind.gate_outcome,
         source="gate",
-        verdict=fc.gate_verdict,
-        suggested_tier=gate_result.suggested_tier,
+        verdict=gate_result.verdict,
+        escalation=gate_result.escalation,
+        subsystem=gate_result.subsystem,
     )
 
     # v0.7: search-engine captcha escape — block detector flagged a Google/Bing
     # captcha page that slipped past `rewrite_captcha_host`. Surface an
     # actionable operator hint instead of just an opaque `block_page_detected`.
-    if fc.gate_subsystem == "captcha_redirect":
+    if gate_result.subsystem == "captcha_redirect":
         fc.operator_hints.append(
             OperatorHint(
                 code="captcha_redirect",
@@ -1213,29 +1301,37 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
 def _regate_after_escalation(fc: FetchContext) -> None:
     """Re-evaluate the gate on freshly-installed escalation content.
 
-    Used after both browser and gate-path archive installs. Sets
-    `fc.gate_verdict` / `fc.gate_subsystem` and appends a gate-outcome
-    observation to the decision log. The pre-rendered markdown plays both
-    the `content_md` and `raw_html` roles — the underlying body is no
-    longer the discriminator at this point in the pipeline.
+    Used after both browser and gate-path archive installs. Appends a
+    gate-outcome observation to the decision log — the new observation IS
+    the new gate state (no mutable snapshot to keep in sync). The
+    pre-rendered markdown plays both the `content_md` and `raw_html`
+    roles — the underlying body is no longer the discriminator at this
+    point in the pipeline.
     """
     regate = evaluate(content_md=fc.content_md, raw_html=fc.content_md, content_type=None)
-    fc.gate_verdict = regate.verdict
-    fc.gate_subsystem = None if regate.verdict is Verdict.ok else regate.subsystem
-    fc.observe(kind=ObservationKind.gate_outcome, source="regate", verdict=regate.verdict)
+    subsystem = None if regate.verdict is Verdict.ok else regate.subsystem
+    fc.observe(
+        kind=ObservationKind.gate_outcome,
+        source="regate",
+        verdict=regate.verdict,
+        subsystem=subsystem,
+    )
 
 
 async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
     """Dispatch the browser tier out-of-band; install its result on success.
 
     Resolves the `Lazy[BrowserPool]` at this single seam — BrowserPool only
-    enters when an escalation actually fires. Direct-call test paths that
-    inject a stub `REGISTRY['browser']` may pass `pool=None`; the stub tier
-    swallows the kwarg via `**kwargs` and returns its hardcoded result.
-    The real `BrowserTier` short-circuits to an unavailable verdict when
-    `pool is None`.
+    enters when an escalation actually fires. When the caller didn't
+    provision a real pool, the stub raises `ResourceUnavailable` and we pass
+    `pool=None` to the tier: the real `BrowserTier` short-circuits to an
+    unavailable verdict, and direct-call test stubs (REGISTRY["browser"])
+    ignore the kwarg.
     """
-    pool = await fc.browser_pool() if fc.browser_pool is not None else None
+    try:
+        pool: BrowserPool | None = await fc.browser_pool()
+    except ResourceUnavailable:
+        pool = None
     browser_tier = REGISTRY["browser"]
     br_start_ms = await _emit_tier_started(step="browser", host=_host(fc.final_url), start_perf=fc.start_perf)
     browser_result = await browser_tier.fetch(fc.final_url, state=state, pool=pool)
@@ -1360,20 +1456,20 @@ async def _phase_extract_answer(
         # Failed fetches don't get extraction — no content to extract from.
         # The agent will see status=failed + diagnostics_summary explaining why.
         return
-    if fc.llm_extractor is None:
+    phase_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+    await a2kit.ldd.event(StageStarted(t_ms=phase_start_ms, step="extract_answer"))
+
+    try:
+        extractor_resource = await fc.llm_extractor()
+    except ResourceUnavailable as exc:
         fc.operator_hints.append(
             OperatorHint(
                 code="llm_unavailable",
-                message="LLM extractor was not provisioned for this fetch call",
+                message=f"LLM extractor not provisioned ({exc.reason})",
                 fix="invoke via WebRouter.fetch or pass llm_extractor=Lazy[LlmExtractorResource]",
             )
         )
         return
-
-    phase_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.ldd.event(StageStarted(t_ms=phase_start_ms, step="extract_answer"))
-
-    extractor_resource = await fc.llm_extractor()
 
     # v0.7 link-discovery: request next-links from the LLM in the same call.
     # Skip the extension when the off-switch is engaged.

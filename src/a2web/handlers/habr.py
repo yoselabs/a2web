@@ -26,6 +26,7 @@ import anyio
 from ..models import Heading, Verdict
 from ..packages.html_fragment import to_markdown, to_text
 from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ._common import empty_result
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -78,7 +79,7 @@ class HabrHandler:
 
         parsed = _parse(url)
         if parsed is None:  # pragma: no cover - matches() gates this
-            return _empty_result(url, Verdict.not_found)
+            return empty_result(url, Verdict.not_found)
         article_id, lang = parsed
         base = f"https://habr.com/kek/v2/articles/{article_id}"
         params = {"fl": lang, "hl": lang}
@@ -96,7 +97,7 @@ class HabrHandler:
         article = results["article"]
         if not isinstance(article, dict) or not article.get("textHtml"):
             # Non-200, malformed JSON, or an error payload for an unknown id.
-            return _empty_result(url, Verdict.not_found)
+            return empty_result(url, Verdict.not_found)
 
         comments = results["comments"]
         rendered = _render_article(article, comments if isinstance(comments, dict) else None)
@@ -224,15 +225,3 @@ def _render_comment(
         for child_id in children.get(comment_id, []):
             block += _render_comment(child_id, comments, children, depth=depth + 1, budget=budget)
     return block
-
-
-def _empty_result(url: str, verdict: Verdict) -> TierResult:
-    from ..tiers import TierResult
-
-    return TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url=url,
-        verdict=verdict,
-    )

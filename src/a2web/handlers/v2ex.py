@@ -25,6 +25,7 @@ import anyio
 from ..models import Heading, Verdict
 from ..packages.html_fragment import to_markdown
 from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ._common import empty_result
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -64,7 +65,7 @@ class V2EXHandler:
 
         topic_id = _topic_id(url)
         if topic_id is None:  # pragma: no cover - matches() gates this
-            return _empty_result(url, Verdict.not_found)
+            return empty_result(url, Verdict.not_found)
 
         results: dict[str, Any] = {"topic": None, "replies": None}
         request_headers = {"User-Agent": state.settings.default_ua}
@@ -79,7 +80,7 @@ class V2EXHandler:
         topic_list = results["topic"]
         if not isinstance(topic_list, list) or not topic_list or not isinstance(topic_list[0], dict):
             # Non-200, malformed JSON, or an empty list for an unknown id.
-            return _empty_result(url, Verdict.not_found)
+            return empty_result(url, Verdict.not_found)
 
         raw_replies = results["replies"]
         replies = raw_replies if isinstance(raw_replies, list) else []
@@ -166,15 +167,3 @@ def _post_body(post: dict[str, Any]) -> str:
     if content:
         return content
     return to_markdown(post.get("content_rendered") or "")
-
-
-def _empty_result(url: str, verdict: Verdict) -> TierResult:
-    from ..tiers import TierResult
-
-    return TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url=url,
-        verdict=verdict,
-    )

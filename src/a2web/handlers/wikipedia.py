@@ -14,7 +14,8 @@ from urllib.parse import unquote, urlparse
 import trafilatura
 
 from ..models import NextLink, Verdict
-from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ..packages.http_fetch import fetch_bytes
+from ._common import empty_result, map_non_ok
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -53,7 +54,7 @@ class WikipediaHandler:
 
         parsed = _parse(url)
         if parsed is None:
-            return _empty_result(url, Verdict.not_found)
+            return empty_result(url, Verdict.not_found)
         lang, slug = parsed
 
         api_url = f"https://{lang}.wikipedia.org/api/rest_v1/page/html/{slug}"
@@ -63,18 +64,13 @@ class WikipediaHandler:
             timeout_s=_TIMEOUT_S,
         )
 
-        if outcome.verdict is FetchVerdict.timeout:
-            return _empty_result(url, Verdict.timeout)
-        if outcome.verdict is FetchVerdict.not_found:
-            return _empty_result(url, Verdict.not_found)
-        if outcome.verdict is FetchVerdict.rate_limited:
-            return _empty_result(url, Verdict.rate_limited)
-        if outcome.verdict is not FetchVerdict.ok:
-            return _empty_result(url, Verdict.connection_error)
+        non_ok = map_non_ok(outcome, url=url)
+        if non_ok is not None:
+            return non_ok
 
         html = outcome.body.decode("utf-8", errors="replace")
         if not html:
-            return _empty_result(url, Verdict.length_floor)
+            return empty_result(url, Verdict.length_floor)
 
         title = unquote(slug).replace("_", " ")
         markdown = (
@@ -89,7 +85,7 @@ class WikipediaHandler:
         )
 
         if not markdown:
-            return _empty_result(url, Verdict.length_floor)
+            return empty_result(url, Verdict.length_floor)
 
         from ..tiers import Rendered
 
@@ -147,15 +143,3 @@ def _wikilink_candidates(html: str, *, lang: str) -> list[NextLink]:
             ),
         )
     return out
-
-
-def _empty_result(url: str, verdict: Verdict) -> TierResult:
-    from ..tiers import TierResult
-
-    return TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url=url,
-        verdict=verdict,
-    )

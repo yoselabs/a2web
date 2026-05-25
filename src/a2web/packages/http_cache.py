@@ -36,7 +36,7 @@ def cache_dir() -> Path:
 # --------------------------------------------------------------------- #
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class CacheRow:
     url: str
     profile_hash: str

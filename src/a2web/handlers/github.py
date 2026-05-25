@@ -28,6 +28,7 @@ from gidgethub.abc import GitHubAPI
 
 from ..models import Heading, NextLink, Verdict
 from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ._common import empty_result
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -177,7 +178,7 @@ class GitHubHandler:
         del cookies  # handler manages its own transport
         classified = _classify(url)
         if classified is None:
-            return _empty_result(url, Verdict.not_found)
+            return empty_result(url, Verdict.not_found)
         kind, parts = classified
         gh = _make_api(state.settings)
 
@@ -188,24 +189,24 @@ class GitHubHandler:
                 return await _fetch_issue(url, parts, gh)
             return await _fetch_pull(url, parts, gh)
         except _TimeoutSentinel:
-            return _empty_result(url, Verdict.timeout)
+            return empty_result(url, Verdict.timeout)
         except _ConnectionSentinel:
-            return _empty_result(url, Verdict.connection_error)
+            return empty_result(url, Verdict.connection_error)
         except gidgethub.RateLimitExceeded:
-            return _empty_result(url, Verdict.rate_limited)
+            return empty_result(url, Verdict.rate_limited)
         except gidgethub.InvalidField:
-            return _empty_result(url, Verdict.content_type_mismatch)
+            return empty_result(url, Verdict.content_type_mismatch)
         except gidgethub.BadRequest as err:
             status = getattr(err, "status_code", 0)
             # `status_code` may be an HTTPStatus enum; cast to int for comparisons.
             status_int = int(status) if status else 0
             if status_int == 404:
-                return _empty_result(url, Verdict.not_found)
+                return empty_result(url, Verdict.not_found)
             if status_int == 429:
-                return _empty_result(url, Verdict.rate_limited)
-            return _empty_result(url, Verdict.connection_error)
+                return empty_result(url, Verdict.rate_limited)
+            return empty_result(url, Verdict.connection_error)
         except gidgethub.GitHubException:
-            return _empty_result(url, Verdict.connection_error)
+            return empty_result(url, Verdict.connection_error)
 
 
 # --------------------------------------------------------------------- #
@@ -480,15 +481,3 @@ def _render_pull(data: dict, reviews: list, comments: list) -> dict[str, object]
         "byline": rendered["byline"],
         "headings": headings,
     }
-
-
-def _empty_result(url: str, verdict: Verdict) -> TierResult:
-    from ..tiers import TierResult
-
-    return TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url=url,
-        verdict=verdict,
-    )

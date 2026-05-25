@@ -8,6 +8,49 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-05-25
+
+### Changed (internal — no public API changes)
+
+Per `openspec/changes/fetcher-orchestrator-refactor-v1/` — 7-phase
+structural refactor following the 2026-05-25 parallel-agent architecture
+audit. NO MCP wire / `ask` / `fetch_raw` envelope changes; pure internal
+discipline.
+
+- **Single source of truth for resource construction** (`bootstrap_state`).
+  `Resources` frozen bundle (browser_pool + llm_extractor + cookie_jar)
+  alongside `AppState`; production providers, eval CLI, and tests all
+  delegate to the same per-resource factories. Closes the class of
+  regression that caused the v0.22 bench-harness gap — adding a resource
+  reaches every construction path automatically.
+- **Decision log is the single source of truth for verdict.**
+  `FetchContext.gate_verdict` / `gate_subsystem` mutable snapshots are
+  gone; reads project from the log via `last_gate_outcome()` →
+  `GateOutcomeProjection` frozen view.
+- **Non-optional `Lazy[T]` resources** on FetchContext. `fetch()` kwargs
+  stay `Lazy[T] | None = None` for caller convenience; normalization to
+  `unavailable_lazy(...)` happens at the entrypoint. Phases uniformly
+  `await + try/except ResourceUnavailable`.
+- **Typed `EscalationSignal`** replaces `suggested_tier: str | None` on
+  `Observation` and `BlockResult`. `NextTier = Literal["browser",
+  "tls_impersonate", "archive"]` — closed-enum dispatch in the planner,
+  no string compares. New `packages/escalation.py` package boundary type.
+- **DRY handlers**: 9 byte-identical copies of `_empty_result` consolidated
+  into `handlers/_common.empty_result`. 5 handlers use new
+  `handlers/_common.map_non_ok(outcome, url)` for the standard
+  FetchVerdict → Verdict block. Reddit's shape-aware 403 policy stays
+  inline (only handler that needs it).
+- **Pure extraction escalators**: `_escalate_via_json` and
+  `_escalate_via_records` return immutable `ContentCandidate | None`
+  instead of mutating `fc.content_md`. Single assignment site in
+  `_run_extraction_escalation`. Same sequential ladder + same policy.
+- **Frozen boundary dataclasses**: `ExtractedContent`, `CacheRow`,
+  `BlockResult`, `CookieRow`, `EscalationSignal`. New
+  `tests/architecture/test_packages_boundary_frozen.py` invariant.
+
+Coverage: 88.4% → 89.3% (less code to cover from DRY). 796 tests pass
+(was 780).
+
 ## [0.22.0] — 2026-05-25
 
 ### Added

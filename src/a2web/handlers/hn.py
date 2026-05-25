@@ -9,7 +9,8 @@ from urllib.parse import parse_qs, urlparse
 
 from ..models import Heading, NextLink, Verdict
 from ..packages.html_fragment import to_markdown
-from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ..packages.http_fetch import fetch_bytes
+from ._common import empty_result, map_non_ok
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -54,7 +55,7 @@ class HNHandler:
         else:
             item_id = parse_qs(parsed.query).get("id", [""])[0]
             if not item_id:
-                return _empty_result(url, Verdict.not_found)
+                return empty_result(url, Verdict.not_found)
             api_url = f"https://hn.algolia.com/api/v1/items/{item_id}"
 
         outcome = await fetch_bytes(
@@ -63,19 +64,14 @@ class HNHandler:
             timeout_s=_DEFAULT_TIMEOUT_S,
         )
 
-        if outcome.verdict is FetchVerdict.timeout:
-            return _empty_result(url, Verdict.timeout)
-        if outcome.verdict is FetchVerdict.not_found:
-            return _empty_result(url, Verdict.not_found)
-        if outcome.verdict is FetchVerdict.rate_limited:
-            return _empty_result(url, Verdict.rate_limited)
-        if outcome.verdict is not FetchVerdict.ok:
-            return _empty_result(url, Verdict.connection_error)
+        non_ok = map_non_ok(outcome, url=url)
+        if non_ok is not None:
+            return non_ok
 
         try:
             payload = json.loads(outcome.body)
         except (ValueError, json.JSONDecodeError):
-            return _empty_result(url, Verdict.content_type_mismatch)
+            return empty_result(url, Verdict.content_type_mismatch)
 
         if is_front_page:
             rendered = _render_front_page(payload)
@@ -219,15 +215,3 @@ def _render_kid(node: Any, *, depth: int) -> str:
     for child in node.get("children") or []:
         block += _render_kid(child, depth=depth + 1)
     return block
-
-
-def _empty_result(url: str, verdict: Verdict) -> TierResult:
-    from ..tiers import TierResult
-
-    return TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url=url,
-        verdict=verdict,
-    )

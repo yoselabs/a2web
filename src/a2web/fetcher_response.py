@@ -192,13 +192,15 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # log, never a stored field. See `decision_log.resolve_verdict`.
     final_verdict = resolve_verdict(fc.observations)
     status = FetchStatus.ok if final_verdict == Verdict.ok else FetchStatus.failed
+    gate_outcome = fc.last_gate_outcome()
+    gate_subsystem = gate_outcome.subsystem if gate_outcome else None
 
     narrative = _build_narrative(
         tier_used=fc.tier_used,
         cache_state=fc.cache_state,
         final_verdict=final_verdict,
         total_ms=total_ms,
-        gate_subsystem=fc.gate_subsystem,
+        gate_subsystem=gate_subsystem,
     )
 
     wrapped_md = _wrap_content_md(fc.content_md, source=fc.final_url, fetched_at=fc.started_at) if fc.wrap_content else fc.content_md
@@ -209,7 +211,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
         tier_used=fc.tier_used,
         final_verdict=final_verdict,
         total_ms=total_ms,
-        gate_subsystem=fc.gate_subsystem,
+        gate_subsystem=gate_subsystem,
     )
 
     # `url` is redirect-only: carry the final URL only when it differs from

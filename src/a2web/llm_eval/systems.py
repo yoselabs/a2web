@@ -35,7 +35,8 @@ from .tokens import envelope_token_breakdown, estimate_tokens
 if TYPE_CHECKING:
     from ..llm_resource import LlmExtractorResource
     from ..models import FetchResponse
-    from ..state import AppState
+    from ..packages.browser_pool import BrowserPool
+    from ..state import AppState, Resources
 
 
 # WebFetch constants extracted from Claude Code's binary (research/123).
@@ -190,23 +191,38 @@ class A2WebDetail:
     answer. Used to measure the cost of "agent reads the envelope and
     extracts the answer in its own context" — i.e. the WebFetch
     counterfactual where the calling LLM does the extraction.
+
+    v0.22+: takes a `Resources` bundle (browser_pool + llm_extractor +
+    cookie_jar) so the gate's `suggested_tier="browser"` escalation can
+    actually fire (e.g. on Reddit's JS-challenge interstitial). Bundle
+    constructed via `state.bootstrap_state()`.
     """
 
     name: str = "a2web_detail"
 
-    def __init__(self, *, state: AppState) -> None:
+    def __init__(self, *, state: AppState, resources: Resources) -> None:
         self._state = state
+        self._resources = resources
 
     async def fetch(self, *, url: str, ask: str) -> SystemResult:
         from ..fetcher import fetch as a2web_fetch
 
+        pool = self._resources.browser_pool
+
+        async def _lazy_browser_pool() -> BrowserPool:
+            return pool
+
+        browser_lazy = _lazy_browser_pool
+
         t0 = time.perf_counter()
-        response: FetchResponse = await a2web_fetch(url, state=self._state, include_links=False, debug=False)
+        response: FetchResponse = await a2web_fetch(url, state=self._state, browser_pool=browser_lazy, include_links=False, debug=False)
         latency_ms = int((time.perf_counter() - t0) * 1000)
         # Second fetch with debug=True — feeds the data-contract axis (the
         # debug object must appear under debug=True and only then). HTTP +
         # extraction caches make this near-free.
-        response_debug: FetchResponse = await a2web_fetch(url, state=self._state, include_links=False, debug=True)
+        response_debug: FetchResponse = await a2web_fetch(
+            url, state=self._state, browser_pool=browser_lazy, include_links=False, debug=True
+        )
         envelope = response.model_dump(mode="json")
         envelope_debug = response_debug.model_dump(mode="json")
         tokens = envelope_token_breakdown(envelope)
@@ -231,28 +247,38 @@ class A2WebExtract:
     """Invokes a2web's fetch(url, ask=...) with server-side extraction.
     Matches the WebFetch use case — caller gets back only the answer.
 
-    v0.36+: `LlmExtractorResource` is no longer on AppState; it must be
-    injected explicitly. Wrap with an async thunk so the fetch tool's
-    `Lazy[LlmExtractorResource]` param accepts it.
+    v0.36+: `LlmExtractorResource` is no longer on AppState; it lives on
+    the `Resources` bundle. Wrap each Lazy-eligible resource with an async
+    thunk for the fetch tool's `Lazy[T]` params.
     """
 
     name: str = "a2web_extract"
 
-    def __init__(self, *, state: AppState, extractor: LlmExtractorResource) -> None:
+    def __init__(self, *, state: AppState, resources: Resources) -> None:
         self._state = state
-        self._extractor = extractor
+        self._resources = resources
 
     async def fetch(self, *, url: str, ask: str) -> SystemResult:
         from ..fetcher import fetch as a2web_fetch
         from ..fetcher_response import build_ask_response
 
+        extractor = self._resources.llm_extractor
+
         async def _lazy_extractor() -> LlmExtractorResource:
-            return self._extractor
+            return extractor
+
+        pool = self._resources.browser_pool
+
+        async def _lazy_browser_pool() -> BrowserPool:
+            return pool
+
+        browser_lazy = _lazy_browser_pool
 
         t0 = time.perf_counter()
         response: FetchResponse = await a2web_fetch(
             url,
             state=self._state,
+            browser_pool=browser_lazy,
             llm_extractor=_lazy_extractor,
             ask=ask,
             include_links=False,
@@ -264,6 +290,7 @@ class A2WebExtract:
         response_debug: FetchResponse = await a2web_fetch(
             url,
             state=self._state,
+            browser_pool=browser_lazy,
             llm_extractor=_lazy_extractor,
             ask=ask,
             include_links=False,

@@ -13,7 +13,7 @@ from typing import Literal
 SameSite = Literal["lax", "strict", "none"] | None
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class CookieRow:
     """One cookie as returned by the per-browser reader.
 

@@ -18,6 +18,7 @@ from enum import StrEnum
 from typing import assert_never
 
 from .models import Verdict
+from .packages.escalation import EscalationSignal
 
 
 class ObservationKind(StrEnum):
@@ -45,7 +46,15 @@ class Observation:
     # Evidence the planner (`decide_next`) reads to choose escalation.
     status_code: int = 0
     cloudflare: bool = False  # tier response came through Cloudflare
-    suggested_tier: str | None = None  # gate's escalation hint ("browser" / "tls_impersonate")
+    # Typed escalation hint (Phase 4) — `escalation.next_tier` is a closed
+    # Literal so the planner switches on values that type-check at compile
+    # time. `escalation.reason` is a short diagnostic aligned with subsystem.
+    escalation: EscalationSignal | None = None
+    # Subsystem annotation from the producing source (e.g. block-detector
+    # family name on gate observations: "js_required", "captcha_redirect",
+    # "anubis"). Carried on the observation so the narrative / diagnostics
+    # summary can read from the log projection, not from a mutable snapshot.
+    subsystem: str | None = None
 
 
 def _verdict_rank(verdict: Verdict) -> int:

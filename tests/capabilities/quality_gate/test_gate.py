@@ -36,7 +36,7 @@ def test_jina_403_stub_promoted_to_paywall() -> None:
     )
     assert r.verdict == Verdict.paywall
     assert r.subsystem == "jina_stub"
-    assert r.suggested_tier is None  # archive playbook drives the next step
+    assert r.escalation is None  # archive playbook drives the next step
 
 
 def test_jina_401_stub_promoted_to_paywall() -> None:

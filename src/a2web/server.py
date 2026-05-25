@@ -16,11 +16,8 @@ paid only when the fetch path actually needs them.
 
 from __future__ import annotations
 
-from typing import cast
-
 import a2kit
 import a2kit.ldd
-from purgatory import AsyncCircuitBreakerFactory
 
 from .cookie_jar import build_cookie_jar
 from .events import otel_sink
@@ -33,58 +30,16 @@ from .events.types import (
     TierHeartbeat,
     TierStarted,
 )
-from .llm_resource import LlmExtractorResource
-from .packages.browser_pool import BrowserPool
 from .packages.http_cache import SqliteResource
-from .packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from .routers import CookiesRouter, WebRouter
-from .settings import AppSettings, get_settings
-from .state import build_state
-
-# ----------------------------------------------------------------------- #
-# Named factory functions — no lambdas (a2kit v0.36 framework requires
-# return annotation on the factory, and project convention is explicit
-# named factories for grep-ability).
-# ----------------------------------------------------------------------- #
-
-
-def build_breakers() -> AsyncCircuitBreakerFactory:
-    """Per-host / per-proxy / global circuit breakers."""
-    return AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0)
-
-
-def build_proxy_pool(settings: AppSettings) -> ProxyPool:
-    """Route table + proxies map from settings."""
-    return ProxyPool(
-        routes=cast("list[RouteRuleShape]", settings.routes),
-        proxies=cast("dict[str, ProxyEntryShape]", settings.proxies),
-    )
-
-
-def build_browser_pool(settings: AppSettings) -> BrowserPool:
-    """Camoufox pool — does NOT launch the browser at construction.
-
-    The browser launches lazily on first `_ensure()`, which the framework
-    triggers via `__aenter__` only when this provider is resolved (which
-    only happens when a tool actually awaits the `Lazy[BrowserPool]` it
-    declares — see `routers.py`).
-    """
-    return BrowserPool(
-        max_pool=settings.browser_max_pool,
-        idle_timeout_s=settings.browser_idle_timeout_s,
-        page_budget_s=settings.browser_page_budget_s,
-    )
-
-
-def build_llm_extractor(settings: AppSettings, sqlite: SqliteResource) -> LlmExtractorResource:
-    """LLM extractor — provider is selected lazily on first `_ensure()`.
-
-    Constructor is cheap (no provider import). Real work happens when the
-    fetch tool awaits its `Lazy[LlmExtractorResource]` param (which it only
-    does when `ask=...` was passed).
-    """
-    return LlmExtractorResource(settings, sqlite)
-
+from .settings import get_settings
+from .state import (
+    build_breakers,
+    build_browser_pool,
+    build_llm_extractor,
+    build_proxy_pool,
+    build_state,
+)
 
 # ----------------------------------------------------------------------- #
 # App composition — providers registered in dependency order (v0.36 uses

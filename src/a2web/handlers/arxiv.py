@@ -15,7 +15,8 @@ from urllib.parse import urlencode, urlparse
 from xml.etree import ElementTree as ET
 
 from ..models import Heading, NextLink, Verdict
-from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ..packages.http_fetch import fetch_bytes
+from ._common import empty_result, map_non_ok
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -73,7 +74,7 @@ class ArxivHandler:
 
         arxiv_id = _extract_id(url)
         if arxiv_id is None:
-            return _empty_result(url, Verdict.not_found)
+            return empty_result(url, Verdict.not_found)
 
         outcome = await fetch_bytes(
             f"{_API_URL}?{urlencode({'id_list': arxiv_id})}",
@@ -81,23 +82,18 @@ class ArxivHandler:
             timeout_s=_TIMEOUT_S,
         )
 
-        if outcome.verdict is FetchVerdict.timeout:
-            return _empty_result(url, Verdict.timeout)
-        if outcome.verdict is FetchVerdict.not_found:
-            return _empty_result(url, Verdict.not_found)
-        if outcome.verdict is FetchVerdict.rate_limited:
-            return _empty_result(url, Verdict.rate_limited)
-        if outcome.verdict is not FetchVerdict.ok:
-            return _empty_result(url, Verdict.connection_error)
+        non_ok = map_non_ok(outcome, url=url)
+        if non_ok is not None:
+            return non_ok
 
         try:
             root = ET.fromstring(outcome.body.decode("utf-8", errors="replace"))  # noqa: S314 — arxiv API is trusted
         except ET.ParseError:
-            return _empty_result(url, Verdict.content_type_mismatch)
+            return empty_result(url, Verdict.content_type_mismatch)
 
         entry = root.find("atom:entry", _NS)
         if entry is None:
-            return _empty_result(url, Verdict.not_found)
+            return empty_result(url, Verdict.not_found)
 
         rendered = _render_entry(entry)
 
@@ -128,14 +124,9 @@ class ArxivHandler:
             timeout_s=_TIMEOUT_S,
         )
 
-        if outcome.verdict is FetchVerdict.timeout:
-            return _empty_result(url, Verdict.timeout)
-        if outcome.verdict is FetchVerdict.not_found:
-            return _empty_result(url, Verdict.not_found)
-        if outcome.verdict is FetchVerdict.rate_limited:
-            return _empty_result(url, Verdict.rate_limited)
-        if outcome.verdict is not FetchVerdict.ok:
-            return _empty_result(url, Verdict.connection_error)
+        non_ok = map_non_ok(outcome, url=url)
+        if non_ok is not None:
+            return non_ok
 
         entries = _parse_listing_entries(outcome.body.decode("utf-8", errors="replace"))
         rendered = _render_listing(cat, window, entries)
@@ -276,15 +267,3 @@ def _listing_candidates(entries: list[dict[str, str]]) -> list[NextLink]:
             ),
         )
     return out
-
-
-def _empty_result(url: str, verdict: Verdict) -> TierResult:
-    from ..tiers import TierResult
-
-    return TierResult(
-        body=b"",
-        content_type="",
-        status_code=0,
-        final_url=url,
-        verdict=verdict,
-    )

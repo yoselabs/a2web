@@ -78,7 +78,8 @@ def decide_next(log: Sequence[Observation], *, url: str, caps: PlannerCaps) -> A
     # Gate flagged a JS-required / anti-bot page → browser.
     if (
         last.kind is ObservationKind.gate_outcome
-        and last.suggested_tier == "browser"
+        and last.escalation is not None
+        and last.escalation.next_tier == "browser"
         and last.verdict is not Verdict.ok
         and caps.browser_dispatches < 1
     ):
