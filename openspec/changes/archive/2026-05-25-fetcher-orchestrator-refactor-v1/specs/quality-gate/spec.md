@@ -27,6 +27,6 @@ The block detector remains policy-free — it emits typed evidence; the planner 
 
 ## REMOVED Requirements
 
-### Requirement: BlockResult carries an optional suggested_tier string
-**Reason**: Superseded by typed `EscalationSignal`. The string field was the only escalation-routing signal the gate produced and the only contract between gate and planner; promoting it to a typed payload removes the string-compare in the planner and adds an explicit `reason` field that aligns with the gate's existing `subsystem` annotation.
+### Requirement: Gate result carries optional suggested_tier
+**Reason**: Superseded by typed `EscalationSignal`. The string field encoded a Literal-shaped value as text, required string compares in the planner, and offered no compile-time safety. The typed payload also adds an explicit `reason` field that aligns with the gate's `subsystem` annotation.
 **Migration**: Code reading `block_result.suggested_tier` MUST switch to `block_result.escalation.next_tier if block_result.escalation else None`. The matching subsystem string remains available on `block_result.subsystem` (unchanged) for diagnostics.

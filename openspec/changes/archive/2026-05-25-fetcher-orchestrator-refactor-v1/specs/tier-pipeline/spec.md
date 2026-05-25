@@ -71,12 +71,3 @@ Selection across candidates SHALL be performed by a pure function `pick_best(can
 - **WHEN** a browser escalation produces new raw HTML and the orchestrator re-invokes the extraction pipeline
 - **THEN** a fresh list of `ContentCandidate` is generated against the new HTML; the prior `fc.content_md` is replaced (not amended) with the new pick_best result
 
-## REMOVED Requirements
-
-### Requirement: FetchContext carries gate_verdict and gate_subsystem as mutable fields
-**Reason**: Superseded by the pure-projection requirement. The mutable snapshots could diverge from `resolved_verdict()` after re-gate; consolidating onto the log projection removes the divergence risk.
-**Migration**: Callers reading `fc.gate_verdict` MUST switch to `fc.last_gate_outcome().verdict` (returns `None` if no gate observation yet). Callers reading `fc.gate_subsystem` MUST switch to `fc.last_gate_outcome().subsystem`.
-
-### Requirement: FetchContext Lazy[T] resource fields default to None for direct-call paths
-**Reason**: Superseded by the stub-Lazy pattern. Defaulting to None conflated "resource not provisioned" with "resource not yet invoked" and required per-phase None-checks that drifted in style. Stub Lazy with explicit error keeps the type contract crisp.
-**Migration**: Direct-call paths (`tests/conftest.py`, eval harness without resources) MUST pass a stub Lazy from `state.unavailable_lazy(BrowserPool, reason="...")` etc. Phases that previously checked `if fc.browser_pool is not None` MUST switch to await + try/except `ResourceUnavailable`.

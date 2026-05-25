@@ -3,9 +3,7 @@
 ## Purpose
 
 Fetch-cascade state is an append-only log of typed `Observation` records. The final verdict and every escalation decision are pure, total projections of that log — never a mutable scalar. This structurally eliminates the verdict-clobber bug class (last-write-wins on a single `final_verdict` slot) and concentrates all escalation policy in one pure planner.
-
 ## Requirements
-
 ### Requirement: Fetch state is an append-only observation log
 
 One fetch SHALL accumulate its state as an append-only, immutable sequence of typed `Observation` records. Every tier attempt, quality-gate evaluation, and escalation SHALL append exactly one `Observation`; no component SHALL overwrite or mutate a prior `Observation`. An `Observation` SHALL carry at minimum: its `verdict`, its `source` (the tier / handler / gate that produced it), an `authoritative` flag (the source vouches the verdict is definitive for its domain), a relative timestamp, and structured evidence. The orchestrator SHALL NOT carry a mutable scalar `final_verdict` field — the verdict is derived, never stored.
@@ -85,3 +83,36 @@ The orchestrator SHALL hold no escalation, rewrite, or stop policy of its own. A
 
 - **WHEN** a fetch completes and `FetchResponse` is built
 - **THEN** the verdict reflected in `status` / `diagnostics_summary` equals `resolve_verdict(log)` for that fetch's observation log
+
+### Requirement: Observations carry typed EscalationSignal values, not string suggested_tier fields
+
+The `Observation` dataclass in `src/a2web/decision_log.py` SHALL replace its `suggested_tier: str | None = None` field with `escalation: EscalationSignal | None = None`. `EscalationSignal` is a frozen dataclass declared in `src/a2web/packages/escalation.py` (package-owned per the packages-independence rule, since `block_detector.py` — a package — produces it):
+
+```python
+NextTier = Literal["browser", "tls_impersonate", "archive"]
+
+@dataclass(frozen=True, slots=True)
+class EscalationSignal:
+    next_tier: NextTier
+    reason: str  # human-readable diagnostic, ≤80 chars
+```
+
+The planner (`actions/playbook.py::decide_next`) SHALL read `last.escalation` and switch on `last.escalation.next_tier` to choose an `EscalationBrowser` / `RetryViaArchive` / `RewriteUrl` action, rather than string-comparing `last.suggested_tier == "browser"`.
+
+The signal is evidence-only; the planner remains the sole authority on whether to act (caps still gate execution). The signal carries the gate's / handler's recommendation, not a command.
+
+#### Scenario: Gate emits EscalationSignal when JS-required is detected
+
+- **WHEN** `block_detector.evaluate(...)` returns a `BlockResult` with `escalation=EscalationSignal(next_tier="browser", reason="js_required")`
+- **THEN** the orchestrator appends a `gate_outcome` observation carrying that signal; the planner reads it via `last.escalation.next_tier == "browser"`
+
+#### Scenario: Handler emits EscalationSignal for archive escalation
+
+- **WHEN** a site handler (e.g. Reddit) encounters a 403 on a thread URL and decides archive is the right next step
+- **THEN** the handler's `TierResult` carries an `escalation=EscalationSignal(next_tier="archive", reason="reddit_forbidden_try_archive")`; the orchestrator threads that into the tier observation; the planner sees the typed signal and dispatches `RetryViaArchive`
+
+#### Scenario: No string-comparison on suggested_tier remains
+
+- **WHEN** the codebase is grepped for `suggested_tier ==` or `suggested_tier !=`
+- **THEN** zero matches exist; all decisions are made on typed `EscalationSignal.next_tier` Literal values
+

@@ -32,8 +32,3 @@ The signal is evidence-only; the planner remains the sole authority on whether t
 - **WHEN** the codebase is grepped for `suggested_tier ==` or `suggested_tier !=`
 - **THEN** zero matches exist; all decisions are made on typed `EscalationSignal.next_tier` Literal values
 
-## REMOVED Requirements
-
-### Requirement: Observation carries optional suggested_tier string
-**Reason**: Superseded by typed `EscalationSignal`. The string field encoded a Literal-shaped value as text, requiring string compares in the planner and offering no compile-time safety against typos. The typed payload also adds a structured `reason` field that previously had no home (it was conflated with `subsystem`).
-**Migration**: Code reading `observation.suggested_tier` MUST switch to `observation.escalation.next_tier if observation.escalation else None`. The reason string (previously synthesized from `subsystem`) is now carried explicitly on `observation.escalation.reason`.
