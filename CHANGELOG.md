@@ -8,6 +8,33 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-05-25
+
+### Added
+
+- **Quality gate recognizes two new JS-required categories** (per
+  `openspec/changes/expand-js-shell-markers/`). When `content_md` is
+  below `LENGTH_FLOOR` AND `<script>` is present AND any of these
+  markers match, the gate emits `suggested_tier="browser"` so the
+  planner escalates:
+  - **Reddit JS-challenge interstitial** — hidden form-field markers
+    `name="js_challenge"` and `name="jsc_orig_r"`. Fixes Reddit
+    listings returning `length_floor` on raw tier (the captured 8KB
+    body is an anti-bot challenge, not a content shell). Empirically
+    validated against `tests/fixtures/reddit_shreddit_shell.html`.
+  - **Web-component SPA shell** — generic custom-element regex
+    `<[a-z][a-z0-9]*-[a-z][a-z0-9-]*` (per HTML5 §4.13, custom-element
+    tag names MUST contain a hyphen). Pre-covers Lit-based SPAs and
+    any other web-component shell we encounter.
+
+### Fixed
+
+- **Reddit listings now reach the browser tier** instead of failing
+  silently with `tier=raw verdict=length_floor`. Probe in
+  `eval/spikes/reddit_with_cookies_probe.py` proved Camoufox loads
+  Reddit successfully (1MB DOM, 68 post-link references); the only
+  missing piece was the marker recognition that triggers escalation.
+
 ## [0.21.0] — 2026-05-25
 
 **BREAKING — one-release supersession of v0.20.0's `affordances` surface.**

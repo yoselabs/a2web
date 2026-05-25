@@ -207,15 +207,23 @@ for free. Spike + capability work follows.
 
 ### Reddit `old.reddit.com` raw-tier fetch failure (2026-05-24)
 
-- 🟡 **Repro**: `https://www.reddit.com/r/LocalLLaMA/comments/1iqz5nb/` via
-  `fetch()` (raw tier) returned `status=failed`, `content_md=""`. Surfaced
-  during the affordances spike. Reddit block-page detection probably catching
-  on the login wall. Plausible fixes: (a) rewrite `www.reddit.com/r/.../comments/...`
-  → `old.reddit.com/r/.../comments/...` in a domain-rewrite glue (similar to
-  the Google/Bing captcha rewrite in `domain.py`), (b) add a Reddit handler
-  to `src/a2web/handlers/` that uses the JSON API surface
-  (`{url}.json`), (c) escalate to browser tier on Reddit. Scope: S
-  (domain rewrite is cheapest) → M (full handler with JSON API).
+- ✅ **Fixed via `expand-js-shell-markers` (v0.22, 2026-05-25).** Root
+  cause was upstream of the handler: the block detector's marker list
+  was React/Vue/Next-centric and missed Reddit's actual response shape
+  (a JS-challenge anti-bot interstitial, not a content shell). Probes
+  also disproved option (a): `old.reddit.com` is also 403'd to unauth
+  curl_cffi. Option (c) implemented via marker detection — the existing
+  `EscalateBrowser` planner rule already routes `suggested_tier="browser"`
+  to Camoufox. No handler change needed.
+
+### 403 → browser planner escalation (2026-05-25)
+
+- 🟢 **Investigate** whether a planner rule "raw or site_handler returned
+  status=403 → EscalateBrowser" earns its complexity. `eval/spikes/
+  cloudflare_bypass_probe.py` (2026-05-25) showed `curl_cffi
+  impersonate=chrome` already bypasses Cloudflare, and no live case has
+  been found where `raw=403 ∧ browser=200`. Defer until a probe finds
+  one. Open question raised during `expand-js-shell-markers` exploration.
 
 ## 2026-05-23 — post-trio followups (v0.18+)
 

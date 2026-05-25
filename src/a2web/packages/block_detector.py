@@ -87,7 +87,22 @@ _JS_SHELL_ROOT_MARKERS = re.compile(
     r'|id="react-root"'
     r"|window\.__data__"
     r"|window\.__INITIAL_STATE__"
-    r"|<noscript",
+    r"|<noscript"
+    # Reddit JS-challenge anti-bot interstitial: server returns a thin
+    # body with a hidden form whose JS solves the challenge and resubmits
+    # to get the real SPA. We never solve it in raw, so we need to
+    # escalate to browser. Both fields are Reddit-specific (jsc = "JS
+    # challenge"); generic `name="solution"` was deliberately excluded
+    # to avoid false positives on legitimate quiz/exam sites.
+    r'|name="js_challenge"'
+    r'|name="jsc_orig_r"'
+    # Generic web-component SPA shell. Per HTML Living Standard §4.13,
+    # custom-element tag names MUST contain a hyphen and start with a
+    # lowercase ASCII letter. Built-in HTML tags (<div>, <article>)
+    # never have hyphens, so false positives on static HTML are
+    # essentially zero (requires <-prefix; attribute values like
+    # data-foo="x-y" do not match).
+    r"|<[a-z][a-z0-9]*-[a-z][a-z0-9-]*",
     re.IGNORECASE,
 )
 

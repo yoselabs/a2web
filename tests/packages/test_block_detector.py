@@ -85,3 +85,109 @@ def test_length_floor_without_block_markers() -> None:
     result = _eval(body, content_md="tiny")
     assert result.verdict == BlockVerdict.length_floor
     assert result.subsystem is None
+
+
+# --------------------------------------------------------------------- #
+# v0.22 — web-component SPA recognition (expand-js-shell-markers)
+# --------------------------------------------------------------------- #
+
+
+def test_reddit_js_challenge_marker_triggers_browser_escalation() -> None:
+    """Reddit's hidden JS-challenge form (the real anti-bot interstitial
+    Reddit serves to unauth raw clients) should route to browser escalation,
+    not silent length_floor."""
+    body = (
+        "<html><body>"
+        '<main><div class="logo">Snoo</div></main>'
+        '<form hidden method="GET" action="/r/x/">'
+        '<input type="hidden" name="solution" />'
+        '<input type="hidden" name="js_challenge" value="1"/>'
+        '<input type="hidden" name="jsc_orig_r" value=""/>'
+        "</form>"
+        '<script src="/static/challenge.js"></script>'
+        "</body></html>"
+    )
+    result = _eval(body, content_md="")
+    assert result.verdict == BlockVerdict.length_floor
+    assert result.subsystem == "js_required"
+    assert result.suggested_tier == "browser"
+
+
+def test_generic_custom_element_marker_triggers_browser_escalation() -> None:
+    """Any HTML5 custom element (hyphenated tag) with thin content + script
+    should route to browser — covers Lit, web-components-in-general, etc."""
+    body = (
+        "<html><body>"
+        "<my-widget><lit-element></lit-element></my-widget>"
+        "<script>console.log('hydrating')</script>"
+        "</body></html>"
+    )
+    result = _eval(body, content_md="tiny")
+    assert result.verdict == BlockVerdict.length_floor
+    assert result.subsystem == "js_required"
+    assert result.suggested_tier == "browser"
+
+
+def test_hyphenated_attributes_alone_do_not_trigger() -> None:
+    """Static HTML with `data-foo="x-y-z"` / `class="my-cmp"` but NO
+    hyphenated tag names AND no challenge form must not be misclassified."""
+    body = (
+        "<html><body>"
+        '<div data-foo="x-y-z" class="my-cmp">tiny</div>'
+        '<script>noop()</script>'
+        "</body></html>"
+    )
+    result = _eval(body, content_md="tiny")
+    # length_floor still fires (body IS thin), but no js_required signal —
+    # so no `suggested_tier` and the planner does not escalate to browser.
+    assert result.verdict == BlockVerdict.length_floor
+    assert result.subsystem is None
+    assert result.suggested_tier is None
+
+
+def test_above_length_floor_with_custom_elements_is_ok() -> None:
+    """Progressive-enhancement case: a server-rendered page with substantial
+    body that ALSO uses custom elements is NOT a JS shell — verdict ok."""
+    body = (
+        "<html><body>"
+        "<my-comments>"
+        + ("<p>Real rendered comment body content goes here. </p>" * 200)
+        + "</my-comments>"
+        '<script src="/x.js"></script>'
+        "</body></html>"
+    )
+    md = "Real rendered comment body content goes here. " * 200
+    result = _eval(body, content_md=md)
+    assert result.verdict == BlockVerdict.ok
+    assert result.suggested_tier is None
+
+
+def test_generic_solution_field_alone_does_not_trigger() -> None:
+    """A thin page with `<input name="solution">` (legitimate quiz/exam shape)
+    must NOT trigger js_required on its own. We deliberately scoped the
+    Reddit markers tightly (`js_challenge` / `jsc_orig_r`) to avoid this
+    false positive."""
+    body = (
+        "<html><body>"
+        '<form><label>Answer:</label><input name="solution" /></form>'
+        "<script>noop()</script>"
+        "</body></html>"
+    )
+    result = _eval(body, content_md="tiny")
+    assert result.verdict == BlockVerdict.length_floor
+    assert result.subsystem is None
+    assert result.suggested_tier is None
+
+
+def test_reddit_shreddit_fixture_routes_to_browser() -> None:
+    """End-to-end on the captured Reddit anti-bot fixture (the real ~8KB
+    JS-challenge body Reddit serves to unauth raw curl_cffi clients)."""
+    from tests.fixtures import FIXTURES_DIR
+
+    body = (FIXTURES_DIR / "reddit_shreddit_shell.html").read_text(encoding="utf-8")
+    # trafilatura would extract essentially nothing from this shell — feed it
+    # an empty content_md to simulate that outcome.
+    result = _eval(body, content_md="")
+    assert result.verdict == BlockVerdict.length_floor
+    assert result.subsystem == "js_required"
+    assert result.suggested_tier == "browser"
