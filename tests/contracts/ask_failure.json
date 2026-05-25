@@ -1,7 +1,7 @@
 {
+  "answer": null,
   "confidence": "low",
   "diagnostics_summary": "tier=raw verdict=block_page_detected total_ms=<volatile> extras=cf_iuam",
-  "extracted_answer": null,
   "narrative": "raw \u2192 block_page_detected:cf_iuam (<dur>).",
   "status": "failed",
   "title": "Just a moment..."

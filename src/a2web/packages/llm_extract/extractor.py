@@ -15,9 +15,9 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from .affordances import AffordanceShape, AffordancesPayload
-from .prompts import EXTRACT_WITH_AFFORDANCES_V1, WEBFETCH_DEFAULT_V1, PromptTemplate
+from .prompts import EXTRACT_ROUTER_V1, WEBFETCH_DEFAULT_V1, PromptTemplate
 from .providers.base import Provider
+from .router_payload import NextUrlBoundary, RouterPayload
 
 if TYPE_CHECKING:
     from .cache import ExtractionCache
@@ -72,7 +72,7 @@ class ExtractionResult:
     original_cost_usd: float | None = None
     raw: dict[str, Any] | None = field(default=None)
     next_links: list[LlmNextLink] = field(default_factory=list)
-    affordances: AffordancesPayload | None = None
+    routing: RouterPayload | None = None
 
 
 class Extractor:
@@ -120,7 +120,7 @@ class Extractor:
         request_next_links: bool = False,
         handler_candidates: list[LlmNextLink] | None = None,
         max_content_chars: int | None = None,
-        request_affordances: bool = False,
+        request_routing: bool = False,
     ) -> ExtractionResult:
         """Run the template over (content, ask). Returns ExtractionResult.
 
@@ -140,11 +140,11 @@ class Extractor:
         produced; when non-empty, the prompt asks the LLM to re-rank /
         rewrite them against the question (Tier 1+2 composition).
         """
-        # When affordances are requested, swap to the affordances-aware template
-        # for THIS call only — the constructor-bound default template is
-        # unchanged. cache_prefix_template is byte-identical between the two
-        # templates, so the v0.19 cache invariant survives the swap.
-        active_template = EXTRACT_WITH_AFFORDANCES_V1 if request_affordances else self._template
+        # When routing is requested, swap to the router-shape template for THIS
+        # call only — the constructor-bound default template is unchanged.
+        # cache_prefix_template is byte-identical between the two templates, so
+        # the v0.19 cache invariant survives the swap.
+        active_template = EXTRACT_ROUTER_V1 if request_routing else self._template
 
         cap = max_content_chars if max_content_chars is not None else self._max_content_chars
         truncated, was_truncated = _truncate(content, cap)
@@ -153,10 +153,10 @@ class Extractor:
         # Cache lookup uses the (truncated) content we'd actually send; that
         # way two callers with different upstream payloads but the same
         # post-cap content share a cache slot, mirroring WebFetch's behavior.
-        # Skip cache when affordances or next-links are requested — the cached
+        # Skip cache when routing or next-links are requested — the cached
         # answer was produced without them; mixing would yield empty payloads
         # on hits.
-        if self._cache is not None and not request_next_links and not request_affordances:
+        if self._cache is not None and not request_next_links and not request_routing:
             from .cache import hash_text
 
             content_hash = hash_text(truncated)
@@ -204,9 +204,9 @@ class Extractor:
             parts=parts,
         )
 
-        affordances_payload: AffordancesPayload | None = None
-        if request_affordances:
-            answer_text, affordances_payload = _split_answer_and_affordances(response.text)
+        routing_payload: RouterPayload | None = None
+        if request_routing:
+            answer_text, routing_payload = _split_answer_and_routing(response.text)
             parsed_next_links: list[LlmNextLink] = []
         elif request_next_links:
             answer_text, parsed_next_links = _split_answer_and_next_links(response.text)
@@ -214,10 +214,10 @@ class Extractor:
             answer_text, parsed_next_links = response.text, []
 
         # Persist a successful answer for re-use within the TTL window.
-        # Skip cache write on next-links / affordances runs — the answer text
+        # Skip cache write on next-links / routing runs — the answer text
         # alone (without the JSON envelope) is cached so a later plain call
         # still hits.
-        if self._cache is not None and answer_text and not request_next_links and not request_affordances:
+        if self._cache is not None and answer_text and not request_next_links and not request_routing:
             from .cache import hash_text
 
             await self._cache.put(
@@ -243,7 +243,7 @@ class Extractor:
             cache_hit=False,
             raw=raw_extras,
             next_links=parsed_next_links,
-            affordances=affordances_payload,
+            routing=routing_payload,
         )
 
 
@@ -339,25 +339,23 @@ def _split_answer_and_next_links(text: str) -> tuple[str, list[LlmNextLink]]:
 
 
 # --------------------------------------------------------------------- #
-# Affordances parsing (v0.20 — request_affordances path)
+# Router-shape parsing (v0.21 — request_routing path)
 # --------------------------------------------------------------------- #
 
 
-_OBSTACLE_KINDS = frozenset({"paywalled", "error", "empty", "blocked"})
+def _split_answer_and_routing(text: str) -> tuple[str, RouterPayload | None]:
+    """Parse the router-shape JSON envelope into (answer_text, RouterPayload | None).
 
+    The router-shape template instructs the model to return a single JSON
+    envelope with `answer` plus the router-shape fields. We tolerate ```json
+    fences and raw JSON. Malformed JSON, missing required fields (answer /
+    structural_form / shape), or structural anomalies yield (text-as-given,
+    None) — the caller still gets a usable answer; routing is best-effort.
 
-def _split_answer_and_affordances(text: str) -> tuple[str, AffordancesPayload | None]:
-    """Parse the V_CTX_V3 JSON envelope into (answer_text, AffordancesPayload | None).
-
-    The affordances-aware template instructs the model to return a single JSON
-    envelope with `extracted_answer` plus the affordances fields. We tolerate
-    ```json fences and raw JSON. Malformed JSON, missing required fields, or
-    structural anomalies yield (text-as-given, None) — the caller still gets
-    a usable answer; affordances are best-effort.
-
-    Obstacle-page payloads legitimately omit `content_value`, `shapes`, and
-    `follow_up_questions` (per the prompt's envelope discipline); the parser
-    accepts those omissions and emits `content_value=None` + empty tuples.
+    Optional fields (`genre`, `obstacle`, `ask_here`, `try_url`) are accepted
+    when present; absence yields `None` (genre/obstacle) or empty tuple
+    (ask_here/try_url). The pydantic mirror at the seam enforces closed-enum
+    membership; the boundary stays loose.
     """
     stripped = text.strip()
     if stripped.startswith("```"):
@@ -374,64 +372,55 @@ def _split_answer_and_affordances(text: str) -> tuple[str, AffordancesPayload | 
     if not isinstance(parsed, dict):
         return text, None
 
-    extracted_answer = parsed.get("extracted_answer")
-    if not isinstance(extracted_answer, str) or not extracted_answer:
+    answer = parsed.get("answer")
+    if not isinstance(answer, str) or not answer:
         # No answer field — the envelope is malformed beyond recovery.
         return text, None
 
-    page_kind = parsed.get("page_kind")
-    confidence = parsed.get("page_kind_confidence")
-    reasoning = parsed.get("reasoning", "")
-    if not isinstance(page_kind, str) or not isinstance(confidence, str):
-        return extracted_answer, None
-    if not isinstance(reasoning, str):
-        reasoning = ""
+    structural_form = parsed.get("structural_form")
+    shape = parsed.get("shape")
+    if not isinstance(structural_form, str) or not isinstance(shape, str):
+        # Missing required typing fields — return the answer alone; the
+        # caller surfaces an obstacle via its own path.
+        return answer, None
 
-    is_obstacle = page_kind in _OBSTACLE_KINDS
-    content_value_raw = parsed.get("content_value")
-    if is_obstacle:
-        content_value: str | None = None
-    elif isinstance(content_value_raw, str):
-        content_value = content_value_raw
-    else:
-        # Missing content_value on a content page is a soft failure — accept
-        # the payload with content_value=None; the pydantic mirror will surface
-        # the missing field if it's required there.
-        content_value = None
+    genre_raw = parsed.get("genre")
+    genre = genre_raw if isinstance(genre_raw, str) and genre_raw else None
+    obstacle_raw = parsed.get("obstacle")
+    obstacle = obstacle_raw if isinstance(obstacle_raw, str) and obstacle_raw else None
 
-    shapes_raw = parsed.get("shapes", [])
-    shapes: list[AffordanceShape] = []
-    if isinstance(shapes_raw, list) and not is_obstacle:
-        for item in shapes_raw:
+    ask_here_raw = parsed.get("ask_here", [])
+    ask_here: list[str] = []
+    if isinstance(ask_here_raw, list):
+        ask_here = [q for q in ask_here_raw if isinstance(q, str) and q]
+
+    try_url_raw = parsed.get("try_url", [])
+    try_urls: list[NextUrlBoundary] = []
+    if isinstance(try_url_raw, list):
+        for item in try_url_raw:
             if not isinstance(item, dict):
                 continue
-            label = item.get("label")
-            where = item.get("where", "")
-            size = item.get("size", "")
-            if not isinstance(label, str):
+            url_val = item.get("url")
+            reason = item.get("reason", "")
+            if not isinstance(url_val, str) or not url_val:
                 continue
-            shapes.append(
-                AffordanceShape(
-                    label=label,
-                    where=where if isinstance(where, str) else "",
-                    size=size if isinstance(size, str) else "",
+            try_urls.append(
+                NextUrlBoundary(
+                    url=url_val,
+                    reason=reason if isinstance(reason, str) else "",
                 )
             )
 
-    follow_ups_raw = parsed.get("follow_up_questions", [])
-    follow_ups: list[str] = []
-    if isinstance(follow_ups_raw, list) and not is_obstacle:
-        follow_ups = [q for q in follow_ups_raw if isinstance(q, str) and q]
-
-    payload = AffordancesPayload(
-        page_kind=page_kind,
-        page_kind_confidence=confidence,
-        reasoning=reasoning,
-        content_value=content_value,
-        shapes=tuple(shapes),
-        follow_up_questions=tuple(follow_ups),
+    payload = RouterPayload(
+        answer=answer,
+        structural_form=structural_form,
+        shape=shape,
+        genre=genre,
+        obstacle=obstacle,
+        ask_here=tuple(ask_here),
+        try_url=tuple(try_urls),
     )
-    return extracted_answer, payload
+    return answer, payload
 
 
 __all__ = ["ExtractionResult", "Extractor", "LlmNextLink", "ModelSpec"]

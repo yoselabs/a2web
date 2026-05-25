@@ -1,7 +1,7 @@
 {
+  "answer": "The page is about adaptive web fetching.",
   "byline": "Jane Doe",
   "confidence": "high",
-  "extracted_answer": "The page is about adaptive web fetching.",
   "meta": {
     "jsonld[0].@context": "https://schema.org",
     "jsonld[0].@type": "Article",

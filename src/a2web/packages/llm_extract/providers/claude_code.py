@@ -92,6 +92,13 @@ class ClaudeCodeProvider:
         # `eval/findings_2026-05-24-claude-code-cli-flag-sweep.md` — net
         # session cost ~41% lower. `--bare` would do more but kills OAuth, so we
         # use the narrow opt-outs that keep keychain-based auth working.
+        #
+        # v0.21 (2026-05-25): three additional isolation kwargs close the MCP
+        # leak path. The host Claude Code CLI's MCP server config (including
+        # memory-bearing servers like `hub_memory_recall`) would otherwise be
+        # inherited by every extraction subprocess, leaking the user's personal
+        # context into router-shape answers and ask_here questions. `agents={}`
+        # similarly prevents the host's saved subagents from being available.
         options_kwargs: dict[str, Any] = {
             "model": model,
             "tools": [],  # pure completion — no tool use
@@ -101,6 +108,9 @@ class ClaudeCodeProvider:
             "setting_sources": [],  # skip user/project/local CLAUDE.md discovery
             "skills": [],  # don't load skill registry
             "extra_args": {"disable-slash-commands": None},
+            "mcp_servers": {},  # block host MCP server config (memory leak path)
+            "strict_mcp_config": True,  # reject anything not explicitly listed above
+            "agents": {},  # block host-saved subagents
         }
         if thinking_disabled:
             options_kwargs["thinking"] = ThinkingConfigDisabled(type="disabled")
@@ -164,6 +174,7 @@ class ClaudeCodeProvider:
                     "stop_reason": result_msg.stop_reason,
                     "session_id": result_msg.session_id,
                     "usage": result_msg.usage,
+                    "num_turns": getattr(result_msg, "num_turns", None),
                 }
                 if result_msg
                 else None

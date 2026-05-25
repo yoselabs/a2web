@@ -163,16 +163,41 @@ for free. Spike + capability work follows.
   Result on full 30: 0 envelope violations, 0 parse failures, 5/30 medium
   confidence (vs 30 high), content_value well-distributed (18 high / 5 med
   / 3 low / 4 omitted on obstacles). **Design LOCKED for production.**
-- ✅ **Affordances production wiring (v0.20, 2026-05-24).** Shipped under
-  `openspec/changes/add-affordances-to-ask/`. `AffordancesPayload` boundary
-  type + pydantic mirror with closed `Literal` enums. `EXTRACT_WITH_AFFORDANCES_V1`
-  template extends `EXTRACT_CACHEABLE_V1` byte-for-byte on the cache prefix.
-  Default ON; opt-out via `ask(include_affordances=False)`. Envelope discipline
-  on obstacle pages (paywalled/error/empty/blocked → omit content_value/shapes/
-  follow_ups). G_commerce cluster trigger included to fix Amazon-style
-  miscalibration. 19 tests added (10 parser, 5 wire, 4 cache stability). All
-  gates green: 767 passed, 88.94% coverage. Remaining: output-benchmark A/B
-  (`make bench` — live-network) before declaring quality parity.
+- ✅ **Affordances production wiring (v0.20, 2026-05-24)** — superseded by
+  router-shape v0.21 (2026-05-25). The single `affordances` payload was
+  replaced wholesale by seven router-shape fields (`answer`, `structural_form`,
+  `shape`, `genre`, `obstacle`, `ask_here`, `try_url`) per
+  `openspec/changes/refactor-ask-to-router-shape/`. v0.20 lived one release.
+- ✅ **Router-shape production wiring (v0.21, 2026-05-25).** Shipped under
+  `openspec/changes/refactor-ask-to-router-shape/`. Three exploration spikes
+  (`router_shape_v1`, `router_shape_v2_stress`, `surface_eval_v1`/`v2`)
+  refined the affordances design into a router-shape envelope. `RouterPayload`
+  boundary type + pydantic mirror with closed `Literal` enums on all 4 typed
+  fields. `EXTRACT_ROUTER_V1` template extends `EXTRACT_CACHEABLE_V1`
+  byte-for-byte on the cache prefix. Default ON; opt-out via
+  `ask(include_routing=False)`. Omit-empty discipline on all 4 conditionals via
+  `_prune_wire`. Includes `mcp_servers={}` + `strict_mcp_config=True` +
+  `agents={}` Claude Code provider isolation (closes the personal-context
+  memory leak observed in surface_eval_v1). All gates green. Remaining:
+  output-benchmark A/B (`make bench` — live-network) before declaring quality
+  parity vs v0.20.
+
+### Router-shape — deferred follow-ups (v0.21+)
+
+- 🟢 **Structured-answer mode.** When the user asks for an enumeration ("top
+  N stories", "all bags reviewed with verdict"), let them supply a JSON schema
+  for the `answer` field. Likely separate `extract` tool with consumer-supplied
+  schema; needs schema-discovery design. Out of scope for v0.21 — surface the
+  list IN the answer string for now.
+- 🟢 **page_kind_confidence resurrection.** v0.21 dropped the
+  confidence/content_value fields on the theory that behavioral signal
+  (presence of `ask_here` / `try_url` arrays) paraphrases them well enough.
+  If a real consumer wants the explicit confidence rating back, add it as a
+  debug-only field — don't bloat the default wire.
+- 🟢 **Genre prompt tightening for HN-front.** Pre-impl eval found `news` was
+  emitted instead of `community` on HN front-page (defensible; both apply).
+  Worth one prompt sentence pushing aggregator-of-tech-discussion pages to
+  `community` instead of `news`.
 - 🟢 **Corpus refresh**: 3 URLs in the v2-v5 corpus are stale 404s
   (`news-bbc`, `comments-lobste`, `blog-jvns/2024/01/05/2023-in-review`).
   Replace before next eval pass.

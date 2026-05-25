@@ -133,7 +133,7 @@ class LlmExtractorResource:
         request_next_links: bool = False,
         handler_candidates: list[LlmNextLink] | None = None,
         max_content_chars: int | None = None,
-        request_affordances: bool = False,
+        request_routing: bool = False,
     ) -> ExtractionResult | None:
         """Run extraction or return None when LLM is permanently unavailable.
 
@@ -158,7 +158,7 @@ class LlmExtractorResource:
             request_next_links=request_next_links,
             handler_candidates=handler_candidates,
             max_content_chars=max_content_chars,
-            request_affordances=request_affordances,
+            request_routing=request_routing,
         )
 
     async def close(self) -> None:

@@ -7,11 +7,6 @@
           "title": "Debug",
           "type": "boolean"
         },
-        "include_affordances": {
-          "default": true,
-          "title": "Include Affordances",
-          "type": "boolean"
-        },
         "include_content": {
           "default": false,
           "title": "Include Content",
@@ -20,6 +15,11 @@
         "include_links": {
           "default": false,
           "title": "Include Links",
+          "type": "boolean"
+        },
+        "include_routing": {
+          "default": true,
+          "title": "Include Routing",
           "type": "boolean"
         },
         "link_roles": {
@@ -77,131 +77,6 @@
     },
     "outputModel": {
       "$defs": {
-        "AffordanceShape": {
-          "description": "One structural shape present on the page.\n\n`label` is a closed-vocabulary enum; values outside the set fail\npydantic validation and the whole affordances payload is dropped at the\nseam (see `fetcher_response.build_ask_response`).",
-          "properties": {
-            "label": {
-              "enum": [
-                "list",
-                "timeline",
-                "key-value",
-                "table",
-                "code",
-                "comments",
-                "citations",
-                "comparison"
-              ],
-              "title": "Label",
-              "type": "string"
-            },
-            "size": {
-              "title": "Size",
-              "type": "string"
-            },
-            "where": {
-              "title": "Where",
-              "type": "string"
-            }
-          },
-          "required": [
-            "label",
-            "where",
-            "size"
-          ],
-          "title": "AffordanceShape",
-          "type": "object"
-        },
-        "AffordancesPayload": {
-          "description": "Affordances payload emitted by the `extract_with_affordances_v1` template.\n\nTwo orthogonal signals:\n  - `page_kind_confidence` \u2014 epistemic uncertainty about the LABEL\n  - `content_value` \u2014 how useful the extracted content is downstream\n\nEnvelope discipline: when `page_kind` is an obstacle kind (`paywalled`,\n`error`, `empty`, `blocked`), `content_value` SHALL be None and `shapes`/\n`follow_up_questions` SHALL be empty. The serializer omits all three on\nobstacle pages.",
-          "properties": {
-            "content_value": {
-              "anyOf": [
-                {
-                  "enum": [
-                    "low",
-                    "medium",
-                    "high"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Content Value"
-            },
-            "follow_up_questions": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Follow Up Questions",
-              "type": "array"
-            },
-            "page_kind": {
-              "enum": [
-                "listing",
-                "thread",
-                "reference",
-                "api-reference",
-                "tutorial",
-                "article-short",
-                "article-long",
-                "changelog",
-                "code-snippet",
-                "source-file",
-                "readme",
-                "qa",
-                "spec",
-                "filing",
-                "news-article",
-                "blog-post",
-                "product-page",
-                "video-page",
-                "json-feed",
-                "marketing",
-                "encyclopedia",
-                "package-page",
-                "pdf-stub",
-                "spa",
-                "paywalled",
-                "error",
-                "empty",
-                "blocked",
-                "other"
-              ],
-              "title": "Page Kind",
-              "type": "string"
-            },
-            "page_kind_confidence": {
-              "enum": [
-                "low",
-                "medium",
-                "high"
-              ],
-              "title": "Page Kind Confidence",
-              "type": "string"
-            },
-            "reasoning": {
-              "title": "Reasoning",
-              "type": "string"
-            },
-            "shapes": {
-              "items": {
-                "$ref": "#/$defs/AffordanceShape"
-              },
-              "title": "Shapes",
-              "type": "array"
-            }
-          },
-          "required": [
-            "page_kind",
-            "page_kind_confidence",
-            "reasoning"
-          ],
-          "title": "AffordancesPayload",
-          "type": "object"
-        },
         "AskExtraction": {
           "description": "Slim per-ask extraction metadata for the wire.\n\n`truncated` is the one field an agent branches on (the answer may be\nincomplete) and is always present. The observability fields (`model`,\ntoken counts, cost, latency, cache) are populated only when `ask` was\ncalled with `debug=True`; otherwise they are None and omitted from the\nwire. The full metadata always reaches LDD events regardless of debug.",
           "properties": {
@@ -460,6 +335,25 @@
           "title": "NextLink",
           "type": "object"
         },
+        "NextUrl": {
+          "description": "One curated drilldown URL emitted in the router-shape payload.\n\n`url` MUST appear verbatim in the page content sent to the model;\nenforcement is best-effort at the seam (model misbehavior shouldn't fail\nthe whole fetch). `reason` is the model's question-conditioned justification.",
+          "properties": {
+            "reason": {
+              "title": "Reason",
+              "type": "string"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "reason"
+          ],
+          "title": "NextUrl",
+          "type": "object"
+        },
         "OperatorHint": {
           "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `captcha_redirect`, `cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
           "properties": {
@@ -510,18 +404,26 @@
           "type": "string"
         }
       },
-      "description": "Lean response envelope for the `ask` tool.\n\nDistinct from `FetchResponse` (returned by `fetch_raw`). The `ask` wire\npayload carries the extracted answer, not the page. Field tiers:\n\n- Always present: `confidence`, `extracted_answer`.\n- Deviation-only: `status` (dropped when `ok`), `tier` (dropped when\n  `raw`), `url` (dropped when it equals the requested URL).\n- Optional: omitted from the wire when empty/null (`title`, `byline`,\n  `published`, `operator_hints`, `next_links`, `meta`).\n- Opt-in grounding: `content_md` + `headings` appear only when the caller\n  passed `include_content=True`.\n- Failure-only: `narrative` + `diagnostics_summary` appear only when\n  `status != ok`.\n- Debug-only: `started_at`, `total_ms`, `cache`, `diagnostics`,\n  `extraction` regroup into a nested `debug` object, present only when the\n  caller passed `debug=True`.\n\nThe builder (`build_ask_response`) decides which fields to populate; the\nserializer below drops empties, applies the deviation rules, and regroups\nthe debug tier. Required fields are never dropped.",
+      "description": "Lean response envelope for the `ask` tool.\n\nDistinct from `FetchResponse` (returned by `fetch_raw`). The `ask` wire\npayload carries the extracted answer, not the page. Field tiers:\n\n- Always present: `confidence`, `answer`.\n- Deviation-only: `status` (dropped when `ok`), `tier` (dropped when\n  `raw`), `url` (dropped when it equals the requested URL).\n- Optional: omitted from the wire when empty/null (`title`, `byline`,\n  `published`, `operator_hints`, `next_links`, `meta`).\n- Opt-in grounding: `content_md` + `headings` appear only when the caller\n  passed `include_content=True`.\n- Failure-only: `narrative` + `diagnostics_summary` appear only when\n  `status != ok`.\n- Debug-only: `started_at`, `total_ms`, `cache`, `diagnostics`,\n  `extraction` regroup into a nested `debug` object, present only when the\n  caller passed `debug=True`.\n\nThe builder (`build_ask_response`) decides which fields to populate; the\nserializer below drops empties, applies the deviation rules, and regroups\nthe debug tier. Required fields are never dropped.",
       "properties": {
-        "affordances": {
+        "answer": {
           "anyOf": [
             {
-              "$ref": "#/$defs/AffordancesPayload"
+              "type": "string"
             },
             {
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "title": "Answer"
+        },
+        "ask_here": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ask Here",
+          "type": "array"
         },
         "byline": {
           "anyOf": [
@@ -556,18 +458,6 @@
           "title": "Diagnostics Summary",
           "type": "string"
         },
-        "extracted_answer": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Extracted Answer"
-        },
         "extraction": {
           "anyOf": [
             {
@@ -578,6 +468,27 @@
             }
           ],
           "default": null
+        },
+        "genre": {
+          "anyOf": [
+            {
+              "enum": [
+                "news",
+                "encyclopedia",
+                "spec",
+                "paper",
+                "personal",
+                "official",
+                "community"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Genre"
         },
         "headings": {
           "items": {
@@ -605,6 +516,24 @@
           "title": "Next Links",
           "type": "array"
         },
+        "obstacle": {
+          "anyOf": [
+            {
+              "enum": [
+                "paywalled",
+                "blocked",
+                "empty",
+                "error"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Obstacle"
+        },
         "operator_hints": {
           "items": {
             "$ref": "#/$defs/OperatorHint"
@@ -625,9 +554,54 @@
           "default": null,
           "title": "Published"
         },
+        "shape": {
+          "anyOf": [
+            {
+              "enum": [
+                "prose",
+                "records",
+                "key-value",
+                "code",
+                "table",
+                "discussion",
+                "mixed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shape"
+        },
         "started_at": "<volatile>",
         "status": {
           "$ref": "#/$defs/FetchStatus"
+        },
+        "structural_form": {
+          "anyOf": [
+            {
+              "enum": [
+                "article",
+                "thread",
+                "listing",
+                "reference",
+                "tutorial",
+                "changelog",
+                "code",
+                "product",
+                "media",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Structural Form"
         },
         "tier": {
           "title": "Tier",
@@ -646,6 +620,13 @@
           "title": "Title"
         },
         "total_ms": "<volatile>",
+        "try_url": {
+          "items": {
+            "$ref": "#/$defs/NextUrl"
+          },
+          "title": "Try Url",
+          "type": "array"
+        },
         "url": {
           "title": "Url",
           "type": "string"
@@ -712,131 +693,6 @@
     },
     "outputModel": {
       "$defs": {
-        "AffordanceShape": {
-          "description": "One structural shape present on the page.\n\n`label` is a closed-vocabulary enum; values outside the set fail\npydantic validation and the whole affordances payload is dropped at the\nseam (see `fetcher_response.build_ask_response`).",
-          "properties": {
-            "label": {
-              "enum": [
-                "list",
-                "timeline",
-                "key-value",
-                "table",
-                "code",
-                "comments",
-                "citations",
-                "comparison"
-              ],
-              "title": "Label",
-              "type": "string"
-            },
-            "size": {
-              "title": "Size",
-              "type": "string"
-            },
-            "where": {
-              "title": "Where",
-              "type": "string"
-            }
-          },
-          "required": [
-            "label",
-            "where",
-            "size"
-          ],
-          "title": "AffordanceShape",
-          "type": "object"
-        },
-        "AffordancesPayload": {
-          "description": "Affordances payload emitted by the `extract_with_affordances_v1` template.\n\nTwo orthogonal signals:\n  - `page_kind_confidence` \u2014 epistemic uncertainty about the LABEL\n  - `content_value` \u2014 how useful the extracted content is downstream\n\nEnvelope discipline: when `page_kind` is an obstacle kind (`paywalled`,\n`error`, `empty`, `blocked`), `content_value` SHALL be None and `shapes`/\n`follow_up_questions` SHALL be empty. The serializer omits all three on\nobstacle pages.",
-          "properties": {
-            "content_value": {
-              "anyOf": [
-                {
-                  "enum": [
-                    "low",
-                    "medium",
-                    "high"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Content Value"
-            },
-            "follow_up_questions": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Follow Up Questions",
-              "type": "array"
-            },
-            "page_kind": {
-              "enum": [
-                "listing",
-                "thread",
-                "reference",
-                "api-reference",
-                "tutorial",
-                "article-short",
-                "article-long",
-                "changelog",
-                "code-snippet",
-                "source-file",
-                "readme",
-                "qa",
-                "spec",
-                "filing",
-                "news-article",
-                "blog-post",
-                "product-page",
-                "video-page",
-                "json-feed",
-                "marketing",
-                "encyclopedia",
-                "package-page",
-                "pdf-stub",
-                "spa",
-                "paywalled",
-                "error",
-                "empty",
-                "blocked",
-                "other"
-              ],
-              "title": "Page Kind",
-              "type": "string"
-            },
-            "page_kind_confidence": {
-              "enum": [
-                "low",
-                "medium",
-                "high"
-              ],
-              "title": "Page Kind Confidence",
-              "type": "string"
-            },
-            "reasoning": {
-              "title": "Reasoning",
-              "type": "string"
-            },
-            "shapes": {
-              "items": {
-                "$ref": "#/$defs/AffordanceShape"
-              },
-              "title": "Shapes",
-              "type": "array"
-            }
-          },
-          "required": [
-            "page_kind",
-            "page_kind_confidence",
-            "reasoning"
-          ],
-          "title": "AffordancesPayload",
-          "type": "object"
-        },
         "CacheState": {
           "enum": [
             "hit",
@@ -1076,6 +932,25 @@
           "title": "NextLink",
           "type": "object"
         },
+        "NextUrl": {
+          "description": "One curated drilldown URL emitted in the router-shape payload.\n\n`url` MUST appear verbatim in the page content sent to the model;\nenforcement is best-effort at the seam (model misbehavior shouldn't fail\nthe whole fetch). `reason` is the model's question-conditioned justification.",
+          "properties": {
+            "reason": {
+              "title": "Reason",
+              "type": "string"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "reason"
+          ],
+          "title": "NextUrl",
+          "type": "object"
+        },
         "OperatorHint": {
           "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `captcha_redirect`, `cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
           "properties": {
@@ -1105,6 +980,104 @@
             "message"
           ],
           "title": "OperatorHint",
+          "type": "object"
+        },
+        "RouterPayload": {
+          "description": "Router-shape payload emitted by the `extract_router_v1` template.\n\nThree required fields (`answer`, `structural_form`, `shape`) describe what\nthe page IS. Four conditional fields (`genre`, `obstacle`, `ask_here`,\n`try_url`) describe what it's ABOUT plus drilldown hints; the serializer\non `AskResponse` omits the conditionals from the wire when empty.",
+          "properties": {
+            "answer": {
+              "title": "Answer",
+              "type": "string"
+            },
+            "ask_here": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Ask Here",
+              "type": "array"
+            },
+            "genre": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "news",
+                    "encyclopedia",
+                    "spec",
+                    "paper",
+                    "personal",
+                    "official",
+                    "community"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Genre"
+            },
+            "obstacle": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "paywalled",
+                    "blocked",
+                    "empty",
+                    "error"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Obstacle"
+            },
+            "shape": {
+              "enum": [
+                "prose",
+                "records",
+                "key-value",
+                "code",
+                "table",
+                "discussion",
+                "mixed"
+              ],
+              "title": "Shape",
+              "type": "string"
+            },
+            "structural_form": {
+              "enum": [
+                "article",
+                "thread",
+                "listing",
+                "reference",
+                "tutorial",
+                "changelog",
+                "code",
+                "product",
+                "media",
+                "other"
+              ],
+              "title": "Structural Form",
+              "type": "string"
+            },
+            "try_url": {
+              "items": {
+                "$ref": "#/$defs/NextUrl"
+              },
+              "title": "Try Url",
+              "type": "array"
+            }
+          },
+          "required": [
+            "answer",
+            "structural_form",
+            "shape"
+          ],
+          "title": "RouterPayload",
           "type": "object"
         },
         "TokenCounts": {
@@ -1141,17 +1114,6 @@
       },
       "description": "The response envelope returned by the `fetch_raw` tool.\n\nField tiers govern what reaches the wire (the serializer regroups /\ndrops; the builder populates the model in full for internal callers):\n\n- Always present: `confidence`.\n- Deviation-only: `status` (dropped when `ok`), `tier` (dropped when\n  `raw`), `url` (dropped when it equals the requested URL \u2014 absence means\n  the fetch landed exactly where the caller asked).\n- Failure-only: `narrative`, `diagnostics_summary` \u2014 dropped on success.\n- Debug-only: `started_at`, `total_ms`, `cache`, `tokens`, `diagnostics`\n  regroup into a nested `debug` object, present only under `debug=True`.\n- Omitted when empty: `title`, `byline`, `published`, `meta`, `links`,\n  `headings`, `operator_hints`, `next_links`, `extraction`,\n  `extracted_answer` (and `content_md` on a failed fetch).\n- TSV-rendered: `links` and `next_links` ship as tab-separated blocks.",
       "properties": {
-        "affordances": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/AffordancesPayload"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
         "byline": {
           "anyOf": [
             {
@@ -1260,6 +1222,17 @@
           ],
           "default": null,
           "title": "Published"
+        },
+        "routing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RouterPayload"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "started_at": "<volatile>",
         "status": {

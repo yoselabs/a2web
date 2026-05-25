@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 
 from .decision_log import resolve_verdict
 from .models import (
-    AffordancesPayload,
     AskExtraction,
     AskResponse,
     CacheState,
@@ -27,6 +26,7 @@ from .models import (
     FetchStatus,
     NextLink,
     OperatorHint,
+    RouterPayload,
     TokenCounts,
     Verdict,
 )
@@ -34,7 +34,7 @@ from .utils.time import fmt_dur
 
 if TYPE_CHECKING:
     from .fetcher import FetchContext
-    from .packages.llm_extract import AffordancesPayload as AffordancesBoundary
+    from .packages.llm_extract import RouterPayload as RouterBoundary
 
 
 import structlog
@@ -42,13 +42,13 @@ import structlog
 _LOG = structlog.get_logger("a2web.fetcher_response")
 
 
-def _project_affordances(boundary: AffordancesBoundary | None) -> AffordancesPayload | None:
+def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
     """Project the package-side boundary type into the pydantic mirror.
 
-    Pydantic validates the closed enums (`page_kind`, `page_kind_confidence`,
-    `content_value`, shape `label`). On validation failure (model returned a
-    label outside the closed vocabulary), we log a warning and return None —
-    the caller still gets `extracted_answer`; affordances are best-effort.
+    Pydantic validates the closed enums (`structural_form`, `shape`, `genre`,
+    `obstacle`). On validation failure (model returned a value outside the
+    closed vocabulary), we log a warning and return None — the caller still
+    gets `answer`; the 7 router-shape fields are best-effort.
 
     Uses `model_validate` so pydantic does the closed-enum validation at the
     boundary (the package-side type carries `str`, the pydantic mirror needs
@@ -58,20 +58,22 @@ def _project_affordances(boundary: AffordancesBoundary | None) -> AffordancesPay
     if boundary is None:
         return None
     try:
-        return AffordancesPayload.model_validate(
+        return RouterPayload.model_validate(
             {
-                "page_kind": boundary.page_kind,
-                "page_kind_confidence": boundary.page_kind_confidence,
-                "reasoning": boundary.reasoning,
-                "content_value": boundary.content_value,
-                "shapes": [{"label": s.label, "where": s.where, "size": s.size} for s in boundary.shapes],
-                "follow_up_questions": list(boundary.follow_up_questions),
+                "answer": boundary.answer,
+                "structural_form": boundary.structural_form,
+                "shape": boundary.shape,
+                "genre": boundary.genre,
+                "obstacle": boundary.obstacle,
+                "ask_here": list(boundary.ask_here),
+                "try_url": [{"url": u.url, "reason": u.reason} for u in boundary.try_url],
             }
         )
     except Exception as exc:
         _LOG.warning(
-            "affordances_validation_failed",
-            page_kind=boundary.page_kind,
+            "routing_validation_failed",
+            structural_form=boundary.structural_form,
+            shape=boundary.shape,
             error=str(exc),
         )
         return None
@@ -242,7 +244,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
         next_links=_compose_next_links(fc),
         extracted_answer=fc.extracted_answer,
         extraction=fc.extraction_meta,
-        affordances=_project_affordances(fc.affordances),
+        routing=_project_routing(fc.routing),
     )
 
 
@@ -295,12 +297,13 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
             ),
         )
 
+    routing = fr.routing
     return AskResponse(
         url=fr.url,
         status=fr.status,
         tier=fr.tier,
         confidence=fr.confidence,
-        extracted_answer=fr.extracted_answer,
+        answer=fr.extracted_answer,
         title=fr.title,
         byline=fr.byline,
         published=fr.published,
@@ -316,7 +319,12 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         total_ms=fr.total_ms if debug else None,
         cache=fr.cache if debug else None,
         diagnostics=list(fr.diagnostics) if debug else [],
-        affordances=fr.affordances,
+        structural_form=routing.structural_form if routing is not None else None,
+        shape=routing.shape if routing is not None else None,
+        genre=routing.genre if routing is not None else None,
+        obstacle=routing.obstacle if routing is not None else None,
+        ask_here=list(routing.ask_here) if routing is not None else [],
+        try_url=list(routing.try_url) if routing is not None else [],
     )
 
 

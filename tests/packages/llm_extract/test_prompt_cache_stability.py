@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from a2web.packages.llm_extract import (
     EXTRACT_CACHEABLE_V1,
-    EXTRACT_WITH_AFFORDANCES_V1,
+    EXTRACT_ROUTER_V1,
     WEBFETCH_DEFAULT_V1,
     PromptParts,
 )
@@ -117,37 +117,35 @@ def test_prompt_parts_explicit_construction() -> None:
     assert p.tail == "t"
 
 
-# v0.20 — affordances-aware template must share cache_prefix byte-equality
-# with the base cacheable template (the design decision in
-# `openspec/changes/add-affordances-to-ask/design.md` §D1).
+# v0.21 — router-shape template must share cache_prefix byte-equality with
+# the base cacheable template (the design decision in
+# `openspec/changes/refactor-ask-to-router-shape/design.md` §D6).
 
 
-def test_affordances_template_cache_prefix_matches_base_template() -> None:
-    """The affordances template must reuse EXTRACT_CACHEABLE_V1's cache_prefix
+def test_router_template_cache_prefix_matches_base_template() -> None:
+    """The router-shape template must reuse EXTRACT_CACHEABLE_V1's cache_prefix
     byte-for-byte. Different prefix = different cache key = lost cache hits."""
     parts_base = EXTRACT_CACHEABLE_V1.render(content=_PAGE, ask="Q?")
-    parts_aff = EXTRACT_WITH_AFFORDANCES_V1.render(content=_PAGE, ask="Q?")
-    assert parts_base.cache_prefix == parts_aff.cache_prefix
+    parts_router = EXTRACT_ROUTER_V1.render(content=_PAGE, ask="Q?")
+    assert parts_base.cache_prefix == parts_router.cache_prefix
 
 
-def test_affordances_template_prefix_is_byte_stable_across_asks() -> None:
-    parts1 = EXTRACT_WITH_AFFORDANCES_V1.render(content=_PAGE, ask="What is the price?")
-    parts2 = EXTRACT_WITH_AFFORDANCES_V1.render(content=_PAGE, ask="Who wrote this?")
-    parts3 = EXTRACT_WITH_AFFORDANCES_V1.render(content=_PAGE, ask="A very different question with extra clauses.")
+def test_router_template_prefix_is_byte_stable_across_asks() -> None:
+    parts1 = EXTRACT_ROUTER_V1.render(content=_PAGE, ask="What is the price?")
+    parts2 = EXTRACT_ROUTER_V1.render(content=_PAGE, ask="Who wrote this?")
+    parts3 = EXTRACT_ROUTER_V1.render(content=_PAGE, ask="A very different question with extra clauses.")
     assert parts1.system == parts2.system == parts3.system
     assert parts1.cache_prefix == parts2.cache_prefix == parts3.cache_prefix
     assert parts1.tail != parts2.tail
     assert parts2.tail != parts3.tail
 
 
-def test_affordances_template_schema_lives_in_tail_not_prefix() -> None:
-    """The JSON-envelope schema example MUST live in the tail; if it leaked
-    into cache_prefix the prefix would still be stable but bloated, hurting
-    the cache-window math."""
-    parts = EXTRACT_WITH_AFFORDANCES_V1.render(content=_PAGE, ask="Q?")
-    # The closed page_kind enum + cluster list live in the prompt; both belong
-    # in the tail (per-call), not the prefix (cached portion).
-    assert "page_kind" not in parts.cache_prefix
-    assert "page_kind" in parts.tail
-    assert "Cluster A" not in parts.cache_prefix
-    assert "Cluster A" in parts.tail
+def test_router_template_schema_lives_in_tail_not_prefix() -> None:
+    """The router-shape schema enums + envelope example MUST live in the tail;
+    if any of it leaked into cache_prefix the prefix would still be stable but
+    bloated, hurting the cache-window math."""
+    parts = EXTRACT_ROUTER_V1.render(content=_PAGE, ask="Q?")
+    assert "structural_form" not in parts.cache_prefix
+    assert "structural_form" in parts.tail
+    assert "discussion" not in parts.cache_prefix
+    assert "discussion" in parts.tail

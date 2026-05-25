@@ -1,0 +1,380 @@
+{
+  "per_url": [
+    {
+      "slug": "paper-abs",
+      "url": "https://arxiv.org/abs/2402.17753",
+      "ask": "what does the paper claim in 2 sentences?",
+      "fetch_status": "ok",
+      "chars": 1853,
+      "catalog": {
+        "cost": 0.01265525,
+        "ms": 13261,
+        "answer": "This paper introduces LoCoMo, a dataset of very long-term conversations (300 turns, 9K tokens, up to 35 sessions) generated through a machine-human pipeline with LLM agents grounded in personas and temporal event graphs. The evaluation benchmark reveals that current LLMs struggle with understanding lengthy conversations and long-range temporal/causal dynamics, with long-context LLMs and RAG showing improvements but still substantially lagging behind human performance.",
+        "heuristics": {
+          "catalog_followups_n": 5,
+          "catalog_followups_obvious_n": 0,
+          "catalog_next_links_n": 3,
+          "catalog_shapes_n": 2,
+          "catalog_page_kind": "article",
+          "catalog_parse_fail": false,
+          "catalog_answer_len": 472
+        }
+      },
+      "refined": {
+        "cost": 0.0117169,
+        "ms": 9923,
+        "answer": "The paper introduces LoCoMo, a dataset of very long-term conversations (300 turns, 9K tokens, up to 35 sessions) generated via a machine-human pipeline using LLM agents grounded in personas and temporal event graphs. Experimental results show that existing LLMs, even with long-context techniques or RAG, substantially lag behind human performance on long-range consistency, temporal dynamics comprehension, and multi-modal dialogue tasks.",
+        "shape": "prose",
+        "page_kind": "reference",
+        "heuristics": {
+          "refined_ask_here_n": 3,
+          "refined_ask_here_obvious_n": 0,
+          "refined_try_url_n": 1,
+          "refined_shape": "prose",
+          "refined_page_kind": "reference",
+          "refined_parse_fail": false,
+          "refined_answer_len": 439
+        }
+      }
+    },
+    {
+      "slug": "hn-front",
+      "url": "https://news.ycombinator.com/",
+      "ask": "what are the top 3 most-discussed posts right now?",
+      "fetch_status": "ok",
+      "chars": 6919,
+      "catalog": {
+        "cost": 0.01821,
+        "ms": 14327,
+        "answer": "The top 3 most-discussed posts on Hacker News (by comment count) are: (1) 'DeepSeek reasonix, DeepSeek native coding agent with high caching and low cost' (192 comments), (2) 'Memory has grown to nearly two-thirds of AI chip component costs' (298 comments), and (3) 'Scammers are abusing an internal Microsoft account to send spam links' (147 comments). However, by raw discussion engagement, Memory cost analysis leads with 298 comments, followed by DeepSeek Reasonix with 192 comments, then the Microsoft open-source DOS code with 145 comments.",
+        "heuristics": {
+          "catalog_followups_n": 5,
+          "catalog_followups_obvious_n": 0,
+          "catalog_next_links_n": 4,
+          "catalog_shapes_n": 3,
+          "catalog_page_kind": "news",
+          "catalog_parse_fail": false,
+          "catalog_answer_len": 546
+        }
+      },
+      "refined": {
+        "cost": 0.015564499999999998,
+        "ms": 11030,
+        "answer": "1. **Memory has grown to nearly two-thirds of AI chip component costs** (274 points, 298 comments)\n2. **DeepSeek reasonix, DeepSeek native coding agent with high caching and low cost** (407 points, 192 comments)\n3. **Scammers are abusing an internal Microsoft account to send spam links** (266 points, 147 comments)",
+        "shape": "records",
+        "page_kind": "news-article",
+        "heuristics": {
+          "refined_ask_here_n": 0,
+          "refined_ask_here_obvious_n": 0,
+          "refined_try_url_n": 0,
+          "refined_shape": "records",
+          "refined_page_kind": "news-article",
+          "refined_parse_fail": false,
+          "refined_answer_len": 315
+        }
+      }
+    },
+    {
+      "slug": "hn-thread",
+      "url": "https://news.ycombinator.com/item?id=39745700",
+      "ask": "what is the most-upvoted criticism in this thread?",
+      "fetch_status": "ok",
+      "chars": 15211,
+      "catalog": {
+        "cost": 0.02021,
+        "ms": 14690,
+        "answer": "No answer found. The thread contains questions and technical discussion, but no clearly upvoted criticism. The highest-engagement exchanges are technical clarifications (token count estimation, layer/embedding dimensions, GQA mechanics) rather than critical feedback.",
+        "heuristics": {
+          "catalog_followups_n": 4,
+          "catalog_followups_obvious_n": 2,
+          "catalog_next_links_n": 5,
+          "catalog_shapes_n": 5,
+          "catalog_page_kind": "thread",
+          "catalog_parse_fail": false,
+          "catalog_answer_len": 267
+        }
+      },
+      "refined": {
+        "cost": 0.0179645,
+        "ms": 10279,
+        "answer": "The thread does not contain upvoted criticisms. The comments are primarily technical questions and appreciation (e.g., 'How many tokens have you trained on?' and 'Loved watching your videos'). There are no visible downvoted or critical threads shown in the provided content.",
+        "shape": "mixed",
+        "page_kind": "thread",
+        "heuristics": {
+          "refined_ask_here_n": 2,
+          "refined_ask_here_obvious_n": 0,
+          "refined_try_url_n": 1,
+          "refined_shape": "mixed",
+          "refined_page_kind": "thread",
+          "refined_parse_fail": false,
+          "refined_answer_len": 274
+        }
+      }
+    },
+    {
+      "slug": "mdn-array",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+      "ask": "how do you remove the last element of an array in javascript?",
+      "fetch_status": "ok",
+      "chars": 40505,
+      "catalog": {
+        "cost": 0.019480499999999998,
+        "ms": 11624,
+        "answer": "To remove the last element of a JavaScript array, use the `pop()` method, which mutates the original array and returns the removed element. Alternatively, use the non-mutating `slice(0, -1)` method to create a new array without the last element.",
+        "heuristics": {
+          "catalog_followups_n": 5,
+          "catalog_followups_obvious_n": 0,
+          "catalog_next_links_n": 4,
+          "catalog_shapes_n": 3,
+          "catalog_page_kind": "reference",
+          "catalog_parse_fail": false,
+          "catalog_answer_len": 245
+        }
+      },
+      "refined": {
+        "cost": 0.01761,
+        "ms": 8304,
+        "answer": "Use the `pop()` method to remove the last element: `arr.pop()`. For a non-mutating alternative, use `slice(0, -1)` which returns a new array without the last element.",
+        "shape": "mixed",
+        "page_kind": "api-reference",
+        "heuristics": {
+          "refined_ask_here_n": 3,
+          "refined_ask_here_obvious_n": 0,
+          "refined_try_url_n": 0,
+          "refined_shape": "mixed",
+          "refined_page_kind": "api-reference",
+          "refined_parse_fail": false,
+          "refined_answer_len": 166
+        }
+      }
+    },
+    {
+      "slug": "rfc-9110-idempotent",
+      "url": "https://datatracker.ietf.org/doc/html/rfc9110",
+      "ask": "what does the spec say about idempotent methods?",
+      "fetch_status": "ok",
+      "chars": 403182,
+      "catalog": {
+        "cost": 0.01845975,
+        "ms": 11783,
+        "answer": "RFC 9110 does not provide a direct definition of idempotent methods in the provided excerpt. However, Section 9 (request methods) and Section 15 (status codes) are referenced as containing method semantics. The full specification would detail which methods (GET, HEAD, PUT, DELETE, etc.) are idempotent—meaning they produce the same result whether executed once or multiple times.",
+        "heuristics": {
+          "catalog_followups_n": 4,
+          "catalog_followups_obvious_n": 0,
+          "catalog_next_links_n": 4,
+          "catalog_shapes_n": 3,
+          "catalog_page_kind": "spec",
+          "catalog_parse_fail": false,
+          "catalog_answer_len": 380
+        }
+      },
+      "refined": {
+        "cost": 0.01714425,
+        "ms": 9802,
+        "answer": "The visible portion of RFC 9110 does not contain information about idempotent methods. Section 9 (Request Methods) is referenced as defining method intentions and semantics, but the actual content of that section is not included in the fetched page.",
+        "shape": "prose",
+        "page_kind": "spec",
+        "heuristics": {
+          "refined_ask_here_n": 3,
+          "refined_ask_here_obvious_n": 0,
+          "refined_try_url_n": 2,
+          "refined_shape": "prose",
+          "refined_page_kind": "spec",
+          "refined_parse_fail": false,
+          "refined_answer_len": 249
+        }
+      }
+    },
+    {
+      "slug": "so-yield",
+      "url": "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python",
+      "ask": "what is the accepted answer?",
+      "fetch_status": "ok",
+      "chars": 38038,
+      "catalog": {
+        "cost": 0.020715749999999998,
+        "ms": 14261,
+        "answer": "The accepted answer (top-voted at 18,311 upvotes) explains that yield allows a function to return a generator object. When the interpreter encounters yield, the function no longer returns via return statement but instead returns a lazy 'pending list' object called a generator, which is iterable. The key difference from return is that the stack frame persists between calls, allowing execution to resume from the last yield statement.",
+        "heuristics": {
+          "catalog_followups_n": 4,
+          "catalog_followups_obvious_n": 0,
+          "catalog_next_links_n": 5,
+          "catalog_shapes_n": 5,
+          "catalog_page_kind": "qa",
+          "catalog_parse_fail": false,
+          "catalog_answer_len": 435
+        }
+      },
+      "refined": {
+        "cost": 0.01893025,
+        "ms": 10320,
+        "answer": "The accepted answer explains that `yield` turns a function into a generator that returns a lazy 'pending list' object. When called, the function doesn't execute immediately; instead, it returns an iterable generator that produces values one at a time. Each time `next()` is called (via a for loop), execution resumes from the last `yield` statement, preserving the function's state between calls.",
+        "shape": "mixed",
+        "page_kind": "qa",
+        "heuristics": {
+          "refined_ask_here_n": 3,
+          "refined_ask_here_obvious_n": 0,
+          "refined_try_url_n": 2,
+          "refined_shape": "mixed",
+          "refined_page_kind": "qa",
+          "refined_parse_fail": false,
+          "refined_answer_len": 396
+        }
+      }
+    },
+    {
+      "slug": "gh-httpx-readme",
+      "url": "https://github.com/encode/httpx",
+      "ask": "how do I install httpx and make a basic GET request?",
+      "fetch_status": "ok",
+      "chars": 5317,
+      "catalog": {
+        "cost": 0.01614525,
+        "ms": 11553,
+        "answer": "Install httpx with `pip install httpx`, then import it and use `httpx.get('https://example.org/')` to make a basic GET request. The response object provides `.status_code`, `.headers`, and `.text` attributes to access the response details.",
+        "heuristics": {
+          "catalog_followups_n": 5,
+          "catalog_followups_obvious_n": 0,
+          "catalog_next_links_n": 7,
+          "catalog_shapes_n": 4,
+          "catalog_page_kind": "package",
+          "catalog_parse_fail": false,
+          "catalog_answer_len": 239
+        }
+      },
+      "refined": {
+        "cost": 0.014409749999999999,
+        "ms": 9954,
+        "answer": "Install HTTPX with `pip install httpx`. Then import it and use `httpx.get()` for basic GET requests: `import httpx; r = httpx.get('https://www.example.org/'); r.status_code` returns 200 on success.",
+        "shape": "mixed",
+        "page_kind": "readme",
+        "heuristics": {
+          "refined_ask_here_n": 3,
+          "refined_ask_here_obvious_n": 0,
+          "refined_try_url_n": 2,
+          "refined_shape": "mixed",
+          "refined_page_kind": "readme",
+          "refined_parse_fail": false,
+          "refined_answer_len": 197
+        }
+      }
+    },
+    {
+      "slug": "pydantic-releases",
+      "url": "https://github.com/pydantic/pydantic/releases",
+      "ask": "what changed in the latest pydantic release?",
+      "fetch_status": "ok",
+      "chars": 10503,
+      "catalog": {
+        "cost": 0.02209925,
+        "ms": 16112,
+        "answer": "The latest Pydantic release is v2.13.4 (2026-05-06), which includes packaging updates (bumped libc from 0.2.155 to 0.2.185, adapted macOS linker flags), and fixes including preservation of RootModel core metadata. A newer pre-release v2.14.0a1 (2026-05-22) adds PyEmscripten platform tag support for Pyodide 314.0 and accepts None in MultiHostUrl.",
+        "heuristics": {
+          "catalog_followups_n": 5,
+          "catalog_followups_obvious_n": 0,
+          "catalog_next_links_n": 5,
+          "catalog_shapes_n": 3,
+          "catalog_page_kind": "changelog",
+          "catalog_parse_fail": false,
+          "catalog_answer_len": 347
+        }
+      },
+      "refined": {
+        "cost": 0.02009375,
+        "ms": 11566,
+        "answer": "The latest pydantic release is v2.14.0a1 (2026-05-22), a pre-release adding PyEmscripten platform tag support for Pyodide 314.0+ and accepting None in MultiHostUrl. The latest stable release is v2.13.4 (2026-05-06), which bumped libc, adapted macOS linker flags, and preserved RootModel core metadata.",
+        "shape": "records",
+        "page_kind": "changelog",
+        "heuristics": {
+          "refined_ask_here_n": 3,
+          "refined_ask_here_obvious_n": 0,
+          "refined_try_url_n": 2,
+          "refined_shape": "records",
+          "refined_page_kind": "changelog",
+          "refined_parse_fail": false,
+          "refined_answer_len": 301
+        }
+      }
+    },
+    {
+      "slug": "wiki-rust",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "ask": "when was rust 1.0 released and who created it?",
+      "fetch_status": "ok",
+      "chars": 42295,
+      "catalog": {
+        "cost": 0.01910425,
+        "ms": 12877,
+        "answer": "Rust 1.0 was released on May 15, 2015, and was created by Graydon Hoare, who started the project in 2006 while working at Mozilla. The language was officially sponsored by Mozilla in 2009 and evolved through community contribution before reaching its first stable release.",
+        "heuristics": {
+          "catalog_followups_n": 5,
+          "catalog_followups_obvious_n": 0,
+          "catalog_next_links_n": 4,
+          "catalog_shapes_n": 4,
+          "catalog_page_kind": "encyclopedia",
+          "catalog_parse_fail": false,
+          "catalog_answer_len": 272
+        }
+      },
+      "refined": {
+        "cost": 0.01700875,
+        "ms": 8587,
+        "answer": "Rust 1.0, the first stable release, was published on May 15, 2015. The language was created by Graydon Hoare in 2006 while working at Mozilla, which officially sponsored the project in 2009.",
+        "shape": "prose",
+        "page_kind": "encyclopedia",
+        "heuristics": {
+          "refined_ask_here_n": 0,
+          "refined_ask_here_obvious_n": 0,
+          "refined_try_url_n": 0,
+          "refined_shape": "prose",
+          "refined_page_kind": "encyclopedia",
+          "refined_parse_fail": false,
+          "refined_answer_len": 190
+        }
+      }
+    },
+    {
+      "slug": "pypi-httpx",
+      "url": "https://pypi.org/project/httpx/",
+      "ask": "what is the latest version of httpx and its main dependencies?",
+      "fetch_status": "ok",
+      "chars": 6711,
+      "catalog": {
+        "cost": 0.018421,
+        "ms": 13424,
+        "answer": "The latest stable version of httpx is 0.28.1 (released Dec 6, 2024), with pre-release 1.0.dev3 available as of Sep 15, 2025. Main dependencies include Python >=3.8, with optional extras for brotli, cli, http2, socks, and zstd compression support.",
+        "heuristics": {
+          "catalog_followups_n": 5,
+          "catalog_followups_obvious_n": 0,
+          "catalog_next_links_n": 5,
+          "catalog_shapes_n": 4,
+          "catalog_page_kind": "package",
+          "catalog_parse_fail": false,
+          "catalog_answer_len": 246
+        }
+      },
+      "refined": {
+        "cost": 0.0132655,
+        "ms": 12198,
+        "answer": "The latest stable version of httpx is 0.28.1 (released Dec 6, 2024), with development versions 1.0.dev1-3 in pre-release. The page does not list specific dependency packages, only metadata that httpx requires Python >=3.8 and has optional extras for brotli, cli, http2, socks, and zstd.",
+        "shape": "key-value",
+        "page_kind": "package-page",
+        "heuristics": {
+          "refined_ask_here_n": 2,
+          "refined_ask_here_obvious_n": 0,
+          "refined_try_url_n": 2,
+          "refined_shape": "key-value",
+          "refined_page_kind": "package-page",
+          "refined_parse_fail": false,
+          "refined_answer_len": 286
+        }
+      }
+    }
+  ],
+  "totals": {
+    "catalog_cost": 0.185501,
+    "refined_cost": 0.16370815,
+    "catalog_parse_fails": 0,
+    "refined_parse_fails": 0
+  }
+}

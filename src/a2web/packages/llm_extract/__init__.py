@@ -6,21 +6,20 @@ caching the result. Zero `a2web.<domain>` imports.
 
 Boundary types are package-owned: `Provider` Protocol, `ModelSpec`,
 `ExtractionResult`, `ExtractionCache`, `PromptTemplate`, `Judge`,
-`JudgeVerdict`. Domain wiring (AppSettings provider selection,
-SqliteResource cache plumbing) lives at the a2web seam in
-`a2web.llm.resource`.
+`JudgeVerdict`, `RouterPayload`, `NextUrlBoundary`. Domain wiring
+(AppSettings provider selection, SqliteResource cache plumbing) lives at
+the a2web seam in `a2web.llm.resource`.
 """
 
 from __future__ import annotations
 
-from .affordances import AffordanceShape, AffordancesPayload
 from .cache import ExtractionCache, ExtractionCacheRow, hash_text
 from .errors import LLMNotAvailable
 from .extractor import ExtractionResult, Extractor, LlmNextLink, ModelSpec
 from .judge import Judge, JudgeParseError, JudgeVerdict
 from .prompts import (
     EXTRACT_CACHEABLE_V1,
-    EXTRACT_WITH_AFFORDANCES_V1,
+    EXTRACT_ROUTER_V1,
     JUDGE_V1,
     TERSE_V1,
     WEBFETCH_DEFAULT_V1,
@@ -28,15 +27,14 @@ from .prompts import (
     PromptTemplate,
 )
 from .providers import Provider, ProviderResponse
+from .router_payload import NextUrlBoundary, RouterPayload
 
 __all__ = [
     "EXTRACT_CACHEABLE_V1",
-    "EXTRACT_WITH_AFFORDANCES_V1",
+    "EXTRACT_ROUTER_V1",
     "JUDGE_V1",
     "TERSE_V1",
     "WEBFETCH_DEFAULT_V1",
-    "AffordanceShape",
-    "AffordancesPayload",
     "ExtractionCache",
     "ExtractionCacheRow",
     "ExtractionResult",
@@ -47,9 +45,11 @@ __all__ = [
     "LLMNotAvailable",
     "LlmNextLink",
     "ModelSpec",
+    "NextUrlBoundary",
     "PromptParts",
     "PromptTemplate",
     "Provider",
     "ProviderResponse",
+    "RouterPayload",
     "hash_text",
 ]

@@ -8,6 +8,80 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-05-25
+
+**BREAKING — one-release supersession of v0.20.0's `affordances` surface.**
+The v0.20 design surfaced, three exploration spikes refined it, and the
+router-shape envelope below replaces affordances wholesale. If you're
+integrating against v0.20, jump straight to v0.21.
+
+### Added
+
+- **Router-shape envelope on `ask`.** Seven new fields replace the single
+  `affordances` payload, decomposed across two orthogonal axes plus drilldown
+  hints:
+  - **Required (always present when extraction succeeded):** `answer` (renamed
+    from `extracted_answer` on `AskResponse` — cleaner since we're already
+    breaking), `structural_form` (Literal of 9: `article | thread | listing |
+    reference | tutorial | changelog | code | product | media | other`),
+    `shape` (Literal of 7: `prose | records | key-value | code | table |
+    discussion | mixed`).
+  - **Conditional (omitted from the wire when empty/null via `_prune_wire`):**
+    `genre` (Literal of 7: `news | encyclopedia | spec | paper | personal |
+    official | community`), `obstacle` (Literal of 4: `paywalled | blocked |
+    empty | error`), `ask_here: list[str]`, `try_url: list[NextUrl]`.
+- **New `discussion` shape value** captures thread-style pages (HN thread,
+  reddit thread, lobste, blog with comments) where both authored content AND
+  reply structure carry signal. The prompt instructs higher `ask_here`
+  generosity on `shape=discussion` (5+ acceptable) because thread pages
+  support more useful follow-ups about positions, dissent, consensus.
+- **`include_routing: bool = True` kwarg on `ask`** replaces
+  `include_affordances`. Default ON. Opt out for the lean v0.14 envelope.
+- **`EXTRACT_ROUTER_V1` prompt template** replaces `EXTRACT_WITH_AFFORDANCES_V1`.
+  Tail ~−35% smaller (loses cluster-rule prose; gains explicit omit-empty
+  discipline). `cache_prefix_template` is byte-identical to
+  `EXTRACT_CACHEABLE_V1.cache_prefix_template` — the v0.19 byte-stable cache
+  invariant survives the swap.
+- **`RouterPayload` + `NextUrlBoundary` boundary types** in
+  `src/a2web/packages/llm_extract/router_payload.py` (frozen
+  `@dataclass(slots=True)`), with closed-`Literal` pydantic mirrors
+  `RouterPayload` + `NextUrl` in `src/a2web/models.py`. Closed-enum violations
+  are caught at the seam in `fetcher_response._project_routing` — invalid
+  payloads drop the 7 router fields but `answer` text still reaches the wire.
+- **Claude Code provider hardening.** `mcp_servers={}` + `strict_mcp_config=True`
+  + `agents={}` added to `ClaudeAgentOptions`. Closes the leak path where the
+  host CLI's saved MCP servers (including memory-bearing servers like
+  `hub_memory_recall`) could otherwise contaminate extraction subprocesses.
+  `num_turns` surfaces in `ProviderResponse.raw` for paranoid verification.
+
+### Removed
+
+- `AffordancesPayload`, `AffordanceShape`, `PageKind` (29-value),
+  `PageKindConfidence`, `ContentValue`, `ShapeLabel` (8-value),
+  `_OBSTACLE_PAGE_KINDS` — wholesale.
+- `EXTRACT_WITH_AFFORDANCES_V1` template + `_split_answer_and_affordances`
+  parser + `_OBSTACLE_KINDS` frozenset — replaced by `EXTRACT_ROUTER_V1` +
+  `_split_answer_and_routing`.
+- `include_affordances` / `request_affordances` kwargs — renamed
+  `include_routing` / `request_routing`.
+- `AskResponse.extracted_answer` field — renamed `answer`.
+  (`FetchResponse.extracted_answer` is unchanged — only the `ask` envelope
+  rename.)
+- Seven confusable-cluster rules (A–G) — the tighter 9-value `structural_form`
+  enum has no synonym pairs, so nothing to disambiguate.
+- `page_kind_confidence` and `content_value` — paraphrased by behavioral
+  signal (presence of `ask_here` ≈ "content has more questions to ask";
+  presence of `try_url` ≈ "elsewhere is better"; absence of `obstacle` ≈
+  "healthy page").
+
+### Decisions
+
+Design captured in `openspec/changes/refactor-ask-to-router-shape/design.md`
+(D1–D8). Empirical validation in
+`eval/findings_2026-05-25-router-shape-pre-impl.md` (0 parse failures, 0
+envelope violations, 0 memory leaks, 10/12 shape matches, 100% closed-enum
+compliance across 12 URLs).
+
 ## [0.20.0] — 2026-05-24
 
 ### Added

@@ -139,6 +139,55 @@ async def test_complete_translates_cli_not_found(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
+async def test_complete_isolation_kwargs_block_host_mcp(monkeypatch: pytest.MonkeyPatch) -> None:
+    """v0.21 — ClaudeAgentOptions MUST set `mcp_servers={}`,
+    `strict_mcp_config=True`, `agents={}` so the host Claude Code CLI's
+    saved MCP servers and subagents can't leak into extraction calls."""
+    import claude_agent_sdk
+
+    captured: dict[str, Any] = {}
+
+    async def fake_query(*, prompt: str, options: Any, transport: Any = None):
+        captured["mcp_servers"] = options.mcp_servers
+        captured["strict_mcp_config"] = options.strict_mcp_config
+        captured["agents"] = options.agents
+        captured["setting_sources"] = options.setting_sources
+        captured["skills"] = options.skills
+        yield claude_agent_sdk.ResultMessage(
+            subtype="success",
+            duration_ms=10,
+            duration_api_ms=8,
+            is_error=False,
+            num_turns=1,
+            session_id="s",
+            stop_reason="end_turn",
+            total_cost_usd=0.0,
+            usage={"input_tokens": 1, "output_tokens": 0},
+            result=None,
+            structured_output=None,
+            model_usage=None,
+            permission_denials=None,
+            deferred_tool_use=None,
+            errors=None,
+            api_error_status=None,
+            uuid=None,
+        )
+
+    monkeypatch.setattr(claude_agent_sdk, "query", fake_query)
+    provider = ClaudeCodeProvider()
+    resp = await provider.complete(system="", user="x", model="claude-haiku-4-5-20251001")
+    assert captured["mcp_servers"] == {}
+    assert captured["strict_mcp_config"] is True
+    assert captured["agents"] == {}
+    # Existing isolations must still be in place.
+    assert captured["setting_sources"] == []
+    assert captured["skills"] == []
+    # num_turns surfaces into raw for paranoid verification.
+    assert resp.raw is not None
+    assert resp.raw["num_turns"] == 1
+
+
+@pytest.mark.asyncio
 async def test_complete_catches_generic_sdk_error(monkeypatch: pytest.MonkeyPatch) -> None:
     """Non-CLI errors → empty response with raw['error'] populated."""
     import claude_agent_sdk

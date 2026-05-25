@@ -114,7 +114,7 @@ async def _ask_wire(
     return json.loads(wire)
 
 
-_REQUIRED = {"confidence", "extracted_answer"}
+_REQUIRED = {"confidence", "answer"}
 
 
 # --------------------------------------------------------------------- #
@@ -126,7 +126,7 @@ _REQUIRED = {"confidence", "extracted_answer"}
 async def test_ask_success_carries_required_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     data = await _ask_wire(monkeypatch, url="https://example.org/post", question="what is this about?")
     assert _REQUIRED <= set(data)
-    assert data["extracted_answer"] == "The page is about adaptive web fetching."
+    assert data["answer"] == "The page is about adaptive web fetching."
 
 
 @pytest.mark.asyncio

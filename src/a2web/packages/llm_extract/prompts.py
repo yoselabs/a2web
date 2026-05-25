@@ -148,25 +148,23 @@ EXTRACT_CACHEABLE_V1 = PromptTemplate(
     tail_template="\nQuestion: {ask}\n",
 )
 
-# v0.20 — affordances-aware template. Extends `EXTRACT_CACHEABLE_V1` by
-# adding a two-axis (page_kind_confidence + content_value) affordances request
-# to the *tail* (per-call portion). The `cache_prefix_template` is byte-
-# identical to `EXTRACT_CACHEABLE_V1.cache_prefix_template` — load-bearing for
-# the v0.19 cache-prefix invariant. The schema example lives entirely in
-# `tail_template` so the cache prefix stays byte-stable across all `(content,
-# ask, include_affordances, request_next_links)` combinations for a given
-# `content`.
+# v0.21 — router-shape template. Extends `EXTRACT_CACHEABLE_V1` by adding a
+# two-axis (structural_form + genre) router payload with optional obstacle +
+# discovery hints. `cache_prefix_template` is byte-identical to
+# `EXTRACT_CACHEABLE_V1.cache_prefix_template` — load-bearing for the v0.19
+# cache-prefix invariant. The schema lives entirely in `tail_template` so the
+# cache prefix stays byte-stable across all `(content, ask, request_routing,
+# request_next_links)` combinations for a given `content`.
 #
-# Prompt shape locked from `eval/spikes/affordances_v5_two_axes.py` (V_CTX_V3,
-# the winning iteration from the 4-spike calibration loop). Findings:
-# `eval/findings_2026-05-24-affordances-v5-two-axes.md`.
+# Prompt shape locked from `eval/spikes/surface_eval_v2.py` (pre-impl
+# validation eval). Findings: `eval/findings_2026-05-25-router-shape-pre-impl.md`.
 #
-# The "extracted_answer" field in the response IS the answer to the user's
-# question — same as `EXTRACT_CACHEABLE_V1`'s output, just wrapped in a JSON
-# envelope alongside the affordances block. The extractor parses out
-# `extracted_answer` for the answer field and the rest for `AffordancesPayload`.
-EXTRACT_WITH_AFFORDANCES_V1 = PromptTemplate(
-    name="extract_with_affordances_v1",
+# The "answer" field in the response IS the answer to the user's question —
+# same as `EXTRACT_CACHEABLE_V1`'s output, just wrapped in a JSON envelope
+# alongside the router-shape block. The extractor parses out `answer` and
+# the rest into `RouterPayload`.
+EXTRACT_ROUTER_V1 = PromptTemplate(
+    name="extract_router_v1",
     version=1,
     system=(
         "Provide a concise response based only on the page content the user "
@@ -179,14 +177,11 @@ EXTRACT_WITH_AFFORDANCES_V1 = PromptTemplate(
         "prompts and responses.\n"
         " - Never produce or reproduce exact song lyrics.\n"
         "\n"
-        "You ALSO classify the page TYPE and emit affordances about what else "
-        "the page offers. Two orthogonal signals matter:\n"
-        "  - page_kind_confidence — how sure you are about the LABEL\n"
-        "  - content_value — how useful the extracted content is downstream\n"
-        "These are independent. A 404 page is HIGH confidence (it is clearly a "
-        "404) but the content_value is implicitly NONE — for obstacle pages you "
-        "OMIT content_value entirely (its absence carries the meaning). Be honest "
-        "about uncertainty. Output strict JSON only.",
+        "You ALSO act as a routing helper: classify the page on two orthogonal "
+        "axes and emit drilldown hints. The classification helps a downstream "
+        "agent decide whether THIS page answers their question, or whether to "
+        "ask again here (same URL) or follow a different URL. Output strict "
+        "JSON only.",
     ),
     # MUST stay byte-identical to EXTRACT_CACHEABLE_V1.cache_prefix_template —
     # any change here breaks the v0.19 cache-prefix invariant.
@@ -194,85 +189,79 @@ EXTRACT_WITH_AFFORDANCES_V1 = PromptTemplate(
     tail_template=(
         "\nQuestion: {ask}\n"
         "\n"
-        "STEP 1 — Classify the page. Pick the ONE best `page_kind` from this closed set:\n"
+        "Return a single JSON object with these fields:\n"
         "\n"
-        "  Content kinds:\n"
-        "    listing | thread | reference | api-reference | tutorial | article-short |\n"
-        "    article-long | changelog | code-snippet | source-file | readme | qa | spec |\n"
-        "    filing | news-article | blog-post | product-page | video-page | json-feed |\n"
-        "    marketing | encyclopedia | package-page | pdf-stub | spa\n"
-        "  Obstacle kinds (page exists but has no usable body):\n"
-        "    paywalled    — clear paywall, partial content visible\n"
-        "    error        — 404, 500, 'not found', broken page\n"
-        "    empty        — nav + footer only, no real body\n"
-        "    blocked      — captcha, bot wall, cloudflare interstitial\n"
-        "  Catch-all:\n"
-        "    other        — page exists but does not fit any label above\n"
+        "  answer (required, string) — your concise answer to the question. If the\n"
+        "    question asks for an enumeration (top N, list, etc.) put the list IN the\n"
+        "    answer as compact markdown.\n"
         "\n"
-        "STEP 2 — `page_kind_confidence` (epistemic uncertainty about the LABEL).\n"
+        "  structural_form (required, ONE of):\n"
+        "    article    — long-form prose (essay, post, news story)\n"
+        "    thread     — discussion-shaped page (HN item, reddit thread, lobste, blog with comments)\n"
+        "    listing    — feed of items (catalog, index, search results, RSS-like)\n"
+        "    reference  — encyclopedia / docs / spec / glossary / API reference\n"
+        "    tutorial   — how-to / walkthrough / lesson\n"
+        "    changelog  — release notes / version history\n"
+        "    code       — source file, gist, raw code paste\n"
+        "    product    — single product / package / project landing page\n"
+        "    media      — primarily image / video / audio with thin text\n"
+        "    other      — does not fit above\n"
         "\n"
-        "  HARD RULE: if your chosen page_kind appears in any of these confusable\n"
-        "  clusters, you MUST set confidence to `low` or `medium` — never `high`.\n"
-        "  Claiming `high` while picking from a cluster is a contract violation:\n"
+        "  shape (required, ONE of) — the data SHAPE of the answer-bearing content:\n"
+        "    prose       — paragraphs\n"
+        "    records     — repeated rows of the same kind (each with a few fields)\n"
+        "    key-value   — labeled fields (metadata, infobox, definition list)\n"
+        "    code        — code blocks dominate\n"
+        "    table       — actual tabular data\n"
+        "    discussion  — thread with author + body pairs, often nested; both content AND replies\n"
+        "    mixed       — multiple shapes co-exist with no dominant one\n"
         "\n"
-        "    Cluster A (academic / short articles):\n"
-        "      article-short, reference, pdf-stub, article-long\n"
-        "    Cluster B (project landing pages):\n"
-        "      readme, package-page, marketing, product-page\n"
-        "    Cluster C (status / dashboard / monitoring):\n"
-        "      status, product-page\n"
-        "    Cluster D (versioned release lists):\n"
-        "      changelog, listing\n"
-        "    Cluster E (structured feed of items):\n"
-        "      listing, json-feed\n"
-        "    Cluster F (long-form web content):\n"
-        "      blog-post, news-article, article-long\n"
-        "    Cluster G (commerce / listing of products):\n"
-        "      listing, product-page, package-page\n"
+        "  genre (optional, ONE of) — what the page is ABOUT. OMIT the key when no value\n"
+        "  clearly applies:\n"
+        "    news | encyclopedia | spec | paper | personal | official | community\n"
         "\n"
-        "  Decision rule inside a cluster:\n"
-        "    low    — you considered 2+ labels from the same cluster and the\n"
-        "             distinction is genuinely ambiguous\n"
-        "    medium — one label is clearly stronger but a sibling is defensible\n"
+        "  obstacle (optional, ONE of) — page-level failure mode. OMIT on healthy pages:\n"
+        "    paywalled | blocked | empty | error\n"
         "\n"
-        "  Use `high` ONLY when:\n"
-        "    - the page_kind is NOT in any cluster above, AND\n"
-        "    - structural signals are unambiguous\n"
+        "  ask_here (optional, list of strings) — same-URL follow-up questions a downstream\n"
+        "  agent might ask. Emit ONLY questions whose answer requires READING THE BODY of\n"
+        "  this page — never obvious-from-title or boilerplate questions. Context decides\n"
+        "  count: 3 good, 5 great, more if rich. When shape=discussion, lean higher (5+\n"
+        "  acceptable) — thread pages support useful follow-ups about positions, dissent,\n"
+        "  consensus, top voices. OMIT the key entirely when no good follow-up exists.\n"
         "\n"
-        "STEP 3 — `content_value` (how useful the extracted content is downstream).\n"
+        "  try_url (optional, list of {{url, reason}}) — different-URL drilldowns. `url` MUST\n"
+        "  appear verbatim in the page content above. `reason` MUST be question-conditioned\n"
+        "  (WHY this URL likely has what the current page is missing) and ≤120 chars. Context\n"
+        "  decides count: 3 good, 5 great, up to 10 on rich pages, OMIT on simple pages.\n"
         "\n"
-        "  Emit this field ONLY when page_kind is a content kind.\n"
-        "  For obstacle kinds (error / paywalled / blocked / empty), OMIT it.\n"
+        "Envelope discipline: when a field is empty / null / does-not-apply, OMIT the key\n"
+        "ENTIRELY. Do not emit `null` or `[]` — absence carries the meaning.\n"
         "\n"
-        "  high   — substantial body content (> 2000 chars), on-topic\n"
-        "  medium — usable body present but partial, noisy, or only partially on-topic\n"
-        "  low    — body very thin, mostly chrome/nav/footer, off-topic, or truncated\n"
-        "\n"
-        "STEP 4 — Affordances. For content kinds, emit shapes + follow_up_questions\n"
-        "tuned to the kind. For obstacle kinds, OMIT both fields entirely.\n"
-        "\n"
-        "Use closed shape vocabulary:\n"
-        "  list | timeline | key-value | table | code | comments | citations | comparison\n"
-        "\n"
-        "Respond with strict JSON. Include only the fields that apply.\n"
-        "\n"
-        "  Content page response:\n"
+        "Example (healthy article, complete answer, no drilldowns warranted):\n"
         "  {{\n"
-        '    "extracted_answer": "<concise answer to the question above>",\n'
-        '    "page_kind": "<content kind>",\n'
-        '    "page_kind_confidence": "<low|medium|high>",\n'
-        '    "content_value": "<low|medium|high>",\n'
-        '    "reasoning": "<one short sentence justifying kind + confidence + value>",\n'
-        '    "shapes": [{{"label": "...", "where": "...", "size": "..."}}],\n'
-        '    "follow_up_questions": ["<3-5 specific questions>"]\n'
+        '    "answer": "<concise answer>",\n'
+        '    "structural_form": "article",\n'
+        '    "shape": "prose",\n'
+        '    "genre": "encyclopedia"\n'
         "  }}\n"
         "\n"
-        "  Obstacle page response (no content_value, no shapes, no follow_ups):\n"
+        "Example (discussion page with follow-ups):\n"
         "  {{\n"
-        '    "extracted_answer": "<2-3 sentence statement naming the obstacle>",\n'
-        '    "page_kind": "<obstacle kind>",\n'
-        '    "page_kind_confidence": "<low|medium|high>",\n'
-        '    "reasoning": "<one short sentence>"\n'
+        '    "answer": "<concise answer>",\n'
+        '    "structural_form": "thread",\n'
+        '    "shape": "discussion",\n'
+        '    "genre": "community",\n'
+        '    "ask_here": ["<q1>", "<q2>", "<q3>", "<q4>", "<q5>"]\n'
+        "  }}\n"
+        "\n"
+        "Example (paywalled obstacle):\n"
+        "  {{\n"
+        '    "answer": "<2-3 sentence statement naming the obstacle>",\n'
+        '    "structural_form": "article",\n'
+        '    "shape": "prose",\n'
+        '    "obstacle": "paywalled",\n'
+        '    "try_url": [{{"url": "<archive-url>", "reason": "archive snapshot"}}]\n'
         "  }}\n"
     ),
 )
@@ -302,7 +291,7 @@ JUDGE_V1 = PromptTemplate(
 
 __all__ = [
     "EXTRACT_CACHEABLE_V1",
-    "EXTRACT_WITH_AFFORDANCES_V1",
+    "EXTRACT_ROUTER_V1",
     "JUDGE_V1",
     "TERSE_V1",
     "WEBFETCH_DEFAULT_V1",

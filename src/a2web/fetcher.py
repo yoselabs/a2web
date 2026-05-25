@@ -61,7 +61,7 @@ from .packages.content_extract import (
 )
 from .packages.http_cache import CacheRow, SqliteResource
 from .packages.json_in_script import extract_json_payloads, rank_payloads
-from .packages.llm_extract import AffordancesPayload, LlmNextLink
+from .packages.llm_extract import LlmNextLink, RouterPayload
 from .packages.record_extract import Record, RecordSet, extract_records
 from .settings import AppSettings
 from .state import AppState
@@ -231,12 +231,12 @@ class FetchContext:
     ask: str | None = None
     extracted_answer: str | None = None
     extraction_meta: ExtractionMeta | None = None
-    # v0.20 affordances payload — populated when `include_affordances=True`
-    # and the extractor returned a parseable affordances envelope. Boundary
-    # type from packages/llm_extract; projected into pydantic at the seam in
-    # `fetcher_response.build_ask_response`.
-    affordances: AffordancesPayload | None = None
-    include_affordances: bool = True
+    # v0.21 router-shape payload — populated when `include_routing=True` and
+    # the extractor returned a parseable router-shape envelope. Boundary type
+    # from packages/llm_extract; projected into pydantic at the seam in
+    # `fetcher_response.build_response`.
+    routing: RouterPayload | None = None
+    include_routing: bool = True
 
     # Body & content state (set by tier loop, escalations append observations)
     body: bytes = b""
@@ -348,7 +348,7 @@ async def fetch(
     ask: str | None = None,
     next_links: bool = True,
     max_content_chars: int | None = None,
-    include_affordances: bool = True,
+    include_routing: bool = True,
 ) -> FetchResponse:
     """Run the v0.1 cascade for one URL.
 
@@ -408,7 +408,7 @@ async def fetch(
         ask=ask,
         next_links_enabled=next_links,
         max_content_chars=max_content_chars,
-        include_affordances=include_affordances,
+        include_routing=include_routing,
         cache_state=CacheState.bypass if bypass_cache else CacheState.miss,
     )
 
@@ -1388,7 +1388,7 @@ async def _phase_extract_answer(
         request_next_links=request_next_links,
         handler_candidates=handler_candidates_for_llm,
         max_content_chars=fc.max_content_chars,
-        request_affordances=fc.include_affordances,
+        request_routing=fc.include_routing,
     )
     if result is None:
         # Graceful degrade: fetch succeeded, extraction skipped, operator
@@ -1447,10 +1447,10 @@ async def _phase_extract_answer(
         cache_hit=result.cache_hit,
         truncated=bool(result.raw and result.raw.get("truncated")),
     )
-    # v0.20 — surface the affordances payload for the seam projector. When
-    # the model returned malformed JSON or `include_affordances=False`, this
-    # is None.
-    fc.affordances = result.affordances
+    # v0.21 — surface the router-shape payload for the seam projector. When
+    # the model returned malformed JSON or `include_routing=False`, this is
+    # None.
+    fc.routing = result.routing
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
     await a2kit.ldd.event(
         StageEnded(

@@ -1,0 +1,163 @@
+{
+  "per_url": [
+    {
+      "slug": "arxiv-pdf-stub",
+      "url": "https://arxiv.org/abs/2402.17753",
+      "ask": "what experimental setup did the authors use in section 4?",
+      "expected_gap": "deep section content — likely only in the PDF",
+      "catalog": {
+        "cost": 0.0117985,
+        "ms": 11658,
+        "answer": "The fetched content is an abstract only and does not contain section 4 or experimental setup details. You would need to access the full PDF at arxiv.org/pdf/2402.17753 to find the experimental methodology.",
+        "page_kind": "reference",
+        "n_shapes": 3,
+        "n_followups": 5,
+        "n_next_links": 2
+      },
+      "router": {
+        "cost": 0.010651150000000002,
+        "ms": 10034,
+        "answer": "I cannot answer this question. The fetched content is only the abstract of the arxiv paper, which does not include section 4 or any experimental setup details. Section 4 content is not present in the provided material.",
+        "completeness": "none",
+        "n_ask_here": 3,
+        "n_try_url": 1,
+        "try_url_reasons": [
+          "Full PDF will contain section 4 with complete experimental setup, methodology, hyperparameters, and implementation details missing from abstract"
+        ]
+      },
+      "hybrid": {
+        "cost": 0.0110004,
+        "ms": 10103,
+        "answer": "The provided abstract does not contain section 4 or details about the experimental setup. The abstract only describes the LoCoMo dataset creation pipeline (LLM-based agent architectures with personas and temporal event graphs) and mentions that evaluation tasks include question answering, event summarization, and multi-modal dialogue generation, but experimental methods, hyperparameters, model configurations, and statistical details are not included in this excerpt.",
+        "completeness": "none",
+        "n_ask_here": 3,
+        "n_try_url": 1,
+        "try_url_reasons": [
+          "Full PDF will contain section 4 with complete experimental setup, model details, hyperparameters, and evaluation methodology."
+        ]
+      }
+    },
+    {
+      "slug": "hn-front-page",
+      "url": "https://news.ycombinator.com/",
+      "ask": "what is the top-voted comment on the #1 story right now?",
+      "expected_gap": "comments are not on this page — need the item permalink",
+      "catalog": {
+        "cost": 0.01705375,
+        "ms": 11759,
+        "answer": "The page does not contain the top-voted comment on the #1 story. The fetched content only shows the front-page listing with story titles, vote counts, and comment counts—it does not include the actual discussion threads or their comments.",
+        "page_kind": "listing",
+        "n_shapes": 2,
+        "n_followups": 5,
+        "n_next_links": 3
+      },
+      "router": {
+        "cost": 0.015136900000000002,
+        "ms": 12133,
+        "answer": null,
+        "completeness": null,
+        "n_ask_here": 0,
+        "n_try_url": 0,
+        "try_url_reasons": []
+      },
+      "hybrid": {
+        "cost": 0.0,
+        "ms": 8615,
+        "answer": null,
+        "completeness": null,
+        "n_ask_here": 0,
+        "n_try_url": 0,
+        "try_url_reasons": []
+      }
+    },
+    {
+      "slug": "reddit-rust-hot",
+      "url": "https://www.reddit.com/r/rust/",
+      "ask": "what is the most discussed objection in the top thread?",
+      "expected_gap": "comments are in the thread page, not the listing"
+    },
+    {
+      "slug": "rfc-9110-deep",
+      "url": "https://datatracker.ietf.org/doc/html/rfc9110",
+      "ask": "what does the spec say about the 421 Misdirected Request status code's interaction with HTTP/2?",
+      "expected_gap": "very specific section — may need to navigate within",
+      "catalog": {
+        "cost": 0.019610000000000002,
+        "ms": 15684,
+        "answer": "No answer found on this page. RFC 9110 is the HTTP Semantics specification (June 2022) covering core protocol elements, methods, and status codes, but the fetched excerpt does not contain sections discussing HTTP/2 or the 421 Misdirected Request status code. You would need to search the full RFC or consult RFC 7540 (HTTP/2 specification) for that interaction.",
+        "page_kind": "spec",
+        "n_shapes": 4,
+        "n_followups": 5,
+        "n_next_links": 5
+      },
+      "router": {
+        "cost": 0.0157366,
+        "ms": 19810,
+        "answer": "The provided RFC 9110 excerpt does not contain information about the 421 Misdirected Request status code or its interaction with HTTP/2. The document is a partial fetch covering the introduction and conformance sections, which establish general protocol architecture but do not discuss specific status codes.",
+        "completeness": "none",
+        "n_ask_here": 3,
+        "n_try_url": 2,
+        "try_url_reasons": [
+          "Section 15 defines HTTP status codes; 421 should be documented there with HTTP/2 context",
+          "RFC 9113 covers HTTP/2 framing and semantics; likely contains 421 + multiplexing interaction details"
+        ]
+      },
+      "hybrid": {
+        "cost": 0.01668295,
+        "ms": 10474,
+        "answer": "RFC 9110 does not discuss the 421 Misdirected Request status code or its HTTP/2 interaction in the provided excerpt. The document is a general HTTP semantics specification covering core protocol elements, methods, and status codes, but the fetched content does not include sections detailing the 421 status code specifically.",
+        "completeness": "none",
+        "n_ask_here": 3,
+        "n_try_url": 2,
+        "try_url_reasons": [
+          "Section 15 covers all HTTP status codes; 421 should appear there with semantics",
+          "RFC 7540 (HTTP/2) defines protocol-version-specific behavior; 421 interaction likely documented there"
+        ]
+      }
+    },
+    {
+      "slug": "paywall-nyt",
+      "url": "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html",
+      "ask": "what did Biden say about Trump in this article?",
+      "expected_gap": "paywalled — body content unavailable",
+      "catalog": {
+        "cost": 0.010698000000000001,
+        "ms": 11181,
+        "answer": "No answer found. The page is paywalled (403 Forbidden) and requires CAPTCHA authorization to access. The fetched content only contains the page title and URL, with no article text available.",
+        "page_kind": "paywalled",
+        "n_shapes": 0,
+        "n_followups": 3,
+        "n_next_links": 1
+      },
+      "router": {
+        "cost": 0.0089661,
+        "ms": 12159,
+        "answer": "I cannot answer this question. The New York Times article is behind a 403 Forbidden error and CAPTCHA protection, making the content inaccessible. The page fetch returned only the error message, not the article text.",
+        "completeness": "none",
+        "n_ask_here": 0,
+        "n_try_url": 1,
+        "try_url_reasons": [
+          "Try direct access without Jina proxy; may need NYT subscription or alternative archive (Archive.org, news aggregators)"
+        ]
+      },
+      "hybrid": {
+        "cost": 0.010570949999999999,
+        "ms": 10030,
+        "answer": "I cannot answer this question because the New York Times article is blocked with a 403 Forbidden error, likely due to paywall restrictions or CAPTCHA requirements. The fetched content contains no article text, only the error message.",
+        "completeness": "none",
+        "n_ask_here": 0,
+        "n_try_url": 3,
+        "try_url_reasons": [
+          "Wayback Machine may have cached the article before paywall enforcement or access restrictions",
+          "Google News often displays NYT article snippets/headlines without paywall, revealing Biden's statements about Trump",
+          "NYT sometimes provides unlocked links via sharing; article may be accessible via different entry point or shared URL variant"
+        ]
+      }
+    }
+  ],
+  "totals": {
+    "catalog_cost": 0.05916025,
+    "router_cost": 0.05049075,
+    "hybrid_cost": 0.0382543
+  }
+}

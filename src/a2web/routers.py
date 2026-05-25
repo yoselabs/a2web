@@ -151,18 +151,17 @@ class WebRouter(a2kit.Router):
                 ),
             ),
         ] = None,
-        include_affordances: Annotated[
+        include_routing: Annotated[
             bool,
             pydantic.Field(
                 description=(
-                    "Include the `affordances` field on the response. Default True. "
-                    "Affordances are a structured summary of what ELSE the page "
-                    "offers: page_kind (closed taxonomy), page_kind_confidence, "
-                    "content_value (how usable the extraction is), shapes (lists, "
-                    "timelines, code blocks, citations, etc. with locations), and "
-                    "3-5 follow_up_questions the page can answer. Same extraction "
-                    "call — adds ~500 completion tokens (~18% cost). Opt out for "
-                    "the lean v0.14 envelope or high-volume cost-sensitive flows."
+                    "Include the router-shape fields on the response. Default True. "
+                    "Router-shape adds seven fields (`structural_form`, `shape`, "
+                    "`genre`, `obstacle`, `ask_here`, `try_url`, plus `answer`) "
+                    "describing what the page IS and ABOUT, plus same-URL follow-up "
+                    "questions and different-URL drilldowns. Same extraction call. "
+                    "Opt out for the lean v0.14 envelope or high-volume cost-sensitive "
+                    "flows."
                 ),
             ),
         ] = True,
@@ -205,7 +204,7 @@ class WebRouter(a2kit.Router):
             ask=question,
             next_links=next_links,
             max_content_chars=max_content_chars,
-            include_affordances=include_affordances,
+            include_routing=include_routing,
         )
         return build_ask_response(response, include_content=include_content, debug=debug)
 

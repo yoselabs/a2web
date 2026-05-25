@@ -1,4 +1,5 @@
 {
+  "answer": "The page is about adaptive web fetching.",
   "confidence": "medium",
   "debug": {
     "cache": "<volatile>",
@@ -48,11 +49,10 @@
       "latency_ms": "<volatile>",
       "model": "stub-model",
       "prompt_tokens": 120,
-      "template_name": "extract_with_affordances_v1",
+      "template_name": "extract_router_v1",
       "truncated": false
     },
     "started_at": "<volatile>",
     "total_ms": "<volatile>"
-  },
-  "extracted_answer": "The page is about adaptive web fetching."
+  }
 }

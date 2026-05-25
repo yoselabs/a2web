@@ -1,0 +1,92 @@
+{
+  "per_url": [
+    {
+      "slug": "arxiv-abs",
+      "url": "https://arxiv.org/abs/2402.17753",
+      "ask": "what does the paper claim?",
+      "catalog": {
+        "cost": 0.029421,
+        "ms": 13706,
+        "answer": "The paper introduces LoCoMo, a dataset of very long-term conversations (300 turns, 9K tokens avg. over 35 sessions) and an evaluation benchmark showing that LLMs struggle with long-range temporal/causal understanding in dialogues. Even with long-context LLMs or RAG, models substantially lag behind human performance on question answering, event summarization, and multi-modal dialogue tasks.",
+        "n_shapes": 3,
+        "n_followups": 5,
+        "n_next_links": 3
+      },
+      "router": {
+        "cost": 0.01172815,
+        "ms": 9557,
+        "answer": "The paper introduces LoCoMo, a dataset of very long-term conversations (300 turns, 9K tokens avg., spanning up to 35 sessions), generated via a machine-human pipeline using LLM-based agents grounded in personas and temporal event graphs. It presents a comprehensive evaluation benchmark measuring long-term memory across QA, event summarization, and multi-modal dialogue tasks, finding that LLMs struggle with lengthy conversations and long-range temporal/causal dynamics—improvements from long-context LLMs or RAG exist but substantially lag human performance.",
+        "completeness": "complete",
+        "n_ask_here": 0,
+        "n_try_url": 0
+      }
+    },
+    {
+      "slug": "hn-item",
+      "url": "https://news.ycombinator.com/item?id=39745700",
+      "ask": "what is the top objection in the discussion?",
+      "catalog": {
+        "cost": 0.0214355,
+        "ms": 16646,
+        "answer": "The top objection in the discussion is the lack of quantified training data metrics. When asked 'How many tokens have you trained on?', the author admits 'Absolutely no idea sorry!!' and later estimates ~3B tokens (by another commenter), highlighting uncertainty around fundamental training parameters despite the model's demonstrated capabilities.",
+        "n_shapes": 5,
+        "n_followups": 5,
+        "n_next_links": 6
+      },
+      "router": {
+        "cost": 0.017207149999999997,
+        "ms": 9488,
+        "answer": "The top objection in the discussion is the lack of scientific methodology and documentation. The author acknowledges that 'my methods aren't exactly scientific unfortunately' due to hundreds of model iterations, bug fixes, and code changes over time, making it difficult to track exact training parameters (token count, training hours) and reproduce results. This is compounded by incomplete code cleanup and hosting on unstable infrastructure.",
+        "completeness": "complete",
+        "n_ask_here": 0,
+        "n_try_url": 0
+      }
+    },
+    {
+      "slug": "blog-julia",
+      "url": "https://jvns.ca/blog/2026/05/15/moving-away-from-tailwind--and-learning-to-structure-my-css-/",
+      "ask": "what does the author conclude about tailwind?",
+      "catalog": {
+        "cost": 0.0202695,
+        "ms": 14612,
+        "answer": "The author concludes that while Tailwind was invaluable for learning CSS structure, they've outgrown it. They moved away due to build-system overhead (2.8MB files), improved personal CSS skills, Tailwind's limitations for custom layouts (especially CSS Grid), mixed vanilla+Tailwind maintenance friction, and philosophical concerns that Tailwind devalues CSS expertise in an era where human skills matter.",
+        "n_shapes": 4,
+        "n_followups": 5,
+        "n_next_links": 5
+      },
+      "router": {
+        "cost": 0.01692615,
+        "ms": 9649,
+        "answer": "The author concludes that while Tailwind was genuinely useful for learning CSS structure, she has moved away from it because: (1) modern Tailwind requires a build system she avoids, (2) it's inefficient (2.8MB files), (3) she's now skilled enough to handle vanilla CSS and wants flexibility for \"weird stuff\", (4) mixing Tailwind and vanilla CSS became unmaintainable, and (5) philosophically, she believes Tailwind contributes to devaluing CSS expertise in an era where human expertise matters.",
+        "completeness": "complete",
+        "n_ask_here": 0,
+        "n_try_url": 0
+      }
+    },
+    {
+      "slug": "status-openai",
+      "url": "https://status.openai.com/",
+      "ask": "is the API up right now?",
+      "catalog": {
+        "cost": 0.01136325,
+        "ms": 13186,
+        "answer": "Yes, the API is up right now. OpenAI reports no known issues affecting their systems, with APIs showing 99.98% uptime over the Feb-May 2026 period.",
+        "n_shapes": 3,
+        "n_followups": 4,
+        "n_next_links": 1
+      },
+      "router": {
+        "cost": 0.0098649,
+        "ms": 9711,
+        "answer": "Yes, the OpenAI API is up right now. The status page reports no known issues affecting systems, with APIs showing 99.98% uptime over the Feb-May 2026 period.",
+        "completeness": "complete",
+        "n_ask_here": 0,
+        "n_try_url": 0
+      }
+    }
+  ],
+  "totals": {
+    "catalog_cost": 0.08248925,
+    "router_cost": 0.055726349999999994
+  }
+}
