@@ -32,6 +32,7 @@ from ..settings import AppSettings
 from ..state import bootstrap_state
 from .bench_judge import BenchJudge
 from .corpus import CorpusError, load_corpus
+from .live_sink import LiveSink
 from .report import stats_dict, write_all
 from .runner import EvalSuite
 from .systems import A2WebDetail, A2WebExtract, EvalSystem, WebFetchBaseline
@@ -131,6 +132,7 @@ async def _amain(argv: list[str]) -> int:
 
     output_dir = args.output_dir or Path("eval/runs") / datetime.now(UTC).strftime("%Y-%m-%d_%H%M%S")
 
+    live_sink = LiveSink(total=len(corpus) * len(systems))
     suite = EvalSuite(
         corpus=corpus,
         systems=systems,
@@ -138,12 +140,13 @@ async def _amain(argv: list[str]) -> int:
         bench_judge=bench_judge,
         concurrency=args.concurrency,
         output_dir=output_dir,
+        sinks=(live_sink,),
     )
 
     print(f"Running benchmark: {len(corpus)} URLs x {len(systems)} systems (provider={provider_id}) → {output_dir}")
     # Lifecycle the browser pool around the run — Camoufox launches lazily on
     # first acquire, but `__aexit__` is what cleanly closes the browser process.
-    async with resources.browser_pool:
+    async with resources.browser_pool, live_sink:
         report = await suite.run()
     write_all(report)
     print(json.dumps(stats_dict(report), indent=2, default=str))

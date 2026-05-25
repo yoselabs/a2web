@@ -31,29 +31,37 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import a2kit.ldd
 import structlog
 from a2kit.ldd import ldd_state_for_call
+from a2kit.packages.ldd import LddSink
 from a2kit.packages.testing.null_context import null_context
 
 from ..packages.llm_extract import Judge, JudgeParseError, JudgeVerdict
 from .bench_judge import BenchJudge
 from .contract import check_envelope_contract
 from .corpus import Corpus, CorpusEntry
+from .events import CellEnded, CellStarted, FailureReason
 from .systems import EvalSystem, SystemResult
 
 _LOG = structlog.get_logger("a2web.llm.eval")
 
 
 @contextmanager
-def _ldd_ambient() -> Iterator[None]:
-    """Establish a no-op LDD ambient for a direct `fetcher.fetch` call.
+def _ldd_ambient(sinks: tuple[LddSink, ...] = ()) -> Iterator[None]:
+    """Establish an LDD ambient for a direct `fetcher.fetch` call.
 
     The benchmark drives the a2web orchestrator outside any tool dispatch;
     a2kit v0.39 requires an ambient LDD context for the orchestrator's
-    `a2kit.ldd.event(...)` calls. Events and reports are disabled — the
-    benchmark measures the response envelope, not the LDD stream.
+    `a2kit.ldd.event(...)` calls.
+
+    Events are enabled so bench-cell signals (`CellStarted` / `CellEnded`)
+    reach the optional `sinks` (typically a `LiveSink`). The production
+    orchestrator's `StageStarted`/`StageEnded` events also flow when events
+    are on, but the bench sinks subscribe by name and ignore them. Reports
+    stay disabled — bench cells don't produce MCP envelope reports.
     """
-    with ldd_state_for_call(ctx=null_context(), events_enabled=False, reports_enabled=False):
+    with ldd_state_for_call(ctx=null_context(), events_enabled=True, reports_enabled=False, sinks=sinks):
         yield
 
 
@@ -133,6 +141,7 @@ class EvalSuite:
         bench_judge: BenchJudge | None = None,
         concurrency: int = 4,
         output_dir: Path | str | None = None,
+        sinks: tuple[LddSink, ...] = (),
     ) -> None:
         if not systems:
             raise ValueError("EvalSuite requires at least one system")
@@ -141,6 +150,7 @@ class EvalSuite:
         self._judge = judge
         self._bench_judge = bench_judge
         self._concurrency = max(1, concurrency)
+        self._sinks = sinks
         if output_dir is None:
             output_dir = Path("eval/runs") / datetime.now(UTC).strftime("%Y-%m-%d_%H%M%S")
         self._output_dir = Path(output_dir)
@@ -194,11 +204,23 @@ class EvalSuite:
         cell_dir = traces_root / slug / system.name
         cell_dir.mkdir(parents=True, exist_ok=True)
 
-        # 1) Fetch — under a no-op LDD ambient so the a2web orchestrator's
-        # `a2kit.ldd.event(...)` calls resolve outside a tool dispatch.
+        # Bench-cell envelope: every codepath out of this function emits
+        # exactly one CellStarted at the top and one CellEnded at exit.
         t0 = time.perf_counter()
+        with _ldd_ambient(sinks=self._sinks):
+            await a2kit.ldd.event(
+                CellStarted(
+                    slug=slug,
+                    system_name=system.name,
+                    url=entry.url,
+                    started_at=datetime.now(UTC).isoformat(),
+                )
+            )
+
+        # 1) Fetch — under the same LDD ambient so the a2web orchestrator's
+        # `a2kit.ldd.event(...)` calls resolve outside a tool dispatch.
         try:
-            with _ldd_ambient():
+            with _ldd_ambient(sinks=self._sinks):
                 fetch_result: SystemResult = await system.fetch(url=entry.url, ask=entry.task)
         except Exception as exc:
             _LOG.warning("eval_system_failed", slug=slug, system=system.name, error=str(exc))
@@ -208,6 +230,7 @@ class EvalSuite:
             row.fetch_error = f"system_raised: {exc}"
             row.judge_error = "skipped_due_to_fetch_error"
             (cell_dir / "row.json").write_text(_row_to_json(row))
+            await self._emit_cell_ended(entry, system, row, "system_raised")
             return row
 
         (cell_dir / "answer.txt").write_text(fetch_result.answer or "")
@@ -245,6 +268,7 @@ class EvalSuite:
             row.judge_reached = False
             row.judge_reasoning = "empty answer from system"
             (cell_dir / "row.json").write_text(_row_to_json(row))
+            await self._emit_cell_ended(entry, system, row, "empty_answer")
             return row
 
         # 4) Clarity + next_links axes — LLM-judged, run when a bench judge is
@@ -264,6 +288,7 @@ class EvalSuite:
             (cell_dir / "judge_raw.txt").write_text(exc.raw_text)
             row.judge_error = f"parse_error: {exc}"
             (cell_dir / "row.json").write_text(_row_to_json(row))
+            await self._emit_cell_ended(entry, system, row, "judge_failed")
             return row
 
         row.judge_scores = verdict.scores
@@ -288,7 +313,38 @@ class EvalSuite:
             )
         )
         (cell_dir / "row.json").write_text(_row_to_json(row))
+        await self._emit_cell_ended(entry, system, row, None)
         return row
+
+    async def _emit_cell_ended(
+        self,
+        entry: CorpusEntry,
+        system: EvalSystem,
+        row: EvalRow,
+        failure_reason: FailureReason | None,
+    ) -> None:
+        """One emission site for CellEnded — every exit path of _run_one
+        funnels here. `failure_reason=None` means ok; anything else is fail."""
+        ok = failure_reason is None
+        cost = row.fetch_cost_usd + row.judge_cost_usd
+        meta = row.fetch_metadata or {}
+        cache_hit = bool(meta.get("cache_hit", False))
+        tier_value = meta.get("tier") or meta.get("winning_tier")
+        tier_str = str(tier_value) if tier_value else None
+        with _ldd_ambient(sinks=self._sinks):
+            await a2kit.ldd.event(
+                CellEnded(
+                    slug=entry.slug,
+                    system_name=system.name,
+                    url=entry.url,
+                    total_ms=row.fetch_latency_ms,
+                    verdict="ok" if ok else "fail",
+                    failure_reason=failure_reason,
+                    cost_usd=cost,
+                    cache_hit=cache_hit,
+                    tier=tier_str,
+                )
+            )
 
     async def _score_clarity(self, row: EvalRow, entry: CorpusEntry, fetch_result: SystemResult) -> None:
         """Output-clarity axis — graded for every system on every cell with a

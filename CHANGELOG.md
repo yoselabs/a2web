@@ -8,6 +8,18 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed (internal — no public API changes)
+
+- **`make bench` is no longer silent.** Per `openspec/changes/bench-live-sink-v1/`:
+  every (corpus × system) cell now emits `CellStarted` / `CellEnded` LDD events
+  bracketing its run. A new `LiveSink` (`src/a2web/llm_eval/live_sink.py`)
+  subscribes to those events and renders one line per cell to stdout, plus a
+  30s heartbeat while cells are in flight. `_ldd_ambient` in
+  `llm_eval/runner.py` flips from `events_enabled=False` to
+  `events_enabled=True`; the sink filters by name so the production
+  `StageStarted`/`StageEnded` chatter is dropped at the subscriber level.
+  No change to trace files, response envelopes, or production behavior.
+
 ## [0.23.0] — 2026-05-25
 
 ### Changed (internal — no public API changes)
