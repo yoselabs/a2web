@@ -1,6 +1,14 @@
-.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty bench eval eval-baseline eval-detail bless-contracts handler-probe install-global
+.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail bless-contracts handler-probe install-global
 
-check: lint ty test-cov
+check: lint ty test-cov arch
+
+# Pattern 3 of ADR-0001 — fitness functions.
+#   tach check           → module-boundary contracts (packages/X is private)
+#   pytest tests/architecture/ → AST/call-site invariants (json.loads ban, etc.)
+# See `docs/architecture/README.md` for the workflow.
+arch:
+	@uv run tach check
+	@uv run pytest tests/architecture/ -q
 
 lint:
 	@uv run ruff check src/ tests/

@@ -121,6 +121,62 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-05-26 — structural-refactor follow-ups (ADR-0001 deferrals)
+
+From the 2026-05-26 explore session that produced ADR-0001 + three openspec
+changes (`wobble-typed-funnel`, `arch-fitness-functions-bootstrap`,
+`unify-plugin-manifests`). Three audit findings were deliberately NOT folded
+into the change set — each earns its own pass when its trip condition fires.
+
+- 🟢 **`reddit-policy-to-planner`.** Source: 2026-05-26 explore audit
+  (Cluster D). `handlers/reddit.py:155-160` carries shape-aware escalation
+  policy inline (`if shape in ("search", "listing"): RetryViaArchive`).
+  Correct behaviour, wrong layer — escalation policy belongs in
+  `actions/playbook.py`, not inside the handler. Cost of moving today: low
+  but unclear value (only Reddit needs it). Trip condition: a second handler
+  wants shape-aware escalation. Until then, the inline check is acceptable.
+  Scope: S.
+
+- 🟢 **`askresponse-composite-fields`.** Source: 2026-05-26 explore audit
+  (Cluster E). `AskResponse` exposes 7 router-shape fields flat
+  (`structural_form` + `shape` + `genre` + `obstacle` + `ask_here` +
+  `try_url` + implicit grouping). Natural sub-models are
+  `PageClassification(structural_form, shape, genre)` and
+  `NextSteps(obstacle, ask_here, try_url)`. Consumers today must reason
+  about which fields belong together. Cosmetic until consumer count > 2;
+  serializer keeps wire flat for back-compat. Trip condition: a third
+  external consumer of `AskResponse` ships, or we hit a real bug from
+  flat-field reasoning. Scope: S.
+
+- 🟢 **`tier-loop-state-machine`.** Source: 2026-05-26 explore audit
+  (Cluster B). `fetcher._phase_tier_loop` is 141 LoC mixing proxy
+  acquisition + conditional-request header building + after-tier action
+  dispatch + observation logging + loop control. Refactoring into an
+  explicit `TierIteration` state with Command-typed actions would flatten
+  the phase function. The current shape works; the risk is future tiers
+  expanding it further. Trip condition: a new tier needs bespoke
+  rate-limit-backoff or auth-retry policy, OR the function crosses
+  ~200 LoC. Scope: M.
+
+- 🟢 **`cross-package-coupling-cleanup`.** Source: 2026-05-26 Tach spike.
+  `packages/block_detector.py:23` imports `a2web.packages.escalation` —
+  one `packages/X` reaching into another `packages/Y` instead of through
+  domain glue. Grandfathered into `tach.toml`'s ignore list by
+  `arch-fitness-functions-bootstrap`; this entry tracks the actual
+  refactor (likely: move `EscalationSignal` to a shared location, or
+  invert the dependency). Scope: S.
+
+- 🟢 **`wobble-to-a2kit`.** Source: 2026-05-26 ADR-0001 "Negative /
+  accepted cost". If `wobble.parse_with_policy` graduates into `a2kit`
+  as a public library primitive, the funnel must defend itself against
+  library consumers (who can't depend on a2web's pytest-archon CI).
+  That's the moment to add phantom-types + beartype runtime enforcement
+  (Recipe B from the explore session). Today: in-tree, AST-test backstop
+  is sufficient. Trip condition: a second project (a2kit-internal or
+  otherwise) needs the wobble shape. Scope: M.
+
+---
+
 ## 2026-05-25 — fetcher-orchestrator-refactor-v1 follow-ups (v0.23+)
 
 Shipped `fetcher-orchestrator-refactor-v1` (v0.23). Closed TIER-1 audit smells

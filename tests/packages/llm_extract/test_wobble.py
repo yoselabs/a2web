@@ -9,8 +9,8 @@ from a2web.packages.llm_extract import (
     WobblePolicy,
     WobbleSkip,
     WobbleTolerance,
-    apply_policy,
 )
+from a2web.packages.llm_extract.wobble import apply_policy
 
 
 def _ctx(parsed: dict[str, object], field: str, policy: WobblePolicy) -> object:

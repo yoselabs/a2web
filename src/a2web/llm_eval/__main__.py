@@ -25,9 +25,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
+from .._manifests.eval_systems import EvalSystemContext
+from .._plugin import load_surface
 from ..packages.llm_extract import Judge, LLMNotAvailable, ModelSpec, Provider
-from ..packages.llm_extract.providers.anthropic import AnthropicProvider
-from ..packages.llm_extract.providers.claude_code import ClaudeCodeProvider
 from ..settings import AppSettings
 from ..state import bootstrap_state
 from .bench_judge import BenchJudge
@@ -35,30 +35,48 @@ from .corpus import CorpusError, load_corpus
 from .live_sink import LiveSink
 from .report import stats_dict, write_all
 from .runner import EvalSuite
-from .systems import A2WebDetail, A2WebExtract, EvalSystem, WebFetchBaseline
+from .systems import EvalSystem
 
 _DEFAULT_CORPUS = Path("eval/corpus.yaml")
 _PROVIDER_ENV = "A2WEB_BENCH_PROVIDER"
 
 
-def _pick_provider() -> tuple[Provider, Literal["anthropic", "claude-code"]]:
-    """Select the benchmark LLM provider.
+_BENCH_PROVIDER_IDS = ("claude-code", "anthropic")
 
-    Prefers `ClaudeCodeProvider` (OAuth subscription — no API key) and falls
-    back to `AnthropicProvider`. `A2WEB_BENCH_PROVIDER` forces the choice;
-    an explicit `anthropic` override with no API key raises `LLMNotAvailable`.
-    Returns the provider instance and its id (for `ModelSpec` / settings).
+
+def _pick_provider(
+    settings: AppSettings,
+) -> tuple[Provider, Literal["anthropic", "claude-code"]]:
+    """Select the benchmark LLM provider via the plugin manifest registry.
+
+    Prefers `claude-code` (OAuth subscription — no API key) and falls back
+    to `anthropic`. `A2WEB_BENCH_PROVIDER` forces the choice; an explicit
+    override that isn't in the registry raises `LLMNotAvailable`.
     """
+    registry = load_surface("a2web._manifests.llm_providers", Provider, settings)
     override = os.environ.get(_PROVIDER_ENV, "").strip().lower().replace("_", "-")
-    if override == "anthropic":
-        return AnthropicProvider(), "anthropic"
-    if override == "claude-code":
-        return ClaudeCodeProvider(), "claude-code"
-    # Default: claude-code preferred, anthropic fallback.
-    try:
-        return ClaudeCodeProvider(), "claude-code"
-    except LLMNotAvailable:
-        return AnthropicProvider(), "anthropic"
+    if override:
+        if override not in _BENCH_PROVIDER_IDS:
+            raise LLMNotAvailable(f"unknown provider id: {override}")
+        provider = registry.get(override)
+        if provider is None:
+            raise LLMNotAvailable(
+                f"{_PROVIDER_ENV}={override} but provider not in registry "
+                f"(available: {sorted(registry)})"
+            )
+        # Narrow the literal — checked above.
+        if override == "anthropic":
+            return provider, "anthropic"
+        return provider, "claude-code"
+    for name in _BENCH_PROVIDER_IDS:
+        provider = registry.get(name)
+        if provider is not None:
+            if name == "anthropic":
+                return provider, "anthropic"
+            return provider, "claude-code"
+    raise LLMNotAvailable(
+        f"no LLM provider available (registry empty: {sorted(registry)})"
+    )
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -104,8 +122,11 @@ async def _amain(argv: list[str]) -> int:
         print(f"corpus error: {exc}", file=sys.stderr)
         return 2
 
+    # Bench uses a stand-in AppSettings; provider selection only reads
+    # llm_api_key_env (default "ANTHROPIC_API_KEY") so AppSettings() suffices.
+    settings_bootstrap = AppSettings()
     try:
-        provider, provider_id = _pick_provider()
+        provider, provider_id = _pick_provider(settings_bootstrap)
     except LLMNotAvailable as exc:
         print(f"LLM provider unavailable: {exc}", file=sys.stderr)
         return 3
@@ -119,12 +140,23 @@ async def _amain(argv: list[str]) -> int:
     # extend bootstrap_state, no eval-side wiring drift.
     state, resources = await bootstrap_state(settings)
 
-    systems: list[EvalSystem] = []
-    if args.mode in ("default", "baseline"):
-        systems.append(WebFetchBaseline(provider=provider))
-    if args.mode in ("default", "detail"):
-        systems.append(A2WebDetail(state=state, resources=resources))
-        systems.append(A2WebExtract(state=state, resources=resources))
+    # Eval systems load via the plugin manifest registry.
+    # Mode controls which manifests we keep — the registry is built once;
+    # we filter by name. Adding a new system = drop a manifest in
+    # `_manifests/eval_systems/`; no edit required here.
+    registry = load_surface(
+        "a2web._manifests.eval_systems",
+        EvalSystem,
+        EvalSystemContext(provider=provider, state=state, resources=resources),
+    )
+    keep_by_mode: dict[str, tuple[str, ...]] = {
+        "default": ("webfetch_baseline", "a2web_detail", "a2web_extract"),
+        "baseline": ("webfetch_baseline",),
+        "detail": ("a2web_detail", "a2web_extract"),
+    }
+    systems: list[EvalSystem] = [
+        registry[name] for name in keep_by_mode[args.mode] if name in registry
+    ]
 
     judge_model = ModelSpec(provider_id, args.judge_model)
     judge = Judge(provider=provider, model=judge_model)

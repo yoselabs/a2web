@@ -19,8 +19,9 @@ from __future__ import annotations
 import a2kit
 import a2kit.ldd
 
+from ._manifests.sinks import Sink
+from ._plugin import load_surface
 from .cookie_jar import build_cookie_jar
-from .events import otel_sink
 from .events.types import (
     CookiesAttached,
     CookiesStale,
@@ -68,9 +69,12 @@ app.add_router(CookiesRouter())
 for _event_type in (TierStarted, TierEnded, StageStarted, StageEnded, TierHeartbeat, CookiesAttached, CookiesStale):
     app.ldd.events.register(_event_type)
 
-# OTel sink runs sequentially after the wire emit, best-effort under
-# cancellation (a2kit logs exceptions to a2kit.ldd.sinks).
-app.ldd.add_sink(otel_sink)
+# LDD sinks come from the plugin manifest registry. Sinks whose factories
+# return Unavailable (e.g. OTel without the SDK installed) are dropped
+# before reaching a2kit. Sequential fan-out after the wire emit;
+# best-effort under cancellation (a2kit logs exceptions to a2kit.ldd.sinks).
+for _sink in load_surface("a2web._manifests.sinks", Sink, get_settings()).values():
+    app.ldd.add_sink(_sink)
 
 
 @app.health_check

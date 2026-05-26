@@ -11,7 +11,6 @@ free.
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -19,7 +18,14 @@ from typing import Any
 from .extractor import ModelSpec
 from .prompts import JUDGE_V1
 from .providers.base import Provider
-from .wobble import WobblePolicy, WobbleTolerance, apply_policy
+from .wobble import (
+    ParseError,
+    WobblePolicy,
+    WobbleTolerance,
+    parse_with_policy,
+    recovered_fields,
+    unwrap,
+)
 
 # Threshold for deriving `reached` from `overall` when the model drops the
 # field. Matches the aggregation in `src/a2web/llm_eval/report.py` which
@@ -75,9 +81,38 @@ class JudgeVerdict:
     raw: dict[str, Any] | None = field(default=None)
 
 
-# Permissive object extractor — strict json.loads first, then this regex
-# pulls the first balanced-looking object out of mixed prose.
+# Permissive object extractor — when the funnel's strict json.loads fails on
+# the raw response, this regex pulls the first balanced-looking object out of
+# mixed prose for a second funnel attempt.
 _OBJECT_RE = re.compile(r"\{[\s\S]*\}")
+
+
+@dataclass(frozen=True, slots=True)
+class _ParsedJudgeFields:
+    """Funnel `into` payload — provider-side fields (cost / latency / model)
+    are joined back in by the caller."""
+
+    scores: list[int]
+    overall: int
+    reached: bool
+    reasoning: str
+
+
+def _build_judge_fields(parsed: dict[str, Any]) -> _ParsedJudgeFields:
+    """Funnel `into` callable. Funnel guarantees STRICT fields are present
+    and runs the DERIVE/DEFAULT path for `reached`/`reasoning`; we coerce
+    int / bool / str here and surface coercion failures as ParseError."""
+    try:
+        scores = [int(s) for s in parsed["scores"]]
+        overall = int(parsed["overall"])
+    except (TypeError, ValueError) as exc:
+        raise ParseError(f"judge: int coercion failed: {exc}") from exc
+    return _ParsedJudgeFields(
+        scores=scores,
+        overall=overall,
+        reached=bool(parsed["reached"]),
+        reasoning=str(parsed["reasoning"]),
+    )
 
 
 class Judge:
@@ -130,74 +165,21 @@ class Judge:
             thinking_disabled=True,
         )
 
-        parsed = _parse_verdict_json(response.text)
-
-        # STRICT fields — `scores` and `overall`. Wrap KeyError/TypeError from
-        # `apply_policy` (and the int-coercion below) in JudgeParseError so
-        # the runner's existing `judge_failed` path keeps working.
-        try:
-            scores_raw = apply_policy(
-                parsed,
-                "scores",
-                _JUDGE_POLICY["scores"],
-                boundary="judge",
-                model=self._model.model,
-                raw_excerpt=response.text,
-            )
-            scores = [int(s) for s in scores_raw]
-            overall = int(
-                apply_policy(
-                    parsed,
-                    "overall",
-                    _JUDGE_POLICY["overall"],
-                    boundary="judge",
-                    model=self._model.model,
-                    raw_excerpt=response.text,
-                )
-            )
-        except (KeyError, TypeError, ValueError) as exc:
-            raise JudgeParseError(
-                f"judge response missing required fields: {exc}",
-                raw_text=response.text,
-            ) from exc
-
-        # `reached` (DERIVE) and `reasoning` (DEFAULT) — wobble-tolerant.
-        # The reached-derive path always runs once `overall` is in scope; the
-        # `apply_policy` call uses the `_derive_reached` callable above.
-        reached_present_before = "reached" in parsed and parsed["reached"] is not None
-        reached = bool(
-            apply_policy(
-                parsed,
-                "reached",
-                _JUDGE_POLICY["reached"],
-                boundary="judge",
-                model=self._model.model,
-                raw_excerpt=response.text,
-            )
-        )
-        reasoning = str(
-            apply_policy(
-                parsed,
-                "reasoning",
-                _JUDGE_POLICY["reasoning"],
-                boundary="judge",
-                model=self._model.model,
-                raw_excerpt=response.text,
-            )
-        )
+        wobbled = _funnel_verdict(response.text, model=self._model.model)
+        fields: _ParsedJudgeFields = unwrap(wobbled)
 
         raw: dict[str, Any] = {
             "prompt_tokens": response.prompt_tokens,
             "completion_tokens": response.completion_tokens,
         }
-        if not reached_present_before:
+        if "reached" in recovered_fields(wobbled):
             raw["reached_derived"] = True
 
         return JudgeVerdict(
-            scores=scores,
-            overall=overall,
-            reached=reached,
-            reasoning=reasoning,
+            scores=fields.scores,
+            overall=fields.overall,
+            reached=fields.reached,
+            reasoning=fields.reasoning,
             model=response.model,
             cost_usd=response.cost_usd,
             latency_ms=response.latency_ms,
@@ -205,29 +187,36 @@ class Judge:
         )
 
 
-def _parse_verdict_json(text: str) -> dict[str, Any]:
-    """Parse a judge response: try strict JSON first, then a permissive
-    first-object regex. Raise JudgeParseError if neither works."""
-    stripped = text.strip()
-    if stripped.startswith("```"):
-        # Strip an accidental markdown fence — happens occasionally even
-        # though the template says STRICT JSON ONLY.
-        stripped = re.sub(r"^```(?:json)?\s*", "", stripped)
-        stripped = re.sub(r"\s*```\s*$", "", stripped)
-
+def _funnel_verdict(text: str, *, model: str) -> Any:
+    """Funnel the judge response: try the strict path first (fences + JSON);
+    on ParseError fall back to a permissive first-{...} regex extraction and
+    re-funnel that substring. Raises JudgeParseError if neither yields a
+    valid object."""
     try:
-        return json.loads(stripped)
-    except json.JSONDecodeError:
+        return parse_with_policy(
+            text,
+            policies=_JUDGE_POLICY,
+            into=_build_judge_fields,
+            boundary="judge",
+            model=model,
+        )
+    except ParseError:
         pass
 
     match = _OBJECT_RE.search(text)
     if match is None:
         raise JudgeParseError("no JSON object found in judge response", raw_text=text)
     try:
-        return json.loads(match.group(0))
-    except json.JSONDecodeError as exc:
+        return parse_with_policy(
+            match.group(0),
+            policies=_JUDGE_POLICY,
+            into=_build_judge_fields,
+            boundary="judge",
+            model=model,
+        )
+    except ParseError as exc:
         raise JudgeParseError(
-            f"first object substring is not valid JSON: {exc}",
+            f"judge response: {exc}",
             raw_text=text,
         ) from exc
 

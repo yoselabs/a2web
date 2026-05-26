@@ -10,7 +10,7 @@ each handler completes a real fetch end-to-end through `fetch_bytes`
 (curl_cffi Chrome impersonation) and produces non-empty rendered content.
 
 Loud-failure invariants:
-- Every entry in `a2web.handlers._HANDLERS` MUST have a `_PROBE_URLS`
+- Every entry in the `a2web.handlers` manifest registry MUST have a `_PROBE_URLS`
   entry. Missing entry → script exits non-zero, names the offender.
 - Twitter is skipped when `nitter_instances` is empty (graceful no-op).
 - Each handler is given a wall-clock budget per fetch; transport timeouts
@@ -26,7 +26,7 @@ import sys
 import time
 from typing import TYPE_CHECKING
 
-from .handlers import _HANDLERS
+from .handlers import _registry as _handler_registry
 from .models import Verdict
 from .settings import AppSettings
 
@@ -91,8 +91,9 @@ async def _probe_one(handler: Handler, url: str, *, timeout_s: float = 30.0) -> 
 
 
 async def _main() -> int:
+    handlers = _handler_registry(None)
     # Loud-failure: every registered handler MUST have a probe URL.
-    registered = {h.name for h in _HANDLERS}
+    registered = {h.name for h in handlers}
     mapped = set(_PROBE_URLS.keys())
     missing = registered - mapped
     extra = mapped - registered
@@ -104,7 +105,7 @@ async def _main() -> int:
         return 2
 
     failures: list[str] = []
-    for handler in _HANDLERS:
+    for handler in handlers:
         url = _PROBE_URLS[handler.name]
 
         # Twitter is skipped when nitter_instances is unconfigured at the matches
@@ -120,9 +121,9 @@ async def _main() -> int:
 
     print()
     if failures:
-        print(f"FAILED: {len(failures)}/{len(_HANDLERS)} — {failures}", file=sys.stderr)
+        print(f"FAILED: {len(failures)}/{len(handlers)} — {failures}", file=sys.stderr)
         return 1
-    print(f"OK: {len(_HANDLERS)}/{len(_HANDLERS)} handlers green")
+    print(f"OK: {len(handlers)}/{len(handlers)} handlers green")
     return 0
 
 

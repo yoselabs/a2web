@@ -42,28 +42,39 @@ from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
 
 def test_pick_provider_defaults_to_claude_code(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("A2WEB_BENCH_PROVIDER", raising=False)
-    provider, provider_id = _pick_provider()
+    from a2web.settings import AppSettings
+
+    provider, provider_id = _pick_provider(AppSettings())
     assert provider_id == "claude-code"
     assert isinstance(provider, ClaudeCodeProvider)
 
 
 def test_pick_provider_honours_claude_code_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("A2WEB_BENCH_PROVIDER", "claude-code")
-    provider, provider_id = _pick_provider()
+    from a2web.settings import AppSettings
+
+    provider, provider_id = _pick_provider(AppSettings())
     assert provider_id == "claude-code"
     assert isinstance(provider, ClaudeCodeProvider)
 
 
 def test_pick_provider_honours_anthropic_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`A2WEB_BENCH_PROVIDER=anthropic` forces the API provider. Stub it so the
-    test does not need a real key."""
+    """`A2WEB_BENCH_PROVIDER=anthropic` forces the API provider. Stub the
+    manifest-registry lookup so the test does not need a real key."""
 
     class _FakeAnthropic:
         name = "anthropic"
 
+    fake = _FakeAnthropic()
+
+    def _fake_load_surface(_path: str, _protocol: object, _settings: object) -> dict:
+        return {"anthropic": fake}
+
+    from a2web.settings import AppSettings
+
     monkeypatch.setenv("A2WEB_BENCH_PROVIDER", "anthropic")
-    monkeypatch.setattr("a2web.llm_eval.__main__.AnthropicProvider", _FakeAnthropic)
-    provider, provider_id = _pick_provider()
+    monkeypatch.setattr("a2web.llm_eval.__main__.load_surface", _fake_load_surface)
+    provider, provider_id = _pick_provider(AppSettings())
     assert provider_id == "anthropic"
     assert isinstance(provider, _FakeAnthropic)
 

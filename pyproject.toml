@@ -83,6 +83,12 @@ dev = [
     "ruff>=0.7,<1",
     "ty>=0.0.1a1",
     "diff-cover>=9,<10",
+    # ADR-0001 Pattern 3 (arch-fitness-functions-bootstrap):
+    # Tach for module-boundary contracts ("packages/X is private; only __init__
+    # is public"); pytest-archon for AST/call-site invariants Tach can't see
+    # (json.loads ban, no-lambdas-in-app.provide, etc.).
+    "tach>=0.20,<1",
+    "pytest-archon>=0.0.6,<1",
 ]
 
 [project.scripts]

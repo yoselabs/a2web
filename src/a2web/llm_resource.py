@@ -25,7 +25,6 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from .packages.llm_extract import LLMNotAvailable
 from .settings import AppSettings
 
 if TYPE_CHECKING:
@@ -72,37 +71,38 @@ class LlmExtractorResource:
             return self._extractor
 
     async def _build(self) -> tuple[Extractor | None, str | None]:
-        """Construct an `Extractor` from settings; capture failure as reason."""
+        """Construct an `Extractor` from settings; capture failure as reason.
+
+        Provider selection runs through the plugin manifest registry
+        (`_manifests/llm_providers/`). The `--auto` mode prefers claude-code
+        when it's available and falls back to anthropic; explicit modes
+        require the named provider to be in the registry.
+        """
         try:
-            from .packages.llm_extract import ExtractionCache, Extractor, ModelSpec
-            from .packages.llm_extract.providers.anthropic import AnthropicProvider
-            from .packages.llm_extract.providers.claude_code import ClaudeCodeProvider
+            from ._plugin import load_surface
+            from .packages.llm_extract import ExtractionCache, Extractor, ModelSpec, Provider
         except Exception as exc:
             return None, f"llm module import failed: {exc}"
 
         s = self._settings
-        provider_id = s.llm_provider
-        provider: AnthropicProvider | ClaudeCodeProvider | None = None
-        attempt_errors: list[str] = []
+        registry = load_surface("a2web._manifests.llm_providers", Provider, s)
 
-        if provider_id in ("claude-code", "auto"):
-            try:
-                provider = ClaudeCodeProvider()
-                provider_id = "claude-code"
-            except LLMNotAvailable as exc:
-                if s.llm_provider == "claude-code":
-                    return None, str(exc)
-                attempt_errors.append(f"claude-code: {exc}")
-
-        if provider is None and provider_id in ("anthropic", "auto"):
-            try:
-                provider = AnthropicProvider(api_key_env=s.llm_api_key_env)
-                provider_id = "anthropic"
-            except LLMNotAvailable as exc:
-                attempt_errors.append(f"anthropic: {exc}")
-
+        # Auto: prefer claude-code, fall back to anthropic. Explicit modes
+        # require the named provider to be in the registry.
+        if s.llm_provider == "auto":
+            order = ("claude-code", "anthropic")
+        else:
+            order = (s.llm_provider,)
+        provider: Provider | None = None
+        provider_id: str = ""
+        for name in order:
+            if name in registry:
+                provider = registry[name]
+                provider_id = name
+                break
         if provider is None:
-            return None, "no LLM provider available. " + "; ".join(attempt_errors)
+            missing = ", ".join(order)
+            return None, f"no LLM provider available (tried: {missing}; configured: {sorted(registry)})"
 
         # Hook the extraction cache into the same sqlite file as the HTTP
         # cache. Ensures the underlying connection is open first.

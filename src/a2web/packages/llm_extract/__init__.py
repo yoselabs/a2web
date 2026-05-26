@@ -28,7 +28,17 @@ from .prompts import (
 )
 from .providers import Provider, ProviderResponse
 from .router_payload import NextUrlBoundary, RouterPayload
-from .wobble import WobblePolicy, WobbleSkip, WobbleTolerance, apply_policy, emit_wobble
+from .wobble import (
+    ParseError,
+    Wobbled,
+    WobblePolicy,
+    WobbleSkip,
+    WobbleTolerance,
+    parse_list_with_policy,
+    parse_with_policy,
+    recovered_fields,
+    unwrap,
+)
 
 __all__ = [
     "EXTRACT_CACHEABLE_V1",
@@ -47,6 +57,7 @@ __all__ = [
     "LlmNextLink",
     "ModelSpec",
     "NextUrlBoundary",
+    "ParseError",
     "PromptParts",
     "PromptTemplate",
     "Provider",
@@ -55,7 +66,10 @@ __all__ = [
     "WobblePolicy",
     "WobbleSkip",
     "WobbleTolerance",
-    "apply_policy",
-    "emit_wobble",
+    "Wobbled",
     "hash_text",
+    "parse_list_with_policy",
+    "parse_with_policy",
+    "recovered_fields",
+    "unwrap",
 ]

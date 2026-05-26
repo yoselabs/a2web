@@ -25,8 +25,9 @@ a2web owns the web-fetching domain. Composition is **imperative** (per a2kit REA
 - `src/a2web/llm_eval/` — eval harness (`EvalSuite`, `Judge` wrapper, `WebFetchBaseline` / `A2WebDetail` / `A2WebExtract` systems). Domain-coupled — imports `AppSettings`, `FetchResponse`, `build_state`.
 - `src/a2web/packages/` — in-tree microsofware. Modules under here MUST NOT import from `a2web.<domain>`. Boundary types are owned by the package; domain-coupled wiring lives in `domain.py` / `llm_resource.py`. Current packages: `browser_pool`, `block_detector`, `http_cache`, `proxy_routing`, `content_extract`, `cookie_store/` (Chrome + Firefox readers + models — v0.8), `llm_extract/` (folder — multi-author surface with `extractor`, `judge`, `cache`, `prompts`, `errors`, `wobble`, and `providers/{anthropic,base,claude_code}`). The `tests/test_packages_independence.py` invariant walks every `.py` under `packages/` and asserts zero domain imports.
 
-  **LLM contract parsing.** Every site that parses LLM JSON declares a per-field `WobblePolicy` via `packages/llm_extract/wobble.py` (`STRICT` / `DERIVE` / `DEFAULT` / `SKIP`). Recovered wobbles emit the single structured log key `llm_wobble`. Four canonical sites today: `judge.py`, `bench_judge.py` (clarity + next_links), `extractor.py` (router-shape + next_links), `fetcher_response.py::_project_routing`. When adding a new LLM-touching boundary, declare its policy table next to the parser; new STRICT-everywhere parsers should be considered legacy and migrated.
+  **LLM contract parsing.** Every site that parses LLM JSON funnels through `packages/llm_extract/wobble.parse_with_policy` (object envelopes) or `parse_list_with_policy` (JSON-array envelopes). The funnel owns `json.loads` (no other site in `packages/llm_extract/` may call it; the pytest-archon `json.loads`-ban will close this loop) and returns an opaque `Wobbled` NewType — downstream code typed as `Wobbled` cannot accept a hand-rolled payload fabricated outside. Per-field `WobblePolicy` (`STRICT` / `DERIVE` / `DEFAULT` / `SKIP`) tables live centrally in `wobble/_policies.py` for static cases; tables that bind a DERIVE callable (e.g. `_JUDGE_POLICY` referencing `_derive_reached`) stay adjacent to the callable in their consumer module. Recovered wobbles fire the single structured log key `llm_wobble`. Sites today: `judge.py`, `bench_judge.py` (clarity + next_links), `extractor.py` (router-shape + next_links), `fetcher_response.py::_project_routing` (pydantic-validate, not JSON parse — emits `llm_wobble` on closed-enum violations).
 - `src/a2web/actions/` — `playbook.py` (pure deterministic `next_action_after_gate` / `next_action_after_tier`). Per-fetch counters in `FetchContext`: `url_rewrites`, `archive_dispatches`, `browser_dispatches`.
+- `src/a2web/_plugin.py` + `src/a2web/_manifests/` — plugin manifest framework (Pattern 2 of ADR-0001). Every extension surface converges on `PluginManifest[T]` + `Unavailable` + `load_surface(...)` / `load_surface_sorted(...)`. Each plugin lives as a no-side-effects module under `_manifests/<surface>/<name>.py` declaring `MANIFEST = PluginManifest(...)`. Surfaces today: `llm_providers/` (anthropic, claude-code), `eval_systems/` (webfetch_baseline, a2web_detail, a2web_extract), `sinks/` (otel), `handlers/` (9 site handlers), `tiers/` (5 tiers). Adding a plugin = drop one file; `load_surface(...)` discovers it at boot, drops `Unavailable` returns silently. Module-level side effects banned by `tests/architecture/test_plugin_modules_only_declare_manifest.py`. Package-side classes stay settings-free (microsofware-pure); domain wiring lives in the manifest.
 
 ## Testing
 
@@ -69,6 +70,21 @@ Run it after a change that could move output quality or cost: the response envel
 - Don't return `-> str` from a tool. Return dict / pydantic model.
 - All return-type pydantic models at module scope.
 
+## Architecture invariants (enforced by `make arch`)
+
+Module boundaries are encoded in `tach.toml`; call-site / signature / class-shape rules live as AST tests under `tests/architecture/`. See `docs/architecture/README.md` for the workflow. Adding a new rule = writing a test; landing a new violation fails CI; one-time grandfathering carries a retirement comment.
+
+Currently enforced:
+- Packages may not import from `a2web.<domain>` — `tach.toml`.
+- No `json.loads` outside `packages/llm_extract/wobble/` — `tests/architecture/test_json_loads_funnel.py`.
+- No `dict[str, Any]` on slotted dataclasses (allowlist gated) — `tests/architecture/test_no_dict_str_any_on_dataclasses.py`.
+- `@a2kit.read` / `@a2kit.write` tools never return `str` — `tests/architecture/test_tools_return_pydantic_not_str.py`.
+- No `lambda` in `app.provide(...)` — `tests/architecture/test_no_lambdas_in_app_provide.py`.
+- `BaseModel` subclasses defined at module scope — `tests/architecture/test_response_models_at_module_scope.py`.
+- `packages/*/__init__.py` `__all__` is frozen — `tests/architecture/test_packages_boundary_frozen.py`.
+- aiosqlite worker thread doesn't leak — `tests/architecture/test_aiosqlite_daemon.py`.
+- Plugin manifest files in `_manifests/` have no module-level side effects — `tests/architecture/test_plugin_modules_only_declare_manifest.py`.
+
 ## Never
 
 - Never commit credentials. Secrets are env-only (`A2WEB_*`).
@@ -78,14 +94,13 @@ Run it after a change that could move output quality or cost: the response envel
 - Never add `print()` or sync I/O in async paths.
 - Never reintroduce `tier_extras: dict[str, Any]` — add a typed field on `TierResult` instead.
 - Never wire lifecycle in `server.py`'s body — register the resource with `app.provide(T)` and let `__aenter__`/`__aexit__` handle it. No `lifespan=` kwarg (removed in a2kit v0.35), no module-level `atexit` hooks.
-- Never use `app.singleton(...)` — retired in a2kit v0.36. Use `app.provide(...)`. No lambdas (framework rejects without return annotations).
+- Never use `app.singleton(...)` — retired in a2kit v0.36. Use `app.provide(...)`.
 - Never declare `settings: AppSettings` as a direct tool param without explicit `app.provide(get_settings)` — v0.38 BaseSettings auto-resolve is wire-side incomplete (`wire_input_params` checks `has_provider` only). Workaround is the explicit provider registration in `server.py`.
 - Never bypass `Lazy[T]` for heavy resources at the tool seam — registering `BrowserPool` / `LlmExtractorResource` as concrete kwargs on the tool defeats lazy first-use. Declare them as `Lazy[T]` and unwrap once at the consuming phase.
 - Never pass `ctx` as a kwarg to a phase function or helper — LDD primitives read it from the ambient ContextVar bound unconditionally by the dispatcher (v0.39+). Don't declare `ctx: a2kit.ToolContext` on a tool that doesn't actually read ctx in its body — the declaration is no longer required for ambient binding.
 - Never call `await sqlite._ensure()` (or any other internal `_ensure` / `_ready`) inside a `@app.health_check` body — kwarg resolution enters the resource (`OPERATIONAL_CONTRACTS Q-HealthChecks`). The probe receiving the resource at all is the readiness assertion.
 - Never use `a2kit.Param(...)` — removed in a2kit v0.31. Use `Annotated[T, pydantic.Field(description="...")]`.
 - Never pass `idempotent=` to `@a2kit.read` — reads are spec-idempotent in v0.33+ (raises `TypeError`).
-- Never import from `a2web.<domain>` inside `src/a2web/packages/`. Boundary types are package-owned; domain wiring lives at the a2web seam. `tests/test_packages_independence.py` fails CI on drift.
 
 ## Backlog
 

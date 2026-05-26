@@ -47,10 +47,12 @@ async def test_arxiv_pdf_rewritten_to_abs(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setitem(REGISTRY, "raw", raw)
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
     # Disable arxiv handler so the rewritten /abs/ URL falls through to raw.
-    from a2web.handlers import _HANDLERS, ArxivHandler
+    from a2web.handlers import ArxivHandler, _registry, _reset_registry
 
-    filtered = tuple(h for h in _HANDLERS if not isinstance(h, ArxivHandler))
-    monkeypatch.setattr("a2web.handlers._HANDLERS", filtered)
+    _reset_registry()
+    handlers = _registry(None)
+    filtered = tuple(h for h in handlers if not isinstance(h, ArxivHandler))
+    monkeypatch.setattr("a2web.handlers._REGISTRY_CACHE", filtered)
 
     result = await fetch("https://arxiv.org/pdf/2401.12345", state=_make_state())
 
@@ -67,10 +69,12 @@ async def test_rewrite_capped_at_one(monkeypatch: pytest.MonkeyPatch) -> None:
     raw = _CountingRawTier()
     monkeypatch.setitem(REGISTRY, "raw", raw)
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
-    from a2web.handlers import _HANDLERS, ArxivHandler
+    from a2web.handlers import ArxivHandler, _registry, _reset_registry
 
-    filtered = tuple(h for h in _HANDLERS if not isinstance(h, ArxivHandler))
-    monkeypatch.setattr("a2web.handlers._HANDLERS", filtered)
+    _reset_registry()
+    handlers = _registry(None)
+    filtered = tuple(h for h in handlers if not isinstance(h, ArxivHandler))
+    monkeypatch.setattr("a2web.handlers._REGISTRY_CACHE", filtered)
 
     result = await fetch("https://arxiv.org/pdf/2401.99999", state=_make_state())
     assert result.status == FetchStatus.ok

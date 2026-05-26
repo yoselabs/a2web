@@ -10,7 +10,6 @@ Tied to a `Provider` + `PromptTemplate` at construction time. The cache
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -18,6 +17,14 @@ from typing import TYPE_CHECKING, Any
 from .prompts import EXTRACT_ROUTER_V1, WEBFETCH_DEFAULT_V1, PromptTemplate
 from .providers.base import Provider
 from .router_payload import NextUrlBoundary, RouterPayload
+from .wobble import (
+    EXTRACTOR_ROUTING_POLICY,
+    ParseError,
+    Wobbled,
+    parse_list_with_policy,
+    parse_with_policy,
+    unwrap,
+)
 
 if TYPE_CHECKING:
     from .cache import ExtractionCache
@@ -206,10 +213,17 @@ class Extractor:
 
         routing_payload: RouterPayload | None = None
         if request_routing:
-            answer_text, routing_payload = _split_answer_and_routing(response.text)
+            answer_text, routing_wobbled = _split_answer_and_routing(
+                response.text, model=self._model.model
+            )
+            if routing_wobbled is not None:
+                routing_result: _RoutingResult = unwrap(routing_wobbled)
+                routing_payload = routing_result.payload
             parsed_next_links: list[LlmNextLink] = []
         elif request_next_links:
-            answer_text, parsed_next_links = _split_answer_and_next_links(response.text)
+            answer_text, parsed_next_links = _split_answer_and_next_links(
+                response.text, model=self._model.model
+            )
         else:
             answer_text, parsed_next_links = response.text, []
 
@@ -303,39 +317,50 @@ def _next_links_suffix(handler_candidates: list[LlmNextLink] | None) -> str:
     return intro
 
 
-def _split_answer_and_next_links(text: str) -> tuple[str, list[LlmNextLink]]:
-    """Split a response into (answer_text, next_links).
+def _next_link_from_entry(entry: dict[str, Any]) -> LlmNextLink | None:
+    """Per-item filter for the next_links JSON array.
 
-    Looks for a ```next_links ... ``` fenced block; everything before it is
-    the answer, the JSON inside it is parsed. Invalid JSON or a missing
-    fence yields (text-as-given, []). Entries with unknown `kind` or missing
-    fields are silently dropped here — URL-must-be-in-markdown validation
-    happens at the domain seam.
+    Returns None to silently drop entries with unknown `kind` or missing
+    fields — the funnel logs them as recovered. URL-must-be-in-markdown
+    validation happens at the domain seam, not here.
+    """
+    anchor = entry.get("anchor")
+    url = entry.get("url")
+    reason = entry.get("reason")
+    kind = entry.get("kind")
+    if not isinstance(anchor, str) or not isinstance(url, str) or not isinstance(reason, str):
+        return None
+    if not isinstance(kind, str) or kind not in _VALID_KINDS:
+        return None
+    return LlmNextLink(anchor=anchor, url=url, reason=reason, kind=kind)
+
+
+def _split_answer_and_next_links(
+    text: str, *, model: str = "unknown"
+) -> tuple[str, list[LlmNextLink]]:
+    """Split a response into (answer_text, next_links) via the wobble funnel.
+
+    Looks for a ```next_links ... ``` fenced block. Everything before is the
+    answer; the JSON array inside is funneled through `parse_list_with_policy`
+    so malformed entries fire `llm_wobble` events instead of disappearing
+    silently.
     """
     match = _NEXT_LINKS_FENCE_RE.search(text)
     if not match:
         return text, []
     answer = text[: match.start()].rstrip()
     try:
-        parsed = json.loads(match.group("json"))
-    except (ValueError, json.JSONDecodeError):
+        wobbled = parse_list_with_policy(
+            match.group("json"),
+            item=_next_link_from_entry,
+            boundary="extractor.next_links",
+            model=model,
+            strip_fences=False,
+        )
+    except ParseError:
         return answer, []
-    if not isinstance(parsed, list):
-        return answer, []
-    out: list[LlmNextLink] = []
-    for item in parsed:
-        if not isinstance(item, dict):
-            continue
-        anchor = item.get("anchor")
-        url = item.get("url")
-        reason = item.get("reason")
-        kind = item.get("kind")
-        if not isinstance(anchor, str) or not isinstance(url, str) or not isinstance(reason, str):
-            continue
-        if not isinstance(kind, str) or kind not in _VALID_KINDS:
-            continue
-        out.append(LlmNextLink(anchor=anchor, url=url, reason=reason, kind=kind))
-    return answer, out
+    parsed: list[LlmNextLink] = unwrap(wobbled)
+    return answer, parsed
 
 
 # --------------------------------------------------------------------- #
@@ -343,72 +368,54 @@ def _split_answer_and_next_links(text: str) -> tuple[str, list[LlmNextLink]]:
 # --------------------------------------------------------------------- #
 
 
-def _split_answer_and_routing(text: str) -> tuple[str, RouterPayload | None]:
-    """Parse the router-shape JSON envelope into (answer_text, RouterPayload | None).
+@dataclass(frozen=True, slots=True)
+class _RoutingResult:
+    """`into` payload — separates the salvaged answer from the routing payload
+    so the funnel-caller can degrade routing while keeping the answer."""
 
-    The router-shape template instructs the model to return a single JSON
-    envelope with `answer` plus the router-shape fields. We tolerate ```json
-    fences and raw JSON. Malformed JSON, missing required fields (answer /
-    structural_form / shape), or structural anomalies yield (text-as-given,
-    None) — the caller still gets a usable answer; routing is best-effort.
+    answer: str
+    payload: RouterPayload | None
 
-    Optional fields (`genre`, `obstacle`, `ask_here`, `try_url`) are accepted
-    when present; absence yields `None` (genre/obstacle) or empty tuple
-    (ask_here/try_url). The pydantic mirror at the seam enforces closed-enum
-    membership; the boundary stays loose.
-    """
-    stripped = text.strip()
-    if stripped.startswith("```"):
-        body = stripped[3:]
-        if body.startswith("json"):
-            body = body[4:]
-        if "```" in body:
-            body = body.split("```", 1)[0]
-        stripped = body.strip()
-    try:
-        parsed = json.loads(stripped)
-    except (ValueError, json.JSONDecodeError):
-        return text, None
-    if not isinstance(parsed, dict):
-        return text, None
 
-    answer = parsed.get("answer")
+def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
+    """Funnel `into` callable. Funnel guarantees `answer` is present (STRICT);
+    structural_form/shape are surfaced as-is and validated here so the answer
+    survives when routing fields are degraded."""
+    answer = parsed["answer"]
     if not isinstance(answer, str) or not answer:
-        # No answer field — the envelope is malformed beyond recovery.
-        return text, None
+        raise ParseError("extractor.router_shape: empty answer")
 
     structural_form = parsed.get("structural_form")
     shape = parsed.get("shape")
-    if not isinstance(structural_form, str) or not isinstance(shape, str):
-        # Missing required typing fields — return the answer alone; the
-        # caller surfaces an obstacle via its own path.
-        return answer, None
+    if not isinstance(structural_form, str) or not structural_form:
+        return _RoutingResult(answer=answer, payload=None)
+    if not isinstance(shape, str) or not shape:
+        return _RoutingResult(answer=answer, payload=None)
 
     genre_raw = parsed.get("genre")
     genre = genre_raw if isinstance(genre_raw, str) and genre_raw else None
     obstacle_raw = parsed.get("obstacle")
     obstacle = obstacle_raw if isinstance(obstacle_raw, str) and obstacle_raw else None
 
-    ask_here_raw = parsed.get("ask_here", [])
-    ask_here: list[str] = []
-    if isinstance(ask_here_raw, list):
-        ask_here = [q for q in ask_here_raw if isinstance(q, str) and q]
+    ask_here_raw = parsed.get("ask_here", ())
+    ask_here: tuple[str, ...] = (
+        tuple(q for q in ask_here_raw if isinstance(q, str) and q)
+        if isinstance(ask_here_raw, list)
+        else ()
+    )
 
-    try_url_raw = parsed.get("try_url", [])
     try_urls: list[NextUrlBoundary] = []
+    try_url_raw = parsed.get("try_url", ())
     if isinstance(try_url_raw, list):
         for item in try_url_raw:
             if not isinstance(item, dict):
                 continue
             url_val = item.get("url")
-            reason = item.get("reason", "")
             if not isinstance(url_val, str) or not url_val:
                 continue
+            reason = item.get("reason", "")
             try_urls.append(
-                NextUrlBoundary(
-                    url=url_val,
-                    reason=reason if isinstance(reason, str) else "",
-                )
+                NextUrlBoundary(url=url_val, reason=reason if isinstance(reason, str) else "")
             )
 
     payload = RouterPayload(
@@ -417,10 +424,34 @@ def _split_answer_and_routing(text: str) -> tuple[str, RouterPayload | None]:
         shape=shape,
         genre=genre,
         obstacle=obstacle,
-        ask_here=tuple(ask_here),
+        ask_here=ask_here,
         try_url=tuple(try_urls),
     )
-    return answer, payload
+    return _RoutingResult(answer=answer, payload=payload)
+
+
+def _split_answer_and_routing(
+    text: str, *, model: str = "unknown"
+) -> tuple[str, Wobbled | None]:
+    """Parse the router-shape JSON envelope through the wobble funnel.
+
+    Returns `(answer_text, Wobbled | None)` — Wobbled wraps a `_RoutingResult`.
+    Malformed JSON or missing `answer` yields `(text-as-given, None)`. Missing
+    `structural_form`/`shape` yields `(answer, wobbled_with_payload_none)` —
+    the answer is preserved; routing is degraded.
+    """
+    try:
+        wobbled = parse_with_policy(
+            text,
+            policies=EXTRACTOR_ROUTING_POLICY,
+            into=_build_router_payload,
+            boundary="extractor.router_shape",
+            model=model,
+        )
+    except ParseError:
+        return text, None
+    result: _RoutingResult = unwrap(wobbled)
+    return result.answer, wobbled
 
 
 __all__ = ["ExtractionResult", "Extractor", "LlmNextLink", "ModelSpec"]

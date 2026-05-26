@@ -1,0 +1,101 @@
+# Tach module-boundary contracts for a2web.
+#
+# Pattern 3 of ADR-0001 (`docs/adr/0001-structural-prevention-over-vigilance.md`).
+# Tach enforces "packages/X is private; only __init__ is public" plus the
+# packages/* MUST NOT import from a2web.<domain> invariant (replaces
+# tests/test_packages_independence.py).
+#
+# Workflow:
+#   - make arch          → runs `tach check` + the pytest-archon AST rules
+#   - tach sync          → re-baseline after a planned refactor cleans up violations
+#   - tach show          → dependency graph for the curious
+
+source_roots = ["src"]
+exact = true
+
+# -- domain root --------------------------------------------------------------
+#
+# `a2web` covers every domain-side module (server.py, fetcher.py, handlers/,
+# models.py, llm_resource.py, etc.). With `exact = true`, sub-modules listed
+# below are carved out; everything else under `src/a2web/` rolls up here.
+# Domain code may freely import from any package — that's the seam's job.
+
+[[modules]]
+path = "a2web"
+depends_on = [
+    "a2web.packages.block_detector",
+    "a2web.packages.browser_pool",
+    "a2web.packages.content_extract",
+    "a2web.packages.cookie_store",
+    "a2web.packages.escalation",
+    "a2web.packages.html_fragment",
+    "a2web.packages.http_cache",
+    "a2web.packages.http_fetch",
+    "a2web.packages.json_in_script",
+    "a2web.packages.llm_extract",
+    "a2web.packages.proxy_routing",
+    "a2web.packages.record_extract",
+]
+
+# -- packages: in-tree microsofware -------------------------------------------
+#
+# Each package has `depends_on = []` — only stdlib + third-party allowed.
+# No package may import from another package OR from `a2web.<domain>`.
+# Boundary types are package-owned; domain wiring lives at the a2web seam.
+
+[[modules]]
+path = "a2web.packages.block_detector"
+# GRANDFATHERED: block_detector imports EscalationSignal from packages.escalation.
+# Retired by BACKLOG.md "cross-package-coupling-cleanup" (2026-05-26 follow-up).
+# Plan: lift EscalationSignal to a shared types module both packages can import,
+# or inline the signal flag back into block_detector since escalation is its
+# sole consumer.
+depends_on = ["a2web.packages.escalation"]
+
+[[modules]]
+path = "a2web.packages.browser_pool"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.content_extract"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.cookie_store"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.escalation"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.html_fragment"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.http_cache"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.http_fetch"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.json_in_script"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.llm_extract"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.ndjson_log"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.proxy_routing"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.record_extract"
+depends_on = []

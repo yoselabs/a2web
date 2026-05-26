@@ -100,22 +100,50 @@ class Tier(Protocol):
     ) -> TierResult: ...
 
 
-from .archive import ArchiveTier  # noqa: E402
+from .archive import ArchiveTier  # noqa: E402 — re-export for tests
 from .browser import BrowserTier  # noqa: E402
 from .jina import JinaTier  # noqa: E402
 from .raw import RawTier  # noqa: E402 — circular import avoidance
 from .site_handler import SiteHandlerTier  # noqa: E402
 
-# Archive and browser tiers are registered but NOT in TIER_ORDER — the
-# orchestrator's playbook dispatches them out-of-band on escalation signals.
-TIER_ORDER: tuple[str, ...] = ("site_handler", "raw", "jina")
-REGISTRY: dict[str, Tier] = {
-    "site_handler": SiteHandlerTier(),
-    "raw": RawTier(),
-    "jina": JinaTier(),
-    "archive": ArchiveTier(),
-    "browser": BrowserTier(),
-}
+
+def _load_tier_registry() -> tuple[dict[str, Tier], tuple[str, ...]]:
+    """Walk `_manifests/tiers/` once at import. Returns (REGISTRY, TIER_ORDER).
+
+    REGISTRY includes every tier (priority-aware tiers + out-of-band tiers
+    with priority=-1). TIER_ORDER includes only priority >= 0, sorted desc —
+    that's the main tier-loop sequence. Archive + browser (priority=-1) are
+    dispatched out-of-band by the orchestrator's playbook on escalation
+    signals; they live in REGISTRY but never in TIER_ORDER.
+    """
+    from .._plugin import load_surface_sorted
+    from ..settings import AppSettings
+
+    pairs = load_surface_sorted("a2web._manifests.tiers", Tier, AppSettings())
+    registry = dict(pairs)
+    # Re-walk manifest modules for priority. (load_surface_sorted sorts but
+    # drops priority; we need it to filter out-of-band tiers from TIER_ORDER.)
+    import importlib
+    import pkgutil
+
+    pkg = importlib.import_module("a2web._manifests.tiers")
+    in_order: list[tuple[int, str]] = []
+    for info in pkgutil.iter_modules(pkg.__path__, prefix="a2web._manifests.tiers."):
+        module = importlib.import_module(info.name)
+        manifest = getattr(module, "MANIFEST", None)
+        if manifest is None or manifest.priority < 0:
+            continue
+        if manifest.name not in registry:
+            continue
+        in_order.append((manifest.priority, manifest.name))
+    in_order.sort(key=lambda kv: -kv[0])
+    tier_order = tuple(name for _prio, name in in_order)
+    return registry, tier_order
+
+
+REGISTRY: dict[str, Tier]
+TIER_ORDER: tuple[str, ...]
+REGISTRY, TIER_ORDER = _load_tier_registry()
 
 
 __all__ = [

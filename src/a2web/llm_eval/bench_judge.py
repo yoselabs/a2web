@@ -16,31 +16,18 @@ blind (the judge is not told which system produced the output).
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass
 from typing import Any
 
-from ..packages.llm_extract import (
-    JudgeParseError,
-    ModelSpec,
-    Provider,
-    WobblePolicy,
-    WobbleTolerance,
-    apply_policy,
+from ..packages.llm_extract import JudgeParseError, ModelSpec, Provider
+from ..packages.llm_extract.wobble import (
+    BENCH_CLARITY_POLICY,
+    BENCH_NEXT_LINKS_POLICY,
+    ParseError,
+    parse_with_policy,
+    unwrap,
 )
-
-# Per-field wobble policies for the two bench-judge surfaces. Score fields are
-# STRICT (no signal to salvage if the scoring number is gone); reasoning is
-# decorative — DEFAULTs to "" so a dropped field doesn't fail the axis.
-_CLARITY_POLICY: dict[str, WobblePolicy] = {
-    "clarity": WobblePolicy(WobbleTolerance.STRICT),
-    "reasoning": WobblePolicy(WobbleTolerance.DEFAULT, default=""),
-}
-_NEXT_LINKS_POLICY: dict[str, WobblePolicy] = {
-    "next_links_score": WobblePolicy(WobbleTolerance.STRICT),
-    "reasoning": WobblePolicy(WobbleTolerance.DEFAULT, default=""),
-}
 
 _CLARITY_TEMPLATE = (
     "You are a strict, blind judge assessing OUTPUT CLARITY — how cleanly a "
@@ -131,36 +118,17 @@ class BenchJudge:
             max_tokens=self._max_tokens,
             thinking_disabled=True,
         )
-        parsed = _parse_json(response.text)
-        try:
-            score = int(
-                apply_policy(
-                    parsed,
-                    "clarity",
-                    _CLARITY_POLICY["clarity"],
-                    boundary="bench_judge_clarity",
-                    model=self._model.model,
-                    raw_excerpt=response.text,
-                )
-            )
-            reasoning = str(
-                apply_policy(
-                    parsed,
-                    "reasoning",
-                    _CLARITY_POLICY["reasoning"],
-                    boundary="bench_judge_clarity",
-                    model=self._model.model,
-                    raw_excerpt=response.text,
-                )
-            )
-        except (KeyError, TypeError, ValueError) as exc:
-            raise JudgeParseError(
-                f"clarity verdict missing required fields: {exc}",
-                raw_text=response.text,
-            ) from exc
+        wobbled = _funnel_two_field(
+            response.text,
+            score_field="clarity",
+            boundary="bench_judge_clarity",
+            policies=BENCH_CLARITY_POLICY,
+            model=self._model.model,
+        )
+        fields = unwrap(wobbled)
         return ClarityVerdict(
-            score=score,
-            reasoning=reasoning,
+            score=fields["score"],
+            reasoning=fields["reasoning"],
             model=response.model,
             cost_usd=response.cost_usd,
             latency_ms=response.latency_ms,
@@ -177,60 +145,62 @@ class BenchJudge:
             max_tokens=self._max_tokens,
             thinking_disabled=True,
         )
-        parsed = _parse_json(response.text)
-        try:
-            score = int(
-                apply_policy(
-                    parsed,
-                    "next_links_score",
-                    _NEXT_LINKS_POLICY["next_links_score"],
-                    boundary="bench_judge_next_links",
-                    model=self._model.model,
-                    raw_excerpt=response.text,
-                )
-            )
-            reasoning = str(
-                apply_policy(
-                    parsed,
-                    "reasoning",
-                    _NEXT_LINKS_POLICY["reasoning"],
-                    boundary="bench_judge_next_links",
-                    model=self._model.model,
-                    raw_excerpt=response.text,
-                )
-            )
-        except (KeyError, TypeError, ValueError) as exc:
-            raise JudgeParseError(
-                f"next_links verdict missing required fields: {exc}",
-                raw_text=response.text,
-            ) from exc
+        wobbled = _funnel_two_field(
+            response.text,
+            score_field="next_links_score",
+            boundary="bench_judge_next_links",
+            policies=BENCH_NEXT_LINKS_POLICY,
+            model=self._model.model,
+        )
+        fields = unwrap(wobbled)
         return NextLinksVerdict(
-            score=score,
-            reasoning=reasoning,
+            score=fields["score"],
+            reasoning=fields["reasoning"],
             model=response.model,
             cost_usd=response.cost_usd,
             latency_ms=response.latency_ms,
         )
 
 
-def _parse_json(text: str) -> dict[str, Any]:
-    """Strict JSON first, then a permissive first-object regex. Raises
-    JudgeParseError if neither yields an object."""
-    stripped = text.strip()
-    if stripped.startswith("```"):
-        stripped = re.sub(r"^```(?:json)?\s*", "", stripped)
-        stripped = re.sub(r"\s*```\s*$", "", stripped)
+def _funnel_two_field(
+    text: str,
+    *,
+    score_field: str,
+    boundary: str,
+    policies: dict[str, Any],
+    model: str,
+) -> Any:
+    """Funnel a `{score_field: int, reasoning: str}` envelope through wobble.
+
+    Try the strict-fence path first; on ParseError fall back to extracting the
+    first `{...}` substring (the model occasionally wraps prose around the
+    JSON despite the prompt). Raises JudgeParseError if neither yields a
+    valid object.
+    """
+
+    def _build(parsed: dict[str, Any]) -> dict[str, Any]:
+        try:
+            score = int(parsed[score_field])
+        except (TypeError, ValueError, KeyError) as exc:
+            raise ParseError(f"{boundary}: int coercion failed: {exc}") from exc
+        return {"score": score, "reasoning": str(parsed["reasoning"])}
+
     try:
-        return json.loads(stripped)
-    except json.JSONDecodeError:
+        return parse_with_policy(
+            text, policies=policies, into=_build, boundary=boundary, model=model
+        )
+    except ParseError:
         pass
+
     match = _OBJECT_RE.search(text)
     if match is None:
-        raise JudgeParseError("no JSON object found in bench-judge response", raw_text=text)
+        raise JudgeParseError(f"no JSON object found in {boundary} response", raw_text=text)
     try:
-        return json.loads(match.group(0))
-    except json.JSONDecodeError as exc:
-        raise JudgeParseError(f"bench-judge object is not valid JSON: {exc}", raw_text=text) from exc
+        return parse_with_policy(
+            match.group(0), policies=policies, into=_build, boundary=boundary, model=model
+        )
+    except ParseError as exc:
+        raise JudgeParseError(f"{boundary}: {exc}", raw_text=text) from exc
 
 
 __all__ = ["BenchJudge", "ClarityVerdict", "NextLinksVerdict"]
