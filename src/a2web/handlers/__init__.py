@@ -61,9 +61,7 @@ def _registry(settings: AppSettings | None) -> tuple[Handler, ...]:
     from .._plugin import load_surface_sorted
     from ..settings import AppSettings as _AppSettings
 
-    sorted_pairs = load_surface_sorted(
-        "a2web._manifests.handlers", Handler, settings or _AppSettings()
-    )
+    sorted_pairs = load_surface_sorted("a2web._manifests.handlers", Handler, settings or _AppSettings())
     _REGISTRY_CACHE = tuple(handler for _name, handler in sorted_pairs)
     return _REGISTRY_CACHE
 

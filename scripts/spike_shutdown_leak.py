@@ -73,6 +73,7 @@ def _watchdog(signum: int, frame) -> None:  # noqa: ANN001 - signal handler
             traceback.print_stack(frame, file=sys.stderr)
     print("\n=== forcing exit ===", file=sys.stderr)
     import os
+
     os._exit(99)
 
 

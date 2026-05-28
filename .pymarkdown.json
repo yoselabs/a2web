@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jackdewinter/pymarkdown/main/docs/api/pymarkdown.api.config.schema.json",
+  "extensions": {
+    "front-matter": {
+      "enabled": true
+    },
+    "markdown-tables": {
+      "enabled": true
+    }
+  },
+  "plugins": {
+    "line-length": {
+      "enabled": false
+    },
+    "no-duplicate-heading": {
+      "enabled": false
+    },
+    "first-line-heading": {
+      "enabled": false
+    },
+    "no-inline-html": {
+      "enabled": false
+    },
+    "no-emphasis-as-heading": {
+      "enabled": false
+    },
+    "ul-indent": {
+      "enabled": false
+    },
+    "code-block-style": {
+      "enabled": false
+    },
+    "ol-prefix": {
+      "enabled": false
+    },
+    "no-bare-urls": {
+      "enabled": false
+    },
+    "fenced-code-language": {
+      "enabled": false
+    },
+    "heading-style": {
+      "style": "atx"
+    },
+    "no-reversed-links": {
+      "_comment": "MD011 fires on Python code patterns like result[\"status\"] inside prose; too many false positives in our README.",
+      "enabled": false
+    }
+  }
+}

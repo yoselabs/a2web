@@ -157,10 +157,7 @@ def load_surface_sorted(
     if pkg_path is None:
         modules = [pkg]
     else:
-        modules = [
-            importlib.import_module(info.name)
-            for info in pkgutil.iter_modules(pkg_path, prefix=f"{surface_path}.")
-        ]
+        modules = [importlib.import_module(info.name) for info in pkgutil.iter_modules(pkg_path, prefix=f"{surface_path}.")]
     for module in modules:
         manifest = getattr(module, "MANIFEST", None)
         if manifest is None or not isinstance(manifest, PluginManifest):

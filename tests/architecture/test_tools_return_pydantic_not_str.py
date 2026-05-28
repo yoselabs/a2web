@@ -57,11 +57,7 @@ def test_no_tool_returns_str() -> None:
                 continue
             if _returns_str(node.returns):
                 violations.append(
-                    f"{rel}:{node.lineno}: tool `{node.name}` returns `str` — "
-                    f"return a dict or pydantic model so MCP clients can introspect"
+                    f"{rel}:{node.lineno}: tool `{node.name}` returns `str` — return a dict or pydantic model so MCP clients can introspect"
                 )
 
-    assert not violations, (
-        "Tool returns bare `str`. CLAUDE.md ban — declare a typed response:\n  "
-        + "\n  ".join(violations)
-    )
+    assert not violations, "Tool returns bare `str`. CLAUDE.md ban — declare a typed response:\n  " + "\n  ".join(violations)

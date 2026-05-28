@@ -78,6 +78,4 @@ def test_plugin_modules_only_declare_manifest() -> None:
                     f"and MANIFEST/private (_-prefixed) assignments"
                 )
 
-    assert not violations, (
-        "Side-effect at module scope in plugin file:\n  " + "\n  ".join(violations)
-    )
+    assert not violations, "Side-effect at module scope in plugin file:\n  " + "\n  ".join(violations)

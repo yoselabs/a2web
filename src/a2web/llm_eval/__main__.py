@@ -60,10 +60,7 @@ def _pick_provider(
             raise LLMNotAvailable(f"unknown provider id: {override}")
         provider = registry.get(override)
         if provider is None:
-            raise LLMNotAvailable(
-                f"{_PROVIDER_ENV}={override} but provider not in registry "
-                f"(available: {sorted(registry)})"
-            )
+            raise LLMNotAvailable(f"{_PROVIDER_ENV}={override} but provider not in registry (available: {sorted(registry)})")
         # Narrow the literal — checked above.
         if override == "anthropic":
             return provider, "anthropic"
@@ -74,9 +71,7 @@ def _pick_provider(
             if name == "anthropic":
                 return provider, "anthropic"
             return provider, "claude-code"
-    raise LLMNotAvailable(
-        f"no LLM provider available (registry empty: {sorted(registry)})"
-    )
+    raise LLMNotAvailable(f"no LLM provider available (registry empty: {sorted(registry)})")
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -154,9 +149,7 @@ async def _amain(argv: list[str]) -> int:
         "baseline": ("webfetch_baseline",),
         "detail": ("a2web_detail", "a2web_extract"),
     }
-    systems: list[EvalSystem] = [
-        registry[name] for name in keep_by_mode[args.mode] if name in registry
-    ]
+    systems: list[EvalSystem] = [registry[name] for name in keep_by_mode[args.mode] if name in registry]
 
     judge_model = ModelSpec(provider_id, args.judge_model)
     judge = Judge(provider=provider, model=judge_model)

@@ -1,0 +1,40 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff check (src + tests)
+        entry: uv run ruff check src/ tests/
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: ruff-format
+        name: ruff format (src + tests)
+        entry: uv run ruff format --check src/ tests/
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: pymarkdown
+        name: markdown lint (pymarkdownlnt)
+        entry: uv run pymarkdown --config .pymarkdown.json scan
+        language: system
+        pass_filenames: true
+        files: ^(README\.md|CHANGELOG\.md|CLAUDE\.md)$
+      - id: actionlint
+        name: actionlint
+        entry: actionlint
+        language: system
+        pass_filenames: false
+        files: ^\.github/workflows/.*\.ya?ml$
+      - id: a2kit-rego
+        name: a2kit lint rego (architectural policies)
+        entry: uv run a2kit lint rego src/ pyproject.toml
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: ty
+        name: ty (typecheck src)
+        entry: uv run ty check src/
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

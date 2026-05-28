@@ -186,9 +186,7 @@ def _funnel_two_field(
         return {"score": score, "reasoning": str(parsed["reasoning"])}
 
     try:
-        return parse_with_policy(
-            text, policies=policies, into=_build, boundary=boundary, model=model
-        )
+        return parse_with_policy(text, policies=policies, into=_build, boundary=boundary, model=model)
     except ParseError:
         pass
 
@@ -196,9 +194,7 @@ def _funnel_two_field(
     if match is None:
         raise JudgeParseError(f"no JSON object found in {boundary} response", raw_text=text)
     try:
-        return parse_with_policy(
-            match.group(0), policies=policies, into=_build, boundary=boundary, model=model
-        )
+        return parse_with_policy(match.group(0), policies=policies, into=_build, boundary=boundary, model=model)
     except ParseError as exc:
         raise JudgeParseError(f"{boundary}: {exc}", raw_text=text) from exc
 

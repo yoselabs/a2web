@@ -59,8 +59,10 @@ async def probe_raw(label: str, url: str) -> dict:
     server = r.headers.get("server", "")
     print(f"  status: {r.status_code}  len: {len(body)}  cf-ray: {cf_ray[:14]!r}  server: {server!r}")
     print(f"  cf_interstitial_in_body: {is_cf_interstitial}")
-    verdict = "blocked-403" if r.status_code == 403 else (
-        "cf-challenge" if is_cf_interstitial else ("ok" if r.status_code == 200 and len(body) > 5000 else "thin")
+    verdict = (
+        "blocked-403"
+        if r.status_code == 403
+        else ("cf-challenge" if is_cf_interstitial else ("ok" if r.status_code == 200 and len(body) > 5000 else "thin"))
     )
     print(f"  → verdict: {verdict}")
     return {"verdict": verdict, "status": r.status_code, "len": len(body), "cf_ray": bool(cf_ray)}
@@ -87,8 +89,10 @@ async def probe_browser(label: str, url: str) -> dict:
                 is_interstitial = bool(_CF_INTERSTITIAL.search(content))
                 print(f"  status: {status}  len: {len(content)}  title: {title!r}")
                 print(f"  cf_interstitial_in_body: {is_interstitial}")
-                verdict = "blocked-403" if status == 403 else (
-                    "cf-challenge" if is_interstitial else ("ok" if status == 200 and len(content) > 10000 else "thin")
+                verdict = (
+                    "blocked-403"
+                    if status == 403
+                    else ("cf-challenge" if is_interstitial else ("ok" if status == 200 and len(content) > 10000 else "thin"))
                 )
                 print(f"  → verdict: {verdict}")
                 return {"verdict": verdict, "status": status, "len": len(content)}

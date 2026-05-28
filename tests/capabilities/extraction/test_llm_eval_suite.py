@@ -306,6 +306,7 @@ async def test_eval_row_records_derived_verdict_as_success(tmp_path: Path) -> No
                 latency_ms = 1
                 prompt_tokens = 0
                 completion_tokens = 0
+
             return _R()
 
     judge = Judge(provider=_DropReachedProvider(), model=ModelSpec("mock", "m"))  # type: ignore[arg-type]

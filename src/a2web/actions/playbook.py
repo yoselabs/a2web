@@ -168,12 +168,7 @@ def _decide_cloudflare_403_429_archive(ctx: _RuleContext) -> Action | None:
     last = ctx.last
     if last is None:
         return None
-    if (
-        last.kind is ObservationKind.tier_outcome
-        and last.cloudflare
-        and last.status_code in (403, 429)
-        and ctx.caps.archive_dispatches < 1
-    ):
+    if last.kind is ObservationKind.tier_outcome and last.cloudflare and last.status_code in (403, 429) and ctx.caps.archive_dispatches < 1:
         return RetryViaArchive(url=ctx.url)
     return None
 

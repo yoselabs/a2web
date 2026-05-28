@@ -136,19 +136,13 @@ def _apply_field(
         if policy.derive is None:
             raise KeyError(field)
         value = policy.derive(parsed)
-        emit_wobble(
-            boundary=boundary, field=field, tolerance=policy.tolerance, model=model, raw_excerpt=raw_excerpt
-        )
+        emit_wobble(boundary=boundary, field=field, tolerance=policy.tolerance, model=model, raw_excerpt=raw_excerpt)
         return value, True
     if policy.tolerance is WobbleTolerance.DEFAULT:
-        emit_wobble(
-            boundary=boundary, field=field, tolerance=policy.tolerance, model=model, raw_excerpt=raw_excerpt
-        )
+        emit_wobble(boundary=boundary, field=field, tolerance=policy.tolerance, model=model, raw_excerpt=raw_excerpt)
         return policy.default, True
     if policy.tolerance is WobbleTolerance.SKIP:
-        emit_wobble(
-            boundary=boundary, field=field, tolerance=policy.tolerance, model=model, raw_excerpt=raw_excerpt
-        )
+        emit_wobble(boundary=boundary, field=field, tolerance=policy.tolerance, model=model, raw_excerpt=raw_excerpt)
         raise WobbleSkip(field)
     raise RuntimeError(f"unknown wobble tolerance: {policy.tolerance}")
 
@@ -166,9 +160,7 @@ def apply_policy(
 
     Internal new code should funnel through `parse_with_policy` instead.
     """
-    value, _ = _apply_field(
-        parsed, field, policy, boundary=boundary, model=model, raw_excerpt=raw_excerpt
-    )
+    value, _ = _apply_field(parsed, field, policy, boundary=boundary, model=model, raw_excerpt=raw_excerpt)
     return value
 
 
@@ -198,9 +190,7 @@ def parse_with_policy(
     recovered: list[str] = []
     for field, policy in policies.items():
         try:
-            value, was_recovered = _apply_field(
-                parsed, field, policy, boundary=boundary, model=model, raw_excerpt=raw
-            )
+            value, was_recovered = _apply_field(parsed, field, policy, boundary=boundary, model=model, raw_excerpt=raw)
         except KeyError as exc:
             raise ParseError(f"{boundary}: missing required field: {exc}") from exc
         resolved[field] = value

@@ -46,36 +46,20 @@ from a2web.state import SqliteResource, build_state
 
 
 URLS: list[tuple[str, str, str]] = [
-    ("paper-abs",
-     "what does the paper claim in 2 sentences?",
-     "https://arxiv.org/abs/2402.17753"),
-    ("hn-front",
-     "what are the top 3 most-discussed posts right now?",
-     "https://news.ycombinator.com/"),
-    ("hn-thread",
-     "what is the most-upvoted criticism in this thread?",
-     "https://news.ycombinator.com/item?id=39745700"),
-    ("mdn-array",
-     "how do you remove the last element of an array in javascript?",
-     "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array"),
-    ("rfc-9110-idempotent",
-     "what does the spec say about idempotent methods?",
-     "https://datatracker.ietf.org/doc/html/rfc9110"),
-    ("so-yield",
-     "what is the accepted answer?",
-     "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python"),
-    ("gh-httpx-readme",
-     "how do I install httpx and make a basic GET request?",
-     "https://github.com/encode/httpx"),
-    ("pydantic-releases",
-     "what changed in the latest pydantic release?",
-     "https://github.com/pydantic/pydantic/releases"),
-    ("wiki-rust",
-     "when was rust 1.0 released and who created it?",
-     "https://en.wikipedia.org/wiki/Rust_(programming_language)"),
-    ("pypi-httpx",
-     "what is the latest version of httpx and its main dependencies?",
-     "https://pypi.org/project/httpx/"),
+    ("paper-abs", "what does the paper claim in 2 sentences?", "https://arxiv.org/abs/2402.17753"),
+    ("hn-front", "what are the top 3 most-discussed posts right now?", "https://news.ycombinator.com/"),
+    ("hn-thread", "what is the most-upvoted criticism in this thread?", "https://news.ycombinator.com/item?id=39745700"),
+    (
+        "mdn-array",
+        "how do you remove the last element of an array in javascript?",
+        "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+    ),
+    ("rfc-9110-idempotent", "what does the spec say about idempotent methods?", "https://datatracker.ietf.org/doc/html/rfc9110"),
+    ("so-yield", "what is the accepted answer?", "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python"),
+    ("gh-httpx-readme", "how do I install httpx and make a basic GET request?", "https://github.com/encode/httpx"),
+    ("pydantic-releases", "what changed in the latest pydantic release?", "https://github.com/pydantic/pydantic/releases"),
+    ("wiki-rust", "when was rust 1.0 released and who created it?", "https://en.wikipedia.org/wiki/Rust_(programming_language)"),
+    ("pypi-httpx", "what is the latest version of httpx and its main dependencies?", "https://pypi.org/project/httpx/"),
 ]
 
 
@@ -203,8 +187,11 @@ async def _build_resources(s: AppSettings) -> tuple[Any, Any, Any]:
 async def _call(provider: ClaudeCodeProvider, system: str, user: str) -> tuple[dict, float, int]:
     t0 = time.perf_counter()
     response = await provider.complete(
-        system=system, user=user,
-        model="claude-haiku-4-5", max_tokens=1024, thinking_disabled=True,
+        system=system,
+        user=user,
+        model="claude-haiku-4-5",
+        max_tokens=1024,
+        thinking_disabled=True,
     )
     elapsed = int((time.perf_counter() - t0) * 1000)
     return _parse_json(response.text), response.cost_usd, elapsed
@@ -220,8 +207,14 @@ def _heuristics(catalog: dict, refined: dict) -> dict:
     # Obvious-filler detector: contains "what is the title", "who is the author",
     # "when was this published", "what are the main sections"
     obvious_patterns = [
-        "title", "author", "publish", "main section", "what is this",
-        "what is the article about", "what is the page about", "byline",
+        "title",
+        "author",
+        "publish",
+        "main section",
+        "what is this",
+        "what is the article about",
+        "what is the page about",
+        "byline",
     ]
 
     def _obvious_count(qs: list) -> int:
@@ -277,8 +270,10 @@ async def main() -> None:
         "Two prompts on the same fetch. 10 research-realistic URLs.\n",
         "Refined surface: answer + page_kind + shape + ask_here(≤5,non-obvious) + try_url(≤5,Q-cond).\n\n",
     ]
-    summary: dict[str, Any] = {"per_url": [], "totals": {"catalog_cost": 0.0, "refined_cost": 0.0,
-                                                          "catalog_parse_fails": 0, "refined_parse_fails": 0}}
+    summary: dict[str, Any] = {
+        "per_url": [],
+        "totals": {"catalog_cost": 0.0, "refined_cost": 0.0, "catalog_parse_fails": 0, "refined_parse_fails": 0},
+    }
 
     try:
         for idx, (slug, ask, url) in enumerate(URLS, 1):
@@ -289,8 +284,11 @@ async def main() -> None:
 
             try:
                 resp = await fetch(
-                    url=url, ask=ask, state=state,
-                    browser_pool=lazy(browser_pool), llm_extractor=lazy(llm),
+                    url=url,
+                    ask=ask,
+                    state=state,
+                    browser_pool=lazy(browser_pool),
+                    llm_extractor=lazy(llm),
                 )
             except Exception as exc:
                 lines.append(f"**FETCH RAISED**: `{exc}`\n")
@@ -299,9 +297,7 @@ async def main() -> None:
                 continue
 
             content_md = resp.content_md or ""
-            lines.append(
-                f"Fetch: tier=`{resp.tier}` · status=`{resp.status or 'ok'}` · chars={len(content_md)}\n\n"
-            )
+            lines.append(f"Fetch: tier=`{resp.tier}` · status=`{resp.status or 'ok'}` · chars={len(content_md)}\n\n")
             if not content_md:
                 lines.append("(no content_md — skipping)\n")
                 per_url["fetch_status"] = resp.status or "ok"
@@ -311,10 +307,14 @@ async def main() -> None:
             content_capped = content_md[:12000]
 
             cat_parsed, cat_cost, cat_ms = await _call(
-                provider, CATALOG_SYSTEM, CATALOG_TEMPLATE.format(content=content_capped, ask=ask),
+                provider,
+                CATALOG_SYSTEM,
+                CATALOG_TEMPLATE.format(content=content_capped, ask=ask),
             )
             ref_parsed, ref_cost, ref_ms = await _call(
-                provider, REFINED_SYSTEM, REFINED_TEMPLATE.format(content=content_capped, ask=ask),
+                provider,
+                REFINED_SYSTEM,
+                REFINED_TEMPLATE.format(content=content_capped, ask=ask),
             )
             summary["totals"]["catalog_cost"] += cat_cost
             summary["totals"]["refined_cost"] += ref_cost
@@ -327,14 +327,20 @@ async def main() -> None:
 
             per_url["fetch_status"] = resp.status or "ok"
             per_url["chars"] = len(content_md)
-            per_url["catalog"] = {"cost": cat_cost, "ms": cat_ms,
-                                  "answer": cat_parsed.get("answer"),
-                                  "heuristics": {k: v for k, v in h.items() if k.startswith("catalog_")}}
-            per_url["refined"] = {"cost": ref_cost, "ms": ref_ms,
-                                  "answer": ref_parsed.get("answer"),
-                                  "shape": ref_parsed.get("shape"),
-                                  "page_kind": ref_parsed.get("page_kind"),
-                                  "heuristics": {k: v for k, v in h.items() if k.startswith("refined_")}}
+            per_url["catalog"] = {
+                "cost": cat_cost,
+                "ms": cat_ms,
+                "answer": cat_parsed.get("answer"),
+                "heuristics": {k: v for k, v in h.items() if k.startswith("catalog_")},
+            }
+            per_url["refined"] = {
+                "cost": ref_cost,
+                "ms": ref_ms,
+                "answer": ref_parsed.get("answer"),
+                "shape": ref_parsed.get("shape"),
+                "page_kind": ref_parsed.get("page_kind"),
+                "heuristics": {k: v for k, v in h.items() if k.startswith("refined_")},
+            }
 
             lines.append(
                 f"Fetch chars={len(content_md)}\n\n"

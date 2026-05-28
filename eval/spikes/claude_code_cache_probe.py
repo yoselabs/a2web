@@ -177,11 +177,11 @@ async def _run_via_provider_directly(model: str) -> list[_CallRecord]:
     provider = ClaudeCodeProvider()
 
     plan: list[tuple[str, str, str]] = [
-        ("call_1 (A / Q1) — establishes prefix",        "A", "What is the population of Tristan da Cunha?"),
-        ("call_2 (A / Q2) — same prefix, diff tail",    "A", "What is the climate like?"),
-        ("call_3 (B / Q2) — diff prefix, same tail",    "B", "What is the climate like?"),
-        ("call_4 (A / Q3) — back to A prefix, new tail","A", "What happened in 1961?"),
-        ("call_5 (A / Q1) — exact repeat of call_1",    "A", "What is the population of Tristan da Cunha?"),
+        ("call_1 (A / Q1) — establishes prefix", "A", "What is the population of Tristan da Cunha?"),
+        ("call_2 (A / Q2) — same prefix, diff tail", "A", "What is the climate like?"),
+        ("call_3 (B / Q2) — diff prefix, same tail", "B", "What is the climate like?"),
+        ("call_4 (A / Q3) — back to A prefix, new tail", "A", "What happened in 1961?"),
+        ("call_5 (A / Q1) — exact repeat of call_1", "A", "What is the population of Tristan da Cunha?"),
     ]
 
     records: list[_CallRecord] = []
@@ -233,8 +233,10 @@ async def _run_via_provider_directly(model: str) -> list[_CallRecord]:
 
 
 def _format_table(records: list[_CallRecord]) -> str:
-    rows = ["| call | page | ask (truncated) | prompt_tok | cache_read | cache_create | latency_ms | cost_usd |",
-            "|------|------|-----------------|-----------:|-----------:|-------------:|-----------:|---------:|"]
+    rows = [
+        "| call | page | ask (truncated) | prompt_tok | cache_read | cache_create | latency_ms | cost_usd |",
+        "|------|------|-----------------|-----------:|-----------:|-------------:|-----------:|---------:|",
+    ]
     for r in records:
         rows.append(
             f"| {r.label.split(' ')[0]} | {r.page_label} | {r.ask[:40]} "

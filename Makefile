@@ -12,6 +12,8 @@ arch:
 
 lint:
 	@uv run ruff check src/ tests/
+	@uv run pymarkdown --config .pymarkdown.json scan README.md CHANGELOG.md CLAUDE.md
+	@uv run a2kit lint rego src/ pyproject.toml
 
 fix:
 	@uv run ruff check --fix src/ tests/

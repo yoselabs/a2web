@@ -45,52 +45,56 @@ from a2web.state import SqliteResource, build_state
 # places where the extra classification step is wasted ceremony.
 URLS: list[tuple[str, str, str]] = [
     # --- TINY ---
-    ("tiny-arxiv",          "article-short", "https://arxiv.org/abs/2402.17753"),
-    ("tiny-gh-gist",        "code-snippet",  "https://gist.github.com/jboner/2841832"),
-    ("tiny-status-page",    "status",        "https://status.openai.com/"),
+    ("tiny-arxiv", "article-short", "https://arxiv.org/abs/2402.17753"),
+    ("tiny-gh-gist", "code-snippet", "https://gist.github.com/jboner/2841832"),
+    ("tiny-status-page", "status", "https://status.openai.com/"),
     # --- HUGE ---
-    ("huge-wikipedia",      "encyclopedia",  "https://en.wikipedia.org/wiki/Rust_(programming_language)"),
-    ("huge-mdn-array",      "api-reference", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array"),
-    ("huge-changelog",      "changelog",     "https://github.com/pydantic/pydantic/releases"),
+    ("huge-wikipedia", "encyclopedia", "https://en.wikipedia.org/wiki/Rust_(programming_language)"),
+    ("huge-mdn-array", "api-reference", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array"),
+    ("huge-changelog", "changelog", "https://github.com/pydantic/pydantic/releases"),
     # --- LISTING ---
-    ("listing-hn",          "listing",       "https://news.ycombinator.com/"),
-    ("listing-lobste",      "listing",       "https://lobste.rs/active"),
-    ("listing-gh-trending", "listing",       "https://github.com/trending/python?since=daily"),
-    ("listing-pypi",        "package-page",  "https://pypi.org/project/httpx/"),
+    ("listing-hn", "listing", "https://news.ycombinator.com/"),
+    ("listing-lobste", "listing", "https://lobste.rs/active"),
+    ("listing-gh-trending", "listing", "https://github.com/trending/python?since=daily"),
+    ("listing-pypi", "package-page", "https://pypi.org/project/httpx/"),
     # --- COMMENTS ---
-    ("comments-hn-item",    "threaded",      "https://news.ycombinator.com/item?id=39745700"),
-    ("comments-lobste",     "threaded",      "https://lobste.rs/s/n1gytv"),
+    ("comments-hn-item", "threaded", "https://news.ycombinator.com/item?id=39745700"),
+    ("comments-lobste", "threaded", "https://lobste.rs/s/n1gytv"),
     # --- DOCS ---
-    ("docs-fastapi",        "tutorial",      "https://fastapi.tiangolo.com/tutorial/first-steps/"),
-    ("docs-postgres",       "api-reference", "https://www.postgresql.org/docs/current/sql-select.html"),
-    ("docs-anthropic",      "api-reference", "https://docs.claude.com/en/api/messages"),
+    ("docs-fastapi", "tutorial", "https://fastapi.tiangolo.com/tutorial/first-steps/"),
+    ("docs-postgres", "api-reference", "https://www.postgresql.org/docs/current/sql-select.html"),
+    ("docs-anthropic", "api-reference", "https://docs.claude.com/en/api/messages"),
     # --- REFERENCE ---
-    ("ref-rfc",             "spec",          "https://datatracker.ietf.org/doc/html/rfc9110"),
-    ("ref-mdn-fetch",       "api-reference", "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API"),
+    ("ref-rfc", "spec", "https://datatracker.ietf.org/doc/html/rfc9110"),
+    ("ref-mdn-fetch", "api-reference", "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API"),
     # --- NEWS / BLOG ---
-    ("news-bbc",            "news-article",  "https://www.bbc.com/news/articles/cjwp82ye4y3o"),
-    ("blog-julia-evans",    "blog-post",     "https://jvns.ca/blog/2026/05/15/moving-away-from-tailwind--and-learning-to-structure-my-css-/"),
+    ("news-bbc", "news-article", "https://www.bbc.com/news/articles/cjwp82ye4y3o"),
+    ("blog-julia-evans", "blog-post", "https://jvns.ca/blog/2026/05/15/moving-away-from-tailwind--and-learning-to-structure-my-css-/"),
     # --- SOCIAL / FORUM ---
-    ("forum-so-question",   "qa",            "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python"),
+    ("forum-so-question", "qa", "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python"),
     # --- CODE ---
-    ("code-gh-file",        "source-file",   "https://github.com/pydantic/pydantic/blob/main/pydantic/main.py"),
-    ("code-gh-readme",      "readme",        "https://github.com/encode/httpx"),
+    ("code-gh-file", "source-file", "https://github.com/pydantic/pydantic/blob/main/pydantic/main.py"),
+    ("code-gh-readme", "readme", "https://github.com/encode/httpx"),
     # --- PRODUCT / E-COMMERCE ---
-    ("product-amazon",      "product-page",  "https://www.amazon.com/dp/B0BSHF7WHW"),
+    ("product-amazon", "product-page", "https://www.amazon.com/dp/B0BSHF7WHW"),
     # --- MEDIA ---
-    ("media-yt-video",      "video-page",    "https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+    ("media-yt-video", "video-page", "https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
     # --- GOV / STRUCTURED RECORDS ---
-    ("gov-sec-filing",      "filing",        "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001318605&type=10-K&dateb=&owner=include&count=40"),
+    (
+        "gov-sec-filing",
+        "filing",
+        "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001318605&type=10-K&dateb=&owner=include&count=40",
+    ),
     # --- SPA / DYNAMIC ---
-    ("spa-react-dev",       "spa",           "https://react.dev/learn"),
+    ("spa-react-dev", "spa", "https://react.dev/learn"),
     # --- DATA / JSON / RAW ---
-    ("data-json-feed",      "json-feed",     "https://hnrss.org/frontpage.jsonfeed"),
+    ("data-json-feed", "json-feed", "https://hnrss.org/frontpage.jsonfeed"),
     # --- HOSTILE / GATED ---
-    ("gated-nyt",           "paywalled",     "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html"),
+    ("gated-nyt", "paywalled", "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html"),
     # --- RESEARCH PAPER FULL ---
-    ("paper-arxiv-pdf-stub","pdf-stub",      "https://arxiv.org/pdf/2402.17753"),
+    ("paper-arxiv-pdf-stub", "pdf-stub", "https://arxiv.org/pdf/2402.17753"),
     # --- BUSINESS DOCS ---
-    ("docs-cf-page",        "marketing",     "https://www.cloudflare.com/products/registrar/"),
+    ("docs-cf-page", "marketing", "https://www.cloudflare.com/products/registrar/"),
 ]
 
 PRIMER_ASK = "Give a 2-3 sentence summary of what this page is."
@@ -192,7 +196,11 @@ def _parse_json(text: str) -> dict:
 async def _call(provider: ClaudeCodeProvider, system: str, prompt: str, model: str) -> dict:
     t0 = time.perf_counter()
     response = await provider.complete(
-        system=system, user=prompt, model=model, max_tokens=1024, thinking_disabled=True,
+        system=system,
+        user=prompt,
+        model=model,
+        max_tokens=1024,
+        thinking_disabled=True,
     )
     elapsed = int((time.perf_counter() - t0) * 1000)
     parsed = _parse_json(response.text)
@@ -217,9 +225,7 @@ async def _run_corpus(state: Any, browser_pool: Any, llm: Any) -> None:
         f"Corpus: {len(URLS)} URLs across content-type extremes\n\n",
     ]
 
-    summary: dict[str, Any] = {"per_url": [], "totals": {"gen_cost": 0.0, "ctx_cost": 0.0,
-                                                          "gen_ms": 0, "ctx_ms": 0,
-                                                          "fetch_failures": 0}}
+    summary: dict[str, Any] = {"per_url": [], "totals": {"gen_cost": 0.0, "ctx_cost": 0.0, "gen_ms": 0, "ctx_ms": 0, "fetch_failures": 0}}
 
     for idx, (slug, declared_kind, url) in enumerate(URLS, 1):
         print(f"\n[{idx}/{len(URLS)}] {slug} ({declared_kind}) — {url}", flush=True)
@@ -230,8 +236,11 @@ async def _run_corpus(state: Any, browser_pool: Any, llm: Any) -> None:
         # 1. Fetch via production orchestrator
         try:
             resp = await fetch(
-                url=url, ask=PRIMER_ASK, state=state,
-                browser_pool=lazy(browser_pool), llm_extractor=lazy(llm),
+                url=url,
+                ask=PRIMER_ASK,
+                state=state,
+                browser_pool=lazy(browser_pool),
+                llm_extractor=lazy(llm),
             )
         except Exception as exc:
             print(f"  ! fetch raised: {exc}", flush=True)
@@ -268,7 +277,8 @@ async def _run_corpus(state: Any, browser_pool: Any, llm: Any) -> None:
         summary["totals"]["gen_cost"] += v_gen["cost_usd"]
         summary["totals"]["gen_ms"] += v_gen["elapsed_ms"]
         per_url["gen"] = {
-            "cost": v_gen["cost_usd"], "ms": v_gen["elapsed_ms"],
+            "cost": v_gen["cost_usd"],
+            "ms": v_gen["elapsed_ms"],
             "parsed_ok": "_parse_error" not in v_gen["parsed"],
             "shape_labels": [s.get("label") for s in v_gen["parsed"].get("shapes", []) if isinstance(s, dict)],
             "n_follow_ups": len(v_gen["parsed"].get("follow_up_questions", [])),
@@ -284,7 +294,8 @@ async def _run_corpus(state: Any, browser_pool: Any, llm: Any) -> None:
         summary["totals"]["ctx_cost"] += v_ctx["cost_usd"]
         summary["totals"]["ctx_ms"] += v_ctx["elapsed_ms"]
         per_url["ctx"] = {
-            "cost": v_ctx["cost_usd"], "ms": v_ctx["elapsed_ms"],
+            "cost": v_ctx["cost_usd"],
+            "ms": v_ctx["elapsed_ms"],
             "parsed_ok": "_parse_error" not in v_ctx["parsed"],
             "page_kind": v_ctx["parsed"].get("page_kind"),
             "page_kind_confidence": v_ctx["parsed"].get("page_kind_confidence"),
@@ -310,8 +321,8 @@ async def _run_corpus(state: Any, browser_pool: Any, llm: Any) -> None:
     t = summary["totals"]
     lines.append(
         f"\n---\n\n## Totals\n\n"
-        f"- V_GEN: ${t['gen_cost']:.4f} total · {t['gen_ms']/1000:.1f}s total\n"
-        f"- V_CTX: ${t['ctx_cost']:.4f} total · {t['ctx_ms']/1000:.1f}s total\n"
+        f"- V_GEN: ${t['gen_cost']:.4f} total · {t['gen_ms'] / 1000:.1f}s total\n"
+        f"- V_CTX: ${t['ctx_cost']:.4f} total · {t['ctx_ms'] / 1000:.1f}s total\n"
         f"- Fetch failures: {t['fetch_failures']} / {len(URLS)}\n"
     )
 

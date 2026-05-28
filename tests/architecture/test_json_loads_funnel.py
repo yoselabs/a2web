@@ -50,9 +50,7 @@ def _collect_json_aliases(tree: ast.AST) -> tuple[set[str], set[str]]:
     return module_aliases, loads_aliases
 
 
-def _is_json_loads(
-    node: ast.Call, module_aliases: set[str], loads_aliases: set[str]
-) -> bool:
+def _is_json_loads(node: ast.Call, module_aliases: set[str], loads_aliases: set[str]) -> bool:
     func = node.func
     if isinstance(func, ast.Attribute) and func.attr == "loads":
         return isinstance(func.value, ast.Name) and func.value.id in module_aliases
@@ -81,9 +79,7 @@ def test_no_json_loads_outside_wobble() -> None:
         module_aliases, loads_aliases = _collect_json_aliases(tree)
 
         for node in ast.walk(tree):
-            if isinstance(node, ast.Call) and _is_json_loads(
-                node, module_aliases, loads_aliases
-            ):
+            if isinstance(node, ast.Call) and _is_json_loads(node, module_aliases, loads_aliases):
                 violations.append(
                     f"{path.relative_to(_REPO_ROOT)}:{node.lineno}: "
                     f"`json.loads(...)` outside `wobble/` — funnel through "
@@ -93,6 +89,5 @@ def test_no_json_loads_outside_wobble() -> None:
     assert not violations, (
         "Wobble funnel bypass detected. The funnel "
         "(`packages/llm_extract/wobble/parse_with_policy`) is the only legitimate "
-        "json.loads site inside `packages/llm_extract/`:\n  "
-        + "\n  ".join(violations)
+        "json.loads site inside `packages/llm_extract/`:\n  " + "\n  ".join(violations)
     )

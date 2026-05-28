@@ -77,10 +77,25 @@ def build_variants(resp: dict[str, Any]) -> dict[str, dict[str, Any]]:
 def field_breakdown(resp: dict[str, Any]) -> dict[str, int]:
     """Per-field token counts on the full a2web response."""
     fields = [
-        "content_md", "fit_md", "title", "byline", "published",
-        "narrative", "links", "headings", "diagnostics",
-        "operator_hints", "meta", "tokens", "url", "status",
-        "tier", "confidence", "cache", "total_ms", "started_at",
+        "content_md",
+        "fit_md",
+        "title",
+        "byline",
+        "published",
+        "narrative",
+        "links",
+        "headings",
+        "diagnostics",
+        "operator_hints",
+        "meta",
+        "tokens",
+        "url",
+        "status",
+        "tier",
+        "confidence",
+        "cache",
+        "total_ms",
+        "started_at",
     ]
     out = {}
     for f in fields:
@@ -108,25 +123,25 @@ def main() -> int:
         if resp is None:
             print(f"  ! a2web fetch FAILED in {wall_ms}ms")
             (run_dir / "a2web_error.txt").write_text(stderr or "")
-            summary_rows.append({
-                "slug": slug, "class": entry["class"], "url": url,
-                "a2web_status": "exec_error", "a2web_wall_ms": wall_ms,
-            })
+            summary_rows.append(
+                {
+                    "slug": slug,
+                    "class": entry["class"],
+                    "url": url,
+                    "a2web_status": "exec_error",
+                    "a2web_wall_ms": wall_ms,
+                }
+            )
             continue
 
         # Persist raw + variants + breakdown.
         (run_dir / "a2web_raw.json").write_text(json.dumps(resp, indent=2, ensure_ascii=False))
         variants = build_variants(resp)
         for vname, vdata in variants.items():
-            (run_dir / f"a2web_{vname}.json").write_text(
-                json.dumps(vdata, indent=2, ensure_ascii=False)
-            )
+            (run_dir / f"a2web_{vname}.json").write_text(json.dumps(vdata, indent=2, ensure_ascii=False))
 
         # Token math.
-        variant_tokens = {
-            vname: tok(json.dumps(vdata, ensure_ascii=False))
-            for vname, vdata in variants.items()
-        }
+        variant_tokens = {vname: tok(json.dumps(vdata, ensure_ascii=False)) for vname, vdata in variants.items()}
         breakdown = field_breakdown(resp)
         meta = {
             "slug": slug,
@@ -138,12 +153,8 @@ def main() -> int:
                 "verdict": resp.get("confidence"),
                 "wall_ms_cli": wall_ms,
                 "wall_ms_internal": resp.get("total_ms"),
-                "from_archive": any(
-                    d.get("step") == "archive" for d in resp.get("diagnostics", [])
-                ),
-                "from_browser": any(
-                    d.get("step") == "browser" for d in resp.get("diagnostics", [])
-                ),
+                "from_archive": any(d.get("step") == "archive" for d in resp.get("diagnostics", [])),
+                "from_browser": any(d.get("step") == "browser" for d in resp.get("diagnostics", [])),
                 "field_tokens": breakdown,
                 "variant_tokens": variant_tokens,
                 "links_count": len(resp.get("links") or []),
@@ -153,13 +164,17 @@ def main() -> int:
             },
         }
         (run_dir / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False))
-        summary_rows.append({
-            "slug": slug, "class": entry["class"], "url": url,
-            **{f"a2web_{k}": v for k, v in meta["a2web"].items() if not isinstance(v, dict)},
-            "a2web_tokens_A": variant_tokens["A_full"],
-            "a2web_tokens_B": variant_tokens["B_meta"],
-            "a2web_tokens_C": variant_tokens["C_content_only"],
-        })
+        summary_rows.append(
+            {
+                "slug": slug,
+                "class": entry["class"],
+                "url": url,
+                **{f"a2web_{k}": v for k, v in meta["a2web"].items() if not isinstance(v, dict)},
+                "a2web_tokens_A": variant_tokens["A_full"],
+                "a2web_tokens_B": variant_tokens["B_meta"],
+                "a2web_tokens_C": variant_tokens["C_content_only"],
+            }
+        )
         print(
             f"  ok status={resp.get('status')} tier={resp.get('tier')} "
             f"wall={wall_ms}ms tokens A={variant_tokens['A_full']} "
@@ -167,9 +182,7 @@ def main() -> int:
             f"links={len(resp.get('links') or [])}"
         )
 
-    (HERE / "phase1_summary.json").write_text(
-        json.dumps(summary_rows, indent=2, ensure_ascii=False)
-    )
+    (HERE / "phase1_summary.json").write_text(json.dumps(summary_rows, indent=2, ensure_ascii=False))
     print(f"\nWrote phase1 summary with {len(summary_rows)} rows.")
     return 0
 

@@ -140,8 +140,11 @@ def _parse_json(text: str) -> dict:
 async def _one_call(provider: ClaudeCodeProvider, system: str, user: str) -> dict:
     t0 = time.perf_counter()
     response = await provider.complete(
-        system=system, user=user, model="claude-haiku-4-5",
-        max_tokens=512, thinking_disabled=True,
+        system=system,
+        user=user,
+        model="claude-haiku-4-5",
+        max_tokens=512,
+        thinking_disabled=True,
     )
     elapsed = int((time.perf_counter() - t0) * 1000)
     return {
@@ -153,8 +156,7 @@ async def _one_call(provider: ClaudeCodeProvider, system: str, user: str) -> dic
 
 def _cold_score(parsed: dict) -> dict:
     """Count overlap between expected and predicted subfields."""
-    predicted = {s.lower().replace("-", "_") for s in parsed.get("expected_subfields", [])
-                 if isinstance(s, str)}
+    predicted = {s.lower().replace("-", "_") for s in parsed.get("expected_subfields", []) if isinstance(s, str)}
     # Soft-match: a predicted field counts if it shares a substring with an expected one
     matched = set()
     for exp in EXPECTED_FIELDS:
@@ -202,20 +204,21 @@ async def main() -> None:
             total_cost += r["cost"]
             score = _cold_score(r["parsed"])
             per_name["cold"].append({"run": i + 1, **score, "raw": r["parsed"]})
-            print(f"    run {i+1}: matched {score['expected_matched_n']}/5 — {score['expected_matched']}")
+            print(f"    run {i + 1}: matched {score['expected_matched_n']}/5 — {score['expected_matched']}")
 
         # Behavioral × N
         print(f"  Behavioral ({RUNS_PER_PROBE}x)...", flush=True)
         payload = SAMPLE_PAYLOAD_TEMPLATE.format(name=name)
         for i in range(RUNS_PER_PROBE):
             r = await _one_call(
-                provider, BEHAVIORAL_SYSTEM,
+                provider,
+                BEHAVIORAL_SYSTEM,
                 BEHAVIORAL_TEMPLATE.format(payload=payload, name=name),
             )
             total_cost += r["cost"]
             score = _behavioral_score(r["parsed"])
             per_name["behavioral"].append({"run": i + 1, **score, "raw": r["parsed"]})
-            print(f"    run {i+1}: action={score['planned_action']} grounded={score['grounded_n']}/5 refs={score['field_refs_used']}")
+            print(f"    run {i + 1}: action={score['planned_action']} grounded={score['grounded_n']}/5 refs={score['field_refs_used']}")
 
         # Aggregate scores
         cold_avg_match = sum(c["expected_matched_n"] for c in per_name["cold"]) / RUNS_PER_PROBE

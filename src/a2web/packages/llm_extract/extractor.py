@@ -213,17 +213,13 @@ class Extractor:
 
         routing_payload: RouterPayload | None = None
         if request_routing:
-            answer_text, routing_wobbled = _split_answer_and_routing(
-                response.text, model=self._model.model
-            )
+            answer_text, routing_wobbled = _split_answer_and_routing(response.text, model=self._model.model)
             if routing_wobbled is not None:
                 routing_result: _RoutingResult = unwrap(routing_wobbled)
                 routing_payload = routing_result.payload
             parsed_next_links: list[LlmNextLink] = []
         elif request_next_links:
-            answer_text, parsed_next_links = _split_answer_and_next_links(
-                response.text, model=self._model.model
-            )
+            answer_text, parsed_next_links = _split_answer_and_next_links(response.text, model=self._model.model)
         else:
             answer_text, parsed_next_links = response.text, []
 
@@ -335,9 +331,7 @@ def _next_link_from_entry(entry: dict[str, Any]) -> LlmNextLink | None:
     return LlmNextLink(anchor=anchor, url=url, reason=reason, kind=kind)
 
 
-def _split_answer_and_next_links(
-    text: str, *, model: str = "unknown"
-) -> tuple[str, list[LlmNextLink]]:
+def _split_answer_and_next_links(text: str, *, model: str = "unknown") -> tuple[str, list[LlmNextLink]]:
     """Split a response into (answer_text, next_links) via the wobble funnel.
 
     Looks for a ```next_links ... ``` fenced block. Everything before is the
@@ -398,11 +392,7 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
     obstacle = obstacle_raw if isinstance(obstacle_raw, str) and obstacle_raw else None
 
     ask_here_raw = parsed.get("ask_here", ())
-    ask_here: tuple[str, ...] = (
-        tuple(q for q in ask_here_raw if isinstance(q, str) and q)
-        if isinstance(ask_here_raw, list)
-        else ()
-    )
+    ask_here: tuple[str, ...] = tuple(q for q in ask_here_raw if isinstance(q, str) and q) if isinstance(ask_here_raw, list) else ()
 
     try_urls: list[NextUrlBoundary] = []
     try_url_raw = parsed.get("try_url", ())
@@ -414,9 +404,7 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
             if not isinstance(url_val, str) or not url_val:
                 continue
             reason = item.get("reason", "")
-            try_urls.append(
-                NextUrlBoundary(url=url_val, reason=reason if isinstance(reason, str) else "")
-            )
+            try_urls.append(NextUrlBoundary(url=url_val, reason=reason if isinstance(reason, str) else ""))
 
     payload = RouterPayload(
         answer=answer,
@@ -430,9 +418,7 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
     return _RoutingResult(answer=answer, payload=payload)
 
 
-def _split_answer_and_routing(
-    text: str, *, model: str = "unknown"
-) -> tuple[str, Wobbled | None]:
+def _split_answer_and_routing(text: str, *, model: str = "unknown") -> tuple[str, Wobbled | None]:
     """Parse the router-shape JSON envelope through the wobble funnel.
 
     Returns `(answer_text, Wobbled | None)` — Wobbled wraps a `_RoutingResult`.

@@ -43,7 +43,7 @@ dependencies = [
     # config
     "pydantic-settings>=2.5,<3",
     "PyYAML>=6,<7",
-    "aiofiles>=25.1.0",
+    "aiofiles>=25.1,<26",
     # v0.7: LLM extraction (was the `[llm]` extra) is now baseline. `--ask`
     # works out of the box; install size jumps ~210MB because claude-agent-sdk
     # bundles the Claude Code binary in `_bundled/`. Most a2web callers run
@@ -89,6 +89,8 @@ dev = [
     # (json.loads ban, no-lambdas-in-app.provide, etc.).
     "tach>=0.20,<1",
     "pytest-archon>=0.0.6,<1",
+    "pymarkdownlnt>=0.9.37",
+    "pre-commit>=4.6.0",
 ]
 
 [project.scripts]

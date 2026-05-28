@@ -48,7 +48,4 @@ def test_no_lambdas_in_app_provide() -> None:
                         f"with a return annotation."
                     )
 
-    assert not violations, (
-        "Lambda passed to `app.provide(...)` — rejected by a2kit:\n  "
-        + "\n  ".join(violations)
-    )
+    assert not violations, "Lambda passed to `app.provide(...)` — rejected by a2kit:\n  " + "\n  ".join(violations)

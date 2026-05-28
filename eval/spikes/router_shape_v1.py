@@ -40,14 +40,14 @@ from a2web.state import SqliteResource, build_state
 
 
 URLS: list[tuple[str, str, str]] = [
-    ("arxiv-abs",      "what does the paper claim?",
-     "https://arxiv.org/abs/2402.17753"),
-    ("hn-item",        "what is the top objection in the discussion?",
-     "https://news.ycombinator.com/item?id=39745700"),
-    ("blog-julia",     "what does the author conclude about tailwind?",
-     "https://jvns.ca/blog/2026/05/15/moving-away-from-tailwind--and-learning-to-structure-my-css-/"),
-    ("status-openai",  "is the API up right now?",
-     "https://status.openai.com/"),
+    ("arxiv-abs", "what does the paper claim?", "https://arxiv.org/abs/2402.17753"),
+    ("hn-item", "what is the top objection in the discussion?", "https://news.ycombinator.com/item?id=39745700"),
+    (
+        "blog-julia",
+        "what does the author conclude about tailwind?",
+        "https://jvns.ca/blog/2026/05/15/moving-away-from-tailwind--and-learning-to-structure-my-css-/",
+    ),
+    ("status-openai", "is the API up right now?", "https://status.openai.com/"),
 ]
 
 
@@ -203,8 +203,11 @@ async def main() -> None:
 
             try:
                 resp = await fetch(
-                    url=url, ask=ask, state=state,
-                    browser_pool=lazy(browser_pool), llm_extractor=lazy(llm),
+                    url=url,
+                    ask=ask,
+                    state=state,
+                    browser_pool=lazy(browser_pool),
+                    llm_extractor=lazy(llm),
                 )
             except Exception as exc:
                 lines.append(f"**FETCH RAISED**: `{exc}`\n")
@@ -226,7 +229,9 @@ async def main() -> None:
             cat_resp = await provider.complete(
                 system=CATALOG_SYSTEM,
                 user=CATALOG_TEMPLATE.format(content=content_capped, ask=ask),
-                model="claude-haiku-4-5", max_tokens=1024, thinking_disabled=True,
+                model="claude-haiku-4-5",
+                max_tokens=1024,
+                thinking_disabled=True,
             )
             cat_ms = int((time.perf_counter() - t0) * 1000)
             cat_parsed = _parse_json(cat_resp.text)
@@ -237,21 +242,25 @@ async def main() -> None:
             rtr_resp = await provider.complete(
                 system=ROUTER_SYSTEM,
                 user=ROUTER_TEMPLATE.format(content=content_capped, ask=ask),
-                model="claude-haiku-4-5", max_tokens=1024, thinking_disabled=True,
+                model="claude-haiku-4-5",
+                max_tokens=1024,
+                thinking_disabled=True,
             )
             rtr_ms = int((time.perf_counter() - t0) * 1000)
             rtr_parsed = _parse_json(rtr_resp.text)
             summary["totals"]["router_cost"] += rtr_resp.cost_usd
 
             per_url["catalog"] = {
-                "cost": cat_resp.cost_usd, "ms": cat_ms,
+                "cost": cat_resp.cost_usd,
+                "ms": cat_ms,
                 "answer": cat_parsed.get("answer"),
                 "n_shapes": len(cat_parsed.get("shapes", [])),
                 "n_followups": len(cat_parsed.get("follow_up_questions", [])),
                 "n_next_links": len(cat_parsed.get("next_links", [])),
             }
             per_url["router"] = {
-                "cost": rtr_resp.cost_usd, "ms": rtr_ms,
+                "cost": rtr_resp.cost_usd,
+                "ms": rtr_ms,
                 "answer": rtr_parsed.get("answer"),
                 "completeness": rtr_parsed.get("answer_completeness"),
                 "n_ask_here": len(rtr_parsed.get("ask_here", [])),

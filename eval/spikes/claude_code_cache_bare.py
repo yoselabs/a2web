@@ -110,9 +110,7 @@ async def _one_call(model: str, page: str, ask: str, *, bare: bool) -> dict:
     cost = 0.0
     if result_msg is not None:
         cost = float(result_msg.total_cost_usd or 0.0)
-        prompt_t, completion_t, cache_create, cache_read = extract_token_counts(
-            result_msg.usage or {}
-        )
+        prompt_t, completion_t, cache_create, cache_read = extract_token_counts(result_msg.usage or {})
     return {
         "prompt_t": prompt_t,
         "cache_read": cache_read,
@@ -142,10 +140,7 @@ async def main() -> None:
     for label, page, ask in plan:
         r = await _one_call(model, page, ask, bare=True)
         bare_records.append((label, r))
-        print(
-            f"| {label} | {r['prompt_t']} | {r['cache_read']} | {r['cache_create']} "
-            f"| {r['ms']} | ${r['cost']:.5f} |"
-        )
+        print(f"| {label} | {r['prompt_t']} | {r['cache_read']} | {r['cache_create']} | {r['ms']} | ${r['cost']:.5f} |")
         await asyncio.sleep(0.2)
 
     print("\n## Comparison to baseline (2026-05-23 probe)\n")
@@ -155,9 +150,7 @@ async def main() -> None:
     print("|------|---------------:|-----------:|---:|-------------------:|----------------:|")
     for (label, r), b_prompt, b_read in zip(bare_records, baseline, baseline_read, strict=False):
         delta = r["prompt_t"] - b_prompt
-        print(
-            f"| {label} | {b_prompt} | {r['prompt_t']} | {delta:+d} | {b_read} | {r['cache_read']} |"
-        )
+        print(f"| {label} | {b_prompt} | {r['prompt_t']} | {delta:+d} | {b_read} | {r['cache_read']} |")
 
 
 if __name__ == "__main__":

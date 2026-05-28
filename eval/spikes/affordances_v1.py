@@ -39,9 +39,9 @@ from purgatory import AsyncCircuitBreakerFactory
 
 
 URLS: list[tuple[str, str]] = [
-    ("hn-front",       "https://news.ycombinator.com/"),
+    ("hn-front", "https://news.ycombinator.com/"),
     ("wikipedia-rust", "https://en.wikipedia.org/wiki/Rust_(programming_language)"),
-    ("pypi-httpx",     "https://pypi.org/project/httpx/"),
+    ("pypi-httpx", "https://pypi.org/project/httpx/"),
     ("arxiv-abstract", "https://arxiv.org/abs/2402.17753"),
     ("reddit-comments", "https://www.reddit.com/r/LocalLLaMA/comments/1iqz5nb/"),
 ]
@@ -138,9 +138,11 @@ async def main() -> None:
 async def _run_corpus(state, browser_pool, llm) -> None:
 
     out_path = Path("eval/spikes/affordances_v1_output.md")
-    lines: list[str] = ["# Affordances spike v1 — outputs\n",
-                        f"Primer ask: `{PRIMER_ASK}`\n",
-                        "Model: claude-haiku-4-5 via ClaudeCodeProvider (post v0.20 opt-outs)\n\n"]
+    lines: list[str] = [
+        "# Affordances spike v1 — outputs\n",
+        f"Primer ask: `{PRIMER_ASK}`\n",
+        "Model: claude-haiku-4-5 via ClaudeCodeProvider (post v0.20 opt-outs)\n\n",
+    ]
 
     total_cost = 0.0
     for slug, url in URLS:
@@ -149,6 +151,7 @@ async def _run_corpus(state, browser_pool, llm) -> None:
 
         try:
             from a2kit.testing import lazy
+
             resp = await fetch(
                 url=url,
                 ask=PRIMER_ASK,

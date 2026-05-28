@@ -54,12 +54,7 @@ def _is_dict_str_any(annotation: ast.AST) -> bool:
             slc = annotation.slice
             if isinstance(slc, ast.Tuple) and len(slc.elts) == 2:
                 key, val = slc.elts
-                return (
-                    isinstance(key, ast.Name)
-                    and key.id == "str"
-                    and isinstance(val, ast.Name)
-                    and val.id == "Any"
-                )
+                return isinstance(key, ast.Name) and key.id == "str" and isinstance(val, ast.Name) and val.id == "Any"
     if isinstance(annotation, ast.BinOp) and isinstance(annotation.op, ast.BitOr):
         return _is_dict_str_any(annotation.left) or _is_dict_str_any(annotation.right)
     return False
@@ -110,7 +105,6 @@ def test_no_dict_str_any_on_dataclasses() -> None:
                             f"or add to the allowlist with rationale"
                         )
 
-    assert not violations, (
-        "Untyped `dict[str, Any]` field on dataclass detected. Typed pipeline "
-        "objects beat dict bags:\n  " + "\n  ".join(violations)
+    assert not violations, "Untyped `dict[str, Any]` field on dataclass detected. Typed pipeline objects beat dict bags:\n  " + "\n  ".join(
+        violations
     )

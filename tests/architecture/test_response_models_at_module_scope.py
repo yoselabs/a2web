@@ -38,17 +38,11 @@ def _find_nested_basemodels(
                     f"defined inside a function or another class — move to module scope"
                 )
             # Recurse into class body, marking as nested.
-            _find_nested_basemodels(
-                child, rel_path, violations, inside_func_or_class=True
-            )
+            _find_nested_basemodels(child, rel_path, violations, inside_func_or_class=True)
         elif isinstance(child, ast.AsyncFunctionDef | ast.FunctionDef):
-            _find_nested_basemodels(
-                child, rel_path, violations, inside_func_or_class=True
-            )
+            _find_nested_basemodels(child, rel_path, violations, inside_func_or_class=True)
         else:
-            _find_nested_basemodels(
-                child, rel_path, violations, inside_func_or_class=inside_func_or_class
-            )
+            _find_nested_basemodels(child, rel_path, violations, inside_func_or_class=inside_func_or_class)
 
 
 def test_basemodels_at_module_scope() -> None:
@@ -62,7 +56,6 @@ def test_basemodels_at_module_scope() -> None:
             continue
         _find_nested_basemodels(tree, rel, violations)
 
-    assert not violations, (
-        "Nested pydantic BaseModel detected. a2kit antipattern #2 — define at "
-        "module scope:\n  " + "\n  ".join(violations)
+    assert not violations, "Nested pydantic BaseModel detected. a2kit antipattern #2 — define at module scope:\n  " + "\n  ".join(
+        violations
     )

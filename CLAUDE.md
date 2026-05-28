@@ -1,6 +1,12 @@
 # a2web — Agent-to-Web
 
-CLI and MCP server for AI agents to fetch web content adaptively. Built on `a2kit` v0.39+ (which handles MCP, Typer CLI, DI with `Lazy[T]` + per-resource providers, lifecycle via the async-CM protocol, formatter, LDD typed events with **unconditional** ambient ctx, schema discovery, in-process testing).
+> **Read [`CONSTITUTION.md`](CONSTITUTION.md) before any non-trivial
+> change** — the rules above the rules govern substrate vs product
+> placement, dependency adoption, and magic budget. Canonical source is
+> a2kit; this repo carries a verbatim copy. Currently Phase A: agents
+> apply, human confirms each Constitution-touching change.
+
+CLI and MCP server for AI agents to fetch web content adaptively. Built on `a2kit` v0.40+ (which handles MCP, Typer CLI, DI with `Lazy[T]` + per-resource providers, lifecycle via the async-CM protocol, formatter, LDD typed events with **unconditional** ambient ctx, schema discovery, in-process testing).
 
 Design lives in `~/Documents/Knowledge/Projects/120-a2web/`. Read `handover.md` first. Migration history lives in `openspec/changes/archive/`; the most recent is `2026-05-16-a2kit-v039-migration/` (drops `ctx: ToolContext` ceremony, drops `_ensure()` from health probe, swaps conftest helpers to `a2kit.testing.{lazy, ambient_for_tests}`). Outgoing feedback rounds in `docs/history/A2KIT_FEEDBACK_v0.*.md`; deferred wishes in `docs/history/A2KIT_WISHES_DEFERRED.md`.
 
@@ -75,6 +81,7 @@ Run it after a change that could move output quality or cost: the response envel
 Module boundaries are encoded in `tach.toml`; call-site / signature / class-shape rules live as AST tests under `tests/architecture/`. See `docs/architecture/README.md` for the workflow. Adding a new rule = writing a test; landing a new violation fails CI; one-time grandfathering carries a retirement comment.
 
 Currently enforced:
+
 - Packages may not import from `a2web.<domain>` — `tach.toml`.
 - No `json.loads` outside `packages/llm_extract/wobble/` — `tests/architecture/test_json_loads_funnel.py`.
 - No `dict[str, Any]` on slotted dataclasses (allowlist gated) — `tests/architecture/test_no_dict_str_any_on_dataclasses.py`.

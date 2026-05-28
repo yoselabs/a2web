@@ -8,6 +8,30 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added — Constitution + cross-surface lint stack (from a2kit)
+
+- **`CONSTITUTION.md`** — verbatim copy of a2kit's Constitution (the
+  rules above the rules: substrate/product, placement hierarchy,
+  adopt-before-build, magic budget, dependency memory). Canonical
+  source is a2kit; drift between copies is a bug.
+- **`policies/`** — Rego policy bundle (REGO-BODY-DUP, REGO-NAME-COLLISION,
+  REGO-GHA-PIN-SHA / PERMISSIONS / VENDOR-ALLOW, REGO-PYPROJECT-UPPER-BOUND)
+  + `data.json` allowlist seeded for a2web's conventional-name patterns
+  (`_ensure` across resources, `_render_*` across handlers, etc.).
+- **`scripts/extract_facts.py`** — AST fact extractor feeding the Rego
+  bundle. Verbatim copy from a2kit.
+- **`.pymarkdown.json`** — markdown lint config (line-length / inline-html
+  / etc. disabled to match a2kit's tolerance).
+- **`.pre-commit-config.yaml`** — local hooks: ruff check + format,
+  pymarkdown (README/CHANGELOG/CLAUDE only), actionlint (when workflows
+  exist), `a2kit lint rego src/ pyproject.toml`, and ty on pre-push.
+- **`pymarkdownlnt` + `pre-commit`** added as dev deps.
+- **Makefile `lint`** target wires ruff + pymarkdown + `a2kit lint rego`.
+
+`aiofiles` runtime dep gained an upper bound (`>=25.1,<26`) to satisfy
+REGO-PYPROJECT-UPPER-BOUND. Three pre-existing pymarkdown violations
+(CHANGELOG + CLAUDE) fixed in place.
+
 ### Changed — a2kit v0.40.1 upgrade
 
 - Bump `a2kit>=0.40.1,<1` (pinned to `v0.40.1`).
@@ -153,8 +177,8 @@ integrating against v0.20, jump straight to v0.21.
   `RouterPayload` + `NextUrl` in `src/a2web/models.py`. Closed-enum violations
   are caught at the seam in `fetcher_response._project_routing` — invalid
   payloads drop the 7 router fields but `answer` text still reaches the wire.
-- **Claude Code provider hardening.** `mcp_servers={}` + `strict_mcp_config=True`
-  + `agents={}` added to `ClaudeAgentOptions`. Closes the leak path where the
+- **Claude Code provider hardening.** `mcp_servers={}`, `strict_mcp_config=True`,
+  and `agents={}` added to `ClaudeAgentOptions`. Closes the leak path where the
   host CLI's saved MCP servers (including memory-bearing servers like
   `hub_memory_recall`) could otherwise contaminate extraction subprocesses.
   `num_turns` surfaces in `ProviderResponse.raw` for paranoid verification.
@@ -581,8 +605,8 @@ outright; consumer compat is explicitly disclaimed pre-1.0.
   plus browser/jina/site_handler closeouts.
 - Reddit handler coverage: 13 new tests (permalink detection +
   focused render, crosspost annotation, removed-body marker,
-  archive-escalation signal on 404 + 403, short-URL HEAD resolution
-  + non-thread no_match, playbook escalation rule).
+  archive-escalation signal on 404 + 403, short-URL HEAD resolution,
+  and non-thread no_match, playbook escalation rule).
 - Test count 320 → 387; coverage 85.90% → 89.71%
   (NDJSON suite removed; extraction-eval + reddit suites added).
 

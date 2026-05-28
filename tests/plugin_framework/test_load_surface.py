@@ -16,25 +16,19 @@ def settings() -> AppSettings:
 
 
 def test_load_surface_returns_available_plugins_only(settings: AppSettings) -> None:
-    registry = load_surface(
-        "tests.plugin_framework._fixture_surface", Widget, settings
-    )
+    registry = load_surface("tests.plugin_framework._fixture_surface", Widget, settings)
     assert set(registry) == {"alpha", "beta"}
     assert registry["alpha"].name == "alpha"
     assert registry["beta"].name == "beta"
 
 
 def test_load_surface_skips_unavailable_silently(settings: AppSettings) -> None:
-    registry = load_surface(
-        "tests.plugin_framework._fixture_surface", Widget, settings
-    )
+    registry = load_surface("tests.plugin_framework._fixture_surface", Widget, settings)
     assert "gamma" not in registry
 
 
 def test_load_surface_skips_utility_modules(settings: AppSettings) -> None:
-    registry = load_surface(
-        "tests.plugin_framework._fixture_surface", Widget, settings
-    )
+    registry = load_surface("tests.plugin_framework._fixture_surface", Widget, settings)
     assert "_utility" not in registry
     assert "utility" not in registry
 

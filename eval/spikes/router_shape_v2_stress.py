@@ -50,26 +50,36 @@ from a2web.state import SqliteResource, build_state
 
 # (slug, ask, url, what_a_good_answer_would_need)
 URLS: list[tuple[str, str, str, str]] = [
-    ("arxiv-pdf-stub",
-     "what experimental setup did the authors use in section 4?",
-     "https://arxiv.org/abs/2402.17753",
-     "deep section content — likely only in the PDF"),
-    ("hn-front-page",
-     "what is the top-voted comment on the #1 story right now?",
-     "https://news.ycombinator.com/",
-     "comments are not on this page — need the item permalink"),
-    ("reddit-rust-hot",
-     "what is the most discussed objection in the top thread?",
-     "https://www.reddit.com/r/rust/",
-     "comments are in the thread page, not the listing"),
-    ("rfc-9110-deep",
-     "what does the spec say about the 421 Misdirected Request status code's interaction with HTTP/2?",
-     "https://datatracker.ietf.org/doc/html/rfc9110",
-     "very specific section — may need to navigate within"),
-    ("paywall-nyt",
-     "what did Biden say about Trump in this article?",
-     "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html",
-     "paywalled — body content unavailable"),
+    (
+        "arxiv-pdf-stub",
+        "what experimental setup did the authors use in section 4?",
+        "https://arxiv.org/abs/2402.17753",
+        "deep section content — likely only in the PDF",
+    ),
+    (
+        "hn-front-page",
+        "what is the top-voted comment on the #1 story right now?",
+        "https://news.ycombinator.com/",
+        "comments are not on this page — need the item permalink",
+    ),
+    (
+        "reddit-rust-hot",
+        "what is the most discussed objection in the top thread?",
+        "https://www.reddit.com/r/rust/",
+        "comments are in the thread page, not the listing",
+    ),
+    (
+        "rfc-9110-deep",
+        "what does the spec say about the 421 Misdirected Request status code's interaction with HTTP/2?",
+        "https://datatracker.ietf.org/doc/html/rfc9110",
+        "very specific section — may need to navigate within",
+    ),
+    (
+        "paywall-nyt",
+        "what did Biden say about Trump in this article?",
+        "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html",
+        "paywalled — body content unavailable",
+    ),
 ]
 
 
@@ -208,8 +218,11 @@ async def _build_resources(s: AppSettings) -> tuple[Any, Any, Any]:
 async def _call(provider: ClaudeCodeProvider, system: str, user: str) -> tuple[dict, float, int]:
     t0 = time.perf_counter()
     response = await provider.complete(
-        system=system, user=user,
-        model="claude-haiku-4-5", max_tokens=1024, thinking_disabled=True,
+        system=system,
+        user=user,
+        model="claude-haiku-4-5",
+        max_tokens=1024,
+        thinking_disabled=True,
     )
     elapsed = int((time.perf_counter() - t0) * 1000)
     return _parse_json(response.text), response.cost_usd, elapsed
@@ -242,17 +255,17 @@ async def main() -> None:
     try:
         for idx, (slug, ask, url, expected) in enumerate(URLS, 1):
             print(f"\n[{idx}/{len(URLS)}] {slug} — {ask}", flush=True)
-            lines.append(
-                f"\n---\n\n## {idx}. {slug}\n\n`{url}`\n\nQ: **{ask}**\n\n"
-                f"_expected gap_: {expected}\n\n"
-            )
+            lines.append(f"\n---\n\n## {idx}. {slug}\n\n`{url}`\n\nQ: **{ask}**\n\n_expected gap_: {expected}\n\n")
 
             per_url: dict[str, Any] = {"slug": slug, "url": url, "ask": ask, "expected_gap": expected}
 
             try:
                 resp = await fetch(
-                    url=url, ask=ask, state=state,
-                    browser_pool=lazy(browser_pool), llm_extractor=lazy(llm),
+                    url=url,
+                    ask=ask,
+                    state=state,
+                    browser_pool=lazy(browser_pool),
+                    llm_extractor=lazy(llm),
                 )
             except Exception as exc:
                 lines.append(f"**FETCH RAISED**: `{exc}`\n")
@@ -261,9 +274,7 @@ async def main() -> None:
                 continue
 
             content_md = resp.content_md or ""
-            lines.append(
-                f"Fetch: tier=`{resp.tier}` · status=`{resp.status or 'ok'}` · chars={len(content_md)}\n\n"
-            )
+            lines.append(f"Fetch: tier=`{resp.tier}` · status=`{resp.status or 'ok'}` · chars={len(content_md)}\n\n")
             if not content_md:
                 lines.append("(no content_md — skipping)\n")
                 summary["per_url"].append(per_url)
@@ -272,24 +283,31 @@ async def main() -> None:
 
             # --- CATALOG ---
             cat_parsed, cat_cost, cat_ms = await _call(
-                provider, CATALOG_SYSTEM, CATALOG_TEMPLATE.format(content=content_capped, ask=ask),
+                provider,
+                CATALOG_SYSTEM,
+                CATALOG_TEMPLATE.format(content=content_capped, ask=ask),
             )
             summary["totals"]["catalog_cost"] += cat_cost
 
             # --- ROUTER ---
             rtr_parsed, rtr_cost, rtr_ms = await _call(
-                provider, ROUTER_SYSTEM, ROUTER_TEMPLATE.format(content=content_capped, ask=ask),
+                provider,
+                ROUTER_SYSTEM,
+                ROUTER_TEMPLATE.format(content=content_capped, ask=ask),
             )
             summary["totals"]["router_cost"] += rtr_cost
 
             # --- HYBRID ---
             hyb_parsed, hyb_cost, hyb_ms = await _call(
-                provider, HYBRID_SYSTEM, HYBRID_TEMPLATE.format(content=content_capped, ask=ask),
+                provider,
+                HYBRID_SYSTEM,
+                HYBRID_TEMPLATE.format(content=content_capped, ask=ask),
             )
             summary["totals"]["hybrid_cost"] += hyb_cost
 
             per_url["catalog"] = {
-                "cost": cat_cost, "ms": cat_ms,
+                "cost": cat_cost,
+                "ms": cat_ms,
                 "answer": cat_parsed.get("answer"),
                 "page_kind": cat_parsed.get("page_kind"),
                 "n_shapes": len(cat_parsed.get("shapes", [])),
@@ -297,7 +315,8 @@ async def main() -> None:
                 "n_next_links": len(cat_parsed.get("next_links", [])),
             }
             per_url["router"] = {
-                "cost": rtr_cost, "ms": rtr_ms,
+                "cost": rtr_cost,
+                "ms": rtr_ms,
                 "answer": rtr_parsed.get("answer"),
                 "completeness": rtr_parsed.get("answer_completeness"),
                 "n_ask_here": len(rtr_parsed.get("ask_here", [])),
@@ -305,7 +324,8 @@ async def main() -> None:
                 "try_url_reasons": [t.get("reason") for t in rtr_parsed.get("try_url", []) if isinstance(t, dict)],
             }
             per_url["hybrid"] = {
-                "cost": hyb_cost, "ms": hyb_ms,
+                "cost": hyb_cost,
+                "ms": hyb_ms,
                 "answer": hyb_parsed.get("answer"),
                 "completeness": hyb_parsed.get("answer_completeness"),
                 "n_ask_here": len(hyb_parsed.get("ask_here", [])),

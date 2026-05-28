@@ -40,9 +40,7 @@ def test_boundary_dataclass_is_frozen(cls: type) -> None:
     assert params is not None, f"{cls.__name__} has no __dataclass_params__"
     assert params.frozen, f"{cls.__name__} must be @dataclass(frozen=True)"
     # Sanity: slots present too (a separate but related discipline).
-    assert "__slots__" in cls.__dict__ or hasattr(cls, "__slots__"), (
-        f"{cls.__name__} should use slots=True"
-    )
+    assert "__slots__" in cls.__dict__ or hasattr(cls, "__slots__"), f"{cls.__name__} should use slots=True"
 
 
 def test_no_default_dataclass_carries_runtime_setattr() -> None:

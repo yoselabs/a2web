@@ -1,0 +1,63 @@
+{
+  "a2kit": {
+    "allowlist": {
+      "_comment": "Allowlist for a2web Rego policies (Rego engine is a2kit's; the `a2kit` namespace is the policy bundle's, not project-specific). Each entry needs a non-empty 'reason'. Naming conventions intentionally converge across the codebase — that's not duplication, it's the project's shape.",
+      "body_dup": [],
+      "name_collision": [
+        {
+          "names": ["_ensure"],
+          "reason": "every Resource class follows the lazy-init pattern: sync __init__, internal _lock, idempotent _ensure(), close(). Convergent name is the codebase convention (cookie_jar, llm_resource, browser_pool, http_cache). Renaming would obscure the pattern."
+        },
+        {
+          "names": ["_build"],
+          "reason": "factory-helper convention; convergent name signals 'internal factory used by the module's public builder'."
+        },
+        {
+          "names": ["_parse", "_parse_args"],
+          "reason": "parser/argparse-CLI convention; each module owns its own private parser; convergence is the idiom."
+        },
+        {
+          "names": ["_load", "_fetch_json"],
+          "reason": "handler-shape convention: each site handler has its own private loader pair. Lifting to a shared helper would lose handler-specific URL shape encoding."
+        },
+        {
+          "names": ["_render", "_render_listing", "_render_comment"],
+          "reason": "handler-shape convention: each handler renders its own DOM into markdown. Different sites have different DOM, so renderers can't share."
+        },
+        {
+          "names": ["_listing_candidates"],
+          "reason": "handler-shape convention: each handler's tier-0 candidate extraction has site-specific selectors."
+        },
+        {
+          "names": ["_truncate"],
+          "reason": "string-truncate helper; appears in live_sink (terminal column fitting) and llm_extract/extractor (token-budget fitting). Different domains, same name."
+        },
+        {
+          "names": ["_to_markdown"],
+          "reason": "tier convention: archive.py and browser.py each convert their own HTML payload into markdown."
+        },
+        {
+          "names": ["_verdict_for_status"],
+          "reason": "tier convention: jina.py and raw.py each map HTTP status to FetchVerdict. Statuses overlap but tier semantics differ."
+        },
+        {
+          "names": ["_host_matches"],
+          "reason": "host-matching convention: cookie_jar matches request host against cookie-jar entries; proxy_routing matches request host against proxy-pool entries."
+        },
+        {
+          "names": ["_amain"],
+          "reason": "CLI entrypoint convention: every llm_eval CLI module exposes `_amain(args)` wrapped by anyio.run in `main`."
+        }
+      ],
+      "github_actions_vendor": [
+        {"vendor": "actions", "reason": "official GitHub actions; first-party vendor"},
+        {"vendor": "astral-sh", "reason": "uv / ruff vendor"}
+      ],
+      "github_actions_vendor_unpinned": [
+        {"vendor": "actions", "reason": "first-party GitHub actions; mutation risk accepted for solo repo"},
+        {"vendor": "astral-sh", "reason": "uv vendor; setup-uv tag is acceptable for solo-repo CI"}
+      ],
+      "pyproject_upper_bound": []
+    }
+  }
+}

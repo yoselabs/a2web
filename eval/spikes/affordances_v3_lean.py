@@ -47,36 +47,40 @@ from a2web.state import SqliteResource, build_state
 # the Python path. Keep in sync with affordances_v2.py manually.
 PRIMER_ASK = "Give a 2-3 sentence summary of what this page is."
 URLS: list[tuple[str, str, str]] = [
-    ("tiny-arxiv",          "article-short", "https://arxiv.org/abs/2402.17753"),
-    ("tiny-gh-gist",        "code-snippet",  "https://gist.github.com/jboner/2841832"),
-    ("tiny-status-page",    "status",        "https://status.openai.com/"),
-    ("huge-wikipedia",      "encyclopedia",  "https://en.wikipedia.org/wiki/Rust_(programming_language)"),
-    ("huge-mdn-array",      "api-reference", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array"),
-    ("huge-changelog",      "changelog",     "https://github.com/pydantic/pydantic/releases"),
-    ("listing-hn",          "listing",       "https://news.ycombinator.com/"),
-    ("listing-lobste",      "listing",       "https://lobste.rs/active"),
-    ("listing-gh-trending", "listing",       "https://github.com/trending/python?since=daily"),
-    ("listing-pypi",        "package-page",  "https://pypi.org/project/httpx/"),
-    ("comments-hn-item",    "threaded",      "https://news.ycombinator.com/item?id=39745700"),
-    ("comments-lobste",     "threaded",      "https://lobste.rs/s/n1gytv"),
-    ("docs-fastapi",        "tutorial",      "https://fastapi.tiangolo.com/tutorial/first-steps/"),
-    ("docs-postgres",       "api-reference", "https://www.postgresql.org/docs/current/sql-select.html"),
-    ("docs-anthropic",      "api-reference", "https://docs.claude.com/en/api/messages"),
-    ("ref-rfc",             "spec",          "https://datatracker.ietf.org/doc/html/rfc9110"),
-    ("ref-mdn-fetch",       "api-reference", "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API"),
-    ("news-bbc",            "news-article",  "https://www.bbc.com/news/articles/cjwp82ye4y3o"),
-    ("blog-julia-evans",    "blog-post",     "https://jvns.ca/blog/2026/05/15/moving-away-from-tailwind--and-learning-to-structure-my-css-/"),
-    ("forum-so-question",   "qa",            "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python"),
-    ("code-gh-file",        "source-file",   "https://github.com/pydantic/pydantic/blob/main/pydantic/main.py"),
-    ("code-gh-readme",      "readme",        "https://github.com/encode/httpx"),
-    ("product-amazon",      "product-page",  "https://www.amazon.com/dp/B0BSHF7WHW"),
-    ("media-yt-video",      "video-page",    "https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
-    ("gov-sec-filing",      "filing",        "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001318605&type=10-K&dateb=&owner=include&count=40"),
-    ("spa-react-dev",       "spa",           "https://react.dev/learn"),
-    ("data-json-feed",      "json-feed",     "https://hnrss.org/frontpage.jsonfeed"),
-    ("gated-nyt",           "paywalled",     "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html"),
-    ("paper-arxiv-pdf-stub","pdf-stub",      "https://arxiv.org/pdf/2402.17753"),
-    ("docs-cf-page",        "marketing",     "https://www.cloudflare.com/products/registrar/"),
+    ("tiny-arxiv", "article-short", "https://arxiv.org/abs/2402.17753"),
+    ("tiny-gh-gist", "code-snippet", "https://gist.github.com/jboner/2841832"),
+    ("tiny-status-page", "status", "https://status.openai.com/"),
+    ("huge-wikipedia", "encyclopedia", "https://en.wikipedia.org/wiki/Rust_(programming_language)"),
+    ("huge-mdn-array", "api-reference", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array"),
+    ("huge-changelog", "changelog", "https://github.com/pydantic/pydantic/releases"),
+    ("listing-hn", "listing", "https://news.ycombinator.com/"),
+    ("listing-lobste", "listing", "https://lobste.rs/active"),
+    ("listing-gh-trending", "listing", "https://github.com/trending/python?since=daily"),
+    ("listing-pypi", "package-page", "https://pypi.org/project/httpx/"),
+    ("comments-hn-item", "threaded", "https://news.ycombinator.com/item?id=39745700"),
+    ("comments-lobste", "threaded", "https://lobste.rs/s/n1gytv"),
+    ("docs-fastapi", "tutorial", "https://fastapi.tiangolo.com/tutorial/first-steps/"),
+    ("docs-postgres", "api-reference", "https://www.postgresql.org/docs/current/sql-select.html"),
+    ("docs-anthropic", "api-reference", "https://docs.claude.com/en/api/messages"),
+    ("ref-rfc", "spec", "https://datatracker.ietf.org/doc/html/rfc9110"),
+    ("ref-mdn-fetch", "api-reference", "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API"),
+    ("news-bbc", "news-article", "https://www.bbc.com/news/articles/cjwp82ye4y3o"),
+    ("blog-julia-evans", "blog-post", "https://jvns.ca/blog/2026/05/15/moving-away-from-tailwind--and-learning-to-structure-my-css-/"),
+    ("forum-so-question", "qa", "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python"),
+    ("code-gh-file", "source-file", "https://github.com/pydantic/pydantic/blob/main/pydantic/main.py"),
+    ("code-gh-readme", "readme", "https://github.com/encode/httpx"),
+    ("product-amazon", "product-page", "https://www.amazon.com/dp/B0BSHF7WHW"),
+    ("media-yt-video", "video-page", "https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+    (
+        "gov-sec-filing",
+        "filing",
+        "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001318605&type=10-K&dateb=&owner=include&count=40",
+    ),
+    ("spa-react-dev", "spa", "https://react.dev/learn"),
+    ("data-json-feed", "json-feed", "https://hnrss.org/frontpage.jsonfeed"),
+    ("gated-nyt", "paywalled", "https://www.nytimes.com/2024/03/04/us/politics/biden-trump-2024.html"),
+    ("paper-arxiv-pdf-stub", "pdf-stub", "https://arxiv.org/pdf/2402.17753"),
+    ("docs-cf-page", "marketing", "https://www.cloudflare.com/products/registrar/"),
 ]
 
 
@@ -148,8 +152,7 @@ async def _run(state: Any, browser_pool: Any, llm: Any) -> None:
         f"Primer ask: `{PRIMER_ASK}` · Model: claude-haiku-4-5 (post v0.20 opt-outs)\n",
         f"Corpus: {len(URLS)} URLs (same as v2 for cross-comparison)\n\n",
     ]
-    summary: dict[str, Any] = {"per_url": [], "totals": {"cost": 0.0, "ms": 0, "fetch_failures": 0,
-                                                          "parse_failures": 0}}
+    summary: dict[str, Any] = {"per_url": [], "totals": {"cost": 0.0, "ms": 0, "fetch_failures": 0, "parse_failures": 0}}
 
     for idx, (slug, declared_kind, url) in enumerate(URLS, 1):
         print(f"\n[{idx}/{len(URLS)}] {slug} ({declared_kind})", flush=True)
@@ -158,8 +161,11 @@ async def _run(state: Any, browser_pool: Any, llm: Any) -> None:
 
         try:
             resp = await fetch(
-                url=url, ask=PRIMER_ASK, state=state,
-                browser_pool=lazy(browser_pool), llm_extractor=lazy(llm),
+                url=url,
+                ask=PRIMER_ASK,
+                state=state,
+                browser_pool=lazy(browser_pool),
+                llm_extractor=lazy(llm),
             )
         except Exception as exc:
             print(f"  ! fetch raised: {exc}", flush=True)
@@ -218,7 +224,7 @@ async def _run(state: Any, browser_pool: Any, llm: Any) -> None:
     t = summary["totals"]
     lines.append(
         f"\n---\n\n## Totals\n\n"
-        f"- V_LEAN: ${t['cost']:.4f} total · {t['ms']/1000:.1f}s total\n"
+        f"- V_LEAN: ${t['cost']:.4f} total · {t['ms'] / 1000:.1f}s total\n"
         f"- Fetch failures: {t['fetch_failures']} / {len(URLS)}\n"
         f"- Parse failures: {t['parse_failures']} / {len(URLS) - t['fetch_failures']}\n"
     )

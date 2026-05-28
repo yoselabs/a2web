@@ -43,59 +43,74 @@ from a2web.state import SqliteResource, build_state
 
 # (slug, ask, url, expected_shape, expected_genre_or_None)
 URLS: list[tuple[str, str, str, str, str | None]] = [
-    ("paper-abs",
-     "what does the paper claim in 2 sentences?",
-     "https://arxiv.org/abs/2402.17753",
-     "prose", "paper"),
-    ("hn-front",
-     "what are the top 3 most-discussed posts right now?",
-     "https://news.ycombinator.com/",
-     "records", "community"),
-    ("hn-thread",
-     "what is the most-upvoted criticism in this thread?",
-     "https://news.ycombinator.com/item?id=39745700",
-     "discussion", "community"),
-    ("mdn-array",
-     "how do you remove the last element of an array in javascript?",
-     "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
-     "mixed", "official"),
-    ("rfc-9110-idempotent",
-     "what does the spec say about idempotent methods?",
-     "https://datatracker.ietf.org/doc/html/rfc9110",
-     "prose", "spec"),
-    ("so-yield",
-     "what is the accepted answer?",
-     "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python",
-     "discussion", "community"),
-    ("gh-httpx-readme",
-     "how do I install httpx and make a basic GET request?",
-     "https://github.com/encode/httpx",
-     "mixed", "official"),
-    ("pydantic-releases",
-     "what changed in the latest pydantic release?",
-     "https://github.com/pydantic/pydantic/releases",
-     "records", "official"),
-    ("wiki-rust",
-     "when was rust 1.0 released and who created it?",
-     "https://en.wikipedia.org/wiki/Rust_(programming_language)",
-     "prose", "encyclopedia"),
-    ("pypi-httpx",
-     "what is the latest version of httpx and its main dependencies?",
-     "https://pypi.org/project/httpx/",
-     "key-value", "official"),
+    ("paper-abs", "what does the paper claim in 2 sentences?", "https://arxiv.org/abs/2402.17753", "prose", "paper"),
+    ("hn-front", "what are the top 3 most-discussed posts right now?", "https://news.ycombinator.com/", "records", "community"),
+    (
+        "hn-thread",
+        "what is the most-upvoted criticism in this thread?",
+        "https://news.ycombinator.com/item?id=39745700",
+        "discussion",
+        "community",
+    ),
+    (
+        "mdn-array",
+        "how do you remove the last element of an array in javascript?",
+        "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+        "mixed",
+        "official",
+    ),
+    (
+        "rfc-9110-idempotent",
+        "what does the spec say about idempotent methods?",
+        "https://datatracker.ietf.org/doc/html/rfc9110",
+        "prose",
+        "spec",
+    ),
+    (
+        "so-yield",
+        "what is the accepted answer?",
+        "https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python",
+        "discussion",
+        "community",
+    ),
+    ("gh-httpx-readme", "how do I install httpx and make a basic GET request?", "https://github.com/encode/httpx", "mixed", "official"),
+    (
+        "pydantic-releases",
+        "what changed in the latest pydantic release?",
+        "https://github.com/pydantic/pydantic/releases",
+        "records",
+        "official",
+    ),
+    (
+        "wiki-rust",
+        "when was rust 1.0 released and who created it?",
+        "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+        "prose",
+        "encyclopedia",
+    ),
+    (
+        "pypi-httpx",
+        "what is the latest version of httpx and its main dependencies?",
+        "https://pypi.org/project/httpx/",
+        "key-value",
+        "official",
+    ),
     # Discussion-shape additions for the new `discussion` value:
-    ("lobste-thread",
-     "what is the dominant critique in this discussion?",
-     "https://lobste.rs/s/n1gytv",
-     "discussion", "community"),
-    ("blog-julia-comments",
-     "what does the author conclude about tailwind?",
-     "https://jvns.ca/blog/2026/05/15/moving-away-from-tailwind--and-learning-to-structure-my-css-/",
-     "prose", "personal"),  # note: jvns has no comments — fallback test
-    ("reddit-rust-thread",
-     "what is the most discussed objection in this thread?",
-     "https://www.reddit.com/r/rust/comments/1cu4wuc/announcing_rust_1781/",
-     "discussion", "community"),
+    ("lobste-thread", "what is the dominant critique in this discussion?", "https://lobste.rs/s/n1gytv", "discussion", "community"),
+    (
+        "blog-julia-comments",
+        "what does the author conclude about tailwind?",
+        "https://jvns.ca/blog/2026/05/15/moving-away-from-tailwind--and-learning-to-structure-my-css-/",
+        "prose",
+        "personal",
+    ),  # note: jvns has no comments — fallback test
+    (
+        "reddit-rust-thread",
+        "what is the most discussed objection in this thread?",
+        "https://www.reddit.com/r/rust/comments/1cu4wuc/announcing_rust_1781/",
+        "discussion",
+        "community",
+    ),
 ]
 
 
@@ -249,7 +264,7 @@ def _grep_leaks(parsed: dict) -> list[str]:
     for pat in LEAK_PATTERNS:
         m = pat.search(answer)
         if m:
-            leaks.append(f"answer: '...{answer[max(0, m.start()-20):m.end()+30]}...'")
+            leaks.append(f"answer: '...{answer[max(0, m.start() - 20) : m.end() + 30]}...'")
     for i, q in enumerate(parsed.get("ask_here", []) or []):
         if not isinstance(q, str):
             continue
@@ -277,8 +292,7 @@ def _check_envelope(parsed: dict) -> list[str]:
         if f in parsed and parsed[f] == []:
             v.append(f"emitted `{f}: []` instead of omitting key")
     # Enum compliance
-    sf_ok = {"article", "thread", "listing", "reference", "tutorial",
-             "changelog", "code", "product", "media", "other"}
+    sf_ok = {"article", "thread", "listing", "reference", "tutorial", "changelog", "code", "product", "media", "other"}
     sh_ok = {"prose", "records", "key-value", "code", "table", "discussion", "mixed"}
     ge_ok = {"news", "encyclopedia", "spec", "paper", "personal", "official", "community"}
     ob_ok = {"paywalled", "blocked", "empty", "error"}
@@ -333,14 +347,20 @@ async def main() -> None:
     summary: dict[str, Any] = {
         "per_url": [],
         "totals": {
-            "cost": 0.0, "ms": 0,
-            "parse_failures": 0, "envelope_violations": 0,
+            "cost": 0.0,
+            "ms": 0,
+            "parse_failures": 0,
+            "envelope_violations": 0,
             "memory_leaks": 0,
-            "shape_matches": 0, "shape_mismatches": 0,
-            "genre_emitted": 0, "genre_omitted": 0,
+            "shape_matches": 0,
+            "shape_mismatches": 0,
+            "genre_emitted": 0,
+            "genre_omitted": 0,
             "obstacle_emitted": 0,
-            "ask_here_emitted": 0, "ask_here_count_total": 0,
-            "try_url_emitted": 0, "try_url_count_total": 0,
+            "ask_here_emitted": 0,
+            "ask_here_count_total": 0,
+            "try_url_emitted": 0,
+            "try_url_count_total": 0,
         },
     }
 
@@ -354,15 +374,20 @@ async def main() -> None:
             )
 
             per_url: dict[str, Any] = {
-                "slug": slug, "url": url, "ask": ask,
+                "slug": slug,
+                "url": url,
+                "ask": ask,
                 "expected_shape": expected_shape,
                 "expected_genre": expected_genre,
             }
 
             try:
                 resp = await fetch(
-                    url=url, ask=ask, state=state,
-                    browser_pool=lazy(browser_pool), llm_extractor=lazy(llm),
+                    url=url,
+                    ask=ask,
+                    state=state,
+                    browser_pool=lazy(browser_pool),
+                    llm_extractor=lazy(llm),
                 )
             except Exception as exc:
                 lines.append(f"**FETCH RAISED**: `{exc}`\n")
@@ -371,9 +396,7 @@ async def main() -> None:
                 continue
 
             content_md = resp.content_md or ""
-            lines.append(
-                f"Fetch: tier=`{resp.tier}` · status=`{resp.status or 'ok'}` · chars={len(content_md)}\n\n"
-            )
+            lines.append(f"Fetch: tier=`{resp.tier}` · status=`{resp.status or 'ok'}` · chars={len(content_md)}\n\n")
             if not content_md:
                 lines.append("(no content_md — skipping)\n")
                 per_url["fetch_status"] = resp.status or "ok"
@@ -385,7 +408,9 @@ async def main() -> None:
             response = await provider.complete(
                 system=ROUTER_V1_SYSTEM,
                 user=ROUTER_V1_TEMPLATE.format(content=content_capped, ask=ask),
-                model="claude-haiku-4-5", max_tokens=1024, thinking_disabled=True,
+                model="claude-haiku-4-5",
+                max_tokens=1024,
+                thinking_disabled=True,
             )
             elapsed = int((time.perf_counter() - t0) * 1000)
             parsed = _parse_json(response.text)
@@ -432,7 +457,7 @@ async def main() -> None:
             per_url["ms"] = elapsed
             per_url["structural_form"] = parsed.get("structural_form")
             per_url["shape"] = shape_got
-            per_url["shape_match"] = (shape_got == expected_shape)
+            per_url["shape_match"] = shape_got == expected_shape
             per_url["genre"] = genre_got
             per_url["obstacle"] = obstacle_got
             per_url["ask_here_n"] = len(ask_here)
@@ -472,18 +497,22 @@ async def main() -> None:
 
     t = summary["totals"]
     lines.append("\n---\n\n## Aggregate\n\n")
-    lines.append(f"- total cost: **${t['cost']:.4f}** over {len(URLS)} URLs ({sum(1 for p in summary['per_url'] if 'cost' in p)} succeeded)\n")
+    lines.append(
+        f"- total cost: **${t['cost']:.4f}** over {len(URLS)} URLs ({sum(1 for p in summary['per_url'] if 'cost' in p)} succeeded)\n"
+    )
     if v0_20_catalog_cost:
         delta_pct = (t["cost"] - v0_20_catalog_cost) / v0_20_catalog_cost * 100
         lines.append(f"- vs v1 catalog baseline (${v0_20_catalog_cost:.4f} over 10 URLs): {delta_pct:+.1f}%\n")
     lines.append(f"- parse failures: {t['parse_failures']}\n")
     lines.append(f"- envelope violations: {t['envelope_violations']}\n")
     lines.append(f"- **memory leaks: {t['memory_leaks']}**\n")
-    lines.append(f"- shape: {t['shape_matches']}/{t['shape_matches']+t['shape_mismatches']} matched expected\n")
+    lines.append(f"- shape: {t['shape_matches']}/{t['shape_matches'] + t['shape_mismatches']} matched expected\n")
     lines.append(f"- genre: emitted {t['genre_emitted']} / omitted {t['genre_omitted']}\n")
     lines.append(f"- obstacle: emitted on {t['obstacle_emitted']} URLs\n")
-    lines.append(f"- ask_here: emitted on {t['ask_here_emitted']}, avg count {t['ask_here_count_total']/max(1,t['ask_here_emitted']):.1f}\n")
-    lines.append(f"- try_url: emitted on {t['try_url_emitted']}, avg count {t['try_url_count_total']/max(1,t['try_url_emitted']):.1f}\n")
+    lines.append(
+        f"- ask_here: emitted on {t['ask_here_emitted']}, avg count {t['ask_here_count_total'] / max(1, t['ask_here_emitted']):.1f}\n"
+    )
+    lines.append(f"- try_url: emitted on {t['try_url_emitted']}, avg count {t['try_url_count_total'] / max(1, t['try_url_emitted']):.1f}\n")
 
     out_path.write_text("".join(lines))
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False))
@@ -491,7 +520,7 @@ async def main() -> None:
     print(f"\nAggregate:")
     print(f"  cost ${t['cost']:.4f} over {len(URLS)} URLs")
     print(f"  parse_failures={t['parse_failures']}, envelope_violations={t['envelope_violations']}, memory_leaks={t['memory_leaks']}")
-    print(f"  shape matches: {t['shape_matches']}/{t['shape_matches']+t['shape_mismatches']}")
+    print(f"  shape matches: {t['shape_matches']}/{t['shape_matches'] + t['shape_mismatches']}")
 
 
 if __name__ == "__main__":
