@@ -9,10 +9,8 @@ returns content with no LLM step and is documented as a fallback.
 Both tools delegate to the same orchestrator (`fetcher.fetch`); the only
 difference is whether `ask=` is passed through.
 
-When `settings.ask_only` is true (env `A2WEB_ASK_ONLY=true` or
-`--ask-only` on `serve`), only `ask` is registered on the MCP/CLI
-surface. The toggle is a stop-gap until a2kit absorbs proper tool
-selection — tracked in `docs/history/A2KIT_FEEDBACK_v0.39.md`.
+To expose only a subset of tools at runtime, use a2kit's native selector:
+`A2KIT_TOOLS=ask a2web serve` or `a2web serve --tools=ask`.
 """
 
 from __future__ import annotations
@@ -22,7 +20,7 @@ from typing import Annotated, Any, ClassVar
 
 import a2kit
 import pydantic
-from a2kit.packages.di import Lazy
+from a2kit import Lazy
 
 from .cookie_jar import CookieJarResource, CookiesRefreshResult
 from .fetcher import fetch as orchestrate
@@ -31,7 +29,6 @@ from .llm_resource import LlmExtractorResource
 from .models import AskResponse, FetchResponse
 from .packages.browser_pool import BrowserPool
 from .packages.cookie_store.models import ChromeCookieAccessError
-from .settings import AppSettings
 from .state import AppState
 
 
@@ -39,24 +36,6 @@ class WebRouter(a2kit.Router):
     """Routes web-fetch tools. CLI surface: `a2web web <tool>`."""
 
     slug = "web"
-
-    def __init__(self, *, settings: AppSettings | None = None) -> None:
-        """Optionally filter `fetch_raw` out of the surface.
-
-        a2kit's `Router.__init__` reads the `tools` tuple from the class
-        (not the instance), so when `settings.ask_only` is true we
-        rewrite the class attr before delegating up. The router is a
-        singleton per app, so class-attr mutation is safe here. Reads
-        settings from env when None — convenient for the default
-        `app.add_router(WebRouter())` path.
-        """
-        if settings is None:
-            settings = AppSettings()
-        if settings.ask_only:
-            type(self).tools = (WebRouter.ask,)
-        else:
-            type(self).tools = (WebRouter.ask, WebRouter.fetch_raw)
-        super().__init__()
 
     @a2kit.read(
         open_world=True,

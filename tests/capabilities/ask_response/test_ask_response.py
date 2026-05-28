@@ -15,7 +15,7 @@ from a2kit.testing import client as make_client
 
 from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.llm_extract import Extractor, ModelSpec, ProviderResponse
-from a2web.server import app
+from a2web.server import build_app
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TierResult
 from tests.fixtures import FIXTURES_DIR
@@ -107,9 +107,11 @@ async def _ask_wire(
     """Invoke `ask` through the MCP transport; return the decoded wire dict."""
     raw_body = body if body is not None else (_FIX / "blog.html").read_bytes()
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(raw_body, raw_next_links))
+    app = build_app()
+    state = await app.container().get(AppState)
+    fake = _extractor(state, unavailable=unavailable)
+    app.provide(LlmExtractorResource, lambda: fake)
     async with make_client(app) as client:
-        state = await app.container().get(AppState)
-        client.override(LlmExtractorResource, _extractor(state, unavailable=unavailable))
         wire = await client.call_wire("ask", **ask_kwargs)
     return json.loads(wire)
 

@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar, cast
 
-from a2kit.packages.di import Lazy
+from a2kit import Lazy
 from purgatory import AsyncCircuitBreakerFactory
 
 from .cookie_jar import CookieJarResource, build_cookie_jar

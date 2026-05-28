@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, TextIO
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from a2kit.packages.ldd import LddEmission
+    from a2kit import LddEmission
 
 _HEARTBEAT_INTERVAL_S = 30.0
 

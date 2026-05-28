@@ -8,6 +8,25 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed — a2kit v0.40.0 upgrade
+
+- Bump `a2kit>=0.40,<1` (pinned to `v0.40.0`).
+- Imports migrated to the promoted top-level surface: `from a2kit import Lazy`
+  / `from a2kit import LddEmission` (was `a2kit.packages.di.Lazy` /
+  `a2kit.packages.ldd.LddEmission`).
+- **Removed `settings.ask_only`** (env `A2WEB_ASK_ONLY`). a2kit v0.40 ships
+  first-class runtime tool selection: `A2KIT_TOOLS=ask a2web serve` or
+  `a2web serve --tools=ask`. `WebRouter.__init__` no longer rewrites its own
+  `tools` tuple — the class-level declaration is the single source of truth.
+- **Test plumbing: `client.override()` → `app.provide()`** per a2kit v0.40
+  ADR 0017 (post-seal mutation removed). New `a2web.server.build_app()` factory;
+  tests construct a fresh `App` per call and pass fakes as last-write-wins
+  factories.
+- Substrate gap noted: `_prune_wire` / `AskExtraction._omit_empty` stay.
+  a2kit's `formatter.prune_empty` config marker only fires from
+  `dump_model_for_wire` on the outer model — it doesn't cascade to nested
+  pydantic children, so a2web's per-model `model_serializer` is still load-bearing.
+
 ### Changed (internal — no public API changes)
 
 - **`make bench` is no longer silent.** Per `openspec/changes/bench-live-sink-v1/`:

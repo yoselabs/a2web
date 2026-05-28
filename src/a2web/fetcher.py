@@ -24,7 +24,7 @@ from urllib.parse import urlparse
 import a2kit
 import a2kit.ldd
 import structlog
-from a2kit.packages.di import Lazy
+from a2kit import Lazy
 
 from .actions import Action, EscalateBrowser, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
 from .cookie_jar import Cookie, CookieJarResource

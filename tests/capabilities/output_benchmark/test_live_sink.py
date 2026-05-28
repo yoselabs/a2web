@@ -20,7 +20,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 import pytest
-from a2kit.packages.ldd import LddEmission
+from a2kit import LddEmission
 
 from a2web.llm_eval.corpus import load_corpus
 from a2web.llm_eval.events import CellEnded, CellStarted

@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from a2kit.packages.ldd import LddEmission
+    from a2kit import LddEmission
 
 
 def _load_tracer() -> Any | None:

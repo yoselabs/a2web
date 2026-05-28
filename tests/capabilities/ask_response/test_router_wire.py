@@ -15,7 +15,7 @@ from a2kit.testing import client as make_client
 
 from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.llm_extract import Extractor, ModelSpec, ProviderResponse
-from a2web.server import app
+from a2web.server import build_app
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TierResult
 
@@ -70,9 +70,11 @@ def _build_extractor(state: AppState, envelope: dict) -> LlmExtractorResource:
 
 async def _ask_wire(monkeypatch: pytest.MonkeyPatch, *, envelope: dict, **ask_kwargs: object) -> dict:
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(_MINIMAL_HTML))
+    app = build_app()
+    state = await app.container().get(AppState)
+    fake = _build_extractor(state, envelope)
+    app.provide(LlmExtractorResource, lambda: fake)
     async with make_client(app) as client:
-        state = await app.container().get(AppState)
-        client.override(LlmExtractorResource, _build_extractor(state, envelope))
         wire = await client.call_wire("ask", **ask_kwargs)
     return json.loads(wire)
 
@@ -219,14 +221,15 @@ async def test_malformed_envelope_drops_routing_keeps_answer(
             )
 
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(_MINIMAL_HTML))
+    app = build_app()
+    state = await app.container().get(AppState)
+    res = LlmExtractorResource(state.settings, state.sqlite)
+    res._extractor = Extractor(
+        provider=_PlainTextProvider(),
+        model=ModelSpec("stub", "stub-model"),
+    )
+    app.provide(LlmExtractorResource, lambda: res)
     async with make_client(app) as client:
-        state = await app.container().get(AppState)
-        res = LlmExtractorResource(state.settings, state.sqlite)
-        res._extractor = Extractor(
-            provider=_PlainTextProvider(),
-            model=ModelSpec("stub", "stub-model"),
-        )
-        client.override(LlmExtractorResource, res)
         wire = await client.call_wire(
             "ask",
             url="https://example.org/post",

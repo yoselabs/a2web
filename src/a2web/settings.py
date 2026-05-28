@@ -160,13 +160,6 @@ class AppSettings(BaseSettings):
     extraction_max_chars: int = 100_000  # matches WebFetch's BD_ constant
     extraction_cache_ttl_s: int = 900  # matches WebFetch's sg5 (15 min)
 
-    # v0.7: when true, only the `ask` tool is exposed on the MCP/CLI
-    # surface — `fetch_raw` is hidden. Forces calling agents through the
-    # cheap server-side Haiku extractor for cost discipline. Stop-gap
-    # toggle until a2kit absorbs proper per-tool selection upstream
-    # (see docs/history/A2KIT_FEEDBACK_v0.39.md).
-    ask_only: bool = False
-
     # v0.16: opt-in browser cookie source. Default `none` keeps the subsystem
     # inert — no resource construction, no DB access, no Keychain prompts.
     # Backed by browser-cookie3: cross-platform (macOS / Linux / Windows) and

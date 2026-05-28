@@ -28,7 +28,7 @@ from a2kit.testing import compute_schema
 
 from a2web.llm_resource import LlmExtractorResource
 from a2web.models import AskResponse, FetchResponse, NextLink
-from a2web.server import app
+from a2web.server import build_app
 from a2web.state import AppState
 from a2web.tiers import REGISTRY
 from tests.capabilities.ask_response.test_ask_response import _MINIMAL_HTML, _extractor, _RawStub
@@ -96,14 +96,17 @@ async def _ask_wire(
     **kwargs: object,
 ) -> dict:
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(body, raw_next_links))
+    app = build_app()
+    state = await app.container().get(AppState)
+    fake = _extractor(state, unavailable=unavailable)
+    app.provide(LlmExtractorResource, lambda: fake)
     async with make_client(app) as client:
-        state = await app.container().get(AppState)
-        client.override(LlmExtractorResource, _extractor(state, unavailable=unavailable))
         return json.loads(await client.call_wire("ask", **kwargs))
 
 
 async def _fetch_raw_wire(monkeypatch: pytest.MonkeyPatch, *, body: bytes, **kwargs: object) -> dict:
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(body))
+    app = build_app()
     async with make_client(app) as client:
         return json.loads(await client.call_wire("fetch_raw", **kwargs))
 
@@ -192,6 +195,7 @@ def test_contract_tool_schemas() -> None:
     `compute_schema` collapses `outputSchema` to a bare `$ref`, so the
     return model's own `model_json_schema()` is snapshotted for field detail.
     """
+    app = build_app()
     container = app.container()
     by_name = {d.name: d for d in app.tools()}
     snapshot = {

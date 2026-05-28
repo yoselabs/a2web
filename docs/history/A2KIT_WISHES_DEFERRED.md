@@ -3,11 +3,24 @@
 Status: parked, not abandoned. None of these block a2web. This is the single
 open-items list the next a2kit feedback round starts from.
 
-Last consolidated: 2026-05-22, after `generic-record-extraction`. This pass
-merged the scattered carry-over notes from rounds 11–12 (`A2KIT_FEEDBACK_v0.40.md`,
-`v0.41.md`) into this file and retired three superseded entries (see bottom).
+Last consolidated: 2026-05-26. This pass added the tool-I/O-logging ask
+(round 13) and retired the two placeholder entries (`Lazy[T]` introspection,
+`app.tools()` name-override) that never produced a concrete use case.
 
-Current baseline: a2kit v0.39.3.
+Current baseline: a2kit v0.40.0.
+
+**Shipped in v0.40.0 (2026-05-28) — a2web-handoff-prep change:**
+
+- Wish #1 (formatter-level empty-field omission) — **partial**. a2kit ships
+  `a2kit.packages.formatter.prune_empty()` config marker for top-level wire
+  models. Does NOT cascade to nested pydantic children, so a2web's
+  `_prune_wire` + `AskExtraction._omit_empty` stay (substrate gap noted).
+- Wish #3 (per-tool runtime selection) — **shipped**. `A2KIT_TOOLS=` env +
+  `serve --tools=` CLI flag. a2web's `ask_only` deleted.
+- Wish #4 (canonical-surface promotion) — **shipped**. `a2kit.Lazy` and
+  `a2kit.LddEmission` promoted; a2web imports migrated.
+- Wish #5 (`a2kit.desc` sugar) — **refused** by Constitution Article VI
+  ("pydantic is sacred"). Permanent rejection.
 
 ---
 
@@ -135,35 +148,77 @@ form — so a third-party stub gap doesn't force a code workaround.
 **Status.** New, low priority. `ty` is pre-1.0 (Astral); stub coverage will
 improve. a2kit just needs to not make a stub gap unworkaroundable.
 
-## 10. `Lazy[T]` introspection helpers
+## 10. Dispatcher-level tool I/O capture hook — NEW (2026-05-26)
 
-**Context.** Named as a carry-over wish in rounds 11–12 but never given a
-detailed filing. The intent: inspect a `Lazy[T]` handle — is it already
-resolved, what type does it wrap — without forcing resolution.
+**Context.** a2kit's dispatcher is the only layer that natively sees the full
+tool call: resolved input kwargs, return value, `tool_name`, `elapsed_ms`,
+`ctx` (and therefore `session_id` / `request_id` / any MCP `_meta`
+propagation). `LddEmission` carries `tool_name` + `elapsed_ms` + `ctx` but
+only for what phases explicitly emit — never the *raw tool args* or the
+*final return value*. So an a2kit app that wants per-call audit / replay /
+debug logs has to either:
 
-**Status.** Needs a proper filing with a concrete use case before it can be
-acted on. Placeholder so it is not lost.
+- Wrap every `@a2kit.read` body with a hand-rolled decorator that re-reads
+  args and re-serializes the response (duplicates what the dispatcher
+  already does — `wire_input` + formatter), or
+- Subscribe an `LddSink` and capture only the phase-level slices that
+  happen to be emitted (incomplete by design).
 
-## 11. `app.tools()` name-override mechanism
+Every downstream app (a2web, a2db, a2atlassian) will eventually reinvent
+the same wrapper for the same reason: I/O is invisible above the wire.
 
-**Context.** Named as a carry-over wish in rounds 11–12 but never given a
-detailed filing. The intent: override / alias a tool's wire name without
-renaming the Router method.
+**Ask.** A dispatcher-level capture point, exposed as a sink-style
+subscription so it stays additive and zero-cost when unused. Concrete
+shape:
 
-**Status.** Needs a proper filing with a concrete use case before it can be
-acted on. Placeholder so it is not lost.
+```python
+app.io_capture.add(io_sink, level="full" | "brief" | "off")
+
+# Sink signature:
+async def io_sink(call: ToolCall) -> None:
+    # call.tool_name: str
+    # call.session_id: str | None        (from ctx)
+    # call.request_id: str | None        (from ctx)
+    # call.meta: dict[str, Any]          (MCP _meta passthrough, e.g. traceparent)
+    # call.args: dict[str, Any]          (post-validation, pre-body)
+    # call.result: Any | None            (None on error)
+    # call.error: ToolError | None
+    # call.started_at: datetime
+    # call.elapsed_ms: int
+```
+
+Why a sink and not just "give me a file path": apps need to redact secrets,
+truncate large bodies, route to JSONL / OTel / a hash-and-sidecar store —
+the policy is app-specific, the capture point is the framework's.
+
+**a2web's need.** Operator-grade I/O logs for debugging which input
+question produced which `ask` response across an MCP session, with parent
+process correlation (one Claude Code conversation spans many tool calls).
+Today there is no way to reconstruct that without `print()`-ing inside
+every router method.
+
+**Compatibility.** Additive. No sink registered = today's behavior.
+Composes cleanly with the existing LDD sink chain (different concern:
+phases vs. tool boundaries).
+
+**Related.** If `ctx.meta` already surfaces MCP `_meta` (W3C `traceparent`,
+custom client annotations), document it — that is the natural correlation
+ID. If it does not, plumbing it through is part of this ask.
 
 ---
 
-## Recently retired (this consolidation, 2026-05-22)
+## Recently retired (this consolidation, 2026-05-26)
 
-Three entries from the prior version of this file were removed as superseded —
-recorded here for trace:
+- **`Lazy[T]` introspection helpers** — placeholder carried since round 11
+  with no concrete use case. Reopen when a real need surfaces.
+- **`app.tools()` name-override mechanism** — placeholder carried since
+  round 11 with no concrete use case. Reopen when a real need surfaces.
+
+### Retired 2026-05-22
 
 - **`app.singleton(..., teardown=fn)`** — `app.singleton` was retired in
   a2kit v0.36; lifecycle is now `app.provide` + `__aenter__` / `__aexit__`
-  (LIFO unwind). The teardown concern no longer exists. (Closed per round-10
-  Friction G.)
+  (LIFO unwind). The teardown concern no longer exists.
 - **`_LDD_STATE` / `ctx=None` error-message refinement** — v0.39 binds
   ambient ctx unconditionally; a tool that does not declare `ctx` can still
   call `a2kit.ldd.event(...)`. The failure mode the wish addressed is gone.
