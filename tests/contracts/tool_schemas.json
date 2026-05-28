@@ -78,7 +78,7 @@
     "outputModel": {
       "$defs": {
         "AskExtraction": {
-          "description": "Slim per-ask extraction metadata for the wire.\n\n`truncated` is the one field an agent branches on (the answer may be\nincomplete) and is always present. The observability fields (`model`,\ntoken counts, cost, latency, cache) are populated only when `ask` was\ncalled with `debug=True`; otherwise they are None and omitted from the\nwire. The full metadata always reaches LDD events regardless of debug.",
+          "description": "Slim per-ask extraction metadata for the wire.\n\n`truncated` is the one field an agent branches on (the answer may be\nincomplete) and is always present. The observability fields (`model`,\ntoken counts, cost, latency, cache) are populated only when `ask` was\ncalled with `debug=True`; otherwise they are None and omitted from the\nwire. The full metadata always reaches LDD events regardless of debug.\n\n`PruneEmpty` (a2kit v0.40.1) installs a `model_serializer` that drops\n`None` / `\"\"` / `[]` / `{}` fields; pydantic cascades it through the\nparent `AskResponse._envelope_discipline`. `truncated: bool` is required\nand `False` is not \"empty\" \u2014 so it survives regardless.",
           "properties": {
             "cache_hit": {
               "anyOf": [

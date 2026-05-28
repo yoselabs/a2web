@@ -8,9 +8,13 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
-### Changed — a2kit v0.40.0 upgrade
+### Changed — a2kit v0.40.1 upgrade
 
-- Bump `a2kit>=0.40,<1` (pinned to `v0.40.0`).
+- Bump `a2kit>=0.40.1,<1` (pinned to `v0.40.1`).
+- **`AskExtraction` inherits `PruneEmpty`** (a2kit v0.40.1) instead of
+  carrying its own `model_serializer`. Pydantic cascades the parent's
+  serializer through `AskResponse._envelope_discipline` automatically.
+  `truncated: bool` (required, non-empty even when False) survives the prune.
 - Imports migrated to the promoted top-level surface: `from a2kit import Lazy`
   / `from a2kit import LddEmission` (was `a2kit.packages.di.Lazy` /
   `a2kit.packages.ldd.LddEmission`).
@@ -22,10 +26,10 @@ All notable changes to **a2web** are recorded here. The format follows
   ADR 0017 (post-seal mutation removed). New `a2web.server.build_app()` factory;
   tests construct a fresh `App` per call and pass fakes as last-write-wins
   factories.
-- Substrate gap noted: `_prune_wire` / `AskExtraction._omit_empty` stay.
-  a2kit's `formatter.prune_empty` config marker only fires from
-  `dump_model_for_wire` on the outer model — it doesn't cascade to nested
-  pydantic children, so a2web's per-model `model_serializer` is still load-bearing.
+- Substrate gap (partially closed in v0.40.1): `_prune_wire` on
+  `AskResponse` / `FetchResponse` stays — it's deviation/required/failure_only/
+  debug-regrouping/TSV business logic that can't be substrate (Constitution
+  Article V).
 
 ### Changed (internal — no public API changes)
 

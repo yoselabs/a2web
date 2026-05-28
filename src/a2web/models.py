@@ -15,6 +15,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
 
+from a2kit.packages.formatter import PruneEmpty
 from a2kit.packages.formatter.tsv import encode_tsv
 from pydantic import (
     BaseModel,
@@ -300,7 +301,7 @@ class FetchResponse(BaseModel):
         )
 
 
-class AskExtraction(BaseModel):
+class AskExtraction(PruneEmpty):
     """Slim per-ask extraction metadata for the wire.
 
     `truncated` is the one field an agent branches on (the answer may be
@@ -308,6 +309,11 @@ class AskExtraction(BaseModel):
     token counts, cost, latency, cache) are populated only when `ask` was
     called with `debug=True`; otherwise they are None and omitted from the
     wire. The full metadata always reaches LDD events regardless of debug.
+
+    `PruneEmpty` (a2kit v0.40.1) installs a `model_serializer` that drops
+    `None` / `""` / `[]` / `{}` fields; pydantic cascades it through the
+    parent `AskResponse._envelope_discipline`. `truncated: bool` is required
+    and `False` is not "empty" — so it survives regardless.
     """
 
     truncated: bool
@@ -318,11 +324,6 @@ class AskExtraction(BaseModel):
     cost_usd: float | None = None
     latency_ms: int | None = None
     cache_hit: bool | None = None
-
-    @model_serializer(mode="wrap")
-    def _omit_empty(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
-        data = handler(self)
-        return {k: v for k, v in data.items() if k == "truncated" or v is not None}
 
 
 # Fields that SHALL never be omitted from the wire, even when falsy
