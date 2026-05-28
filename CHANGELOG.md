@@ -14,12 +14,13 @@ All notable changes to **a2web** are recorded here. The format follows
   rules above the rules: substrate/product, placement hierarchy,
   adopt-before-build, magic budget, dependency memory). Canonical
   source is a2kit; drift between copies is a bug.
-- **`policies/`** — Rego policy bundle (REGO-BODY-DUP, REGO-NAME-COLLISION,
-  REGO-GHA-PIN-SHA / PERMISSIONS / VENDOR-ALLOW, REGO-PYPROJECT-UPPER-BOUND)
-  + `data.json` allowlist seeded for a2web's conventional-name patterns
-  (`_ensure` across resources, `_render_*` across handlers, etc.).
-- **`scripts/extract_facts.py`** — AST fact extractor feeding the Rego
-  bundle. Verbatim copy from a2kit.
+- **`policies/data.json`** — a2web-specific allowlist seeded for
+  conventional-name patterns (`_ensure` across resources, `_render_*` across
+  handlers, etc.) overlayed on a2kit's bundled REGO-BODY-DUP, REGO-NAME-COLLISION,
+  REGO-GHA-PIN-SHA / PERMISSIONS / VENDOR-ALLOW, and REGO-PYPROJECT-UPPER-BOUND
+  policies. As of a2kit v0.41.1 the policy bundle ships inside the package
+  (`a2kit/packages/lint/_bundle/`); a2web no longer vendors `.rego` files
+  or the fact extractor.
 - **`.pymarkdown.json`** — markdown lint config (line-length / inline-html
   / etc. disabled to match a2kit's tolerance).
 - **`.pre-commit-config.yaml`** — local hooks: ruff check + format,
@@ -32,9 +33,14 @@ All notable changes to **a2web** are recorded here. The format follows
 REGO-PYPROJECT-UPPER-BOUND. Three pre-existing pymarkdown violations
 (CHANGELOG + CLAUDE) fixed in place.
 
-### Changed — a2kit v0.40.1 upgrade
+### Changed — a2kit v0.41.1 upgrade
 
-- Bump `a2kit>=0.40.1,<1` (pinned to `v0.40.1`).
+- Bump `a2kit>=0.41,<1` (pinned to `v0.41.1`). The Rego policy bundle
+  + AST fact extractor now ship inside the package; a2web's vendored
+  `policies/*.rego` and `scripts/extract_facts.py` (~1000 LOC) deleted.
+  `policies/data.json` (project allowlist) is now the only Rego file
+  a2web ships. `uv run a2kit lint rego src/ pyproject.toml` invocation
+  unchanged.
 - **`AskExtraction` inherits `PruneEmpty`** (a2kit v0.40.1) instead of
   carrying its own `model_serializer`. Pydantic cascades the parent's
   serializer through `AskResponse._envelope_discipline` automatically.

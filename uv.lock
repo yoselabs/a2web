@@ -9,15 +9,15 @@ resolution-markers = [
 [[package]]
 name = "a2effect"
 version = "0.1.0"
-source = { git = "https://github.com/yoselabs/a2kit.git?subdirectory=packages%2Fa2effect&tag=v0.40.1#8c76f734e270028cb618913727591557c40602bb" }
+source = { git = "https://github.com/yoselabs/a2kit.git?subdirectory=packages%2Fa2effect&tag=v0.41.1#b309c5b15ba7ee226cdf542dd010762a0b9e644c" }
 dependencies = [
     { name = "pydantic" },
 ]
 
 [[package]]
 name = "a2kit"
-version = "0.40.1"
-source = { git = "https://github.com/yoselabs/a2kit.git?tag=v0.40.1#8c76f734e270028cb618913727591557c40602bb" }
+version = "0.41.0"
+source = { git = "https://github.com/yoselabs/a2kit.git?tag=v0.41.1#b309c5b15ba7ee226cdf542dd010762a0b9e644c" }
 dependencies = [
     { name = "a2effect" },
     { name = "anyio" },
@@ -83,7 +83,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "a2kit", git = "https://github.com/yoselabs/a2kit.git?tag=v0.40.1" },
+    { name = "a2kit", git = "https://github.com/yoselabs/a2kit.git?tag=v0.41.1" },
     { name = "aiofiles", specifier = ">=25.1,<26" },
     { name = "aiosqlite", specifier = ">=0.20,<1" },
     { name = "anthropic", specifier = ">=0.40,<1" },
