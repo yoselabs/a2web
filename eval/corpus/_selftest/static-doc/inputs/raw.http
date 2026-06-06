@@ -1,0 +1,46 @@
+>>> GET https://example.com/article
+status: 200
+verdict: ok
+content-type: text/html; charset=utf-8
+final-url: https://example.com/article
+conditional-hit: false
+body-encoding: utf-8
+--- headers ---
+content-type: text/html; charset=utf-8
+--- body ---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>The Egress Boundary Is the Right Place to Freeze</title>
+  <meta name="author" content="A2Web Harness">
+</head>
+<body>
+<article>
+  <h1>The Egress Boundary Is the Right Place to Freeze</h1>
+  <p>When you record a web fetch for replay, the tempting shortcut is to
+  freeze the final response object. That shortcut quietly removes the most
+  important thing under test: the decision the system makes about how hard
+  to try. Freeze the answer and you can never again ask whether the gate
+  would have escalated, whether the ladder would have descended, or whether
+  a different tier would have produced a better result.</p>
+  <p>Freezing at the egress boundary keeps every one of those decisions
+  live. The orchestrator still runs. The gate still evaluates the page
+  against the question. The escalation logic still fires. Only the bytes
+  coming back from the network are canned, and those bytes are exactly what
+  the live world handed us at capture time.</p>
+  <p>This is why the cassette stores one frozen exchange per outbound URL,
+  keyed by the request the pipeline actually made. A raw fetch maps to one
+  exchange; an archive lookup maps to several. Replay serves each by URL and
+  refuses, loudly, to invent one it does not have.</p>
+  <p>The same principle extends upward. The rendered browser DOM is a frozen
+  input, not a frozen verdict. The language model is a recorded egress, not
+  a hand-written stub. Every layer is the real layer, fed frozen inputs, so
+  the answer a replay produces is the answer the real pipeline would have
+  produced from those inputs.</p>
+  <p>The payoff is a regression test that fails for the right reason: a code
+  change moved the answer, not the site drifting underneath you. That single
+  property is what turns a pile of saved pages into an instrument.</p>
+</article>
+</body>
+</html>

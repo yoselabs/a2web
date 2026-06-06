@@ -1,0 +1,8 @@
+# Capture provenance. Hand-authored synthetic case (no live capture);
+# real captures carry per-layer timestamps, content hashes, and sizes
+# written by `make eval-capture`.
+source: hand-authored
+note: harness self-test; deterministic offline fixture
+layers:
+  raw:
+    frozen: true

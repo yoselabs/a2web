@@ -35,10 +35,11 @@ exactly and the deterministic axes (contract shape, token cost, tier path) can a
 ### Requirement: interception is test-side and adds no product surface
 
 Replay interception SHALL be implemented in the test and `eval/` layer only: DI-provided
-resources (`BrowserPool`, `LlmExtractorResource`) intercepted via the in-process test
-client's `override`, and the `fetch_bytes` chokepoint via a single centralized test
-fixture. The substrate SHALL NOT add an `a2web` CLI verb, an MCP tool, or any eval-specific
-code to the shipped product surface.
+resources (`BrowserPool`, `LlmExtractorResource`) intercepted test-side — wrapped as
+`Lazy[T]` cassette resources at the `fetch()`/tool seam, or via the in-process test
+client's `override` — and the `fetch_bytes` chokepoint via a single centralized patch that
+rebinds every import site. The substrate SHALL NOT add an `a2web` CLI verb, an MCP tool, or
+any eval-specific code to the shipped product surface.
 
 #### Scenario: no product CLI/MCP verb is added
 

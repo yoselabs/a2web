@@ -1,4 +1,4 @@
-.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail bless-contracts handler-probe install-global
+.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail eval-capture eval-replay eval-refresh bless-contracts handler-probe install-global
 
 check: lint ty test-cov arch
 
@@ -69,6 +69,25 @@ eval-baseline:
 
 eval-detail:
 	uv run python -m a2web.llm_eval --mode detail
+
+# --- Replay-cassette eval substrate (eval/_capture/, tests/eval_replay/) ----
+# Freeze a new case from a live run (network + LLM quota). Tees every egress
+# into eval/corpus/$(CORPUS)/$(ID)/. See eval/_capture/README.md.
+#   make eval-capture URL=https://… Q="question?" CORPUS=regression ID=slug TAGS="commerce"
+eval-capture:
+	uv run python -m eval._capture.capture --url "$(URL)" --question "$(Q)" --corpus "$(CORPUS)" --id "$(ID)" $(if $(TAGS),--tags $(TAGS),) $(if $(CLASS),--failure-class $(CLASS),)
+
+# Deterministic offline replay over a corpus — same path make check exercises.
+#   make eval-replay CORPUS=regression
+eval-replay:
+	uv run pytest tests/eval_replay/ -q $(if $(CORPUS),-k "$(CORPUS)",)
+
+# Re-capture a case's inputs (live), diff the fresh answer vs the blessed
+# baseline, and bless only under A2WEB_BLESS_EVAL=1.
+#   make eval-refresh CASE=regression/slug
+#   A2WEB_BLESS_EVAL=1 make eval-refresh CASE=regression/slug
+eval-refresh:
+	uv run python -m eval._capture.refresh --case "$(CASE)"
 
 # Live-network handler probe — exercises every registered handler against
 # a real representative URL. Catches transport-layer regressions (e.g.,

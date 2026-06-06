@@ -1,0 +1,13 @@
+# Harness self-test case — a clean class-A static document.
+# Not a real-world regression; it proves the raw-egress freeze + real
+# pipeline replay path offline, with no network and no LLM. The leading
+# underscore marks `_selftest` as harness plumbing, distinct from the
+# `regression` and `breaking` corpuses of real captured cases.
+slug: static-doc
+url: https://example.com/article
+failure_class: A
+tags: []
+task: "What is this article about?"
+needs: [content]
+criteria:
+  - "Extracts the article body as readable prose"
