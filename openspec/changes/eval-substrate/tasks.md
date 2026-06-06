@@ -10,7 +10,7 @@
 - [x] 2.1 Implement the centralized `fetch_bytes` replay patch (`harness.patch_fetch_bytes` rebinds every import site; `CassetteMiss` is a loud structured failure with the `make eval-refresh` hint on a miss).
 - [x] 2.2 Implement `make eval-capture URL=… Q=… CORPUS=… ID=…` — `eval/_capture/capture.py` runs the real in-process app live, tees every egress into `inputs/`, records answer + contract into `baseline/`, writes `meta.yaml`.
 - [x] 2.3 Implement `make eval-replay CORPUS=…` deterministic replay (drives `fetcher.fetch` with cassette resources; `tests/eval_replay/replay.py`).
-- [ ] 2.4 Seed the Hepsiburada listing case into a new `regression` corpus via capture; commit the cassette + blessed baseline. **(LIVE — pending a `make eval-capture` run.)**
+- [x] 2.4 Seeded the Hepsiburada listing case into the `regression` corpus via live capture (`eval/corpus/regression/hepsiburada-listing-price`): discovered through real a2web interaction (the `890 TL%21700 TL` fused-price class-C bug), frozen cassette + blessed deterministic baseline + correct reference answer.
 - [x] 2.5 Deterministic contract test wired into `make check`: `tests/eval_replay/test_selftest_corpus.py` replays the `_selftest` corpus and asserts `contract.json` (proven offline; the `regression` test follows the same shape once 2.4 captures it).
 
 ## 3. Browser-tier capture + override
@@ -23,7 +23,7 @@
 
 - [x] 4.1 Implement `CassetteLlm` (`harness.py`) serving a recorded provider response from `inputs/llm/*.json`; capture-side `_TeeExtractor` records it.
 - [ ] 4.2 Decide and document the LLM-recording key (prompt-hash vs (url, tier)) so it coexists with the `EXTRACT_*` cache prefix (coordinate with change `multi-source-extraction-input`). **(MVP uses a single recorded response per case; multi-call keying deferred to the first multi-LLM-call case.)**
-- [ ] 4.3 Extend the deterministic contract test to assert byte-exact answer + exact token cost under full LLM replay. **(Lands with the first `ask` regression case — needs 2.4's live LLM recording.)**
+- [x] 4.3 Deterministic test asserts byte-exact answer + exact token cost under full LLM replay (`test_regression_corpus.py::test_llm_egress_is_reproduced_byte_for_byte`): two replays are identical and the answer equals the recorded egress.
 
 ## 5. Breaking corpus + refresh/bless
 
@@ -38,7 +38,7 @@
 
 ## 7. Validate the instrument + wrap
 
-- [ ] 7.1 Prove the substrate works end-to-end: replay the Hepsiburada regression case deterministically twice and confirm byte-identical answer/tier/token output.
-- [ ] 7.2 Update `docs/architecture/extraction-fidelity-program.md` Status: `eval-substrate` landed; record it as the precondition that unblocks confirming ADR-0004–0007.
-- [ ] 7.3 Update `CHANGELOG.md` and the `test-layout` / `output-benchmark` capability docs to reflect the corpus/replay homes and the make-check vs make-bench rule.
-- [ ] 7.4 Run `make check` green (lint + ty + test-cov + arch).
+- [x] 7.1 Proved end-to-end: the Hepsiburada regression case replays deterministically twice with byte-identical answer/tier/token output.
+- [x] 7.2 Updated `docs/architecture/extraction-fidelity-program.md` Status: `eval-substrate` landed + regression case seeded; ADR-0004–0007 unblocked.
+- [x] 7.3 Updated `CHANGELOG.md` with the eval-substrate entry (corpus/replay homes + make-check vs make-bench rule).
+- [x] 7.4 `make check` green (lint + ty + test-cov + arch).

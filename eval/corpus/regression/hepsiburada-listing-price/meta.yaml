@@ -1,0 +1,12 @@
+captured_at: '2026-06-06T23:05:23.761234+00:00'
+source_url: https://www.hepsiburada.com/ara?q=bluetooth+kulaklik
+layers:
+  raw:
+    frozen: true
+    exchanges: 1
+  browser:
+    frozen: false
+    bytes: 0
+  llm:
+    frozen: true
+content_sha256: 54e708ef8713e9501efb6ddb2bee6b2cd9a0ed916608a278b427b67da7f0bc77

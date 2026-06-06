@@ -1,0 +1,31 @@
+# REGRESSION — the case that motivated the extraction-fidelity program.
+#
+# Class C (structured data present but wrong). A Hepsiburada listing page
+# renders each discounted product as  <list> TL %<pct> <sale> TL  with no
+# delimiter, so the record renderer's value-blind text projection fuses the
+# discount badge into the price digits:  "890 TL%21700 TL". The downstream
+# extractor cannot recover list-vs-sale, answers with the LIST price as the
+# selling price, fabricates a list price out of the fused digits — and the
+# gate rubber-stamps it `confidence: high`. A lossy projection gated by a
+# value-blind proxy.
+#
+# This case asserts only its DETERMINISTIC shape under `make check` (it
+# passes today). Answer *correctness* is the LLM-judged axis under
+# `make bench`: it FAILS today and is the signal the fidelity program must
+# flip. See baseline/answer.md for the correct reference + today's wrong
+# answer, and docs/architecture/extraction-fidelity-program.md.
+slug: hepsiburada-listing-price
+url: https://www.hepsiburada.com/ara?q=bluetooth+kulaklik
+question: >-
+  What is the current selling price (the discounted price the customer pays
+  today) of the Lenovo E310 Beyaz True Wireless Stereo earphones?
+failure_class: C
+tags: [commerce]
+next_links_expected: true
+needs: [content]
+# Drift-resistant pass/fail rubric (prices rotate; the fidelity rule does not).
+criteria:
+  - "Reports the DISCOUNTED selling price, not the struck-through list price"
+  - "Does NOT report the list/original price as the price the customer pays"
+  - "Does NOT fabricate a list price by fusing the discount-percent badge into the price digits"
+  - "Correctly identifies the discount percentage if it states one"

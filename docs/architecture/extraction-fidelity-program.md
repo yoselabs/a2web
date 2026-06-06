@@ -5,6 +5,25 @@ upstream extraction is an optimization ladder) and ADR-0003 (the deterministic
 coarse-select / LLM-interpret seam). Born from the 2026-06-06 explore session that
 started with the `listing-offer-lift` bug and generalized it to a class.
 
+## Status
+
+- **Change 1 `eval-substrate` — instrument LANDED (2026-06-07).** The
+  egress-boundary replay harness is built, tested, and gates `make check`
+  (`eval/_capture/`, `tests/eval_replay/`). The motivating bug is frozen as
+  the first `regression` case, `eval/corpus/regression/hepsiburada-listing-price`:
+  a Hepsiburada listing renders discounted items as `890 TL%21700 TL`, the
+  record renderer's value-blind text projection fuses the −21% badge into the
+  price digits, and the extractor confidently answers with the **list** price
+  as the selling price (and fabricates a list price). This is the class —
+  *lossy projection gated by a value-blind proxy* — not just one site. The
+  deterministic shape gates `make check` today; answer correctness is the
+  judged axis that the fidelity program must flip. (Note: a prior JSON-LD
+  `ItemList` symptom-patch — see CHANGELOG — fixed the LD path only; this
+  case is the residual class bug on the record-extractor path.)
+- **Changes 2–5 — UNBLOCKED.** Each can now be measured before/after against
+  the substrate; their provisional ADRs (0004–0007) confirm only once proven
+  against a replayed regression delta.
+
 ## Governing ADRs (Accepted)
 
 - **ADR-0002** — Real surface is ground truth; optimization ladder with a fidelity debt.

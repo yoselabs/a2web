@@ -8,6 +8,30 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added — eval substrate (egress-boundary replay; instrument-first)
+
+- A multi-egress replay harness that freezes every external interaction at
+  its boundary — the `http_fetch.fetch_bytes` HTTP outcome, the
+  `BrowserPool`-rendered DOM, and the `LlmExtractorResource` response — and
+  re-runs the real orchestrator, gate, tier ladder, and escalation above it.
+  The LLM is a *recorded* egress (byte-exact answer + token cost), never a
+  fake. Lives in the non-packaged `eval/_capture/` (cassette format, corpus
+  loader, `make eval-capture` / `make eval-refresh`) and `tests/eval_replay/`
+  (deterministic replay + contract asserts); an arch fitness function
+  forbids `a2web.*` from importing the harness (evals are tests).
+- Cases split a frozen `inputs/` (snapshot of the world, MAY drift) from an
+  asserted `baseline/` (`contract.json` shape gates `make check`; `answer.md`
+  reference is the LLM-judged axis under `make bench`). `make eval-refresh`
+  re-captures inputs and shows a diff against the blessed baseline, blessing
+  only under `A2WEB_BLESS_EVAL=1` (mirrors `A2WEB_BLESS_CONTRACTS`). Fixtures
+  commit plain (git already zlib-packs; plain keeps the bless diff readable).
+- First `regression` case: `hepsiburada-listing-price`, discovered through
+  real a2web interaction. A Hepsiburada listing renders discounted items as
+  `890 TL%21700 TL`; the record renderer's value-blind text projection fuses
+  the −21% badge into the price digits and the extractor confidently answers
+  with the *list* price as the selling price. Frozen as the class-C anchor
+  for the extraction-fidelity program (`docs/architecture/extraction-fidelity-program.md`).
+
 ### Fixed — listing offer-lift (JSON-LD `ItemList` synthesis)
 
 - Product-listing pages whose data is JSON-LD `ItemList` + `Product.offers`

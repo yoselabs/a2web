@@ -1,0 +1,9 @@
+{
+  "answer": "890 TL (discounted from 1,700 TL original price, representing 48% off)",
+  "completion_tokens": 247,
+  "cost_usd": 0.03615475,
+  "latency_ms": 6539,
+  "model": "claude-haiku-4-5-20251001",
+  "prompt_tokens": 18289,
+  "template_name": "extract_router_v1"
+}

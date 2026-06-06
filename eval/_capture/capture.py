@@ -224,7 +224,21 @@ async def _run_capture(args: argparse.Namespace) -> int:
         f"  http exchanges: {len(artifacts.http)} | rendered DOM: "
         f"{'yes' if artifacts.rendered_html else 'no'} | llm: {'yes' if artifacts.llm else 'no'}"
     )
+    _warn_if_large(case_dir)
     return 0
+
+
+_LARGE_BUNDLE_BYTES = 1_000_000  # warn, never silently compress (D6)
+
+
+def _warn_if_large(case_dir: Path) -> None:
+    total = sum(p.stat().st_size for p in (case_dir / "inputs").rglob("*") if p.is_file())
+    if total > _LARGE_BUNDLE_BYTES:
+        print(
+            f"  warning: inputs/ is {total / 1_000_000:.1f} MB — large for a committed fixture. "
+            f"Fixtures commit plain (git zlib-packs them; gzip would kill the bless diff). "
+            f"If this is mostly inline page state you don't extract from, consider a leaner URL."
+        )
 
 
 def write_inputs(case_dir: Path, artifacts: CaptureArtifacts) -> None:
