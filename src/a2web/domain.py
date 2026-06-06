@@ -136,10 +136,10 @@ def _ld_json_to_markdown(data: dict | list) -> str:
             lines.append(_single_entity_md(entry, kind=str(t)))
         elif t == "ItemList":
             items = entry.get("itemListElement") or []
-            rows = [item.get("item", item) if isinstance(item, dict) else None for item in items]
-            rows = [r for r in rows if isinstance(r, dict)]
+            raw_rows = [item.get("item", item) if isinstance(item, dict) else None for item in items]
+            rows = [_normalize_commerce_row(r) for r in raw_rows if isinstance(r, dict)]
             if rows:
-                lines.append(_rows_to_md_table(rows, title="ItemList"))
+                lines.append(_render_rows(rows, title="ItemList"))
         elif t == "BreadcrumbList":
             items = entry.get("itemListElement") or []
             names = [it.get("name") for it in items if isinstance(it, dict) and it.get("name")]
@@ -151,7 +151,8 @@ def _ld_json_to_markdown(data: dict | list) -> str:
 def _framework_state_to_markdown(data: dict | list) -> str:
     rows = _find_product_or_item_list(data)
     if rows:
-        return _rows_to_md_table(rows, title="Listings")
+        rows = [_normalize_commerce_row(r) for r in rows]
+        return _render_rows(rows, title="Listings")
     return ""
 
 
@@ -219,6 +220,91 @@ def _single_entity_md(entry: dict, *, kind: str) -> str:
         elif isinstance(val, (str, int, float)):
             lines.append(f"- **{key}:** {val}")
     return "\n".join(lines)
+
+
+def _normalize_commerce_row(row: dict) -> dict:
+    """Promote nested schema.org commerce fields to top-level scalars so the
+    synth renderer can surface them: `offers.price` + `offers.priceCurrency`
+    → a combined `price` token (e.g. `3690 TRY`), `offers.url` → `url`, and
+    `aggregateRating.ratingValue` → `rating`. Flat-shaped rows (top-level
+    scalar `price`/`url`) and non-commerce rows pass through unchanged."""
+    if not isinstance(row, dict):
+        return row
+    out = dict(row)
+    offers = row.get("offers")
+    if isinstance(offers, dict):
+        price = offers.get("price")
+        if price is not None and out.get("price") is None:
+            currency = offers.get("priceCurrency")
+            out["price"] = f"{price} {currency}" if currency else str(price)
+        url = offers.get("url")
+        if url and not out.get("url"):
+            out["url"] = url
+    rating = row.get("aggregateRating")
+    if isinstance(rating, dict):
+        rv = rating.get("ratingValue")
+        if rv is not None and out.get("rating") is None:
+            out["rating"] = rv
+    return out
+
+
+def _is_commerce_shaped(rows: list[dict]) -> bool:
+    """A list is commerce-shaped when at least half its rows carry a (lifted)
+    `price` or `url` — the gate that routes to linked-record rendering."""
+    if not rows:
+        return False
+    hits = sum(1 for r in rows if isinstance(r, dict) and (r.get("price") is not None or r.get("url")))
+    return hits * 2 >= len(rows)
+
+
+def _render_rows(rows: list[dict], *, title: str) -> str:
+    """Render row-shaped data: linked records for commerce-shaped lists
+    (price/url preserved verbatim), the fixed-width table otherwise."""
+    if _is_commerce_shaped(rows):
+        return _rows_to_md_records(rows, title=title)
+    return _rows_to_md_table(rows, title=title)
+
+
+def _sanitize_link_text(text: str) -> str:
+    """Make a string safe as markdown link text: drop `[`/`]` (which would
+    terminate the link) and collapse any whitespace/newlines to single
+    spaces."""
+    return " ".join(str(text).replace("[", "").replace("]", "").split())
+
+
+def _rows_to_md_records(rows: list[dict], *, title: str) -> str:
+    """Render commerce rows as linked markdown records — one per item:
+    `- [name](url) — 3690 TRY ⭐ 4.7`. The url is never length-capped (unlike
+    the table's per-cell cap), so it stays verbatim for try_url drilldowns.
+    Absent fields are omitted; `image` is intentionally not rendered."""
+    lines: list[str] = []
+    for row in rows[:50]:  # cap synthetic output, matching _find_product_or_item_list
+        if not isinstance(row, dict):
+            continue
+        name = row.get("name") or row.get("headline") or row.get("title")
+        url = row.get("url")
+        if not name and not url:
+            continue
+        if url and name:
+            head = f"[{_sanitize_link_text(name)}]({url})"
+        elif name:
+            head = _sanitize_link_text(name)
+        else:
+            head = str(url)
+        extras: list[str] = []
+        price = row.get("price")
+        if price is not None and str(price) != "":
+            extras.append(str(price))
+        rating = row.get("rating")
+        if rating is not None and str(rating) != "":
+            extras.append(f"⭐ {rating}")
+        line = f"- {head}"
+        if extras:
+            line += " — " + " ".join(extras)
+        lines.append(line)
+    if not lines:
+        return ""
+    return f"### {title}\n\n" + "\n".join(lines)
 
 
 def _rows_to_md_table(rows: list[dict], *, title: str) -> str:

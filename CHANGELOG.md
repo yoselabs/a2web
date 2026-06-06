@@ -8,6 +8,23 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed — listing offer-lift (JSON-LD `ItemList` synthesis)
+
+- Product-listing pages whose data is JSON-LD `ItemList` + `Product.offers`
+  (e.g. Hepsiburada) no longer extract to a useless answer. The synthetic-
+  markdown adapter (`domain.json_to_markdown_rows`) previously dropped every
+  nested field — for a `Product` row only `name` + `image` survived, so the
+  extractor saw no prices and no product URLs, could not answer price
+  questions, could not emit `try_url` drilldowns, and mislabeled a data-rich
+  page as `obstacle: empty`. The adapter now lifts `offers.price` +
+  `offers.priceCurrency` (combined, e.g. `3690 TRY`), `offers.url`, and
+  `aggregateRating.ratingValue`, and renders commerce-shaped lists as linked
+  markdown records (`- [name](url) — 3690 TRY ⭐ 4.7`) with the product URL
+  preserved verbatim and un-truncated. The `image` field is dropped (token
+  noise). Non-commerce `ItemList` payloads keep the existing table rendering.
+  Scope: JSON-LD shape only — non-LD app-state (Trendyol/Yandex) and
+  bot-walled raw (Amazon) are separate, tracked changes.
+
 ### Added — Constitution + cross-surface lint stack (from a2kit)
 
 - **`CONSTITUTION.md`** — verbatim copy of a2kit's Constitution (the
@@ -36,7 +53,7 @@ REGO-PYPROJECT-UPPER-BOUND. Three pre-existing pymarkdown violations
 ### Changed — a2kit v0.41.1 upgrade
 
 - Bump `a2kit>=0.41,<1` (pinned to `v0.41.1`). The Rego policy bundle
-  + AST fact extractor now ship inside the package; a2web's vendored
+  and AST fact extractor now ship inside the package; a2web's vendored
   `policies/*.rego` and `scripts/extract_facts.py` (~1000 LOC) deleted.
   `policies/data.json` (project allowlist) is now the only Rego file
   a2web ships. `uv run a2kit lint rego src/ pyproject.toml` invocation
