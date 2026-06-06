@@ -1,9 +1,9 @@
 {
-  "answer": "890 TL (discounted from 1,700 TL original price, representing 48% off)",
-  "completion_tokens": 247,
-  "cost_usd": 0.03615475,
-  "latency_ms": 6539,
+  "answer": "700 TL. The listing shows \"890 TL %21 700 TL\" \u2014 the original price of 890 TL with a 21% discount brings the current selling price to 700 TL.",
+  "completion_tokens": 187,
+  "cost_usd": 0.0101002,
+  "latency_ms": 4536,
   "model": "claude-haiku-4-5-20251001",
-  "prompt_tokens": 18289,
+  "prompt_tokens": 14044,
   "template_name": "extract_router_v1"
 }

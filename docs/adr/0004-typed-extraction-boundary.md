@@ -1,11 +1,23 @@
 # ADR-0004 — Typed extraction boundary
 
-**Status:** Accepted (provisional) · **Confirm-by:** change `typed-extraction-boundary`
+**Status:** Accepted (`record_extract` half, 2026-06-07) · `json-extract` half provisional · **Confirm-by (json-extract):** a future change gated by a captured `json-extract` regression
 **Date:** 2026-06-06
 **Supersedes:** —
 **Superseded by:** —
 
-> **Provisional ADR.** This records the *direction* agreed in the 2026-06-06 explore session. It is confirmed, revised, or superseded when its owning change lands and is validated against the eval substrate (ADR-0002). The change's `tasks.md` carries an explicit "reconfirm/update this ADR" task. Do not treat it as settled until then.
+> **Confirmation note (2026-06-07).** The change `typed-extraction-boundary`
+> landed the **`record_extract` half** and validated it against the eval
+> substrate: the frozen class-C regression `regression/hepsiburada-listing-price`
+> flipped from the list price (890, fabricated 1,700, fake 48%) to the correct
+> discounted price (700, 21% off) once the value-blind no-separator projection
+> in `_own_text` was eliminated. Empirical finding: **node-separation alone was
+> sufficient** to flip the judged answer; strikethrough-markup preservation
+> helps tag-based sites but does not fire on Hepsiburada (CSS `line-through`,
+> not `<del>`), so the CSS-styled-strikethrough case is handed to ADR-0007
+> (`real-surface-grounding`). The **`json-extract` half** (typing the schema.org
+> subset on the JSON-LD adapter path) remains provisional — same class, a
+> different projection site with no captured regression yet — re-pointed to its
+> own future instrument-gated change rather than fixed blind.
 
 ## Context
 

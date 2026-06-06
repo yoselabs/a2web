@@ -8,6 +8,24 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed — record_extract value-blind projection (list-vs-sale fidelity)
+
+- Listing records whose price cell rendered adjacent inline values with no
+  separating whitespace (`<del>890 TL</del><span>%21</span><span>700 TL</span>`)
+  no longer fuse into a single token. `record_extract._own_text` previously
+  flattened a record's descendant text with a no-separator join, producing
+  `890 TL%21700 TL`; the extractor then reported the **list** price as the
+  selling price and fabricated a list price from the fused digits, at
+  `confidence: high`. The projection now separates distinct DOM text nodes at
+  element boundaries (content-agnostic — no price/percent special-casing) and
+  preserves strikethrough markup (`<del>`/`<s>`/`<strike>` → markdown `~~…~~`)
+  so a struck list price is distinguishable from the live sale price. Validated
+  against the frozen regression `eval/corpus/regression/hepsiburada-listing-price`:
+  the answer flipped from "890 TL … 1,700 TL list, 48% off" to the correct
+  "700 TL, discounted 21% from 890 TL". Executes ADR-0003 and confirms the
+  `record_extract` half of ADR-0004. (CSS-`line-through` struck prices without a
+  semantic tag remain future work under ADR-0007.)
+
 ### Added — eval substrate (egress-boundary replay; instrument-first)
 
 - A multi-egress replay harness that freezes every external interaction at

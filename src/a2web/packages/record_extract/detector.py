@@ -84,16 +84,43 @@ def _collapse(text: str) -> str:
     return " ".join(text.split())
 
 
+# Strikethrough tags — their text is a superseded value (e.g. an original/list
+# price crossed out). Marked as markdown `~~…~~` so the projection preserves the
+# list-vs-sale distinction for the extractor instead of flattening it away.
+_STRIKE_TAGS = frozenset({"del", "s", "strike"})
+
+
+def _apply_markup(el: lxml.html.HtmlElement, text: str) -> str:
+    """Wrap answer-bearing markup so it survives the text projection."""
+    if isinstance(el.tag, str) and el.tag in _STRIKE_TAGS and text.strip():
+        return f"~~{text}~~"
+    return text
+
+
 def _own_text(el: lxml.html.HtmlElement, record_sig: _Signature) -> str:
     """Concatenated text of `el`'s own scope — descending into children but
     pruning any nested same-signature child-record subtree (its text belongs
-    to that child's own scope, not the parent's)."""
+    to that child's own scope, not the parent's).
+
+    A separator is inserted at **element boundaries** when two adjacent
+    contributions would otherwise fuse (neither side carries whitespace), so
+    distinct inline values — a price and an abutting discount badge — stay
+    distinguishable. Text-flow continuity is preserved: an element's tail text
+    concatenates normally (`<b>Hel</b>lo` stays `Hello`); only element
+    contributions are guarded. This is the structural elimination of the
+    value-blind no-separator projection (ADR-0003); it is content-agnostic —
+    no branch inspects whether a fragment looks like a price or percentage.
+    """
     parts: list[str] = []
     if el.text:
         parts.append(el.text)
     for child in el:
         if isinstance(child.tag, str) and _signature(child) != record_sig:
-            parts.append(_own_text(child, record_sig))
+            child_text = _apply_markup(child, _own_text(child, record_sig))
+            if child_text:
+                if parts and not parts[-1][-1:].isspace() and not child_text[:1].isspace():
+                    parts.append(" ")
+                parts.append(child_text)
         if child.tail:
             parts.append(child.tail)
     return "".join(parts)

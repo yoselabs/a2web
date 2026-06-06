@@ -39,7 +39,7 @@ async def test_llm_egress_is_reproduced_byte_for_byte(monkeypatch: pytest.Monkey
     case = _CASES[0]
     first = await replay_case(monkeypatch, case)
     second = await replay_case(monkeypatch, case)
-    assert first == second  # tier path, token cost, answer all identical
+    assert first == second  # tier path, token cost, content, answer all identical
 
     recorded = json.loads((case.path / "inputs" / "llm" / "extract.json").read_text())["answer"]
     assert first["answer"] == recorded  # served from the cassette, not re-sampled

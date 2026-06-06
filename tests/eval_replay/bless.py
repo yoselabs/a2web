@@ -39,9 +39,23 @@ def curate_contract(observed: dict[str, Any]) -> dict[str, Any]:
     return contract
 
 
+# Hand-authored *intent* keys — assertions about the projection, not observed
+# values. Bless carries them forward verbatim so a re-bless never silently
+# drops a case's acceptance gate.
+_INTENT_KEYS = ("content_includes", "content_excludes", "answer_contains")
+
+
 def bless_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
-    """Write the curated contract to the case's `baseline/contract.json`."""
+    """Write the curated contract to the case's `baseline/contract.json`.
+
+    Observed (shape) keys are recomputed from the replay; hand-authored intent
+    keys (`content_includes`/`content_excludes`/`answer_contains`) are preserved
+    from the prior baseline so a re-bless cannot drop an acceptance assertion.
+    """
     baseline_dir = case.path / "baseline"
     baseline_dir.mkdir(parents=True, exist_ok=True)
     contract = curate_contract(observed)
+    for key in _INTENT_KEYS:
+        if key in case.baseline.contract:
+            contract[key] = case.baseline.contract[key]
     (baseline_dir / "contract.json").write_text(json.dumps(contract, indent=2, sort_keys=True) + "\n")

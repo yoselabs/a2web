@@ -12,12 +12,25 @@ into the number.)
 
 ---
 
-## Today's answer (WRONG — the regression this case documents)
+## History
+
+**Before `typed-extraction-boundary` (the regression this case captured):**
 
 > 890 TL (discounted from 1,700 TL original price, representing 48% off)
 
-Three failures in one: reports the **list** price (890) as the selling
-price, **fabricates** a 1,700 TL list price out of the fused `%21700`
-digits, and invents a 48% discount — all at `confidence: high`. The
-extraction-fidelity program (ADR-0003 extraction seam, ADR-0007 real-surface
-grounding) must flip this to the reference above.
+Three failures in one — reported the **list** price (890) as the selling
+price, **fabricated** a 1,700 TL list from the fused `%21700` digits, and
+invented a 48% discount, all at `confidence: high`. Root cause: the
+`record_extract` projection (`_own_text`) concatenated adjacent DOM text nodes
+with no separator, fusing `890 TL` + `%21` + `700 TL` into `890 TL%21700 TL`.
+
+**After `typed-extraction-boundary` (node-separation fix, validated live):**
+
+> 700 TL. The listing shows "890 TL %21 700 TL" — the original price of 890 TL
+> with a 21% discount brings the current selling price to 700 TL.
+
+Un-fusing the projection was sufficient to flip the answer — the extractor now
+reads the separated values correctly and even cites them. The struck-price is
+CSS `line-through` (not a `<del>` tag), so the markdown-strikethrough mark does
+not fire here; the deeper rendered-surface grounding for CSS-styled
+strikethrough remains future work (ADR-0007 / `real-surface-grounding`).

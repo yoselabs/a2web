@@ -20,9 +20,21 @@ started with the `listing-offer-lift` bug and generalized it to a class.
   judged axis that the fidelity program must flip. (Note: a prior JSON-LD
   `ItemList` symptom-patch — see CHANGELOG — fixed the LD path only; this
   case is the residual class bug on the record-extractor path.)
-- **Changes 2–5 — UNBLOCKED.** Each can now be measured before/after against
-  the substrate; their provisional ADRs (0004–0007) confirm only once proven
-  against a replayed regression delta.
+- **Change 2 `typed-extraction-boundary` — `record_extract` half LANDED
+  (2026-06-07).** The value-blind no-separator projection in
+  `record_extract._own_text` is eliminated: distinct DOM text nodes are
+  separated at element boundaries (and strikethrough tags marked as markdown
+  `~~…~~`). Validated against the frozen regression: the judged answer flipped
+  from the list price (890, fabricated 1,700, fake 48%) to the correct
+  discounted price (700, 21% off). Empirical finding recorded in ADR-0004 —
+  **node-separation alone sufficed** to flip the case; Hepsiburada's
+  CSS-`line-through` struck price (not a `<del>` tag) is handed to ADR-0007.
+  The `json-extract` typed-schema.org half of ADR-0004 is deferred to its own
+  instrument-gated change (no captured regression yet — don't fix blind).
+- **Changes 3–5 — UNBLOCKED.** Each measured before/after against the
+  substrate; provisional ADRs (0005–0007) confirm only once proven against a
+  replayed regression delta. ADR-0007 now also owns CSS-styled-strikethrough
+  list/sale grounding (surfaced by change 2).
 
 ## Governing ADRs (Accepted)
 

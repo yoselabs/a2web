@@ -11,6 +11,7 @@ dict against the case's blessed `baseline/contract.json`.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 from a2kit.testing import lazy as lazy_value
@@ -45,14 +46,22 @@ async def replay_case(monkeypatch: pytest.MonkeyPatch, case: ReplayCase) -> dict
     return observe(response)
 
 
+_FETCHED_AT_RE = re.compile(r"fetched_at=[0-9T:+\-Z]+")
+
+
 def observe(response: Any) -> dict[str, Any]:
     """Project a `FetchResponse` into the deterministic, replay-stable fields."""
     status = getattr(response.status, "value", response.status)
+    # The content wrapper embeds a wall-clock `fetched_at=`; scrub it so the
+    # projection is byte-stable across replays (the body itself is deterministic
+    # from frozen bytes).
+    content_md = _FETCHED_AT_RE.sub("fetched_at=<scrubbed>", response.content_md or "")
     return {
         "tier": response.tier,
         "status": status,
         "has_content": bool(response.content_md),
         "content_len": len(response.content_md or ""),
+        "content_md": content_md,
         "answer": response.extracted_answer,
         "answer_present": bool(response.extracted_answer),
         "tokens_full": response.tokens.full if response.tokens else 0,
@@ -76,8 +85,12 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
       tokens_full_max            observed tokens_full <= value
       next_links_min             observed next_links_count >= value
       operator_hints             exact sorted list
+      content_includes           every listed substring IS in content_md
+      content_excludes           no listed substring is in content_md
 
     Deterministic axes only — answer *quality* is judged under `make bench`.
+    `content_includes` / `content_excludes` assert the projection itself (from
+    frozen bytes, no LLM) — the offline gate for the extraction-fidelity fixes.
     """
     contract = case.baseline.contract
     if not contract:
@@ -104,6 +117,16 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
         elif key == "operator_hints":
             if observed.get("operator_hints") != list(expected):
                 failures.append(f"operator_hints: expected {expected!r}, got {observed.get('operator_hints')!r}")
+        elif key == "content_includes":
+            content = observed.get("content_md") or ""
+            for needle in expected:
+                if str(needle) not in content:
+                    failures.append(f"content_includes: {needle!r} not in projected content")
+        elif key == "content_excludes":
+            content = observed.get("content_md") or ""
+            for needle in expected:
+                if str(needle) in content:
+                    failures.append(f"content_excludes: fused/forbidden token {needle!r} present in projected content")
         else:
             failures.append(f"unknown contract key {key!r}")
 
