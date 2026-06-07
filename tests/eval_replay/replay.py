@@ -31,8 +31,9 @@ async def replay_case(monkeypatch: pytest.MonkeyPatch, case: ReplayCase) -> dict
     """Replay one case deterministically and return its observed contract."""
     patch_fetch_bytes(monkeypatch, case)
     state = make_default_state()
+    cassette_llm = CassetteLlm(case)
     browser_lazy = lazy_value(CassetteBrowserPool(case))
-    llm_lazy = lazy_value(CassetteLlm(case))
+    llm_lazy = lazy_value(cassette_llm)
 
     response = await fetcher.fetch(
         case.url,
@@ -43,25 +44,32 @@ async def replay_case(monkeypatch: pytest.MonkeyPatch, case: ReplayCase) -> dict
         next_links=True,
         debug=True,
     )
-    return observe(response)
+    return observe(response, input_menu=cassette_llm.last_extract_content)
 
 
 _FETCHED_AT_RE = re.compile(r"fetched_at=[0-9T:+\-Z]+")
 
 
-def observe(response: Any) -> dict[str, Any]:
-    """Project a `FetchResponse` into the deterministic, replay-stable fields."""
+def observe(response: Any, *, input_menu: str | None = None) -> dict[str, Any]:
+    """Project a `FetchResponse` into the deterministic, replay-stable fields.
+
+    `input_menu` is the exact content string the extractor (Haiku) was fed —
+    captured by the cassette spy. The fidelity gate asserts against this (the
+    menu), independent of the wire `content_md` (ADR-0005 D7).
+    """
     status = getattr(response.status, "value", response.status)
     # The content wrapper embeds a wall-clock `fetched_at=`; scrub it so the
     # projection is byte-stable across replays (the body itself is deterministic
     # from frozen bytes).
     content_md = _FETCHED_AT_RE.sub("fetched_at=<scrubbed>", response.content_md or "")
+    menu = _FETCHED_AT_RE.sub("fetched_at=<scrubbed>", input_menu) if input_menu else ""
     return {
         "tier": response.tier,
         "status": status,
         "has_content": bool(response.content_md),
         "content_len": len(response.content_md or ""),
         "content_md": content_md,
+        "input_menu": menu,
         "answer": response.extracted_answer,
         "answer_present": bool(response.extracted_answer),
         "tokens_full": response.tokens.full if response.tokens else 0,
@@ -87,10 +95,14 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
       operator_hints             exact sorted list
       content_includes           every listed substring IS in content_md
       content_excludes           no listed substring is in content_md
+      input_menu_includes        every listed substring IS in the extractor menu
+      input_menu_excludes        no listed substring is in the extractor menu
 
     Deterministic axes only — answer *quality* is judged under `make bench`.
-    `content_includes` / `content_excludes` assert the projection itself (from
-    frozen bytes, no LLM) — the offline gate for the extraction-fidelity fixes.
+    `content_includes` / `content_excludes` assert the wire projection itself
+    (from frozen bytes, no LLM). `input_menu_includes` / `input_menu_excludes`
+    assert what the extractor (Haiku) was actually fed — the offline gate for
+    the multi-source-menu fix (ADR-0005 D7), independent of the wire.
     """
     contract = case.baseline.contract
     if not contract:
@@ -127,6 +139,16 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
             for needle in expected:
                 if str(needle) in content:
                     failures.append(f"content_excludes: fused/forbidden token {needle!r} present in projected content")
+        elif key == "input_menu_includes":
+            menu = observed.get("input_menu") or ""
+            for needle in expected:
+                if str(needle) not in menu:
+                    failures.append(f"input_menu_includes: {needle!r} not in the content fed to the extractor")
+        elif key == "input_menu_excludes":
+            menu = observed.get("input_menu") or ""
+            for needle in expected:
+                if str(needle) in menu:
+                    failures.append(f"input_menu_excludes: forbidden token {needle!r} present in extractor input")
         else:
             failures.append(f"unknown contract key {key!r}")
 

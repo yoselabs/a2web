@@ -18,35 +18,43 @@ The frozen LLM answer below is **wrong**:
 > listing/homepage … To find calorie and sugar content, you must click
 > into individual recipe pages."
 
-### Mechanism — the volume gate clobbers the answer-bearing content
+### Mechanism — a COMPOUND failure (instrument finding, 2026-06-07)
 
-This is the ADR-0005 class: **mutually-exclusive single-source selection
-gated by a value-blind length proxy**. On this page:
+Building the eval substrate before fixing earned this: the case needs
+**two** fixes, and the menu (ADR-0005) alone does **not** flip it. The
+answer (`268 calories`, `24 grams sugar`) lives in `Recipe` JSON-LD
+payload [2] (`nutrition: {@type: NutritionInformation, calories:
+"268 calories", sugarContent: "24 grams sugar", …}`) — but no extraction
+rung surfaces it:
 
-1. `trafilatura` extracts the real recipe prose (ingredients, nutrition,
-   method) — `fc.headings` still proves it: `Ingredients`, `Nutrition`,
-   `Method`, `step 1–7`, FAQ.
-2. `_escalate_via_records` **false-fires on the sidebar widgets** (Almond
-   butter / Plum & raspberry jam / Cappuccino / app promo / subscription /
-   podcast), rendering them as a 6-record "Listing".
-3. The volume gate (`fetcher.py:1133`, `len(synthetic) > original_len`)
-   lets that longer sidebar render **replace** the real recipe content.
-4. The extractor only ever sees the sidebar junk → answers that the page
-   has no nutrition and is "a listing".
+1. `trafilatura` mis-selects the **sidebar** (Almond butter / Plum &
+   raspberry jam / Cappuccino / promos) as the main content — a
+   content-selection miss. The recipe prose (and its nutrition) is dropped.
+   `fc.headings` still parses `Ingredients`/`Nutrition`/`Method`, proving
+   the real structure was seen.
+2. `_escalate_via_json` renders only the **top-ranked** payload (the
+   sidebar `ItemList`) then `break`s — the `Recipe` payload [2] is never
+   reached. *The same value-blind single-source sin, one level down inside
+   the JSON rung.* → ADR-0005 (change #3: emit ALL renderable payloads).
+3. `json_to_markdown_rows(Recipe)` returns `""` — it only knows `ItemList`,
+   so even reaching payload [2] yields nothing. → ADR-0004 json half
+   (render the answer-bearing schema.org subset incl. `NutritionInformation`).
+4. `_escalate_via_records` false-fires on the sidebar again.
 
-Two independent defects compound: the record detector's sidebar
-false-positive (a real-surface precision issue), and the volume gate's
-single-source replacement (the ADR-0005 class). The **menu** fix
-(ADR-0005 — feed prose + JSON-LD + records *together*, let the LLM choose)
-makes the system robust to the first by curing the second: even when a
-junk source is detected, the answer-bearing sources survive in the input
-and the LLM picks `268 kcal`.
+So the extractor menu carries three flavors of "sidebar" and never `268`.
 
-### Expected flip after change #3 (`multi-source-extraction-input`)
+### Scope (decided 2026-06-07)
 
-The extractor input includes the Recipe / NutritionInformation payload
-(and/or the DOM nutrition prose) → the judged answer flips from
-"no nutrition, it's a listing" to "268 kcal, 34g sugar". The precise
-deterministic projection assertion is pinned by that change's tasks,
-alongside the wire-envelope decision (which candidate `content_md`
-surfaces).
+- **Change #3 `multi-source-extraction-input` (ADR-0005)** delivers the menu
+  + JSON-rung-emits-all-payloads. It makes the system *robust* to junk
+  sources but **cannot** flip this case alone (the Recipe is unrenderable).
+  This case is therefore NOT change #3's deterministic gate.
+- **Change #4 (ADR-0004 json half)** teaches `json_to_markdown_rows` to
+  render `Recipe`/`NutritionInformation`. THEN this case flips: the menu
+  carries `268 calories` / `24 grams sugar`, and the judged answer goes
+  from "no nutrition, it's a listing" to the correct value. The
+  `input_menu_includes: ["268", "kcal"]` RED assertion is added by change #4.
+
+Until then this case documents the unfixed bug (the frozen cassette records
+the wrong answer) while passing the deterministic shape gate — the
+intended "captured regression awaiting its fix" state.

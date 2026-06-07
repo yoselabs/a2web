@@ -711,6 +711,25 @@
           "title": "Confidence",
           "type": "string"
         },
+        "ContentCandidateWire": {
+          "description": "One extraction-input candidate as it appears under `debug` (ADR-0005).\n\nMirrors the internal `fetcher.ContentCandidate` for the wire: `source`\nnames the rung (`trafilatura` / `json_synth` / `record_synth`),\n`content_md` is exactly the rendered block fed into the extractor menu.\nDebug-only \u2014 surfaces the menu Haiku saw, so the fix is inspectable\nwithout changing the default envelope.",
+          "properties": {
+            "content_md": {
+              "title": "Content Md",
+              "type": "string"
+            },
+            "source": {
+              "title": "Source",
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "content_md"
+          ],
+          "title": "ContentCandidateWire",
+          "type": "object"
+        },
         "Diagnostic": {
           "description": "One row of the diagnostics table \u2014 a tier or stage step.\n\n`subsystem` carries the anti-bot family identifier (cloudflare, datadome,\nanubis\u2026) when `verdict == anti_bot`; None otherwise.",
           "properties": {
@@ -1129,6 +1148,13 @@
         "cache": "<volatile>",
         "confidence": {
           "$ref": "#/$defs/Confidence"
+        },
+        "content_candidates": {
+          "items": {
+            "$ref": "#/$defs/ContentCandidateWire"
+          },
+          "title": "Content Candidates",
+          "type": "array"
         },
         "content_md": {
           "default": "",

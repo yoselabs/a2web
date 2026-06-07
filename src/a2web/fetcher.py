@@ -162,6 +162,9 @@ class ContentCandidate:
     source: Literal["trafilatura", "json_synth", "record_synth"]
     content_md: str
     next_links: list[NextLink] = field(default_factory=list)
+    # Threaded record renders carry structure trafilatura flattens away — the
+    # one non-length quality signal that overrides prose for the display pick.
+    is_threaded: bool = False
 
 
 @_dc(slots=True)
@@ -287,6 +290,11 @@ class FetchContext:
 
     # Extraction outputs
     content_md: str = ""
+    # The multi-source menu (ADR-0005): every rung that produced output
+    # (prose + json_synth + record_synth), collected immutably instead of
+    # collapsed to a single length-gated winner. Fed in full to the extractor;
+    # `content_md` is the quality-picked display default drawn from it.
+    content_candidates: list[ContentCandidate] = field(default_factory=list)
     title: str | None = None
     byline: str | None = None
     published: date | None = None
@@ -1058,71 +1066,158 @@ async def _phase_extract(fc: FetchContext) -> None:
 
 
 async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None:
-    """Multi-source structured-extraction ladder — runs unconditionally.
+    """Collect every structured-extraction source into the menu (ADR-0005).
 
-    Each rung returns an immutable `ContentCandidate | None` instead of
-    mutating `fc.content_md`. This function applies the winning candidate
-    once at the end — single assignment point per pipeline invocation.
-
-    Sources are tried in order: json_synth first, then record_synth.
-    The ladder stops at the first whose candidate beats the baseline (the
-    json escalator's length check, or the records escalator's
-    threading-aware-for-records / length-aware-for-flat policy). When no
-    rung produces a winning candidate, `content_md` is left unchanged and
-    the cascade falls through, so the orchestrator's browser-tier
-    escalation still applies.
+    No single-winner selection and no value-blind length proxy (retired —
+    was: a source replaced `content_md` only when its render was *longer*,
+    so a short-but-correct payload silently lost, and a longer *wrong* one
+    clobbered the answer-bearing content). Instead: trafilatura prose plus
+    every rung that produced output are collected immutably into
+    `fc.content_candidates` (fixed order prose → json_synth → record_synth).
+    The extractor is fed the whole menu; the wire `content_md` is the
+    quality-picked display default (threaded records, else prose, else first
+    structured — never the longest). Each rung still self-gates on its own
+    preconditions, so a clean article yields only the prose candidate and
+    the cascade still falls through to the browser tier.
     """
-    original_len = len(fc.content_md or "")
-    candidate = await _escalate_via_json(fc, raw_html=raw_html, original_len=original_len)
-    if candidate is None:
-        candidate = await _escalate_via_records(fc, raw_html=raw_html, original_len=original_len)
-    if candidate is not None:
-        fc.content_md = candidate.content_md
-        if candidate.next_links:
-            fc.next_links_handler = candidate.next_links
+    candidates: list[ContentCandidate] = []
+    if fc.content_md:
+        candidates.append(ContentCandidate(source="trafilatura", content_md=fc.content_md))
+    candidates.extend(await _escalate_via_json(fc, raw_html=raw_html))
+    record_candidate = await _escalate_via_records(fc, raw_html=raw_html)
+    if record_candidate is not None:
+        candidates.append(record_candidate)
+
+    fc.content_candidates = candidates
+    fc.content_md = _pick_display_candidate(candidates)
+    for cand in candidates:
+        if cand.next_links:
+            fc.next_links_handler = cand.next_links
+            break
 
 
-async def _escalate_via_json(fc: FetchContext, *, raw_html: str, original_len: int) -> ContentCandidate | None:
-    """Ladder source 1 — embedded JSON (incl. JSON-LD).
+def _pick_display_candidate(candidates: list[ContentCandidate]) -> str:
+    """Wire `content_md` default — preserves the pre-ADR-0005 selection.
 
-    Returns a `ContentCandidate` if its synthetic output beats the baseline
-    (length-aware: structured JSON payloads are page data, not chrome). Pure
-    function — emits its LDD telemetry but does NOT mutate `fc.content_md`.
+    The envelope decision (signed off 2026-06-07) is that the DEFAULT wire is
+    unchanged: only the extractor's *input* becomes the menu. So this keeps the
+    legacy rule byte-for-byte — `json_synth` replaces prose when longer; else a
+    record set replaces when threaded OR longer; else prose — so parsers and
+    change #2's record-projection wire gate see no change. The full menu still
+    reaches Haiku via `assemble_menu`; the retired length proxy lives ONLY here
+    now (a display heuristic), no longer gating what the extractor sees.
+    """
+    prose = next((c for c in candidates if c.source == "trafilatura"), None)
+    prose_md = prose.content_md if prose is not None else ""
+    json_c = next((c for c in candidates if c.source == "json_synth"), None)
+    if json_c is not None and len(json_c.content_md) > len(prose_md):
+        return json_c.content_md
+    rec = next((c for c in candidates if c.source == "record_synth"), None)
+    if rec is not None and (rec.is_threaded or len(rec.content_md) > len(prose_md)):
+        return rec.content_md
+    if prose_md:
+        return prose_md
+    other = next((c for c in candidates if c.content_md), None)
+    return other.content_md if other is not None else ""
+
+
+# Static, content-free section labels. Byte-stable so the assembled menu —
+# which IS the extractor's prompt-cache prefix (`cache_prefix = {content}`) —
+# is identical across different asks on one fetched page (ADR-0005 D2).
+_MENU_LABELS: dict[str, str] = {
+    "trafilatura": "## source: prose",
+    "json_synth": "## source: structured (json)",
+    "record_synth": "## source: structured (records)",
+}
+
+
+def assemble_menu(candidates: list[ContentCandidate]) -> str:
+    """Assemble the multi-source extractor input - the menu (ADR-0005 D1-D4).
+
+    Pure function of the candidate list: coarse subset-suppression (drop a
+    candidate whose normalized text is a strict substring of another's, and
+    exact duplicates), then deterministic concatenation with static labels in
+    priority order (prose, json, records). Records render last, so the
+    extractor's downstream tail-truncation cap drops the lowest-priority
+    source first (D3) — no separate cap pass here, keeping the menu byte-stable
+    across asks (D2). No timestamps / counts / identity / dict-order.
+    """
+    blocks: list[str] = []
+    for cand in _suppress_subsets(candidates):
+        if not cand.content_md:
+            continue
+        label = _MENU_LABELS.get(cand.source, f"## source: {cand.source}")
+        blocks.append(f"{label}\n\n{cand.content_md}")
+    return "\n\n".join(blocks)
+
+
+def _normalize_ws(text: str) -> str:
+    """Whitespace-collapsed form for robust substring comparison."""
+    return " ".join(text.split())
+
+
+def _suppress_subsets(candidates: list[ContentCandidate]) -> list[ContentCandidate]:
+    """Drop candidates that are a strict substring (or exact dup) of another.
+
+    Guards the 3-7x duplication when the same payload appears across
+    microdata / og / ld_json / records. Coarse only - semantic dedup is the
+    LLM's job (ADR-0003). Pure + order-preserving.
+    """
+    texts = [_normalize_ws(c.content_md) for c in candidates]
+    kept: list[ContentCandidate] = []
+    seen: set[str] = set()
+    for i, (norm, cand) in enumerate(zip(texts, candidates, strict=True)):
+        if not norm or norm in seen:
+            continue
+        if any(j != i and norm != texts[j] and norm in texts[j] for j in range(len(texts))):
+            continue
+        kept.append(cand)
+        seen.add(norm)
+    return kept
+
+
+async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[ContentCandidate]:
+    """Menu source — embedded JSON (incl. JSON-LD).
+
+    Returns one `ContentCandidate` per *renderable* payload, in rank order —
+    NOT just the top-ranked one (ADR-0005: collapsing the JSON source to a
+    single ranked payload, then `break`, was the same value-blind single-source
+    sin one level down; a non-top-ranked payload could hold the answer). No
+    length gate. Duplicate renders are suppressed. The display pick takes the
+    first (top-ranked) candidate, so the wire `content_md` stays legacy-stable;
+    the full set reaches the extractor via the menu. Pure function — emits LDD
+    telemetry, does NOT mutate `fc.content_md`.
     """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     await a2kit.ldd.event(StageStarted(t_ms=t_ms, step="json_synth"))
     payloads = extract_json_payloads(raw_html)
-    synthetic = ""
+    candidates: list[ContentCandidate] = []
+    seen: set[str] = set()
     for payload in rank_payloads(payloads):
         rendered = json_to_markdown_rows(payload)
-        if rendered:
-            synthetic = rendered
-            break
+        if rendered and rendered not in seen:
+            seen.add(rendered)
+            candidates.append(ContentCandidate(source="json_synth", content_md=rendered))
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
-    if synthetic and len(synthetic) > original_len:
-        await a2kit.ldd.event(
-            StageEnded(
-                t_ms=t_ms,
-                step="json_synth",
-                verdict=Verdict.ok,
-                dur_ms=dur_ms,
-                extra={"outcome": "replaced", "synth_chars": len(synthetic)},
-            )
+    outcome = "no_payloads" if not payloads else ("no_synth" if not candidates else "collected")
+    await a2kit.ldd.event(
+        StageEnded(
+            t_ms=t_ms,
+            step="json_synth",
+            verdict=Verdict.ok,
+            dur_ms=dur_ms,
+            extra={"outcome": outcome, "payloads": len(candidates)},
         )
-        return ContentCandidate(source="json_synth", content_md=synthetic)
-    outcome = "no_payloads" if not payloads else ("no_synth" if not synthetic else "kept_original")
-    await a2kit.ldd.event(StageEnded(t_ms=t_ms, step="json_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
-    return None
+    )
+    return candidates
 
 
-async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len: int) -> ContentCandidate | None:
-    """Ladder source 2 — structural record detection.
+async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCandidate | None:
+    """Menu source — structural record detection.
 
-    Returns a `ContentCandidate` (with `next_links`) when the record set
-    clears the threading-aware / length-aware policy. Threaded record sets
-    always beat trafilatura (which can't represent threading); flat record
-    sets beat only when their render is longer. Pure function — no mutation
-    of `fc.content_md` / `fc.next_links_handler`.
+    Returns a `ContentCandidate` (with `next_links` + the threaded flag)
+    whenever the detector produces a record set — no length gate (ADR-0005).
+    Pure function — no mutation of `fc.content_md` / `fc.next_links_handler`.
     """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     await a2kit.ldd.event(StageStarted(t_ms=t_ms, step="record_synth"))
@@ -1130,7 +1225,7 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
     if record_set is not None:
         synthetic = record_set.to_markdown()
-        if record_set.is_threaded or len(synthetic) > original_len:
+        if synthetic:
             next_links = _records_to_next_links(record_set, page_url=fc.final_url or "")
             await a2kit.ldd.event(
                 StageEnded(
@@ -1139,14 +1234,14 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str, original_len
                     verdict=Verdict.ok,
                     dur_ms=dur_ms,
                     extra={
-                        "outcome": "replaced",
+                        "outcome": "collected",
                         "records": len(record_set.records),
                         "threaded": record_set.is_threaded,
                     },
                 )
             )
-            return ContentCandidate(source="record_synth", content_md=synthetic, next_links=next_links)
-    outcome = "no_records" if record_set is None else "kept_original"
+            return ContentCandidate(source="record_synth", content_md=synthetic, next_links=next_links, is_threaded=record_set.is_threaded)
+    outcome = "no_records" if record_set is None else "no_synth"
     await a2kit.ldd.event(StageEnded(t_ms=t_ms, step="record_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
     return None
 
@@ -1478,8 +1573,14 @@ async def _phase_extract_answer(
         [_to_llm_next_link(nl) for nl in fc.next_links_handler] if request_next_links and fc.next_links_handler else None
     )
 
+    # Feed Haiku the full menu (prose + json_synth + record_synth), not the
+    # single quality-picked `content_md` (ADR-0005). The menu is assembled
+    # deterministically so the prompt-cache prefix stays byte-stable across
+    # asks. Handler/pre-rendered pages skip the escalation ladder, leaving
+    # `content_candidates` empty — fall back to `content_md` there.
+    menu = assemble_menu(fc.content_candidates) or fc.content_md
     result = await extractor_resource.extract(
-        content=fc.content_md,
+        content=menu,
         ask=fc.ask,
         request_next_links=request_next_links,
         handler_candidates=handler_candidates_for_llm,

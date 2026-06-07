@@ -148,6 +148,20 @@ class TokenCounts(BaseModel):
     full: int
 
 
+class ContentCandidateWire(BaseModel):
+    """One extraction-input candidate as it appears under `debug` (ADR-0005).
+
+    Mirrors the internal `fetcher.ContentCandidate` for the wire: `source`
+    names the rung (`trafilatura` / `json_synth` / `record_synth`),
+    `content_md` is exactly the rendered block fed into the extractor menu.
+    Debug-only — surfaces the menu Haiku saw, so the fix is inspectable
+    without changing the default envelope.
+    """
+
+    source: str
+    content_md: str
+
+
 # v0.21 — router-shape payload (pydantic mirrors of
 # `packages/llm_extract/router_payload.py` boundary types). Closed-enum Literal
 # types enforce the prompt's vocabulary at the API edge. Projection from the
@@ -278,6 +292,11 @@ class FetchResponse(BaseModel):
     # v0.4: present only when the caller passed `ask=`. None when ask is unset.
     extracted_answer: str | None = None
     extraction: ExtractionMeta | None = None
+    # Debug-only (ADR-0005): the multi-source menu fed to the extractor, one
+    # entry per candidate. Regrouped under `debug` by the serializer; absent on
+    # the default wire. Flat attribute for internal callers (the eval spy reads
+    # it); only the wire serializer nests it.
+    content_candidates: list[ContentCandidateWire] = Field(default_factory=list)
     # v0.21: populated when `ask=` was passed AND `include_routing=True` AND
     # the extractor returned a parseable router-shape envelope. Carried on
     # FetchResponse so the seam projector (`build_ask_response`) can lift it
@@ -345,7 +364,7 @@ _WIRE_DEVIATION = {"status": FetchStatus.ok.value, "tier": "raw"}
 
 # Debug-tier fields regrouped into a nested `debug` object on the wire.
 _ASK_DEBUG_FIELDS = frozenset({"started_at", "total_ms", "cache", "diagnostics", "extraction"})
-_FETCH_DEBUG_FIELDS = frozenset({"started_at", "total_ms", "cache", "tokens", "diagnostics", "extraction"})
+_FETCH_DEBUG_FIELDS = frozenset({"started_at", "total_ms", "cache", "tokens", "diagnostics", "extraction", "content_candidates"})
 
 
 def _next_links_tsv(links: list[NextLink]) -> str:

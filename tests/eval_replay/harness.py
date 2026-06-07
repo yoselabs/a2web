@@ -152,6 +152,11 @@ class CassetteLlm:
 
     def __init__(self, case: ReplayCase) -> None:
         self._case = case
+        # Spy: the exact `content` string the orchestrator fed the extractor on
+        # the last call — i.e. what Haiku saw. The deterministic fidelity gate
+        # asserts against THIS (the menu), not the wire `content_md` (ADR-0005
+        # D7: provability decoupled from the envelope).
+        self.last_extract_content: str | None = None
 
     async def _ensure(self) -> Any:
         return self
@@ -165,9 +170,11 @@ class CassetteLlm:
     async def __aexit__(self, *_: object) -> None:
         return None
 
-    async def extract(self, **_: object) -> Any:
+    async def extract(self, **kwargs: object) -> Any:
         from a2web.packages.llm_extract.extractor import ExtractionResult
 
+        content = kwargs.get("content")
+        self.last_extract_content = content if isinstance(content, str) else None
         records = self._case.inputs.llm
         if not records:
             raise CassetteMiss(self._case, tier="llm", detail="no recorded LLM response")

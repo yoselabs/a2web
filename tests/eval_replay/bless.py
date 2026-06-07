@@ -42,7 +42,7 @@ def curate_contract(observed: dict[str, Any]) -> dict[str, Any]:
 # Hand-authored *intent* keys — assertions about the projection, not observed
 # values. Bless carries them forward verbatim so a re-bless never silently
 # drops a case's acceptance gate.
-_INTENT_KEYS = ("content_includes", "content_excludes", "answer_contains")
+_INTENT_KEYS = ("content_includes", "content_excludes", "answer_contains", "input_menu_includes", "input_menu_excludes")
 
 
 def bless_contract(case: ReplayCase, observed: dict[str, Any]) -> None:

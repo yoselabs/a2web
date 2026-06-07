@@ -21,6 +21,7 @@ from .models import (
     AskResponse,
     CacheState,
     Confidence,
+    ContentCandidateWire,
     ExtractionMeta,
     FetchResponse,
     FetchStatus,
@@ -261,6 +262,9 @@ def build_response(fc: FetchContext) -> FetchResponse:
         next_links=_compose_next_links(fc),
         extracted_answer=fc.extracted_answer,
         extraction=fc.extraction_meta,
+        content_candidates=(
+            [ContentCandidateWire(source=c.source, content_md=c.content_md) for c in fc.content_candidates] if fc.debug else []
+        ),
         routing=_project_routing(fc.routing),
     )
 
