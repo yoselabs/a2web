@@ -1,0 +1,12 @@
+captured_at: '2026-06-07T10:12:28.839911+00:00'
+source_url: https://www.bbcgoodfood.com/recipes/brilliant-banana-loaf
+layers:
+  raw:
+    frozen: true
+    exchanges: 1
+  browser:
+    frozen: false
+    bytes: 0
+  llm:
+    frozen: true
+content_sha256: d08e406d5e1d8a04d63693839d490a566c2fdfd0c88e659d7a703d0a00075327
