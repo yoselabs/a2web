@@ -1,6 +1,9 @@
 {
   "answer_present": true,
   "has_content": true,
+  "input_menu_includes": [
+    "268 calories"
+  ],
   "status": "ok",
   "tier": "raw",
   "tokens_full_max": 2335

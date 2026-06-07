@@ -1,9 +1,9 @@
 {
-  "answer": "The page does not contain nutritional information. It is a recipe listing/homepage showing thumbnails of featured recipes (Almond butter, Plum & raspberry jam, Cappuccino) with ratings and brief descriptions, plus subscription prompts. To find calorie and sugar content, you must click into individual recipe pages.",
-  "completion_tokens": 568,
-  "cost_usd": 0.016026250000000002,
-  "latency_ms": 8711,
+  "answer": "Per serving (assuming 8-10 slices): **268 calories** and **24 grams sugar**. The recipe yields 8-10 slices total.",
+  "completion_tokens": 92,
+  "cost_usd": 0.01683675,
+  "latency_ms": 0,
   "model": "claude-haiku-4-5-20251001",
-  "prompt_tokens": 8775,
+  "prompt_tokens": 10401,
   "template_name": "extract_router_v1"
 }

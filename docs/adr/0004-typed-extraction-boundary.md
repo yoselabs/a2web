@@ -1,9 +1,27 @@
 # ADR-0004 — Typed extraction boundary
 
-**Status:** Accepted (`record_extract` half, 2026-06-07) · `json-extract` half provisional · **Confirm-by (json-extract):** a future change gated by a captured `json-extract` regression
+**Status:** Accepted — `record_extract` half (2026-06-07) AND `json-extract` half (2026-06-07)
 **Date:** 2026-06-06
 **Supersedes:** —
 **Superseded by:** —
+
+> **`json-extract` half confirmed (2026-06-07).** Change
+> `answer-bearing-json-rendering` landed it, gated by the captured regression
+> `regression/recipe-nutrition-volume-gate` (surfaced by change #3): the
+> JSON-LD adapter now renders the `Recipe` / `NutritionInformation`
+> answer-bearing subset, and single-entity rendering is **default-keep** (every
+> answer-bearing field minus a known-noise denylist) instead of the value-blind
+> `interesting_keys` allowlist — the structural-filter projection this ADR
+> targets. Validated: `268 calories` reaches the extractor menu
+> (`input_menu_includes` green) and a live LLM on the frozen bytes flipped the
+> judged answer from "no nutrition, it's a listing" to "268 calories, 24 grams
+> sugar". Fitness function `tests/architecture/test_json_entity_render_is_default_keep.py`
+> bans re-introducing an allowlist. The remaining structural-filter siblings
+> (`_rows_to_md_table` column skip, `_framework_state_to_markdown` scalar-only
+> flatten) are out of scope here — left to a future change with its own captured
+> regression (don't fix blind). Formal package-owned pydantic boundary types
+> were judged unnecessary: the behavioral class-elimination (default-keep +
+> fitness fn) delivers the intent on the domain seam.
 
 > **Confirmation note (2026-06-07).** The change `typed-extraction-boundary`
 > landed the **`record_extract` half** and validated it against the eval

@@ -43,18 +43,21 @@ rung surfaces it:
 
 So the extractor menu carries three flavors of "sidebar" and never `268`.
 
-### Scope (decided 2026-06-07)
+### Resolution (two changes, 2026-06-07)
 
-- **Change #3 `multi-source-extraction-input` (ADR-0005)** delivers the menu
-  + JSON-rung-emits-all-payloads. It makes the system *robust* to junk
-  sources but **cannot** flip this case alone (the Recipe is unrenderable).
-  This case is therefore NOT change #3's deterministic gate.
-- **Change #4 (ADR-0004 json half)** teaches `json_to_markdown_rows` to
-  render `Recipe`/`NutritionInformation`. THEN this case flips: the menu
-  carries `268 calories` / `24 grams sugar`, and the judged answer goes
-  from "no nutrition, it's a listing" to the correct value. The
-  `input_menu_includes: ["268", "kcal"]` RED assertion is added by change #4.
+- **Change #3 `multi-source-extraction-input` (ADR-0005)** delivered the menu
+  + JSON-rung-emits-all-payloads. Necessary but not sufficient here: the
+  `Recipe` payload was still unrenderable, so `268` did not reach the menu.
+- **Change #4 `answer-bearing-json-rendering` (ADR-0004 json half)** taught
+  `json_to_markdown_rows` to render `Recipe`/`NutritionInformation` (and made
+  single-entity rendering default-keep instead of an allowlist). **This case is
+  now FIXED:** the menu carries `268 calories` / `24 grams sugar`
+  (`input_menu_includes: ["268 calories"]` green), and a live LLM on these
+  frozen bytes flipped the judged answer to:
 
-Until then this case documents the unfixed bug (the frozen cassette records
-the wrong answer) while passing the deterministic shape gate — the
-intended "captured regression awaiting its fix" state.
+  > "Per serving (assuming 8-10 slices): **268 calories** and **24 grams
+  > sugar**. The recipe yields 8-10 slices total."
+
+  The cassette (`inputs/llm/extract.json`) was re-recorded to this correct
+  answer, replacing the captured "no nutrition, it's a listing" bug. The
+  deterministic menu assertion is the standing offline gate.

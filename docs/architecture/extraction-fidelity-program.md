@@ -44,11 +44,17 @@ started with the `listing-offer-lift` bug and generalized it to a class.
   rendering-coverage gap is ADR-0004's json half, routed to **change 4**, where
   the recipe case becomes the captured regression that confirms it. (A live
   menu-only corpus regression remains as optional substrate enrichment.)
-- **Change 4 (next) — ADR-0004 json half, UNBLOCKED by a captured regression.**
-  Teach `json_to_markdown_rows` to render the answer-bearing schema.org subset
-  (`Recipe`/`NutritionInformation`, default-keep the tail). Confirmed when
-  `regression/recipe-nutrition-volume-gate` flips (`input_menu_includes: 268`
-  green; judged answer → "268 calories, 24g sugar").
+- **Change 4 `answer-bearing-json-rendering` — LANDED (2026-06-07).** Confirms
+  ADR-0004's json half. `json_to_markdown_rows` renders the `Recipe` /
+  `NutritionInformation` answer-bearing subset, and single-entity rendering is
+  default-keep (not an `interesting_keys` allowlist) — eliminating the
+  value-blind structural-filter projection on the JSON-LD path.
+  `regression/recipe-nutrition-volume-gate` is now FIXED: `input_menu_includes:
+  ["268 calories"]` green, and the live judged answer flipped to "268 calories,
+  24 grams sugar". The motivating Hepsiburada→recipe class is closed across
+  changes 2-4. (Remaining structural-filter siblings — `_rows_to_md_table`
+  column skip, `_framework_state_to_markdown` scalar flatten — await their own
+  captured regression.)
 - **Changes 5–6 — UNBLOCKED.** Each measured before/after against the
   substrate; provisional ADRs (0006–0007) confirm only once proven against a
   replayed regression delta. ADR-0007 now also owns CSS-styled-strikethrough

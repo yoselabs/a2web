@@ -8,6 +8,25 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed — JSON-LD Recipe rendering + default-keep entity projection (ADR-0004 json half)
+
+- The JSON-LD → markdown synthesis adapter (`domain.json_to_markdown_rows`) now
+  renders the `Recipe` type, including its `nutrition` (`NutritionInformation`)
+  subobject — calories, sugar/fat/carb/protein, yield, times. Previously a
+  `Recipe` entry matched no branch and rendered nothing, so recipe answers
+  (calories, sugar) never reached the extractor even with the multi-source menu.
+- Single-entity rendering (`_single_entity_md`) is now **default-keep**: it
+  surfaces every answer-bearing scalar / shallow field, dropping only a known
+  noise denylist (`@`-machinery, image/media URLs, oversized values), instead of
+  gating against a hardcoded `interesting_keys` allowlist. An answer-bearing
+  field the author didn't anticipate (a `Product.gtin`, a `Recipe.recipeYield`)
+  is no longer silently dropped — eliminating the value-blind structural-filter
+  projection (ADR-0003) on the JSON-LD path. Confirms the `json-extract` half of
+  ADR-0004. Validated against `regression/recipe-nutrition-volume-gate`: the
+  judged answer flipped from "the page has no nutrition, it's a listing" to
+  "268 calories, 24 grams sugar"; `tests/architecture/test_json_entity_render_is_default_keep.py`
+  locks the class out.
+
 ### Fixed — extractor fed the full multi-source menu (ADR-0005)
 
 - The server-side extractor (Haiku) is now fed *every* coarsely-selected

@@ -132,7 +132,9 @@ def _ld_json_to_markdown(data: dict | list) -> str:
         t = entry.get("@type")
         if isinstance(t, list):
             t = t[0] if t else None
-        if t in ("Product", "Article", "NewsArticle"):
+        if t == "Recipe":
+            lines.append(_recipe_md(entry))
+        elif t in ("Product", "Article", "NewsArticle"):
             lines.append(_single_entity_md(entry, kind=str(t)))
         elif t == "ItemList":
             items = entry.get("itemListElement") or []
@@ -192,33 +194,74 @@ def _find_product_or_item_list(data: Any, depth: int = 0) -> list[dict]:
     return []
 
 
+# Known chrome dropped by the default-keep entity renderer — JSON-LD machinery
+# is handled by the `@`-prefix check; these are media/self-reference keys whose
+# values are never answer-bearing prose.
+_ENTITY_NOISE_KEYS = frozenset({"image", "thumbnail", "thumbnailurl", "logo", "mainentityofpage"})
+# Cap a single field's rendered value so a full `articleBody` (or similar) isn't
+# dumped into a key-value line; the prose candidate already carries long text.
+_ENTITY_VALUE_CAP = 500
+
+
+def _scalar_kv(k: object, v: object) -> bool:
+    """A renderable answer-bearing key/value: a non-`@` string key with a
+    non-empty scalar value."""
+    return isinstance(k, str) and not k.startswith("@") and isinstance(v, (str, int, float)) and str(v) != ""
+
+
+def _recipe_md(entry: dict) -> str:
+    """Render a JSON-LD `Recipe` — incl. its answer-bearing `NutritionInformation`.
+
+    Content-agnostic: renders whichever nutrition fields are present (no
+    number/unit special-casing). Defensive against shape variance — omits any
+    field it cannot read, never raises.
+    """
+    name = entry.get("name") or "Recipe"
+    lines = [f"## Recipe: {name}"]
+    desc = entry.get("description")
+    if isinstance(desc, str) and desc:
+        lines.append(desc)
+    for label, key in (("Yield", "recipeYield"), ("Prep", "prepTime"), ("Cook", "cookTime"), ("Total", "totalTime")):
+        val = entry.get(key)
+        if isinstance(val, (str, int, float)) and str(val):
+            lines.append(f"- **{label}:** {val}")
+    ingredients = entry.get("recipeIngredient")
+    if isinstance(ingredients, list):
+        items = [str(i) for i in ingredients if isinstance(i, (str, int, float)) and str(i)]
+        if items:
+            lines.append("- **Ingredients:** " + "; ".join(items))
+    nutrition = entry.get("nutrition")
+    if isinstance(nutrition, dict):
+        parts = [f"{k} {v}" for k, v in nutrition.items() if _scalar_kv(k, v)]
+        if parts:
+            lines.append("- **Nutrition:** " + ", ".join(parts))
+    return "\n".join(lines)
+
+
 def _single_entity_md(entry: dict, *, kind: str) -> str:
+    """Render a single JSON-LD entity by **default-keep** (ADR-0004): surface
+    every answer-bearing scalar / shallow field in the entity's own order,
+    dropping only JSON-LD machinery (`@`-keys), media/self-reference keys, and
+    oversized values. No fixed `interesting_keys` allowlist — an unanticipated
+    answer-bearing field (a `gtin`, a `material`) is no longer silently lost."""
     name = entry.get("name") or entry.get("headline") or "unnamed"
     lines = [f"## {kind}: {name}"]
-    interesting_keys = (
-        "name",
-        "headline",
-        "brand",
-        "description",
-        "datePublished",
-        "author",
-        "offers",
-        "aggregateRating",
-        "sku",
-        "price",
-        "priceCurrency",
-        "availability",
-    )
-    for key in interesting_keys:
-        if key not in entry:
+    for key, val in entry.items():
+        if not isinstance(key, str) or key.startswith("@") or key.lower() in _ENTITY_NOISE_KEYS:
             continue
-        val = entry[key]
         if isinstance(val, dict):
-            inner = ", ".join(f"{k}={v}" for k, v in val.items() if not k.startswith("@") and v)
+            inner = ", ".join(f"{k}={v}" for k, v in val.items() if _scalar_kv(k, v))
             if inner:
                 lines.append(f"- **{key}:** {inner}")
+        elif isinstance(val, list):
+            scalars = [str(v) for v in val if isinstance(v, (str, int, float)) and str(v)]
+            joined = ", ".join(scalars)
+            if joined and len(joined) <= _ENTITY_VALUE_CAP:
+                lines.append(f"- **{key}:** {joined}")
         elif isinstance(val, (str, int, float)):
-            lines.append(f"- **{key}:** {val}")
+            s = str(val)
+            if s and len(s) <= _ENTITY_VALUE_CAP:
+                lines.append(f"- **{key}:** {val}")
     return "\n".join(lines)
 
 
