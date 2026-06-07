@@ -55,10 +55,22 @@ started with the `listing-offer-lift` bug and generalized it to a class.
   changes 2-4. (Remaining structural-filter siblings — `_rows_to_md_table`
   column skip, `_framework_state_to_markdown` scalar flatten — await their own
   captured regression.)
-- **Changes 5–6 — UNBLOCKED.** Each measured before/after against the
-  substrate; provisional ADRs (0006–0007) confirm only once proven against a
-  replayed regression delta. ADR-0007 now also owns CSS-styled-strikethrough
-  list/sale grounding (surfaced by change 2).
+- **ADR-0006 `answerability-escalation` — INVESTIGATED, recommend NOT building
+  (2026-06-07).** Its necessity precondition ("first establish whether
+  behavioral `ask_here`/`try_url` already suffice") was tested against the
+  substrate via live probes of answer-absent pages: the LLM returns a
+  non-fabricated "not present" + `obstacle: empty` + a question-conditioned
+  `try_url` + page-answerable `ask_here` — already the answerability + descent
+  this ADR set out to add. The Stage-2 "present-but-JS-unrendered" gap proved
+  narrow (modern SSR; empty shells already trip the thin-content→browser gate).
+  Recommendation in ADR-0006: do not build the explicit enum (wobble-risk, no
+  marginal value); revisit only if a captured regression shows the gap. **No
+  change authored** — the substrate prevented a complex, envelope-breaking build
+  that wasn't needed (magic budget, ADR-0001).
+- **ADR-0007 `real-surface-grounding` — UNBLOCKED.** Measured before/after
+  against the substrate; confirms only once proven against a replayed regression
+  delta. Also owns CSS-styled-strikethrough list/sale grounding (surfaced by
+  change 2).
 
 ## Governing ADRs (Accepted)
 

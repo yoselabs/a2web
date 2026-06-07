@@ -1,11 +1,46 @@
 # ADR-0006 — Answerability signal and two-stage escalation
 
-**Status:** Accepted (provisional) · **Confirm-by:** change `answerability-escalation`
-**Date:** 2026-06-06
+**Status:** Provisional — **necessity precondition NOT met** (investigated 2026-06-07); recommend **do not build as specified** pending decision
+**Date:** 2026-06-06 · **Investigated:** 2026-06-07
 **Supersedes:** —
 **Superseded by:** —
 
-> **Provisional ADR.** Direction agreed 2026-06-06; confirmed/revised when the owning change lands and is validated against the eval substrate. The plan carries a reconfirm task. Note the open precondition below: the eval substrate must first establish whether an *explicit* signal is even needed.
+> **Provisional ADR.** Direction agreed 2026-06-06. The necessity precondition
+> below was the gate before building — it was investigated 2026-06-07 and the
+> evidence says the explicit signal is **not** justified. See the finding.
+
+> ## Necessity-precondition finding (2026-06-07) — behavioral signals already deliver answerability
+>
+> Three live probes of the "answer genuinely absent" case (the substrate's
+> question for this ADR):
+>
+> | Page | Question (answer absent) | Behavior |
+> |------|--------------------------|----------|
+> | Metacritic Zelda reviews | retail price in USD | `answer`: "does not contain pricing information" (no fabrication); `obstacle: empty`; `try_url` → Switch product page, *"typically links to retailer pricing"*; 4 `ask_here` |
+> | Allrecipes banana bread | who invented it / first published | `answer`: "does not contain information about the original inventor" (no fabrication); `obstacle: empty`; `try_url` → banana-bread gallery; 3 `ask_here` |
+> | Vercel pricing (Next.js SPA) | Pro plan price | server-rendered via raw (10,251 chars); answer found ($20/mo) — the "JS-unrendered" gap did not even arise |
+>
+> The behavioral stack — the LLM's honest **non-fabricated** "not present"
+> answer + `obstacle: empty` (page-level) + **question-conditioned `try_url`**
+> (where the answer likely is) + `ask_here` (what this page CAN answer) —
+> already delivers exactly the question-relative answerability + descent that
+> this ADR set out to add. No fabrication was observed; `try_url` reasons were
+> question-conditioned and useful.
+>
+> The one place behavioral signals *could* fall short — Stage-2's target:
+> answer **present but JS-unrendered**, gate=ok, yielding a *false* "not
+> present" — proved narrow in practice: modern sites SSR (Vercel returned full
+> content via raw), and a true empty shell already trips the existing
+> thin-content → browser gate. No clean reproduction was found.
+>
+> **Recommendation:** do **not** build the explicit answerability enum + the
+> two-stage escalation. The semantics agent already flagged the enum overlaps
+> `obstacle`/`confidence` and raises router-JSON wobble-drop risk (~10%→~30%),
+> threatening the critical `answer` field — cost the substrate now shows buys
+> nothing the behavioral signals don't already provide. If a future *captured*
+> regression demonstrates the present-but-unrendered gap, address it with a
+> **targeted** browser-escalate-on-not-present-when-JS-shell-detected, never a
+> blanket enum. (Magic budget: ADR-0001.)
 
 ## Context
 

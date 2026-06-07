@@ -66,51 +66,65 @@ The `Extractor.__init__` already accepts `max_content_chars: int = 100_000`. The
 
 ### Requirement: Multi-source extraction escalation ladder
 
-After `extract_markdown` returns, `_phase_extract` SHALL run an ordered ladder of structured-extraction sources **unconditionally** — there is no recall trigger gating entry to the ladder. Each rung self-gates: it produces output only when its own preconditions hold — `json_in_script` only when embedded JSON is present; structural record extraction only when a record region clears the `record-extraction` detection guards. The ladder runs in order: (1) `json_in_script` payloads (embedded JSON, including JSON-LD); (2) structural record extraction via the `record-extraction` capability. The ladder stops at the first rung whose output passes the quality-aware replace check. When no rung produces a passing result, the cascade SHALL leave `content_md` unchanged and fall through, so the orchestrator's existing browser-tier escalation still applies. Each rung SHALL emit `StageStarted` / `StageEnded` LDD events naming the source.
+After `extract_markdown` returns, `_phase_extract` SHALL run an ordered ladder of structured-extraction sources **unconditionally** — there is no recall trigger gating entry to the ladder. Each rung self-gates: it produces output only when its own preconditions hold — `json_in_script` only when embedded JSON is present; structural record extraction only when a record region clears the `record-extraction` detection guards. The ladder runs in order: (1) trafilatura prose (the baseline, always present when extraction ran); (2) `json_in_script` payloads (embedded JSON, including JSON-LD); (3) structural record extraction via the `record-extraction` capability. The ladder SHALL **collect every rung that produces output** into an immutable `fc.content_candidates: list[ContentCandidate]` in that fixed source order — it SHALL NOT stop at the first passing rung and SHALL NOT gate collection on a length/quality replace check. When no structured rung produces output, `fc.content_candidates` SHALL still carry the trafilatura prose candidate. Each rung SHALL emit `StageStarted` / `StageEnded` LDD events naming the source.
 
 #### Scenario: Ladder runs without a trigger
 
 - **WHEN** `extract_markdown` returns for any page
-- **THEN** the escalation ladder runs, and each rung self-gates on its own preconditions
+- **THEN** the escalation ladder runs, each rung self-gates on its own preconditions, and every rung that produces output contributes a `ContentCandidate` to `fc.content_candidates`
 
-#### Scenario: Embedded JSON is tried first
+#### Scenario: All producing sources are collected, none discarded on length
 
-- **WHEN** the raw HTML carries embedded JSON
-- **THEN** the `json_in_script` source is attempted first and, if its output passes the replace check, the ladder stops
+- **WHEN** the raw HTML carries both embedded JSON and a detectable record region
+- **THEN** `fc.content_candidates` carries the trafilatura, `json_synth`, and `record_synth` candidates together — no rung is dropped because another was longer
 
 #### Scenario: Server-rendered listing reaches record extraction
 
 - **WHEN** the raw HTML is a server-rendered listing with no embedded JSON
-- **THEN** the `json_in_script` source yields nothing and the structural record-extraction source runs
+- **THEN** the `json_in_script` source yields nothing and the structural record-extraction source runs, contributing its candidate alongside the prose candidate
 
 #### Scenario: Article reaches the record rung and it self-gates
 
 - **WHEN** the page is a genuine article
-- **THEN** the structural record-extraction rung runs, returns no record set, and `content_md` is left unchanged
-
-#### Scenario: No source passes — clean fall-through
-
-- **WHEN** no ladder rung produces a passing result
-- **THEN** `content_md` is left unchanged and the cascade falls through to the orchestrator's browser-tier escalation
+- **THEN** the structural record-extraction rung runs, returns no record set, and `fc.content_candidates` carries only the trafilatura prose candidate
 
 ### Requirement: Quality-aware content replacement
 
-A ladder source's output SHALL replace `content_md` only when it is a higher-quality result than trafilatura's output. For structural record extraction the replace decision SHALL be **depth-aware**: a **threaded** record set (maximum nesting depth > 0) SHALL replace `content_md` whenever the detector produced one — trafilatura cannot represent threading, so rendered length is not a quality proxy for it; a **flat** record set (depth 0) SHALL replace `content_md` only when its rendered length exceeds trafilatura's output. A good article SHALL NOT be clobbered: an article yields no record set because the `record-extraction` detection guards reject it, so the replace check is never reached. A `json_in_script` source SHALL replace `content_md` when its synthetic output exceeds trafilatura's output in length.
+The single-source, length-proxy replace rule is **retired**. The extractor SHALL be fed the full menu of collected candidates, and the wire `content_md` default SHALL be chosen by quality, not rendered length.
 
-#### Scenario: Threaded record set replaces a flattened wall
+**Extractor input (the menu).** When `ask=` is set, `_phase_extract_answer` SHALL assemble `fc.content_candidates` into one deterministic menu string and pass it as `extract(content=menu)`. Assembly SHALL be a **pure function of the candidate list**: fixed source ordering, static content-free section labels, and no timestamps, counts, object identity, or dict-iteration-order dependence — so the menu for a given fetched page is byte-identical across repeated asks (preserving the `cache_prefix = {content}` prompt-cache invariant). Before assembly, the deterministic side SHALL apply **coarse subset-suppression only** — a candidate whose normalized text is a strict substring of another's is dropped; finer (semantic) dedup is the LLM's responsibility. When the assembled menu exceeds `max_content_chars`, trimming SHALL be **priority-ordered** (prose and `json_synth` trimmed last, `record_synth` first), never a blind uniform truncation.
 
-- **WHEN** structural record extraction produces a threaded (depth > 0) record set on a page trafilatura flattened into an undifferentiated wall of text
-- **THEN** the threaded render replaces `content_md` even if it is shorter than trafilatura's output
+**Wire default (`content_md`).** `fc.content_md` SHALL be set to a single candidate chosen by quality: the trafilatura prose candidate when non-empty, else the first structured candidate, else (when a handler/archive/browser produced `fc.pre_rendered_payload`) that pre-rendered payload. Rendered length SHALL NOT be the selector. The wire *shape* of `content_md` is unchanged (a single markdown string).
 
-#### Scenario: Flat catalog replaces on length
+#### Scenario: The extractor receives every collected source
 
-- **WHEN** structural record extraction produces a flat (depth 0) record set whose rendered length exceeds trafilatura's output
-- **THEN** it replaces `content_md`
+- **WHEN** a page yields prose plus a `json_synth` payload carrying the answer that is shorter than the prose
+- **THEN** the menu fed to the extractor contains the `json_synth` payload (it is NOT dropped for being shorter), so the model can answer from it
+
+#### Scenario: Menu assembly is byte-stable across asks
+
+- **WHEN** the same fetched page is extracted for two different `ask` values
+- **THEN** the assembled menu string (and thus the prompt `cache_prefix`) is byte-identical for both, so the prompt-cache and extraction-cache still hit
+
+#### Scenario: Budget trim is priority-ordered
+
+- **WHEN** the assembled menu exceeds `max_content_chars`
+- **THEN** the `record_synth` candidate is trimmed before the prose and `json_synth` candidates, never all sources uniformly
+
+#### Scenario: Subset candidates are suppressed before assembly
+
+- **WHEN** one candidate's normalized text is a strict substring of another candidate's text
+- **THEN** the subset candidate is dropped from the menu, guarding against the same payload duplicated across microdata / og / ld_json / records
+
+#### Scenario: Wire content_md is prose-preferred, not longest
+
+- **WHEN** a page yields a trafilatura prose candidate and a longer `record_synth` candidate
+- **THEN** the wire `content_md` surfaces the prose candidate (quality pick), while the menu fed to the extractor still carries both
 
 #### Scenario: A good article is never clobbered
 
 - **WHEN** the page is an article
-- **THEN** the record-extraction guards reject it, no record set is produced, and `content_md` keeps trafilatura's output
+- **THEN** the record-extraction guards reject it, no record set is produced, and both the menu and the wire `content_md` keep trafilatura's output
 
 ### Requirement: JSON-LD ItemList synthesis
 
@@ -325,4 +339,37 @@ No public API SHALL change: `JudgeVerdict`, `ExtractionResult`, `RouterPayload`,
 
 - **WHEN** `tests/test_packages_independence.py` walks `src/a2web/packages/llm_extract/wobble.py`
 - **THEN** zero imports from `a2web.<domain>` modules are detected
+
+### Requirement: JSON-LD Recipe synthesis
+
+The synthetic-markdown adapter `json_to_markdown_rows` SHALL render a JSON-LD `Recipe` payload (an entry whose `@type` is `Recipe`, single or within `@graph`) into answer-bearing markdown. It SHALL surface the recipe name (as a heading), `description`, `recipeYield`, the time fields (`prepTime` / `cookTime` / `totalTime`), the `recipeIngredient` list, and — critically — the `nutrition` (`NutritionInformation`) subobject rendered as a readable labelled line carrying its present fields (`calories`, `sugarContent`, `fatContent`, `carbohydrateContent`, `proteinContent`, etc.). Rendering SHALL be content-agnostic (no number/unit special-casing — it renders whichever nutrition fields are present), defensive against shape variance (`nutrition` absent, `recipeInstructions` as `HowToStep[]` vs string, lists vs scalars), and SHALL omit fields it cannot read without raising. A `Recipe` whose `nutrition.calories` is `"268 calories"` SHALL produce output containing `268 calories`.
+
+#### Scenario: Recipe nutrition reaches the synthetic surface
+
+- **WHEN** a page carries a JSON-LD `Recipe` with `nutrition: {@type: NutritionInformation, calories: "268 calories", sugarContent: "24 grams sugar"}`
+- **THEN** `json_to_markdown_rows` renders a Recipe block whose text contains `268 calories` and `24 grams sugar`
+
+#### Scenario: Recipe without nutrition still renders
+
+- **WHEN** a `Recipe` payload has no `nutrition` field
+- **THEN** the adapter renders the recipe's other answer-bearing fields (name, ingredients, times) and omits the nutrition line, without raising
+
+#### Scenario: Recipe is no longer dropped
+
+- **WHEN** the only answer-bearing JSON-LD payload on a page is a `Recipe`
+- **THEN** `json_to_markdown_rows` returns non-empty output (previously a `Recipe` matched no branch and yielded an empty string)
+
+### Requirement: JSON-LD single-entity rendering is default-keep, not an allowlist
+
+Single-entity JSON-LD rendering (`Product` / `Article` / `NewsArticle` / `Recipe` and the like) SHALL render answer-bearing fields by **default-keep**: every key whose value is a scalar or a shallow dict/list of scalars SHALL be surfaced, in the entity's own field order, EXCEPT a fixed **noise denylist** — JSON-LD machinery (`@context`, `@type`, `@id`, `@graph`), image/media URLs (`image`, `thumbnail`, `thumbnailUrl`, `logo`), `mainEntityOfPage`, and values exceeding a length cap (so a full article body is not dumped into a key-value line). The renderer SHALL NOT gate fields against a fixed allowlist of "interesting" keys; an answer-bearing field the author did not anticipate (e.g. a `Product.gtin`, a `Recipe.recipeYield`) SHALL still be surfaced. This eliminates the value-blind structural-filter projection (ADR-0003 / ADR-0004).
+
+#### Scenario: An unanticipated answer-bearing field is surfaced
+
+- **WHEN** a JSON-LD entity carries a scalar field outside any prior fixed allowlist (e.g. `gtin13`, `recipeYield`)
+- **THEN** `json_to_markdown_rows` includes that field's key and value in the rendered entity
+
+#### Scenario: Known noise is dropped
+
+- **WHEN** a JSON-LD entity carries `@type`, `@context`, `image`, and a 5,000-character `articleBody`
+- **THEN** the rendered entity omits the `@`-prefixed keys, the image URL, and the oversized body, while keeping the entity's short answer-bearing scalars
 
