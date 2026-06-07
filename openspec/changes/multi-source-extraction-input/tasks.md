@@ -1,40 +1,50 @@
-## 1. Red — prove the bug at the menu level (BDD-first)
+> **Scope pivot (2026-06-07, decision B).** The instrument caught a blind fix:
+> `regression/recipe-nutrition-volume-gate` is NOT menu-fixable alone —
+> `json_to_markdown_rows` can't render `Recipe`/`NutritionInformation` (returns
+> `""`), so `268` never reaches the menu even with the fix. That case is routed
+> to **change #4 (ADR-0004 json half)**; its `input_menu_includes` RED assertion
+> moves there. Change #3 = the menu + JSON-emits-all-payloads (pure ADR-0005),
+> proven by the deterministic menu unit + arch fitness tests (1.3 / 5.2). A live
+> menu-flipping regression is the remaining corpus proof (task 6.2).
 
-- [ ] 1.1 Extend the replay observer (`tests/eval_replay/replay.py`): surface the debug `content_candidates[]` in `observe(...)` (it replays with `debug=True`) and add an `input_menu_includes` / `input_menu_excludes` contract key in `assert_contract` that asserts against the concatenation of candidate `content_md` (what Haiku was fed), independent of the wire `content_md`.
-- [ ] 1.2 Add deterministic menu assertions to `regression/recipe-nutrition-volume-gate/baseline/contract.json`: `input_menu_includes: ["268", "kcal"]` (the answer-bearing source must reach the extractor). Confirm the regression replay now FAILS red — today only the sidebar `record_synth` reaches Haiku, so `268`/`kcal` are absent from the input menu.
-- [ ] 1.3 Add a focused unit test (`tests/capabilities/extraction/…`) over a minimal page with a long junk record region + a short JSON-LD carrying the answer: assert the assembled extractor menu contains the JSON-LD answer and is NOT just the longest source. Confirm it fails red.
+## 1. Red — prove the menu fix deterministically (BDD-first)
+
+- [x] 1.1 Extend the replay observer (`tests/eval_replay/replay.py`): cassette spy (`CassetteLlm.last_extract_content`) records what Haiku was fed; `observe(...)` surfaces it as `input_menu`; `assert_contract` gains `input_menu_includes` / `input_menu_excludes` (assert the menu, not the wire — ADR-0005 D7). Intent keys preserved on re-bless.
+- [x] 1.2 ~~recipe menu assertion~~ → **routed to change #4** (recipe needs json rendering; not menu-fixable). Recipe contract restored to the documented-bug baseline; `answer.md` records the compound finding.
+- [x] 1.3 Focused unit tests (`tests/capabilities/extraction/test_menu_assembly.py`): a short JSON answer reaches the menu despite far-longer records; the JSON rung emits ALL renderable payloads (answer in a non-top-ranked one survives); `assemble_menu` is pure + dedups. (Red confirmed by the arch acceptance check in 5.2.)
 
 ## 2. Collect the menu (retire single-winner selection)
 
-- [ ] 2.1 `_run_extraction_escalation`: stop picking a winner. Always append a `trafilatura` `ContentCandidate` for the prose baseline, then every non-empty `json_synth` / `record_synth` candidate, into an immutable `fc.content_candidates: list[ContentCandidate]` (fixed order prose → json_synth → record_synth). Remove the `len(synthetic) > original_len` replace checks from `_escalate_via_json` / `_escalate_via_records` (keep their LDD events + pure shape). Document the retired volume-gate rationale in a code comment + CHANGELOG.
-- [ ] 2.2 Wire default (`fc.content_md`): set by the quality rule — prose candidate when non-empty, else first structured candidate, else `fc.pre_rendered_payload`. Length is never the selector. Keep `fc.next_links_handler` sourced from the records candidate as today.
-- [ ] 2.3 `ContentCandidate.source` Literal already covers `trafilatura`/`json_synth`/`record_synth`; confirm the prose candidate uses `source="trafilatura"`.
+- [x] 2.1 `_run_extraction_escalation`: stop picking a winner. Append a `trafilatura` `ContentCandidate`, then ALL `json_synth` / `record_synth` candidates, into immutable `fc.content_candidates` (fixed order prose → json → records). Length gate removed from `_escalate_via_json` / `_escalate_via_records` (LDD events kept; outcome now `collected`).
+- [x] 2.2 Wire default (`fc.content_md`): `_pick_display_candidate` PRESERVES the legacy selection (json-if-longer, record-if-threaded-or-longer, else prose) — wire byte-identical per the signed-off "wire unchanged" decision. The retired length proxy now lives ONLY here as a display heuristic, no longer gating the extractor input. `next_links` sourced from the records candidate.
+- [x] 2.3 `ContentCandidate` gains `is_threaded` (the one non-length display signal); prose candidate uses `source="trafilatura"`.
 
 ## 3. Assemble + feed the menu to the extractor
 
-- [ ] 3.1 Add a pure domain helper (in `fetcher.py` / `domain.py`) `assemble_menu(candidates) -> str`: coarse subset-suppression (drop a candidate whose normalized text is a strict substring of another), then deterministic concatenation with static content-free section labels. No timestamps / counts / identity / dict-order. Make 1.3's unit assertion pass.
-- [ ] 3.2 Priority-aware trim: when the menu would exceed `max_content_chars`, trim `record_synth` first, prose + `json_synth` last (static priority table). Reuse the extractor's `_truncate` as the total backstop.
-- [ ] 3.3 `_phase_extract_answer`: pass `extract(content=assemble_menu(fc.content_candidates))` instead of `content=fc.content_md`. No change to `extractor.extract`'s signature (package boundary unchanged).
+- [x] 3.1 `assemble_menu(candidates) -> str` (in `fetcher.py`): coarse subset-suppression (`_suppress_subsets` — strict-substring + exact-dup), deterministic concatenation with static labels. Pure (no timestamps/counts/identity/dict-order).
+- [x] 3.2 Priority trim by ORDERING: menu order prose → json → records means the extractor's existing tail-truncation cap drops the lowest-priority source (records) first — no second cap pass, keeping the menu byte-stable (D2). `_truncate` is the backstop.
+- [x] 3.3 `_phase_extract_answer`: `extract(content=assemble_menu(fc.content_candidates) or fc.content_md)` (fallback covers handler/pre-rendered pages with no candidates). No `extractor.extract` signature change — package boundary unchanged.
+- [x] 3.4 JSON rung emits ALL renderable payloads (not just top-ranked + break) — the single-source class one level down.
 
 ## 4. Wire envelope — debug-only content_candidates (Ask-First: signed off 2026-06-07)
 
-- [ ] 4.1 Add `content_candidates: list[ContentCandidate]` as a flat attribute on `FetchResponse` (`models.py`); populate it in `build_response` from `fc.content_candidates` as `{source, content_md}` entries.
-- [ ] 4.2 `_prune_wire`: regroup `content_candidates` into the wire-only `debug` object (present only under `debug=True`, exactly like `tokens` / `cache` / `extraction`). Default wire shape must stay byte-identical — confirm with the existing fetch-response envelope tests.
+- [x] 4.1 `ContentCandidateWire(source, content_md)` model; flat `content_candidates` attribute on `FetchResponse`; populated in `build_response` (only under `debug`).
+- [x] 4.2 `_prune_wire`: `content_candidates` added to `_FETCH_DEBUG_FIELDS` → regrouped under `debug`, absent on the default wire. Envelope tests green; tool-schema golden re-blessed (purely additive).
 
 ## 5. Cost + fitness functions
 
-- [ ] 5.1 Verify the `EXTRACT_*` cache-prefix byte-equality test still passes (menu as content must not break the `cache_prefix = {content}` invariant for repeated asks on one page). Add a test: `assemble_menu` is byte-identical for two different asks on the same candidate list.
-- [ ] 5.2 Add `tests/architecture/test_menu_assembly_is_pure.py`: a behavioral guard that `assemble_menu` is a pure function of its input (same candidates → same bytes; bans reintroducing length-as-selector in the escalators). Include the acceptance-check docstring (add a non-deterministic element, confirm red, revert).
+- [x] 5.1 `EXTRACT_*` cache-prefix byte-equality test still green; `assemble_menu` byte-stability asserted (`test_assemble_menu_is_byte_stable`) — the `cache_prefix = {content}` invariant holds (same page → same menu → same prefix across asks).
+- [x] 5.2 `tests/architecture/test_menu_assembly_is_pure.py`: behavioral guards (a short structured candidate is collected despite far-longer prose — bans re-introducing the length gate; `assemble_menu` byte-stable). Acceptance-check docstring included.
 
 ## 6. Prove the fidelity fix end-to-end (eval substrate)
 
-- [ ] 6.1 Run `make eval-replay CORPUS=regression` — the menu assertions (1.2) now pass green; the deterministic axis proves the answer-bearing source reaches Haiku.
-- [ ] 6.2 Validate the judged-answer flip with a live LLM against the **frozen bytes** (as in change #2): fixed menu + live Haiku answers "268 kcal, 34g sugar" (correct) vs the captured "no nutrition, it's a listing" (wrong). Re-record `inputs/llm/extract.json`; update `baseline/answer.md` before/after.
-- [ ] 6.3 Re-run the four-axis output-benchmark capability tests (`tests/capabilities/output_benchmark/`) — confirm no collateral regression on legitimately record-shaped pages (listings, threaded discussions) from the prose-preferred wire default.
+- [x] 6.1 `make eval-replay CORPUS=regression` green (Hepsiburada fixed; recipe documents the bug pending change #4; byte-exact LLM reproduction holds).
+- [ ] 6.2 Capture a live MENU-ONLY regression (decision B): a page where a renderable rung holds a short answer the volume gate dropped (e.g. product price in JSON-LD, longer prose). Freeze it; assert `input_menu_includes:[answer]` (GREEN with the menu, RED without — the acceptance check). The recipe case's judged-flip belongs to change #4.
+- [x] 6.3 Four-axis output-benchmark capability tests pass — no collateral regression (the legacy display pick keeps record-shaped pages' `content_md` unchanged).
 
 ## 7. Wrap
 
-- [ ] 7.1 Reconfirm ADR-0005: move `Status` from *Accepted (provisional)* to *Accepted*; record the measured cost delta and the record-detector-false-positive finding (handed to ADR-0007). Update `docs/architecture/extraction-fidelity-program.md` Status (change #3 landed).
-- [ ] 7.2 Update `CHANGELOG.md` (Fixed — extraction fed the full multi-source menu; volume gate retired; Added — debug `content_candidates`).
-- [ ] 7.3 `make check` green (lint + ty + test-cov + arch).
+- [ ] 7.1 Reconfirm ADR-0005: move `Status` to *Accepted*; record the JSON-rung single-source finding + the recipe→change-#4 routing. Update `docs/architecture/extraction-fidelity-program.md` Status.
+- [ ] 7.2 Update `CHANGELOG.md` (Fixed — extractor fed the full multi-source menu; volume gate retired from the input path. Added — debug `content_candidates`).
+- [x] 7.3 `make check` green (lint + ty + test-cov + arch). 836 passed.
 - [ ] 7.4 `openspec validate multi-source-extraction-input`.

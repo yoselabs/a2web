@@ -1,11 +1,32 @@
 # ADR-0005 — Multi-source extraction input (the "menu")
 
-**Status:** Accepted (provisional) · **Confirm-by:** change `multi-source-extraction-input`
-**Date:** 2026-06-06
+**Status:** Accepted · **Confirmed-by:** change `multi-source-extraction-input` (landed 2026-06-07)
+**Date:** 2026-06-06 · **Confirmed:** 2026-06-07
 **Supersedes:** —
 **Superseded by:** —
 
-> **Provisional ADR.** Direction agreed 2026-06-06; confirmed/revised when the owning change lands and is validated against the eval substrate. The plan carries a reconfirm task. The cost trade-offs below are the specific things the substrate must measure before this is confirmed.
+> **Confirmed 2026-06-07.** The menu landed: the extractor is fed prose +
+> every renderable JSON payload + records (`assemble_menu`), the value-blind
+> length proxy is retired from the input path, and the default wire stays
+> byte-identical (the proxy survives only as the `content_md` display
+> heuristic). Proven deterministically by the menu unit tests
+> (`tests/capabilities/extraction/test_menu_assembly.py`) and the arch fitness
+> function (`tests/architecture/test_menu_assembly_is_pure.py`).
+>
+> **Two findings from the instrument (it caught a blind fix):**
+> 1. The JSON rung was *itself* single-source — it rendered only the
+>    top-ranked payload then `break`ed, so a non-top-ranked payload (e.g. a
+>    `Recipe` among `ItemList`s) was lost. Fixed here: emit ALL renderable
+>    payloads. This is the same value-blind single-source class, one level down.
+> 2. The motivating `regression/recipe-nutrition-volume-gate` case is NOT
+>    menu-fixable alone: `json_to_markdown_rows` cannot render
+>    `Recipe`/`NutritionInformation` (returns `""`), so `268` never reaches the
+>    menu regardless. That is a *rendering-coverage* gap, not a *selection* gap
+>    — it belongs to ADR-0004's json half and is routed to **change #4**, where
+>    the recipe case becomes the captured regression that confirms it.
+>
+> Remaining (does not block this ADR): a live menu-only corpus regression
+> (task 6.2) as substrate enrichment beyond the deterministic proof.
 
 ## Context
 

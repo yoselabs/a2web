@@ -8,6 +8,34 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed — extractor fed the full multi-source menu (ADR-0005)
+
+- The server-side extractor (Haiku) is now fed *every* coarsely-selected
+  source — trafilatura prose, **all** renderable embedded-JSON/JSON-LD
+  payloads, and structural records — assembled into one deterministic menu
+  (`fetcher.assemble_menu`), instead of a single source chosen by a value-blind
+  length proxy. The old rule ("a source replaces `content_md` only when its
+  render is *longer*") meant a short-but-correct structured payload silently
+  lost, and a longer *wrong* one (e.g. a sidebar widget list) could clobber the
+  answer-bearing content. The proxy is retired from the extractor-input path; it
+  survives only as the wire `content_md` display heuristic, so the **default wire
+  is byte-identical** (no parser impact). The JSON rung also stopped collapsing
+  to its top-ranked payload — it now emits all renderable payloads, so a
+  non-top-ranked one (a `Recipe` among `ItemList`s) is no longer lost (the same
+  single-source class, one level down). Coarse subset-suppression drops
+  duplicate/substring renders; menu assembly is pure + byte-stable so the
+  `cache_prefix = {content}` prompt-cache invariant holds across asks. Proven by
+  `tests/capabilities/extraction/test_menu_assembly.py` +
+  `tests/architecture/test_menu_assembly_is_pure.py`. Confirms ADR-0005.
+
+### Added — debug `content_candidates` on FetchResponse
+
+- Under `debug=True`, `FetchResponse` carries `content_candidates[]`
+  (`{source, content_md}` per rung) regrouped under the `debug` object — the
+  exact menu the extractor saw, inspectable without changing the default
+  envelope. The eval replay harness asserts against this menu (what Haiku was
+  fed), independent of the wire (ADR-0005 D7).
+
 ### Fixed — record_extract value-blind projection (list-vs-sale fidelity)
 
 - Listing records whose price cell rendered adjacent inline values with no

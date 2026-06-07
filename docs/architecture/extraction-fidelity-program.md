@@ -31,8 +31,26 @@ started with the `listing-offer-lift` bug and generalized it to a class.
   CSS-`line-through` struck price (not a `<del>` tag) is handed to ADR-0007.
   The `json-extract` typed-schema.org half of ADR-0004 is deferred to its own
   instrument-gated change (no captured regression yet — don't fix blind).
-- **Changes 3–5 — UNBLOCKED.** Each measured before/after against the
-  substrate; provisional ADRs (0005–0007) confirm only once proven against a
+- **Change 3 `multi-source-extraction-input` — LANDED (2026-06-07).** The
+  extractor is fed the full menu (prose + all renderable JSON payloads +
+  records) via `fetcher.assemble_menu`; the value-blind length proxy is retired
+  from the input path (it survives only as the byte-identical wire `content_md`
+  display heuristic). The JSON rung now emits all renderable payloads, not just
+  the top-ranked one. Debug-only `content_candidates[]` surfaces the menu.
+  Confirms ADR-0005, proven by the menu unit + arch fitness tests. **Instrument
+  finding:** the motivating `recipe-nutrition-volume-gate` case is NOT
+  menu-fixable alone — `json_to_markdown_rows` can't render
+  `Recipe`/`NutritionInformation`, so the answer never reaches the menu. That
+  rendering-coverage gap is ADR-0004's json half, routed to **change 4**, where
+  the recipe case becomes the captured regression that confirms it. (A live
+  menu-only corpus regression remains as optional substrate enrichment.)
+- **Change 4 (next) — ADR-0004 json half, UNBLOCKED by a captured regression.**
+  Teach `json_to_markdown_rows` to render the answer-bearing schema.org subset
+  (`Recipe`/`NutritionInformation`, default-keep the tail). Confirmed when
+  `regression/recipe-nutrition-volume-gate` flips (`input_menu_includes: 268`
+  green; judged answer → "268 calories, 24g sugar").
+- **Changes 5–6 — UNBLOCKED.** Each measured before/after against the
+  substrate; provisional ADRs (0006–0007) confirm only once proven against a
   replayed regression delta. ADR-0007 now also owns CSS-styled-strikethrough
   list/sale grounding (surfaced by change 2).
 
