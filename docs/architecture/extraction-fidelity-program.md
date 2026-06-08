@@ -70,10 +70,35 @@ started with the `listing-offer-lift` bug and generalized it to a class.
   item** (frozen replay can't guard model behavior), not a build. **No change
   authored** — the substrate prevented an envelope-breaking build that wasn't
   needed (magic budget, ADR-0001).
-- **ADR-0007 `real-surface-grounding` — UNBLOCKED.** Measured before/after
-  against the substrate; confirms only once proven against a replayed regression
-  delta. Also owns CSS-styled-strikethrough list/sale grounding (surfaced by
-  change 2).
+- **ADR-0007 `real-surface-grounding` — HELD, not built (investigated
+  2026-06-08).** A live hunt for the "structured price *wrong* vs visible"
+  regression (Amazon, Hepsiburada search listing + product detail) did **not
+  reproduce** the class: modern commerce puts the *correct* sale price in
+  structured data, change #2 (node-separation) + change #3 (the menu) let the
+  LLM reconcile cued visible prices, and genuinely-absent (JS-only) prices get
+  an honest "not present". The original bug was the projection fusion (fixed by
+  change #2), not a structured-vs-visible mismatch. Recommendation: don't build
+  (full reco overkill; the deterministic `price_mismatch` hint lacks a captured
+  regression — fixing blind). Deterministic design kept on the shelf; revisit
+  only with a captured stale/wrong-structured-price case. **No change authored.**
+
+## Program outcome (2026-06-08)
+
+The structural fixes closed the real fidelity class: **change #2** (record
+projection node-separation) → **change #3** (the multi-source menu) → **change
+#4** (answer-bearing JSON-LD rendering + default-keep). The two speculative
+machinery ADRs — **0006** (answerability escalation) and **0007** (real-surface
+reconciliation) — both **investigated to "don't build"**: the substrate showed
+the behavioral signals + the structural fixes already cover the real gaps, and
+the bugs those ADRs targeted did not reproduce. The eval substrate (change #1)
+earned its keep twice over — it caught a blind fix mid-flight (the recipe case →
+change #4) and prevented two complex, envelope-risky builds that weren't needed
+(magic budget, ADR-0001). Remaining shelved items, each gated on a future
+captured regression: deterministic `price_mismatch` hint (ADR-0007); the
+`_rows_to_md_table` / `_framework_state_to_markdown` structural-filter siblings
+(ADR-0004 class); a `make bench` insufficiency/no-fabrication answer-quality
+axis (ADR-0006 nuance); surfacing change #3's `content_candidates` on the `ask`
+wire, not just `fetch_raw`.
 
 ## Governing ADRs (Accepted)
 
