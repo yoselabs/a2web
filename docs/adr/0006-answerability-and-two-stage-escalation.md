@@ -1,46 +1,55 @@
 # ADR-0006 — Answerability signal and two-stage escalation
 
-**Status:** Provisional — **necessity precondition NOT met** (investigated 2026-06-07); recommend **do not build as specified** pending decision
-**Date:** 2026-06-06 · **Investigated:** 2026-06-07
+**Status:** **Superseded by behavioral signals** — not built (decided 2026-06-08). Necessity precondition investigated against the substrate; the explicit signal is not justified.
+**Date:** 2026-06-06 · **Investigated:** 2026-06-07/08 · **Closed:** 2026-06-08
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** the existing behavioral stack (`answer` honesty + `obstacle` + `try_url` + `ask_here`)
 
-> **Provisional ADR.** Direction agreed 2026-06-06. The necessity precondition
-> below was the gate before building — it was investigated 2026-06-07 and the
-> evidence says the explicit signal is **not** justified. See the finding.
+> **Closed 2026-06-08 — no change authored.** The necessity precondition below
+> was the gate before building. It was investigated against the eval substrate
+> with 7 live probes; the evidence is decisive that the explicit answerability
+> signal + two-stage escalation is **not** justified. The behavioral stack
+> already meets the bar. Finding locked below.
 
-> ## Necessity-precondition finding (2026-06-07) — behavioral signals already deliver answerability
+> ## Necessity-precondition finding — behavioral signals already deliver answerability
 >
-> Three live probes of the "answer genuinely absent" case (the substrate's
-> question for this ADR):
+> Seven live probes, focused (per the owner's 2026-06-08 steer) on the
+> insufficient-information / "the asked key isn't here" case — especially price:
 >
-> | Page | Question (answer absent) | Behavior |
-> |------|--------------------------|----------|
-> | Metacritic Zelda reviews | retail price in USD | `answer`: "does not contain pricing information" (no fabrication); `obstacle: empty`; `try_url` → Switch product page, *"typically links to retailer pricing"*; 4 `ask_here` |
-> | Allrecipes banana bread | who invented it / first published | `answer`: "does not contain information about the original inventor" (no fabrication); `obstacle: empty`; `try_url` → banana-bread gallery; 3 `ask_here` |
-> | Vercel pricing (Next.js SPA) | Pro plan price | server-rendered via raw (10,251 chars); answer found ($20/mo) — the "JS-unrendered" gap did not even arise |
+> | Page | Question | Data state | Behavior |
+> |------|----------|-----------|----------|
+> | Vercel pricing | Pro price | present | "$20/month" ✅ |
+> | Vercel pricing | **Enterprise** price | key absent *in a data-rich page* | "not fixed — custom, contact sales" — **no fabricated number**, explains why; `try_url` → docs/contact |
+> | books.toscrape | cheapest book + price | present (compute) | "Starving Hearts £13.99" — **verified correct** |
+> | books.toscrape | price of *The Great Gatsby* | product ABC absent | "not listed on this page … 20 books, none match" · `obstacle: empty` · `ask_here` |
+> | allrecipes | price of the KitchenAid mixer | product on wrong-kind page | "page does not mention … no retail price" · `obstacle: empty` |
+> | Metacritic Zelda | retail price in USD | absent | "does not contain pricing information" · `obstacle: empty` · `try_url` |
+> | allrecipes | who invented banana bread | absent | "does not contain information about the original inventor" · `obstacle: empty` |
 >
-> The behavioral stack — the LLM's honest **non-fabricated** "not present"
-> answer + `obstacle: empty` (page-level) + **question-conditioned `try_url`**
-> (where the answer likely is) + `ask_here` (what this page CAN answer) —
-> already delivers exactly the question-relative answerability + descent that
-> this ADR set out to add. No fabrication was observed; `try_url` reasons were
-> question-conditioned and useful.
+> **Across all 5 insufficient-information cases: zero fabrication.** Haiku states
+> "not present / not fixed / not listed" plainly, explains *why*, and offers a
+> recovery path (`try_url` / `ask_here`). The hardest case — a number-shaped
+> question where one plan has a number and the asked one (Enterprise) does not —
+> is exactly where a weak model invents "$X"; Haiku said "custom, contact sales".
+> The two data-present controls answered correctly (computation verified).
 >
-> The one place behavioral signals *could* fall short — Stage-2's target:
-> answer **present but JS-unrendered**, gate=ok, yielding a *false* "not
-> present" — proved narrow in practice: modern sites SSR (Vercel returned full
-> content via raw), and a true empty shell already trips the existing
-> thin-content → browser gate. No clean reproduction was found.
+> **Known nuance (not worth a build):** the insufficiency signal lives in the
+> prose `answer` + `obstacle: empty`. `obstacle: empty` fires when the *whole
+> page* lacks the data, but **not** for "key absent within a data-rich page"
+> (Vercel Enterprise had no `obstacle`) — there is no dedicated
+> machine-readable `answerable: false`. An agent branching programmatically on
+> "couldn't answer" must read the prose in that sub-case. Adding a boolean was
+> weighed and **declined**: the semantics review flags enum/flag overlap with
+> `obstacle`/`confidence` and ~10%→~30% router-JSON wobble-drop risk, threatening
+> the critical `answer` field — cost with no quality gain (magic budget,
+> ADR-0001). If machine-readable insufficiency is ever needed, the right home is
+> a **`make bench` answer-quality axis** (live, model-behavior) — a frozen-replay
+> cassette cannot guard it (it would just re-serve the recorded answer). Noted as
+> a bench backlog item, not built.
 >
-> **Recommendation:** do **not** build the explicit answerability enum + the
-> two-stage escalation. The semantics agent already flagged the enum overlaps
-> `obstacle`/`confidence` and raises router-JSON wobble-drop risk (~10%→~30%),
-> threatening the critical `answer` field — cost the substrate now shows buys
-> nothing the behavioral signals don't already provide. If a future *captured*
-> regression demonstrates the present-but-unrendered gap, address it with a
-> **targeted** browser-escalate-on-not-present-when-JS-shell-detected, never a
-> blanket enum. (Magic budget: ADR-0001.)
+> The Stage-2 "present-but-JS-unrendered" gap also proved narrow (modern SSR;
+> Vercel returned full content via raw; true empty shells already trip the
+> existing thin-content → browser gate).
 
 ## Context
 

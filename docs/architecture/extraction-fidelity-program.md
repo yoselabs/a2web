@@ -55,18 +55,21 @@ started with the `listing-offer-lift` bug and generalized it to a class.
   changes 2-4. (Remaining structural-filter siblings — `_rows_to_md_table`
   column skip, `_framework_state_to_markdown` scalar flatten — await their own
   captured regression.)
-- **ADR-0006 `answerability-escalation` — INVESTIGATED, recommend NOT building
-  (2026-06-07).** Its necessity precondition ("first establish whether
-  behavioral `ask_here`/`try_url` already suffice") was tested against the
-  substrate via live probes of answer-absent pages: the LLM returns a
-  non-fabricated "not present" + `obstacle: empty` + a question-conditioned
-  `try_url` + page-answerable `ask_here` — already the answerability + descent
-  this ADR set out to add. The Stage-2 "present-but-JS-unrendered" gap proved
-  narrow (modern SSR; empty shells already trip the thin-content→browser gate).
-  Recommendation in ADR-0006: do not build the explicit enum (wobble-risk, no
-  marginal value); revisit only if a captured regression shows the gap. **No
-  change authored** — the substrate prevented a complex, envelope-breaking build
-  that wasn't needed (magic budget, ADR-0001).
+- **ADR-0006 `answerability-escalation` — SUPERSEDED, not built (closed
+  2026-06-08).** Its necessity precondition ("first establish whether behavioral
+  `ask_here`/`try_url` already suffice") was tested against the substrate with 7
+  live probes, focused on the insufficient-information / "asked key absent" case
+  (esp. price). Result: **zero fabrication across all 5 absent-data cases** — the
+  LLM states "not present / not fixed / not listed" plainly, explains why, and
+  offers `try_url`/`ask_here` recovery; `obstacle: empty` is the page-level
+  signal. Even the hard "Enterprise price" case (number expected, absent) said
+  "custom, contact sales" instead of inventing one. The explicit enum was
+  declined (overlaps `obstacle`/`confidence`, ~10%→~30% wobble-drop risk, no
+  quality gain). The one nuance — no machine-readable `answerable: false` for
+  "key absent in a data-rich page" — is a **`make bench` answer-quality backlog
+  item** (frozen replay can't guard model behavior), not a build. **No change
+  authored** — the substrate prevented an envelope-breaking build that wasn't
+  needed (magic budget, ADR-0001).
 - **ADR-0007 `real-surface-grounding` — UNBLOCKED.** Measured before/after
   against the substrate; confirms only once proven against a replayed regression
   delta. Also owns CSS-styled-strikethrough list/sale grounding (surfaced by
