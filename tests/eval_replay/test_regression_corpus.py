@@ -33,10 +33,17 @@ async def test_regression_replay(monkeypatch: pytest.MonkeyPatch, case) -> None:
     assert_contract(case, observed)
 
 
-@pytest.mark.skipif(not _CASES, reason="no regression cases captured yet")
+# Cases with a recorded LLM egress — bot-wall / honest-failure cases (e.g.
+# akakce-cloudflare-bot-wall) never call the extractor, so they have no
+# `inputs/llm/` to reproduce; this byte-for-byte assertion is about the LLM
+# egress specifically and must run on a case that actually has one.
+_LLM_CASES = [c for c in _CASES if c.inputs.llm]
+
+
+@pytest.mark.skipif(not _LLM_CASES, reason="no regression case with a recorded LLM egress")
 async def test_llm_egress_is_reproduced_byte_for_byte(monkeypatch: pytest.MonkeyPatch) -> None:
     """The recorded LLM answer is replayed exactly, identically across runs."""
-    case = _CASES[0]
+    case = _LLM_CASES[0]
     first = await replay_case(monkeypatch, case)
     second = await replay_case(monkeypatch, case)
     assert first == second  # tier path, token cost, content, answer all identical

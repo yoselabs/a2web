@@ -67,7 +67,11 @@ dependencies = [
     # the Firefox binary — that's a runtime asset, not a Python dep.
     # `playwright` is a transitive dep of camoufox (camoufox is a stealth-patched
     # Firefox driven through Playwright's API) — not pinned here separately.
-    "camoufox>=0.4,<1",
+    # The `geoip` extra (maxminddb + a ~66MB GeoIP DB pulled on first use) lets
+    # Camoufox align locale/timezone/geolocation to the egress IP — a real
+    # signal for passing anti-bot challenges on geo-specific sites. See
+    # docs/architecture/cloudflare-handling.md.
+    "camoufox[geoip]>=0.4,<1",
     "gidgethub>=5.4,<6",
 ]
 
