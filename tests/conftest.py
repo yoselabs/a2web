@@ -12,6 +12,7 @@ The fixture is autouse by virtue of being imported into conftest.
 
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING
 
 import aiosqlite.core
@@ -55,6 +56,42 @@ def _daemon_aiosqlite_connection_init(self: aiosqlite.core.Connection, *args: ob
 
 
 aiosqlite.core.Connection.__init__ = _daemon_aiosqlite_connection_init  # type: ignore[method-assign]
+
+
+# --- close every SqliteResource within its own test's event loop ----------- #
+# The daemon patch above stops the parked worker thread from hanging process
+# exit, but a connection opened by a test and never closed leaves its worker
+# thread alive *during* the session. When the test's function-scoped event loop
+# closes, that thread's next `call_soon_threadsafe(...)` hits a closed loop and
+# raises `RuntimeError: Event loop is closed` — surfaced as a
+# `PytestUnhandledThreadExceptionWarning` (and, under coverage / unlucky timing,
+# an intermittent hard failure attributed to whichever test was running). The
+# fix is to close each `SqliteResource` *inside* the loop it was opened on:
+# aiosqlite's `close()` drains and joins the worker thread cleanly, so no orphan
+# callback survives teardown. We track every instance (any construction path —
+# `make_default_bundle` or a direct `SqliteResource(...)`) by wrapping __init__.
+_OPENED_SQLITE: list[SqliteResource] = []
+_orig_sqlite_init = SqliteResource.__init__
+
+
+def _tracking_sqlite_init(self: SqliteResource, *args: object, **kwargs: object) -> None:
+    _orig_sqlite_init(self, *args, **kwargs)
+    _OPENED_SQLITE.append(self)
+
+
+SqliteResource.__init__ = _tracking_sqlite_init  # type: ignore[method-assign]
+
+
+@pytest.fixture(autouse=True)
+async def _close_sqlite_resources() -> object:
+    """Close every SqliteResource constructed during the test, in this test's
+    event loop, before pytest-asyncio tears the loop down. `close()` is a no-op
+    when the connection was never opened, so sync tests pay nothing."""
+    yield
+    while _OPENED_SQLITE:
+        resource = _OPENED_SQLITE.pop()
+        with contextlib.suppress(Exception):
+            await resource.close()
 
 
 def make_default_state(settings: AppSettings | None = None) -> AppState:
