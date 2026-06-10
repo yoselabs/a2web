@@ -150,9 +150,3 @@ process forces that conversation.
 
 - WebMCP (top-of-ladder surface) · full cross-source atomization · price
   provenance + locale/currency exposure.
-
-## Status
-
-- ADR-0002, ADR-0003: Accepted.
-- ADR-0004–0007: Accepted (provisional), confirm-by their changes.
-- Changes: `eval-substrate` next (proposal in progress).
