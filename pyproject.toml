@@ -139,6 +139,12 @@ select = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# NB (ADR-0008): `filterwarnings = ["error::pytest.PytestUnhandledThreadExceptionWarning"]`
+# was tried as a leak backstop and REMOVED — it promotes a rare, benign aiosqlite
+# teardown-race warning into a hard ~1/15 failure, re-introducing flakiness. The
+# deterministic leak detector is the `_sqlite_lifecycle` fixture's open-state
+# assertion in conftest (a fact, not the racy symptom); that is the fitness
+# function, and it carries no flakiness.
 # Coverage is NOT in addopts — it ~doubles wall time and is a release-gate
 # concern, not an inner-loop one. `make test` runs bare (fast); `make check`
 # runs `make test-cov` with the coverage flags and the 85% gate.

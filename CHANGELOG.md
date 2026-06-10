@@ -8,6 +8,22 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed — test-resource lifecycle teardown (ADR-0008)
+
+- Eliminated intermittent suite failures (`RuntimeError: Event loop is closed`
+  from aiosqlite's worker thread + 17 `PytestUnhandledThreadExceptionWarning`s
+  per run). Root cause was a class: the "AppState without an app" unit-test seam
+  constructs lifecycle resources but, unlike `async with app:` / the TestClient,
+  never closed them, so a `SqliteResource`'s loop-bound worker thread outlived
+  the test's event loop.
+- `tests/conftest.py` now tracks every `SqliteResource` (wrapping `__init__`,
+  covering both `make_default_bundle` and direct construction) and an autouse
+  `_sqlite_lifecycle` fixture closes each in the test's own loop, then asserts
+  none was left open — a **deterministic** state-based fitness function (proven
+  load-bearing: 71 errors x 3 runs when close is skipped; 20/20 clean with it).
+- Test-only; no `src/` change. The principled framework-owned fix is filed
+  upstream as an a2kit wish (`docs/history/A2KIT_FEEDBACK_v0.42.md`).
+
 ### Fixed — JSON-LD Recipe rendering + default-keep entity projection (ADR-0004 json half)
 
 - The JSON-LD → markdown synthesis adapter (`domain.json_to_markdown_rows`) now
