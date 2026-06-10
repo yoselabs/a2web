@@ -49,6 +49,18 @@ eval/corpus/<corpus>/<case>/
 `baseline/`, so an operator can tell a code-driven change from a
 site-driven one before accepting it.
 
+### LLM recording key
+
+A case records **one** LLM response per case — a single keyed file under
+`inputs/llm/` (`CassetteLlm` serves it for the case's single `extract()` call).
+This is sufficient because a fetch makes exactly one extraction call.
+Prompt-hash / `(url, tier)` multi-call keying is **deliberately deferred** until
+a case needs more than one LLM call; none does today. The key never has to
+coexist with the production `EXTRACT_*` cache prefix because the cassette
+replaces the extractor egress wholesale (the cache is never consulted in
+replay). A bot-walled / honest-failure case records **no** LLM file at all — the
+extractor is never invoked (e.g. `regression/akakce-cloudflare-bot-wall`).
+
 ## Failure-class taxonomy (`failure_class`)
 
 Every case declares the failure class it exercises. The breaking corpus

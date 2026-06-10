@@ -22,7 +22,7 @@
 ## 4. LLM-as-egress recording
 
 - [x] 4.1 Implement `CassetteLlm` (`harness.py`) serving a recorded provider response from `inputs/llm/*.json`; capture-side `_TeeExtractor` records it.
-- [ ] 4.2 Decide and document the LLM-recording key (prompt-hash vs (url, tier)) so it coexists with the `EXTRACT_*` cache prefix (coordinate with change `multi-source-extraction-input`). **(MVP uses a single recorded response per case; multi-call keying deferred to the first multi-LLM-call case.)**
+- [x] 4.2 Decided + documented the LLM-recording key: **one recorded response per case** (a single keyed file under `inputs/llm/`, served by `CassetteLlm` for the case's single extraction call). Prompt-hash / `(url, tier)` multi-call keying is **deferred** until a case needs more than one LLM call — none does today (extraction is one `extract()` per fetch). Documented in `eval/_capture/README.md` ("LLM recording key").
 - [x] 4.3 Deterministic test asserts byte-exact answer + exact token cost under full LLM replay (`test_regression_corpus.py::test_llm_egress_is_reproduced_byte_for_byte`): two replays are identical and the answer equals the recorded egress.
 
 ## 5. Breaking corpus + refresh/bless
@@ -33,8 +33,8 @@
 
 ## 6. Bench split + judge pinning
 
-- [ ] 6.1 Split the existing `make bench` (`python -m a2web.llm_eval`) lane so LLM-judged axes (answer quality, clarity, next_links) stay live/informational and do not gate `make check`.
-- [ ] 6.2 Pin and record the judge model id in the `make bench` run report.
+- [x] 6.1 Lanes are split: `make check` never invokes `a2web.llm_eval` (the live judged axes); it runs only the offline harness tests under `tests/capabilities/output_benchmark/` ("No real API calls, no live network"). The LLM-judged axes (quality, clarity, next_links) run live + informational under `make bench`.
+- [x] 6.2 Judge model is pinned + recorded: `--judge-model` defaults to `claude-sonnet-4-6`; `report.py::_write_manifest` writes `judge_model` + `bench_judge_model` into `manifest.json` for every run.
 
 ## 7. Validate the instrument + wrap
 
