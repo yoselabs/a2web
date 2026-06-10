@@ -1,0 +1,9 @@
+{
+  "answer": "Not disclosed in this page. The Wikipedia article on Transformers does not provide USD training cost figures for the original 2017 Transformer model.",
+  "completion_tokens": 386,
+  "cost_usd": 0.0395565,
+  "latency_ms": 7148,
+  "model": "claude-haiku-4-5-20251001",
+  "prompt_tokens": 19996,
+  "template_name": "extract_router_v1"
+}

@@ -27,7 +27,7 @@
 
 ## 5. Breaking corpus + refresh/bless
 
-- [ ] 5.1 Add `breaking` corpus cases spanning class A, B, and C (each declaring its class); capture cassettes + baselines. **(LIVE — pending `make eval-capture` runs.)**
+- [x] 5.1 Captured a `breaking` corpus via live `make eval-capture` on the claude-code (subscription) provider: **A** `arxiv-attention-clean-schema` + `allrecipes-nutrition` (clean structured schema; the latter also confirms the change-#4 recipe rendering generalizes off bbcgoodfood), **B** `wikipedia-absent-fact` (source omits the asked fact → honest "Not disclosed", zero fabrication). Each declares its class with a frozen cassette + blessed contract (incl. `answer_contains`); `tests/eval_replay/test_breaking_corpus.py` replays them in `make check`. **Class C** ("structured data present but wrong") is exemplified by the `regression` cases (`hepsiburada-listing-price` price-fusion, `recipe-nutrition-volume-gate` sidebar) — real stuck-cases from the program; a fresh non-Cloudflare-walled C is impractical (misleading-schema retailers sit behind CF), so C coverage lives in regression rather than being duplicated. Documented in the test + README.
 - [x] 5.2 Implement `make eval-refresh CASE=…` — `eval/_capture/refresh.py` re-captures `inputs/`, re-runs the diff of the fresh answer + contract vs blessed `baseline/`; never overwrites without bless.
 - [x] 5.3 Implement the `A2WEB_BLESS_EVAL=1` re-bless path (`tests/eval_replay/bless.py` + `refresh.py`), mirroring the `A2WEB_BLESS_CONTRACTS=1` idiom.
 

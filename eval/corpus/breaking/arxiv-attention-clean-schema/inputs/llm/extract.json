@@ -1,0 +1,9 @@
+{
+  "answer": "The paper proposes the Transformer, a network architecture based \"solely on attention mechanisms, dispensing with recurrence and convolutions entirely.\" It achieves 28.4 BLEU on WMT 2014 English-to-German translation, improving existing results by over 2 BLEU, and trains significantly faster than prior models.",
+  "completion_tokens": 256,
+  "cost_usd": 0.014623750000000001,
+  "latency_ms": 4970,
+  "model": "claude-haiku-4-5-20251001",
+  "prompt_tokens": 9197,
+  "template_name": "extract_router_v1"
+}

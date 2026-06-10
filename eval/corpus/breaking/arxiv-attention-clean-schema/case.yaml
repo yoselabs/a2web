@@ -1,0 +1,5 @@
+slug: arxiv-attention-clean-schema
+url: https://arxiv.org/abs/1706.03762
+question: According to the abstract, what architecture does this paper propose, and
+  what does it dispense with?
+failure_class: A

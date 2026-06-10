@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines the canonical structure of the `tests/` tree so that the test suite mirrors the codebase's architecture and the OpenSpec capability set: every test has a deterministic, spec-aligned home, the `packages/` independence boundary is visible, and fixture-path resolution survives directory depth.
-
 ## Requirements
-
 ### Requirement: tests are organized into three zones
 
 The `tests/` tree SHALL organize test files into three zones plus supporting directories. The zones are `tests/architecture/` for meta-tests asserting invariants about the codebase itself, `tests/packages/` for tests that exercise `a2web.packages.*` modules in isolation, and `tests/capabilities/<capability>/` for domain-coupled behavior tests grouped one directory per OpenSpec capability. The supporting directories are `tests/fixtures/` (shared fixture data), `tests/contracts/` (golden contract JSON and its test), and `tests/utils/` (mirrors `src/a2web/utils/`). `tests/conftest.py` SHALL remain at the `tests/` root so its fixtures cascade to every zone.
@@ -61,3 +59,32 @@ Moving and grouping test files SHALL NOT change test behavior. Files SHALL move 
 
 - **WHEN** two or more test files are merged into one
 - **THEN** every test function from the source files is present in the merged file and still runs
+
+### Requirement: the eval corpus and replay harness have canonical homes
+
+Corpus fixtures SHALL live under `eval/corpus/<corpus>/<case>/` (committed). The deterministic
+replay harness and its assertions SHALL live in the test layer (under `tests/`) so they are collected
+by `make check`. The capture/refresh dev tooling SHALL live in a non-packaged `eval/` dev module and
+SHALL NOT be importable from the shipped `a2web` package.
+
+#### Scenario: replay tests are collected by make check
+
+- **WHEN** `make check` runs
+- **THEN** the deterministic replay tests are collected and gate the run alongside the existing suite
+
+#### Scenario: capture tooling is not in the shipped package
+
+- **WHEN** the shipped `a2web` package imports are inspected
+- **THEN** no eval capture/refresh module is importable from `a2web.*`
+
+### Requirement: only deterministic checks gate make check
+
+Tests wired into `make check` SHALL be deterministic and SHALL NOT make live network, browser, or LLM
+calls. Any check requiring a live LLM judge or live network SHALL run only under `make bench` and SHALL
+NOT be collected by `make check`.
+
+#### Scenario: a replay test makes no live call
+
+- **WHEN** a deterministic replay test runs under `make check`
+- **THEN** it reads only frozen fixtures and makes no network, browser, or live-LLM call
+

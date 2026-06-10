@@ -1,0 +1,4 @@
+slug: wikipedia-absent-fact
+url: https://en.wikipedia.org/wiki/Transformer_(deep_learning_architecture)
+question: What was the total USD training cost of the original Transformer model?
+failure_class: B

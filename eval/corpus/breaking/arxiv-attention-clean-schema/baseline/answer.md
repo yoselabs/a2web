@@ -1,0 +1,1 @@
+The paper proposes the Transformer, a network architecture based "solely on attention mechanisms, dispensing with recurrence and convolutions entirely." It achieves 28.4 BLEU on WMT 2014 English-to-German translation, improving existing results by over 2 BLEU, and trains significantly faster than prior models.

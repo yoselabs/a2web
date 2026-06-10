@@ -112,6 +112,14 @@ All notable changes to **a2web** are recorded here. The format follows
   the −21% badge into the price digits and the extractor confidently answers
   with the *list* price as the selling price. Frozen as the class-C anchor
   for the extraction-fidelity program (`docs/architecture/extraction-fidelity-program.md`).
+- Completed (eval-substrate change closed): the `breaking` corpus now carries
+  class **A** (`arxiv-attention-clean-schema`, `allrecipes-nutrition`) and class
+  **B** (`wikipedia-absent-fact` — honest "not disclosed", no fabrication),
+  replayed by `tests/eval_replay/test_breaking_corpus.py` in `make check`; class
+  **C** is covered by the `regression` cases (a fresh non-Cloudflare-walled C is
+  impractical). Confirmed the `make bench` (live, judged) vs `make check`
+  (offline) lane split and that the judge model is pinned + recorded in
+  `manifest.json`. The LLM-recording key is one response per case (documented).
 
 ### Fixed — listing offer-lift (JSON-LD `ItemList` synthesis)
 

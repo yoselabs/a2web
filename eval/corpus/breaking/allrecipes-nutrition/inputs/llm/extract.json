@@ -1,0 +1,9 @@
+{
+  "answer": "One serving contains 231 calories. The recipe makes 12 servings, yielding 1 (9\u00d75-inch) loaf.",
+  "completion_tokens": 86,
+  "cost_usd": 0.014672,
+  "latency_ms": 4030,
+  "model": "claude-haiku-4-5-20251001",
+  "prompt_tokens": 11394,
+  "template_name": "extract_router_v1"
+}

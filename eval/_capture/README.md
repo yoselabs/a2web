@@ -94,8 +94,14 @@ browser layer missing.
   testing itself. No network, no LLM.
 - `regression/` — cases the product has actually gotten stuck on (the
   Hepsiburada listing case lives here). These must keep passing.
-- `breaking/` — cases deliberately spanning classes A/B/C, used to drive
-  the extraction-fidelity program forward.
+- `breaking/` — cases declaring their failure class, kept as permanent
+  class-spanning coverage. Holds class **A** (clean schema: `arxiv-…`,
+  `allrecipes-…`) and class **B** (source omits → honest "not present":
+  `wikipedia-absent-fact`). Class **C** ("structured data present but wrong")
+  is covered by the `regression` cases (`hepsiburada-listing-price`,
+  `recipe-nutrition-volume-gate`) rather than duplicated here — a fresh non-CF
+  C is impractical to capture, since misleading-schema retailers sit behind
+  Cloudflare.
 
 ## Make targets
 

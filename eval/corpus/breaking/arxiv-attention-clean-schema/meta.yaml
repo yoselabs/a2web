@@ -1,0 +1,12 @@
+captured_at: '2026-06-10T12:13:50.372846+00:00'
+source_url: https://arxiv.org/abs/1706.03762
+layers:
+  raw:
+    frozen: true
+    exchanges: 1
+  browser:
+    frozen: false
+    bytes: 0
+  llm:
+    frozen: true
+content_sha256: c19ab20ff6b107f1f60aa38dd98245fb4adbe54d3b186505f013b3eb8ec64943
