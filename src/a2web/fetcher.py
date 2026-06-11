@@ -22,7 +22,7 @@ from typing import Literal, cast
 from urllib.parse import urlparse
 
 import a2kit
-import a2kit.ldd
+import a2kit.log
 import structlog
 from a2kit import Lazy
 
@@ -417,11 +417,11 @@ async def fetch(
 ) -> FetchResponse:
     """Run the v0.1 cascade for one URL.
 
-    Emits typed phase-boundary events via `await a2kit.ldd.event(EventInstance(...))`.
-    The dispatcher binds the active ToolContext as ambient state (a2kit v0.29+);
-    when called outside a tool dispatch (eval/systems direct call), wrap with
-    `async with a2kit.testing.ldd_state_for_call(ctx=...):` if events are needed,
-    otherwise `AmbientContextMissing` will surface immediately — fail-loud.
+    Emits typed phase-boundary events via `await a2kit.log.info(EventInstance(...))`
+    (ADR-0027 LDD refound — stdlib logging). The synchronous log to the `a2kit`
+    logger always fires; the optional MCP-wire forward only happens under a tool
+    dispatch. Outside a dispatch (eval/systems direct call) the emit still logs —
+    no ambient ctx is required.
 
     `include_links` and `debug` are v0.3 envelope-diet opt-ins (both default
     False). See `FetchResponse` docs.
@@ -528,10 +528,10 @@ async def fetch(
 # --------------------------------------------------------------------- #
 
 
-# Note: typed events emit directly via `await a2kit.ldd.event(event)`.
-# Round-4: a2kit's free function now honors registered dataclass instances and
-# serializes them via `dataclasses.asdict` + Enum.value coercion. No flattener
-# needed at this seam.
+# Note: typed events emit directly via `await a2kit.log.info(event)`.
+# a2kit resolves a dataclass/pydantic instance to a `LogRecord` whose message
+# is the type name and whose payload dict rides on `record.a2kit_fields`
+# (`dataclasses.asdict` + Enum.value coercion). No flattener needed at this seam.
 
 
 # --------------------------------------------------------------------- #
@@ -547,7 +547,7 @@ async def _emit_tier_started(
 ) -> int:
     """Emit `TierStarted` at the current perf-clock tick; return the relative ms."""
     start_ms = int((time.perf_counter() - start_perf) * 1000)
-    await a2kit.ldd.event(TierStarted(t_ms=start_ms, step=step, host=host))
+    await a2kit.log.info(TierStarted(t_ms=start_ms, step=step, host=host))
     return start_ms
 
 
@@ -562,7 +562,7 @@ async def _emit_tier_ended(
 ) -> int:
     """Emit `TierEnded` and return the elapsed `dur_ms` (relative to `start_ms`)."""
     dur_ms = int((time.perf_counter() - start_perf) * 1000) - start_ms
-    await a2kit.ldd.event(
+    await a2kit.log.info(
         TierEnded(
             t_ms=start_ms,
             step=step,
@@ -612,7 +612,7 @@ async def _phase_resolve_cookies(fc: FetchContext, *, state: AppState) -> None:
 
     if cookies_full:
         t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-        await a2kit.ldd.event(
+        await a2kit.log.info(
             CookiesAttached(
                 t_ms=t_ms,
                 host=host,
@@ -660,7 +660,7 @@ async def _phase_cookies_staleness(fc: FetchContext, *, state: AppState) -> None
         ),
     )
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.ldd.event(
+    await a2kit.log.info(
         CookiesStale(
             t_ms=t_ms,
             profile=state.settings.cookie_profile,
@@ -920,7 +920,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.proxy_unavailable)
                 continue
 
-            await a2kit.ldd.event(TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
+            await a2kit.log.info(TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
 
             tier_result = await tier.fetch(
                 fc.url,
@@ -1031,7 +1031,7 @@ async def _phase_extract(fc: FetchContext) -> None:
     if not (fc.body and fc.resolved_verdict() is Verdict.ok):
         return
 
-    await a2kit.ldd.event(StageStarted(t_ms=extract_dur_start, step="extract"))
+    await a2kit.log.info(StageStarted(t_ms=extract_dur_start, step="extract"))
     extract_result = await extract_markdown(raw_html, fc.final_url)
     fc.content_md = extract_result.content_md
     fc.title = extract_result.title
@@ -1054,7 +1054,7 @@ async def _phase_extract(fc: FetchContext) -> None:
             extra={"chars": len(fc.content_md)},
         )
     )
-    await a2kit.ldd.event(
+    await a2kit.log.info(
         StageEnded(
             t_ms=extract_dur_start,
             step="extract",
@@ -1189,7 +1189,7 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[Content
     telemetry, does NOT mutate `fc.content_md`.
     """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.ldd.event(StageStarted(t_ms=t_ms, step="json_synth"))
+    await a2kit.log.info(StageStarted(t_ms=t_ms, step="json_synth"))
     payloads = extract_json_payloads(raw_html)
     candidates: list[ContentCandidate] = []
     seen: set[str] = set()
@@ -1200,7 +1200,7 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[Content
             candidates.append(ContentCandidate(source="json_synth", content_md=rendered))
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
     outcome = "no_payloads" if not payloads else ("no_synth" if not candidates else "collected")
-    await a2kit.ldd.event(
+    await a2kit.log.info(
         StageEnded(
             t_ms=t_ms,
             step="json_synth",
@@ -1220,14 +1220,14 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCa
     Pure function — no mutation of `fc.content_md` / `fc.next_links_handler`.
     """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.ldd.event(StageStarted(t_ms=t_ms, step="record_synth"))
+    await a2kit.log.info(StageStarted(t_ms=t_ms, step="record_synth"))
     record_set = extract_records(raw_html, base_url=fc.final_url or "")
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
     if record_set is not None:
         synthetic = record_set.to_markdown()
         if synthetic:
             next_links = _records_to_next_links(record_set, page_url=fc.final_url or "")
-            await a2kit.ldd.event(
+            await a2kit.log.info(
                 StageEnded(
                     t_ms=t_ms,
                     step="record_synth",
@@ -1242,7 +1242,7 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCa
             )
             return ContentCandidate(source="record_synth", content_md=synthetic, next_links=next_links, is_threaded=record_set.is_threaded)
     outcome = "no_records" if record_set is None else "no_synth"
-    await a2kit.ldd.event(StageEnded(t_ms=t_ms, step="record_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
+    await a2kit.log.info(StageEnded(t_ms=t_ms, step="record_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
     return None
 
 
@@ -1318,7 +1318,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
         return
 
     gate_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.ldd.event(StageStarted(t_ms=gate_dur_start, step="gate"))
+    await a2kit.log.info(StageStarted(t_ms=gate_dur_start, step="gate"))
 
     # Pre-rendered handler results carry application/json bodies; skip the
     # html/content-type guard for them — block-page regexes still run on the
@@ -1348,7 +1348,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
             extra={},
         )
     )
-    await a2kit.ldd.event(
+    await a2kit.log.info(
         StageEnded(t_ms=gate_dur_start, step="gate", verdict=gate_result.verdict, dur_ms=gate_dur_ms),
     )
     fc.observe(
@@ -1492,7 +1492,7 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
     assert fc.sqlite is not None  # noqa: S101 — narrowed by should_cache
 
     cache_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.ldd.event(StageStarted(t_ms=cache_dur_start, step="cache_write"))
+    await a2kit.log.info(StageStarted(t_ms=cache_dur_start, step="cache_write"))
     await fc.sqlite.put(
         fc.url,
         fc.profile_hash,
@@ -1504,7 +1504,7 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
         ttl_s=_ttl_for(fc.content_type, state.settings),
     )
     cache_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - cache_dur_start
-    await a2kit.ldd.event(
+    await a2kit.log.info(
         StageEnded(t_ms=cache_dur_start, step="cache_write", verdict=Verdict.ok, dur_ms=cache_dur_ms),
     )
 
@@ -1552,7 +1552,7 @@ async def _phase_extract_answer(
         # The agent will see status=failed + diagnostics_summary explaining why.
         return
     phase_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.ldd.event(StageStarted(t_ms=phase_start_ms, step="extract_answer"))
+    await a2kit.log.info(StageStarted(t_ms=phase_start_ms, step="extract_answer"))
 
     try:
         extractor_resource = await fc.llm_extractor()
@@ -1599,7 +1599,7 @@ async def _phase_extract_answer(
             )
         )
         dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
-        await a2kit.ldd.event(
+        await a2kit.log.info(
             StageEnded(
                 t_ms=phase_start_ms,
                 step="extract_answer",
@@ -1649,7 +1649,7 @@ async def _phase_extract_answer(
     # None.
     fc.routing = result.routing
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
-    await a2kit.ldd.event(
+    await a2kit.log.info(
         StageEnded(
             t_ms=phase_start_ms,
             step="extract_answer",

@@ -1,8 +1,10 @@
 """Phase-boundary events emitted by the fetch orchestrator.
 
-These types are registered on `app.ldd.events` in `server.py` so a2kit can
-route them through the typed-emit path. Sinks (OTel + the wire bridge that
-a2kit owns) receive them as `LddEmission` payloads.
+These typed payloads are passed directly to `await a2kit.log.info(...)`
+(ADR-0027 LDD refound — no pre-registration step). a2kit resolves each
+instance to a `logging.LogRecord`: message = the type name, payload dict on
+`record.a2kit_fields`. Handlers (OTel + the wire bridge that a2kit owns)
+read them off the record.
 """
 
 from __future__ import annotations

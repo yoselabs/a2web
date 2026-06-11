@@ -1,8 +1,10 @@
-"""a2web server entrypoint — `a2kit.App` composition (v0.38 surface).
+"""a2web server entrypoint — `a2kit.App` composition (v0.43 surface).
 
-Imperative composition: each long-lived resource is registered as its own
-provider via `app.provide(...)`. The container resolves them in deps-first
-order on first use (lazy first-use, a2kit v0.36+); LIFO unwind on shutdown.
+ADR-0028 (unified surface): the App is authored by **subclassing** —
+`A2Web` sets `name` + a `routers` ClassVar (a tuple of Router *classes*).
+Each long-lived resource is registered imperatively via `app.provide(...)`
+in `build_app()`; the container resolves them in deps-first order on first
+use (lazy first-use), LIFO unwind on shutdown.
 
 No `lifespan=` kwarg, no `@asynccontextmanager` lifespan body — resources
 own their own lifecycle via `__aenter__`/`__aexit__` (thin wrappers around
@@ -12,25 +14,19 @@ internal lazy-call surface).
 Heavy/conditional resources (BrowserPool, LlmExtractorResource) are surfaced
 at the tool seam as `Lazy[T]` (see `routers.py`) so the cold-start cost is
 paid only when the fetch path actually needs them.
+
+LDD is stdlib logging (ADR-0027 LDD refound): typed events emit via
+`await a2kit.log.info(payload)`; sinks are `logging.Handler`s attached via
+`app.log.add_handler(...)`.
 """
 
 from __future__ import annotations
 
 import a2kit
-import a2kit.ldd
 
 from ._manifests.sinks import Sink
 from ._plugin import load_surface
 from .cookie_jar import build_cookie_jar
-from .events.types import (
-    CookiesAttached,
-    CookiesStale,
-    StageEnded,
-    StageStarted,
-    TierEnded,
-    TierHeartbeat,
-    TierStarted,
-)
 from .packages.http_cache import SqliteResource
 from .routers import CookiesRouter, WebRouter
 from .settings import get_settings
@@ -43,20 +39,31 @@ from .state import (
 )
 
 # ----------------------------------------------------------------------- #
-# App composition — providers registered in dependency order (v0.36 uses
-# insertion order, not topological). Each downstream factory depends only
-# on already-registered types.
+# App composition — providers registered in dependency order (insertion
+# order, not topological). Each downstream factory depends only on
+# already-registered types.
 # ----------------------------------------------------------------------- #
 
 
-def build_app() -> a2kit.App:
-    """Build a fresh a2web `a2kit.App` instance.
+class A2Web(a2kit.App):
+    """The a2web App (ADR-0028 subclass form).
+
+    `routers` names Router *classes* (reference-composition); a2kit
+    instantiates them at construction. Verbs auto-collect from the
+    `@a2kit.read`/`@a2kit.write` markers — no `tools` ClassVar.
+    """
+
+    name = "a2web"
+    routers = (WebRouter, CookiesRouter)
+
+
+def build_app() -> A2Web:
+    """Build a fresh a2web `A2Web` instance.
 
     Tests build a fresh app per test and pass fakes via `.provide(T, fake)`
     last-write-wins, then enter `make_client(build_app_for_test(...))`.
-    a2kit v0.40 removed post-seal `TestClient.override()` (ADR 0017).
     """
-    app = a2kit.App("a2web")
+    app = A2Web()
 
     # Order matters: deps before dependents.
     app.provide(get_settings)  # AppSettings (BaseSettings) — explicit per design.md decision 4
@@ -68,20 +75,12 @@ def build_app() -> a2kit.App:
     app.provide(build_cookie_jar)  # CookieJarResource — needs settings + sqlite (Lazy at tool seam)
     app.provide(build_state)  # AppState — bundles the four always-on resources
 
-    app.add_router(WebRouter())
-    app.add_router(CookiesRouter())
-
-    # Register typed event payloads so a2kit can route them through the typed-emit
-    # path (one call emits dump → event → progress).
-    for _event_type in (TierStarted, TierEnded, StageStarted, StageEnded, TierHeartbeat, CookiesAttached, CookiesStale):
-        app.ldd.events.register(_event_type)
-
-    # LDD sinks come from the plugin manifest registry. Sinks whose factories
-    # return Unavailable (e.g. OTel without the SDK installed) are dropped
-    # before reaching a2kit. Sequential fan-out after the wire emit;
-    # best-effort under cancellation (a2kit logs exceptions to a2kit.ldd.sinks).
-    for _sink in load_surface("a2web._manifests.sinks", Sink, get_settings()).values():
-        app.ldd.add_sink(_sink)
+    # LDD sinks come from the plugin manifest registry as `logging.Handler`s.
+    # Handlers whose factories return Unavailable (e.g. OTel without the SDK
+    # installed) are dropped before reaching the logger. They attach to the
+    # `a2kit` logger and drain the typed-event LogRecords best-effort.
+    for _handler in load_surface("a2web._manifests.sinks", Sink, get_settings()).values():
+        app.log.add_handler(_handler)
 
     app.health_check(_check_sqlite)
     return app
@@ -90,7 +89,7 @@ def build_app() -> a2kit.App:
 async def _check_sqlite(sqlite: SqliteResource) -> a2kit.HealthResult:
     """Readiness probe for `_meta.health` / `a2web health`.
 
-    Per a2kit v0.39 `OPERATIONAL_CONTRACTS` Q-HealthChecks: kwarg resolution
+    Per a2kit `OPERATIONAL_CONTRACTS` Q-HealthChecks: kwarg resolution
     enters the resource (`__aenter__`) before this body runs. Receiving
     `sqlite` here means the connection opened. Open-time failures crash the
     probe loudly during resolution — that's correct for a catastrophic

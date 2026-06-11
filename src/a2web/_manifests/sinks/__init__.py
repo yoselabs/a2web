@@ -1,8 +1,8 @@
 """LDD sink manifests.
 
-Sinks are async callables `(LddEmission) -> None` registered via
-`app.ldd.add_sink(...)`. Each manifest returns the callable; the boot path
-collects them and feeds them into a2kit one by one.
+Sinks are stdlib `logging.Handler`s (ADR-0027 LDD refound) registered via
+`app.log.add_handler(...)`. Each manifest returns a handler instance; the
+boot path collects them and attaches them one by one.
 
 LiveSink (bench-only) is NOT a manifest — it needs a per-run `total=` arg
 that the factory can't know about. It stays as direct construction in
@@ -11,6 +11,6 @@ that the factory can't know about. It stays as direct construction in
 
 from __future__ import annotations
 
-from a2kit.packages.ldd import LddSink as Sink
+from logging import Handler as Sink
 
 __all__ = ("Sink",)

@@ -25,7 +25,9 @@ def test_cookies_router_registered() -> None:
 def test_cookies_router_slug() -> None:
     """CLI surface: `a2web cookies refresh`."""
     assert CookiesRouter.slug == "cookies"
-    assert any(t.__name__ == "refresh" for t in CookiesRouter.tools)
+    # v0.42 ADR-0028: no `tools` ClassVar — the verb auto-collects from its
+    # `@a2kit.write` marker. The method is present on the router class.
+    assert callable(getattr(CookiesRouter, "refresh", None))
 
 
 def test_cookie_jar_provider_registered() -> None:

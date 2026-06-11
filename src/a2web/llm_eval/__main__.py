@@ -165,7 +165,7 @@ async def _amain(argv: list[str]) -> int:
         bench_judge=bench_judge,
         concurrency=args.concurrency,
         output_dir=output_dir,
-        sinks=(live_sink,),
+        handlers=(live_sink,),
     )
 
     print(f"Running benchmark: {len(corpus)} URLs x {len(systems)} systems (provider={provider_id}) → {output_dir}")
