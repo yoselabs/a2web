@@ -88,6 +88,19 @@ Ship `os._exit(0)` workaround in `__main__.py`. Keep the BACKLOG.md entry open
 (downgrade is fine — operator pain is now zero). Re-open with upstream
 identification once we have a faulthandler trace from a real bench run.
 
+### Landed 2026-06-11
+
+The workaround was recommended here but never actually applied — the
+2026-06-11 post-v0.43-migration bench run hit the hang again (with Camoufox
+subprocesses lingering, since the hung parent never died). Now landed:
+`main()` flushes stdout/stderr and calls `os._exit(rc)` after `asyncio.run`
+returns. Mechanism verified deterministically: a non-daemon thread parked on
+`queue.SimpleQueue.get()` hangs a normal interpreter exit (reproduces
+`Py_FinalizeEx → wait_for_thread_shutdown`), while `os._exit` exits cleanly.
+The Camoufox orphan is also resolved — it lingered only because the hung
+Python parent stayed alive; on `os._exit` the parent dies and Camoufox reaps
+via its parent-death pipe. Upstream attribution (which dep) remains open.
+
 ## Files touched
 
 - `scripts/spike_shutdown_leak.py` — repro harness (keep for future probes).
