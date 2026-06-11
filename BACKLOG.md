@@ -121,8 +121,17 @@ description, why it was deferred, and a rough scope tier (S / M / L).
   itself via its parent-death pipe). Mechanism proven deterministically (a
   non-daemon SimpleQueue thread hangs normal return; `os._exit` exits clean).
   **Still OPEN (low pri):** upstream root-cause attribution — *which* dep leaks
-  the non-daemon thread. Next step unchanged: arm `faulthandler.dump_traceback_later`
-  in a live bench run and grep the parked thread's filename. Scope: S.
+  the non-daemon thread. **Not a2kit** — the bench never starts the MCP server
+  or `a2kit.run`, and refound LDD is threadless stdlib logging; a2kit has no
+  non-daemon thread on this path. `SimpleQueue.get` rules out `anyio` (uses
+  `queue.Queue`) and aiosqlite (daemon, joined). Prime suspects: `curl_cffi`
+  (libcurl multi-handle) or the playwright/camoufox pipe transport (Camoufox is
+  what visibly lingered). Cheap probe to attribute without a full bench: in a
+  subprocess, run one minimal `fetcher.fetch` over the raw (curl) path and one
+  over the browser tier, then `threading.enumerate()` the surviving non-daemon
+  threads after `asyncio.run` returns — names the culprit module without LLM
+  spend. (Heavier fallback: arm `faulthandler.dump_traceback_later` in a live
+  bench and grep the parked thread's filename.) Scope: S.
 
 ---
 
