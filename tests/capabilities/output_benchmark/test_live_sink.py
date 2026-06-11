@@ -15,12 +15,12 @@ from __future__ import annotations
 
 import asyncio
 import io
+import logging
 import re
 from dataclasses import asdict
 from pathlib import Path
 
 import pytest
-from a2kit import LddEmission
 
 from a2web.llm_eval.corpus import load_corpus
 from a2web.llm_eval.events import CellEnded, CellStarted
@@ -31,14 +31,19 @@ from a2web.llm_eval.systems import SystemResult
 from .test_output_benchmark import _MockBenchJudge, _MockJudge
 
 
-class _CapturingSink:
-    """Test sink that records every emission for invariant assertions."""
+class _CapturingHandler(logging.Handler):
+    """Test handler that records every LogRecord for invariant assertions.
+
+    Mirrors how a sink reads a2kit's typed-event records: `record.getMessage()`
+    is the event-type name, `record.a2kit_fields` the payload dict.
+    """
 
     def __init__(self) -> None:
-        self.emissions: list[LddEmission] = []
+        super().__init__()
+        self.records: list[logging.LogRecord] = []
 
-    async def __call__(self, emission: LddEmission) -> None:
-        self.emissions.append(emission)
+    def emit(self, record: logging.LogRecord) -> None:
+        self.records.append(record)
 
 
 class _StubOk:
@@ -77,46 +82,46 @@ urls:
 @pytest.mark.asyncio
 async def test_every_cell_emits_one_start_and_one_end(tmp_path: Path) -> None:
     corpus = load_corpus(_two_by_two_corpus(tmp_path))
-    capture = _CapturingSink()
+    capture = _CapturingHandler()
     suite = EvalSuite(
         corpus=corpus,
         systems=[_StubOk(), _StubOk()],
         judge=_MockJudge(),
         bench_judge=_MockBenchJudge(),
         output_dir=tmp_path / "out",
-        sinks=(capture,),
+        handlers=(capture,),
     )
     await suite.run()
 
-    started = [e for e in capture.emissions if e.name == "CellStarted"]
-    ended = [e for e in capture.emissions if e.name == "CellEnded"]
+    started = [r for r in capture.records if r.getMessage() == "CellStarted"]
+    ended = [r for r in capture.records if r.getMessage() == "CellEnded"]
     assert len(started) == 4, started
     assert len(ended) == 4, ended
 
-    pairs = {(e.payload["slug"], e.payload["system_name"]) for e in started}
-    end_pairs = {(e.payload["slug"], e.payload["system_name"]) for e in ended}
+    pairs = {(r.a2kit_fields["slug"], r.a2kit_fields["system_name"]) for r in started}
+    end_pairs = {(r.a2kit_fields["slug"], r.a2kit_fields["system_name"]) for r in ended}
     assert pairs == end_pairs == {("a", "stubOk"), ("b", "stubOk")}
 
 
 @pytest.mark.asyncio
 async def test_failing_cell_still_emits_cell_ended_with_fail(tmp_path: Path) -> None:
     corpus = load_corpus(_two_by_two_corpus(tmp_path))
-    capture = _CapturingSink()
+    capture = _CapturingHandler()
     suite = EvalSuite(
         corpus=corpus,
         systems=[_StubRaises()],
         judge=_MockJudge(),
         bench_judge=_MockBenchJudge(),
         output_dir=tmp_path / "out",
-        sinks=(capture,),
+        handlers=(capture,),
     )
     await suite.run()
 
-    ended = [e for e in capture.emissions if e.name == "CellEnded"]
+    ended = [r for r in capture.records if r.getMessage() == "CellEnded"]
     assert len(ended) == 2  # 2 corpus x 1 system
-    for e in ended:
-        assert e.payload["verdict"] == "fail"
-        assert e.payload["failure_reason"] == "system_raised"
+    for r in ended:
+        assert r.a2kit_fields["verdict"] == "fail"
+        assert r.a2kit_fields["failure_reason"] == "system_raised"
 
 
 @pytest.mark.asyncio
@@ -131,7 +136,7 @@ async def test_live_sink_renders_one_line_per_event(tmp_path: Path) -> None:
         judge=_MockJudge(),
         bench_judge=_MockBenchJudge(),
         output_dir=tmp_path / "out",
-        sinks=(sink,),
+        handlers=(sink,),
     )
     async with sink:
         await suite.run()
@@ -157,7 +162,7 @@ async def test_start_line_precedes_end_line_for_each_cell(tmp_path: Path) -> Non
         judge=_MockJudge(),
         bench_judge=_MockBenchJudge(),
         output_dir=tmp_path / "out",
-        sinks=(sink,),
+        handlers=(sink,),
     )
     async with sink:
         await suite.run()
@@ -184,7 +189,7 @@ async def test_no_heartbeat_after_run_completes(tmp_path: Path) -> None:
         judge=_MockJudge(),
         bench_judge=_MockBenchJudge(),
         output_dir=tmp_path / "out",
-        sinks=(sink,),
+        handlers=(sink,),
     )
     async with sink:
         await suite.run()

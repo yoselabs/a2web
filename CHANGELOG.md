@@ -8,6 +8,27 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed — a2kit v0.41 → v0.43 migration (framework surface only)
+
+- Bumped `a2kit` to `v0.43.0`. Adopts two breaking minors with no change to
+  fetch/extraction behavior, tier routing, the response envelope, or handlers.
+- **ADR-0028 (unified surface):** `server.py` now authors the App by subclassing
+  (`class A2Web(a2kit.App): name = "a2web"; routers = (WebRouter, CookiesRouter)`)
+  instead of `a2kit.App("a2web")` + `add_router(...)` (both removed). Routers drop
+  their `tools` ClassVar — verbs auto-collect from the `@a2kit.read/write` markers.
+- **Tool names preserved.** ADR-0028 flat naming would rename the MCP tools to
+  `web_ask` / `web_fetch_raw` / `cookies_refresh`; pinned back to the bare
+  `ask` / `fetch_raw` / `refresh` via `canonical_name_override=` so the installed
+  MCP contract and the nested CLI (`a2web web ask`) are unchanged.
+- **ADR-0027 (LDD refound):** `a2kit.ldd` retired for stdlib logging. Typed events
+  emit via `await a2kit.log.info(...)`; the `OtelHandler` and bench `LiveSink`
+  became `logging.Handler`s attached via `app.log.add_handler(...)`. The bench
+  runner attaches handlers to `logging.getLogger("a2kit")` for the matrix run and
+  raises that logger to `INFO` (no app-boot to set it).
+- Tests reworked for the new sink shape (synthetic `LogRecord`s, handler `emit`);
+  added a regression test pinning the canonical tool names. `make check` green
+  (845 tests, 90% coverage).
+
 ### Fixed — test-resource lifecycle teardown (ADR-0008)
 
 - Eliminated intermittent suite failures (`RuntimeError: Event loop is closed`

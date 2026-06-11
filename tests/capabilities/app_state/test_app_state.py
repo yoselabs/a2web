@@ -27,8 +27,7 @@ def _build_probe_app() -> a2kit.App:
     from a2web.server import build_breakers, build_proxy_pool
     from a2web.settings import get_settings
 
-    app = a2kit.App("test-probe")
-    app.add_router(WebRouter())
+    app = a2kit.testing.app_of("test-probe", WebRouter)
     app.provide(get_settings)
     app.provide(build_breakers)
     app.provide(build_proxy_pool)

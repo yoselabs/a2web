@@ -22,6 +22,20 @@ def test_web_router_registers_ask_and_fetch_raw_tools() -> None:
     assert "fetch" not in names  # renamed in v0.7
 
 
+def test_canonical_tool_names_pinned_under_flat_naming() -> None:
+    """ADR-0028 derives canonical names as `{slug}_{leaf}`; we pin the bare
+    names via `canonical_name_override` so the MCP wire contract is unchanged.
+
+    Backs specs/app-composition `Canonical MCP tool names pinned under flat
+    naming` (a2kit-v043-migration). `app.tools()` exposes the descriptors whose
+    `.name` is the canonical identity used on the MCP wire.
+    """
+    names = {desc.name for desc in app.tools()}
+    assert {"ask", "fetch_raw", "refresh"} <= names
+    # The flat slug-prefixed names MUST NOT appear — the override pins beat them.
+    assert names.isdisjoint({"web_ask", "web_fetch_raw", "cookies_refresh"})
+
+
 def test_app_has_no_connections_subcommand() -> None:
     """Option B from PR1 — no connections CLI surface."""
     extras = list(app.cli_extras())

@@ -15,8 +15,7 @@ To expose only a subset of tools at runtime, use a2kit's native selector:
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Annotated, Any, ClassVar
+from typing import Annotated
 
 import a2kit
 import pydantic
@@ -40,6 +39,7 @@ class WebRouter(a2kit.Router):
     @a2kit.read(
         open_world=True,
         title="Ask a Question About a Web Page",
+        canonical_name_override="ask",
     )
     async def ask(
         self,
@@ -190,6 +190,7 @@ class WebRouter(a2kit.Router):
     @a2kit.read(
         open_world=True,
         title="Fetch Raw Web Content (Fallback)",
+        canonical_name_override="fetch_raw",
     )
     async def fetch_raw(
         self,
@@ -269,8 +270,6 @@ class WebRouter(a2kit.Router):
             next_links=next_links,
         )
 
-    tools: ClassVar[tuple[Callable[..., Any], ...]] = (ask, fetch_raw)
-
 
 class CookiesRouter(a2kit.Router):
     """Routes cookie-management tools. CLI surface: `a2web cookies <tool>`."""
@@ -282,6 +281,7 @@ class CookiesRouter(a2kit.Router):
         destructive=False,
         idempotent=True,
         title="Refresh Browser Cookies",
+        canonical_name_override="refresh",
     )
     async def refresh(
         self,
@@ -336,5 +336,3 @@ class CookiesRouter(a2kit.Router):
             refreshed_at=result.refreshed_at,
             notes="",
         )
-
-    tools: ClassVar[tuple[Callable[..., Any], ...]] = (refresh,)

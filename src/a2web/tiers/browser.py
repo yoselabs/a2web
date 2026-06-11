@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 import a2kit
-import a2kit.ldd
+import a2kit.log
 import trafilatura
 
 from ..events import StageEnded, StageStarted
@@ -80,7 +80,7 @@ async def _scroll_and_retry(page: Any, original_html: str) -> str:
     `browser_scroll_retry` LDD events so operators can measure firing rate.
     """
     t_ms = 0  # relative — caller manages the absolute clock
-    await a2kit.ldd.event(StageStarted(t_ms=t_ms, step="browser_scroll_retry"))
+    await a2kit.log.info(StageStarted(t_ms=t_ms, step="browser_scroll_retry"))
     start = time.perf_counter()
     larger = original_html
     outcome = "smaller"
@@ -98,7 +98,7 @@ async def _scroll_and_retry(page: Any, original_html: str) -> str:
     except Exception:
         outcome = "timeout"
     dur_ms = int((time.perf_counter() - start) * 1000)
-    await a2kit.ldd.event(StageEnded(t_ms=t_ms, step="browser_scroll_retry", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
+    await a2kit.log.info(StageEnded(t_ms=t_ms, step="browser_scroll_retry", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
     return larger
 
 

@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -31,11 +32,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import a2kit.ldd
+import a2kit.log
 import structlog
-from a2kit.ldd import ldd_state_for_call
-from a2kit.packages.ldd import LddSink
-from a2kit.packages.testing.null_context import null_context
 
 from ..packages.llm_extract import Judge, JudgeParseError, JudgeVerdict
 from .bench_judge import BenchJudge
@@ -48,21 +46,35 @@ _LOG = structlog.get_logger("a2web.llm.eval")
 
 
 @contextmanager
-def _ldd_ambient(sinks: tuple[LddSink, ...] = ()) -> Iterator[None]:
-    """Establish an LDD ambient for a direct `fetcher.fetch` call.
+def _ldd_ambient(handlers: tuple[logging.Handler, ...] = ()) -> Iterator[None]:
+    """Attach bench handlers to the `a2kit` logger for the matrix run.
 
-    The benchmark drives the a2web orchestrator outside any tool dispatch;
-    a2kit v0.39 requires an ambient LDD context for the orchestrator's
-    `a2kit.ldd.event(...)` calls.
+    ADR-0027 LDD refound: `await a2kit.log.info(...)` logs unconditionally to
+    `logging.getLogger("a2kit")` — no ambient ctx or call scope is required.
+    To surface bench-cell signals (`CellStarted` / `CellEnded`) on a
+    `LiveSink`, attach it as a handler for the run duration; this is exactly
+    what `app.log.add_handler` does (`logging.getLogger("a2kit").addHandler`).
 
-    Events are enabled so bench-cell signals (`CellStarted` / `CellEnded`)
-    reach the optional `sinks` (typically a `LiveSink`). The production
-    orchestrator's `StageStarted`/`StageEnded` events also flow when events
-    are on, but the bench sinks subscribe by name and ignore them. Reports
-    stay disabled — bench cells don't produce MCP envelope reports.
+    The a2web orchestrator's `StageStarted`/`StageEnded` events flow to the
+    same handlers, but the bench handlers filter by event name and ignore
+    them.
+
+    The bench runs without an `App`, so a2kit's `_log_bootstrap` (which sets
+    `a2kit.setLevel(DEBUG)`) never fires — the logger would default to the
+    root's WARNING and gate our INFO events. We set it to INFO for the run
+    duration and restore the prior level on exit.
     """
-    with ldd_state_for_call(ctx=null_context(), events_enabled=True, reports_enabled=False, sinks=sinks):
+    a2kit_logger = logging.getLogger("a2kit")
+    prior_level = a2kit_logger.level
+    a2kit_logger.setLevel(logging.INFO)
+    for handler in handlers:
+        a2kit_logger.addHandler(handler)
+    try:
         yield
+    finally:
+        for handler in handlers:
+            a2kit_logger.removeHandler(handler)
+        a2kit_logger.setLevel(prior_level)
 
 
 @dataclass(slots=True)
@@ -141,7 +153,7 @@ class EvalSuite:
         bench_judge: BenchJudge | None = None,
         concurrency: int = 4,
         output_dir: Path | str | None = None,
-        sinks: tuple[LddSink, ...] = (),
+        handlers: tuple[logging.Handler, ...] = (),
     ) -> None:
         if not systems:
             raise ValueError("EvalSuite requires at least one system")
@@ -150,7 +162,7 @@ class EvalSuite:
         self._judge = judge
         self._bench_judge = bench_judge
         self._concurrency = max(1, concurrency)
-        self._sinks = sinks
+        self._handlers = handlers
         if output_dir is None:
             output_dir = Path("eval/runs") / datetime.now(UTC).strftime("%Y-%m-%d_%H%M%S")
         self._output_dir = Path(output_dir)
@@ -173,14 +185,18 @@ class EvalSuite:
             async with sem:
                 return await self._run_one(entry, system, traces_root)
 
-        # Build the full task list (corpus x systems) and run with bounded
-        # concurrency. Ordering of rows is corpus-major / system-minor.
-        tasks: list[asyncio.Task[EvalRow]] = []
-        for entry in self._corpus.entries:
-            for system in self._systems:
-                tasks.append(asyncio.create_task(_process_cell(entry, system)))
+        # Attach bench handlers (LiveSink) to the `a2kit` logger for the whole
+        # matrix run — every cell's CellStarted/CellEnded and the orchestrator's
+        # stage events route to them while attached (ADR-0027 LDD refound).
+        with _ldd_ambient(handlers=self._handlers):
+            # Build the full task list (corpus x systems) and run with bounded
+            # concurrency. Ordering of rows is corpus-major / system-minor.
+            tasks: list[asyncio.Task[EvalRow]] = []
+            for entry in self._corpus.entries:
+                for system in self._systems:
+                    tasks.append(asyncio.create_task(_process_cell(entry, system)))
 
-        rows = await asyncio.gather(*tasks)
+            rows = await asyncio.gather(*tasks)
         ended_at = datetime.now(UTC)
 
         return EvalReport(
@@ -207,21 +223,20 @@ class EvalSuite:
         # Bench-cell envelope: every codepath out of this function emits
         # exactly one CellStarted at the top and one CellEnded at exit.
         t0 = time.perf_counter()
-        with _ldd_ambient(sinks=self._sinks):
-            await a2kit.ldd.event(
-                CellStarted(
-                    slug=slug,
-                    system_name=system.name,
-                    url=entry.url,
-                    started_at=datetime.now(UTC).isoformat(),
-                )
+        await a2kit.log.info(
+            CellStarted(
+                slug=slug,
+                system_name=system.name,
+                url=entry.url,
+                started_at=datetime.now(UTC).isoformat(),
             )
+        )
 
-        # 1) Fetch — under the same LDD ambient so the a2web orchestrator's
-        # `a2kit.ldd.event(...)` calls resolve outside a tool dispatch.
+        # 1) Fetch — the a2web orchestrator's `a2kit.log.info(...)` events log
+        # unconditionally; the run-level handler attach (see `run()`) routes
+        # them to the bench handlers.
         try:
-            with _ldd_ambient(sinks=self._sinks):
-                fetch_result: SystemResult = await system.fetch(url=entry.url, ask=entry.task)
+            fetch_result: SystemResult = await system.fetch(url=entry.url, ask=entry.task)
         except Exception as exc:
             _LOG.warning("eval_system_failed", slug=slug, system=system.name, error=str(exc))
             fetch_latency_ms = int((time.perf_counter() - t0) * 1000)
@@ -331,20 +346,19 @@ class EvalSuite:
         cache_hit = bool(meta.get("cache_hit", False))
         tier_value = meta.get("tier") or meta.get("winning_tier")
         tier_str = str(tier_value) if tier_value else None
-        with _ldd_ambient(sinks=self._sinks):
-            await a2kit.ldd.event(
-                CellEnded(
-                    slug=entry.slug,
-                    system_name=system.name,
-                    url=entry.url,
-                    total_ms=row.fetch_latency_ms,
-                    verdict="ok" if ok else "fail",
-                    failure_reason=failure_reason,
-                    cost_usd=cost,
-                    cache_hit=cache_hit,
-                    tier=tier_str,
-                )
+        await a2kit.log.info(
+            CellEnded(
+                slug=entry.slug,
+                system_name=system.name,
+                url=entry.url,
+                total_ms=row.fetch_latency_ms,
+                verdict="ok" if ok else "fail",
+                failure_reason=failure_reason,
+                cost_usd=cost,
+                cache_hit=cache_hit,
+                tier=tier_str,
             )
+        )
 
     async def _score_clarity(self, row: EvalRow, entry: CorpusEntry, fetch_result: SystemResult) -> None:
         """Output-clarity axis — graded for every system on every cell with a

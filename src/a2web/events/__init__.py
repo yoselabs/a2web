@@ -1,12 +1,14 @@
-"""Event types + OTel sink for the fetch orchestrator.
+"""Event types + OTel handler for the fetch orchestrator.
 
-Emissions go through a2kit.ldd (`await a2kit.ldd.event(EventInstance(...))`)
-from the orchestrator with ctx bound ambient by the dispatcher; a2kit fans
-them out to subscribed sinks (the FastMCP wire bridge plus our `otel_sink`
-registered via `app.ldd.add_sink`).
+Emissions go through stdlib logging (ADR-0027 LDD refound):
+`await a2kit.log.info(EventInstance(...))` from the orchestrator. a2kit
+resolves each typed instance to a `logging.LogRecord` (message = type name,
+payload on `record.a2kit_fields`) and fans it out to the handlers attached
+to the `a2kit` logger — the FastMCP wire bridge plus our `OtelHandler`
+(attached via `app.log.add_handler`).
 """
 
-from .sinks import otel_sink
+from .sinks import OtelHandler
 from .types import (
     Event,
     StageEnded,
@@ -18,10 +20,10 @@ from .types import (
 
 __all__ = [
     "Event",
+    "OtelHandler",
     "StageEnded",
     "StageStarted",
     "TierEnded",
     "TierHeartbeat",
     "TierStarted",
-    "otel_sink",
 ]
