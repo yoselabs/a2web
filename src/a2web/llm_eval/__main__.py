@@ -180,8 +180,23 @@ async def _amain(argv: list[str]) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    return asyncio.run(_amain(argv if argv is not None else sys.argv[1:]))
+    rc = asyncio.run(_amain(argv if argv is not None else sys.argv[1:]))
+    # Hard-exit after the report is written. The bench is a one-shot CLI with
+    # no graceful-shutdown contract: `write_all` is done and stdout is flushed
+    # below, and `async with` already fired every `__aexit__`. A non-daemon
+    # background thread (a curl_cffi / SDK worker parked on
+    # `queue.SimpleQueue.get`) otherwise blocks `Py_FinalizeEx →
+    # wait_for_thread_shutdown`, hanging the process after the stats dump and
+    # forcing a manual SIGKILL. `os._exit` skips interpreter finalize — and
+    # because the Python parent dies immediately, the lazily-launched Camoufox
+    # subprocess reaps itself via its parent-death pipe instead of lingering.
+    # See eval/findings_2026-05-26-shutdown-thread-leak-spike.md + the
+    # `bench-shutdown-thread-leak` BACKLOG entry. Root-cause attribution
+    # (which dep leaks the thread) stays open upstream.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(rc)
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

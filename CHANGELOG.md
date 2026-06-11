@@ -8,6 +8,18 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed — bench shutdown hang (`bench-shutdown-thread-leak`)
+
+- `make bench` no longer hangs after the stats dump. A non-daemon background
+  thread (curl_cffi / SDK worker parked on `queue.SimpleQueue.get`) blocked
+  `Py_FinalizeEx`, requiring a manual SIGKILL — and left the Camoufox browser
+  subprocess lingering while the parent hung. `llm_eval/__main__.py::main()` now
+  flushes stdout/stderr and `os._exit(rc)`s after `asyncio.run` returns: the
+  bench is a one-shot CLI with no graceful-shutdown contract, so skipping
+  interpreter finalize is safe, and the immediate parent death lets Camoufox
+  reap via its parent-death pipe. Upstream root-cause (which dep leaks the
+  thread) stays open. Bench-tooling only; no `src/` runtime path affected.
+
 ### Changed — a2kit v0.41 → v0.43 migration (framework surface only)
 
 - Bumped `a2kit` to `v0.43.0`. Adopts two breaking minors with no change to

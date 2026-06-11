@@ -108,16 +108,21 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ## 2026-05-25 — bench follow-ups (v0.24+)
 
-- 🟡 **`bench-shutdown-thread-leak`.** Source: 2026-05-25 v0.23 bench run.
-  After the final 33/33 cell ends and `write_all(report)` completes, the
-  Python process hangs in `Py_FinalizeEx → wait_for_thread_shutdown` on a
-  non-daemon background thread parked in `_queue_SimpleQueue_get`. Bench
-  output is fully written; only the exit blocks. Likely culprit: an OTel
-  BatchSpanProcessor thread or an LLM-SDK session thread that wasn't joined
-  in any `__aexit__`. Workaround: SIGKILL after the JSON stats dump. Fix:
-  audit which subsystems start non-daemon threads during a bench run and
-  ensure each has a clean shutdown path before `__main__.py` returns.
-  Scope: S.
+- 🟢 **`bench-shutdown-thread-leak`** — operator pain RESOLVED 2026-06-11.
+  Source: 2026-05-25 v0.23 bench run. After the final cell ends and
+  `write_all(report)` completes, the Python process hung in `Py_FinalizeEx →
+  wait_for_thread_shutdown` on a non-daemon background thread parked in
+  `_queue_SimpleQueue_get` (a curl_cffi / SDK worker on `queue.SimpleQueue.get`).
+  Output was fully written; only the exit blocked, requiring a manual SIGKILL —
+  and the lazily-launched Camoufox subprocess lingered while the parent hung.
+  **Landed:** `llm_eval/__main__.py::main()` now flushes stdout/stderr and
+  calls `os._exit(rc)` after `asyncio.run` returns — skips interpreter finalize
+  (so no thread-join hang) and the parent dies immediately (so Camoufox reaps
+  itself via its parent-death pipe). Mechanism proven deterministically (a
+  non-daemon SimpleQueue thread hangs normal return; `os._exit` exits clean).
+  **Still OPEN (low pri):** upstream root-cause attribution — *which* dep leaks
+  the non-daemon thread. Next step unchanged: arm `faulthandler.dump_traceback_later`
+  in a live bench run and grep the parked thread's filename. Scope: S.
 
 ---
 
