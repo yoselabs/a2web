@@ -8,6 +8,20 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed — a2kit v0.43 → v0.44 (clean no-op pin bump, `a2kit-v044-migration`)
+
+- Pin moved `a2kit` `v0.43.0` → `v0.44.0` (`pyproject.toml` + `uv.lock`). No
+  source edits: `make check` green out of the box (845 tests, 90% coverage).
+- v0.44 (ADR 0029 internal spoke) touched **nothing a2web consumes** — the
+  internal-spoke / `TokenAuth` / `spoke.client` additions, the `serve
+  --transport=http` MCP+API multiplex (BREAKING), and the removed
+  `packages.mcp.cli` / `build_api_key_middleware` are all surfaces a2web does
+  not import. a2web serves over **stdio**, so the http-multiplex change is moot.
+  `a2kit.log` is byte-identical across the bump, so the LDD layer is untouched.
+- **Internal spoke not adopted** — a2web has no sandboxed-job / single-writer
+  core to use it; pulling in unused surface is out per the Constitution's magic
+  budget.
+
 ### Fixed — bench shutdown hang (`bench-shutdown-thread-leak`)
 
 - `make bench` no longer hangs after the stats dump. A non-daemon background
