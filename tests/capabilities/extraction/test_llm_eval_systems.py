@@ -270,7 +270,7 @@ async def test_a2web_extract_runs_extractor_when_available(
 
     provider = _RecordingProvider(answer="Extract speaks.")
     extractor_res = LlmExtractorResource(state.settings, state.sqlite)
-    extractor_res._extractor = Extractor(provider=provider, model=ModelSpec("rec", "rec-model"))
+    extractor_res._extractor = Extractor(provider=provider, model=ModelSpec("rec-model"))
     resources = replace(resources, llm_extractor=extractor_res)
 
     system = A2WebExtract(state=state, resources=resources)

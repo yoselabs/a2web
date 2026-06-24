@@ -104,7 +104,7 @@ def _make_extractor_resource(
         provider = _StubProvider(answer=answer)
         res._extractor = Extractor(
             provider=provider,
-            model=ModelSpec("stub", "stub-model"),
+            model=ModelSpec("stub-model"),
         )
     return res, provider
 

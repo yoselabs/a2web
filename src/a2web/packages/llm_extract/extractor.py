@@ -32,18 +32,14 @@ if TYPE_CHECKING:
 
 @dataclass(slots=True)
 class ModelSpec:
-    """Identifies the LLM to call: provider name + model id.
+    """Identifies the LLM to call by model id.
 
-    Equality keys cache lookups in v0.4. Adding a new provider only requires
-    matching `provider` here; the actual instance is looked up in a
-    registry on the Extractor side.
+    The provider *instance* is held separately (on the Extractor / Judge);
+    `ModelSpec` only carries the model-id string, which is the wire arg to
+    `provider.complete(model=...)` and the extraction-cache key.
     """
 
-    provider: str
     model: str
-
-    def key(self) -> str:
-        return f"{self.provider}:{self.model}"
 
 
 @dataclass(slots=True)
@@ -86,9 +82,12 @@ class Extractor:
     """Compose a Provider + PromptTemplate into a single `.extract()` call.
 
     Usage:
+        # The provider is resolved upstream (a2web's `select_provider`) and
+        # injected — never constructed inline here, which would bypass the
+        # manifest registry's availability gating.
         ex = Extractor(
-            provider=AnthropicProvider(),
-            model=ModelSpec("anthropic", "claude-haiku-4-5-20251001"),
+            provider=provider,
+            model=ModelSpec("claude-haiku-4-5-20251001"),
             template=WEBFETCH_DEFAULT_V1,
         )
         result = await ex.extract(content="<markdown>", ask="What is X?")

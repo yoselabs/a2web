@@ -71,7 +71,7 @@ async def test_judge_scores_correct_answer_high() -> None:
             }
         ),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "judge-model"))
+    judge = Judge(provider=provider, model=ModelSpec("judge-model"))
 
     verdict = await judge.score(
         task="Who designed Rust?",
@@ -103,7 +103,7 @@ async def test_judge_records_failure_answer_as_not_reached() -> None:
             }
         ),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    judge = Judge(provider=provider, model=ModelSpec("m"))
 
     verdict = await judge.score(
         task="Who designed Rust?",
@@ -120,7 +120,7 @@ async def test_judge_tolerates_markdown_fence() -> None:
     provider = _MockJudgeProvider(
         text=("```json\n" + json.dumps({"scores": [3], "overall": 3, "reached": True, "reasoning": "partial"}) + "\n```"),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    judge = Judge(provider=provider, model=ModelSpec("m"))
     verdict = await judge.score(task="?", criteria=["?"], answer="partial answer")
     assert verdict.overall == 3
     assert verdict.scores == [3]
@@ -134,7 +134,7 @@ async def test_judge_tolerates_prose_wrapper() -> None:
             "Here is my verdict: " + json.dumps({"scores": [4], "overall": 4, "reached": True, "reasoning": "close enough"}) + " — done."
         ),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    judge = Judge(provider=provider, model=ModelSpec("m"))
     verdict = await judge.score(task="?", criteria=["?"], answer="close-enough answer")
     assert verdict.overall == 4
 
@@ -143,7 +143,7 @@ async def test_judge_tolerates_prose_wrapper() -> None:
 async def test_judge_raises_parse_error_on_garbage() -> None:
     """No JSON object in the response → JudgeParseError carrying raw text."""
     provider = _MockJudgeProvider(text="this is not JSON at all")
-    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    judge = Judge(provider=provider, model=ModelSpec("m"))
 
     with pytest.raises(JudgeParseError) as ei:
         await judge.score(task="?", criteria=["?"], answer="x")
@@ -158,7 +158,7 @@ async def test_judge_derives_reached_when_missing() -> None:
     provider = _MockJudgeProvider(
         text=json.dumps({"scores": [5, 3, 5], "overall": 4, "reasoning": "good"}),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    judge = Judge(provider=provider, model=ModelSpec("m"))
     verdict = await judge.score(task="?", criteria=["c"], answer="x")
     assert verdict.reached is True
     assert verdict.raw is not None
@@ -171,7 +171,7 @@ async def test_judge_derives_reached_when_null() -> None:
     provider = _MockJudgeProvider(
         text=json.dumps({"scores": [1, 0], "overall": 1, "reached": None, "reasoning": "miss"}),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    judge = Judge(provider=provider, model=ModelSpec("m"))
     verdict = await judge.score(task="?", criteria=["c"], answer="x")
     assert verdict.reached is False
     assert verdict.raw is not None
@@ -185,7 +185,7 @@ async def test_judge_explicit_reached_does_not_set_derived_flag() -> None:
     provider = _MockJudgeProvider(
         text=json.dumps({"scores": [5], "overall": 5, "reached": True, "reasoning": "ok"}),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    judge = Judge(provider=provider, model=ModelSpec("m"))
     verdict = await judge.score(task="?", criteria=["c"], answer="x")
     assert verdict.reached is True
     assert verdict.raw is not None
@@ -198,7 +198,7 @@ async def test_judge_missing_overall_still_raises() -> None:
     provider = _MockJudgeProvider(
         text=json.dumps({"scores": [5], "reasoning": "x"}),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    judge = Judge(provider=provider, model=ModelSpec("m"))
     with pytest.raises(JudgeParseError):
         await judge.score(task="?", criteria=["c"], answer="x")
 
@@ -211,7 +211,7 @@ async def test_judge_missing_reasoning_now_defaults_to_empty() -> None:
     provider = _MockJudgeProvider(
         text=json.dumps({"scores": [5], "overall": 5, "reached": True}),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    judge = Judge(provider=provider, model=ModelSpec("m"))
     verdict = await judge.score(task="?", criteria=["c"], answer="x")
     assert verdict.reasoning == ""
     assert verdict.overall == 5
@@ -227,7 +227,7 @@ async def test_judge_reached_warning_log_emitted() -> None:
     provider = _MockJudgeProvider(
         text=json.dumps({"scores": [5, 3, 5], "overall": 4, "reasoning": "ok"}),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "test-model"))
+    judge = Judge(provider=provider, model=ModelSpec("test-model"))
     with capture_a2kit_logs() as logs:
         await judge.score(task="?", criteria=["c"], answer="x")
     warnings = [r for r in logs if r.get("event") == "llm_wobble" and r.get("field") == "reached"]
@@ -243,7 +243,7 @@ async def test_judge_sends_criteria_and_answer_into_template() -> None:
     provider = _MockJudgeProvider(
         text=json.dumps({"scores": [5], "overall": 5, "reached": True, "reasoning": "ok"}),
     )
-    judge = Judge(provider=provider, model=ModelSpec("mock", "m"))
+    judge = Judge(provider=provider, model=ModelSpec("m"))
     await judge.score(
         task="Specific task",
         criteria=["Criterion A", "Criterion B"],

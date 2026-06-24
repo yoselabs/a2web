@@ -154,7 +154,7 @@ class _MockJudge(Judge):
     def __init__(self, *, answers_to_score: dict[str, int] | None = None) -> None:
         # Skip parent's provider — we don't need it.
         self._answers_to_score = answers_to_score or {}
-        self._model = ModelSpec("mock", "judge-mock")
+        self._model = ModelSpec("judge-mock")
         self._max_tokens = 512
 
     async def score(self, *, task: str, criteria: list[str], answer: str) -> JudgeVerdict:
@@ -174,7 +174,7 @@ class _ParseErrorJudge(Judge):
     """Judge that always raises JudgeParseError — exercises the error path."""
 
     def __init__(self) -> None:
-        self._model = ModelSpec("mock", "judge-mock")
+        self._model = ModelSpec("judge-mock")
         self._max_tokens = 512
 
     async def score(self, *, task: str, criteria: list[str], answer: str) -> JudgeVerdict:
@@ -309,7 +309,7 @@ async def test_eval_row_records_derived_verdict_as_success(tmp_path: Path) -> No
 
             return _R()
 
-    judge = Judge(provider=_DropReachedProvider(), model=ModelSpec("mock", "m"))  # type: ignore[arg-type]
+    judge = Judge(provider=_DropReachedProvider(), model=ModelSpec("m"))  # type: ignore[arg-type]
     suite = EvalSuite(corpus=corpus, systems=[sys_a], judge=judge, output_dir=tmp_path / "out")
     report = await suite.run()
     for r in report.rows:

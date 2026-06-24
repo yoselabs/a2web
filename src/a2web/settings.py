@@ -28,6 +28,11 @@ from pydantic_settings import (
 
 _ENV_REF_RE = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
 
+# LLM provider selection mode. `auto` resolves via the preference order in
+# `llm_resource.select_provider`; the concrete ids name a single backend.
+# Declared once here so the field and the bench's selection boundary share it.
+ProviderMode = Literal["auto", "anthropic", "claude-code"]
+
 # Default Discourse-forum allowlist for `DiscourseHandler.matches()`. Shared
 # between the `AppSettings.discourse_hosts` field default and the handler's
 # no-settings fallback so the two never drift.
@@ -154,7 +159,7 @@ class AppSettings(BaseSettings):
     #                  API key needed); fall back to AnthropicProvider.
     # `anthropic`    — direct Anthropic Messages API; requires API key.
     # `claude-code`  — Claude Code OS session via `claude-agent-sdk` only.
-    llm_provider: Literal["auto", "anthropic", "claude-code"] = "auto"
+    llm_provider: ProviderMode = "auto"
     llm_model: str = "claude-haiku-4-5-20251001"
     llm_api_key_env: str = "ANTHROPIC_API_KEY"
     extraction_max_chars: int = 100_000  # matches WebFetch's BD_ constant

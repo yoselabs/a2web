@@ -135,7 +135,7 @@ async def test_extractor_runs_template_through_provider() -> None:
     provider = MockProvider(answer="Rust was designed by Graydon Hoare.")
     ex = Extractor(
         provider=provider,
-        model=ModelSpec("mock", "test-model"),
+        model=ModelSpec("test-model"),
         template=WEBFETCH_DEFAULT_V1,
     )
 
@@ -169,7 +169,7 @@ async def test_extractor_truncates_content_past_cap() -> None:
     provider = MockProvider()
     ex = Extractor(
         provider=provider,
-        model=ModelSpec("mock", "test-model"),
+        model=ModelSpec("test-model"),
         max_content_chars=100,
     )
 
@@ -184,16 +184,11 @@ async def test_extractor_truncates_content_past_cap() -> None:
 @pytest.mark.asyncio
 async def test_extractor_passes_short_content_through_untruncated() -> None:
     provider = MockProvider()
-    ex = Extractor(provider=provider, model=ModelSpec("mock", "test-model"))
+    ex = Extractor(provider=provider, model=ModelSpec("test-model"))
     result = await ex.extract(content="short", ask="?")
     assert result.raw is None
     sent_user = provider.calls[0]["user"]
     assert "Content truncated" not in sent_user
-
-
-def test_modelspec_key_includes_both_fields() -> None:
-    spec = ModelSpec("anthropic", "claude-haiku-4-5-20251001")
-    assert spec.key() == "anthropic:claude-haiku-4-5-20251001"
 
 
 def test_custom_template_overrides_default() -> None:
@@ -204,7 +199,7 @@ def test_custom_template_overrides_default() -> None:
         user_template="{content}|{ask}",
     )
     provider = MockProvider()
-    ex = Extractor(provider=provider, model=ModelSpec("mock", "m"), template=custom)
+    ex = Extractor(provider=provider, model=ModelSpec("m"), template=custom)
     assert ex.template is custom
 
 
@@ -276,7 +271,7 @@ async def test_extract_returns_next_links_from_fenced_json() -> None:
     provider = _provider_with_canned(canned)
     ex = Extractor(
         provider=provider,
-        model=ModelSpec("mock", "mock-1"),
+        model=ModelSpec("mock-1"),
         template=WEBFETCH_DEFAULT_V1,
     )
     md = "content with link [x](https://en.wikipedia.org/wiki/Cephalopod)"
@@ -293,7 +288,7 @@ async def test_extract_returns_next_links_from_fenced_json() -> None:
 async def test_extract_handles_missing_fence_gracefully() -> None:
     """Provider that ignores the next_links instruction → empty list, full text as answer."""
     provider = _provider_with_canned("plain answer with no fence")
-    ex = Extractor(provider=provider, model=ModelSpec("mock", "m"), template=WEBFETCH_DEFAULT_V1)
+    ex = Extractor(provider=provider, model=ModelSpec("m"), template=WEBFETCH_DEFAULT_V1)
     result = await ex.extract(content="c", ask="q", request_next_links=True)
     assert result.answer == "plain answer with no fence"
     assert result.next_links == []
@@ -308,7 +303,7 @@ async def test_extract_drops_unknown_kinds() -> None:
         '{"anchor":"y","url":"https://e.com/b","reason":"r","kind":"drilldown"}]\n```'
     )
     provider = _provider_with_canned(canned)
-    ex = Extractor(provider=provider, model=ModelSpec("mock", "m"), template=WEBFETCH_DEFAULT_V1)
+    ex = Extractor(provider=provider, model=ModelSpec("m"), template=WEBFETCH_DEFAULT_V1)
     result = await ex.extract(content="c", ask="q", request_next_links=True)
     assert len(result.next_links) == 1
     assert result.next_links[0].kind == "drilldown"
@@ -320,7 +315,7 @@ async def test_extract_handler_candidates_appear_in_prompt() -> None:
     from a2web.packages.llm_extract import LlmNextLink
 
     provider = _provider_with_canned("a")
-    ex = Extractor(provider=provider, model=ModelSpec("mock", "m"), template=WEBFETCH_DEFAULT_V1)
+    ex = Extractor(provider=provider, model=ModelSpec("m"), template=WEBFETCH_DEFAULT_V1)
     handler = [
         LlmNextLink(anchor="Top post", url="https://r/x/1", reason="100 score", kind="drilldown"),
     ]

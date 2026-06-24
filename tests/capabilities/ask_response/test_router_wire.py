@@ -63,7 +63,7 @@ def _build_extractor(state: AppState, envelope: dict) -> LlmExtractorResource:
     res = LlmExtractorResource(state.settings, state.sqlite)
     res._extractor = Extractor(
         provider=_JsonEnvelopeProvider(envelope),
-        model=ModelSpec("stub", "stub-model"),
+        model=ModelSpec("stub-model"),
     )
     return res
 
@@ -226,7 +226,7 @@ async def test_malformed_envelope_drops_routing_keeps_answer(
     res = LlmExtractorResource(state.settings, state.sqlite)
     res._extractor = Extractor(
         provider=_PlainTextProvider(),
-        model=ModelSpec("stub", "stub-model"),
+        model=ModelSpec("stub-model"),
     )
     app.provide(LlmExtractorResource, lambda: res)
     async with make_client(app) as client:

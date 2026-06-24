@@ -26,7 +26,7 @@ class _RecordingProvider:
 def _make_extractor(default_cap: int = 100_000) -> Extractor:
     return Extractor(
         provider=_RecordingProvider(),
-        model=ModelSpec("recording", "test-model"),
+        model=ModelSpec("test-model"),
         max_content_chars=default_cap,
     )
 

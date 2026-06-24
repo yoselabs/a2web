@@ -92,7 +92,7 @@ def _extractor(state: AppState, *, answer: str = _DEFAULT_ANSWER, unavailable: s
     if unavailable is not None:
         res._unavailable_reason = unavailable
     else:
-        res._extractor = Extractor(provider=_StubProvider(answer), model=ModelSpec("stub", "stub-model"))
+        res._extractor = Extractor(provider=_StubProvider(answer), model=ModelSpec("stub-model"))
     return res
 
 

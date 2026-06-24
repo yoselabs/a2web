@@ -73,7 +73,9 @@ def test_pick_provider_honours_anthropic_override(monkeypatch: pytest.MonkeyPatc
     from a2web.settings import AppSettings
 
     monkeypatch.setenv("A2WEB_BENCH_PROVIDER", "anthropic")
-    monkeypatch.setattr("a2web.llm_eval.__main__.load_surface", _fake_load_surface)
+    # Selection now flows through `llm_resource.select_provider`, which loads
+    # the registry via `a2web._plugin.load_surface` (function-local import).
+    monkeypatch.setattr("a2web._plugin.load_surface", _fake_load_surface)
     provider, provider_id = _pick_provider(AppSettings())
     assert provider_id == "anthropic"
     assert isinstance(provider, _FakeAnthropic)
@@ -211,7 +213,7 @@ class _CannedProvider:
 async def test_clarity_judge_scores_clean_answer_high() -> None:
     judge = BenchJudge(
         provider=_CannedProvider('{"clarity": 5, "reasoning": "direct and actionable"}'),
-        model=ModelSpec("canned", "bench-model"),
+        model=ModelSpec("bench-model"),
     )
     verdict = await judge.score_clarity(task="Summarize the page", answer="Clean answer.")
     assert verdict.score == 5
@@ -222,7 +224,7 @@ async def test_clarity_judge_scores_clean_answer_high() -> None:
 async def test_clarity_judge_scores_noisy_answer_low() -> None:
     judge = BenchJudge(
         provider=_CannedProvider('{"clarity": 1, "reasoning": "buried under nav chrome"}'),
-        model=ModelSpec("canned", "bench-model"),
+        model=ModelSpec("bench-model"),
     )
     verdict = await judge.score_clarity(task="Summarize the page", answer="Cookie banner... menu... ad...")
     assert verdict.score == 1
@@ -234,7 +236,7 @@ async def test_clarity_judge_tolerates_missing_reasoning() -> None:
     fails the clarity axis — DEFAULT to "" so the score still counts."""
     judge = BenchJudge(
         provider=_CannedProvider('{"clarity": 4}'),  # reasoning intentionally absent
-        model=ModelSpec("canned", "bench-model"),
+        model=ModelSpec("bench-model"),
     )
     verdict = await judge.score_clarity(task="?", answer="x")
     assert verdict.score == 4
@@ -246,7 +248,7 @@ async def test_next_links_judge_tolerates_missing_reasoning() -> None:
     """Same wobble discipline for the next_links axis."""
     judge = BenchJudge(
         provider=_CannedProvider('{"next_links_score": 3}'),
-        model=ModelSpec("canned", "bench-model"),
+        model=ModelSpec("bench-model"),
     )
     verdict = await judge.score_next_links(task="?", next_links="...")
     assert verdict.score == 3
@@ -257,7 +259,7 @@ async def test_next_links_judge_tolerates_missing_reasoning() -> None:
 async def test_next_links_judge_parses_score() -> None:
     judge = BenchJudge(
         provider=_CannedProvider('{"next_links_score": 4, "reasoning": "right drilldown set"}'),
-        model=ModelSpec("canned", "bench-model"),
+        model=ModelSpec("bench-model"),
     )
     verdict = await judge.score_next_links(task="Find posts about X", next_links="anchor\turl\treason\n…")
     assert verdict.score == 4
@@ -315,7 +317,7 @@ class _MockJudge(Judge):
     """Quality judge with a canned verdict — bypasses the provider."""
 
     def __init__(self) -> None:
-        self._model = ModelSpec("mock", "judge-mock")
+        self._model = ModelSpec("judge-mock")
         self._max_tokens = 512
 
     async def score(self, *, task: str, criteria: list[str], answer: str) -> JudgeVerdict:
@@ -332,7 +334,7 @@ class _MockBenchJudge(BenchJudge):
     """Bench judge with canned verdicts — bypasses the provider."""
 
     def __init__(self) -> None:
-        self._model = ModelSpec("mock", "bench-mock")
+        self._model = ModelSpec("bench-mock")
         self._max_tokens = 256
 
     async def score_clarity(self, *, task: str, answer: str) -> ClarityVerdict:

@@ -29,7 +29,42 @@ from .settings import AppSettings
 
 if TYPE_CHECKING:
     from .packages.http_cache import SqliteResource
-    from .packages.llm_extract import ExtractionResult, Extractor, LlmNextLink
+    from .packages.llm_extract import ExtractionResult, Extractor, LlmNextLink, Provider
+
+
+# The provider preference order, declared once. Claude Code's OS session
+# (OAuth subscription — no `ANTHROPIC_API_KEY`) is preferred; the Anthropic
+# API provider is the credential-bearing fallback. This is the single source
+# of truth for both the production `ask` path and the bench harness.
+_PROVIDER_SURFACE = "a2web._manifests.llm_providers"
+_PROVIDER_ORDER = ("claude-code", "anthropic")
+
+
+def select_provider(settings: AppSettings, *, override: str | None = None) -> tuple[str, Provider] | None:
+    """Pick an LLM provider from the manifest registry, or return None.
+
+    The manifest registry (`_manifests/llm_providers/`) decides *what can be
+    built* — unconfigured backends drop out as `Unavailable`. This function
+    layers the *selection policy* on top: a pinned provider (`override`, or a
+    concrete `settings.llm_provider`) is tried alone; `auto` walks
+    `_PROVIDER_ORDER` (claude-code first, anthropic fallback) and takes the
+    first present entry.
+
+    Returns `(provider_id, provider)` where `provider_id` is the winning
+    manifest name (the same string `settings.llm_provider` accepts), or
+    `None` when nothing in `order` is registrable. Callers supply their own
+    error-shaping around `None` (silent degrade vs. raise).
+    """
+    from ._plugin import load_surface
+    from .packages.llm_extract import Provider
+
+    registry = load_surface(_PROVIDER_SURFACE, Provider, settings)
+    pin = override or settings.llm_provider
+    order = _PROVIDER_ORDER if pin == "auto" else (pin,)
+    for name in order:
+        if name in registry:
+            return name, registry[name]
+    return None
 
 
 class LlmExtractorResource:
@@ -73,36 +108,22 @@ class LlmExtractorResource:
     async def _build(self) -> tuple[Extractor | None, str | None]:
         """Construct an `Extractor` from settings; capture failure as reason.
 
-        Provider selection runs through the plugin manifest registry
-        (`_manifests/llm_providers/`). The `--auto` mode prefers claude-code
-        when it's available and falls back to anthropic; explicit modes
-        require the named provider to be in the registry.
+        Provider selection is delegated to the shared `select_provider`
+        (auto-order + explicit-pin policy over the manifest registry); this
+        method only adapts a `None` selection into a cached reason and wires
+        the extraction cache + template around the chosen provider.
         """
         try:
-            from ._plugin import load_surface
-            from .packages.llm_extract import ExtractionCache, Extractor, ModelSpec, Provider
+            from .packages.llm_extract import ExtractionCache, Extractor, ModelSpec
         except Exception as exc:
             return None, f"llm module import failed: {exc}"
 
         s = self._settings
-        registry = load_surface("a2web._manifests.llm_providers", Provider, s)
-
-        # Auto: prefer claude-code, fall back to anthropic. Explicit modes
-        # require the named provider to be in the registry.
-        if s.llm_provider == "auto":
-            order = ("claude-code", "anthropic")
-        else:
-            order = (s.llm_provider,)
-        provider: Provider | None = None
-        provider_id: str = ""
-        for name in order:
-            if name in registry:
-                provider = registry[name]
-                provider_id = name
-                break
-        if provider is None:
-            missing = ", ".join(order)
-            return None, f"no LLM provider available (tried: {missing}; configured: {sorted(registry)})"
+        selection = select_provider(s)
+        if selection is None:
+            tried = s.llm_provider if s.llm_provider != "auto" else ", ".join(_PROVIDER_ORDER)
+            return None, f"no LLM provider available (tried: {tried})"
+        _, provider = selection
 
         # Hook the extraction cache into the same sqlite file as the HTTP
         # cache. Ensures the underlying connection is open first.
@@ -118,7 +139,7 @@ class LlmExtractorResource:
 
         extractor = Extractor(
             provider=provider,
-            model=ModelSpec(provider_id, s.llm_model),
+            model=ModelSpec(s.llm_model),
             template=EXTRACT_CACHEABLE_V1,
             max_content_chars=s.extraction_max_chars,
             cache=cache,

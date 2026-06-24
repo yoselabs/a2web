@@ -212,7 +212,7 @@ async def test_extractor_cache_hit_skips_provider(sqlite) -> None:
     provider = _CountingProvider(text="first call")
     ex = Extractor(
         provider=provider,
-        model=ModelSpec("count", "test-model"),
+        model=ModelSpec("test-model"),
         cache=cache,
     )
 
@@ -234,7 +234,7 @@ async def test_extractor_cache_miss_calls_provider_and_persists(sqlite) -> None:
     provider = _CountingProvider()
     ex = Extractor(
         provider=provider,
-        model=ModelSpec("count", "test-model"),
+        model=ModelSpec("test-model"),
         cache=cache,
     )
 
@@ -253,7 +253,7 @@ async def test_extractor_does_not_cache_empty_provider_response(sqlite) -> None:
     provider = _CountingProvider(text="")
     ex = Extractor(
         provider=provider,
-        model=ModelSpec("count", "test-model"),
+        model=ModelSpec("test-model"),
         cache=cache,
     )
     await ex.extract(content="c", ask="a")
@@ -270,7 +270,7 @@ async def test_extractor_truncates_then_uses_truncated_content_for_cache_key(
     provider = _CountingProvider(text="shared answer")
     ex = Extractor(
         provider=provider,
-        model=ModelSpec("count", "m"),
+        model=ModelSpec("m"),
         max_content_chars=20,
         cache=cache,
     )
@@ -294,8 +294,8 @@ async def test_custom_template_keyed_separately_from_default(sqlite) -> None:
     cache = ExtractionCache(sqlite, ttl_s=900)
     provider = _CountingProvider()
     custom = PromptTemplate(name="custom_v1", version=1, user_template="{content}|{ask}")
-    ex_default = Extractor(provider=provider, model=ModelSpec("count", "m"), cache=cache)
-    ex_custom = Extractor(provider=provider, model=ModelSpec("count", "m"), template=custom, cache=cache)
+    ex_default = Extractor(provider=provider, model=ModelSpec("m"), cache=cache)
+    ex_custom = Extractor(provider=provider, model=ModelSpec("m"), template=custom, cache=cache)
 
     await ex_default.extract(content="c", ask="a")
     r2 = await ex_custom.extract(content="c", ask="a")

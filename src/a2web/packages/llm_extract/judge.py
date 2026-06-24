@@ -119,8 +119,9 @@ class Judge:
     """Score an answer against criteria with an LLM. Uses JUDGE_V1.
 
     Usage:
-        judge = Judge(provider=AnthropicProvider(),
-                      model=ModelSpec("anthropic", "claude-sonnet-4-6"))
+        # provider is resolved upstream and injected (see Extractor docstring).
+        judge = Judge(provider=provider,
+                      model=ModelSpec("claude-sonnet-4-6"))
         verdict = await judge.score(
             task="Who designed Rust?",
             criteria=["names Graydon Hoare", "mentions Mozilla / 2006"],

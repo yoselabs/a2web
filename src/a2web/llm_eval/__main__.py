@@ -23,12 +23,16 @@ import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, cast
 
 from .._manifests.eval_systems import EvalSystemContext
 from .._plugin import load_surface
+from ..llm_resource import _PROVIDER_ORDER, select_provider
 from ..packages.llm_extract import Judge, LLMNotAvailable, ModelSpec, Provider
 from ..settings import AppSettings
+
+if TYPE_CHECKING:
+    from ..settings import ProviderMode
 from ..state import bootstrap_state
 from .bench_judge import BenchJudge
 from .corpus import CorpusError, load_corpus
@@ -41,37 +45,23 @@ _DEFAULT_CORPUS = Path("eval/corpus.yaml")
 _PROVIDER_ENV = "A2WEB_BENCH_PROVIDER"
 
 
-_BENCH_PROVIDER_IDS = ("claude-code", "anthropic")
+def _pick_provider(settings: AppSettings) -> tuple[Provider, str]:
+    """Select the benchmark LLM provider via the shared `select_provider`.
 
-
-def _pick_provider(
-    settings: AppSettings,
-) -> tuple[Provider, Literal["anthropic", "claude-code"]]:
-    """Select the benchmark LLM provider via the plugin manifest registry.
-
-    Prefers `claude-code` (OAuth subscription — no API key) and falls back
-    to `anthropic`. `A2WEB_BENCH_PROVIDER` forces the choice; an explicit
-    override that isn't in the registry raises `LLMNotAvailable`.
+    `A2WEB_BENCH_PROVIDER` forces the choice (validated against the known ids
+    so a typo reads as "unknown provider id" rather than a generic miss);
+    otherwise the shared auto-order applies. Raises `LLMNotAvailable` when
+    nothing resolves.
     """
-    registry = load_surface("a2web._manifests.llm_providers", Provider, settings)
-    override = os.environ.get(_PROVIDER_ENV, "").strip().lower().replace("_", "-")
-    if override:
-        if override not in _BENCH_PROVIDER_IDS:
-            raise LLMNotAvailable(f"unknown provider id: {override}")
-        provider = registry.get(override)
-        if provider is None:
-            raise LLMNotAvailable(f"{_PROVIDER_ENV}={override} but provider not in registry (available: {sorted(registry)})")
-        # Narrow the literal — checked above.
-        if override == "anthropic":
-            return provider, "anthropic"
-        return provider, "claude-code"
-    for name in _BENCH_PROVIDER_IDS:
-        provider = registry.get(name)
-        if provider is not None:
-            if name == "anthropic":
-                return provider, "anthropic"
-            return provider, "claude-code"
-    raise LLMNotAvailable(f"no LLM provider available (registry empty: {sorted(registry)})")
+    override = os.environ.get(_PROVIDER_ENV, "").strip().lower().replace("_", "-") or None
+    if override is not None and override not in _PROVIDER_ORDER:
+        raise LLMNotAvailable(f"unknown provider id: {override}")
+    selection = select_provider(settings, override=override)
+    if selection is None:
+        target = override or f"auto ({', '.join(_PROVIDER_ORDER)})"
+        raise LLMNotAvailable(f"no LLM provider available (tried: {target})")
+    provider_id, provider = selection
+    return provider, provider_id
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -127,8 +117,10 @@ async def _amain(argv: list[str]) -> int:
         return 3
 
     # Thread the provider choice into A2WebExtract's reader path too — its
-    # extractor builds its own provider from settings.
-    settings = AppSettings(llm_provider=provider_id)
+    # extractor builds its own provider from settings. `_pick_provider`
+    # guarantees `provider_id` is a concrete provider id (validated against
+    # `_PROVIDER_ORDER`), so the cast to `ProviderMode` is sound.
+    settings = AppSettings(llm_provider=cast("ProviderMode", provider_id))
     # Single source of truth: bootstrap_state constructs both AppState and
     # the Resources bundle (browser_pool + llm_extractor + cookie_jar).
     # Closes the v0.22 bench-harness gap — adding a resource only needs to
@@ -151,7 +143,7 @@ async def _amain(argv: list[str]) -> int:
     }
     systems: list[EvalSystem] = [registry[name] for name in keep_by_mode[args.mode] if name in registry]
 
-    judge_model = ModelSpec(provider_id, args.judge_model)
+    judge_model = ModelSpec(args.judge_model)
     judge = Judge(provider=provider, model=judge_model)
     bench_judge = BenchJudge(provider=provider, model=judge_model)
 
