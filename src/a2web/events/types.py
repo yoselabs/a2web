@@ -1,7 +1,7 @@
 """Phase-boundary events emitted by the fetch orchestrator.
 
 These typed payloads are passed directly to `await a2kit.log.info(...)`
-(ADR-0027 LDD refound — no pre-registration step). a2kit resolves each
+(no pre-registration step). a2kit resolves each
 instance to a `logging.LogRecord`: message = the type name, payload dict on
 `record.a2kit_fields`. Handlers (OTel + the wire bridge that a2kit owns)
 read them off the record.

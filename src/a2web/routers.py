@@ -167,7 +167,7 @@ class WebRouter(a2kit.Router):
         and an operator hint records the reason — callers can fall back
         to reading `content_md` directly.
 
-        Emits typed events on a2kit's LDD channel during the fetch.
+        Emits typed events on a2kit's logging channel during the fetch.
         """
         roles_filter = frozenset(link_roles) if link_roles is not None else frozenset({"primary"})
         response = await orchestrate(

@@ -272,7 +272,7 @@ async def test_pre_rendered_handler_returns_content(
 
 @pytest.mark.asyncio
 async def test_ctx_none_preserves_pr5_behavior(monkeypatch: pytest.MonkeyPatch) -> None:
-    """No dispatch ctx → fetch still succeeds. ADR-0027 LDD refound:
+    """No dispatch ctx → fetch still succeeds.
     `await a2kit.log.info(...)` logs to the `a2kit` logger unconditionally and
     skips only the optional MCP-wire forward when no ctx is bound."""
     body = (_FIX / "blog.html").read_bytes()

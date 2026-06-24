@@ -23,7 +23,6 @@ from urllib.parse import urlparse
 
 import a2kit
 import a2kit.log
-import structlog
 from a2kit import Lazy
 
 from .actions import Action, EscalateBrowser, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
@@ -200,9 +199,6 @@ def _ttl_for(content_type: str | None, settings_obj: object) -> int:
     if "html" in ct:
         return getattr(settings_obj, "cache_ttl_article_h", 24) * 3600
     return getattr(settings_obj, "cache_ttl_static_h", 168) * 3600
-
-
-_LOG = structlog.get_logger("a2web")
 
 
 @dataclass(slots=True)
@@ -418,7 +414,7 @@ async def fetch(
     """Run the v0.1 cascade for one URL.
 
     Emits typed phase-boundary events via `await a2kit.log.info(EventInstance(...))`
-    (ADR-0027 LDD refound — stdlib logging). The synchronous log to the `a2kit`
+    (stdlib logging). The synchronous log to the `a2kit`
     logger always fires; the optional MCP-wire forward only happens under a tool
     dispatch. Outside a dispatch (eval/systems direct call) the emit still logs —
     no ambient ctx is required.
@@ -631,7 +627,7 @@ def _format_age(age_hours: float | None) -> str:
 
 
 async def _phase_cookies_staleness(fc: FetchContext, *, state: AppState) -> None:
-    """Append the `cookies_stale` operator hint and LDD event when stale.
+    """Append the `cookies_stale` operator hint and log event when stale.
 
     Idempotent within a fetch: `fc.cookies_stale_hint_appended` flips on the
     first append, preventing a duplicate after `RewriteUrl` restarts.
@@ -1185,7 +1181,7 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[Content
     sin one level down; a non-top-ranked payload could hold the answer). No
     length gate. Duplicate renders are suppressed. The display pick takes the
     first (top-ranked) candidate, so the wire `content_md` stays legacy-stable;
-    the full set reaches the extractor via the menu. Pure function — emits LDD
+    the full set reaches the extractor via the menu. Pure function — emits log
     telemetry, does NOT mutate `fc.content_md`.
     """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)

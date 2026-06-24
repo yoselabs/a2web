@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from .decision_log import resolve_verdict
+from .log import log_warning
 from .models import (
     AskExtraction,
     AskResponse,
@@ -36,11 +37,6 @@ from .utils.time import fmt_dur
 if TYPE_CHECKING:
     from .fetcher import FetchContext
     from .packages.llm_extract import RouterPayload as RouterBoundary
-
-
-import structlog
-
-_LOG = structlog.get_logger("a2web.fetcher_response")
 
 
 def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
@@ -83,7 +79,7 @@ def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
             if errs and isinstance(errs, list) and errs[0].get("loc"):
                 first = errs[0]["loc"][0]
                 offending_field = str(first)
-        _LOG.warning(
+        log_warning(
             "llm_wobble",
             boundary="fetcher_routing_mirror",
             field=offending_field,

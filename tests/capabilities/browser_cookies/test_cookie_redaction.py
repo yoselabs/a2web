@@ -1,7 +1,7 @@
 """Redaction discipline — cookie values never appear in observability output.
 
 Covers the helper directly (`redact_cookie_for_event`) and the
-`CookiesAttached` LDD event emission path (which uses cookie *names* but
+`CookiesAttached` log event emission path (which uses cookie *names* but
 NOT values).
 """
 

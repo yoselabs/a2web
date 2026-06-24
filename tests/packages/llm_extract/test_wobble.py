@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-from structlog.testing import capture_logs
 
 from a2web.packages.llm_extract import (
     WobblePolicy,
@@ -11,6 +10,7 @@ from a2web.packages.llm_extract import (
     WobbleTolerance,
 )
 from a2web.packages.llm_extract.wobble import apply_policy
+from tests._helpers.log_capture import capture_a2kit_logs
 
 
 def _ctx(parsed: dict[str, object], field: str, policy: WobblePolicy) -> object:
@@ -35,7 +35,7 @@ def test_strict_missing_raises_keyerror() -> None:
 
 def test_derive_calls_callable_and_logs() -> None:
     policy = WobblePolicy(WobbleTolerance.DERIVE, derive=lambda p: int(p["base"]) * 2)
-    with capture_logs() as logs:
+    with capture_a2kit_logs() as logs:
         out = _ctx({"base": 3}, "x", policy)
     assert out == 6
     events = [r for r in logs if r.get("event") == "llm_wobble"]
@@ -45,7 +45,7 @@ def test_derive_calls_callable_and_logs() -> None:
 
 
 def test_default_substitutes_and_logs() -> None:
-    with capture_logs() as logs:
+    with capture_a2kit_logs() as logs:
         out = _ctx({}, "x", WobblePolicy(WobbleTolerance.DEFAULT, default="fallback"))
     assert out == "fallback"
     events = [r for r in logs if r.get("event") == "llm_wobble"]
@@ -54,7 +54,7 @@ def test_default_substitutes_and_logs() -> None:
 
 
 def test_skip_raises_wobbleskip_and_logs() -> None:
-    with capture_logs() as logs, pytest.raises(WobbleSkip):
+    with capture_a2kit_logs() as logs, pytest.raises(WobbleSkip):
         _ctx({}, "x", WobblePolicy(WobbleTolerance.SKIP))
     events = [r for r in logs if r.get("event") == "llm_wobble"]
     assert len(events) == 1
@@ -75,7 +75,7 @@ def test_derive_without_callable_raises_keyerror() -> None:
 
 def test_raw_excerpt_bounded_in_log() -> None:
     huge = "z" * 5000
-    with capture_logs() as logs:
+    with capture_a2kit_logs() as logs:
         apply_policy(
             {},
             "x",

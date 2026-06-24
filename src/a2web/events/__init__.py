@@ -1,6 +1,6 @@
 """Event types + OTel handler for the fetch orchestrator.
 
-Emissions go through stdlib logging (ADR-0027 LDD refound):
+Emissions go through stdlib logging:
 `await a2kit.log.info(EventInstance(...))` from the orchestrator. a2kit
 resolves each typed instance to a `logging.LogRecord` (message = type name,
 payload on `record.a2kit_fields`) and fans it out to the handlers attached

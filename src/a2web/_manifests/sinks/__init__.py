@@ -1,6 +1,6 @@
-"""LDD sink manifests.
+"""Log sink manifests.
 
-Sinks are stdlib `logging.Handler`s (ADR-0027 LDD refound) registered via
+Sinks are stdlib `logging.Handler`s registered via
 `app.log.add_handler(...)`. Each manifest returns a handler instance; the
 boot path collects them and attaches them one by one.
 

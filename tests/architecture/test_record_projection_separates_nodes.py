@@ -28,8 +28,7 @@ from a2web.packages.record_extract import extract_records
 
 def _listing(price_html: str) -> str:
     cards = "".join(
-        f'<article class="prd"><h2><a href="/p{i}">Item {i}</a></h2><div class="price">{price_html}</div></article>'
-        for i in range(6)
+        f'<article class="prd"><h2><a href="/p{i}">Item {i}</a></h2><div class="price">{price_html}</div></article>' for i in range(6)
     )
     return f"<html><body><div class='grid'>{cards}</div></body></html>"
 

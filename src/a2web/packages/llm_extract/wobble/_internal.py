@@ -13,14 +13,16 @@ module — downstream code typed as `Wobbled` cannot accept a bare
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Generic, NewType, TypeVar
 
-import structlog
-
-_LOG = structlog.get_logger("a2web.packages.llm_extract.wobble")
+# Package-pure: emit directly on the stdlib `a2kit` logger (governed by
+# a2kit's LogConfig) rather than importing the domain `a2web.log` helper —
+# `packages/` may not import from `a2web.<domain>`.
+_LOG = logging.getLogger("a2kit")
 
 _RAW_EXCERPT_MAX = 200
 
@@ -104,11 +106,15 @@ def emit_wobble(
     """Single structured log event for every recovered LLM-contract wobble."""
     _LOG.warning(
         "llm_wobble",
-        boundary=boundary,
-        field=field,
-        tolerance=tolerance.value,
-        model=model,
-        raw=raw_excerpt[:_RAW_EXCERPT_MAX] if raw_excerpt else "",
+        extra={
+            "a2kit_fields": {
+                "boundary": boundary,
+                "field": field,
+                "tolerance": tolerance.value,
+                "model": model,
+                "raw": raw_excerpt[:_RAW_EXCERPT_MAX] if raw_excerpt else "",
+            }
+        },
     )
 
 

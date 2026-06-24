@@ -1,7 +1,6 @@
 """Live console sink for the bench event stream — a stdlib `logging.Handler`.
 
-Drains `CellStarted` / `CellEnded` `LogRecord`s (ADR-0027 LDD refound) and
-renders one line per event. Counter state is guarded by the handler's own
+Drains `CellStarted` / `CellEnded` `LogRecord`s and renders one line per event. Counter state is guarded by the handler's own
 `self.lock` (logging acquires it around every `emit`). Also runs a 30s
 heartbeat task that summarizes in-flight cells while the run is active.
 

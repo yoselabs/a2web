@@ -15,7 +15,7 @@ Heavy/conditional resources (BrowserPool, LlmExtractorResource) are surfaced
 at the tool seam as `Lazy[T]` (see `routers.py`) so the cold-start cost is
 paid only when the fetch path actually needs them.
 
-LDD is stdlib logging (ADR-0027 LDD refound): typed events emit via
+Logging is stdlib logging: typed events emit via
 `await a2kit.log.info(payload)`; sinks are `logging.Handler`s attached via
 `app.log.add_handler(...)`.
 """
@@ -75,7 +75,7 @@ def build_app() -> A2Web:
     app.provide(build_cookie_jar)  # CookieJarResource — needs settings + sqlite (Lazy at tool seam)
     app.provide(build_state)  # AppState — bundles the four always-on resources
 
-    # LDD sinks come from the plugin manifest registry as `logging.Handler`s.
+    # Log sinks come from the plugin manifest registry as `logging.Handler`s.
     # Handlers whose factories return Unavailable (e.g. OTel without the SDK
     # installed) are dropped before reaching the logger. They attach to the
     # `a2kit` logger and drain the typed-event LogRecords best-effort.

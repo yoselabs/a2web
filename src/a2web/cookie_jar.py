@@ -347,7 +347,7 @@ def build_cookie_jar(settings: AppSettings, sqlite: SqliteResource) -> CookieJar
 
 
 def redact_cookie_for_event(cookie: Cookie) -> dict[str, str | int]:
-    """Project a Cookie to a redacted dict suitable for LDD / structlog payloads.
+    """Project a Cookie to a redacted dict suitable for structured-log payloads.
 
     Carries name + host_key + path + value LENGTH (not value). Values are the
     entire secret being mirrored; emitting them to any observability sink

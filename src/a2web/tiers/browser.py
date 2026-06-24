@@ -77,7 +77,7 @@ async def _scroll_and_retry(page: Any, original_html: str) -> str:
 
     Returns whichever capture (original or post-scroll) is longer. Never
     raises — timeout or page-eval errors fall back to the original. Emits
-    `browser_scroll_retry` LDD events so operators can measure firing rate.
+    `browser_scroll_retry` log events so operators can measure firing rate.
     """
     t_ms = 0  # relative — caller manages the absolute clock
     await a2kit.log.info(StageStarted(t_ms=t_ms, step="browser_scroll_retry"))

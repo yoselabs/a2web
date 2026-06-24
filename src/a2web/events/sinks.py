@@ -1,8 +1,8 @@
 """OTel handler — registered via `app.log.add_handler(OtelHandler())` in server.py.
 
-Receives a `logging.LogRecord` from a2kit's stdlib-logging emission chain
-(ADR-0027 LDD refound). Emits one OTel span per `*Ended` event when the SDK
-is available; degrades to a silent drain when OTel is absent.
+Receives a `logging.LogRecord` from a2kit's stdlib-logging emission chain.
+Emits one OTel span per `*Ended` event when the SDK is available; degrades
+to a silent drain when OTel is absent.
 
 a2kit owns the MCP/CLI bridge — we don't write a ctx-forwarding sink anymore.
 The typed payload arrives as `record.a2kit_fields` (the dict a2kit attaches

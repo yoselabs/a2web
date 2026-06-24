@@ -23,11 +23,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Generic, NamedTuple, TypeVar
 
-import structlog
+from .log import log_debug, log_warning
 
 T = TypeVar("T")
-
-_LOG = structlog.get_logger("a2web._plugin")
 
 
 class Unavailable(NamedTuple):
@@ -122,7 +120,7 @@ def _try_register(
     if manifest is None:
         return  # not a plugin file — utility modules in the surface dir
     if not isinstance(manifest, PluginManifest):
-        _LOG.warning(
+        log_warning(
             "plugin_manifest_wrong_type",
             module=getattr(module, "__name__", "?"),
             kind=type(manifest).__name__,
@@ -132,7 +130,7 @@ def _try_register(
         return  # different surface in the same dir — not ours
     instance = manifest.factory(context)
     if isinstance(instance, Unavailable):
-        _LOG.info(
+        log_debug(
             "plugin_unavailable",
             surface=getattr(module, "__package__", "?"),
             name=manifest.name,
@@ -166,7 +164,7 @@ def load_surface_sorted(
             continue
         instance = manifest.factory(context)
         if isinstance(instance, Unavailable):
-            _LOG.info(
+            log_debug(
                 "plugin_unavailable",
                 surface=getattr(module, "__package__", "?"),
                 name=manifest.name,

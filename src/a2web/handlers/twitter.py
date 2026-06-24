@@ -20,14 +20,12 @@ import re
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-import structlog
+import a2kit.log
 import trafilatura
 
 from ..models import Heading, Verdict
 from ..packages.http_fetch import FetchVerdict, fetch_bytes
 from ._common import empty_result
-
-_LOG = structlog.get_logger("a2web.handlers.twitter")
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -114,7 +112,7 @@ class TwitterHandler:
                 continue
             except Exception as exc:
                 # Breaker open OR unexpected error — skip this instance.
-                _LOG.debug("nitter_instance_skipped", instance=instance, error=str(exc))
+                await a2kit.log.debug("nitter_instance_skipped", instance=instance, error=str(exc))
                 continue
 
         return empty_result(url, last_verdict)

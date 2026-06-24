@@ -1,4 +1,4 @@
-"""Bench-only LDD event types for live progress visibility.
+"""Bench-only event types for live progress visibility.
 
 Emitted from `EvalSuite._run_one` and consumed by `LiveSink` (stdout). These
 are intentionally separate from `a2web.events.types` (orchestrator-level

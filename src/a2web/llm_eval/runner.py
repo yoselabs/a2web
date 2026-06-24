@@ -33,7 +33,6 @@ from pathlib import Path
 from typing import Any
 
 import a2kit.log
-import structlog
 
 from ..packages.llm_extract import Judge, JudgeParseError, JudgeVerdict
 from .bench_judge import BenchJudge
@@ -42,14 +41,12 @@ from .corpus import Corpus, CorpusEntry
 from .events import CellEnded, CellStarted, FailureReason
 from .systems import EvalSystem, SystemResult
 
-_LOG = structlog.get_logger("a2web.llm.eval")
-
 
 @contextmanager
-def _ldd_ambient(handlers: tuple[logging.Handler, ...] = ()) -> Iterator[None]:
+def _log_ambient(handlers: tuple[logging.Handler, ...] = ()) -> Iterator[None]:
     """Attach bench handlers to the `a2kit` logger for the matrix run.
 
-    ADR-0027 LDD refound: `await a2kit.log.info(...)` logs unconditionally to
+    `await a2kit.log.info(...)` logs unconditionally to
     `logging.getLogger("a2kit")` — no ambient ctx or call scope is required.
     To surface bench-cell signals (`CellStarted` / `CellEnded`) on a
     `LiveSink`, attach it as a handler for the run duration; this is exactly
@@ -187,8 +184,8 @@ class EvalSuite:
 
         # Attach bench handlers (LiveSink) to the `a2kit` logger for the whole
         # matrix run — every cell's CellStarted/CellEnded and the orchestrator's
-        # stage events route to them while attached (ADR-0027 LDD refound).
-        with _ldd_ambient(handlers=self._handlers):
+        # stage events route to them while attached.
+        with _log_ambient(handlers=self._handlers):
             # Build the full task list (corpus x systems) and run with bounded
             # concurrency. Ordering of rows is corpus-major / system-minor.
             tasks: list[asyncio.Task[EvalRow]] = []
@@ -238,7 +235,7 @@ class EvalSuite:
         try:
             fetch_result: SystemResult = await system.fetch(url=entry.url, ask=entry.task)
         except Exception as exc:
-            _LOG.warning("eval_system_failed", slug=slug, system=system.name, error=str(exc))
+            await a2kit.log.warning("eval_system_failed", slug=slug, system=system.name, error=str(exc))
             fetch_latency_ms = int((time.perf_counter() - t0) * 1000)
             row = _base_row(entry, system.name, answer="")
             row.fetch_latency_ms = fetch_latency_ms
@@ -368,7 +365,7 @@ class EvalSuite:
         try:
             verdict = await self._bench_judge.score_clarity(task=entry.task, answer=fetch_result.answer)
         except JudgeParseError as exc:
-            _LOG.warning("clarity_judge_failed", slug=entry.slug, system=row.system, error=str(exc))
+            await a2kit.log.warning("clarity_judge_failed", slug=entry.slug, system=row.system, error=str(exc))
             row.clarity_error = f"parse_error: {exc}"
             return
         row.clarity_score = verdict.score
@@ -392,7 +389,7 @@ class EvalSuite:
         try:
             verdict = await self._bench_judge.score_next_links(task=entry.task, next_links=block)
         except JudgeParseError as exc:
-            _LOG.warning("next_links_judge_failed", slug=entry.slug, system=row.system, error=str(exc))
+            await a2kit.log.warning("next_links_judge_failed", slug=entry.slug, system=row.system, error=str(exc))
             row.next_links_error = f"parse_error: {exc}"
             return
         row.next_links_score = verdict.score

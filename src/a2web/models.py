@@ -327,7 +327,7 @@ class AskExtraction(PruneEmpty):
     incomplete) and is always present. The observability fields (`model`,
     token counts, cost, latency, cache) are populated only when `ask` was
     called with `debug=True`; otherwise they are None and omitted from the
-    wire. The full metadata always reaches LDD events regardless of debug.
+    wire. The full metadata always reaches log events regardless of debug.
 
     `PruneEmpty` (a2kit v0.40.1) installs a `model_serializer` that drops
     `None` / `""` / `[]` / `{}` fields; pydantic cascades it through the

@@ -19,8 +19,6 @@ from __future__ import annotations
 
 import json
 
-from structlog.testing import capture_logs
-
 from a2web.llm_eval.bench_judge import _funnel_two_field
 from a2web.packages.llm_extract.extractor import (
     _split_answer_and_next_links,
@@ -31,6 +29,7 @@ from a2web.packages.llm_extract.wobble import (
     BENCH_CLARITY_POLICY,
     BENCH_NEXT_LINKS_POLICY,
 )
+from tests._helpers.log_capture import capture_a2kit_logs
 
 
 def _has_wobble(records: list[dict], boundary: str) -> bool:
@@ -46,7 +45,7 @@ def test_extractor_routing_emits_wobble_on_missing_genre() -> None:
             # genre / obstacle / ask_here / try_url all missing → DEFAULT recovery
         }
     )
-    with capture_logs() as records:
+    with capture_a2kit_logs() as records:
         answer, wobbled = _split_answer_and_routing(raw, model="test-model")
     assert wobbled is not None
     # Wobbled wraps _Parsed; runtime is identity (NewType). Spot-check it
@@ -61,7 +60,7 @@ def test_extractor_routing_emits_wobble_on_missing_genre() -> None:
 
 def test_extractor_next_links_emits_wobble_on_dropped_entries() -> None:
     body = '```next_links\n[{"anchor":"a","url":"u","reason":"r","kind":"drilldown"},{"anchor":"bad"}]\n```'
-    with capture_logs() as records:
+    with capture_a2kit_logs() as records:
         _, links = _split_answer_and_next_links(body, model="test-model")
     assert len(links) == 1
     assert _has_wobble(records, "extractor.next_links")
@@ -69,7 +68,7 @@ def test_extractor_next_links_emits_wobble_on_dropped_entries() -> None:
 
 def test_judge_funnel_returns_wobbled_with_reasoning_recovered() -> None:
     raw = json.dumps({"scores": [4, 5], "overall": 5, "reached": True})  # no reasoning
-    with capture_logs() as records:
+    with capture_a2kit_logs() as records:
         wobbled = _funnel_verdict(raw, model="test-model")
     # Wobbled wraps _Parsed; runtime is identity (NewType). Spot-check it
     # has the private _Parsed shape (value + recovered_fields).
@@ -80,7 +79,7 @@ def test_judge_funnel_returns_wobbled_with_reasoning_recovered() -> None:
 
 def test_bench_clarity_funnel_returns_wobbled() -> None:
     raw = json.dumps({"clarity": 4})  # no reasoning → DEFAULT recovery
-    with capture_logs() as records:
+    with capture_a2kit_logs() as records:
         wobbled = _funnel_two_field(
             raw,
             score_field="clarity",
@@ -97,7 +96,7 @@ def test_bench_clarity_funnel_returns_wobbled() -> None:
 
 def test_bench_next_links_funnel_returns_wobbled() -> None:
     raw = json.dumps({"next_links_score": 3})  # no reasoning
-    with capture_logs() as records:
+    with capture_a2kit_logs() as records:
         wobbled = _funnel_two_field(
             raw,
             score_field="next_links_score",
