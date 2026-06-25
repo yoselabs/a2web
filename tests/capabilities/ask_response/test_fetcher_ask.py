@@ -19,9 +19,9 @@ from a2kit.testing import lazy
 from a2web.fetcher import fetch
 from a2web.llm_resource import LlmExtractorResource
 from a2web.models import FetchStatus
-from a2web.packages.llm_extract import Extractor, ModelSpec
+from a2web.packages.llm_extract import Provider
 from a2web.settings import AppSettings
-from a2web.state import AppState
+from a2web.state import AppState, unavailable_lazy
 from a2web.tiers import REGISTRY, TierResult
 from tests.conftest import make_default_state
 from tests.fixtures import FIXTURES_DIR
@@ -90,23 +90,17 @@ def _make_extractor_resource(
     answer: str | None,
     unavailable_reason: str | None = None,
 ) -> tuple[LlmExtractorResource, _StubProvider | None]:
-    """Construct a LlmExtractorResource pre-seeded with a stub Extractor.
+    """Construct a LlmExtractorResource around an injected provider.
 
-    With `answer`: build a working stub provider and Extractor.
-    With `unavailable_reason`: leave `_extractor` None, set the reason —
-    simulates LlmExtractorResource._build's failure path.
+    With `answer`: inject a working stub provider (the resource builds its own
+    Extractor around it). Otherwise: inject an unavailable-provider stub so the
+    extract seam raises ResourceUnavailable (the "no LLM" degrade path).
     """
-    res = LlmExtractorResource(state.settings, state.sqlite)
-    provider: _StubProvider | None = None
-    if unavailable_reason is not None:
-        res._unavailable_reason = unavailable_reason
-    elif answer is not None:
+    if answer is not None:
         provider = _StubProvider(answer=answer)
-        res._extractor = Extractor(
-            provider=provider,
-            model=ModelSpec("stub-model"),
-        )
-    return res, provider
+        return LlmExtractorResource(state.settings, state.sqlite, lazy(provider)), provider
+    reason = unavailable_reason or "no LLM provider available"
+    return LlmExtractorResource(state.settings, state.sqlite, unavailable_lazy(Provider, reason=reason)), None
 
 
 # --------------------------------------------------------------------- #
@@ -159,7 +153,9 @@ async def test_ask_set_populates_extracted_answer(
     assert result.status == FetchStatus.ok
     assert result.extracted_answer == "The article is about adaptive web fetching."
     assert result.extraction is not None
-    assert result.extraction.model == "stub-model"
+    # The resource builds its Extractor around the injected provider using the
+    # configured model id (the stub echoes it back).
+    assert result.extraction.model == "claude-haiku-4-5-20251001"
     assert result.extraction.prompt_tokens == 200
     assert result.extraction.completion_tokens == 20
     assert result.extraction.cost_usd == pytest.approx(0.0005)

@@ -12,9 +12,10 @@ import json
 
 import pytest
 from a2kit.testing import client as make_client
+from a2kit.testing import lazy
 
 from a2web.llm_resource import LlmExtractorResource
-from a2web.packages.llm_extract import Extractor, ModelSpec, ProviderResponse
+from a2web.packages.llm_extract import ProviderResponse
 from a2web.server import build_app
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TierResult
@@ -60,12 +61,7 @@ class _JsonEnvelopeProvider:
 
 
 def _build_extractor(state: AppState, envelope: dict) -> LlmExtractorResource:
-    res = LlmExtractorResource(state.settings, state.sqlite)
-    res._extractor = Extractor(
-        provider=_JsonEnvelopeProvider(envelope),
-        model=ModelSpec("stub-model"),
-    )
-    return res
+    return LlmExtractorResource(state.settings, state.sqlite, lazy(_JsonEnvelopeProvider(envelope)))
 
 
 async def _ask_wire(monkeypatch: pytest.MonkeyPatch, *, envelope: dict, **ask_kwargs: object) -> dict:
@@ -223,11 +219,7 @@ async def test_malformed_envelope_drops_routing_keeps_answer(
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(_MINIMAL_HTML))
     app = build_app()
     state = await app.container().get(AppState)
-    res = LlmExtractorResource(state.settings, state.sqlite)
-    res._extractor = Extractor(
-        provider=_PlainTextProvider(),
-        model=ModelSpec("stub-model"),
-    )
+    res = LlmExtractorResource(state.settings, state.sqlite, lazy(_PlainTextProvider()))
     app.provide(LlmExtractorResource, lambda: res)
     async with make_client(app) as client:
         wire = await client.call_wire(

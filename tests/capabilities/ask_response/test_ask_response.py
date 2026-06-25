@@ -12,11 +12,12 @@ import json
 
 import pytest
 from a2kit.testing import client as make_client
+from a2kit.testing import lazy
 
 from a2web.llm_resource import LlmExtractorResource
-from a2web.packages.llm_extract import Extractor, ModelSpec, ProviderResponse
+from a2web.packages.llm_extract import Provider, ProviderResponse
 from a2web.server import build_app
-from a2web.state import AppState
+from a2web.state import AppState, unavailable_lazy
 from a2web.tiers import REGISTRY, TierResult
 from tests.fixtures import FIXTURES_DIR
 
@@ -88,12 +89,8 @@ _DEFAULT_ANSWER = "The page is about adaptive web fetching."
 
 
 def _extractor(state: AppState, *, answer: str = _DEFAULT_ANSWER, unavailable: str | None = None) -> LlmExtractorResource:
-    res = LlmExtractorResource(state.settings, state.sqlite)
-    if unavailable is not None:
-        res._unavailable_reason = unavailable
-    else:
-        res._extractor = Extractor(provider=_StubProvider(answer), model=ModelSpec("stub-model"))
-    return res
+    provider = unavailable_lazy(Provider, reason=unavailable) if unavailable is not None else lazy(_StubProvider(answer))
+    return LlmExtractorResource(state.settings, state.sqlite, provider)
 
 
 async def _ask_wire(
@@ -315,7 +312,8 @@ async def test_ask_extraction_full_under_debug(monkeypatch: pytest.MonkeyPatch) 
     data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?", debug=True)
     extraction = data["debug"]["extraction"]
     assert "truncated" in extraction
-    assert extraction["model"] == "stub-model"
+    # Model id reflects the configured model (the resource builds the Extractor).
+    assert extraction["model"] == "claude-haiku-4-5-20251001"
     assert "prompt_tokens" in extraction
     assert "latency_ms" in extraction
 

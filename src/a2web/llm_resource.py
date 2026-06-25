@@ -28,6 +28,8 @@ from typing import TYPE_CHECKING
 from .settings import AppSettings
 
 if TYPE_CHECKING:
+    from a2kit.packages.di import Lazy
+
     from .packages.http_cache import SqliteResource
     from .packages.llm_extract import ExtractionResult, Extractor, LlmNextLink, Provider
 
@@ -68,62 +70,48 @@ def select_provider(settings: AppSettings, *, override: str | None = None) -> tu
 
 
 class LlmExtractorResource:
-    """Wraps `Extractor` with lazy construction + provider fallback + cache wiring."""
+    """Wraps `Extractor` with lazy construction + cache wiring around an
+    injected `Lazy[Provider]`.
 
-    def __init__(self, settings: AppSettings, sqlite: SqliteResource) -> None:
+    The provider is supplied (not selected internally): production registers
+    `select_provider` as the `Provider` DI factory; bench/tests pass a
+    `Lazy[Provider]` directly. "No provider configured" rides the shared
+    `ResourceUnavailable` seam — awaiting an unavailable provider raises, and
+    the orchestrator degrades to raw + an operator hint.
+    """
+
+    def __init__(self, settings: AppSettings, sqlite: SqliteResource, provider: Lazy[Provider]) -> None:
         self._settings = settings
         self._sqlite = sqlite
+        self._provider = provider
         self._extractor: Extractor | None = None
-        self._unavailable_reason: str | None = None
         self._lock = asyncio.Lock()
 
-    @property
-    def unavailable_reason(self) -> str | None:
-        """Human-readable reason the LLM is unavailable, or None when usable.
-
-        Set after a failed `_ensure()`. Persists for the lifetime of the
-        resource (we don't retry construction on every fetch).
-        """
-        return self._unavailable_reason
-
-    async def _ensure(self) -> Extractor | None:
+    async def _ensure(self) -> Extractor:
         """Construct the Extractor on first call; cached thereafter.
 
-        Returns the cached instance on success, or `None` on permanent
-        unavailability with `unavailable_reason` populated. Distinguishes
-        config gaps from transient SDK errors — the latter propagate.
+        Awaits the injected provider — when no provider is configured the
+        await raises `ResourceUnavailable`, which propagates to the caller.
         """
         if self._extractor is not None:
             return self._extractor
-        if self._unavailable_reason is not None:
-            return None
         async with self._lock:
             if self._extractor is not None:
                 return self._extractor
-            if self._unavailable_reason is not None:
-                return None
-            self._extractor, self._unavailable_reason = await self._build()
+            self._extractor = await self._build()
             return self._extractor
 
-    async def _build(self) -> tuple[Extractor | None, str | None]:
-        """Construct an `Extractor` from settings; capture failure as reason.
+    async def _build(self) -> Extractor:
+        """Build an `Extractor` around the injected provider + extraction cache.
 
-        Provider selection is delegated to the shared `select_provider`
-        (auto-order + explicit-pin policy over the manifest registry); this
-        method only adapts a `None` selection into a cached reason and wires
-        the extraction cache + template around the chosen provider.
+        Resolves the provider from the injected `Lazy[Provider]`; an
+        unavailable provider raises `ResourceUnavailable` here.
         """
-        try:
-            from .packages.llm_extract import ExtractionCache, Extractor, ModelSpec
-        except Exception as exc:
-            return None, f"llm module import failed: {exc}"
+        from .packages.llm_extract import ExtractionCache, Extractor, ModelSpec
+        from .packages.llm_extract.prompts import EXTRACT_CACHEABLE_V1
 
         s = self._settings
-        selection = select_provider(s)
-        if selection is None:
-            tried = s.llm_provider if s.llm_provider != "auto" else ", ".join(_PROVIDER_ORDER)
-            return None, f"no LLM provider available (tried: {tried})"
-        _, provider = selection
+        provider = await self._provider()
 
         # Hook the extraction cache into the same sqlite file as the HTTP
         # cache. Ensures the underlying connection is open first.
@@ -135,16 +123,13 @@ class LlmExtractorResource:
         else:
             cache = ExtractionCache(conn, ttl_s=s.extraction_cache_ttl_s)
 
-        from .packages.llm_extract.prompts import EXTRACT_CACHEABLE_V1
-
-        extractor = Extractor(
+        return Extractor(
             provider=provider,
             model=ModelSpec(s.llm_model),
             template=EXTRACT_CACHEABLE_V1,
             max_content_chars=s.extraction_max_chars,
             cache=cache,
         )
-        return extractor, None
 
     async def extract(
         self,
@@ -155,11 +140,9 @@ class LlmExtractorResource:
         handler_candidates: list[LlmNextLink] | None = None,
         max_content_chars: int | None = None,
         request_routing: bool = False,
-    ) -> ExtractionResult | None:
-        """Run extraction or return None when LLM is permanently unavailable.
-
-        On None, caller should populate an OperatorHint from
-        `unavailable_reason` and skip the extraction phase.
+    ) -> ExtractionResult:
+        """Run extraction. Raises `ResourceUnavailable` when no LLM provider
+        is configured — the orchestrator catches it and degrades to raw.
 
         `request_next_links` and `handler_candidates` opt into v0.7
         link-discovery Tier 2 output. `handler_candidates` is `list[LlmNextLink]`
@@ -171,8 +154,6 @@ class LlmExtractorResource:
         extractor's configured default.
         """
         extractor = await self._ensure()
-        if extractor is None:
-            return None
         return await extractor.extract(
             content=content,
             ask=ask,
@@ -186,10 +167,11 @@ class LlmExtractorResource:
         """No-op today; symmetric with sqlite/browser for lifecycle hooks."""
         return None
 
-    # Framework-facing async-CM protocol (a2kit v0.36+). Thin wrappers around
-    # the existing idempotent `_ensure` / `close` internal surface.
+    # Framework-facing async-CM protocol (a2kit v0.36+). Entry is cheap —
+    # provider construction is deferred to the first `extract()` so the
+    # "no provider" case surfaces uniformly at the extract seam (tests inject
+    # via `a2kit.testing.lazy`, which bypasses `__aenter__`).
     async def __aenter__(self) -> LlmExtractorResource:
-        await self._ensure()
         return self
 
     async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:

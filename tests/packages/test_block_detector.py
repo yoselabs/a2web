@@ -187,10 +187,7 @@ def test_aliexpress_baxia_punish_url_token_escalates_to_browser() -> None:
 def test_baxia_slide_phrase_recognized_regardless_of_length() -> None:
     """A short punish body carrying the AliExpress slide phrase is recognized
     on the marker alone (no `_____tmd_____` URL token, no length gate)."""
-    body = (
-        "<html><body><p>Sorry, we have detected unusual traffic from your "
-        "network. Please slide to verify.</p></body></html>"
-    )
+    body = "<html><body><p>Sorry, we have detected unusual traffic from your network. Please slide to verify.</p></body></html>"
     result = _eval(body, content_md="")
     assert result.verdict == BlockVerdict.anti_bot
     assert result.subsystem == "alibaba_punish"

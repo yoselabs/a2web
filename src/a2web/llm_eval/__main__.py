@@ -23,16 +23,12 @@ import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
 
 from .._manifests.eval_systems import EvalSystemContext
 from .._plugin import load_surface
 from ..llm_resource import _PROVIDER_ORDER, select_provider
 from ..packages.llm_extract import Judge, LLMNotAvailable, ModelSpec, Provider
 from ..settings import AppSettings
-
-if TYPE_CHECKING:
-    from ..settings import ProviderMode
 from ..state import bootstrap_state
 from .bench_judge import BenchJudge
 from .corpus import CorpusError, load_corpus
@@ -109,23 +105,19 @@ async def _amain(argv: list[str]) -> int:
 
     # Bench uses a stand-in AppSettings; provider selection only reads
     # llm_api_key_env (default "ANTHROPIC_API_KEY") so AppSettings() suffices.
-    settings_bootstrap = AppSettings()
+    settings = AppSettings()
     try:
-        provider, provider_id = _pick_provider(settings_bootstrap)
+        provider, provider_id = _pick_provider(settings)
     except LLMNotAvailable as exc:
         print(f"LLM provider unavailable: {exc}", file=sys.stderr)
         return 3
 
-    # Thread the provider choice into A2WebExtract's reader path too — its
-    # extractor builds its own provider from settings. `_pick_provider`
-    # guarantees `provider_id` is a concrete provider id (validated against
-    # `_PROVIDER_ORDER`), so the cast to `ProviderMode` is sound.
-    settings = AppSettings(llm_provider=cast("ProviderMode", provider_id))
-    # Single source of truth: bootstrap_state constructs both AppState and
-    # the Resources bundle (browser_pool + llm_extractor + cookie_jar).
-    # Closes the v0.22 bench-harness gap — adding a resource only needs to
-    # extend bootstrap_state, no eval-side wiring drift.
-    state, resources = await bootstrap_state(settings)
+    # Single source of truth: bootstrap_state constructs both AppState and the
+    # Resources bundle (browser_pool + llm_extractor + cookie_jar). The chosen
+    # provider is injected straight into the extraction resource, so the
+    # A2WebExtract reader path uses the same backend as the judges — no
+    # `settings.llm_provider` round-trip.
+    state, resources = await bootstrap_state(settings, provider=provider)
 
     # Eval systems load via the plugin manifest registry.
     # Mode controls which manifests we keep — the registry is built once;

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import httpx
 import pytest
+from a2kit.testing import lazy
 
 from a2web.llm_eval import (
     A2WebDetail,
@@ -17,9 +18,9 @@ from a2web.llm_eval import (
     WebFetchBaseline,
 )
 from a2web.llm_eval.systems import WEBFETCH_MARKDOWN_CAP, WEBFETCH_MODEL
-from a2web.packages.llm_extract import Extractor, ModelSpec, ProviderResponse
+from a2web.packages.llm_extract import Provider, ProviderResponse
 from a2web.settings import AppSettings
-from a2web.state import AppState, Resources
+from a2web.state import AppState, Resources, unavailable_lazy
 from a2web.tiers import REGISTRY, TierResult
 
 # --------------------------------------------------------------------- #
@@ -269,8 +270,7 @@ async def test_a2web_extract_runs_extractor_when_available(
     from a2web.llm_resource import LlmExtractorResource
 
     provider = _RecordingProvider(answer="Extract speaks.")
-    extractor_res = LlmExtractorResource(state.settings, state.sqlite)
-    extractor_res._extractor = Extractor(provider=provider, model=ModelSpec("rec-model"))
+    extractor_res = LlmExtractorResource(state.settings, state.sqlite, lazy(provider))
     resources = replace(resources, llm_extractor=extractor_res)
 
     system = A2WebExtract(state=state, resources=resources)
@@ -281,7 +281,9 @@ async def test_a2web_extract_runs_extractor_when_available(
     assert result.cost_usd == pytest.approx(0.0008)
     assert result.prompt_tokens == 150
     assert result.completion_tokens == 30
-    assert result.metadata["extraction_model"] == "rec-model"
+    # The resource builds its own Extractor around the injected provider, using
+    # the configured model id (the provider echoes it back).
+    assert result.metadata["extraction_model"] == state.settings.llm_model
     assert result.error is None
 
 
@@ -298,8 +300,7 @@ async def test_a2web_extract_falls_back_to_content_md_when_no_extractor(
     from a2web.llm_resource import LlmExtractorResource
 
     state, resources = _make_bundle()
-    extractor_res = LlmExtractorResource(state.settings, state.sqlite)
-    extractor_res._unavailable_reason = "No API key in env."
+    extractor_res = LlmExtractorResource(state.settings, state.sqlite, unavailable_lazy(Provider, reason="No API key in env."))
     resources = replace(resources, llm_extractor=extractor_res)
 
     system = A2WebExtract(state=state, resources=resources)

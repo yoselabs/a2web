@@ -28,6 +28,7 @@ from ._manifests.sinks import Sink
 from ._plugin import load_surface
 from .cookie_jar import build_cookie_jar
 from .packages.http_cache import SqliteResource
+from .packages.llm_extract import Provider
 from .routers import CookiesRouter, WebRouter
 from .settings import get_settings
 from .state import (
@@ -35,6 +36,7 @@ from .state import (
     build_browser_pool,
     build_llm_extractor,
     build_proxy_pool,
+    build_selected_provider,
     build_state,
 )
 
@@ -71,7 +73,8 @@ def build_app() -> A2Web:
     app.provide(build_proxy_pool)  # ProxyPool — needs settings
     app.provide(SqliteResource)  # class-as-factory — no required ctor args
     app.provide(build_browser_pool)  # BrowserPool — needs settings (Lazy at tool seam)
-    app.provide(build_llm_extractor)  # LlmExtractorResource — needs settings + sqlite (Lazy at tool seam)
+    app.provide(Provider, build_selected_provider)  # best LLM provider (Protocol key); raises ResourceUnavailable when none
+    app.provide(build_llm_extractor)  # LlmExtractorResource — needs settings + sqlite + Lazy[Provider] (Lazy at tool seam)
     app.provide(build_cookie_jar)  # CookieJarResource — needs settings + sqlite (Lazy at tool seam)
     app.provide(build_state)  # AppState — bundles the four always-on resources
 

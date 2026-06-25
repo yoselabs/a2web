@@ -17,7 +17,9 @@ import pytest
 from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.browser_pool import BrowserPool
 from a2web.packages.http_cache import SqliteResource
+from a2web.packages.llm_extract import Provider
 from a2web.settings import AppSettings
+from a2web.state import ResourceUnavailable, build_selected_provider, unavailable_lazy
 
 # --------------------------------------------------------------------- #
 # SqliteResource
@@ -107,41 +109,47 @@ async def test_sqlite_resource_get_put_roundtrip(cache_dir: Path) -> None:
 # --------------------------------------------------------------------- #
 
 
+def _unavailable(reason: str = "no provider") -> object:
+    return unavailable_lazy(Provider, reason=reason)
+
+
 @pytest.mark.asyncio
 async def test_llm_resource_init_does_no_work() -> None:
-    """__init__ doesn't touch the SDK or env."""
-    resource = LlmExtractorResource(AppSettings(), SqliteResource(db_path=None))
+    """__init__ doesn't touch the SDK or env — no extractor built."""
+    resource = LlmExtractorResource(AppSettings(), SqliteResource(db_path=None), _unavailable())
     assert resource._extractor is None
-    assert resource.unavailable_reason is None
 
 
 @pytest.mark.asyncio
-async def test_llm_resource_missing_api_key_yields_none(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Missing key → _ensure returns None and sets unavailable_reason once."""
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    settings = AppSettings(llm_provider="anthropic")
-    resource = LlmExtractorResource(settings, SqliteResource(db_path=None))
-    result = await resource._ensure()
-    assert result is None
-    assert resource.unavailable_reason is not None
-    # Subsequent calls return cached None without retrying construction.
-    assert await resource._ensure() is None
+async def test_llm_resource_missing_provider_raises() -> None:
+    """No provider configured → awaiting the injected provider during _ensure
+    raises ResourceUnavailable (the shared seam)."""
+    resource = LlmExtractorResource(AppSettings(), SqliteResource(db_path=None), _unavailable("no API key"))
+    with pytest.raises(ResourceUnavailable):
+        await resource._ensure()
 
 
 @pytest.mark.asyncio
-async def test_llm_resource_extract_returns_none_when_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
-    """extract() short-circuits to None when LLM is permanently unavailable."""
+async def test_llm_resource_extract_raises_when_unavailable() -> None:
+    """extract() propagates ResourceUnavailable when no provider is configured."""
+    resource = LlmExtractorResource(AppSettings(), SqliteResource(db_path=None), _unavailable())
+    with pytest.raises(ResourceUnavailable):
+        await resource.extract(content="hello", ask="what?")
+
+
+@pytest.mark.asyncio
+async def test_build_selected_provider_raises_without_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The DI Provider factory raises ResourceUnavailable when nothing resolves
+    (anthropic pinned, no API key in env)."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    settings = AppSettings(llm_provider="anthropic")
-    resource = LlmExtractorResource(settings, SqliteResource(db_path=None))
-    result = await resource.extract(content="hello", ask="what?")
-    assert result is None
+    with pytest.raises(ResourceUnavailable):
+        build_selected_provider(AppSettings(llm_provider="anthropic"))
 
 
 @pytest.mark.asyncio
 async def test_llm_resource_close_is_noop() -> None:
     """close() is a no-op today; verify symmetric for lifecycle hooks."""
-    resource = LlmExtractorResource(AppSettings(), SqliteResource(db_path=None))
+    resource = LlmExtractorResource(AppSettings(), SqliteResource(db_path=None), _unavailable())
     await resource.close()  # must not raise
     await resource.close()
 

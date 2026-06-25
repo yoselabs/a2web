@@ -27,9 +27,10 @@ from a2kit import Lazy
 from purgatory import AsyncCircuitBreakerFactory
 
 from .cookie_jar import CookieJarResource, build_cookie_jar
-from .llm_resource import LlmExtractorResource
+from .llm_resource import _PROVIDER_ORDER, LlmExtractorResource, select_provider
 from .packages.browser_pool import BrowserPool
 from .packages.http_cache import SqliteResource
+from .packages.llm_extract import Provider  # runtime: a2kit introspects factory annotations (Lazy[Provider]) via get_type_hints
 from .packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from .settings import AppSettings
 
@@ -90,9 +91,46 @@ def build_browser_pool(settings: AppSettings) -> BrowserPool:
     )
 
 
-def build_llm_extractor(settings: AppSettings, sqlite: SqliteResource) -> LlmExtractorResource:
-    """LLM extractor — provider is selected lazily on first `_ensure()`."""
-    return LlmExtractorResource(settings, sqlite)
+def build_selected_provider(settings: AppSettings) -> Provider:
+    """DI factory for the `Provider` type: pick the best backend via the shared
+    `select_provider`, or raise `ResourceUnavailable` when none is configured.
+
+    Registered in `server.py` as `app.provide(Provider, build_selected_provider)`.
+    The LLM resource depends on `Lazy[Provider]`; awaiting it runs this factory,
+    so "no provider" surfaces as `ResourceUnavailable` at the extract seam — the
+    same path browser/cookie resources use.
+    """
+    selection = select_provider(settings)
+    if selection is None:
+        tried = settings.llm_provider if settings.llm_provider != "auto" else ", ".join(_PROVIDER_ORDER)
+        raise ResourceUnavailable(f"no LLM provider available (tried: {tried})")
+    _, provider = selection
+    return provider
+
+
+def build_llm_extractor(settings: AppSettings, sqlite: SqliteResource, provider: Lazy[Provider]) -> LlmExtractorResource:
+    """LLM extractor — the provider is injected (DI resolves `Lazy[Provider]`
+    via `build_selected_provider`); Extractor construction stays deferred to
+    first use."""
+    return LlmExtractorResource(settings, sqlite, provider)
+
+
+def _provider_lazy(provider: Provider | None, settings: AppSettings) -> Lazy[Provider]:
+    """Wrap a pre-resolved provider as a `Lazy[Provider]` thunk, or defer to
+    `build_selected_provider(settings)` when none was supplied. Used by
+    `bootstrap_state` (bench/tests), which don't run inside the DI container."""
+    if provider is not None:
+        given = provider
+
+        async def _given() -> Provider:
+            return given
+
+        return _given
+
+    async def _selected() -> Provider:
+        return build_selected_provider(settings)
+
+    return _selected
 
 
 def build_state(
@@ -146,11 +184,14 @@ def unavailable_lazy(resource_cls: type[_T], *, reason: str) -> Lazy[_T]:
     return _raise
 
 
-async def bootstrap_state(settings: AppSettings) -> tuple[AppState, Resources]:
+async def bootstrap_state(settings: AppSettings, *, provider: Provider | None = None) -> tuple[AppState, Resources]:
     """Construct the full resource bundle from `settings` — single source of truth.
 
-    Production (`server.py`), eval (`llm_eval/__main__.py`), and tests
-    (`tests/conftest.py`) all reach the same instances through this factory.
+    Production (`server.py`) uses the DI `app.provide(...)` chain; eval
+    (`llm_eval/__main__.py`) and tests (`tests/conftest.py`) reach the same
+    instances through this factory. `provider` injects a pre-resolved LLM
+    provider into the extraction resource (the bench passes the one it picked
+    for its judges); when omitted the resource defers to `select_provider`.
 
     Async by contract (Phase 1 of fetcher-orchestrator-refactor-v1) — body is
     sync today because all resource construction is cheap and `__aenter__` is
@@ -166,7 +207,7 @@ async def bootstrap_state(settings: AppSettings) -> tuple[AppState, Resources]:
     )
     resources = Resources(
         browser_pool=build_browser_pool(settings),
-        llm_extractor=build_llm_extractor(settings, sqlite),
+        llm_extractor=build_llm_extractor(settings, sqlite, _provider_lazy(provider, settings)),
         cookie_jar=build_cookie_jar(settings, sqlite),
     )
     return state, resources

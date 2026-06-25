@@ -47,7 +47,7 @@
       "completion_tokens": 14,
       "cost_usd": 0.0003,
       "latency_ms": "<volatile>",
-      "model": "stub-model",
+      "model": "claude-haiku-4-5-20251001",
       "prompt_tokens": 120,
       "template_name": "extract_router_v1",
       "truncated": false

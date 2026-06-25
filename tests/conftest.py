@@ -27,6 +27,7 @@ from a2web.settings import AppSettings
 from a2web.state import (
     AppState,
     Resources,
+    _provider_lazy,
     build_breakers,
     build_browser_pool,
     build_llm_extractor,
@@ -164,7 +165,9 @@ def make_default_bundle(settings: AppSettings | None = None) -> tuple[AppState, 
     )
     resources = Resources(
         browser_pool=build_browser_pool(s),
-        llm_extractor=build_llm_extractor(s, sqlite),
+        # Mirror bootstrap_state's default: provider deferred to select_provider
+        # (tests that exercise `ask` inject their own provider/extractor).
+        llm_extractor=build_llm_extractor(s, sqlite, _provider_lazy(None, s)),
         cookie_jar=build_cookie_jar(s, sqlite),
     )
     return state, resources

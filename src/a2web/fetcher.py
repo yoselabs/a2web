@@ -1550,18 +1550,6 @@ async def _phase_extract_answer(
     phase_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     await a2kit.log.info(StageStarted(t_ms=phase_start_ms, step="extract_answer"))
 
-    try:
-        extractor_resource = await fc.llm_extractor()
-    except ResourceUnavailable as exc:
-        fc.operator_hints.append(
-            OperatorHint(
-                code="llm_unavailable",
-                message=f"LLM extractor not provisioned ({exc.reason})",
-                fix="invoke via WebRouter.fetch or pass llm_extractor=Lazy[LlmExtractorResource]",
-            )
-        )
-        return
-
     # v0.7 link-discovery: request next-links from the LLM in the same call.
     # Skip the extension when the off-switch is engaged.
     request_next_links = fc.next_links_enabled
@@ -1575,22 +1563,26 @@ async def _phase_extract_answer(
     # asks. Handler/pre-rendered pages skip the escalation ladder, leaving
     # `content_candidates` empty — fall back to `content_md` there.
     menu = assemble_menu(fc.content_candidates) or fc.content_md
-    result = await extractor_resource.extract(
-        content=menu,
-        ask=fc.ask,
-        request_next_links=request_next_links,
-        handler_candidates=handler_candidates_for_llm,
-        max_content_chars=fc.max_content_chars,
-        request_routing=fc.include_routing,
-    )
-    if result is None:
-        # Graceful degrade: fetch succeeded, extraction skipped, operator
-        # hint surfaces the actionable reason.
-        reason = extractor_resource.unavailable_reason or "LLM extractor unavailable"
+
+    # One unavailability path: resolving the resource (not provisioned) and
+    # awaiting the injected provider inside extract() (no provider configured)
+    # both raise ResourceUnavailable. Graceful degrade — the fetch succeeded,
+    # the operator hint surfaces the actionable reason.
+    try:
+        extractor_resource = await fc.llm_extractor()
+        result = await extractor_resource.extract(
+            content=menu,
+            ask=fc.ask,
+            request_next_links=request_next_links,
+            handler_candidates=handler_candidates_for_llm,
+            max_content_chars=fc.max_content_chars,
+            request_routing=fc.include_routing,
+        )
+    except ResourceUnavailable as exc:
         fc.operator_hints.append(
             OperatorHint(
                 code="llm_unavailable",
-                message=reason,
+                message=exc.reason,
                 fix=f"Set {state.settings.llm_api_key_env} in the environment or run inside Claude Code.",
             )
         )

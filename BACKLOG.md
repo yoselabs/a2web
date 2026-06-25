@@ -17,6 +17,31 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-06-25 — LLM provider seam leftovers (from `centralize-provider-selection` + `inject-provider-via-di`)
+
+Discovered while centralizing provider selection and injecting the provider via
+DI. None block those changes; all are latent cleanups surfaced by the audit.
+
+- **🟡 claude-code's availability gate is vacuous.** `ClaudeCodeProvider.__init__`
+  is a no-op — real readiness (OAuth/OS session) is only known at the first
+  `complete()`. So `load_surface` always lists `claude-code` as "available", and
+  `auto` always picks it first, only discovering an unusable session at call
+  time (the error surfaces as a generic fetch failure, not a clean
+  "provider unavailable" degrade). Options: a real construction-time probe, or
+  fall back to the next provider on the first `complete()` failure. Scope: M.
+- **🟢 `provider.name` spelling drift + redundancy.** `providers/base.py`'s
+  comment cites `claude_code` while the runtime id / manifest name is
+  `claude-code`. Selection keys off the **manifest name** (authoritative);
+  `provider.name` is effectively dead for routing. Reconcile the comment and
+  consider dropping `provider.name` as a selection input. Scope: S.
+- **🟢 `ModelSpec` is now a thin single-field wrapper.** After deleting the dead
+  `.provider` field + `.key()`, `ModelSpec` carries only `model: str`. Candidate
+  to collapse into a plain model-id string (or keep as a typed nominal if a
+  second field ever returns). Low priority — touches every construction site.
+  Scope: S.
+
+---
+
 ## 2026-06-25 — reliable AliExpress / Alibaba access (from `block-detector-recognize-alibaba-baxia`)
 
 That change shipped only the **best-effort** slice: the gate now recognizes

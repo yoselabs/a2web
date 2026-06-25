@@ -53,14 +53,12 @@ def _scan() -> tuple[list[str], list[str]]:
 def test_provider_surface_string_declared_once() -> None:
     surface_hits, _ = _scan()
     assert len(surface_hits) == 1, (
-        f'the provider surface "{_SURFACE_STRING}" must be declared exactly once '
-        f"(in llm_resource.select_provider); found: {surface_hits}"
+        f'the provider surface "{_SURFACE_STRING}" must be declared exactly once (in llm_resource.select_provider); found: {surface_hits}'
     )
 
 
 def test_provider_order_tuple_declared_once() -> None:
     _, order_hits = _scan()
     assert len(order_hits) == 1, (
-        f"the provider fallback order {_ORDER_TUPLE} must be declared exactly once "
-        f"(in llm_resource._PROVIDER_ORDER); found: {order_hits}"
+        f"the provider fallback order {_ORDER_TUPLE} must be declared exactly once (in llm_resource._PROVIDER_ORDER); found: {order_hits}"
     )
