@@ -122,3 +122,76 @@ The block detector remains policy-free — it emits typed evidence; the planner 
 - **WHEN** the gate evaluates a normal article that passes all checks
 - **THEN** `BlockResult.escalation is None` (semantically identical to the previous `suggested_tier is None`)
 
+### Requirement: Alibaba Baxia "punish" interstitial recognized and escalated to browser
+
+The quality gate SHALL recognize Alibaba's Baxia anti-bot "punish"
+interstitial (the wall fronting AliExpress and other Alibaba-family sites) and
+emit a browser-escalation signal with a distinct fingerprint, so the
+orchestrator escalates to the browser tier instead of returning a bare
+`length_floor`.
+
+When `block_detector.evaluate(...)` sees a response whose `raw_html` matches the
+Baxia fingerprint, the gate SHALL return
+`BlockResult(verdict = BlockVerdict.anti_bot, subsystem = "alibaba_punish",
+escalation = EscalationSignal(next_tier = "browser", reason = "alibaba_punish"))`.
+`anti_bot` (not `length_floor`) is used to stay consistent with the sibling
+anti-bot branches (`turnstile` / `akamai_bmp` / `anubis`) and to give an honest
+failure verdict when escalation is capped on an already-flagged IP. `curl_cffi`
+follows the redirect onto the punish page, whose `raw_html` carries the markers,
+so no final-URL parameter is threaded into the detector.
+
+The Baxia fingerprint matches when `raw_html` contains ANY of the following:
+
+- the punish path token `_____tmd_____` (e.g. from `/_____tmd_____/punish`), or
+  the `x5secdata` / `x5step` punish-flow query tokens;
+- the AWSC slider widget ids/classes `slidecaptcha`, `nocaptcha`, or
+  `nc_iconfont`, or the anti-bot system name `baxia`;
+- the localized interstitial text `slide to verify` (aliexpress.com),
+  `Captcha Interception` (aliexpress.com punish title), or `Пройдите проверку`
+  (aliexpress.ru).
+
+Unlike the JS-shell rule, this branch SHALL fire on the marker alone,
+independent of extracted content length, so a punish page surfaced by the
+browser tier (when the egress IP is already flagged) is detected as well. The
+branch SHALL be evaluated alongside the existing anti-bot branches
+(`turnstile` / `akamai_bmp` / `anubis`), before the generic JS-shell and the
+bare-`length_floor` fallthrough. Escalation remains bounded by the
+orchestrator's existing `browser_dispatches < 1` cap; no new escalation type or
+planner rule is introduced.
+
+This requirement SHALL NOT change behavior for responses that do not match the
+Baxia fingerprint: a thin page without the fingerprint SHALL continue to return
+`BlockResult(verdict = BlockVerdict.length_floor)` with `subsystem` and
+`escalation` unset, exactly as today (in particular, prose merely mentioning the
+word `captcha` SHALL NOT match).
+
+#### Scenario: AliExpress Baxia punish escalates to browser
+
+- **WHEN** the raw tier returns HTTP 200 whose `raw_html` references the punish
+  path (`_____tmd_____` + `x5secdata`/`x5step`) and trafilatura extracts 0 chars
+- **THEN** `BlockResult.verdict == BlockVerdict.anti_bot`,
+  `subsystem == "alibaba_punish"`, and
+  `escalation == EscalationSignal(next_tier="browser", reason="alibaba_punish")`
+
+#### Scenario: Baxia body phrase is recognized regardless of length
+
+- **WHEN** any tier returns a body containing `Sorry, we have detected unusual
+  traffic from your network. Please slide to verify` (a short interstitial well
+  under the length floor) with no `_____tmd_____` token
+- **THEN** `subsystem == "alibaba_punish"` and `escalation.next_tier == "browser"`
+
+#### Scenario: Russian-locale punish interstitial is recognized
+
+- **WHEN** the browser tier returns the `aliexpress.ru` punish page whose body
+  contains `Пройдите проверку` and HTML references the `_____tmd_____` token
+- **THEN** `subsystem == "alibaba_punish"` and `escalation.next_tier == "browser"`
+  (the `browser_dispatches` cap then prevents further escalation, and the fetch
+  fails with the `alibaba_punish` fingerprint visible in the decision log)
+
+#### Scenario: Thin non-Baxia page preserves existing behavior
+
+- **WHEN** a tier returns a 300-char body that mentions the word `captcha` in
+  prose but carries none of the Baxia tokens, phrases, or markers
+- **THEN** `BlockResult.verdict == BlockVerdict.length_floor`, `subsystem is
+  None`, and `escalation is None` (no false-positive escalation)
+
