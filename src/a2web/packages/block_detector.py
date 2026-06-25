@@ -70,6 +70,27 @@ _AKAMAI_BMP_MARKER = re.compile(r"_abck=|bm_sz=|akam/\d+/[0-9a-f]{6,}", re.IGNOR
 _CF_INTERSTITIAL_MARKER = re.compile(r"\bcf-chl-bypass\b|\bJust a moment\b", re.IGNORECASE)
 _SCRIPT_TAG_RE = re.compile(r"<script\b", re.IGNORECASE)
 
+# Alibaba Baxia "punish" anti-bot interstitial — the wall fronting AliExpress
+# and other Alibaba-family sites. raw curl_cffi follows the redirect and lands
+# on the punish page, whose body carries these markers (observed on real
+# fetches: the `_____tmd_____` path token + `x5secdata`/`x5step` params, the
+# AWSC slider widget ids, and the localized interstitial text). Markers are
+# distinctive to the punish flow — matched length-independently (like
+# turnstile/akamai) so a punish page surfaced by the browser tier on an
+# already-flagged IP is caught too. Deliberately NOT matching bare "captcha"
+# or the generic "unusual traffic" phrase (that one belongs to the Google/Bing
+# search-captcha matcher below) to avoid false positives.
+_ALIBABA_BAXIA_MARKER = re.compile(
+    r"_____tmd_____"  # Baxia punish path / asset token
+    r"|x5secdata|x5step"  # punish-flow query params
+    r"|slidecaptcha|nocaptcha|nc_iconfont"  # AWSC slider widget ids/classes
+    r"|\bbaxia\b"  # the anti-bot system name (cdn path / script)
+    r"|slide to verify"  # aliexpress.com English interstitial phrase
+    r"|Captcha Interception"  # aliexpress.com punish <title>
+    r"|Пройдите проверку",  # aliexpress.ru Russian interstitial heading
+    re.IGNORECASE,
+)
+
 # Search-engine captcha markers — second-line defense for captcha redirects
 # that escape the upfront `rewrite_captcha_host` pre-routing in `domain.py`
 # (e.g. an inbound Google redirect we don't recognize that lands on
@@ -144,6 +165,12 @@ def evaluate(
             BlockVerdict.anti_bot,
             subsystem="anubis",
             escalation=EscalationSignal(next_tier="browser", reason="anubis"),
+        )
+    if _ALIBABA_BAXIA_MARKER.search(raw_html):
+        return BlockResult(
+            BlockVerdict.anti_bot,
+            subsystem="alibaba_punish",
+            escalation=EscalationSignal(next_tier="browser", reason="alibaba_punish"),
         )
     if _SEARCH_CAPTCHA_MARKER.search(raw_html):
         # Belt-and-suspenders for any Google/Bing redirect that escapes

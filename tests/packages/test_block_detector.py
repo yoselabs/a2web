@@ -162,6 +162,71 @@ def test_generic_solution_field_alone_does_not_trigger() -> None:
     assert result.escalation is None
 
 
+# --------------------------------------------------------------------- #
+# Alibaba Baxia "punish" anti-bot (block-detector-recognize-alibaba-baxia)
+# --------------------------------------------------------------------- #
+
+
+def test_aliexpress_baxia_punish_url_token_escalates_to_browser() -> None:
+    """The AliExpress punish interstitial (raw curl_cffi lands on the punish
+    page, which references its own `_____tmd_____` path + `x5secdata`) → the
+    gate emits an anti_bot verdict with a browser escalation, instead of the
+    prior silent bare length_floor."""
+    body = (
+        "<html><head><title>Captcha Interception</title></head><body>"
+        '<script>window.x5secdata="...";location="//wholesale/_____tmd_____/punish?x5secdata=abc&x5step=1"</script>'
+        "</body></html>"
+    )
+    result = _eval(body, content_md="")  # trafilatura extracts nothing
+    assert result.verdict == BlockVerdict.anti_bot
+    assert result.subsystem == "alibaba_punish"
+    assert result.escalation is not None and result.escalation.next_tier == "browser"
+    assert result.escalation.reason == "alibaba_punish"
+
+
+def test_baxia_slide_phrase_recognized_regardless_of_length() -> None:
+    """A short punish body carrying the AliExpress slide phrase is recognized
+    on the marker alone (no `_____tmd_____` URL token, no length gate)."""
+    body = (
+        "<html><body><p>Sorry, we have detected unusual traffic from your "
+        "network. Please slide to verify.</p></body></html>"
+    )
+    result = _eval(body, content_md="")
+    assert result.verdict == BlockVerdict.anti_bot
+    assert result.subsystem == "alibaba_punish"
+    assert result.escalation is not None and result.escalation.next_tier == "browser"
+
+
+def test_baxia_russian_locale_punish_recognized() -> None:
+    """The aliexpress.ru variant: Russian heading + the `_____tmd_____` token
+    (e.g. when the browser tier itself lands on the punish page)."""
+    body = (
+        "<html><head><title>Пройдите проверку</title></head><body>"
+        '<div class="nc_iconfont"></div>'
+        '<script src="//g.alicdn.com/sd/baxia/_____tmd_____/punish.js"></script>'
+        "</body></html>"
+    )
+    result = _eval(body, content_md="")
+    assert result.verdict == BlockVerdict.anti_bot
+    assert result.subsystem == "alibaba_punish"
+    assert result.escalation is not None and result.escalation.next_tier == "browser"
+
+
+def test_prose_mentioning_captcha_is_not_a_false_positive() -> None:
+    """A thin page that merely mentions the word `captcha` in prose, with none
+    of the Baxia URL tokens / phrases / markers, stays plain length_floor —
+    no alibaba_punish, no escalation."""
+    body = (
+        "<html><body><p>This short quiz uses a captcha to check that real "
+        "people are answering. Slide the puzzle below to begin.</p></body></html>"
+    )
+    md = "This short quiz uses a captcha to check that real people are answering."
+    result = _eval(body, content_md=md)
+    assert result.verdict == BlockVerdict.length_floor
+    assert result.subsystem is None
+    assert result.escalation is None
+
+
 def test_reddit_shreddit_fixture_routes_to_browser() -> None:
     """End-to-end on the captured Reddit anti-bot fixture (the real ~8KB
     JS-challenge body Reddit serves to unauth raw curl_cffi clients)."""

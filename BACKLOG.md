@@ -17,6 +17,46 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-06-25 — reliable AliExpress / Alibaba access (from `block-detector-recognize-alibaba-baxia`)
+
+That change shipped only the **best-effort** slice: the gate now recognizes
+Alibaba's Baxia "punish" interstitial and escalates raw→browser (or fails
+honestly with `subsystem=alibaba_punish`) instead of dying silently at bare
+`length_floor`. Live PoCs this session established that *reliable* access is a
+much larger, IP-bound problem. Deferred, in dependency order:
+
+- **🔴 Browser tier honors `proxy_url` (the keystone).** `tiers/browser.py`
+  currently does `del proxy_url` (line ~135) — Camoufox always exits the raw
+  host IP. So today you can *render* (browser, no proxy) OR *route through a
+  clean IP* (raw, no rendering), never both. AliExpress needs both at once.
+  Until this lands, no proxy spend helps the browser tier. The user has
+  residential proxies (non-KZ) ready to prototype against once this exists.
+  Scope: M.
+- **🔴 Per-IP behavioral pacing / rotation.** PoC root cause: AliExpress's
+  Baxia is driven by per-IP behavioral reputation, not fingerprint — even a
+  real Chrome on a real residential IP hit the slider once the IP was flagged
+  by a request burst. Reliable access needs rate-limiting + rotation across a
+  residential pool so no single IP trips the "punish" state. Scope: M.
+- **🟡 KZ residential proxy provisioning.** The KZ AliExpress *locale* needs a
+  KZ-geo residential IP (the user's Istanbul IP geo-redirects to
+  tr.aliexpress / aliexpress.ru). Procurement, not code. Scope: S (config).
+- **🟡 AliExpress product-JSON handler.** Even once a browser renders the page,
+  trafilatura extracts ~nothing from the product grid; the data lives in an
+  embedded `_init_data_` / `runParams` blob. A tier-0 handler (reddit/hn/arxiv
+  shape) that parses it would be far more robust than prose extraction.
+  Scope: M.
+- **⛔ Out of scope, permanently:** CAPTCHA-solving (the Baxia slider /
+  image-select). Strategy is *avoidance* (clean IP + pacing + real
+  fingerprint), never solving. This means reliable access is **probabilistic**
+  against an adaptive anti-bot — never guaranteed.
+
+Note: this is purely an anti-bot + IP-reputation problem. The earlier
+"simulate an AI agent" idea is irrelevant here (AliExpress is not a UA
+allowlist site). Contrast akakçe.com, which is the inverse: it *blocks*
+declared AI-agent UAs via Cloudflare while serving plain scrapers fine.
+
+---
+
 ## v0.5 simplification stages (shipped / deferred)
 
 - ✅ **Stage 1 — a2kit v0.27.2 migration (DONE in v0.5 step 1).** Delivered:
