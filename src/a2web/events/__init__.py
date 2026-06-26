@@ -10,6 +10,7 @@ to the `a2kit` logger — the FastMCP wire bridge plus our `OtelHandler`
 
 from .sinks import OtelHandler
 from .types import (
+    BrowserSubprocessStderr,
     Event,
     StageEnded,
     StageStarted,
@@ -19,6 +20,7 @@ from .types import (
 )
 
 __all__ = [
+    "BrowserSubprocessStderr",
     "Event",
     "OtelHandler",
     "StageEnded",

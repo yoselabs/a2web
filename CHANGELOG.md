@@ -8,6 +8,33 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed — browser tier leaked driver stderr + swallowed errors (`surface-browser-internal-errors-as-hints`)
+
+- The browser tier (Camoufox/Firefox) no longer leaks raw Node.js driver
+  stack traces to the operator's terminal. Playwright's driver inherits
+  `sys.stderr`'s fileno at spawn (`_transport.py`); the pool now swaps in a
+  pipe-backed `sys.stderr` shim across the launch so **only the driver
+  subprocess** is redirected (the parent's fd 2 and all `StreamHandler`s stay
+  intact). Captured lines surface as typed `BrowserSubprocessStderr` log
+  events via `await a2kit.log.info(...)` — zero events on the happy path.
+- Internal navigation/driver exceptions are no longer swallowed. The tier's
+  catch site that did `del exc` now attaches a structured
+  `OperatorHint(code="browser_internal_error", ...)` with a single-line cause
+  summary and an actionable `fix`, surfaced on the response `operator_hints`.
+- Closes the test gap that let this ship: the `browser-tier` spec already
+  required stderr capture, but it was specced (against the retired LDD
+  substrate) and **never implemented** — invisible because every browser test
+  was stubbed. Added an opt-in real-browser smoke check (`make test-browser`,
+  marker `browser`, excluded from `make check`) that launches real Camoufox
+  against a deterministic local JS-rendering fixture and asserts JS executes
+  and content returns. Auto-skips when the Camoufox binary is absent.
+- The driver-stderr capture lives in the (domain-free) `BrowserPool` via an
+  injected async sink — the typed-event emission is wired on the domain side,
+  preserving the packages-independence boundary. No envelope or tool-signature
+  change; the only contract delta is the `OperatorHint` description gaining
+  `browser_internal_error`. Explicitly **not** adding a Chromium fallback —
+  a second engine, if ever needed, will be a new tier.
+
 ### Changed — a2kit v0.43 → v0.44 (clean no-op pin bump, `a2kit-v044-migration`)
 
 - Pin moved `a2kit` `v0.43.0` → `v0.44.0` (`pyproject.toml` + `uv.lock`). No

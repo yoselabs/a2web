@@ -223,6 +223,87 @@ async def test_navigation_exception_yields_connection_error() -> None:
     assert result.verdict == Verdict.connection_error
     assert result.from_browser is True
     assert result.js_executed is True
+    # The cause is surfaced as a structured hint, not swallowed.
+    hint = result.operator_hint
+    assert hint is not None
+    assert hint.code == "browser_internal_error"
+    assert hint.message.startswith("RuntimeError")
+    assert "ERR_NAME_NOT_RESOLVED" in hint.message
+    assert hint.fix is not None
+
+
+@pytest.mark.asyncio
+async def test_internal_error_hint_is_single_line() -> None:
+    """A multi-line driver error collapses to one line on the wire hint."""
+
+    class _MultilinePage:
+        url = "https://example.com/"
+
+        async def goto(self, url: str, wait_until: str = "networkidle") -> Any:
+            del url, wait_until
+            raise RuntimeError("TypeError: cannot read properties of undefined\n  at FFPage._onUncaughtError\n  at coreBundle.js:49624")
+
+        async def content(self) -> str:
+            return ""
+
+        async def close(self) -> None:
+            return None
+
+    class _StubPoolCtx:
+        async def __aenter__(self) -> _MultilinePage:
+            return _MultilinePage()
+
+        async def __aexit__(self, *exc: Any) -> None:
+            return None
+
+    class _StubPool:
+        async def _ensure(self) -> None:
+            return None
+
+        def acquire(self, url: str) -> _StubPoolCtx:
+            del url
+            return _StubPoolCtx()
+
+        async def close(self) -> None:
+            return None
+
+    tier = REGISTRY["browser"]
+    result = await tier.fetch("https://example.com/", state=_make_state(), pool=_StubPool())  # type: ignore[arg-type]
+
+    hint = result.operator_hint
+    assert hint is not None
+    assert hint.code == "browser_internal_error"
+    assert "\n" not in hint.message  # single line — the full trace rides log events
+    assert "FFPage._onUncaughtError" not in hint.message  # stack lines dropped
+
+
+@pytest.mark.asyncio
+async def test_emit_browser_stderr_logs_typed_event() -> None:
+    """The domain sink emits one `BrowserSubprocessStderr` event per line."""
+    import logging
+
+    from a2web.state import _emit_browser_stderr
+
+    records: list[logging.LogRecord] = []
+
+    class _Rec(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            records.append(record)
+
+    logger = logging.getLogger("a2kit")
+    handler = _Rec()
+    prior_level = logger.level
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    try:
+        await _emit_browser_stderr("TypeError: boom")
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(prior_level)
+
+    matched = [r for r in records if r.getMessage() == "BrowserSubprocessStderr"]
+    assert len(matched) == 1
+    assert getattr(matched[0], "a2kit_fields", {}).get("line") == "TypeError: boom"
 
 
 def test_browser_in_registry_not_in_tier_order() -> None:

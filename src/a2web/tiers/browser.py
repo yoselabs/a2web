@@ -49,6 +49,27 @@ def _cookie_to_playwright(cookie: Cookie) -> dict[str, Any]:
 
 _FIX_HINT = "python -m playwright install firefox && python -m camoufox fetch"
 
+# Actionable next step for an internal driver/navigation failure. The driver
+# (Playwright/Firefox) is upstream — a2web cannot patch it — so the operator's
+# levers are retry or disabling the tier.
+_INTERNAL_FIX = (
+    "transient browser-driver error — retry; if it persists the driver "
+    "(Playwright/Firefox) is at fault, not the target. Set "
+    "A2WEB_BROWSER_ENABLED=false to skip the browser tier."
+)
+
+
+def _summarize_exc(exc: BaseException) -> str:
+    """One-line `Type: first-message-line` summary — never a multi-line dump.
+
+    The full stack (when the driver leaks one) rides the captured
+    `BrowserSubprocessStderr` log events; the wire hint stays terse.
+    """
+    name = type(exc).__name__
+    lines = str(exc).strip().splitlines()
+    first = lines[0].strip() if lines else ""
+    return f"{name}: {first}" if first else name
+
 
 def _to_markdown(html: str, url: str) -> str:
     md = trafilatura.extract(html, url=url, output_format="markdown", include_comments=False, include_tables=True)
@@ -188,8 +209,10 @@ class BrowserTier:
                 if len(html) < 4_096 and _host_is_js_heavy(final_url, state):
                     larger = await _scroll_and_retry(page, html)
                     html = larger
-        except Exception as exc:  # navigation/network errors
-            del exc  # error string was unused upstream
+        except Exception as exc:  # navigation/network/driver errors
+            # Don't swallow the cause: surface it as a structured hint so the
+            # agent/operator sees *why* the browser tier produced nothing,
+            # instead of a bare connection_error plus a raw stderr trace.
             wall_ms = int((time.perf_counter() - wall_start) * 1000)
             return TierResult(
                 body=b"",
@@ -199,6 +222,11 @@ class BrowserTier:
                 from_browser=True,
                 js_executed=True,
                 browser_wall_ms=wall_ms,
+                operator_hint=OperatorHint(
+                    code="browser_internal_error",
+                    message=_summarize_exc(exc),
+                    fix=_INTERNAL_FIX,
+                ),
                 verdict=Verdict.connection_error,
             )
 

@@ -79,6 +79,20 @@ class CookiesAttached:
 
 
 @dataclass(slots=True)
+class BrowserSubprocessStderr:
+    """One captured line of the Camoufox/Playwright driver subprocess's stderr.
+
+    The browser pool redirects the driver's inherited stderr (`sys.stderr`'s
+    fileno, captured at spawn by Playwright's transport) into a pipe so raw
+    Node.js driver traces — e.g. the `FFPage._onUncaughtError` TypeError on
+    JS-heavy SPAs — never reach the operator's terminal. Each captured line
+    surfaces here instead. Zero events on the happy path (clean render).
+    """
+
+    line: str
+
+
+@dataclass(slots=True)
 class CookiesStale:
     """Emitted at most once per fetch when the cookie mirror is past threshold.
 
@@ -93,4 +107,13 @@ class CookiesStale:
     threshold_hours: int
 
 
-Event = TierStarted | TierEnded | StageStarted | StageEnded | TierHeartbeat | CookiesAttached | CookiesStale
+Event = (
+    TierStarted
+    | TierEnded
+    | StageStarted
+    | StageEnded
+    | TierHeartbeat
+    | CookiesAttached
+    | CookiesStale
+    | BrowserSubprocessStderr
+)

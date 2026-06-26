@@ -162,3 +162,75 @@ async def test_acquire_before_start_raises(monkeypatch: pytest.MonkeyPatch) -> N
     with pytest.raises(RuntimeError, match="not called"):
         async with pool.acquire("https://example.com/"):
             pass
+
+
+# --- driver-stderr capture (no real browser; drive the pipe directly) -------
+
+
+async def _drain_until(captured: list[str], n: int) -> None:
+    for _ in range(50):
+        if len(captured) >= n:
+            return
+        await asyncio.sleep(0.01)
+
+
+@pytest.mark.asyncio
+async def test_stderr_capture_forwards_lines_to_sink() -> None:
+    """Lines the driver writes to its inherited stderr reach the injected sink."""
+    import os
+
+    captured: list[str] = []
+
+    async def sink(line: str) -> None:
+        captured.append(line)
+
+    pool = BrowserPool(stderr_sink=sink)
+    saved = pool._install_stderr_capture()
+    # Simulate the driver child holding its own dup of the pipe write end.
+    child_fd = os.dup(pool._stderr_write_fd)
+    pool._restore_stderr(saved)
+    pool._begin_stderr_drain()
+    try:
+        os.write(child_fd, b"TypeError: undefined location\nsecond line\n")
+        await _drain_until(captured, 2)
+    finally:
+        os.close(child_fd)
+        await pool.close()
+
+    assert captured == ["TypeError: undefined location", "second line"]
+
+
+@pytest.mark.asyncio
+async def test_stderr_capture_silent_when_driver_writes_nothing() -> None:
+    """Happy path: a clean driver produces zero events."""
+    import os
+
+    captured: list[str] = []
+
+    async def sink(line: str) -> None:
+        captured.append(line)
+
+    pool = BrowserPool(stderr_sink=sink)
+    saved = pool._install_stderr_capture()
+    child_fd = os.dup(pool._stderr_write_fd)
+    pool._restore_stderr(saved)
+    pool._begin_stderr_drain()
+    try:
+        await asyncio.sleep(0.03)  # nothing written
+    finally:
+        os.close(child_fd)
+        await pool.close()
+
+    assert captured == []
+
+
+@pytest.mark.asyncio
+async def test_no_sink_disables_capture() -> None:
+    """Without an injected sink (test/default pools), capture is a no-op."""
+    pool = BrowserPool()
+    saved = pool._install_stderr_capture()
+    assert saved is None
+    assert pool._stderr_read_fd is None
+    pool._restore_stderr(saved)  # no-op
+    pool._begin_stderr_drain()  # no-op
+    await pool.close()

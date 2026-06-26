@@ -138,6 +138,14 @@ select = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# Real-browser smoke checks launch the actual Camoufox binary — slow, and a
+# release-gate concern, not an inner-loop one. They are excluded from the
+# default run here; `make test-browser` re-includes them via `-m browser`
+# (a later command-line `-m` overrides this addopts default).
+addopts = ["-m", "not browser"]
+markers = [
+    "browser: real-browser test that launches Camoufox (opt-in; excluded from the default run and `make check`)",
+]
 # NB (ADR-0008): `filterwarnings = ["error::pytest.PytestUnhandledThreadExceptionWarning"]`
 # was tried as a leak backstop and REMOVED — it promotes a rare, benign aiosqlite
 # teardown-race warning into a hard ~1/15 failure, re-introducing flakiness. The

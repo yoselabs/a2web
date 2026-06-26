@@ -79,6 +79,41 @@ async def test_browser_unavailable_surfaces_operator_hint(monkeypatch: pytest.Mo
 
 
 @pytest.mark.asyncio
+async def test_browser_internal_error_hint_reaches_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A browser-tier internal error surfaces as a browser_internal_error hint."""
+    from a2web.models import OperatorHint
+
+    class _InternalErrorBrowserTier:
+        name = "browser"
+
+        async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
+            del state, kwargs
+            return TierResult(
+                body=b"",
+                content_type="text/html",
+                status_code=0,
+                final_url=url,
+                from_browser=True,
+                js_executed=True,
+                operator_hint=OperatorHint(
+                    code="browser_internal_error",
+                    message="RuntimeError: net::ERR_CONNECTION_RESET",
+                    fix="retry",
+                ),
+                verdict=Verdict.connection_error,
+            )
+
+    monkeypatch.setitem(REGISTRY, "raw", _AnubisRawTier())
+    monkeypatch.setitem(REGISTRY, "browser", _InternalErrorBrowserTier())
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+
+    result = await fetch("https://anubis.example/", state=_make_state())
+
+    assert result.status == FetchStatus.failed
+    assert any(h.code == "browser_internal_error" for h in result.operator_hints)
+
+
+@pytest.mark.asyncio
 async def test_browser_dispatch_capped_at_one(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pathological case: browser also returns blocked content. No second dispatch."""
 
