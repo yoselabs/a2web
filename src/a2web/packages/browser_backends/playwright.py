@@ -1,31 +1,20 @@
-"""Camoufox browser pool — per-host contexts, LRU eviction, page-per-fetch.
+"""PlaywrightBackend — the Playwright-API engine family (Camoufox today).
 
-Resource pattern (a2kit v0.27 canonical):
-- Sync `__init__`: does not launch Firefox.
-- `_ensure()`: idempotent under internal `_lock` with double-checked
-  open. Lazy-launches Camoufox on first call. Concurrent first-fetches
-  share one launch.
-- `close()`: idempotent; called from `@app.on_shutdown`.
+One backend body parameterized by a `launch_fn` that yields a Playwright
+`Browser`; only the launch differs across Playwright-API engines (Camoufox,
+and later Patchright / rebrowser). Absorbs the former `BrowserPool` (per-host
+LRU context reuse, idle eviction, driver-stderr capture) plus the page-driving
+render mechanics that used to live in the browser tier.
 
-AppState holds the pool as a **non-Optional** field. Callers do not
-ensure externally — `BrowserTier.fetch()` invokes `_ensure()` itself and
-catches `ImportError` from a missing `[browser]` extra.
-
-Concurrency:
-- Per-host BrowserContext keeps cookies warm across same-host fetches.
-- Pages are 1:1 per fetch (created in `acquire`, closed in `release`).
-- An `asyncio.Lock` guards the contexts dict + LRU order.
-- Idle eviction runs on every acquire (cheap; no background task).
-
-Resource budget:
-- Page wall-clock and bytes-transferred caps are enforced by the tier
-  (BrowserTier wraps `goto` in `asyncio.wait_for`); the pool itself
-  doesn't time out — keeping the timeout near the I/O is cleaner.
+Domain-free: emits diagnostics via stdlib logging on the `a2kit` logger
+(scroll-retry) or an injected async `stderr_sink` (driver stderr); the domain
+wires the typed-event side. Returns the engine-neutral `RenderedPage`.
 """
 
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import sys
 import time
@@ -34,8 +23,83 @@ from contextlib import asynccontextmanager, suppress
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
+from .base import BackendCookie, RenderedPage, RenderOutcome
+
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Coroutine
+
+_A2KIT_LOG = logging.getLogger("a2kit")
+
+# First-snapshot length below which a JS-heavy host triggers scroll-on-thin.
+_THIN_FLOOR = 4_096
+
+
+def camoufox_launcher() -> Any:
+    """Yield an async-CM that launches headless Camoufox. ImportError (no
+    `[browser]` extra) propagates → the backend reports `unavailable`."""
+    from camoufox.async_api import AsyncCamoufox
+
+    return AsyncCamoufox(headless=True)
+
+
+def _cookie_to_playwright(cookie: BackendCookie) -> dict[str, Any]:
+    """Engine-neutral `BackendCookie` → Playwright `add_cookies` shape."""
+    out: dict[str, Any] = {
+        "name": cookie.name,
+        "value": cookie.value,
+        "domain": cookie.domain,
+        "path": cookie.path,
+        "expires": cookie.expires if cookie.expires is not None else -1,
+        "secure": cookie.secure,
+        "httpOnly": cookie.http_only,
+    }
+    if cookie.samesite is not None:
+        out["sameSite"] = cookie.samesite.capitalize()
+    return out
+
+
+def _summarize_exc(exc: BaseException) -> str:
+    """One-line `Type: first-message-line` summary — never a multi-line dump.
+
+    The full driver stack (when leaked) rides the captured stderr log events;
+    the `detail` the tier turns into a wire hint stays terse.
+    """
+    name = type(exc).__name__
+    lines = str(exc).strip().splitlines()
+    first = lines[0].strip() if lines else ""
+    return f"{name}: {first}" if first else name
+
+
+async def _scroll_and_retry(page: Any, original_html: str) -> str:
+    """Scroll-to-bottom + 2s networkidle wait + re-snapshot.
+
+    Returns whichever capture (original or post-scroll) is longer. Never
+    raises. Emits `browser_scroll_retry` diagnostics on the `a2kit` logger
+    (typed-record shape: message = event name, payload on `a2kit_fields`) so
+    operators measure firing rate without coupling this package to the domain
+    event types.
+    """
+    _A2KIT_LOG.info("StageStarted", extra={"a2kit_fields": {"t_ms": 0, "step": "browser_scroll_retry"}})
+    start = time.perf_counter()
+    larger = original_html
+    outcome = "smaller"
+    try:
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        try:
+            await page.wait_for_load_state("networkidle", timeout=2_000)
+        except Exception:
+            # networkidle never settled — try a brief sleep then snapshot anyway
+            await asyncio.sleep(0.5)
+        retry_html = await page.content()
+        if len(retry_html) > len(original_html):
+            larger = retry_html
+            outcome = "larger"
+    except Exception:
+        outcome = "timeout"
+    dur_ms = int((time.perf_counter() - start) * 1000)
+    fields = {"t_ms": 0, "step": "browser_scroll_retry", "verdict": "ok", "dur_ms": dur_ms, "extra": {"outcome": outcome}}
+    _A2KIT_LOG.info("StageEnded", extra={"a2kit_fields": fields})
+    return larger
 
 
 class _StderrFilenoShim:
@@ -62,27 +126,32 @@ class _StderrFilenoShim:
         return getattr(self._real, name)
 
 
-class BrowserPool:
-    """Per-host Camoufox contexts with LRU eviction.
+class PlaywrightBackend:
+    """Playwright-API rendering engine with per-host LRU contexts.
 
-    Not thread-safe; assumes a single asyncio event loop (the standard
-    a2web invariant).
+    Not thread-safe; assumes a single asyncio event loop (the standard a2web
+    invariant). `launch_fn` yields an async-CM whose `__aenter__` returns a
+    Playwright `Browser` (Camoufox today).
     """
 
     def __init__(
         self,
+        launch_fn: Callable[[], Any],
         *,
+        name: str = "camoufox",
         max_pool: int = 4,
         idle_timeout_s: int = 300,
         page_budget_s: int = 30,
         stderr_sink: Callable[[str], Coroutine[Any, Any, None]] | None = None,
     ) -> None:
+        self.name = name
+        self._launch_fn = launch_fn
         self.max_pool = max_pool
         self.idle_timeout_s = idle_timeout_s
         self.page_budget_s = page_budget_s
         # Insertion order = LRU (move-to-end on touch).
         self._contexts: OrderedDict[str, _HostContext] = OrderedDict()
-        self._camoufox: Any | None = None
+        self._launch_cm: Any | None = None
         self._browser: Any | None = None
         self._lock = asyncio.Lock()
         self._closed = False
@@ -96,29 +165,83 @@ class BrowserPool:
         self._stderr_loop: asyncio.AbstractEventLoop | None = None
         self._stderr_tasks: set[asyncio.Task[None]] = set()
 
+    async def render(
+        self,
+        url: str,
+        *,
+        cookies: list[BackendCookie],
+        budget_s: float,
+        js_heavy: bool,
+    ) -> RenderedPage:
+        """Launch (lazily), navigate, capture rendered HTML. Never raises for
+        routine failures — returns a `RenderedPage` with the matching outcome.
+        """
+        try:
+            await self._ensure()
+        except ImportError as exc:
+            return RenderedPage(outcome=RenderOutcome.unavailable, final_url=url, detail=f"engine not installed: {exc}")
+        except Exception as exc:  # launch failed
+            return RenderedPage(outcome=RenderOutcome.unavailable, final_url=url, detail=f"browser launch failed: {exc}")
+
+        wall_start = time.perf_counter()
+        try:
+            async with self.acquire(url) as page:
+                if cookies:
+                    # Seed cookies on the BrowserContext BEFORE navigation so
+                    # the request goes out logged-in. add_cookies upserts by
+                    # (name, domain, path) — refreshed values override warm state.
+                    await page.context.add_cookies([_cookie_to_playwright(c) for c in cookies])
+                try:
+                    response = await asyncio.wait_for(page.goto(url, wait_until="networkidle"), timeout=budget_s)
+                except TimeoutError:
+                    return RenderedPage(outcome=RenderOutcome.timeout, final_url=url, js_executed=True, wall_ms=_ms(wall_start))
+                status_code = response.status if response is not None else 200
+                final_url = page.url or url
+                html = await page.content()
+                # Scroll-on-thin: sub-floor first snapshot on a JS-heavy host →
+                # scroll + 2s networkidle, keep the larger snapshot (Trendyol).
+                if len(html) < _THIN_FLOOR and js_heavy:
+                    html = await _scroll_and_retry(page, html)
+        except Exception as exc:  # navigation/network/driver errors
+            return RenderedPage(
+                outcome=RenderOutcome.error,
+                final_url=url,
+                js_executed=True,
+                wall_ms=_ms(wall_start),
+                detail=_summarize_exc(exc),
+            )
+
+        return RenderedPage(
+            outcome=RenderOutcome.ok,
+            html=html,
+            final_url=final_url,
+            status_code=status_code,
+            js_executed=True,
+            wall_ms=_ms(wall_start),
+            bytes_transferred=len(html),
+        )
+
     async def _ensure(self) -> None:
-        """Lazy-init: launch Camoufox under lock if not yet opened.
+        """Lazy-init: launch the engine under lock if not yet opened.
 
         Idempotent under concurrent first calls (double-checked locking).
-        Raises ImportError if optional dep missing — BrowserTier catches
-        and translates to operator hint.
+        Raises ImportError if the optional engine dep is missing — `render`
+        catches and reports `unavailable`.
         """
         if self._browser is not None:
             return
         async with self._lock:
             if self._browser is not None:
                 return
-            # Lazy import — keeps base install lean; ImportError bubbles up.
-            from camoufox.async_api import AsyncCamoufox
-
-            self._camoufox = AsyncCamoufox(headless=True)
-            # AsyncCamoufox is itself an async context manager; we hold the
-            # Browser handle for the pool's lifetime. Redirect the driver's
-            # inherited stderr into a pipe across the launch so raw Node.js
-            # traces never hit the operator's terminal (no-op without a sink).
+            # launch_fn does the (possibly optional) engine import and returns
+            # an async-CM; ImportError bubbles up to render().
+            self._launch_cm = self._launch_fn()
+            # Redirect the driver's inherited stderr into a pipe across the
+            # launch so raw Node.js traces never hit the operator's terminal
+            # (no-op without a sink).
             saved_stderr = self._install_stderr_capture()
             try:
-                self._browser = await self._camoufox.__aenter__()
+                self._browser = await self._launch_cm.__aenter__()
             finally:
                 self._restore_stderr(saved_stderr)
             self._begin_stderr_drain()
@@ -127,7 +250,7 @@ class BrowserPool:
         """Swap `sys.stderr` for a pipe-backed shim across the driver launch.
 
         Returns the real `sys.stderr` to restore, or None when capture is off
-        (no sink injected — test pools keep their inherited stderr untouched).
+        (no sink injected — test backends keep their inherited stderr).
         """
         if self._stderr_sink is None:
             return None
@@ -140,12 +263,7 @@ class BrowserPool:
         return real
 
     def _restore_stderr(self, saved: Any) -> None:
-        """Restore `sys.stderr` and drop the parent's copy of the pipe writer.
-
-        After the driver subprocess has spawned (inheriting its own dup of the
-        write end), the parent must close its writer so the reader EOFs when
-        the driver eventually exits.
-        """
+        """Restore `sys.stderr` and drop the parent's copy of the pipe writer."""
         if self._stderr_sink is None or self._stderr_read_fd is None:
             return
         sys.stderr = saved  # type: ignore[assignment]
@@ -208,7 +326,7 @@ class BrowserPool:
         self._stderr_read_fd = None
 
     async def start(self) -> None:
-        """Deprecated alias for `_ensure()`. Kept during v0.27 migration."""
+        """Alias for `_ensure()` — kept for the resource-pattern tests."""
         await self._ensure()
 
     async def close(self) -> None:
@@ -221,15 +339,15 @@ class BrowserPool:
                 with suppress(Exception):
                     await host_ctx.context.close()
             self._contexts.clear()
-        if self._camoufox is not None:
+        if self._launch_cm is not None:
             with suppress(Exception):
-                await self._camoufox.__aexit__(None, None, None)
-            self._camoufox = None
+                await self._launch_cm.__aexit__(None, None, None)
+            self._launch_cm = None
             self._browser = None
 
-    # Framework-facing async-CM protocol (a2kit v0.36+). Thin wrappers around
-    # the existing idempotent `_ensure` / `close` internal surface.
-    async def __aenter__(self) -> BrowserPool:
+    # Framework-facing async-CM protocol. Thin wrappers around the idempotent
+    # `_ensure` / `close` internal surface.
+    async def __aenter__(self) -> PlaywrightBackend:
         await self._ensure()
         return self
 
@@ -240,8 +358,8 @@ class BrowserPool:
     async def acquire(self, url: str) -> AsyncIterator[Any]:
         """Yield a fresh page for `url`'s host. Closes the page on exit.
 
-        The host's BrowserContext is reused across fetches (cookie jar
-        warm); only the Page is per-fetch (1:1 to avoid state leak).
+        The host's BrowserContext is reused across fetches (cookie jar warm);
+        only the Page is per-fetch (1:1 to avoid state leak).
         """
         host = urlparse(url).hostname or "_default"
         page = await self._open_page(host)
@@ -265,7 +383,7 @@ class BrowserPool:
 
     async def _create_host_context_locked(self, host: str) -> _HostContext:
         if self._browser is None:
-            raise RuntimeError("BrowserPool.start() not called")
+            raise RuntimeError("PlaywrightBackend not started")
         # LRU evict if at cap.
         while len(self._contexts) >= self.max_pool:
             evicted_host, evicted = self._contexts.popitem(last=False)
@@ -291,6 +409,10 @@ class BrowserPool:
             task = loop.create_task(_safe_close(ctx.context))
             self._eviction_tasks.add(task)
             task.add_done_callback(self._eviction_tasks.discard)
+
+
+def _ms(start: float) -> int:
+    return int((time.perf_counter() - start) * 1000)
 
 
 class _HostContext:

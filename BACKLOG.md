@@ -17,6 +17,45 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-06-26 — Browser backend pluggability (roadmap + Camoufox/Playwright compat)
+
+Surfaced by the Trendyol incident (`surface-browser-internal-errors-as-hints`):
+the browser tier is hostage to a single Firefox fork's version-skew, and can't
+read Chromium-only SPAs. Plan = a pluggable `BrowserBackend` interface (mirror
+of the LLM provider seam) with multiple swappable engines, chosen by a
+SPA-read/robustness/speed comparison.
+
+- **🟢 Camoufox ⇄ Playwright version-skew guard (compat note).** The Trendyol
+  driver crash was `daijro/camoufox` #635/#617: Playwright **1.60.0**
+  (PR microsoft/playwright#39767) added an unguarded `pageError.location.url`
+  deref; Camoufox's juggler emitted `Page.uncaughtError` without a location →
+  driver crash. Producer-side fix = camoufox **PR #625** (commit `b05563291d`,
+  juggler always emits location). **As of 2026-06-26 #625 is MERGED BUT
+  UNRELEASED** — it is 3 commits *ahead* of the newest published browser build
+  (`v150.0.2-beta.25`, 2026-05-11); latest pip `camoufox==0.4.11` pins an older
+  FF135 build. Playwright will NOT fix it (vanilla PW-Firefox always emits
+  location → not their bug). **We are immune today ONLY because Playwright is
+  pinned 1.59.0 < 1.60.0** — the deref doesn't exist yet; the camoufox build
+  version is irrelevant to that. **GUARDRAIL: do NOT bump `playwright` to ≥1.60
+  until a Camoufox *release* contains `b05563291d`** (or build the browser from
+  source with the patched juggler). Add a pinned-pair compat test. The durable
+  fix is a Chromium backend (Change 2), which has no Firefox-juggler coupling.
+  Scope: S (pin assertion + compat test); the real exit is `browser-backend-*`.
+- **🟡 Browser-backend roadmap (4 changes).** Tracked as fine-grained OpenSpec
+  changes: (1) `browser-backend-interface` — extract `BrowserBackend` Protocol +
+  `RenderedPage`, move Playwright mechanics into `PlaywrightBackend`, pure
+  refactor, camoufox-only, Playwright stays `<1.60` (DRAFTED, validates strict);
+  (2) `browser-backend-patchright` — add Patchright (+ rebrowser) Chromium
+  backends, flip default → patchright, **gate the Camoufox manifest to
+  `Unavailable`** (retain the adapter, disabled with the #625-unreleased note —
+  re-enable when a build ships `b05563291d`), bump engine deps to latest and
+  **drop the unused `playwright` + `camoufox` direct deps**; (3)
+  `browser-backend-comparison` — run the eval corpus through every backend,
+  score SPA-read + robustness + speed (stealth secondary), confirm default; (4)
+  `browser-backend-zendriver` — CDP backend, **gated** on (3). Sequencing rule:
+  the Playwright bump + Camoufox-gate ride at the END of (2), after a Chromium
+  backend is green — never leave the tier engine-less. Scope: L total.
+
 ## 2026-06-25 — LLM provider seam leftovers (from `centralize-provider-selection` + `inject-provider-via-di`)
 
 Discovered while centralizing provider selection and injecting the provider via

@@ -38,7 +38,7 @@ async def replay_case(monkeypatch: pytest.MonkeyPatch, case: ReplayCase) -> dict
     response = await fetcher.fetch(
         case.url,
         state=state,
-        browser_pool=browser_lazy,
+        browser_backend=browser_lazy,
         llm_extractor=llm_lazy,
         ask=case.question,
         next_links=True,

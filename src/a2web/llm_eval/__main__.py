@@ -153,9 +153,9 @@ async def _amain(argv: list[str]) -> int:
     )
 
     print(f"Running benchmark: {len(corpus)} URLs x {len(systems)} systems (provider={provider_id}) → {output_dir}")
-    # Lifecycle the browser pool around the run — Camoufox launches lazily on
-    # first acquire, but `__aexit__` is what cleanly closes the browser process.
-    async with resources.browser_pool, live_sink:
+    # Lifecycle the browser backend around the run — the engine launches lazily
+    # on first render, but `__aexit__` is what cleanly closes the browser process.
+    async with resources.browser_backend, live_sink:
         report = await suite.run()
     write_all(report)
     print(json.dumps(stats_dict(report), indent=2, default=str))

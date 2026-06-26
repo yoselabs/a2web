@@ -8,6 +8,28 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed — extracted a swappable `BrowserBackend` interface (`browser-backend-interface`)
+
+- The browser tier no longer drives a Playwright `Page` directly — it delegates
+  rendering to a selected `BrowserBackend` and owns only the engine-agnostic
+  tail (trafilatura → markdown, the `RenderOutcome` → `Verdict`/`OperatorHint`
+  mapping, `TierResult` assembly). Pure refactor: **no behavior or response-
+  envelope change** (`tests/contracts/` unchanged), all browser tests + the
+  real-browser smoke check stay green.
+- New domain-free package `packages/browser_backends/` (mirrors the `Provider`
+  seam): `BrowserBackend` Protocol + the neutral value objects `RenderedPage`
+  / `RenderOutcome` / `BackendCookie` (no `OperatorHint`/`Verdict`/`Cookie` on
+  the boundary — `RenderedPage`/`BackendCookie` are frozen). `PlaywrightBackend`
+  (parameterized by a `launch_fn`) absorbs the former `BrowserPool` (per-host
+  LRU contexts, idle eviction, driver-stderr capture) plus the page-driving
+  render mechanics; Camoufox is `PlaywrightBackend(camoufox_launcher)`.
+- Engine selection is settings-driven: `settings.browser_backend` (default
+  `"camoufox"`) + `select_backend` over `_manifests/browser_backends/`. The
+  `BrowserBackend` replaces `BrowserPool` as the registered resource; the tool-
+  seam kwarg type is now `Lazy[BrowserBackend]` (internal DI type — the MCP wire
+  is unchanged). Keystone for the Chromium backends (patchright/rebrowser) and
+  the engine comparison that follow.
+
 ### Fixed — browser tier leaked driver stderr + swallowed errors (`surface-browser-internal-errors-as-hints`)
 
 - The browser tier (Camoufox/Firefox) no longer leaks raw Node.js driver

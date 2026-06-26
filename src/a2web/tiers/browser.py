@@ -1,4 +1,9 @@
-"""Browser tier — Camoufox-rendered fetch for JS-required pages.
+"""Browser tier — JS-capable rendered fetch, engine-agnostic.
+
+Delegates rendering to the selected `BrowserBackend` (Camoufox today, a
+Chromium engine later) and owns only the engine-agnostic tail: trafilatura →
+markdown, the `RenderOutcome` → `Verdict`/`OperatorHint` mapping, and
+`TierResult` assembly. No Playwright type or `BrowserPool` appears here.
 
 Out-of-band tier: registered but NOT in `TIER_ORDER`. The orchestrator
 dispatches it only when the gate sets `suggested_tier == "browser"`.
@@ -7,46 +12,22 @@ dispatches it only when the gate sets `suggested_tier == "browser"`.
 from __future__ import annotations
 
 import asyncio
-import time
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-import a2kit
-import a2kit.log
 import trafilatura
 
-from ..events import StageEnded, StageStarted
 from ..models import OperatorHint, Verdict
+from ..packages.browser_backends import BackendCookie, RenderOutcome
 
 if TYPE_CHECKING:
     from ..cookie_jar import Cookie
-    from ..packages.browser_pool import BrowserPool
+    from ..packages.browser_backends import BrowserBackend, RenderedPage
     from ..state import AppState
     from . import TierResult
 
 
-def _cookie_to_playwright(cookie: Cookie) -> dict[str, Any]:
-    """Convert a domain Cookie to Playwright's `add_cookies` shape.
-
-    - `host_key` → `domain`
-    - `expires_utc` (None for session) → `expires` (-1 for session)
-    - `is_secure` / `is_httponly` (int 0/1) → bool
-    - `samesite` lowercase → titlecase enum; None omitted
-    """
-    out: dict[str, Any] = {
-        "name": cookie.name,
-        "value": cookie.value,
-        "domain": cookie.host_key,
-        "path": cookie.path,
-        "expires": cookie.expires_utc if cookie.expires_utc is not None else -1,
-        "secure": bool(cookie.is_secure),
-        "httpOnly": bool(cookie.is_httponly),
-    }
-    if cookie.samesite is not None:
-        out["sameSite"] = cookie.samesite.capitalize()
-    return out
-
-
+# Re-enable hint for an unavailable engine (missing extra / launch failure).
 _FIX_HINT = "python -m playwright install firefox && python -m camoufox fetch"
 
 # Actionable next step for an internal driver/navigation failure. The driver
@@ -59,16 +40,18 @@ _INTERNAL_FIX = (
 )
 
 
-def _summarize_exc(exc: BaseException) -> str:
-    """One-line `Type: first-message-line` summary — never a multi-line dump.
-
-    The full stack (when the driver leaks one) rides the captured
-    `BrowserSubprocessStderr` log events; the wire hint stays terse.
-    """
-    name = type(exc).__name__
-    lines = str(exc).strip().splitlines()
-    first = lines[0].strip() if lines else ""
-    return f"{name}: {first}" if first else name
+def _cookie_to_backend(cookie: Cookie) -> BackendCookie:
+    """Domain `Cookie` → engine-neutral `BackendCookie`."""
+    return BackendCookie(
+        name=cookie.name,
+        value=cookie.value,
+        domain=cookie.host_key,
+        path=cookie.path,
+        expires=float(cookie.expires_utc) if cookie.expires_utc is not None else None,
+        secure=bool(cookie.is_secure),
+        http_only=bool(cookie.is_httponly),
+        samesite=cookie.samesite,
+    )
 
 
 def _to_markdown(html: str, url: str) -> str:
@@ -93,36 +76,6 @@ def _host_is_js_heavy(url: str, state: AppState | None) -> bool:
     return host in js_heavy_hosts(settings)
 
 
-async def _scroll_and_retry(page: Any, original_html: str) -> str:
-    """Scroll-to-bottom + 2s networkidle wait + re-snapshot.
-
-    Returns whichever capture (original or post-scroll) is longer. Never
-    raises — timeout or page-eval errors fall back to the original. Emits
-    `browser_scroll_retry` log events so operators can measure firing rate.
-    """
-    t_ms = 0  # relative — caller manages the absolute clock
-    await a2kit.log.info(StageStarted(t_ms=t_ms, step="browser_scroll_retry"))
-    start = time.perf_counter()
-    larger = original_html
-    outcome = "smaller"
-    try:
-        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        try:
-            await page.wait_for_load_state("networkidle", timeout=2_000)
-        except Exception:
-            # networkidle never settled — try a brief sleep then snapshot anyway
-            await asyncio.sleep(0.5)
-        retry_html = await page.content()
-        if len(retry_html) > len(original_html):
-            larger = retry_html
-            outcome = "larger"
-    except Exception:
-        outcome = "timeout"
-    dur_ms = int((time.perf_counter() - start) * 1000)
-    await a2kit.log.info(StageEnded(t_ms=t_ms, step="browser_scroll_retry", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
-    return larger
-
-
 def _unavailable_result(url: str, message: str) -> TierResult:
     from . import TierResult  # local - circular with package init
 
@@ -138,7 +91,7 @@ def _unavailable_result(url: str, message: str) -> TierResult:
 
 
 class BrowserTier:
-    """Camoufox-rendered fetch. Out-of-band - gate-dispatched only."""
+    """JS-capable rendered fetch. Out-of-band - gate-dispatched only."""
 
     name: str = "browser"
 
@@ -147,7 +100,7 @@ class BrowserTier:
         url: str,
         *,
         state: AppState,
-        pool: BrowserPool | None = None,
+        backend: BrowserBackend | None = None,
         proxy_url: str | None = None,
         conditional_extras: dict[str, str] | None = None,
         cookies_full: list[Cookie] | None = None,
@@ -158,91 +111,59 @@ class BrowserTier:
 
         if not state.settings.browser_enabled:
             return _unavailable_result(url, "browser tier disabled (A2WEB_BROWSER_ENABLED=false)")
-        if pool is None:
-            return _unavailable_result(url, "browser tier not provisioned (no BrowserPool injected)")
+        if backend is None:
+            return _unavailable_result(url, "browser tier not provisioned (no backend injected)")
 
-        try:
-            await pool._ensure()
-        except ImportError as exc:
-            return _unavailable_result(url, f"camoufox not installed: {exc}")
-        except Exception as exc:  # browser launch failed
-            return _unavailable_result(url, f"browser launch failed: {exc}")
-
+        cookies = [_cookie_to_backend(c) for c in cookies_full] if cookies_full else []
         budget_s = float(state.settings.browser_page_budget_s)
-        wall_start = time.perf_counter()
-        try:
-            async with pool.acquire(url) as page:
-                if cookies_full:
-                    # Seed cookies on the BrowserContext BEFORE navigation so
-                    # the request goes out logged-in. add_cookies upserts by
-                    # (name, domain, path) — refreshed values override any
-                    # warm context state.
-                    await page.context.add_cookies(
-                        [_cookie_to_playwright(c) for c in cookies_full],
-                    )
-                try:
-                    response = await asyncio.wait_for(
-                        page.goto(url, wait_until="networkidle"),
-                        timeout=budget_s,
-                    )
-                except TimeoutError:
-                    wall_ms = int((time.perf_counter() - wall_start) * 1000)
-                    return TierResult(
-                        body=b"",
-                        content_type="text/html",
-                        status_code=0,
-                        final_url=url,
-                        from_browser=True,
-                        js_executed=True,
-                        browser_wall_ms=wall_ms,
-                        verdict=Verdict.timeout,
-                    )
+        js_heavy = _host_is_js_heavy(url, state)
 
-                status_code = response.status if response is not None else 200
-                final_url = page.url or url
-                html = await page.content()
-                # v0.10 (harsh-test-session-fixes): scroll-on-thin retry.
-                # When the first snapshot is sub-4KB and the host is in the
-                # JS_HEAVY_HOSTS set, scroll to the bottom + wait 2s for
-                # virtualized/lazy-loaded grids (Trendyol pattern). Keep the
-                # larger of the two snapshots.
-                if len(html) < 4_096 and _host_is_js_heavy(final_url, state):
-                    larger = await _scroll_and_retry(page, html)
-                    html = larger
-        except Exception as exc:  # navigation/network/driver errors
-            # Don't swallow the cause: surface it as a structured hint so the
-            # agent/operator sees *why* the browser tier produced nothing,
-            # instead of a bare connection_error plus a raw stderr trace.
-            wall_ms = int((time.perf_counter() - wall_start) * 1000)
+        page: RenderedPage = await backend.render(url, cookies=cookies, budget_s=budget_s, js_heavy=js_heavy)
+
+        if page.outcome is RenderOutcome.unavailable:
+            return _unavailable_result(url, page.detail or "browser engine unavailable")
+        if page.outcome is RenderOutcome.timeout:
             return TierResult(
                 body=b"",
                 content_type="text/html",
                 status_code=0,
-                final_url=url,
+                final_url=page.final_url or url,
                 from_browser=True,
-                js_executed=True,
-                browser_wall_ms=wall_ms,
+                js_executed=page.js_executed,
+                browser_wall_ms=page.wall_ms,
+                verdict=Verdict.timeout,
+            )
+        if page.outcome is RenderOutcome.error:
+            # Don't swallow the cause: surface it as a structured hint so the
+            # agent/operator sees *why* the browser tier produced nothing.
+            return TierResult(
+                body=b"",
+                content_type="text/html",
+                status_code=0,
+                final_url=page.final_url or url,
+                from_browser=True,
+                js_executed=page.js_executed,
+                browser_wall_ms=page.wall_ms,
                 operator_hint=OperatorHint(
                     code="browser_internal_error",
-                    message=_summarize_exc(exc),
+                    message=page.detail or "browser internal error",
                     fix=_INTERNAL_FIX,
                 ),
                 verdict=Verdict.connection_error,
             )
 
-        wall_ms = int((time.perf_counter() - wall_start) * 1000)
-        markdown = await asyncio.to_thread(_to_markdown, html, final_url)
-
+        # outcome == ok — run trafilatura over the rendered HTML.
+        markdown = await asyncio.to_thread(_to_markdown, page.html, page.final_url)
         verdict = Verdict.ok if markdown else Verdict.length_floor
         return TierResult(
-            body=html.encode("utf-8"),
+            body=page.html.encode("utf-8"),
             content_type="text/html",
-            status_code=status_code,
-            final_url=final_url,
+            status_code=page.status_code,
+            final_url=page.final_url,
             from_browser=True,
-            js_executed=True,
-            browser_wall_ms=wall_ms,
-            browser_bytes=len(html),
+            js_executed=page.js_executed,
+            browser_wall_ms=page.wall_ms,
+            browser_bytes=page.bytes_transferred,
             pre_rendered=Rendered(content_md=markdown),
             verdict=verdict,
         )

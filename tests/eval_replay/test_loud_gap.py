@@ -45,17 +45,17 @@ async def test_raw_miss_raises_and_names_the_fix() -> None:
 
 async def test_browser_miss_when_no_rendered_dom() -> None:
     case = _case(inputs=CaseInputs(rendered_html=None))
-    pool = CassetteBrowserPool(case)
+    backend = CassetteBrowserPool(case)
     with pytest.raises(CassetteMiss) as excinfo:
-        async with pool.acquire("https://example.com/x"):
-            pass
+        await backend.render("https://example.com/x", cookies=[], budget_s=30.0, js_heavy=False)
     assert excinfo.value.tier == "browser"
     assert "make eval-refresh CASE=regression/gap" in str(excinfo.value)
 
 
 async def test_browser_hit_serves_frozen_dom() -> None:
     case = _case(inputs=CaseInputs(rendered_html="<html>frozen</html>"))
-    pool = CassetteBrowserPool(case)
-    async with pool.acquire("https://example.com/x") as page:
-        assert await page.content() == "<html>frozen</html>"
-        assert page.url == "https://example.com/x"
+    backend = CassetteBrowserPool(case)
+    page = await backend.render("https://example.com/x", cookies=[], budget_s=30.0, js_heavy=False)
+    assert page.html == "<html>frozen</html>"
+    assert page.final_url == "https://example.com/x"
+    assert page.outcome.value == "ok"

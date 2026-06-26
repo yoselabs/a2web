@@ -16,6 +16,7 @@ from dataclasses import fields, is_dataclass
 import pytest
 
 from a2web.packages.block_detector import BlockResult
+from a2web.packages.browser_backends import BackendCookie, RenderedPage
 from a2web.packages.content_extract import ExtractedContent, ExtractedHeading, ExtractedLink
 from a2web.packages.cookie_store.models import CookieRow
 from a2web.packages.escalation import EscalationSignal
@@ -29,6 +30,8 @@ _FROZEN_BOUNDARY_TYPES = (
     CookieRow,
     BlockResult,
     EscalationSignal,
+    BackendCookie,
+    RenderedPage,
 )
 
 

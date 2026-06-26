@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from a2web.llm_resource import LlmExtractorResource
-from a2web.packages.browser_pool import BrowserPool
+from a2web.packages.browser_backends import PlaywrightBackend, camoufox_launcher
 from a2web.packages.http_cache import SqliteResource
 from a2web.packages.llm_extract import Provider
 from a2web.settings import AppSettings
@@ -176,9 +176,9 @@ async def test_browser_pool_ensure_propagates_import_error(monkeypatch: pytest.M
 
     monkeypatch.setattr(builtins, "__import__", _fake_import)
 
-    pool = BrowserPool(max_pool=2, idle_timeout_s=10, page_budget_s=5)
+    backend = PlaywrightBackend(camoufox_launcher, max_pool=2, idle_timeout_s=10, page_budget_s=5)
     with pytest.raises(ImportError):
-        await pool._ensure()
+        await backend._ensure()
 
 
 @pytest.mark.asyncio
@@ -195,6 +195,6 @@ async def test_browser_pool_start_alias_calls_ensure(monkeypatch: pytest.MonkeyP
 
     monkeypatch.setattr(builtins, "__import__", _fake_import)
 
-    pool = BrowserPool()
+    backend = PlaywrightBackend(camoufox_launcher)
     with pytest.raises(ImportError):
-        await pool.start()
+        await backend.start()

@@ -2,7 +2,7 @@
 
 `AppState` carries the four resources every fetch needs: settings, breakers,
 proxy_pool, sqlite. `Resources` carries the three Lazy-eligible resources
-(browser_pool, llm_extractor, cookie_jar) that are surfaced at the tool seam
+(browser_backend, llm_extractor, cookie_jar) that are surfaced at the tool seam
 via `Lazy[T]` so cold-start cost is paid only when the path needs them.
 
 `bootstrap_state(settings)` is the single source of truth for constructing
@@ -28,7 +28,7 @@ from purgatory import AsyncCircuitBreakerFactory
 
 from .cookie_jar import CookieJarResource, build_cookie_jar
 from .llm_resource import _PROVIDER_ORDER, LlmExtractorResource, select_provider
-from .packages.browser_pool import BrowserPool
+from .packages.browser_backends import BrowserBackend
 from .packages.http_cache import SqliteResource
 from .packages.llm_extract import Provider  # runtime: a2kit introspects factory annotations (Lazy[Provider]) via get_type_hints
 from .packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
@@ -39,7 +39,7 @@ from .settings import AppSettings
 class AppState:
     """Always-on resources for the fetch pipeline. Per-App singleton.
 
-    `browser_pool` / `llm_extractor` / `cookie_jar` are NOT here — they live
+    `browser_backend` / `llm_extractor` / `cookie_jar` are NOT here — they live
     on `Resources` and reach the tool seam as `Lazy[T]`.
     """
 
@@ -57,7 +57,7 @@ class Resources:
     resources it holds carry their own internal mutable state.
     """
 
-    browser_pool: BrowserPool
+    browser_backend: BrowserBackend
     llm_extractor: LlmExtractorResource
     cookie_jar: CookieJarResource
 
@@ -83,10 +83,10 @@ def build_proxy_pool(settings: AppSettings) -> ProxyPool:
 
 
 async def _emit_browser_stderr(line: str) -> None:
-    """Domain sink for captured Camoufox/Playwright driver stderr lines.
+    """Domain sink for captured browser-driver stderr lines.
 
-    Injected into the (domain-free) `BrowserPool`; emits one typed log event
-    per line so raw Node.js driver traces surface in the a2kit logging
+    Injected into the (domain-free) `PlaywrightBackend`; emits one typed log
+    event per line so raw Node.js driver traces surface in the a2kit logging
     substrate instead of on the operator's terminal.
     """
     import a2kit.log
@@ -96,14 +96,32 @@ async def _emit_browser_stderr(line: str) -> None:
     await a2kit.log.info(BrowserSubprocessStderr(line=line))
 
 
-def build_browser_pool(settings: AppSettings) -> BrowserPool:
-    """Camoufox pool — does NOT launch the browser at construction."""
-    return BrowserPool(
-        max_pool=settings.browser_max_pool,
-        idle_timeout_s=settings.browser_idle_timeout_s,
-        page_budget_s=settings.browser_page_budget_s,
-        stderr_sink=_emit_browser_stderr,
-    )
+_BACKEND_SURFACE = "a2web._manifests.browser_backends"
+
+
+def select_backend(settings: AppSettings) -> BrowserBackend:
+    """Pick the rendering engine from the manifest registry.
+
+    Mirrors `select_provider`: `_manifests/browser_backends/` decides *what can
+    be built*; `settings.browser_backend` names the one to use. An unknown or
+    unavailable backend raises `ResourceUnavailable`, degrading at the tool
+    seam (the same path the LLM provider uses) rather than crashing.
+    """
+    from ._plugin import load_surface
+
+    registry = load_surface(_BACKEND_SURFACE, BrowserBackend, settings)
+    name = settings.browser_backend
+    backend = registry.get(name)
+    if backend is None:
+        available = ", ".join(sorted(registry)) or "(none)"
+        raise ResourceUnavailable(f"browser backend '{name}' unavailable (registered: {available})")
+    return backend
+
+
+def build_browser_backend(settings: AppSettings) -> BrowserBackend:
+    """DI factory for `BrowserBackend` — selects the engine; does NOT launch it
+    at construction (launch is lazy on first `render`)."""
+    return select_backend(settings)
 
 
 def build_selected_provider(settings: AppSettings) -> Provider:
@@ -221,7 +239,7 @@ async def bootstrap_state(settings: AppSettings, *, provider: Provider | None = 
         sqlite=sqlite,
     )
     resources = Resources(
-        browser_pool=build_browser_pool(settings),
+        browser_backend=build_browser_backend(settings),
         llm_extractor=build_llm_extractor(settings, sqlite, _provider_lazy(provider, settings)),
         cookie_jar=build_cookie_jar(settings, sqlite),
     )
