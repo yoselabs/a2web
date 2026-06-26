@@ -355,7 +355,7 @@
           "type": "object"
         },
         "OperatorHint": {
-          "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `captcha_redirect`, `cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
+          "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `browser_internal_error`, `captcha_redirect`,\n`cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
           "properties": {
             "code": {
               "title": "Code",
@@ -971,7 +971,7 @@
           "type": "object"
         },
         "OperatorHint": {
-          "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `captcha_redirect`, `cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
+          "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `browser_internal_error`, `captcha_redirect`,\n`cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
           "properties": {
             "code": {
               "title": "Code",

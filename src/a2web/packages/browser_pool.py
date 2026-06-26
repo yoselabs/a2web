@@ -26,6 +26,8 @@ Resource budget:
 from __future__ import annotations
 
 import asyncio
+import os
+import sys
 import time
 from collections import OrderedDict
 from contextlib import asynccontextmanager, suppress
@@ -33,7 +35,31 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Callable, Coroutine
+
+
+class _StderrFilenoShim:
+    """Stand-in for ``sys.stderr`` that lies only about its file descriptor.
+
+    Playwright spawns its Node driver with ``stderr=_get_stderr_fileno()``,
+    which reads ``sys.stderr.fileno()`` at spawn time (see playwright
+    ``_impl/_transport.py``). Swapping ``sys.stderr`` for this shim around the
+    launch makes the driver subprocess inherit our pipe's write end — and
+    nothing else: every attribute except ``fileno`` delegates to the real
+    stream, so Python-level ``sys.stderr.write``/``flush`` and any
+    ``StreamHandler`` still reach the genuine terminal. Confines the redirect
+    to the spawned child; the parent's fd 2 is never touched.
+    """
+
+    def __init__(self, real: Any, fileno: int) -> None:
+        self._real = real
+        self._fileno = fileno
+
+    def fileno(self) -> int:
+        return self._fileno
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._real, name)
 
 
 class BrowserPool:
@@ -49,6 +75,7 @@ class BrowserPool:
         max_pool: int = 4,
         idle_timeout_s: int = 300,
         page_budget_s: int = 30,
+        stderr_sink: Callable[[str], Coroutine[Any, Any, None]] | None = None,
     ) -> None:
         self.max_pool = max_pool
         self.idle_timeout_s = idle_timeout_s
@@ -60,6 +87,14 @@ class BrowserPool:
         self._lock = asyncio.Lock()
         self._closed = False
         self._eviction_tasks: set[asyncio.Task[None]] = set()
+        # Driver-stderr capture (opt-in via injected async sink — keeps this
+        # package domain-free; the domain wires emission of typed log events).
+        self._stderr_sink = stderr_sink
+        self._stderr_read_fd: int | None = None
+        self._stderr_write_fd: int = -1
+        self._stderr_buf = b""
+        self._stderr_loop: asyncio.AbstractEventLoop | None = None
+        self._stderr_tasks: set[asyncio.Task[None]] = set()
 
     async def _ensure(self) -> None:
         """Lazy-init: launch Camoufox under lock if not yet opened.
@@ -78,8 +113,99 @@ class BrowserPool:
 
             self._camoufox = AsyncCamoufox(headless=True)
             # AsyncCamoufox is itself an async context manager; we hold the
-            # Browser handle for the pool's lifetime.
-            self._browser = await self._camoufox.__aenter__()
+            # Browser handle for the pool's lifetime. Redirect the driver's
+            # inherited stderr into a pipe across the launch so raw Node.js
+            # traces never hit the operator's terminal (no-op without a sink).
+            saved_stderr = self._install_stderr_capture()
+            try:
+                self._browser = await self._camoufox.__aenter__()
+            finally:
+                self._restore_stderr(saved_stderr)
+            self._begin_stderr_drain()
+
+    def _install_stderr_capture(self) -> Any:
+        """Swap `sys.stderr` for a pipe-backed shim across the driver launch.
+
+        Returns the real `sys.stderr` to restore, or None when capture is off
+        (no sink injected — test pools keep their inherited stderr untouched).
+        """
+        if self._stderr_sink is None:
+            return None
+        read_fd, write_fd = os.pipe()
+        os.set_blocking(read_fd, False)
+        self._stderr_read_fd = read_fd
+        self._stderr_write_fd = write_fd
+        real = sys.stderr
+        sys.stderr = _StderrFilenoShim(real, write_fd)  # type: ignore[assignment]
+        return real
+
+    def _restore_stderr(self, saved: Any) -> None:
+        """Restore `sys.stderr` and drop the parent's copy of the pipe writer.
+
+        After the driver subprocess has spawned (inheriting its own dup of the
+        write end), the parent must close its writer so the reader EOFs when
+        the driver eventually exits.
+        """
+        if self._stderr_sink is None or self._stderr_read_fd is None:
+            return
+        sys.stderr = saved  # type: ignore[assignment]
+        with suppress(OSError):
+            os.close(self._stderr_write_fd)
+
+    def _begin_stderr_drain(self) -> None:
+        """Register an on-loop reader that forwards driver stderr lines."""
+        if self._stderr_sink is None or self._stderr_read_fd is None:
+            return
+        self._stderr_loop = asyncio.get_running_loop()
+        self._stderr_loop.add_reader(self._stderr_read_fd, self._on_stderr_readable)
+
+    def _on_stderr_readable(self) -> None:
+        """Drain available driver stderr bytes; emit each complete line."""
+        read_fd = self._stderr_read_fd
+        if read_fd is None:
+            return
+        try:
+            chunk = os.read(read_fd, 65536)
+        except BlockingIOError:
+            return
+        except OSError:
+            self._stop_stderr_capture()
+            return
+        if not chunk:  # EOF — driver subprocess exited and closed its stderr.
+            self._stop_stderr_capture()
+            return
+        self._stderr_buf += chunk
+        *lines, self._stderr_buf = self._stderr_buf.split(b"\n")
+        for raw in lines:
+            line = raw.decode("utf-8", "replace").rstrip("\r")
+            if line:
+                self._emit_stderr_line(line)
+
+    def _emit_stderr_line(self, line: str) -> None:
+        sink = self._stderr_sink
+        loop = self._stderr_loop
+        if sink is None or loop is None:
+            return
+        task = loop.create_task(sink(line))
+        self._stderr_tasks.add(task)
+        task.add_done_callback(self._stderr_tasks.discard)
+
+    def _stop_stderr_capture(self) -> None:
+        """Tear down the reader and close the pipe read end. Idempotent."""
+        read_fd = self._stderr_read_fd
+        if read_fd is None:
+            return
+        if self._stderr_buf:  # flush a trailing unterminated line
+            line = self._stderr_buf.decode("utf-8", "replace").rstrip("\r")
+            self._stderr_buf = b""
+            if line:
+                self._emit_stderr_line(line)
+        if self._stderr_loop is not None:
+            with suppress(Exception):
+                self._stderr_loop.remove_reader(read_fd)
+        with suppress(OSError):
+            os.close(read_fd)
+        self._stderr_read_fd = None
 
     async def start(self) -> None:
         """Deprecated alias for `_ensure()`. Kept during v0.27 migration."""
@@ -89,6 +215,7 @@ class BrowserPool:
         if self._closed:
             return
         self._closed = True
+        self._stop_stderr_capture()
         async with self._lock:
             for host_ctx in list(self._contexts.values()):
                 with suppress(Exception):

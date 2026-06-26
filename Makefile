@@ -1,4 +1,4 @@
-.PHONY: lint fix test test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail eval-capture eval-replay eval-refresh bless-contracts handler-probe install-global
+.PHONY: lint fix test test-browser test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail eval-capture eval-replay eval-refresh bless-contracts handler-probe install-global
 
 check: lint ty test-cov arch
 
@@ -24,6 +24,13 @@ ty:
 
 test:
 	@uv run pytest tests/
+
+# Opt-in real-browser smoke check — launches the actual Camoufox binary
+# against a deterministic local JS-rendering fixture. NOT in `make check`
+# (the default run excludes `-m browser`). The trailing `-m browser` here
+# overrides the pyproject addopts default. Auto-skips if Camoufox is absent.
+test-browser:
+	@uv run pytest tests/ -m browser -p no:cacheprovider
 
 test-cov:
 	@uv run pytest tests/ --cov=a2web --cov-report=xml --cov-report=term-missing --cov-fail-under=85

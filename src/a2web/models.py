@@ -101,7 +101,8 @@ class OperatorHint(BaseModel):
     """Structured hint about how the fetch could be improved.
 
     `code` is a stable agent-readable identifier (e.g. `llm_unavailable`,
-    `browser_unavailable`, `captcha_redirect`, `cookies_stale`). Agents may
+    `browser_unavailable`, `browser_internal_error`, `captcha_redirect`,
+    `cookies_stale`). Agents may
     branch on `code` to take a next action; humans read `message` and `fix`
     for context and remediation. Both audiences are first-class — the field
     landed under the "operator" name historically, not because agents

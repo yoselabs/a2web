@@ -82,12 +82,27 @@ def build_proxy_pool(settings: AppSettings) -> ProxyPool:
     )
 
 
+async def _emit_browser_stderr(line: str) -> None:
+    """Domain sink for captured Camoufox/Playwright driver stderr lines.
+
+    Injected into the (domain-free) `BrowserPool`; emits one typed log event
+    per line so raw Node.js driver traces surface in the a2kit logging
+    substrate instead of on the operator's terminal.
+    """
+    import a2kit.log
+
+    from .events import BrowserSubprocessStderr
+
+    await a2kit.log.info(BrowserSubprocessStderr(line=line))
+
+
 def build_browser_pool(settings: AppSettings) -> BrowserPool:
     """Camoufox pool — does NOT launch the browser at construction."""
     return BrowserPool(
         max_pool=settings.browser_max_pool,
         idle_timeout_s=settings.browser_idle_timeout_s,
         page_budget_s=settings.browser_page_budget_s,
+        stderr_sink=_emit_browser_stderr,
     )
 
 
