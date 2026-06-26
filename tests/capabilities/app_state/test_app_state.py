@@ -71,13 +71,14 @@ def test_build_state_returns_complete_non_optional_bundle() -> None:
 
 
 def test_app_state_no_longer_has_heavy_fields() -> None:
-    """Canary: browser_pool / llm_extractor were intentionally removed from AppState.
+    """Canary: browser_backend / llm_extractor were intentionally removed from AppState.
 
-    They're provided independently via `app.provide(build_browser_pool)` and
+    They're provided independently via `app.provide(build_browser_backend)` and
     `app.provide(build_llm_extractor)`; tools surface them as `Lazy[T]`.
     """
     field_names = {f.name for f in dataclasses.fields(AppState)}
     assert "browser_pool" not in field_names
+    assert "browser_backend" not in field_names
     assert "llm_extractor" not in field_names
 
 

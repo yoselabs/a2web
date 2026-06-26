@@ -11,7 +11,7 @@ own their own lifecycle via `__aenter__`/`__aexit__` (thin wrappers around
 each resource's idempotent `_ensure` / `close` methods, kept as the
 internal lazy-call surface).
 
-Heavy/conditional resources (BrowserPool, LlmExtractorResource) are surfaced
+Heavy/conditional resources (BrowserBackend, LlmExtractorResource) are surfaced
 at the tool seam as `Lazy[T]` (see `routers.py`) so the cold-start cost is
 paid only when the fetch path actually needs them.
 
@@ -33,7 +33,7 @@ from .routers import CookiesRouter, WebRouter
 from .settings import get_settings
 from .state import (
     build_breakers,
-    build_browser_pool,
+    build_browser_backend,
     build_llm_extractor,
     build_proxy_pool,
     build_selected_provider,
@@ -72,7 +72,7 @@ def build_app() -> A2Web:
     app.provide(build_breakers)  # AsyncCircuitBreakerFactory — no deps
     app.provide(build_proxy_pool)  # ProxyPool — needs settings
     app.provide(SqliteResource)  # class-as-factory — no required ctor args
-    app.provide(build_browser_pool)  # BrowserPool — needs settings (Lazy at tool seam)
+    app.provide(build_browser_backend)  # BrowserBackend — selects engine; needs settings (Lazy at tool seam)
     app.provide(Provider, build_selected_provider)  # best LLM provider (Protocol key); raises ResourceUnavailable when none
     app.provide(build_llm_extractor)  # LlmExtractorResource — needs settings + sqlite + Lazy[Provider] (Lazy at tool seam)
     app.provide(build_cookie_jar)  # CookieJarResource — needs settings + sqlite (Lazy at tool seam)

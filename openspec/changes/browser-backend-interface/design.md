@@ -20,24 +20,37 @@ The repo already solved this exact shape for LLMs: a tight `Provider` Protocol (
 
 ## Decisions
 
-### 1. The interface returns `RenderedPage` (data), not a `Page`
+### 1. The interface is package-owned and domain-free (refined during apply)
+The `packages/` boundary forbids importing domain types (`Cookie`, `OperatorHint`, `Verdict`). So — exactly like `Provider`/`ProviderResponse` — the interface and its value objects are **package-owned and domain-free**:
 ```python
+class RenderOutcome(StrEnum):           # package enum
+    ok = "ok"; timeout = "timeout"; error = "error"; unavailable = "unavailable"
+
+@dataclass(slots=True)
+class BackendCookie:                    # neutral cookie; tier converts domain Cookie → this
+    name: str; value: str; domain: str; path: str
+    expires: float | None; secure: bool; http_only: bool; samesite: str | None
+
 @dataclass(slots=True)
 class RenderedPage:
-    html: str
-    final_url: str
-    status_code: int
-    js_executed: bool
+    outcome: RenderOutcome
+    html: str = ""; final_url: str = ""; status_code: int = 0
+    js_executed: bool = False; wall_ms: int = 0; bytes_transferred: int = 0
+    detail: str = ""                    # one-line msg for error/unavailable; NOT an OperatorHint
 
 @runtime_checkable
 class BrowserBackend(Protocol):
     name: str
-    async def render(self, url: str, *, cookies: list[Cookie],
+    async def render(self, url: str, *, cookies: list[BackendCookie],
                      budget_s: float, js_heavy: bool) -> RenderedPage: ...
+    async def __aenter__(self) -> BrowserBackend: ...
+    async def __aexit__(self, *exc: object) -> None: ...
 ```
-The tier passes the *domain* `Cookie` type (the backend translates to its engine's shape), the budget, and a `js_heavy` policy bit (the tier computes it from `JS_HEAVY_HOSTS`; the backend decides whether to run scroll-on-thin). Everything downstream of `render()` — trafilatura → markdown, the quality gate, `TierResult` assembly — stays in the tier and is shared across engines.
+The **tier** (domain) owns the mapping `RenderOutcome → Verdict/OperatorHint` and the domain `Cookie → BackendCookie` conversion. Everything downstream of `render()` — trafilatura → markdown, the gate, `TierResult` assembly — stays in the tier and is shared across engines.
 
-*Alternative considered:* return a Playwright `Page` and let the tier keep driving it — rejected: that *is* the coupling we're removing, and it's unsatisfiable by a CDP backend.
+*Why this differs from the original sketch (`render(cookies: list[Cookie]) -> RenderedPage{html,...}`):* that sketch put domain types (`Cookie`, and implicitly `OperatorHint`/`Verdict` for the failure channel) on a package interface, which the packages-independence invariant forbids. The neutral `BackendCookie` + `RenderOutcome` + `detail` are the boundary-correct expression of the same intent. The failure channel (timeout / internal-error / unavailable) rides `outcome` + `detail`, mapped to domain hints by the tier.
+
+*Alternative considered:* make the backends domain-coupled (like `llm_resource.py`) so they can use `Cookie`/`OperatorHint` directly — rejected: the LLM seam keeps the **Protocol + response** package-owned (`providers/base.py`) and only the *resource wrapper* domain-coupled; mirroring that keeps the engine adapters microsofware-pure and testable without the domain.
 
 ### 2. `PlaywrightBackend(launch_fn)` — one body, per-engine launch
 Camoufox, Patchright, and rebrowser all expose the Playwright API; only the *launch* differs (`AsyncCamoufox(...).__aenter__()` vs `patchright.async_api.async_playwright().start().chromium.launch(...)`). So `PlaywrightBackend` holds the shared body (pool, cookies, goto, scroll, content, stderr capture) and takes a `launch_fn` that yields a `Browser`. This change wires only the Camoufox `launch_fn`; change 2 adds two more. Mirrors how the LLM providers share `base.py`.

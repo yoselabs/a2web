@@ -17,14 +17,11 @@ tier, and the one-command fix — never a live call.
 from __future__ import annotations
 
 import sys
-from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 from eval._capture.corpus import ReplayCase
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
     import pytest
 
     from a2web.packages.http_fetch import FetchOutcome
@@ -81,41 +78,14 @@ def patch_fetch_bytes(monkeypatch: pytest.MonkeyPatch, case: ReplayCase) -> None
 # --- browser egress ------------------------------------------------------- #
 
 
-class _CassettePage:
-    """Fake Playwright page serving the frozen rendered DOM."""
-
-    def __init__(self, html: str, url: str) -> None:
-        self._html = html
-        self.url = url
-        self.context = _CassetteContext()
-
-    async def goto(self, *_: object, **__: object) -> None:
-        return None
-
-    async def content(self) -> str:
-        return self._html
-
-    async def evaluate(self, *_: object, **__: object) -> Any:
-        return None
-
-    async def wait_for_load_state(self, *_: object, **__: object) -> None:
-        return None
-
-    async def close(self) -> None:
-        return None
-
-
-class _CassetteContext:
-    async def add_cookies(self, *_: object, **__: object) -> None:
-        return None
-
-
 class CassetteBrowserPool:
-    """Drop-in for `BrowserPool` — never launches Camoufox.
+    """Drop-in for `BrowserBackend` — never launches Camoufox.
 
-    `acquire()` yields a `_CassettePage` serving the frozen `rendered.html`.
-    A browser-tier dispatch with no frozen DOM is a loud `CassetteMiss`.
+    `render()` returns the frozen `rendered.html`. A browser-tier dispatch
+    with no frozen DOM is a loud `CassetteMiss`.
     """
+
+    name = "camoufox"
 
     def __init__(self, case: ReplayCase) -> None:
         self._case = case
@@ -132,11 +102,21 @@ class CassetteBrowserPool:
     async def __aexit__(self, *_: object) -> None:
         return None
 
-    @asynccontextmanager
-    async def acquire(self, url: str) -> AsyncIterator[_CassettePage]:
-        if self._case.inputs.rendered_html is None:
+    async def render(self, url: str, *, cookies: object = (), budget_s: float = 30.0, js_heavy: bool = False) -> Any:
+        del cookies, budget_s, js_heavy
+        from a2web.packages.browser_backends import RenderedPage, RenderOutcome
+
+        html = self._case.inputs.rendered_html
+        if html is None:
             raise CassetteMiss(self._case, tier="browser", detail="no frozen rendered.html")
-        yield _CassettePage(self._case.inputs.rendered_html, url)
+        return RenderedPage(
+            outcome=RenderOutcome.ok,
+            html=html,
+            final_url=url,
+            status_code=200,
+            js_executed=True,
+            bytes_transferred=len(html),
+        )
 
 
 # --- LLM egress ----------------------------------------------------------- #

@@ -24,7 +24,7 @@ exact = true
 path = "a2web"
 depends_on = [
     "a2web.packages.block_detector",
-    "a2web.packages.browser_pool",
+    "a2web.packages.browser_backends",
     "a2web.packages.content_extract",
     "a2web.packages.cookie_store",
     "a2web.packages.escalation",
@@ -53,7 +53,7 @@ path = "a2web.packages.block_detector"
 depends_on = ["a2web.packages.escalation"]
 
 [[modules]]
-path = "a2web.packages.browser_pool"
+path = "a2web.packages.browser_backends"
 depends_on = []
 
 [[modules]]

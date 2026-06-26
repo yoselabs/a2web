@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import pytest
 
-from a2web.tiers.browser import _host_is_js_heavy, _scroll_and_retry
+from a2web.packages.browser_backends.playwright import _scroll_and_retry
+from a2web.tiers.browser import _host_is_js_heavy
 
 
 class _FakePage:

@@ -35,7 +35,7 @@ from .tokens import envelope_token_breakdown, estimate_tokens
 if TYPE_CHECKING:
     from ..llm_resource import LlmExtractorResource
     from ..models import FetchResponse
-    from ..packages.browser_pool import BrowserPool
+    from ..packages.browser_backends import BrowserBackend
     from ..state import AppState, Resources
 
 
@@ -207,21 +207,21 @@ class A2WebDetail:
     async def fetch(self, *, url: str, ask: str) -> SystemResult:
         from ..fetcher import fetch as a2web_fetch
 
-        pool = self._resources.browser_pool
+        backend = self._resources.browser_backend
 
-        async def _lazy_browser_pool() -> BrowserPool:
-            return pool
+        async def _lazy_browser_backend() -> BrowserBackend:
+            return backend
 
-        browser_lazy = _lazy_browser_pool
+        browser_lazy = _lazy_browser_backend
 
         t0 = time.perf_counter()
-        response: FetchResponse = await a2web_fetch(url, state=self._state, browser_pool=browser_lazy, include_links=False, debug=False)
+        response: FetchResponse = await a2web_fetch(url, state=self._state, browser_backend=browser_lazy, include_links=False, debug=False)
         latency_ms = int((time.perf_counter() - t0) * 1000)
         # Second fetch with debug=True — feeds the data-contract axis (the
         # debug object must appear under debug=True and only then). HTTP +
         # extraction caches make this near-free.
         response_debug: FetchResponse = await a2web_fetch(
-            url, state=self._state, browser_pool=browser_lazy, include_links=False, debug=True
+            url, state=self._state, browser_backend=browser_lazy, include_links=False, debug=True
         )
         envelope = response.model_dump(mode="json")
         envelope_debug = response_debug.model_dump(mode="json")
@@ -267,18 +267,18 @@ class A2WebExtract:
         async def _lazy_extractor() -> LlmExtractorResource:
             return extractor
 
-        pool = self._resources.browser_pool
+        backend = self._resources.browser_backend
 
-        async def _lazy_browser_pool() -> BrowserPool:
-            return pool
+        async def _lazy_browser_backend() -> BrowserBackend:
+            return backend
 
-        browser_lazy = _lazy_browser_pool
+        browser_lazy = _lazy_browser_backend
 
         t0 = time.perf_counter()
         response: FetchResponse = await a2web_fetch(
             url,
             state=self._state,
-            browser_pool=browser_lazy,
+            browser_backend=browser_lazy,
             llm_extractor=_lazy_extractor,
             ask=ask,
             include_links=False,
@@ -290,7 +290,7 @@ class A2WebExtract:
         response_debug: FetchResponse = await a2web_fetch(
             url,
             state=self._state,
-            browser_pool=browser_lazy,
+            browser_backend=browser_lazy,
             llm_extractor=_lazy_extractor,
             ask=ask,
             include_links=False,

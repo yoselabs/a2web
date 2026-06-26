@@ -16,7 +16,7 @@ boundary type.
 
 | Module | What it is | Status |
 |---|---|---|
-| `browser_pool.py` | Camoufox per-host LRU pool with idle eviction | shipped Stage 2a |
+| `browser_backends/` | Swappable rendering engines behind `BrowserBackend` (`PlaywrightBackend` = Camoufox today); per-host LRU contexts, idle eviction, driver-stderr capture | shipped Stage 2a |
 | `content_extract/` | Trafilatura wrapper + OG/JSON-LD metadata | deferred Stage 2b (needs ExtractedHeading/Link boundary types) |
 | `http_cache/` | sqlite HTTP revalidation cache | deferred (needs CacheConfig boundary) |
 | `block_detector/` | HTML body → closed-enum reason | deferred (returns Verdict; needs BlockReason boundary) |

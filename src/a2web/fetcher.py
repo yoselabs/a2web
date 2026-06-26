@@ -51,7 +51,7 @@ from .models import (
     Verdict,
 )
 from .packages.block_detector import evaluate as _package_evaluate
-from .packages.browser_pool import BrowserPool
+from .packages.browser_backends import BrowserBackend
 from .packages.content_extract import (
     extract_markdown as _package_extract_markdown,
 )
@@ -226,7 +226,7 @@ class FetchContext:
     requested_url: str = ""
 
     # Lazy handles for heavy/conditional resources (a2kit v0.36+). Phases that
-    # actually need browser or LLM extraction `await fc.browser_pool()` /
+    # actually need browser or LLM extraction `await fc.browser_backend()` /
     # `await fc.llm_extractor()` to resolve the resource once at the seam.
     # Resources never enter when their consuming phase doesn't fire.
     #
@@ -235,8 +235,8 @@ class FetchContext:
     # stub before constructing FetchContext, so phases never check for `None` —
     # they `await` uniformly and catch `ResourceUnavailable` to emit the
     # graceful operator hint.
-    browser_pool: Lazy[BrowserPool] = field(
-        default_factory=lambda: unavailable_lazy(BrowserPool, reason="browser_pool not provisioned"),
+    browser_backend: Lazy[BrowserBackend] = field(
+        default_factory=lambda: unavailable_lazy(BrowserBackend, reason="browser_backend not provisioned"),
     )
     llm_extractor: Lazy[LlmExtractorResource] = field(
         default_factory=lambda: unavailable_lazy(LlmExtractorResource, reason="llm_extractor not provisioned"),
@@ -399,7 +399,7 @@ async def fetch(
     url: str,
     *,
     state: AppState,
-    browser_pool: Lazy[BrowserPool] | None = None,
+    browser_backend: Lazy[BrowserBackend] | None = None,
     llm_extractor: Lazy[LlmExtractorResource] | None = None,
     cookie_jar: Lazy[CookieJarResource] | None = None,
     include_links: bool = False,
@@ -453,11 +453,11 @@ async def fetch(
     # the single seam where the optional public API meets the non-optional
     # FetchContext contract — phases never see `None` again.
     browser_lazy = (
-        browser_pool
-        if browser_pool is not None
+        browser_backend
+        if browser_backend is not None
         else unavailable_lazy(
-            BrowserPool,
-            reason="browser_pool not provisioned by caller",
+            BrowserBackend,
+            reason="browser_backend not provisioned by caller",
         )
     )
     llm_lazy = (
@@ -483,7 +483,7 @@ async def fetch(
         profile_hash=profile_hash,
         sqlite=sqlite,
         bypass_cache=bypass_cache,
-        browser_pool=browser_lazy,
+        browser_backend=browser_lazy,
         llm_extractor=llm_lazy,
         cookie_jar=cookie_lazy,
         url=url,
@@ -1412,20 +1412,20 @@ def _regate_after_escalation(fc: FetchContext) -> None:
 async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
     """Dispatch the browser tier out-of-band; install its result on success.
 
-    Resolves the `Lazy[BrowserPool]` at this single seam — BrowserPool only
+    Resolves the `Lazy[BrowserBackend]` at this single seam — the backend only
     enters when an escalation actually fires. When the caller didn't
-    provision a real pool, the stub raises `ResourceUnavailable` and we pass
-    `pool=None` to the tier: the real `BrowserTier` short-circuits to an
+    provision a real backend, the stub raises `ResourceUnavailable` and we pass
+    `backend=None` to the tier: the real `BrowserTier` short-circuits to an
     unavailable verdict, and direct-call test stubs (REGISTRY["browser"])
     ignore the kwarg.
     """
     try:
-        pool: BrowserPool | None = await fc.browser_pool()
+        backend: BrowserBackend | None = await fc.browser_backend()
     except ResourceUnavailable:
-        pool = None
+        backend = None
     browser_tier = REGISTRY["browser"]
     br_start_ms = await _emit_tier_started(step="browser", host=_host(fc.final_url), start_perf=fc.start_perf)
-    browser_result = await browser_tier.fetch(fc.final_url, state=state, pool=pool)
+    browser_result = await browser_tier.fetch(fc.final_url, state=state, backend=backend)
     fc.browser_dispatches += 1
     br_dur_ms = await _emit_tier_ended(
         step="browser",

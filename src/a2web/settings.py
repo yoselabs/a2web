@@ -126,6 +126,7 @@ class AppSettings(BaseSettings):
     github_token: str = ""
 
     browser_enabled: bool = True
+    browser_backend: str = "camoufox"  # selects the rendering engine (see _manifests/browser_backends/)
     browser_max_pool: int = 4
     browser_idle_timeout_s: int = 300
     browser_page_budget_s: int = 30

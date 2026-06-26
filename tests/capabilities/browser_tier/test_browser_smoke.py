@@ -20,7 +20,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import pytest
 
 from a2web.models import Verdict
-from a2web.packages.browser_pool import BrowserPool
+from a2web.packages.browser_backends import PlaywrightBackend, camoufox_launcher
 from a2web.settings import AppSettings
 from a2web.tiers.browser import BrowserTier
 from tests.conftest import make_default_state
@@ -80,17 +80,17 @@ async def test_real_camoufox_executes_js(js_fixture_url: str) -> None:
 
     state = make_default_state()
     state.settings = AppSettings(browser_enabled=True)
-    pool = BrowserPool()
+    backend = PlaywrightBackend(camoufox_launcher, name="camoufox")
     try:
-        await pool._ensure()
+        await backend._ensure()
     except Exception as exc:  # binary missing / launch failed — environment, not a bug
-        await pool.close()
+        await backend.close()
         pytest.skip(f"Camoufox binary unavailable: {exc!r}")
 
     try:
-        result = await BrowserTier().fetch(js_fixture_url, state=state, pool=pool)
+        result = await BrowserTier().fetch(js_fixture_url, state=state, backend=backend)
     finally:
-        await pool.close()
+        await backend.close()
 
     assert result.verdict == Verdict.ok, result.operator_hint
     assert result.js_executed is True

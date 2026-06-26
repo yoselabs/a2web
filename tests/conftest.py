@@ -29,7 +29,7 @@ from a2web.state import (
     Resources,
     _provider_lazy,
     build_breakers,
-    build_browser_pool,
+    build_browser_backend,
     build_llm_extractor,
     build_proxy_pool,
     build_state,
@@ -164,7 +164,7 @@ def make_default_bundle(settings: AppSettings | None = None) -> tuple[AppState, 
         sqlite=sqlite,
     )
     resources = Resources(
-        browser_pool=build_browser_pool(s),
+        browser_backend=build_browser_backend(s),
         # Mirror bootstrap_state's default: provider deferred to select_provider
         # (tests that exercise `ask` inject their own provider/extractor).
         llm_extractor=build_llm_extractor(s, sqlite, _provider_lazy(None, s)),

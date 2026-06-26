@@ -26,7 +26,7 @@ from .fetcher import fetch as orchestrate
 from .fetcher_response import build_ask_response
 from .llm_resource import LlmExtractorResource
 from .models import AskResponse, FetchResponse
-from .packages.browser_pool import BrowserPool
+from .packages.browser_backends import BrowserBackend
 from .packages.cookie_store.models import ChromeCookieAccessError
 from .state import AppState
 
@@ -145,7 +145,7 @@ class WebRouter(a2kit.Router):
             ),
         ] = True,
         state: AppState,
-        browser_pool: Lazy[BrowserPool],
+        browser_backend: Lazy[BrowserBackend],
         llm_extractor: Lazy[LlmExtractorResource],
         cookie_jar: Lazy[CookieJarResource],
     ) -> AskResponse:
@@ -173,7 +173,7 @@ class WebRouter(a2kit.Router):
         response = await orchestrate(
             url,
             state=state,
-            browser_pool=browser_pool,
+            browser_backend=browser_backend,
             llm_extractor=llm_extractor,
             cookie_jar=cookie_jar,
             include_links=include_links,
@@ -234,7 +234,7 @@ class WebRouter(a2kit.Router):
             ),
         ] = True,
         state: AppState,
-        browser_pool: Lazy[BrowserPool],
+        browser_backend: Lazy[BrowserBackend],
         cookie_jar: Lazy[CookieJarResource],
     ) -> FetchResponse:
         """**Fallback only — prefer `ask` for ~95%% of web reads.**
@@ -259,7 +259,7 @@ class WebRouter(a2kit.Router):
         return await orchestrate(
             url,
             state=state,
-            browser_pool=browser_pool,
+            browser_backend=browser_backend,
             llm_extractor=None,
             cookie_jar=cookie_jar,
             include_links=include_links,

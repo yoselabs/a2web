@@ -1,20 +1,26 @@
 ## ADDED Requirements
 
-### Requirement: BrowserBackend is a narrow data-returning interface
+### Requirement: BrowserBackend is a narrow, domain-free data interface
 
-The system SHALL define a `@runtime_checkable` `BrowserBackend` Protocol whose single rendering method returns a `RenderedPage` value object, never a Playwright `Page` or any engine-specific object:
+The system SHALL define a `@runtime_checkable` `BrowserBackend` Protocol in `packages/browser_backends/` whose single rendering method returns a `RenderedPage` value object, never a Playwright `Page` or any engine-specific object:
 
 ```
-async def render(self, url: str, *, cookies: list[Cookie],
+async def render(self, url: str, *, cookies: list[BackendCookie],
                  budget_s: float, js_heavy: bool) -> RenderedPage
 ```
 
-`RenderedPage` SHALL be a `dataclass(slots=True)` carrying `html: str`, `final_url: str`, `status_code: int`, `js_executed: bool`. The interface SHALL accept the domain `Cookie` type (the backend translates to its engine's cookie shape) and a `js_heavy: bool` policy bit (the caller computes it from `JS_HEAVY_HOSTS`; the backend decides whether to run scroll-on-thin). `BrowserBackend` SHALL expose the async-CM protocol (`__aenter__`/`__aexit__`) and be the lazily-entered registered resource that replaces `BrowserPool`.
+Because the package boundary forbids importing domain types (`Cookie`, `OperatorHint`, `Verdict`), the interface and its value objects SHALL be **package-owned and domain-free** — mirroring how `Provider`/`ProviderResponse` carry no domain types:
 
-#### Scenario: render returns data, not a Playwright object
+- `BackendCookie` — a `dataclass(slots=True)` neutral cookie (`name`, `value`, `domain`, `path`, `expires: float | None`, `secure: bool`, `http_only: bool`, `samesite: str | None`). The **caller** (the tier) converts the domain `Cookie` → `BackendCookie`; the **backend** converts `BackendCookie` → its engine's cookie shape.
+- `RenderOutcome` — a package `StrEnum`: `ok | timeout | error | unavailable`.
+- `RenderedPage` — a `dataclass(slots=True)`: `outcome: RenderOutcome`, `html: str`, `final_url: str`, `status_code: int`, `js_executed: bool`, `wall_ms: int`, `bytes_transferred: int`, `detail: str` (one-line message for `error`/`unavailable`; no `OperatorHint` — that's domain).
+
+`js_heavy: bool` is a policy bit the caller computes from `JS_HEAVY_HOSTS`; the backend decides whether to run scroll-on-thin. `BrowserBackend` SHALL expose the async-CM protocol (`__aenter__`/`__aexit__`) and be the lazily-entered registered resource that replaces `BrowserPool`. The **tier** maps `RenderOutcome` → domain `Verdict`/`OperatorHint` (`ok` → trafilatura → `ok`/`length_floor`; `timeout` → `Verdict.timeout`; `error` → `connection_error` + `browser_internal_error` hint; `unavailable` → `connection_error` + `browser_unavailable` hint).
+
+#### Scenario: render returns domain-free data
 
 - **WHEN** any `BrowserBackend.render(...)` completes
-- **THEN** it returns a `RenderedPage` (`html`, `final_url`, `status_code`, `js_executed`) and exposes no Playwright `Page`/`BrowserContext` to the caller
+- **THEN** it returns a `RenderedPage` (package-owned value object) carrying no `OperatorHint`/`Verdict`/`Cookie`, and exposes no Playwright `Page`/`BrowserContext` to the caller
 
 #### Scenario: backend is the registered, lazily-entered resource
 
