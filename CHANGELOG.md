@@ -8,6 +8,8 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-06-28
+
 ### Changed — MCP surface: code-mode off by default; named tools advertised directly (a2kit 0.46)
 
 - **a2web opts out of a2kit's `code_mode=True` default.** `A2Web` now declares
