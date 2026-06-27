@@ -178,9 +178,14 @@ async def test_emit_browser_stderr_logs_typed_event() -> None:
     assert getattr(matched[0], "a2kit_fields", {}).get("line") == "TypeError: boom"
 
 
-def test_browser_in_registry_not_in_tier_order() -> None:
+def test_browser_rungs_in_registry_not_in_tier_order() -> None:
+    """Both browser rungs are out-of-band: registered, never in the tier loop."""
     from a2web.tiers import REGISTRY as REAL_REGISTRY
     from a2web.tiers import TIER_ORDER
 
     assert "browser" in REAL_REGISTRY
+    assert "browser_robust" in REAL_REGISTRY
     assert "browser" not in TIER_ORDER
+    assert "browser_robust" not in TIER_ORDER
+    assert REAL_REGISTRY["browser"].name == "browser"
+    assert REAL_REGISTRY["browser_robust"].name == "browser_robust"

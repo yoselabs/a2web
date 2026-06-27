@@ -28,7 +28,7 @@ from .llm_resource import LlmExtractorResource
 from .models import AskResponse, FetchResponse
 from .packages.browser_backends import BrowserBackend
 from .packages.cookie_store.models import ChromeCookieAccessError
-from .state import AppState
+from .state import AppState, RobustBrowserBackend
 
 
 class WebRouter(a2kit.Router):
@@ -146,6 +146,7 @@ class WebRouter(a2kit.Router):
         ] = True,
         state: AppState,
         browser_backend: Lazy[BrowserBackend],
+        browser_robust_backend: Lazy[RobustBrowserBackend],
         llm_extractor: Lazy[LlmExtractorResource],
         cookie_jar: Lazy[CookieJarResource],
     ) -> AskResponse:
@@ -174,6 +175,7 @@ class WebRouter(a2kit.Router):
             url,
             state=state,
             browser_backend=browser_backend,
+            browser_robust_backend=browser_robust_backend,
             llm_extractor=llm_extractor,
             cookie_jar=cookie_jar,
             include_links=include_links,
@@ -235,6 +237,7 @@ class WebRouter(a2kit.Router):
         ] = True,
         state: AppState,
         browser_backend: Lazy[BrowserBackend],
+        browser_robust_backend: Lazy[RobustBrowserBackend],
         cookie_jar: Lazy[CookieJarResource],
     ) -> FetchResponse:
         """**Fallback only — prefer `ask` for ~95%% of web reads.**
@@ -260,6 +263,7 @@ class WebRouter(a2kit.Router):
             url,
             state=state,
             browser_backend=browser_backend,
+            browser_robust_backend=browser_robust_backend,
             llm_extractor=None,
             cookie_jar=cookie_jar,
             include_links=include_links,

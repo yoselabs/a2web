@@ -41,20 +41,29 @@ SPA-read/robustness/speed comparison.
   source with the patched juggler). Add a pinned-pair compat test. The durable
   fix is a Chromium backend (Change 2), which has no Firefox-juggler coupling.
   Scope: S (pin assertion + compat test); the real exit is `browser-backend-*`.
-- **🟡 Browser-backend roadmap (4 changes).** Tracked as fine-grained OpenSpec
-  changes: (1) `browser-backend-interface` — extract `BrowserBackend` Protocol +
-  `RenderedPage`, move Playwright mechanics into `PlaywrightBackend`, pure
-  refactor, camoufox-only, Playwright stays `<1.60` (DRAFTED, validates strict);
-  (2) `browser-backend-patchright` — add Patchright (+ rebrowser) Chromium
-  backends, flip default → patchright, **gate the Camoufox manifest to
-  `Unavailable`** (retain the adapter, disabled with the #625-unreleased note —
-  re-enable when a build ships `b05563291d`), bump engine deps to latest and
-  **drop the unused `playwright` + `camoufox` direct deps**; (3)
-  `browser-backend-comparison` — run the eval corpus through every backend,
-  score SPA-read + robustness + speed (stealth secondary), confirm default; (4)
-  `browser-backend-zendriver` — CDP backend, **gated** on (3). Sequencing rule:
-  the Playwright bump + Camoufox-gate ride at the END of (2), after a Chromium
-  backend is green — never leave the tier engine-less. Scope: L total.
+- **✅ Browser-backend roadmap — SHIPPED (collapsed to 2 changes).**
+  (1) `browser-backend-interface` — extracted `BrowserBackend` + `RenderedPage`,
+  moved Playwright mechanics into `PlaywrightBackend` (ARCHIVED 2026-06-27).
+  (2) `browser-backend-bakeoff` — the originally-planned changes 2-4 collapsed
+  into one evaluate-then-commit change: a live render-layer bake-off of
+  patchright + rebrowser + zendriver, then **keep two** (patchright fast rung +
+  zendriver robust rung — they're complementary, not strictly ranked; the
+  Chromium drop-ins fail the Trendyol/Hepsiburada SPAs zendriver reads), pruned
+  rebrowser, gated Camoufox, dropped `camoufox`/`playwright`/`<1.60`. Wired as
+  two browser tiers on the *existing* gate→playbook escalation (the
+  `gate_browser_signal` rule, cap `1→2`), not a new mechanism. The
+  pinned-pair compat test idea is moot — `playwright` is no longer a dep.
+- **🟡 zendriver robust rung: add a shared-browser pool.** The robust rung
+  (`browser_robust`, zendriver) launches a fresh Chromium per render (v1, D3) —
+  ~4-5x slower than the pooled fast rung (~6.7s vs ~1.4s in the bake-off). A
+  per-host context pool (mirroring `PlaywrightBackend`) would close most of that
+  gap. Low urgency: browser is the escalation tier, so the cost only bites when
+  the fast rung can't read the page. Scope: M.
+- **🟢 Camoufox re-enable when #625 ships.** The Camoufox launcher code is
+  retained, gated to `Unavailable` in `_manifests/browser_backends/camoufox.py`.
+  When a Camoufox *release* contains juggler `b05563291d` (PR #625), re-enable =
+  flip the manifest `_build` back (the commented body is kept inline) + re-add
+  `camoufox[geoip]` to `pyproject.toml`. Until then it stays unselectable.
 
 ## 2026-06-25 — LLM provider seam leftovers (from `centralize-provider-selection` + `inject-provider-via-di`)
 

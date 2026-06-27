@@ -33,12 +33,17 @@ async def replay_case(monkeypatch: pytest.MonkeyPatch, case: ReplayCase) -> dict
     state = make_default_state()
     cassette_llm = CassetteLlm(case)
     browser_lazy = lazy_value(CassetteBrowserPool(case))
+    # Both browser rungs (fast + robust) replay from the same frozen DOM — the
+    # cassette is engine-agnostic, so fast→robust escalation serves identical
+    # bytes and the contract is unchanged by the rung that produced them.
+    browser_robust_lazy = lazy_value(CassetteBrowserPool(case))
     llm_lazy = lazy_value(cassette_llm)
 
     response = await fetcher.fetch(
         case.url,
         state=state,
         browser_backend=browser_lazy,
+        browser_robust_backend=browser_robust_lazy,
         llm_extractor=llm_lazy,
         ask=case.question,
         next_links=True,

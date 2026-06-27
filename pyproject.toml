@@ -14,8 +14,11 @@ classifiers = [
     "Framework :: AsyncIO",
 ]
 dependencies = [
-    # framework — handles MCP server, CLI, ConnectionStore, formatter, DI, schema, testing
-    "a2kit>=0.44,<1",
+    # framework — handles MCP server, CLI, ConnectionStore, formatter, DI, schema, testing.
+    # The `code-mode` extra pulls `pydantic-monty` — required for a2kit's code-mode
+    # (structured tool-call) path. Kept mandatory (not optional): without it that
+    # path fails at runtime, so it's a baseline capability, not an opt-in.
+    "a2kit[code-mode]>=0.44,<1",
     # http + extraction
     "curl_cffi>=0.7,<1",
     "httpx>=0.27,<1",
@@ -57,20 +60,23 @@ dependencies = [
     # session (OAuth subscription or whichever auth `claude` CLI is logged
     # into) — no separate API key required when this is preferred.
     "claude-agent-sdk>=0.1.80,<1",
-    # v0.10 (2026-05-19): browser tier moves to baseline. The default escalation
-    # chain routes paywalls / anti-bot sites / JS SPAs to camoufox; keeping it
-    # optional meant `pip install a2web` produced an uncaught ImportError when
-    # the gate decided to escalate. Install size grows ~150MB (camoufox firefox
-    # binary + playwright wheels) but the failure mode was worse than the bloat.
-    # First-time browser use still requires `python -m camoufox fetch` to pull
-    # the Firefox binary — that's a runtime asset, not a Python dep.
-    # `playwright` is a transitive dep of camoufox (camoufox is a stealth-patched
-    # Firefox driven through Playwright's API) — not pinned here separately.
-    # The `geoip` extra (maxminddb + a ~66MB GeoIP DB pulled on first use) lets
-    # Camoufox align locale/timezone/geolocation to the egress IP — a real
-    # signal for passing anti-bot challenges on geo-specific sites. See
-    # docs/architecture/cloudflare-handling.md.
-    "camoufox[geoip]>=0.4,<1",
+    # Browser rendering engines (browser-backend-bakeoff, 2026-06-27). Two rungs
+    # ship by default so a fresh install renders both:
+    #   - patchright: the fast Chromium rung (`browser` tier). An undetected
+    #     Playwright fork that vendors its own playwright-core + browser binary,
+    #     so there is NO direct/transitive `playwright` dep here and no <1.60
+    #     version-skew exposure.
+    #   - zendriver: the robust CDP rung (`browser_robust` tier), escalated to
+    #     only when the fast rung comes back thin/blocked (Trendyol/Hepsiburada
+    #     class). Drives Chromium directly over CDP.
+    # Camoufox was dropped here (its build pins a stale Firefox and lacks juggler
+    # #625); its launcher code is retained but GATED off in
+    # _manifests/browser_backends/camoufox.py — re-add the dep + flip the gate
+    # when a Camoufox build ships b05563291d. First browser use fetches a
+    # Chromium binary (`python -m patchright install chromium`) — a runtime asset
+    # (zendriver drives a system/cached Chromium directly).
+    "patchright>=1.60,<2",
+    "zendriver>=0.15,<1",
     "gidgethub>=5.4,<6",
 ]
 
@@ -134,6 +140,7 @@ select = [
 "tests/**" = ["S101", "S105", "S106"]  # asserts + literal test secrets allowed in tests
 "src/a2web/llm_eval/__main__.py" = ["T201"]  # CLI entry — print() is the output mechanism
 "src/a2web/llm_eval/extraction_cli.py" = ["T201"]  # CLI entry — print() is the output mechanism
+"src/a2web/llm_eval/browser_bakeoff.py" = ["T201"]  # CLI entry — print() is the output mechanism
 "benchmarks/**" = ["T201"]  # ad-hoc benchmark scripts — print() is the output mechanism
 
 [tool.pytest.ini_options]

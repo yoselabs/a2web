@@ -32,8 +32,10 @@ from .packages.llm_extract import Provider
 from .routers import CookiesRouter, WebRouter
 from .settings import get_settings
 from .state import (
+    RobustBrowserBackend,
     build_breakers,
     build_browser_backend,
+    build_browser_robust_backend,
     build_llm_extractor,
     build_proxy_pool,
     build_selected_provider,
@@ -72,7 +74,9 @@ def build_app() -> A2Web:
     app.provide(build_breakers)  # AsyncCircuitBreakerFactory — no deps
     app.provide(build_proxy_pool)  # ProxyPool — needs settings
     app.provide(SqliteResource)  # class-as-factory — no required ctor args
-    app.provide(build_browser_backend)  # BrowserBackend — selects engine; needs settings (Lazy at tool seam)
+    app.provide(build_browser_backend)  # BrowserBackend — fast browser rung (patchright); Lazy at tool seam
+    # robust rung (zendriver) — distinct DI key; Lazy, enters only on the 2nd browser dispatch
+    app.provide(RobustBrowserBackend, build_browser_robust_backend)
     app.provide(Provider, build_selected_provider)  # best LLM provider (Protocol key); raises ResourceUnavailable when none
     app.provide(build_llm_extractor)  # LlmExtractorResource — needs settings + sqlite + Lazy[Provider] (Lazy at tool seam)
     app.provide(build_cookie_jar)  # CookieJarResource — needs settings + sqlite (Lazy at tool seam)

@@ -19,7 +19,13 @@ from a2web.packages.browser_backends import PlaywrightBackend, camoufox_launcher
 from a2web.packages.http_cache import SqliteResource
 from a2web.packages.llm_extract import Provider
 from a2web.settings import AppSettings
-from a2web.state import ResourceUnavailable, build_selected_provider, unavailable_lazy
+from a2web.state import (
+    ResourceUnavailable,
+    build_selected_provider,
+    select_backend,
+    select_backend_named,
+    unavailable_lazy,
+)
 
 # --------------------------------------------------------------------- #
 # SqliteResource
@@ -152,6 +158,36 @@ async def test_llm_resource_close_is_noop() -> None:
     resource = LlmExtractorResource(AppSettings(), SqliteResource(db_path=None), _unavailable())
     await resource.close()  # must not raise
     await resource.close()
+
+
+# --------------------------------------------------------------------- #
+# Backend selection — two-rung defaults + gated Camoufox
+# (browser-backend-bakeoff). Resolves selectors only; no browser launch.
+# --------------------------------------------------------------------- #
+
+
+def test_fast_rung_defaults_to_patchright() -> None:
+    """Unset `browser_backend` resolves the fast Chromium rung, not Camoufox."""
+    backend = select_backend(AppSettings())
+    assert backend.name == "patchright"
+
+
+def test_robust_rung_defaults_to_zendriver() -> None:
+    """Unset `browser_backend_robust` resolves the robust CDP rung."""
+    s = AppSettings()
+    backend = select_backend_named(s, s.browser_backend_robust)
+    assert backend.name == "zendriver"
+
+
+def test_camoufox_is_gated_unavailable() -> None:
+    """Camoufox is gated off (#625 unreleased) — selecting it degrades, not crashes."""
+    with pytest.raises(ResourceUnavailable, match="camoufox"):
+        select_backend_named(AppSettings(), "camoufox")
+
+
+def test_unknown_backend_degrades() -> None:
+    with pytest.raises(ResourceUnavailable):
+        select_backend_named(AppSettings(), "nope-engine")
 
 
 # --------------------------------------------------------------------- #
