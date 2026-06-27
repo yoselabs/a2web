@@ -14,8 +14,11 @@ classifiers = [
     "Framework :: AsyncIO",
 ]
 dependencies = [
-    # framework — handles MCP server, CLI, ConnectionStore, formatter, DI, schema, testing
-    "a2kit>=0.44,<1",
+    # framework — handles MCP server, CLI, ConnectionStore, formatter, DI, schema, testing.
+    # The `code-mode` extra pulls `pydantic-monty` — required for a2kit's code-mode
+    # (structured tool-call) path. Kept mandatory (not optional): without it that
+    # path fails at runtime, so it's a baseline capability, not an opt-in.
+    "a2kit[code-mode]>=0.44,<1",
     # http + extraction
     "curl_cffi>=0.7,<1",
     "httpx>=0.27,<1",
