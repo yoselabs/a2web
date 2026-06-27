@@ -8,6 +8,22 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed — MCP surface: code-mode off by default; named tools advertised directly (a2kit 0.46)
+
+- **a2web opts out of a2kit's `code_mode=True` default.** `A2Web` now declares
+  `config = A2kitConfig(mcp=McpConfig(code_mode=False))`. a2web is a few-tool,
+  lean-payload server — `ask`/`fetch_raw`/`refresh` distill content server-side,
+  so the code-execution sandbox (`search`/`get_schema`/`execute` meta-tools) was
+  pure tax on the ~95% single-`ask` path. With it off, MCP `list_tools`
+  advertises the bare-name tools directly and the `canonical_name_override` pins
+  in `routers.py` go live as the wire contract.
+- **Requires a2kit ≥0.46**, which lifted `code_mode` into `McpConfig` as a
+  per-server-shape knob (a2web round-14 feedback, `docs/history/A2KIT_FEEDBACK_v0.44.md`).
+  The `serve` flag is tri-state (`--code-mode/--no-code-mode`; omit → consult
+  config); env still wins, so `A2KIT_MCP__CODE_MODE=true` re-enables the sandbox
+  per-deployment. The `a2kit[code-mode]` extra stays installed so that escape
+  hatch + the `a2web code` subcommand remain buildable on demand.
+
 ### Changed — two-tier browser rendering: patchright (fast) → zendriver (robust), Camoufox retired (`browser-backend-bakeoff`)
 
 - **Bake-off, then keep two.** A live render-layer bake-off

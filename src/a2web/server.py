@@ -23,6 +23,7 @@ Logging is stdlib logging: typed events emit via
 from __future__ import annotations
 
 import a2kit
+from a2kit.config import A2kitConfig, McpConfig
 
 from ._manifests.sinks import Sink
 from ._plugin import load_surface
@@ -59,6 +60,16 @@ class A2Web(a2kit.App):
 
     name = "a2web"
     routers = (WebRouter, CookiesRouter)
+
+    # a2web opts out of a2kit's `code_mode=True` default (shipped as a config
+    # knob in a2kit 0.46 — see docs/history/A2KIT_FEEDBACK_v0.44.md). a2web is a
+    # few-tool, lean-payload server: `ask`/`fetch_raw`/`refresh` already distill
+    # content server-side, so the code-execution sandbox (search/get_schema/
+    # execute) is pure tax on the ~95% single-`ask` path. With it off, the MCP
+    # surface advertises the named tools directly (the bare-name pins in
+    # routers.py go live). Env still wins: `A2KIT_MCP__CODE_MODE=true` re-enables
+    # the sandbox per-deployment (ADR 0022 inverted source order).
+    config = A2kitConfig(mcp=McpConfig(code_mode=False))
 
 
 def build_app() -> A2Web:

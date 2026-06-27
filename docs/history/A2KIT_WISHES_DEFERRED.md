@@ -22,6 +22,13 @@ Current baseline: a2kit v0.40.0.
 - Wish #5 (`a2kit.desc` sugar) — **refused** by Constitution Article VI
   ("pydantic is sacred"). Permanent rejection.
 
+**Shipped in v0.46 (2026-06-28):**
+
+- Wish #11 (`code_mode` as an `McpConfig` field) — **shipped**.
+  `McpConfig.code_mode: bool = True` + tri-state CLI override landed as asked
+  (round 14, `A2KIT_FEEDBACK_v0.44.md`). a2web adoption pending: bump to
+  `a2kit>=0.46`, set `code_mode=False`, verify named-tool `list_tools`.
+
 ---
 
 ## 1. Formatter-level empty-field omission (`exclude_none` / `exclude_defaults`)
