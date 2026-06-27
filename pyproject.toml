@@ -73,8 +73,8 @@ dependencies = [
     # #625); its launcher code is retained but GATED off in
     # _manifests/browser_backends/camoufox.py — re-add the dep + flip the gate
     # when a Camoufox build ships b05563291d. First browser use fetches a
-    # Chromium binary (`python -m patchright install chromium` /
-    # `python -m rebrowser_playwright install chromium`) — a runtime asset.
+    # Chromium binary (`python -m patchright install chromium`) — a runtime asset
+    # (zendriver drives a system/cached Chromium directly).
     "patchright>=1.60,<2",
     "zendriver>=0.15,<1",
     "gidgethub>=5.4,<6",

@@ -174,3 +174,64 @@ async def test_browser_dispatch_capped_at_two_rungs(monkeypatch: pytest.MonkeyPa
     assert counter["browser"] == 1  # fast rung: exactly once
     assert counter["browser_robust"] == 1  # robust rung: exactly once
     assert result.status == FetchStatus.failed  # both blocked → no recovery, capped
+
+
+# --------------------------------------------------------------------- #
+# Regate carries the escalation signal (browser-backend-bakeoff).
+# This is the shared mechanism behind the fast→robust ladder AND the
+# archive→browser path: `_regate_after_escalation` re-evaluates installed
+# escalation content and now carries `escalation` so a still-blocked result
+# can re-trigger the playbook. Tested path-independently at the unit level;
+# the browser path is also covered end-to-end above.
+# --------------------------------------------------------------------- #
+
+
+def _bare_fc() -> object:
+    from datetime import UTC, datetime
+
+    from a2web.fetcher import FetchContext
+
+    return FetchContext(
+        started_at=datetime.now(UTC),
+        start_perf=0.0,
+        profile_hash="x",
+        sqlite=None,
+        bypass_cache=True,
+        url="https://x.com/",
+        final_url="https://x.com/",
+    )
+
+
+def test_regate_carries_browser_escalation_on_still_blocked_content() -> None:
+    """A re-gated escalation result that still needs JS carries next_tier=browser.
+
+    Before the fix the regate observation dropped `escalation`, so a
+    success-but-still-blocked browser/archive render could never re-trigger the
+    browser rule — the fast→robust ladder (and archive→browser) couldn't fire.
+    """
+    from a2web.decision_log import ObservationKind
+    from a2web.fetcher import _regate_after_escalation
+
+    fc = _bare_fc()
+    fc.content_md = "anubis challenge in progress — verifying your browser"  # block_detector → browser
+    _regate_after_escalation(fc)
+
+    last = fc.observations[-1]
+    assert last.kind is ObservationKind.gate_outcome
+    assert last.source == "regate"
+    assert last.verdict is not Verdict.ok
+    assert last.escalation is not None
+    assert last.escalation.next_tier == "browser"
+
+
+def test_regate_carries_no_escalation_on_clean_content() -> None:
+    """Clean re-gated content carries no escalation — no spurious re-dispatch."""
+    from a2web.fetcher import _regate_after_escalation
+
+    fc = _bare_fc()
+    fc.content_md = "# Real Article\n\n" + ("Real readable body content. " * 80)
+    _regate_after_escalation(fc)
+
+    last = fc.observations[-1]
+    assert last.verdict is Verdict.ok
+    assert last.escalation is None

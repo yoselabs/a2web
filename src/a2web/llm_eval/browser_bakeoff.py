@@ -40,7 +40,10 @@ STRESS_URLS: tuple[tuple[str, str, bool], ...] = (
     ("nowsecure-cf", "https://nowsecure.nl/", False),
 )
 
-CANDIDATES = ("patchright", "rebrowser", "zendriver")
+# The bake-off scored three candidates (patchright, rebrowser, zendriver) — see
+# eval/findings_2026-06-27.md. rebrowser lost and was pruned, so re-runs cover
+# only the two retained engines (its manifest no longer registers).
+CANDIDATES = ("patchright", "zendriver")
 _BLOCKED = {BlockVerdict.block_page_detected, BlockVerdict.anti_bot}
 
 
