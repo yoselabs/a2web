@@ -35,11 +35,38 @@ _THIN_FLOOR = 4_096
 
 
 def camoufox_launcher() -> Any:
-    """Yield an async-CM that launches headless Camoufox. ImportError (no
-    `[browser]` extra) propagates → the backend reports `unavailable`."""
-    from camoufox.async_api import AsyncCamoufox
+    """Yield an async-CM that launches headless Camoufox.
+
+    DORMANT (browser-backend-bakeoff): the `camoufox` dep was dropped (its build
+    lacks juggler #625) and the manifest is gated, so this never runs today. Kept
+    for one-line re-enable when a fixed Camoufox build ships + the dep returns.
+    The import is intentionally unresolvable until then.
+    """
+    from camoufox.async_api import AsyncCamoufox  # ty: ignore[unresolved-import]
 
     return AsyncCamoufox(headless=True)
+
+
+@asynccontextmanager
+async def chromium_launch(async_playwright_fn: Callable[[], Any]) -> AsyncIterator[Any]:
+    """Two-step Playwright launch flattened into a one-shot CM yielding a Browser.
+
+    Drop-in Chromium engines (Patchright, rebrowser-playwright) expose
+    `async_playwright()` returning the *API object*, not a Browser — unlike
+    `AsyncCamoufox`, whose `__aenter__` returns a Browser directly. This wrapper
+    enters playwright, launches headless Chromium, and yields the Browser so the
+    drop-ins satisfy the same `launch_fn` contract `PlaywrightBackend` expects
+    (`__aenter__` → Browser). The driver spawns inside this `__aenter__`, so it
+    lands within the backend's stderr-capture window like Camoufox's does.
+    Cleanup closes the browser then exits playwright.
+    """
+    async with async_playwright_fn() as pw:
+        browser = await pw.chromium.launch(headless=True)
+        try:
+            yield browser
+        finally:
+            with suppress(Exception):
+                await browser.close()
 
 
 def _cookie_to_playwright(cookie: BackendCookie) -> dict[str, Any]:

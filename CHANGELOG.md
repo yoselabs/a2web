@@ -8,6 +8,36 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed — two-tier browser rendering: patchright (fast) → zendriver (robust), Camoufox retired (`browser-backend-bakeoff`)
+
+- **Bake-off, then keep two.** A live render-layer bake-off
+  (`eval/findings_2026-06-27.md`) scored three engines behind the
+  `BrowserBackend` seam on SPA-read + robustness + speed. Result: the Chromium
+  drop-ins (patchright, rebrowser) are fast but **fail the Trendyol/Hepsiburada
+  SPAs** that motivated this; **zendriver** (CDP) reads them but is ~4-5x slower.
+  They're complementary, so we keep **both** — patchright as the fast rung,
+  zendriver as the robust rung — and **prune rebrowser** (the strict loser).
+- **Two browser tiers on the existing escalation, not a new mechanism.** A new
+  out-of-band `browser_robust` tier (zendriver) joins `browser` (patchright) in
+  `REGISTRY`. The fast→robust ladder is the **existing** `gate_browser_signal`
+  playbook rule firing twice — its cap widened `1→2`; the single
+  `_escalate_browser` handler picks the rung from the per-fetch dispatch count.
+  No new action, no new rule, no TIER_ORDER change. Fixed a latent gap:
+  `_regate_after_escalation` now carries the escalation signal, so a still-thin
+  fast render can re-trigger the playbook (it couldn't before).
+- **`browser_robust_backend` seam.** A second `Lazy[RobustBrowserBackend]` tool
+  seam + provider (distinct DI key via a marker sub-Protocol), entered only when
+  the robust rung fires. Decision-log `engine=` is now the real engine/tier name
+  (`browser`/`browser_robust`, `patchright`/`zendriver`), not a hardcoded label.
+- **Camoufox gated, deps modernized.** Camoufox is gated to `Unavailable` (its
+  build lacks juggler #625 / `b05563291d`); its launcher code is retained for a
+  one-line re-enable. `patchright` + `zendriver` are promoted to baseline deps;
+  **`camoufox` + the transitive `playwright` (and the `<1.60` version-skew
+  exposure) are dropped**, along with the bake-off-loser `rebrowser`.
+- New CDP adapter `ZendriverBackend` proves the `BrowserBackend` interface spans
+  engine *families*, not just the Playwright API. Real-browser smoke covers both
+  rungs (`make test-browser`).
+
 ### Changed — extracted a swappable `BrowserBackend` interface (`browser-backend-interface`)
 
 - The browser tier no longer drives a Playwright `Page` directly — it delegates

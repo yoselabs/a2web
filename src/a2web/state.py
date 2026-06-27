@@ -21,7 +21,7 @@ any resource — it returns cheap unstarted instances. Callers that bypass DI
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeVar, cast
+from typing import Protocol, TypeVar, cast, runtime_checkable
 
 from a2kit import Lazy
 from purgatory import AsyncCircuitBreakerFactory
@@ -49,6 +49,19 @@ class AppState:
     sqlite: SqliteResource
 
 
+@runtime_checkable
+class RobustBrowserBackend(BrowserBackend, Protocol):
+    """Marker sub-protocol for the *robust* browser rung (the CDP engine).
+
+    Structurally identical to `BrowserBackend` — it adds nothing. It exists
+    solely so a SECOND browser-engine provider can be registered with the DI
+    container under a distinct type key (a2kit resolves providers by type; two
+    `BrowserBackend` providers would collide). The fast rung is `BrowserBackend`;
+    the robust rung is `RobustBrowserBackend`. Both are satisfied by any
+    `BrowserBackend` instance, so the same engine classes back both seams.
+    """
+
+
 @dataclass(frozen=True, slots=True)
 class Resources:
     """Heavy/conditional resources surfaced at the tool seam via `Lazy[T]`.
@@ -58,6 +71,7 @@ class Resources:
     """
 
     browser_backend: BrowserBackend
+    browser_robust_backend: RobustBrowserBackend
     llm_extractor: LlmExtractorResource
     cookie_jar: CookieJarResource
 
@@ -99,18 +113,17 @@ async def _emit_browser_stderr(line: str) -> None:
 _BACKEND_SURFACE = "a2web._manifests.browser_backends"
 
 
-def select_backend(settings: AppSettings) -> BrowserBackend:
-    """Pick the rendering engine from the manifest registry.
+def select_backend_named(settings: AppSettings, name: str) -> BrowserBackend:
+    """Pick the named rendering engine from the manifest registry.
 
     Mirrors `select_provider`: `_manifests/browser_backends/` decides *what can
-    be built*; `settings.browser_backend` names the one to use. An unknown or
-    unavailable backend raises `ResourceUnavailable`, degrading at the tool
-    seam (the same path the LLM provider uses) rather than crashing.
+    be built*; `name` picks the one to use. An unknown or unavailable backend
+    raises `ResourceUnavailable`, degrading at the tool seam (the same path the
+    LLM provider uses) rather than crashing.
     """
     from ._plugin import load_surface
 
     registry = load_surface(_BACKEND_SURFACE, BrowserBackend, settings)
-    name = settings.browser_backend
     backend = registry.get(name)
     if backend is None:
         available = ", ".join(sorted(registry)) or "(none)"
@@ -118,10 +131,23 @@ def select_backend(settings: AppSettings) -> BrowserBackend:
     return backend
 
 
+def select_backend(settings: AppSettings) -> BrowserBackend:
+    """Pick the fast rung (`settings.browser_backend`)."""
+    return select_backend_named(settings, settings.browser_backend)
+
+
 def build_browser_backend(settings: AppSettings) -> BrowserBackend:
-    """DI factory for `BrowserBackend` — selects the engine; does NOT launch it
-    at construction (launch is lazy on first `render`)."""
+    """DI factory for the fast browser rung — selects the engine; does NOT launch
+    it at construction (launch is lazy on first `render`)."""
     return select_backend(settings)
+
+
+def build_browser_robust_backend(settings: AppSettings) -> RobustBrowserBackend:
+    """DI factory for the robust browser rung (`settings.browser_backend_robust`,
+    a CDP engine). Distinct return type (`RobustBrowserBackend`) so it registers
+    under a separate DI key from the fast `BrowserBackend` provider; only enters
+    when the robust escalation actually fires (lazy first-use at the tool seam)."""
+    return select_backend_named(settings, settings.browser_backend_robust)
 
 
 def build_selected_provider(settings: AppSettings) -> Provider:
@@ -240,6 +266,7 @@ async def bootstrap_state(settings: AppSettings, *, provider: Provider | None = 
     )
     resources = Resources(
         browser_backend=build_browser_backend(settings),
+        browser_robust_backend=build_browser_robust_backend(settings),
         llm_extractor=build_llm_extractor(settings, sqlite, _provider_lazy(provider, settings)),
         cookie_jar=build_cookie_jar(settings, sqlite),
     )

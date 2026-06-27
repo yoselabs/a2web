@@ -113,36 +113,64 @@ async def test_browser_internal_error_hint_reaches_response(monkeypatch: pytest.
     assert any(h.code == "browser_internal_error" for h in result.operator_hints)
 
 
+class _StillBlockedBrowserTier:
+    """A browser rung whose render still trips the gate (re-triggers anubis)."""
+
+    def __init__(self, name: str, counter: dict[str, int]) -> None:
+        self.name = name
+        self._counter = counter
+
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
+        del state, kwargs
+        self._counter[self.name] = self._counter.get(self.name, 0) + 1
+        blocked_md = "anubis check pending"
+        return TierResult(
+            body=blocked_md.encode("utf-8"),
+            content_type="text/html",
+            status_code=200,
+            final_url=url,
+            from_browser=True,
+            js_executed=True,
+            pre_rendered=Rendered(content_md=blocked_md),
+            verdict=Verdict.ok,
+        )
+
+
 @pytest.mark.asyncio
-async def test_browser_dispatch_capped_at_one(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Pathological case: browser also returns blocked content. No second dispatch."""
+async def test_fast_rung_thin_escalates_to_robust(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fast browser rung comes back blocked → robust CDP rung recovers it.
 
-    dispatches = {"n": 0}
-
-    class _StillBlockedBrowserTier:
-        name = "browser"
-
-        async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
-            del state
-            dispatches["n"] += 1
-            # Return content that will re-trigger anubis on re-gate
-            blocked_md = "anubis check pending"
-            return TierResult(
-                body=blocked_md.encode("utf-8"),
-                content_type="text/html",
-                status_code=200,
-                final_url=url,
-                from_browser=True,
-                js_executed=True,
-                pre_rendered=Rendered(content_md=blocked_md),
-                verdict=Verdict.ok,
-            )
-
+    The fast→robust ladder is the existing browser rule firing twice: the
+    fast `browser` rung is dispatched first; its still-blocked result keeps the
+    gate wanting browser, so the orchestrator dispatches the `browser_robust`
+    rung, which clears the gate.
+    """
+    counter: dict[str, int] = {}
     monkeypatch.setitem(REGISTRY, "raw", _AnubisRawTier())
-    monkeypatch.setitem(REGISTRY, "browser", _StillBlockedBrowserTier())
+    monkeypatch.setitem(REGISTRY, "browser", _StillBlockedBrowserTier("browser", counter))
+    monkeypatch.setitem(REGISTRY, "browser_robust", _RecoveringBrowserTier())  # robust recovers
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+
+    result = await fetch("https://anubis.example/", state=_make_state(), debug=True)
+
+    assert result.status == FetchStatus.ok
+    assert result.tier == "browser_robust"  # robust rung produced the winning render
+    assert counter["browser"] == 1  # fast rung tried exactly once first
+    steps = [d.step for d in result.diagnostics]
+    assert "browser" in steps and "browser_robust" in steps  # both rungs in the log
+
+
+@pytest.mark.asyncio
+async def test_browser_dispatch_capped_at_two_rungs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Both rungs blocked: fast then robust fire once each, then no third dispatch."""
+    counter: dict[str, int] = {}
+    monkeypatch.setitem(REGISTRY, "raw", _AnubisRawTier())
+    monkeypatch.setitem(REGISTRY, "browser", _StillBlockedBrowserTier("browser", counter))
+    monkeypatch.setitem(REGISTRY, "browser_robust", _StillBlockedBrowserTier("browser_robust", counter))
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://anubis.example/", state=_make_state())
 
-    assert dispatches["n"] == 1
-    assert result.status == FetchStatus.failed
+    assert counter["browser"] == 1  # fast rung: exactly once
+    assert counter["browser_robust"] == 1  # robust rung: exactly once
+    assert result.status == FetchStatus.failed  # both blocked → no recovery, capped

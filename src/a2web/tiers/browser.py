@@ -91,9 +91,16 @@ def _unavailable_result(url: str, message: str) -> TierResult:
 
 
 class BrowserTier:
-    """JS-capable rendered fetch. Out-of-band - gate-dispatched only."""
+    """JS-capable rendered fetch. Out-of-band - gate-dispatched only.
 
-    name: str = "browser"
+    Engine-agnostic: the backend is injected per `fetch`. The same class backs
+    both browser rungs — `browser` (fast) and `browser_robust` (CDP) — which
+    differ only by `name` (for the decision log) and the backend the
+    orchestrator hands them.
+    """
+
+    def __init__(self, *, name: str = "browser") -> None:
+        self.name = name
 
     async def fetch(
         self,

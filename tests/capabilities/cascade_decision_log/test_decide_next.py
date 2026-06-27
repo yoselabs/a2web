@@ -63,7 +63,9 @@ def test_decide_next_respects_caps(log: list[Observation], url: str, caps: Plann
     if isinstance(action, RetryViaArchive):
         assert caps.archive_dispatches < 1
     if isinstance(action, EscalateBrowser):
-        assert caps.browser_dispatches < 1
+        # Browser escalates up to twice per fetch — fast Chromium rung then
+        # robust CDP rung (the fast→robust ladder is this rule firing twice).
+        assert caps.browser_dispatches < 2
 
 
 def _tier(
@@ -200,10 +202,19 @@ def test_archive_cap_spent_suppresses_retry() -> None:
     assert isinstance(decide_next(log, url="https://nyt.com/a", caps=caps), Continue)
 
 
-def test_browser_cap_spent_suppresses_escalation() -> None:
-    caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=1)
+def test_browser_escalates_twice_then_suppresses() -> None:
+    """Fast→robust ladder: the browser rule fires at dispatch 0 (fast Chromium
+    rung) and 1 (robust CDP rung), then is suppressed at 2. The same rule
+    running twice IS the ladder — no second rule, no second action."""
     log = [_tier(Verdict.ok), _gate(Verdict.anti_bot, suggested_tier="browser")]
-    assert isinstance(decide_next(log, url="https://x.com/", caps=caps), Continue)
+
+    def _at(n: int) -> object:
+        caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=n)
+        return decide_next(log, url="https://x.com/", caps=caps)
+
+    assert isinstance(_at(0), EscalateBrowser)  # fast rung
+    assert isinstance(_at(1), EscalateBrowser)  # robust rung
+    assert isinstance(_at(2), Continue)  # cap spent
 
 
 def test_gate_browser_signal_outranks_reddit_archive_when_both_apply() -> None:

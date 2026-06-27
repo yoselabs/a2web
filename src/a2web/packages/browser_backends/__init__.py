@@ -9,7 +9,9 @@ and its value objects carry no domain types. The domain (the browser tier +
 from __future__ import annotations
 
 from .base import BackendCookie, BrowserBackend, RenderedPage, RenderOutcome
-from .playwright import PlaywrightBackend, camoufox_launcher
+from .patchright import patchright_launcher
+from .playwright import PlaywrightBackend, camoufox_launcher, chromium_launch
+from .zendriver import ZendriverBackend
 
 __all__ = [
     "BackendCookie",
@@ -17,5 +19,8 @@ __all__ = [
     "PlaywrightBackend",
     "RenderOutcome",
     "RenderedPage",
+    "ZendriverBackend",
     "camoufox_launcher",
+    "chromium_launch",
+    "patchright_launcher",
 ]

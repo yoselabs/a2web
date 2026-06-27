@@ -55,7 +55,12 @@ Action = RetryViaArchive | RewriteUrl | EscalateBrowser | Continue
 
 @dataclass(slots=True, frozen=True)
 class PlannerCaps:
-    """Per-fetch escalation budgets the planner must respect (each capped at 1)."""
+    """Per-fetch escalation budgets the planner must respect.
+
+    `url_rewrites` and `archive_dispatches` are capped at 1; `browser_dispatches`
+    is capped at 2 — the fast Chromium rung then the robust CDP rung (the
+    fast→robust browser ladder is the browser rule firing twice).
+    """
 
     url_rewrites: int
     archive_dispatches: int
@@ -121,7 +126,16 @@ def _decide_arxiv_pdf_rewrite(ctx: _RuleContext) -> Action | None:
 
 
 def _decide_gate_browser_signal(ctx: _RuleContext) -> Action | None:
-    """Gate flagged a JS-required / anti-bot page → browser."""
+    """Gate flagged a JS-required / anti-bot page → browser.
+
+    Fires up to twice per fetch (cap `< 2`): the first dispatch is the fast
+    Chromium rung (`browser`), the second the robust CDP rung (`browser_robust`).
+    A successful fast render yields `verdict == ok`, so the `verdict is not ok`
+    guard stops the re-fire; only a thin/blocked fast render (gate still wants
+    browser) re-triggers, escalating fast→robust. The orchestrator's single
+    browser-escalation handler picks the rung from the dispatch count — the
+    laddering is this same rule running twice, not a second rule.
+    """
     last = ctx.last
     if last is None:
         return None
@@ -130,7 +144,7 @@ def _decide_gate_browser_signal(ctx: _RuleContext) -> Action | None:
         and last.escalation is not None
         and last.escalation.next_tier == "browser"
         and last.verdict is not Verdict.ok
-        and ctx.caps.browser_dispatches < 1
+        and ctx.caps.browser_dispatches < 2
     ):
         return EscalateBrowser()
     return None

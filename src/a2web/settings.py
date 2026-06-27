@@ -126,7 +126,12 @@ class AppSettings(BaseSettings):
     github_token: str = ""
 
     browser_enabled: bool = True
-    browser_backend: str = "camoufox"  # selects the rendering engine (see _manifests/browser_backends/)
+    # Two browser rungs (browser-backend-bakeoff): the fast Chromium engine is
+    # tried first (the `browser` tier); the robust CDP engine is escalated to
+    # (the `browser_robust` tier) only when the fast render comes back
+    # thin/blocked. See _manifests/browser_backends/ + _manifests/tiers/.
+    browser_backend: str = "patchright"  # fast rung
+    browser_backend_robust: str = "zendriver"  # robust rung (CDP)
     browser_max_pool: int = 4
     browser_idle_timeout_s: int = 300
     browser_page_budget_s: int = 30

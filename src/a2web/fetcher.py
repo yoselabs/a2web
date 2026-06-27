@@ -64,7 +64,7 @@ from .packages.json_in_script import extract_json_payloads, rank_payloads
 from .packages.llm_extract import LlmNextLink, RouterPayload
 from .packages.record_extract import Record, RecordSet, extract_records
 from .settings import AppSettings
-from .state import AppState, ResourceUnavailable, unavailable_lazy
+from .state import AppState, ResourceUnavailable, RobustBrowserBackend, unavailable_lazy
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
 
 
@@ -238,6 +238,12 @@ class FetchContext:
     browser_backend: Lazy[BrowserBackend] = field(
         default_factory=lambda: unavailable_lazy(BrowserBackend, reason="browser_backend not provisioned"),
     )
+    # Robust browser rung (CDP) — resolved only on the SECOND browser dispatch
+    # (fast rung came back thin/blocked). Separate Lazy seam so it enters only
+    # when the robust escalation actually fires.
+    browser_robust_backend: Lazy[RobustBrowserBackend] = field(
+        default_factory=lambda: unavailable_lazy(RobustBrowserBackend, reason="browser_robust_backend not provisioned"),
+    )
     llm_extractor: Lazy[LlmExtractorResource] = field(
         default_factory=lambda: unavailable_lazy(LlmExtractorResource, reason="llm_extractor not provisioned"),
     )
@@ -400,6 +406,7 @@ async def fetch(
     *,
     state: AppState,
     browser_backend: Lazy[BrowserBackend] | None = None,
+    browser_robust_backend: Lazy[RobustBrowserBackend] | None = None,
     llm_extractor: Lazy[LlmExtractorResource] | None = None,
     cookie_jar: Lazy[CookieJarResource] | None = None,
     include_links: bool = False,
@@ -460,6 +467,14 @@ async def fetch(
             reason="browser_backend not provisioned by caller",
         )
     )
+    browser_robust_lazy = (
+        browser_robust_backend
+        if browser_robust_backend is not None
+        else unavailable_lazy(
+            RobustBrowserBackend,
+            reason="browser_robust_backend not provisioned by caller",
+        )
+    )
     llm_lazy = (
         llm_extractor
         if llm_extractor is not None
@@ -484,6 +499,7 @@ async def fetch(
         sqlite=sqlite,
         bypass_cache=bypass_cache,
         browser_backend=browser_lazy,
+        browser_robust_backend=browser_robust_lazy,
         llm_extractor=llm_lazy,
         cookie_jar=cookie_lazy,
         url=url,
@@ -1405,31 +1421,44 @@ def _regate_after_escalation(fc: FetchContext) -> None:
         kind=ObservationKind.gate_outcome,
         source="regate",
         verdict=regate.verdict,
+        # Carry the escalation signal so a still-blocked escalation result can
+        # re-trigger the playbook — this is what lets the fast `browser` rung
+        # escalate to `browser_robust` when its render is still thin/blocked
+        # (the browser rule requires `escalation.next_tier == "browser"`).
+        escalation=regate.escalation,
         subsystem=subsystem,
     )
 
 
 async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
-    """Dispatch the browser tier out-of-band; install its result on success.
+    """Dispatch a browser rung out-of-band; install its result on success.
 
-    Resolves the `Lazy[BrowserBackend]` at this single seam — the backend only
-    enters when an escalation actually fires. When the caller didn't
-    provision a real backend, the stub raises `ResourceUnavailable` and we pass
-    `backend=None` to the tier: the real `BrowserTier` short-circuits to an
-    unavailable verdict, and direct-call test stubs (REGISTRY["browser"])
-    ignore the kwarg.
+    Two-rung fast→robust ladder on the SAME out-of-band dispatch: the rung is
+    selected from `fc.browser_dispatches` — the first dispatch is the fast
+    Chromium rung (`browser`, `fc.browser_backend`), the second the robust CDP
+    rung (`browser_robust`, `fc.browser_robust_backend`). The playbook's browser
+    rule (cap `< 2`) re-fires only when the fast render came back thin/blocked
+    (gate still wants browser), so the robust rung never runs after a good fast
+    render. Resolves the rung's `Lazy[...]` at this single seam — the engine only
+    enters when its rung actually fires. A missing backend (caller didn't
+    provision) surfaces `ResourceUnavailable`; we pass `backend=None` and the
+    real `BrowserTier` short-circuits to an unavailable verdict.
     """
+    is_robust = fc.browser_dispatches >= 1
+    rung = "browser_robust" if is_robust else "browser"
+    engine = state.settings.browser_backend_robust if is_robust else state.settings.browser_backend
+    backend: BrowserBackend | None
     try:
-        backend: BrowserBackend | None = await fc.browser_backend()
+        backend = await (fc.browser_robust_backend() if is_robust else fc.browser_backend())
     except ResourceUnavailable:
         backend = None
-    browser_tier = REGISTRY["browser"]
-    br_start_ms = await _emit_tier_started(step="browser", host=_host(fc.final_url), start_perf=fc.start_perf)
+    browser_tier = REGISTRY[rung]
+    br_start_ms = await _emit_tier_started(step=rung, host=_host(fc.final_url), start_perf=fc.start_perf)
     browser_result = await browser_tier.fetch(fc.final_url, state=state, backend=backend)
     fc.browser_dispatches += 1
     br_dur_ms = await _emit_tier_ended(
-        step="browser",
-        engine="camoufox",
+        step=rung,
+        engine=engine,
         verdict=browser_result.verdict,
         start_ms=br_start_ms,
         start_perf=fc.start_perf,
@@ -1438,8 +1467,8 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
     fc.diagnostics.append(
         Diagnostic(
             t_ms=br_start_ms,
-            step="browser",
-            engine="camoufox",
+            step=rung,
+            engine=engine,
             host=_host(fc.final_url),
             proxy=None,
             verdict=browser_result.verdict,
@@ -1456,7 +1485,7 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
         fc.body = browser_result.body
         fc.content_type = browser_result.content_type
         fc.final_url = browser_result.final_url
-        fc.tier_used = "browser"
+        fc.tier_used = rung
         fc.pre_rendered_payload = browser_pre
         fc.status_code = browser_result.status_code
         # When browser-rendered markdown is under-extracted (Trendyol pattern —
