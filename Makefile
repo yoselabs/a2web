@@ -58,6 +58,11 @@ dev:
 # /Users/iorlas/.local/bin/a2web (see CLAUDE.md → Global install).
 install-global:
 	uv tool install --force --from . a2web
+	# Fetch the browser rungs' Chromium binary into the tool env — a runtime
+	# asset, not a Python dep. Without this the first browser escalation
+	# silently hangs while patchright downloads its bundled Chromium. zendriver
+	# reuses the same cached Chromium.
+	"$$(uv tool dir)/a2web/bin/python" -m patchright install chromium
 
 # Output benchmark — runs WebFetchBaseline + A2WebDetail + A2WebExtract
 # against eval/corpus.yaml, scores four axes (quality, token cost, clarity,
