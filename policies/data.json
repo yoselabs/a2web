@@ -2,7 +2,12 @@
   "a2kit": {
     "allowlist": {
       "_comment": "Allowlist for a2web Rego policies (Rego engine is a2kit's; the `a2kit` namespace is the policy bundle's, not project-specific). Each entry needs a non-empty 'reason'. Naming conventions intentionally converge across the codebase — that's not duplication, it's the project's shape.",
-      "body_dup": [],
+      "body_dup": [
+        {
+          "names": ["_build"],
+          "reason": "per-tier plugin manifest factory convention: zyte + firecrawl each key-gate their own tier (different settings attr + tier class). The identical shape IS the plugin pattern, not extractable duplication — lifting it would couple two independent optional tiers."
+        }
+      ],
       "name_collision": [
         {
           "names": ["_ensure"],

@@ -376,6 +376,15 @@
             "message": {
               "title": "Message",
               "type": "string"
+            },
+            "severity": {
+              "default": "info",
+              "enum": [
+                "info",
+                "critical"
+              ],
+              "title": "Severity",
+              "type": "string"
             }
           },
           "required": [
@@ -398,6 +407,7 @@
             "not_found",
             "rate_limited",
             "proxy_unavailable",
+            "paid_auth_error",
             "other"
           ],
           "title": "Verdict",
@@ -553,6 +563,11 @@
           ],
           "default": null,
           "title": "Published"
+        },
+        "retrieval_incomplete": {
+          "default": false,
+          "title": "Retrieval Incomplete",
+          "type": "boolean"
         },
         "shape": {
           "anyOf": [
@@ -992,6 +1007,15 @@
             "message": {
               "title": "Message",
               "type": "string"
+            },
+            "severity": {
+              "default": "info",
+              "enum": [
+                "info",
+                "critical"
+              ],
+              "title": "Severity",
+              "type": "string"
             }
           },
           "required": [
@@ -1125,6 +1149,7 @@
             "not_found",
             "rate_limited",
             "proxy_unavailable",
+            "paid_auth_error",
             "other"
           ],
           "title": "Verdict",
@@ -1248,6 +1273,11 @@
           ],
           "default": null,
           "title": "Published"
+        },
+        "retrieval_incomplete": {
+          "default": false,
+          "title": "Retrieval Incomplete",
+          "type": "boolean"
         },
         "routing": {
           "anyOf": [

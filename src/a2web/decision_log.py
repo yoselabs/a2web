@@ -66,6 +66,11 @@ def _verdict_rank(verdict: Verdict) -> int:
     order-independent.
     """
     match verdict:
+        case Verdict.paid_auth_error:
+            # Highest precedence: a keyed paid service failing auth/billing is a
+            # hard operator error that must surface, never be masked by a wall
+            # verdict from a cheaper tier. Paired with `authoritative=True`.
+            return 12
         case Verdict.not_found:
             return 11
         case Verdict.paywall:

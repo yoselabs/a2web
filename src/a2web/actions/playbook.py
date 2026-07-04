@@ -46,11 +46,22 @@ class EscalateBrowser:
 
 
 @dataclass(slots=True, frozen=True)
+class EscalatePaid:
+    """Dispatch a paid tier (Zyte / Firecrawl) out-of-band — the last resort.
+
+    Fires only after every cheaper escalation is spent: as the lowest-priority
+    rule declared last, `decide_next` reaches it only when the browser rule
+    (cap/verdict) and both archive rules (cap/verdict) have all returned None.
+    Paid egress incurs cost, so it must never preempt a free recovery.
+    """
+
+
+@dataclass(slots=True, frozen=True)
 class Continue:
     """No escalation — advance to the next tier, or finish the cascade."""
 
 
-Action = RetryViaArchive | RewriteUrl | EscalateBrowser | Continue
+Action = RetryViaArchive | RewriteUrl | EscalateBrowser | EscalatePaid | Continue
 
 
 @dataclass(slots=True, frozen=True)
@@ -60,11 +71,14 @@ class PlannerCaps:
     `url_rewrites` and `archive_dispatches` are capped at 1; `browser_dispatches`
     is capped at 2 — the fast Chromium rung then the robust CDP rung (the
     fast→robust browser ladder is the browser rule firing twice).
+    `paid_dispatches` is capped at 1 — a single paid last-resort attempt per
+    fetch (cost-incurring; never speculative).
     """
 
     url_rewrites: int
     archive_dispatches: int
     browser_dispatches: int
+    paid_dispatches: int
 
 
 class RulePriority(IntEnum):
@@ -201,6 +215,32 @@ def _decide_gate_paywall_or_block_archive(ctx: _RuleContext) -> Action | None:
     return None
 
 
+# Wall verdicts a paid last-resort tier can plausibly pass. Mirrors
+# fetcher._WALL_VERDICTS (kept separate to preserve the no-import-from-fetcher
+# invariant of the playbook module).
+_PAID_WALL_VERDICTS = (Verdict.paywall, Verdict.block_page_detected, Verdict.anti_bot)
+
+
+def _decide_paid_last_resort(ctx: _RuleContext) -> Action | None:
+    """Terminal wall after every free escalation is spent → paid tier.
+
+    Declared LAST at LOW priority, so `decide_next` reaches this rule only when
+    the browser rule (HIGH) and both archive rules (LOW, earlier in `_RULES`)
+    have all returned None — i.e. the free/proxied ladder is genuinely
+    exhausted. Keys on the latest gate/regate verdict still being a wall and the
+    single paid budget being unspent. The orchestrator's `_escalate_paid` is a
+    no-op when no paid tier is registered (un-keyed), so this rule is safe to
+    fire unconditionally — an un-keyed deployment simply falls through to the
+    late never-silently-miss hint.
+    """
+    last = ctx.last
+    if last is None:
+        return None
+    if last.kind is ObservationKind.gate_outcome and last.verdict in _PAID_WALL_VERDICTS and ctx.caps.paid_dispatches < 1:
+        return EscalatePaid()
+    return None
+
+
 # Ordered by (-priority, declaration_index). When two rules share a priority,
 # the one earlier in the tuple wins. Append new rules in declaration order;
 # the enumerator below stably sorts by negative-priority so order is preserved
@@ -222,6 +262,13 @@ _RULES: tuple[PlannerRule, ...] = (
         name="gate_paywall_or_block_archive",
         priority=RulePriority.LOW,
         decide=_decide_gate_paywall_or_block_archive,
+    ),
+    # Declared LAST: the paid last resort only fires when every rule above
+    # returns None (free/proxied ladder + browser + archive all exhausted).
+    PlannerRule(
+        name="paid_last_resort",
+        priority=RulePriority.LOW,
+        decide=_decide_paid_last_resort,
     ),
 )
 
@@ -253,6 +300,7 @@ __all__ = [
     "Action",
     "Continue",
     "EscalateBrowser",
+    "EscalatePaid",
     "PlannerCaps",
     "PlannerRule",
     "RetryViaArchive",

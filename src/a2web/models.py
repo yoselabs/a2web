@@ -38,6 +38,7 @@ class Verdict(StrEnum):
     not_found = "not_found"
     rate_limited = "rate_limited"
     proxy_unavailable = "proxy_unavailable"
+    paid_auth_error = "paid_auth_error"
     other = "other"
 
 
@@ -112,6 +113,40 @@ class OperatorHint(BaseModel):
     code: str
     message: str
     fix: str | None = None
+    severity: Literal["info", "critical"] = "info"
+
+    @model_serializer(mode="wrap")
+    def _omit_default_severity(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        """Drop `severity` from the wire when it is the default `info`.
+
+        Keeps existing operator-hint snapshots stable — only a `critical`
+        hint (e.g. `try_user_browser`) surfaces the new key.
+        """
+        data = handler(self)
+        if data.get("severity") == "info":
+            data.pop("severity", None)
+        return data
+
+
+def try_user_browser_hint(url: str) -> OperatorHint:
+    """The critical never-silently-miss escalation hint for a walled URL.
+
+    Capability-generic (never names a specific browser product). Imperative:
+    the caller must either open the URL in a real browser tool or explicitly
+    tell the user the source could not be retrieved. Emitted eagerly by the
+    Reddit handler and late (after the tier ladder) for other walled hosts.
+    """
+    return OperatorHint(
+        code="try_user_browser",
+        message=(
+            f"This URL was NOT retrieved — it is behind an anti-bot / paywall wall ({url}). "
+            "You do NOT have this content; do not answer as if you do. You MUST either open it "
+            "in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell "
+            "the user this source could not be retrieved and what is missing."
+        ),
+        fix="Open the URL in a real-browser tool and read the page, or report the gap to the user.",
+        severity="critical",
+    )
 
 
 NextLinkKind = Literal["drilldown", "related", "source", "discussion"]
@@ -290,6 +325,11 @@ class FetchResponse(BaseModel):
     operator_hints: list[OperatorHint] = Field(default_factory=list)
     next_links: list[NextLink] = Field(default_factory=list)
 
+    # True when the requested URL's content was NOT retrieved (a wall:
+    # block_page_detected / anti_bot / paywall). Omitted from the wire when
+    # False (see `_prune_wire`); absence therefore means retrieval was complete.
+    retrieval_incomplete: bool = False
+
     # v0.4: present only when the caller passed `ask=`. None when ask is unset.
     extracted_answer: str | None = None
     extraction: ExtractionMeta | None = None
@@ -417,6 +457,11 @@ def _prune_wire(
     debug: dict[str, object] = {}
     for key, value in data.items():
         is_empty = value is None or value == "" or value == [] or value == {}
+        # Scoped omit-when-False: `retrieval_incomplete` is a bool whose `False`
+        # (retrieval complete) is the boring default and must not leak onto the
+        # wire. Kept field-scoped so other `False` bools are unaffected.
+        if key == "retrieval_incomplete" and value is False:
+            is_empty = True
         if key in debug_fields:
             if not is_empty:
                 debug[key] = value
@@ -474,6 +519,10 @@ class AskResponse(BaseModel):
     next_links: list[NextLink] = Field(default_factory=list)
     meta: dict[str, str] = Field(default_factory=dict)
     extraction: AskExtraction | None = None
+
+    # Mirrors FetchResponse.retrieval_incomplete — true when the URL was walled
+    # and not retrieved. Omitted from the wire when False (see `_prune_wire`).
+    retrieval_incomplete: bool = False
 
     content_md: str = ""
     headings: list[Heading] = Field(default_factory=list)

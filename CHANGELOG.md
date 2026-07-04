@@ -8,6 +8,53 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.25.0] — 2026-07-04
+
+### Added — Reddit reachability + "never tolerate ANY unfetched URL" tenet (`reddit-reachability-never-silent-miss`)
+
+- **Reddit is reachable again, keyless.** The Reddit handler now projects
+  `search` / `listing` / `thread` URLs to their `.rss` (Atom) equivalents and
+  parses them with stdlib `xml.etree.ElementTree` — the `.rss` endpoints are NOT
+  behind Datadome (every `.json` shape is 403-walled from a datacenter/remote
+  IP). All listing sorts project (bare/`hot`/`best` → `/r/<sub>/.rss`;
+  `top`/`new`/`rising`/`controversial` → `/r/<sub>/<sort>.rss`, preserving
+  `?t=`). RSS output is a **degraded projection by design** — flat comment
+  *sample* (recent-ordered, no scores, no nesting), explicitly labeled "not
+  scored, not ranked, not complete." `429` backs off (`_RSS_BACKOFF_S`) then
+  fails loud; search/listing `403` fires the critical browser hint eagerly (the
+  full tier ladder is proven to lose on Reddit).
+- **Never-silently-miss is now a first-class product invariant (ADR-0009).** A
+  walled or failed fetch can no longer masquerade as a complete answer:
+  `FetchResponse`/`AskResponse` carry `retrieval_incomplete: bool` (omitted from
+  the wire when `false`), and a terminal wall emits
+  `OperatorHint(code="try_user_browser", severity="critical")` — imperative and
+  capability-generic (names no browser product): *this URL was NOT retrieved; do
+  not answer as if you have it; open it in a real browser tool OR tell the user
+  it could not be retrieved.* Reddit emits it eagerly from the handler; other
+  hosts emit it late (after the tier ladder exhausts), deduped by
+  `_has_browser_hint` so there is never a double-emit. The CLAUDE.md tenet line
+  was strengthened from "Never silently drop a fetch" to "**Never tolerate ANY
+  unfetched URL**."
+- **Env-gated paid last-resort tiers: Zyte + Firecrawl.** New out-of-band tiers
+  (`tiers/zyte.py`, `tiers/firecrawl.py`; manifests `priority=-1`) keyed by
+  `A2WEB_ZYTE_KEY` / `A2WEB_FIRECRAWL_KEY` (env-only secrets, added to the YAML
+  `EXCLUDE` set). Un-keyed → the manifest returns `Unavailable` and the tier
+  never registers, so zero-config fetches never incur cost. Dispatched by a new
+  `EscalatePaid` planner action (the lowest-priority rule, declared last) **only
+  after** the free/proxied ladder (raw → jina → browser → archive) hits a wall —
+  never speculative, capped at one paid attempt per fetch. A keyed-but-failing
+  service (bad key / exhausted billing) maps to the new **authoritative**
+  `Verdict.paid_auth_error` (rank 12 — outranks every wall) and **STOPs**
+  escalation: no silent fall-through to a sibling paid tier or a cheaper result.
+- **Dependency memory (Constitution Article VIII).** ADR-0009 (tenet) + ADR-0010
+  (every Reddit access path tried/adopted/rejected/deferred, with re-evaluation
+  triggers) + `src/a2web/tiers/_deps.md` record the Zyte/Firecrawl adoptions and
+  the Redlib / PullPush / Reddit-OAuth / proxy-through-Shen / local-cookie-CLI
+  rejections so none is re-litigated.
+- **Envelope change is additive.** New fields only — `retrieval_incomplete`,
+  `OperatorHint.severity`, and one new `Verdict` value (`paid_auth_error`); no
+  removals. Golden contracts (`tests/contracts/`) re-blessed additive-only.
+
 ## [0.24.0] — 2026-06-28
 
 ### Changed — MCP surface: code-mode off by default; named tools advertised directly (a2kit 0.46)

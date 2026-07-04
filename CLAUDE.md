@@ -96,7 +96,7 @@ Currently enforced:
 
 - Never commit credentials. Secrets are env-only (`A2WEB_*`).
 - Never bypass the quality gate when writing to cache (block pages must never enter cache).
-- Never silently drop a fetch — `status: failed` + populated `diagnostics` + `narrative` + `operator_hints` is the floor.
+- **Never tolerate ANY unfetched URL** (the first-class product invariant — ADR-0009). A wall is not an outcome, it is an unfinished job: a walled/failed fetch MUST carry `status: failed` + `retrieval_incomplete: true` + populated `diagnostics` + `narrative` + a critical `try_user_browser` operator hint (or `paid_auth_error` when a keyed paid tier's key is bad). The caller must never be able to mistake a miss for a complete answer. Adding a fetch path that can silently return empty-but-`ok` violates this — the floor is loud, explicit incompleteness.
 - Never retry the whole flow — retries live at one of 5 specific layers (connection / HTTP / proxy / tier / handler) with circuit breakers.
 - Never add `print()` or sync I/O in async paths.
 - Never reintroduce `tier_extras: dict[str, Any]` — add a typed field on `TierResult` instead.

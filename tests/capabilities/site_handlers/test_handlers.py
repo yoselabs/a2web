@@ -9,7 +9,7 @@ import pytest
 
 from a2web.handlers import HNHandler, RedditHandler, TwitterHandler, match_handler
 from a2web.handlers.hn import _render_item
-from a2web.handlers.reddit import _fetch_old_reddit, _render_thread, _to_old_reddit_url
+from a2web.handlers.reddit import _fetch_old_reddit, _to_old_reddit_url
 from a2web.models import Verdict
 from a2web.settings import AppSettings
 from a2web.state import AppState
@@ -17,6 +17,11 @@ from tests._helpers.fake_http import FakeCurlResp, patch_curl_session
 from tests.fixtures import FIXTURES_DIR
 
 _FIX = FIXTURES_DIR
+_RSS = FIXTURES_DIR / "reddit"
+
+
+def _rss_bytes(name: str) -> bytes:
+    return (_RSS / name).read_bytes()
 
 
 def test_match_handler_returns_none_for_arbitrary_url() -> None:
@@ -59,240 +64,80 @@ def test_reddit_matches_unscoped_search() -> None:
     assert RedditHandler().matches("https://www.reddit.com/search/?q=projector")
 
 
-def test_reddit_render_search_produces_list() -> None:
-    """`_render_search` emits a terse markdown list of t3 results."""
-    from a2web.handlers.reddit import _render_search
+# --------------------------------------------------------------------- #
+# RSS (Atom) projection — search / listing / thread render from live feeds
+# --------------------------------------------------------------------- #
 
-    payload = {
-        "kind": "Listing",
-        "data": {
-            "children": [
-                {
-                    "kind": "t3",
-                    "data": {
-                        "title": "Wanbo Mozart 1 Pro upside down with Gimbal?",
-                        "subreddit": "projectors",
-                        "author": "alice",
-                        "score": 4,
-                        "num_comments": 9,
-                        "permalink": "/r/projectors/comments/abc/foo/",
-                        "created_utc": 1700000000.0,
-                    },
-                },
-                {
-                    "kind": "t3",
-                    "data": {
-                        "title": "Does this look too good to be true?",
-                        "subreddit": "projectors",
-                        "author": "bob",
-                        "score": 1,
-                        "num_comments": 2,
-                        "permalink": "/r/projectors/comments/def/bar/",
-                        "created_utc": 1700001000.0,
-                    },
-                },
-            ]
-        },
-    }
-    rendered = _render_search(payload, query="Wanbo Mozart 1 Pro")
-
-    assert rendered["is_empty"] is False
-    md = rendered["content_md"]
-    assert md.startswith("# Search: Wanbo Mozart 1 Pro")
-    assert "## Results (2)" in md
-    assert "Wanbo Mozart 1 Pro upside down with Gimbal?" in md
-    assert "Does this look too good to be true?" in md
-    assert "r/projectors" in md
-    assert "u/alice" in md
-    assert "https://www.reddit.com/r/projectors/comments/abc/foo/" in md
+_EMPTY_ATOM = b'<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title>empty</title></feed>'
 
 
-def test_reddit_render_listing_produces_list() -> None:
-    """`_render_listing` renders `/r/SUB/top/?t=year` as a terse post list."""
-    from a2web.handlers.reddit import _render_listing
+def test_reddit_to_rss_url_projects_every_shape() -> None:
+    """`.json`-free reddit URLs rewrite to their keyless `.rss` equivalent."""
+    from a2web.handlers.reddit import _to_rss_url
 
-    payload = {
-        "kind": "Listing",
-        "data": {
-            "children": [
-                {
-                    "kind": "t3",
-                    "data": {
-                        "title": "Enlightened Equipment: What You Should Know",
-                        "subreddit": "Ultralight",
-                        "author": "RekeMarie",
-                        "score": 1529,
-                        "num_comments": 590,
-                        "permalink": "/r/Ultralight/comments/1qx6qni/enlightened_equipment_what_you_should_know/",
-                        "created_utc": 1700000000.0,
-                    },
-                },
-                {
-                    "kind": "t3",
-                    "data": {
-                        "title": "Trip Report - PCT YoYo - 5,192 Miles",
-                        "subreddit": "Ultralight",
-                        "author": "velocd",
-                        "score": 364,
-                        "num_comments": 59,
-                        "permalink": "/r/Ultralight/comments/1rkmr09/trip_report/",
-                        "created_utc": 1700001000.0,
-                    },
-                },
-            ]
-        },
-    }
-    rendered = _render_listing(payload, subreddit="Ultralight", sort="top", time_window="year")
-    assert rendered["is_empty"] is False
-    md = rendered["content_md"]
-    assert md.startswith("# r/Ultralight · top · year")
-    assert "## Posts (2)" in md
-    assert "Enlightened Equipment" in md
-    assert "u/velocd" in md
-    assert "https://www.reddit.com/r/Ultralight/comments/1qx6qni/" in md
-    # next_links — Tier 1 candidates from the listing payload
-    candidates = rendered["next_links"]
-    assert len(candidates) == 2
-    assert candidates[0].kind == "drilldown"
-    assert candidates[0].anchor == "Enlightened Equipment: What You Should Know"
-    assert candidates[0].url == "https://www.reddit.com/r/Ultralight/comments/1qx6qni/enlightened_equipment_what_you_should_know/"
-    assert candidates[0].reason == "1529 score, 590 comments"
+    assert (
+        _to_rss_url("https://www.reddit.com/r/gravelcycling/search/?q=bell&restrict_sr=1&sort=top", "search")
+        == "https://www.reddit.com/r/gravelcycling/search.rss?q=bell&restrict_sr=1&sort=top"
+    )
+    assert _to_rss_url("https://www.reddit.com/r/gravelcycling/top/?t=year", "listing") == "https://www.reddit.com/r/gravelcycling/top.rss?t=year"
+    # Bare / hot / best all map to the default feed (verified live: the bare
+    # `.rss` feed IS the hot feed).
+    assert _to_rss_url("https://www.reddit.com/r/gravelcycling/", "listing") == "https://www.reddit.com/r/gravelcycling/.rss"
+    assert _to_rss_url("https://www.reddit.com/r/gravelcycling/hot/", "listing") == "https://www.reddit.com/r/gravelcycling/.rss"
+    assert (
+        _to_rss_url("https://www.reddit.com/r/gravelcycling/comments/1qcwxml/new_bike_day/", "comments")
+        == "https://www.reddit.com/r/gravelcycling/comments/1qcwxml/new_bike_day/.rss"
+    )
 
 
-def test_reddit_listing_candidates_skip_nsfw_when_subreddit_is_sfw() -> None:
-    """NSFW posts on a SFW subreddit listing are dropped from next_links."""
-    from a2web.handlers.reddit import _render_listing
+def test_reddit_render_search_atom_produces_list() -> None:
+    """`_render_search_atom` emits a terse markdown list from a real search feed."""
+    from a2web.handlers.reddit import _parse_atom, _render_search_atom
 
-    payload = {
-        "kind": "Listing",
-        "data": {
-            "over18": False,
-            "children": [
-                {
-                    "kind": "t3",
-                    "data": {
-                        "title": "Clean post",
-                        "subreddit": "x",
-                        "author": "a",
-                        "score": 100,
-                        "num_comments": 5,
-                        "permalink": "/r/x/comments/1/clean/",
-                        "created_utc": 1700000000.0,
-                        "over_18": False,
-                    },
-                },
-                {
-                    "kind": "t3",
-                    "data": {
-                        "title": "NSFW post",
-                        "subreddit": "x",
-                        "author": "b",
-                        "score": 90,
-                        "num_comments": 4,
-                        "permalink": "/r/x/comments/2/nsfw/",
-                        "created_utc": 1700000001.0,
-                        "over_18": True,
-                    },
-                },
-                {
-                    "kind": "t3",
-                    "data": {
-                        "title": "Also clean",
-                        "subreddit": "x",
-                        "author": "c",
-                        "score": 80,
-                        "num_comments": 3,
-                        "permalink": "/r/x/comments/3/clean2/",
-                        "created_utc": 1700000002.0,
-                        "over_18": False,
-                    },
-                },
-            ],
-        },
-    }
-    rendered = _render_listing(payload, subreddit="x", sort="hot", time_window="")
-    titles = [c.anchor for c in rendered["next_links"]]
-    assert titles == ["Clean post", "Also clean"]
+    rendered = _render_search_atom(_parse_atom(_rss_bytes("search.rss")), query="bell")
+    assert rendered.is_empty is False
+    md = rendered.content_md
+    assert md.startswith("# Search: bell")
+    assert "## Results (25)" in md
+    assert "New bike day" in md
+    assert "u/aspiring-housewife-" in md
+    assert "https://www.reddit.com/r/gravelcycling/comments/1qcwxml/new_bike_day/" in md
+    # RSS carries no score / comment count — the meta line must never fabricate one.
+    assert "score" not in md
+    assert "comments)" not in md
 
 
-def test_reddit_listing_candidates_capped_at_10() -> None:
-    """Listing with 15 children produces exactly 10 next_links entries."""
-    from a2web.handlers.reddit import _render_listing
+def test_reddit_render_listing_atom_produces_list_and_next_links() -> None:
+    """`_render_listing_atom` renders posts + drill-down next_links from a real feed."""
+    from a2web.handlers.reddit import _parse_atom, _render_listing_atom
 
-    children = [
-        {
-            "kind": "t3",
-            "data": {
-                "title": f"Post {i}",
-                "subreddit": "x",
-                "author": "a",
-                "score": 100 - i,
-                "num_comments": 5,
-                "permalink": f"/r/x/comments/{i}/post/",
-                "created_utc": 1700000000.0 + i,
-            },
-        }
-        for i in range(15)
-    ]
-    rendered = _render_listing({"data": {"children": children}}, subreddit="x", sort="hot", time_window="")
-    assert len(rendered["next_links"]) == 10
+    rendered = _render_listing_atom(_parse_atom(_rss_bytes("listing.rss")), subreddit="gravelcycling", sort="top", time_window="year")
+    assert rendered.is_empty is False
+    md = rendered.content_md
+    assert md.startswith("# r/gravelcycling · top · year")
+    assert "## Posts (25)" in md
+    # next_links capped at 10, drill-down into the thread permalinks.
+    assert len(rendered.next_links) == 10
+    assert rendered.next_links[0].kind == "drilldown"
+    assert rendered.next_links[0].url.startswith("https://www.reddit.com/r/gravelcycling/comments/")
+    assert rendered.next_links[0].anchor
 
 
-def test_reddit_permalink_returns_empty_next_links() -> None:
-    """Single-thread `_render_thread` does not populate next_links — no drilldown layer."""
-    from a2web.handlers.reddit import _render_thread
+def test_reddit_render_listing_atom_omits_time_window_for_non_top() -> None:
+    """Hot/new don't take `?t=`; the suffix is omitted from the title."""
+    from a2web.handlers.reddit import _parse_atom, _render_listing_atom
 
-    post_data = {
-        "title": "T",
-        "subreddit": "x",
-        "author": "a",
-        "score": 1,
-        "num_comments": 0,
-        "selftext": "body",
-    }
-    payload = [
-        {"data": {"children": [{"kind": "t3", "data": post_data}]}},
-        {"data": {"children": []}},
-    ]
-    rendered = _render_thread(payload)
-    assert "next_links" not in rendered or rendered.get("next_links", []) == []
+    rendered = _render_listing_atom(_parse_atom(_rss_bytes("listing.rss")), subreddit="x", sort="hot", time_window="year")
+    assert rendered.content_md.startswith("# r/x · hot\n")
 
 
-def test_reddit_render_listing_omits_time_window_for_non_top() -> None:
-    """Hot/new don't take `?t=`; suffix should be omitted."""
-    from a2web.handlers.reddit import _render_listing
+def test_reddit_render_search_atom_empty_feed_is_empty() -> None:
+    """Zero entries → `is_empty=True` so the orchestrator surfaces not_found."""
+    from a2web.handlers.reddit import _parse_atom, _render_search_atom
 
-    payload = {
-        "kind": "Listing",
-        "data": {
-            "children": [
-                {
-                    "kind": "t3",
-                    "data": {
-                        "title": "Hot post",
-                        "subreddit": "x",
-                        "author": "a",
-                        "score": 1,
-                        "num_comments": 0,
-                        "permalink": "/r/x/comments/1/p/",
-                        "created_utc": 1700000000.0,
-                    },
-                }
-            ]
-        },
-    }
-    rendered = _render_listing(payload, subreddit="x", sort="hot", time_window="year")
-    assert rendered["content_md"].startswith("# r/x · hot\n")
-
-
-def test_reddit_render_search_empty_listing_is_empty() -> None:
-    """Zero results → `is_empty=True` so orchestrator surfaces no_match."""
-    from a2web.handlers.reddit import _render_search
-
-    payload = {"kind": "Listing", "data": {"children": []}}
-    rendered = _render_search(payload, query="nothing-matches-here")
-    assert rendered["is_empty"] is True
-    assert rendered["content_md"] == ""
+    rendered = _render_search_atom(_parse_atom(_EMPTY_ATOM), query="nothing-matches-here")
+    assert rendered.is_empty is True
+    assert rendered.content_md == ""
 
 
 def test_reddit_human_age_compact() -> None:
@@ -352,27 +197,30 @@ def test_hn_does_not_match_user_page() -> None:
     assert not HNHandler().matches("https://news.ycombinator.com/user?id=denis")
 
 
-def test_reddit_render_thread_includes_post_and_quoted_comments() -> None:
-    payload = json.loads((_FIX / "reddit_thread.json").read_text())
-    rendered = _render_thread(payload)
+def test_reddit_render_thread_atom_includes_post_and_flat_comment_sample() -> None:
+    """`_render_thread_atom` renders the OP + a FLAT, sample-labelled comment list."""
+    from a2web.handlers.reddit import _parse_atom, _render_thread_atom
 
-    assert rendered["title"] == "Best Local LLMs in April 2026"
-    assert rendered["byline"] == "u/somebody"
+    rendered = _render_thread_atom(_parse_atom(_rss_bytes("thread.rss")))
 
-    md = rendered["content_md"]
-    assert md.startswith("# Best Local LLMs in April 2026")
-    assert "Qwen3-32B is the surprise leader" in md
-    # Top-level comment quoted with `>`
-    assert "> Top-level comment with multiline" in md
-    # Nested reply quoted with `>>`
-    assert ">> Nested reply at depth 2." in md
-    # Author byline rendered
-    assert "— u/alice" in md
-    assert "— u/bob" in md
-    assert "— u/charlie" in md
+    assert rendered.title == "New bike day"
+    assert rendered.byline == "u/aspiring-housewife-"
 
-    # 'more' stub is counted
-    assert rendered["more_stubs"] == 17
+    md = rendered.content_md
+    assert md.startswith("# New bike day")
+    assert "in r/gravelcycling" in md
+    # OP body (md-div extracted; thumbnail table + SC markers stripped).
+    assert "Ribble Allgrit Ti" in md
+    assert "SC_OFF" not in md
+    # Comments come back flat and are explicitly labelled a sample — never
+    # implied complete (never-silently-miss / honest-degradation contract).
+    assert "## Comments (sample of" in md
+    assert "not scored, not ranked, not complete" in md
+    assert "— u/Newyawker2022" in md
+    # Flat: no nested `>>` quoting (RSS has no comment tree).
+    assert ">>" not in md
+    # Thread render carries no next_links (no drill-down layer).
+    assert rendered.next_links == []
 
 
 def test_hn_render_item_includes_story_and_quoted_replies() -> None:
@@ -467,14 +315,14 @@ async def test_old_reddit_fallback_returns_not_found_on_404(
 
 
 @pytest.mark.asyncio
-async def test_reddit_handler_falls_back_on_json_404(
+async def test_reddit_handler_falls_back_on_rss_404(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """RedditHandler: .json 404 → tries old.reddit and returns its content."""
+    """RedditHandler: thread .rss 404 → tries old.reddit and returns its content."""
     html = "<html><body><article><h1>Recoverable thread</h1><p>" + ("body " * 100) + "</p></article></body></html>"
 
     def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
-        if ".json" in url:
+        if ".rss" in url:
             return FakeCurlResp(404)
         # old.reddit fallback
         assert "old.reddit.com" in url
@@ -494,15 +342,15 @@ async def test_reddit_handler_falls_back_on_json_404(
 async def test_reddit_handler_falls_back_on_empty_thread(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """RedditHandler: .json 200 but empty render → tries old.reddit."""
+    """RedditHandler: thread .rss 200 but empty render → tries old.reddit."""
     html = "<html><body><article><h1>Quarantined-but-readable</h1><p>" + ("body " * 100) + "</p></article></body></html>"
     calls: list[str] = []
 
     def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         calls.append(url)
-        if ".json" in url:
-            # Valid JSON but renders to empty content_md.
-            return FakeCurlResp(200, json=[{}, {}])
+        if ".rss" in url:
+            # Valid Atom but renders to empty content_md (no entries).
+            return FakeCurlResp(200, body=_EMPTY_ATOM, content_type="application/atom+xml")
         return FakeCurlResp(200, text=html)
 
     patch_curl_session(monkeypatch, handler)
@@ -512,36 +360,35 @@ async def test_reddit_handler_falls_back_on_empty_thread(
     assert result.verdict == Verdict.ok
     assert result.pre_rendered is not None
     assert result.pre_rendered.content_md
-    # Two requests: .json then old.reddit
+    # Two requests: .rss then old.reddit
     assert len(calls) == 2
-    assert ".json" in calls[0]
+    assert ".rss" in calls[0]
     assert "old.reddit.com" in calls[1]
 
 
 @pytest.mark.asyncio
-async def test_reddit_handler_skips_fallback_when_json_succeeds(
+async def test_reddit_handler_skips_fallback_when_rss_succeeds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """When .json returns a renderable thread, old.reddit is NOT fetched."""
-    payload = json.loads((_FIX / "reddit_thread.json").read_text())
+    """When thread .rss returns a renderable feed, old.reddit is NOT fetched."""
     calls: list[str] = []
 
     def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         calls.append(url)
-        if ".json" in url:
-            return FakeCurlResp(200, json=payload)
+        if ".rss" in url:
+            return FakeCurlResp(200, body=_rss_bytes("thread.rss"), content_type="application/atom+xml")
         return FakeCurlResp(404)  # would-be old.reddit; shouldn't be hit
 
     patch_curl_session(monkeypatch, handler)
 
-    result = await RedditHandler().fetch("https://www.reddit.com/r/x/comments/abc/title/", state=_make_state())
+    result = await RedditHandler().fetch("https://www.reddit.com/r/gravelcycling/comments/1qcwxml/new_bike_day/", state=_make_state())
 
     assert result.verdict == Verdict.ok
     assert result.pre_rendered is not None
-    assert result.pre_rendered.title == "Best Local LLMs in April 2026"
+    assert result.pre_rendered.title == "New bike day"
     # Single request — old.reddit not touched.
     assert len(calls) == 1
-    assert ".json" in calls[0]
+    assert ".rss" in calls[0]
 
 
 # --------------------------------------------------------------------- #
@@ -696,64 +543,12 @@ def test_reddit_permalink_detection() -> None:
     assert _detect_permalink("https://www.reddit.com/r/x/comments/abc/slug/another_slug/") is None
 
 
-def test_reddit_render_permalink_includes_target_and_ancestors() -> None:
-    """Focused render shows the target comment with ancestor context."""
-    from a2web.handlers.reddit import _render_thread
-
-    payload = json.loads((_FIX / "reddit_permalink.json").read_text())
-    rendered = _render_thread(payload, target_comment="target99")
-
-    md = rendered["content_md"]
-    assert "Focused comment" in md
-    assert "🎯 Focused comment by u/charlie" in md
-    assert "This is the focused target comment." in md
-    # Ancestor block-quoted with context label.
-    assert "Context — ancestors of the focused comment" in md
-    assert "Top-level ancestor comment." in md
-    assert "Mid-level ancestor." in md
-    # Reply to the target is included.
-    assert "Reply to the focused comment." in md
-
-
-def test_reddit_render_permalink_falls_back_when_target_missing() -> None:
-    """If the target id isn't in the tree, fall back to full thread render."""
-    from a2web.handlers.reddit import _render_thread
-
-    payload = json.loads((_FIX / "reddit_thread.json").read_text())
-    rendered = _render_thread(payload, target_comment="nonexistent")
-
-    md = rendered["content_md"]
-    # Standard "## Comments" section instead of focused view.
-    assert "## Comments" in md
-    assert "Focused comment" not in md
-
-
-def test_reddit_render_crosspost_includes_source_annotation() -> None:
-    """Posts with crosspost_parent_list get a source annotation line."""
-    from a2web.handlers.reddit import _render_thread
-
-    payload = json.loads((_FIX / "reddit_crosspost.json").read_text())
-    rendered = _render_thread(payload)
-
-    md = rendered["content_md"]
-    assert "🔁 Crossposted from" in md
-    assert "r/MachineLearning" in md
-    assert "u/original_author" in md
-    # Original title surfaced in the annotation.
-    assert "How agent fetchers handle paywalls" in md
-
-
-def test_reddit_render_removed_post_marks_body() -> None:
-    """selftext == '[removed]' is replaced with a visible marker."""
-    from a2web.handlers.reddit import _render_thread
-
-    payload = json.loads((_FIX / "reddit_removed.json").read_text())
-    rendered = _render_thread(payload)
-
-    md = rendered["content_md"]
-    assert "_[post body removed]_" in md
-    # Title still rendered.
-    assert "An interesting question" in md
+# NOTE: permalink-focus, crosspost annotation, and `[removed]`-body marking
+# were `.json`-only capabilities. The keyless `.rss` projection is FLAT and
+# carries none of that structure, so those renders (and their tests) were
+# retired in the RSS switch. A comment permalink now routes to the whole
+# thread `.rss`, rendered flat (`_detect_permalink` still classifies the
+# shape so the caller knows a specific comment was requested).
 
 
 @pytest.mark.asyncio
@@ -781,7 +576,7 @@ async def test_reddit_handler_signals_archive_on_404_when_old_reddit_also_fails(
 
 @pytest.mark.asyncio
 async def test_reddit_handler_signals_archive_on_403(monkeypatch: pytest.MonkeyPatch) -> None:
-    """403 (quarantined/NSFW/private) skips old.reddit and asks for archive."""
+    """Thread 403 (quarantined/NSFW/private) skips old.reddit and asks for archive."""
 
     def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         return FakeCurlResp(403)
@@ -796,20 +591,61 @@ async def test_reddit_handler_signals_archive_on_403(monkeypatch: pytest.MonkeyP
 
 
 @pytest.mark.asyncio
+async def test_reddit_search_403_fails_loud_with_eager_browser_hint(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A hard block on a search/listing surface is terminal → fail loud.
+
+    Never-silently-miss tenet: the handler emits `block_page_detected`
+    (so the envelope's `retrieval_incomplete` flag is set) plus the critical
+    `try_user_browser` operator hint, EAGERLY — the archive/browser ladder
+    can't recover a dynamic search surface.
+    """
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(403)
+
+    patch_curl_session(monkeypatch, handler)
+
+    result = await RedditHandler().fetch("https://www.reddit.com/r/x/search/?q=bell", state=_make_state())
+
+    assert result.verdict == Verdict.block_page_detected
+    assert result.pre_rendered is None
+    assert result.operator_hint is not None
+    assert result.operator_hint.code == "try_user_browser"
+    assert result.operator_hint.severity == "critical"
+
+
+@pytest.mark.asyncio
+async def test_reddit_rss_429_fails_loud_after_backoff(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Repeated RSS 429s exhaust the bounded backoff, then fail loud (never silent)."""
+    monkeypatch.setattr("a2web.handlers.reddit._RSS_BACKOFF_S", ())  # no sleeping in tests
+    calls: list[str] = []
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        calls.append(url)
+        return FakeCurlResp(429)
+
+    patch_curl_session(monkeypatch, handler)
+
+    result = await RedditHandler().fetch("https://www.reddit.com/r/gravelcycling/comments/1qcwxml/new_bike_day/", state=_make_state())
+
+    assert result.verdict == Verdict.rate_limited
+    assert result.pre_rendered is None
+
+
+@pytest.mark.asyncio
 async def test_reddit_handler_resolves_short_url_then_renders(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """redd.it/<id> → HEAD-resolved (via 301) → recursed → renders the thread."""
-    payload = json.loads((_FIX / "reddit_thread.json").read_text())
-    resolved_url = "https://www.reddit.com/r/x/comments/abc/some_title/"
+    """redd.it/<id> → HEAD-resolved (via 301) → recursed → renders the thread via .rss."""
+    resolved_url = "https://www.reddit.com/r/gravelcycling/comments/1qcwxml/new_bike_day/"
 
     def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         if "redd.it" in url:
             # Simulate curl_cffi having followed the 301 redirect — the
             # final_url is the resolved reddit URL the handler reads.
-            return FakeCurlResp(200, url=resolved_url, json={})
-        if ".json" in url:
-            return FakeCurlResp(200, json=payload)
+            return FakeCurlResp(200, url=resolved_url, body=b"")
+        if ".rss" in url:
+            return FakeCurlResp(200, body=_rss_bytes("thread.rss"), content_type="application/atom+xml")
         return FakeCurlResp(404)
 
     patch_curl_session(monkeypatch, handler)
@@ -818,7 +654,7 @@ async def test_reddit_handler_resolves_short_url_then_renders(
 
     assert result.verdict == Verdict.ok
     assert result.pre_rendered is not None
-    assert result.pre_rendered.title == "Best Local LLMs in April 2026"
+    assert result.pre_rendered.title == "New bike day"
 
 
 @pytest.mark.asyncio
@@ -849,7 +685,7 @@ def test_playbook_escalates_reddit_not_found_to_archive() -> None:
 
     url = "https://www.reddit.com/r/x/comments/dead/"
     log = [Observation(ObservationKind.tier_outcome, "site_handler:reddit", Verdict.not_found, True, 1)]
-    action = decide_next(log, url=url, caps=PlannerCaps(0, 0, 0))
+    action = decide_next(log, url=url, caps=PlannerCaps(0, 0, 0, 0))
     assert isinstance(action, RetryViaArchive)
     assert action.url == url
 
@@ -860,5 +696,5 @@ def test_playbook_does_not_escalate_not_found_on_other_hosts() -> None:
     from a2web.decision_log import Observation, ObservationKind
 
     log = [Observation(ObservationKind.tier_outcome, "raw", Verdict.not_found, False, 1)]
-    action = decide_next(log, url="https://example.com/page", caps=PlannerCaps(0, 0, 0))
+    action = decide_next(log, url="https://example.com/page", caps=PlannerCaps(0, 0, 0, 0))
     assert isinstance(action, Continue)

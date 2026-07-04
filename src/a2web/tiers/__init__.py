@@ -102,9 +102,11 @@ class Tier(Protocol):
 
 from .archive import ArchiveTier  # noqa: E402 — re-export for tests
 from .browser import BrowserTier  # noqa: E402
+from .firecrawl import FirecrawlTier  # noqa: E402
 from .jina import JinaTier  # noqa: E402
 from .raw import RawTier  # noqa: E402 — circular import avoidance
 from .site_handler import SiteHandlerTier  # noqa: E402
+from .zyte import ZyteTier  # noqa: E402
 
 
 def _load_tier_registry() -> tuple[dict[str, Tier], tuple[str, ...]]:
@@ -151,10 +153,12 @@ __all__ = [
     "TIER_ORDER",
     "ArchiveTier",
     "BrowserTier",
+    "FirecrawlTier",
     "JinaTier",
     "RawTier",
     "Rendered",
     "SiteHandlerTier",
     "Tier",
     "TierResult",
+    "ZyteTier",
 ]

@@ -5,7 +5,7 @@ from __future__ import annotations
 from hypothesis import given
 from hypothesis import strategies as st
 
-from a2web.actions import Continue, EscalateBrowser, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
+from a2web.actions import Continue, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
 from a2web.decision_log import Observation, ObservationKind
 from a2web.models import Verdict
 from a2web.packages.escalation import EscalationSignal
@@ -34,6 +34,7 @@ _caps = st.builds(
     url_rewrites=st.integers(0, 2),
     archive_dispatches=st.integers(0, 2),
     browser_dispatches=st.integers(0, 2),
+    paid_dispatches=st.integers(0, 2),
 )
 _urls = st.sampled_from(
     [
@@ -44,14 +45,14 @@ _urls = st.sampled_from(
     ],
 )
 
-_FRESH = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=0)
+_FRESH = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=0, paid_dispatches=0)
 
 
 @given(_logs, _urls, _caps)
 def test_decide_next_is_total(log: list[Observation], url: str, caps: PlannerCaps) -> None:
     """Every (log, url, caps) yields exactly one valid Action."""
     action = decide_next(log, url=url, caps=caps)
-    assert isinstance(action, (RetryViaArchive, RewriteUrl, EscalateBrowser, Continue))
+    assert isinstance(action, (RetryViaArchive, RewriteUrl, EscalateBrowser, EscalatePaid, Continue))
 
 
 @given(_logs, _urls, _caps)
@@ -66,6 +67,8 @@ def test_decide_next_respects_caps(log: list[Observation], url: str, caps: Plann
         # Browser escalates up to twice per fetch — fast Chromium rung then
         # robust CDP rung (the fast→robust ladder is this rule firing twice).
         assert caps.browser_dispatches < 2
+    if isinstance(action, EscalatePaid):
+        assert caps.paid_dispatches < 1
 
 
 def _tier(
@@ -119,7 +122,7 @@ def test_arxiv_pdf_rewrites_to_abs() -> None:
 
 
 def test_arxiv_rewrite_suppressed_when_cap_spent() -> None:
-    caps = PlannerCaps(url_rewrites=1, archive_dispatches=0, browser_dispatches=0)
+    caps = PlannerCaps(url_rewrites=1, archive_dispatches=0, browser_dispatches=0, paid_dispatches=0)
     action = decide_next([_tier(Verdict.ok)], url="https://arxiv.org/pdf/2401.12345", caps=caps)
     assert isinstance(action, Continue)
 
@@ -196,10 +199,16 @@ def test_reddit_listing_not_found_does_not_retry_archive() -> None:
     assert isinstance(decide_next(log, url="https://www.reddit.com/r/programming/", caps=_FRESH), Continue)
 
 
-def test_archive_cap_spent_suppresses_retry() -> None:
-    caps = PlannerCaps(url_rewrites=0, archive_dispatches=1, browser_dispatches=0)
+def test_archive_cap_spent_escalates_paid_then_suppresses() -> None:
+    """Archive spent on a paywall → the paid last resort fires; once paid is
+    also spent, the planner finally yields Continue (falls to the late hint)."""
     log = [_tier(Verdict.ok), _gate(Verdict.paywall)]
-    assert isinstance(decide_next(log, url="https://nyt.com/a", caps=caps), Continue)
+    caps_archive_spent = PlannerCaps(url_rewrites=0, archive_dispatches=1, browser_dispatches=0, paid_dispatches=0)
+    action = decide_next(log, url="https://nyt.com/a", caps=caps_archive_spent)
+    assert not isinstance(action, RetryViaArchive)  # archive suppressed
+    assert isinstance(action, EscalatePaid)  # paid is the next (last) resort
+    caps_all_spent = PlannerCaps(url_rewrites=0, archive_dispatches=1, browser_dispatches=0, paid_dispatches=1)
+    assert isinstance(decide_next(log, url="https://nyt.com/a", caps=caps_all_spent), Continue)
 
 
 def test_browser_escalates_twice_then_suppresses() -> None:
@@ -209,12 +218,36 @@ def test_browser_escalates_twice_then_suppresses() -> None:
     log = [_tier(Verdict.ok), _gate(Verdict.anti_bot, suggested_tier="browser")]
 
     def _at(n: int) -> object:
-        caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=n)
+        # paid_dispatches=1 keeps the paid last-resort rule out of the way so
+        # this test stays focused on the browser fast→robust ladder.
+        caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=n, paid_dispatches=1)
         return decide_next(log, url="https://x.com/", caps=caps)
 
     assert isinstance(_at(0), EscalateBrowser)  # fast rung
     assert isinstance(_at(1), EscalateBrowser)  # robust rung
     assert isinstance(_at(2), Continue)  # cap spent
+
+
+def test_paid_yields_to_archive_when_archive_available() -> None:
+    """Paid is the LAST resort — a still-available archive retry outranks it
+    (both LOW priority, archive declared earlier in _RULES)."""
+    log = [_tier(Verdict.ok), _gate(Verdict.paywall)]
+    action = decide_next(log, url="https://nyt.com/a", caps=_FRESH)
+    assert isinstance(action, RetryViaArchive)
+
+
+def test_paid_fires_on_anti_bot_after_browser_exhausted() -> None:
+    """anti_bot doesn't route to archive; once the browser ladder is spent the
+    paid last resort fires."""
+    log = [_tier(Verdict.ok), _gate(Verdict.anti_bot, suggested_tier="browser")]
+    caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=2, paid_dispatches=0)
+    assert isinstance(decide_next(log, url="https://x.com/", caps=caps), EscalatePaid)
+
+
+def test_paid_does_not_fire_on_success() -> None:
+    """A gate-passing fetch never triggers the paid last resort."""
+    log = [_tier(Verdict.ok), _gate(Verdict.ok)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), Continue)
 
 
 def test_gate_browser_signal_outranks_reddit_archive_when_both_apply() -> None:

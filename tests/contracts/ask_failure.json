@@ -3,6 +3,15 @@
   "confidence": "low",
   "diagnostics_summary": "tier=raw verdict=block_page_detected total_ms=<volatile> extras=cf_iuam",
   "narrative": "raw \u2192 block_page_detected:cf_iuam (<dur>).",
+  "operator_hints": [
+    {
+      "code": "try_user_browser",
+      "fix": "Open the URL in a real-browser tool and read the page, or report the gap to the user.",
+      "message": "This URL was NOT retrieved \u2014 it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.",
+      "severity": "critical"
+    }
+  ],
+  "retrieval_incomplete": true,
   "status": "failed",
   "title": "Just a moment..."
 }

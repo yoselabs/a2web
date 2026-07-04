@@ -83,7 +83,7 @@ def _resolve_yaml_path() -> Path | None:
 class _YamlSourceWithoutSecrets(YamlConfigSettingsSource):
     """YAML source that drops fields the user must supply via env only."""
 
-    EXCLUDE: ClassVar[frozenset[str]] = frozenset({"jina_key", "github_token"})
+    EXCLUDE: ClassVar[frozenset[str]] = frozenset({"jina_key", "github_token", "zyte_key", "firecrawl_key"})
 
     def __call__(self) -> dict[str, Any]:
         data = super().__call__()
@@ -124,6 +124,17 @@ class AppSettings(BaseSettings):
     jina_deny_hosts: list[str] = Field(default_factory=list)
 
     github_token: str = ""
+
+    # Paid last-resort fetch tiers (reddit-reachability-never-silent-miss).
+    # Env-only secrets (`A2WEB_ZYTE_KEY` / `A2WEB_FIRECRAWL_KEY`); a YAML-set
+    # value is dropped by `_YamlSourceWithoutSecrets`. Empty = the tier's
+    # manifest returns `Unavailable` at boot, so the tier never registers and
+    # zero-config fetches never incur cost. Dispatched out-of-band only after
+    # the free/proxied ladder (raw → jina → browser → archive) is exhausted on
+    # a wall verdict — never speculatively. A keyed-but-failing service surfaces
+    # `paid_auth_error` loudly (bad key), never a silent downgrade.
+    zyte_key: str = ""
+    firecrawl_key: str = ""
 
     browser_enabled: bool = True
     # Two browser rungs (browser-backend-bakeoff): the fast Chromium engine is

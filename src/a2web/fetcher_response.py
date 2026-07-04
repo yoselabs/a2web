@@ -204,6 +204,16 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # log, never a stored field. See `decision_log.resolve_verdict`.
     final_verdict = resolve_verdict(fc.observations)
     status = FetchStatus.ok if final_verdict == Verdict.ok else FetchStatus.failed
+    # never-silently-miss: a terminal wall — or a paid last-resort tier failing
+    # auth/billing — means the URL's content was not retrieved. Surface it
+    # explicitly so the caller can never mistake the (empty) result for a
+    # complete answer.
+    retrieval_incomplete = final_verdict in (
+        Verdict.block_page_detected,
+        Verdict.anti_bot,
+        Verdict.paywall,
+        Verdict.paid_auth_error,
+    )
     gate_outcome = fc.last_gate_outcome()
     gate_subsystem = gate_outcome.subsystem if gate_outcome else None
 
@@ -255,6 +265,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
         headings=fc.headings,
         content_md=wrapped_md,
         operator_hints=op_hints,
+        retrieval_incomplete=retrieval_incomplete,
         next_links=_compose_next_links(fc),
         extracted_answer=fc.extracted_answer,
         extraction=fc.extraction_meta,
@@ -325,6 +336,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         byline=fr.byline,
         published=fr.published,
         operator_hints=op_hints,
+        retrieval_incomplete=fr.retrieval_incomplete,
         next_links=list(fr.next_links),
         meta=dict(fr.meta),
         extraction=_debug_extraction(fr.extraction, debug=debug),

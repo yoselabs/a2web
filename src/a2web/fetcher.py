@@ -25,7 +25,7 @@ import a2kit
 import a2kit.log
 from a2kit import Lazy
 
-from .actions import Action, EscalateBrowser, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
+from .actions import Action, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
 from .cookie_jar import Cookie, CookieJarResource
 from .decision_log import Observation, ObservationKind, resolve_verdict
 from .domain import (
@@ -49,6 +49,7 @@ from .models import (
     NextLinkKind,
     OperatorHint,
     Verdict,
+    try_user_browser_hint,
 )
 from .packages.block_detector import evaluate as _package_evaluate
 from .packages.browser_backends import BrowserBackend
@@ -289,6 +290,7 @@ class FetchContext:
     url_rewrites: int = 0
     archive_dispatches: int = 0
     browser_dispatches: int = 0
+    paid_dispatches: int = 0
 
     # Extraction outputs
     content_md: str = ""
@@ -836,6 +838,7 @@ def _planner_caps(fc: FetchContext) -> PlannerCaps:
         url_rewrites=fc.url_rewrites,
         archive_dispatches=fc.archive_dispatches,
         browser_dispatches=fc.browser_dispatches,
+        paid_dispatches=fc.paid_dispatches,
     )
 
 
@@ -1014,6 +1017,12 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 status_code=tier_result.status_code,
                 cloudflare=_tier_is_cloudflare(tier_result),
             )
+            # Propagate a handler-set operator hint into fc so it reaches the
+            # response. Previously only the browser escalation consumed
+            # `TierResult.operator_hint`; site handlers (e.g. reddit's eager
+            # `try_user_browser`) had no path to the wire.
+            if tier_result.operator_hint is not None:
+                fc.operator_hints.append(tier_result.operator_hint)
             action = decide_next(fc.observations, url=fc.url, caps=_planner_caps(fc))
             executed = await _execute_tier_action(fc, action, tier_result, tier_name, tier, state=state)
             if executed is _Exec.RESTART:
@@ -1401,8 +1410,30 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
             if outcome.success and outcome.pre_rendered is not None:
                 _install_gate_archive(fc, outcome)
                 _regate_after_escalation(fc)
+        elif isinstance(action, EscalatePaid):
+            await _escalate_paid(fc, state=state)
         else:
             break  # Continue (or a URL rewrite — not used post-gate)
+
+    # Late never-silently-miss escalation: the tier + escalation ladder is now
+    # exhausted. If the fetch ended on a terminal wall, tell the caller —
+    # loudly — that the URL was not retrieved and only a real browser can pass.
+    # This is the safety net that catches every host, including Reddit shapes
+    # the site handler does NOT claim (e.g. `/user/`, `/wiki/`), which fall
+    # through to raw/jina and hit the wall with no eager hint. The
+    # `_has_browser_hint` dedup guarantees we never double-emit when the Reddit
+    # handler already attached its eager hint.
+    if fc.resolved_verdict() in _WALL_VERDICTS and not _has_browser_hint(fc):
+        fc.operator_hints.append(try_user_browser_hint(fc.final_url))
+
+
+# Terminal "walled" verdicts: the content was not retrieved and only a real
+# (logged-in) browser can pass. Drives the never-silently-miss escalation.
+_WALL_VERDICTS = (Verdict.block_page_detected, Verdict.anti_bot, Verdict.paywall)
+
+
+def _has_browser_hint(fc: FetchContext) -> bool:
+    return any(h.code == "try_user_browser" for h in fc.operator_hints)
 
 
 def _regate_after_escalation(fc: FetchContext) -> None:
@@ -1499,6 +1530,103 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
         _regate_after_escalation(fc)
     elif browser_result.operator_hint is not None:
         fc.operator_hints.append(browser_result.operator_hint)
+
+
+# Paid tiers tried, in order, by `_escalate_paid`. Only names present in
+# REGISTRY (i.e. keyed at boot) are actually dispatched; an un-keyed deployment
+# has neither and the escalation is a single no-op that burns the paid budget so
+# the planner falls through to the late never-silently-miss hint.
+_PAID_TIER_ORDER = ("zyte", "firecrawl")
+
+
+async def _escalate_paid(fc: FetchContext, *, state: AppState) -> None:
+    """Dispatch the paid last-resort tier out-of-band; install on success.
+
+    Cost-incurring, so capped at one escalation per fetch: `fc.paid_dispatches`
+    is bumped unconditionally at entry (even when no paid tier is registered) so
+    the planner's `paid_last_resort` rule cannot re-fire and spin.
+
+    FAIL-LOUD contract (task 4.6): a paid tier returning `paid_auth_error`
+    (bad key / exhausted billing) records an AUTHORITATIVE observation and STOPS
+    immediately — no fall-through to a sibling paid tier, no silent downgrade.
+    The authoritative `paid_auth_error` (rank 12) then wins `resolve_verdict`, so
+    the operator sees the real misconfiguration instead of a masked lower-tier
+    result. A transient non-auth failure (timeout / connection) is recorded
+    non-authoritatively and lets the next registered paid tier try.
+    """
+    fc.paid_dispatches += 1
+    for tier_name in _PAID_TIER_ORDER:
+        tier = REGISTRY.get(tier_name)
+        if tier is None:
+            continue  # un-keyed at boot — not registered.
+        paid_start_ms = await _emit_tier_started(step=tier_name, host=_host(fc.final_url), start_perf=fc.start_perf)
+        result = await tier.fetch(fc.final_url, state=state)
+        paid_dur_ms = await _emit_tier_ended(
+            step=tier_name,
+            engine=tier_name,
+            verdict=result.verdict,
+            start_ms=paid_start_ms,
+            start_perf=fc.start_perf,
+            extra={"status_code": result.status_code},
+        )
+        fc.diagnostics.append(
+            Diagnostic(
+                t_ms=paid_start_ms,
+                step=tier_name,
+                engine=tier_name,
+                host=_host(fc.final_url),
+                proxy=None,
+                verdict=result.verdict,
+                dur_ms=paid_dur_ms,
+                extra={"status_code": result.status_code},
+            )
+        )
+
+        if result.verdict is Verdict.paid_auth_error:
+            # Fail loud: authoritative hard-stop. Do NOT try the next paid tier.
+            fc.observe(
+                kind=ObservationKind.tier_outcome,
+                source=tier_name,
+                verdict=Verdict.paid_auth_error,
+                authoritative=True,
+                status_code=result.status_code,
+            )
+            return
+
+        pre = result.pre_rendered
+        if result.verdict is Verdict.ok and pre is not None:
+            fc.content_md = pre.content_md
+            fc.title = pre.title
+            fc.byline = pre.byline
+            fc.headings = pre.headings
+            fc.body = result.body
+            fc.content_type = result.content_type
+            fc.final_url = result.final_url
+            fc.tier_used = tier_name
+            fc.pre_rendered_payload = pre
+            fc.status_code = result.status_code
+            fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.ok)
+            # An HTML-returning paid tier (Zyte `browserHtml`) hands back a full
+            # rendered page — a straight markdown conversion carries SPA nav +
+            # inline-script noise. Run the extraction-escalation ladder
+            # (trafilatura + json/record synth) on the HTML first, mirroring
+            # `_escalate_browser`. Markdown-native paid tiers (Firecrawl) return
+            # no HTML body, so this is skipped and the clean markdown stands.
+            rendered_html = (
+                result.body.decode("utf-8", errors="replace") if ("html" in result.content_type and result.body) else ""
+            )
+            if rendered_html:
+                await _run_extraction_escalation(fc, raw_html=rendered_html)
+            _regate_after_escalation(fc)
+            return
+
+        # Non-auth failure — record and let the next registered paid tier try.
+        fc.observe(
+            kind=ObservationKind.tier_outcome,
+            source=tier_name,
+            verdict=result.verdict,
+            status_code=result.status_code,
+        )
 
 
 async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:

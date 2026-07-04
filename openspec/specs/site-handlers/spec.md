@@ -439,3 +439,14 @@ The helper covers the homogeneous part of handler-level outcome interpretation. 
 - **WHEN** a new site handler is added (e.g. for Stack Overflow)
 - **THEN** its non-ok short-circuit routes through `map_non_ok`; the FetchVerdict → Verdict policy is unchanged across handlers
 
+### Requirement: Reddit handler prefers RSS over walled .json
+The Reddit handler SHALL use the RSS projection (see `reddit-rss-access`) as its primary fetch path for `search`/`listing`/`thread` shapes, because the anonymous `.json` endpoint is Datadome-walled. The handler SHALL emit the eager critical browser hint (see `retrieval-completeness`) when RSS is exhausted rather than returning a silent low-signal failure.
+
+#### Scenario: Reddit search uses RSS not .json
+- **WHEN** a Reddit search URL is handled
+- **THEN** the handler fetches via `.rss`, and if that is exhausted emits the eager critical hint
+
+#### Scenario: Reddit handler never silently drops
+- **WHEN** every Reddit path is walled
+- **THEN** the handler returns `status: failed` + `retrieval_incomplete` + the critical hint, never a silent empty result
+
