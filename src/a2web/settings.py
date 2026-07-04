@@ -136,6 +136,17 @@ class AppSettings(BaseSettings):
     zyte_key: str = ""
     firecrawl_key: str = ""
 
+    # Reddit tier-arbitration policy (reddit-via-zyte). Governs whether the
+    # Reddit handler routes threads eagerly through a paid tier (Zyte) for a
+    # rich scored/nested comment sample, or stays on the keyless RSS channel:
+    #   - "robustness" (default): keyed → old.reddit via Zyte raw mode (scored,
+    #     nested, ~top-500), else RSS. Best answer; every read hits Zyte.
+    #   - "privacy": never route Reddit through the third-party paid tier; RSS
+    #     only (degraded, keyless, no third party sees the URL).
+    # A future self-hosted browser rung slots in ahead of Zyte under the
+    # "robustness" policy without changing this knob (design §5; deferred).
+    reddit_tier_policy: Literal["robustness", "privacy"] = "robustness"
+
     browser_enabled: bool = True
     # Two browser rungs (browser-backend-bakeoff): the fast Chromium engine is
     # tried first (the `browser` tier); the robust CDP engine is escalated to

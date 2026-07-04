@@ -336,6 +336,12 @@ class FetchContext:
     # Tool-param off-switch. When False, the final response forces [].
     next_links_enabled: bool = True
 
+    # reddit-via-zyte content-expectations: loaded/oracle comment counts a
+    # handler measured (None unless the page carried the concept). Threaded onto
+    # the response envelope by `build_response`.
+    comments_loaded: int | None = None
+    comments_total: int | None = None
+
     # v0.10: caller-supplied cap on content chars sent to the extractor LLM.
     # None = inherit Extractor's default (100_000).
     max_content_chars: int | None = None
@@ -794,6 +800,9 @@ def _install_won_tier(
     fc.pre_rendered_payload = tier_result.pre_rendered
     # v0.7 link-discovery: thread Tier-1 candidates from the handler into fc.
     fc.next_links_handler = list(tier_result.next_links)
+    # reddit-via-zyte content-expectations: carry a handler's measured counts.
+    fc.comments_loaded = tier_result.comments_loaded
+    fc.comments_total = tier_result.comments_total
 
 
 def _install_archive_payload(fc: FetchContext, outcome: _ArchiveOutcome) -> None:

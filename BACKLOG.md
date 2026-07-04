@@ -799,3 +799,29 @@ Still deferred:
   itself. Re-run on each v0.3+ release; track judge scores + token
   sums as regression metrics. Adds the harness, corpus, and judge
   prompts already in `benchmarks/vs-webfetch/`. Scope: S.
+
+### Reddit self-hosted stealth-browser rung (deferred from `reddit-via-zyte`, 2026-07-04)
+
+- **🟡 Self-hosted Camoufox/zendriver browser tier + residential egress as
+  Reddit ladder rung 1.** `reddit-via-zyte` shipped the Zyte-primary public
+  path and *designed* the arbitration ladder with an `Unavailable`-gated
+  self-hosted rung ahead of Zyte, but did not build it. It would give a
+  **free, private, logged-in** Reddit read (Zyte is paid, third-party,
+  public-only).
+  *Why deferred:* the blocker is not the engine — Camoufox (stealth Firefox)
+  and zendriver (stealth Chromium/CDP) both pass Reddit headless — it is the
+  **IP**. Both are blocked through shen/Contabo datacenter egress
+  (`38.242.156.243`); the passing recipe needs a **residential IP** (or the
+  operator's own node) plus headful-under-virtual-display (Xvfb/neko/Kasm) for
+  the logged-in variant. That is an infra project (egress + display), not a
+  code change. Spike scripts: `docs/history/spikes/browser_headful_poc.py`,
+  `browser_headful_confirm.py`. Evidence: ADR-0011 (both the headful POC and
+  the `reddit-via-zyte` update). Once residential egress exists, the rung slots
+  in under `reddit_tier_policy` with zero ladder rewrite (it self-gates via the
+  plugin `Unavailable` pattern). Scope: L (infra) + M (tier).
+- **🟡 content-expectations action loop for a scrolling browser rung.** The
+  `content_expectations.assess` seam resolves `ready|partial|fail`; the Zyte/
+  old.reddit path uses it as a pure one-shot post-fetch assertion. A browser
+  rung could instead *drive* a bounded scroll/paginate loop off the same
+  verdict under a ≤3-min budget to push `loaded` toward the oracle. Designed
+  into the seam + design.md, not built (no browser rung yet). Scope: M.

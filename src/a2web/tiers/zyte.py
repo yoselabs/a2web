@@ -1,22 +1,33 @@
 """Zyte API tier — paid last-resort fetch (reddit-reachability-never-silent-miss).
 
-Single POST against `https://api.zyte.com/v1/extract` requesting `browserHtml`
-(Zyte renders + solves anti-bot challenges server-side). The returned HTML is
-converted to markdown via the boundary-safe `html_fragment` package and wrapped
-as `pre_rendered` so the orchestrator installs it directly.
+Single POST against `https://api.zyte.com/v1/extract`. Two modes:
+
+- **`browserHtml`** (default): Zyte renders the page + solves anti-bot
+  challenges server-side and returns rendered HTML. The right mode for
+  JS-dependent targets. The returned HTML is converted to markdown via the
+  boundary-safe `html_fragment` package and wrapped as `pre_rendered` so the
+  orchestrator installs it directly.
+- **`httpResponseBody`** (raw): Zyte proxies the origin response and returns
+  the base64-encoded body without browser rendering — cheaper, and sufficient
+  for **server-rendered** targets (e.g. old.reddit `?limit=500`). The decoded
+  bytes + origin content-type are returned; the caller owns extraction (the
+  Reddit handler parses old.reddit's flat HTML itself). Selected per-dispatch
+  via the `mode` kwarg (`reddit-via-zyte` design §2).
 
 Env-gated: registered only when `settings.zyte_key` is set (the manifest returns
 `Unavailable` otherwise). Dispatched out-of-band by the planner ONLY after the
-free/proxied ladder is exhausted on a wall verdict — paid egress is a cost-
-incurring last resort, never speculative.
+free/proxied ladder is exhausted on a wall verdict, OR eagerly by the Reddit
+handler on a known-walled host — paid egress is a cost-incurring path, never
+speculative on the generic ladder.
 
-Auth/billing failure (401/402/403) maps to `Verdict.paid_auth_error`. The
-orchestrator treats that as an authoritative hard-stop (bad key / exhausted
-billing must surface loudly), never a silent downgrade to a cheaper tier.
+Auth/billing failure (401/402/403) maps to `Verdict.paid_auth_error` in BOTH
+modes. The orchestrator treats that as an authoritative hard-stop (bad key /
+exhausted billing must surface loudly), never a silent downgrade.
 """
 
 from __future__ import annotations
 
+import base64
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -33,9 +44,13 @@ if TYPE_CHECKING:
 _API_URL = "https://api.zyte.com/v1/extract"
 _TIMEOUT_S = 40.0  # Zyte renders server-side — allow generous headroom.
 
+# The two supported fetch modes. `browserHtml` renders; `httpResponseBody`
+# proxies the raw origin response (cheap, no browser) for server-rendered pages.
+ZyteMode = str  # "browserHtml" | "httpResponseBody"
+
 
 class ZyteTier:
-    """Zyte browserHtml extract as a paid, out-of-band last resort."""
+    """Zyte extract as a paid tier — rendered (`browserHtml`) or raw (`httpResponseBody`)."""
 
     name: str = "zyte"
 
@@ -46,6 +61,7 @@ class ZyteTier:
         state: AppState,
         proxy_url: str | None = None,
         conditional_extras: dict[str, str] | None = None,
+        mode: ZyteMode = "browserHtml",
         **kwargs: Any,
     ) -> TierResult:
         del proxy_url, conditional_extras, kwargs  # Zyte owns egress + challenge solving.
@@ -59,9 +75,12 @@ class ZyteTier:
                 body=b"", content_type="text/html", status_code=0, final_url=url, skipped=True, verdict=Verdict.other
             )
 
+        raw = mode == "httpResponseBody"
+        request: dict[str, Any] = {"url": url, "httpResponseBody": True} if raw else {"url": url, "browserHtml": True}
+
         try:
             async with httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True) as client:
-                resp = await client.post(_API_URL, json={"url": url, "browserHtml": True}, auth=(key, ""))
+                resp = await client.post(_API_URL, json=request, auth=(key, ""))
         except httpx.TimeoutException:
             return TierResult(body=b"", content_type="text/html", status_code=0, final_url=url, verdict=Verdict.timeout)
         except httpx.HTTPError:
@@ -76,8 +95,26 @@ class ZyteTier:
             )
 
         payload = resp.json()
-        html = payload.get("browserHtml") or ""
         final_url = payload.get("url") or url
+
+        if raw:
+            # `httpResponseBody` — the caller (Reddit handler) parses the body
+            # itself, so no markdown conversion here. Hand back decoded origin
+            # bytes + content-type. Verdict is `ok` when a body is present,
+            # `length_floor` when the origin returned an empty 200.
+            encoded = payload.get("httpResponseBody") or ""
+            body = base64.b64decode(encoded) if encoded else b""
+            content_type = _content_type_from_headers(payload.get("httpResponseHeaders")) or "text/html"
+            return TierResult(
+                body=body,
+                content_type=content_type,
+                status_code=resp.status_code,
+                final_url=final_url,
+                verdict=Verdict.ok if body else Verdict.length_floor,
+            )
+
+        # `browserHtml` — render to markdown and install as pre_rendered.
+        html = payload.get("browserHtml") or ""
         markdown = to_markdown(html, base_url=final_url).strip() if html else ""
         pre_rendered = Rendered(content_md=markdown) if markdown else None
         return TierResult(
@@ -88,3 +125,19 @@ class ZyteTier:
             pre_rendered=pre_rendered,
             verdict=Verdict.ok if pre_rendered is not None else Verdict.length_floor,
         )
+
+
+def _content_type_from_headers(headers: Any) -> str | None:
+    """Extract `content-type` from Zyte's `httpResponseHeaders` list.
+
+    Zyte returns headers as `[{"name": ..., "value": ...}, ...]`. Returns the
+    first content-type value (case-insensitive name match), or None.
+    """
+    if not isinstance(headers, list):
+        return None
+    for header in headers:
+        if isinstance(header, dict) and str(header.get("name", "")).lower() == "content-type":
+            value = header.get("value")
+            if value:
+                return str(value)
+    return None

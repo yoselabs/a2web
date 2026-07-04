@@ -73,6 +73,12 @@ class TierResult:
     # style URLs. Empty list when the URL is terminal (single thread, single
     # paper, etc.) or no handler knows the page schema.
     next_links: list[NextLink] = field(default_factory=list)
+    # reddit-via-zyte content-expectations: the loaded/oracle comment counts a
+    # handler measured for a comment-bearing page. Both None when the concept
+    # doesn't apply (non-thread, or no oracle). `comments_total` may exceed
+    # `comments_loaded` on threads past the fetch limit — the honest "top-N of M".
+    comments_loaded: int | None = None
+    comments_total: int | None = None
 
 
 class Tier(Protocol):

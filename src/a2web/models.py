@@ -149,6 +149,27 @@ def try_user_browser_hint(url: str) -> OperatorHint:
     )
 
 
+def comments_partial_hint(*, loaded: int, total: int) -> OperatorHint:
+    """Honest partial-comments signal (reddit-via-zyte content-expectations).
+
+    Informational (not critical): the fetch DID retrieve content — a ranked
+    sample — but fewer comments than the thread advertises. Names the loaded
+    and total counts so an agent knows it is holding a top-N sample, never the
+    complete thread. Pairs with the structured `comments_loaded`/`comments_total`
+    fields on the response envelope.
+    """
+    return OperatorHint(
+        code="comments_partial",
+        message=(
+            f"Loaded the top {loaded} of {total} comments (sorted by top). Deeper/nested replies and "
+            "comments beyond the fetch limit were NOT retrieved — this is a ranked sample, not the "
+            "complete thread. Do not claim to have every comment."
+        ),
+        fix="Treat this as a top-ranked sample; to read a specific deeper reply, open the thread in a browser tool.",
+        severity="info",
+    )
+
+
 NextLinkKind = Literal["drilldown", "related", "source", "discussion"]
 
 
@@ -329,6 +350,14 @@ class FetchResponse(BaseModel):
     # block_page_detected / anti_bot / paywall). Omitted from the wire when
     # False (see `_prune_wire`); absence therefore means retrieval was complete.
     retrieval_incomplete: bool = False
+
+    # reddit-via-zyte content-expectations: loaded vs authoritative-oracle
+    # comment counts for a comment-bearing page. Both None (omitted from the
+    # wire) unless a handler measured them. When `comments_total` exceeds
+    # `comments_loaded`, a `comments_partial` operator hint accompanies these —
+    # the honest "top-N of M" sample signal.
+    comments_loaded: int | None = None
+    comments_total: int | None = None
 
     # v0.4: present only when the caller passed `ask=`. None when ask is unset.
     extracted_answer: str | None = None
@@ -523,6 +552,12 @@ class AskResponse(BaseModel):
     # Mirrors FetchResponse.retrieval_incomplete — true when the URL was walled
     # and not retrieved. Omitted from the wire when False (see `_prune_wire`).
     retrieval_incomplete: bool = False
+
+    # Mirrors FetchResponse — loaded vs oracle comment counts (reddit-via-zyte).
+    # Both None (omitted) unless a handler measured them; a shortfall is also
+    # flagged by a `comments_partial` operator hint.
+    comments_loaded: int | None = None
+    comments_total: int | None = None
 
     content_md: str = ""
     headings: list[Heading] = Field(default_factory=list)

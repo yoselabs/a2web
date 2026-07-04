@@ -43,9 +43,11 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import anyio
 
-from ..models import Heading, NextLink, OperatorHint, Verdict, try_user_browser_hint
+from .. import content_expectations
+from ..models import Heading, NextLink, OperatorHint, Verdict, comments_partial_hint, try_user_browser_hint
 from ..packages.html_fragment import to_markdown
 from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from . import _reddit_html as rh
 from ._common import empty_result
 
 if TYPE_CHECKING:
@@ -168,6 +170,17 @@ class RedditHandler:
         shape = _url_shape(url)
         if shape is None:  # defensive — matches() only claims the shapes above
             return empty_result(url, Verdict.other)
+
+        # Eager paid routing (reddit-via-zyte): a thread + a configured Zyte tier
+        # under the robustness policy fetches old.reddit `?limit=500` directly —
+        # a scored, nested, ~top-500 comment sample — bypassing the doomed free
+        # ladder (raw/jina all lose on Reddit). A transient miss or unparseable
+        # page returns None here and falls through to the keyless RSS channel;
+        # a bad Zyte key fails loud (never a silent downgrade).
+        if shape in ("comments", "permalink") and _zyte_reddit_enabled(state):
+            zyte_result = await _fetch_via_zyte_oldreddit(url, state=state)
+            if zyte_result is not None:
+                return zyte_result
 
         rss_url = _to_rss_url(url, shape)
         outcome = await _fetch_rss(rss_url, state=state, cookies=cookies)
@@ -664,6 +677,76 @@ def _to_old_reddit_url(url: str) -> str:
         if path.endswith(suffix):
             path = path[: -len(suffix)]
     return urlunparse(parsed._replace(netloc="old.reddit.com", path=path, query=""))
+
+
+# --------------------------------------------------------------------- #
+# Eager paid (Zyte) old.reddit path (reddit-via-zyte)
+# --------------------------------------------------------------------- #
+
+
+def _zyte_reddit_enabled(state: AppState) -> bool:
+    """True when Reddit threads should route eagerly to Zyte.
+
+    Availability-gated ladder (design §5): requires a keyed Zyte tier AND the
+    `robustness` policy. The `privacy` policy keeps Reddit on the keyless RSS
+    channel so no third party sees the fetched URL.
+    """
+    return bool(state.settings.zyte_key) and state.settings.reddit_tier_policy == "robustness"
+
+
+async def _fetch_via_zyte_oldreddit(url: str, *, state: AppState) -> TierResult | None:
+    """Fetch a Reddit thread via Zyte raw mode on old.reddit; parse + assess.
+
+    Returns:
+      - a `Verdict.ok` TierResult with the scored/nested render + measured
+        comment counts (+ a `comments_partial` info hint on shortfall) on success;
+      - the Zyte `paid_auth_error` result (fail loud, no downgrade) on a bad key;
+      - `None` on a transient Zyte failure, an unparseable page, or a zero-vs-
+        positive-oracle miss — the caller then falls through to the RSS channel.
+    """
+    from ..tiers import Rendered, TierResult, ZyteTier
+
+    _channel, old_url = rh.normalize(url)
+    result = await ZyteTier().fetch(old_url, state=state, mode="httpResponseBody")
+
+    if result.verdict is Verdict.paid_auth_error:
+        return result  # authoritative hard-stop — surface the misconfiguration.
+    if result.verdict is not Verdict.ok or not result.body:
+        return None  # transient — let the keyless RSS channel try.
+
+    thread = rh.parse_thread(result.body.decode("utf-8", errors="replace"))
+    if thread is None:
+        return None  # parse miss (old.reddit changed shape) → RSS fallback.
+
+    loaded = len(thread.comments)
+    total = thread.comment_total
+    readiness = content_expectations.assess(loaded=loaded, total=total)
+    if readiness == "fail":
+        # Oracle says comments exist but none parsed — treat as a miss and let
+        # RSS try (it may surface a sample) rather than return a comment-less
+        # "success". If RSS also fails, its own never-silently-miss path fires.
+        return None
+
+    headings = [Heading(level=1, text=thread.title)] if thread.title else []
+    byline = f"u/{thread.author}" if thread.author else None
+    op_hint = comments_partial_hint(loaded=loaded, total=total) if readiness == "partial" and total is not None else None
+
+    return TierResult(
+        body=result.body,
+        content_type="text/html",
+        status_code=result.status_code,
+        final_url=old_url,
+        pre_rendered=Rendered(
+            content_md=rh.render_markdown(thread),
+            title=thread.title,
+            byline=byline,
+            headings=headings,
+        ),
+        operator_hint=op_hint,
+        comments_loaded=loaded,
+        comments_total=total,
+        verdict=Verdict.ok,
+    )
 
 
 async def _resolve_short_url(url: str, *, state: AppState) -> str | None:

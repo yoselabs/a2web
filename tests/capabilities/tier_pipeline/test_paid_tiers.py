@@ -94,6 +94,76 @@ async def test_zyte_timeout_is_non_authoritative(monkeypatch: pytest.MonkeyPatch
     assert result.verdict == Verdict.timeout
 
 
+@pytest.mark.asyncio
+async def test_zyte_raw_mode_decodes_body_and_reads_content_type(monkeypatch: pytest.MonkeyPatch) -> None:
+    import base64 as _b64
+
+    captured: dict[str, object] = {}
+    html = b"<html><body><div class='thing comment'>hi</div></body></html>"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json as _json
+
+        captured["request"] = _json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "url": "https://old.reddit.com/r/x/comments/1/t/?limit=500&sort=top",
+                "httpResponseBody": _b64.b64encode(html).decode(),
+                "httpResponseHeaders": [{"name": "Content-Type", "value": "text/html; charset=UTF-8"}],
+            },
+        )
+
+    _mock(monkeypatch, handler)
+    result = await ZyteTier().fetch(
+        "https://old.reddit.com/r/x/comments/1/t/?limit=500&sort=top",
+        state=_state(zyte_key="zk"),
+        mode="httpResponseBody",
+    )
+
+    # Raw mode requests httpResponseBody, not browserHtml.
+    assert captured["request"] == {
+        "url": "https://old.reddit.com/r/x/comments/1/t/?limit=500&sort=top",
+        "httpResponseBody": True,
+    }
+    assert result.verdict == Verdict.ok
+    assert result.body == html
+    assert result.content_type == "text/html; charset=UTF-8"
+    # Raw mode does NOT pre-render — the caller parses the body.
+    assert result.pre_rendered is None
+
+
+@pytest.mark.asyncio
+async def test_zyte_raw_mode_bad_key_still_fails_loud(monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock(monkeypatch, lambda request: httpx.Response(403, json={"detail": "forbidden"}))
+    result = await ZyteTier().fetch("https://old.reddit.com/r/x/comments/1/t/", state=_state(zyte_key="bad"), mode="httpResponseBody")
+    assert result.verdict == Verdict.paid_auth_error
+    assert result.body == b""
+
+
+@pytest.mark.asyncio
+async def test_zyte_raw_mode_empty_body_is_length_floor(monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock(monkeypatch, lambda request: httpx.Response(200, json={"url": "https://ex.com/", "httpResponseBody": ""}))
+    result = await ZyteTier().fetch("https://ex.com/", state=_state(zyte_key="zk"), mode="httpResponseBody")
+    assert result.verdict == Verdict.length_floor
+    assert result.body == b""
+
+
+@pytest.mark.asyncio
+async def test_zyte_default_mode_is_browser_html(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json as _json
+
+        captured["request"] = _json.loads(request.content)
+        return httpx.Response(200, json={"url": "https://ex.com/", "browserHtml": "<p>Body text here.</p>"})
+
+    _mock(monkeypatch, handler)
+    await ZyteTier().fetch("https://ex.com/", state=_state(zyte_key="zk"))
+    assert captured["request"] == {"url": "https://ex.com/", "browserHtml": True}
+
+
 # --------------------------------------------------------------------- #
 # Firecrawl
 # --------------------------------------------------------------------- #

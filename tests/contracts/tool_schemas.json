@@ -448,6 +448,30 @@
           "title": "Byline"
         },
         "cache": "<volatile>",
+        "comments_loaded": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comments Loaded"
+        },
+        "comments_total": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comments Total"
+        },
         "confidence": {
           "$ref": "#/$defs/Confidence"
         },
@@ -1171,6 +1195,30 @@
           "title": "Byline"
         },
         "cache": "<volatile>",
+        "comments_loaded": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comments Loaded"
+        },
+        "comments_total": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comments Total"
+        },
         "confidence": {
           "$ref": "#/$defs/Confidence"
         },

@@ -8,6 +8,46 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-07-04
+
+### Added — Reddit via Zyte: scored/nested comments + honest-partial contract (`reddit-via-zyte`)
+
+- **Reddit threads are now reachable with real depth.** When a Zyte key is
+  configured, the Reddit handler normalizes any thread URL to
+  `old.reddit.com/r/<sub>/comments/<id>/<slug>/?limit=500&sort=top` and fetches
+  it through Zyte's cheap raw (`httpResponseBody`) mode — old.reddit is
+  server-rendered, so ~top-500 **scored, nested** comments come back in one
+  load. This bypasses the free tier ladder (raw/jina provably lose on Reddit)
+  and is strictly richer than the keyless RSS channel (flat, scoreless, ~25
+  recent). A dedicated selectolax parser (`handlers/_reddit_html.py`) reads the
+  post + comments (author / score / nesting depth) with no shreddit
+  web-components and no trafilatura. Listings/search stay on RSS.
+- **Availability-gated tier policy, never hard-disabled.** New
+  `A2WEB_REDDIT_TIER_POLICY` (`robustness` default = Zyte→RSS; `privacy` =
+  RSS-only, no third party sees the URL). Un-keyed or `privacy` deployments keep
+  the exact keyless behavior. A bad Zyte key fails loud (`paid_auth_error`),
+  never a silent downgrade; a transient Zyte miss falls through to RSS.
+- **content-expectations: honest "top-N of M" comment signal (ADR-0009 at
+  comment granularity).** A new oracle-driven readiness seam
+  (`content_expectations.assess`) compares parsed comments against the
+  authoritative old.reddit `N comments` count. A shortfall emits
+  `OperatorHint(code="comments_partial", severity="info")` plus **additive**
+  `comments_loaded` / `comments_total` fields on `AskResponse` + `FetchResponse`
+  (omitted from the wire when empty) — an agent is always told when it holds a
+  ranked sample, never the whole thread. Golden tool-schema contracts re-blessed
+  additive-only (+2 fields per envelope, zero removals).
+- **Zyte tier gains a fetch-mode toggle.** `ZyteTier` now supports
+  `httpResponseBody` (raw proxy, base64 body — cheap, for server-rendered
+  targets) alongside `browserHtml` (rendered). The auth/billing fail-loud
+  mapping is identical in both modes.
+- **Deferred + recorded, not re-litigated.** The self-hosted stealth-browser
+  rung (Camoufox/zendriver) is designed into the ladder as an `Unavailable`-
+  gated rung ahead of Zyte but **not built** — the blocker is a residential-IP
+  requirement, not the engine (both pass headless from a residential IP; both
+  are blocked through datacenter egress). Recorded in ADR-0011 (superseding
+  update) + BACKLOG. **Limitation:** the Zyte path is public-read only; logged-
+  in / NSFW / personalized Reddit needs the deferred rung.
+
 ## [0.25.0] — 2026-07-04
 
 ### Added — Reddit reachability + "never tolerate ANY unfetched URL" tenet (`reddit-reachability-never-silent-miss`)

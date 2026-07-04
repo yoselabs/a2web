@@ -62,3 +62,50 @@ The passing cell (**headful + cookies + operator's residential IP**) returned fu
 - **Remote productization of the headful path.** The POC proves the recipe on the operator's local machine/IP. Productizing for a remote a2web needs (a) headful-under-virtual-display in a container and (b) a residential egress or home-node. Spike as `reddit-browser-auth`.
 - **Cookie rotation / session longevity.** The POC mirrored live Chrome cookies; a dedicated persistent authenticated profile (sign-in-once) is the robust variant. Evaluate in the same change.
 - **Re-run the HTTP probes from a known-clean residential IP.** The `snooserv` block is IP-sensitive; if `.json` + Bearer passes from a clean IP, rule 2's HTTP path could reopen. Probe scripts: `docs/history/spikes/reddit_json_cookie_spike.py`.
+
+## Update — Zyte is now primary for threads (`reddit-via-zyte`, 2026-07-04)
+
+Follow-on change `reddit-via-zyte` promotes the paid path from "marginal
+backstop" to **primary for Reddit threads**, on new live evidence, and demotes
+RSS to the keyless fallback. This supersedes rule 1 and the "paid helps only
+marginally" consequence above; rules 2–3 (never `.json`, cookies-are-not-an-
+unlock) and the headful-browser POC stand unchanged.
+
+**New evidence (2026-07-04):**
+
+- **Zyte `httpResponseBody` (cheap raw mode) on old.reddit `?limit=500&sort=top`
+  returns ~436 flat, *scored, nested* comments** in a single server-rendered
+  load — strictly richer than RSS (flat, scoreless, ~25 recent) and reachable
+  without a browser (old.reddit is server-rendered). new.reddit (shreddit)
+  lazy-loads and yields only ~35 of a 32k-comment thread; useless for depth.
+- **The residential-IP gate is hard and engine-independent.** Camoufox
+  (stealth Firefox) + zendriver (stealth Chromium/CDP) both pass headless from a
+  *residential* IP, but **both are blocked through shen/Contabo (datacenter
+  `38.242.156.243`)** on old *and* new reddit. So a self-hosted browser on our
+  current datacenter egress cannot serve Reddit — Zyte (which solves engine +
+  IP as a service) is the only shippable path today.
+
+**Decision (`reddit-via-zyte`):**
+
+1. **Normalize any Reddit URL to the working channel.** Threads →
+   `old.reddit.com/r/<sub>/comments/<id>/<slug>/?limit=500&sort=top`;
+   listings/search → new-reddit canonical. Never `.json`.
+   (`handlers/_reddit_html.normalize`.)
+2. **Fetch threads eagerly via Zyte raw mode**, bypassing the doomed free ladder;
+   parse old.reddit's flat `div.thing.comment` HTML into scored, nested comments
+   (`handlers/_reddit_html.parse_thread`, selectolax). A bad key fails loud
+   (`paid_auth_error`); a transient miss falls through to RSS.
+3. **Availability-gated ladder, never hard-disabled.** `reddit_tier_policy`
+   (`robustness` default = `Zyte → RSS`; `privacy` = RSS-only, no third party).
+   The self-hosted stealth-browser rung + residential egress is **designed into
+   the ladder as an `Unavailable`-gated rung 1 but deferred** (BACKLOG) — it
+   slots ahead of Zyte (free, private, logged-in) with no ladder rewrite.
+4. **Honest partial signal (ADR-0009 at comment granularity).** The
+   `content-expectations` seam asserts parsed comments against the old.reddit
+   `N comments` oracle; a shortfall emits `OperatorHint(code="comments_partial")`
+   + structured `comments_loaded` / `comments_total` — "top-N of M", never
+   implied-complete.
+
+**Limitation stated:** the Zyte path is **public-read only** (no session).
+Logged-in / NSFW / personalized Reddit still needs the deferred self-hosted +
+cookies rung.
