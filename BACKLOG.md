@@ -825,3 +825,30 @@ Still deferred:
   rung could instead *drive* a bounded scroll/paginate loop off the same
   verdict under a ≤3-min budget to push `loaded` toward the oracle. Designed
   into the seam + design.md, not built (no browser rung yet). Scope: M.
+
+**Smaller `reddit-via-zyte` leftovers (deferred as out-of-scope):**
+
+- **🟢 Caller-selectable comment sort.** The eager Zyte path hardcodes
+  `sort=top` (best answers for a Q&A agent). A future tool arg could let the
+  caller pick `top | new | controversial | best` (old.reddit supports all).
+  Noted in `design.md` §1. Scope: S.
+- **🟢 Route Reddit listings/search through Zyte too.** Only *threads* go
+  eager-Zyte today; listings/search stay on keyless RSS (which works and is
+  cheaper). If richer listing data is ever needed, Zyte `browserHtml` on the
+  new-reddit canonical would serve it — the normalizer already emits that
+  canonical. Scope: S–M.
+- **🟢 old.reddit parser structural-probe test.** The selectolax parser keys on
+  `div.thing.comment` / `a.comments`. If old.reddit changes shape the parser
+  returns `None` and falls through to RSS (safe), but silently. A periodic live
+  probe (behind a marker, not in `make check`) that fails loudly when the
+  anchors vanish would catch drift before users see degraded reads. Mitigation
+  noted in `design.md` risks. Scope: S.
+- **🟢 Live `ask` (LLM-extraction) validation over the scored-comment render.**
+  Task 6.2 live-validated the `fetch_raw` path (Zyte → parse → counts/hint). The
+  `ask` path (LLM extraction over the nested comment markdown) was not run live —
+  worth a one-off check that extraction quality holds on the denser, scored input
+  before leaning on it in the benchmark. Scope: S.
+- **🟡 Firecrawl has no old.reddit raw-mode equivalent.** The eager Reddit path
+  requires Zyte specifically (`httpResponseBody` on server-rendered old.reddit).
+  A deployment keyed with *only* Firecrawl falls back to RSS for Reddit. If that
+  combination matters, add a Firecrawl raw-fetch shape. Scope: M.
