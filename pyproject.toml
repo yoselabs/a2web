@@ -109,7 +109,7 @@ dev = [
 a2web = "a2web.server:main"
 
 [tool.uv.sources]
-a2kit = { git = "https://github.com/yoselabs/a2kit.git", tag = "v0.46.0" }
+a2kit = { git = "https://github.com/yoselabs/a2kit.git", tag = "v0.48.0" }
 
 [build-system]
 requires = ["hatchling"]
