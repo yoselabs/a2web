@@ -35,4 +35,4 @@ Test-first (BDD). `make check` (lint + ty + test, coverage ≥85%) is the gate.
 - [x] 4.1 `make check` green (lint + ty + test, coverage ≥85%, all arch fitness
       including json-loads-funnel).
 - [x] 4.2 CHANGELOG.md entry under a new version section.
-- [ ] 4.3 Version bump + `make install-global` to propagate to the MCP binary.
+- [x] 4.3 Version bump + `make install-global` to propagate to the MCP binary.
