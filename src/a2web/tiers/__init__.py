@@ -66,6 +66,19 @@ class TierResult:
     operator_hint: OperatorHint | None = None
     no_match: bool = False
     skipped: bool = False
+    # A handler sets this to ask the orchestrator to render the ORIGINAL url via
+    # the paid tier (Zyte `browserHtml`) directly — skipping the free ladder AND
+    # the own-browser rung. Two callers: a converting handler whose rewritten
+    # fetch FAILED (HN's `hn.algolia.com/?q=` → the Algolia API errored), and a
+    # walled handler surface (Reddit search/listing behind a 403). The free tiers
+    # get FOOLED by these pages — an SPA shell can exceed the 500-char length
+    # floor and pass the gate as "ok" (the HN shell is ~587 chars), and the
+    # own-browser proved unreliable on them — so only the paid render reliably
+    # retrieves the content. On dispatch the failed attempt is recorded as a
+    # diagnostic; if no paid tier is keyed, the fetch falls through to the
+    # never-silently-miss hint (fail loud). Distinct from `no_match` (the handler
+    # DID claim the URL) and from a plain failure verdict (which would end the run).
+    escalate_to_render: bool = False
     handler_name: str | None = None
     conditional_hit: bool = False
     archive_source: str | None = None  # "wayback" | "archive.ph"

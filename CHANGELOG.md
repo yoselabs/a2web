@@ -8,6 +8,48 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-07-05
+
+> Community-site search retrieval + a confabulation guard. HN/Algolia search
+> resolves via the API, `ask` confidence reconciles with the extractor's
+> `obstacle` signal, SPA/walled search escalates to a paid Zyte render, and the
+> HN + Reddit handlers de-escalate to that render on failure. All grounded in
+> live-verified probes; no wire-shape change (correctness tightening only).
+
+### Added — Community-site search retrieval + confabulation guard (`search-retrieval-and-confabulation-guard`)
+
+- **HN Algolia search** (`hn.algolia.com/?q=…`): the HN handler now claims the
+  Algolia search-UI URL and resolves it through the public
+  `/api/v1/search?query=…&tags=story` API (reusing the existing hit-list render +
+  next-link discovery) instead of letting the generic ladder render the
+  client-side SPA shell. Fixes the silent-wrong-content case where the SPA URL
+  returned an unrelated page at `confidence: high`.
+- **Confabulation guard** on `ask`: `confidence` now reconciles with the
+  extractor's own `obstacle` signal (previously derived only from verdict +
+  content length). An `obstacle` of `empty`/`blocked`/`paywalled`/`error` caps
+  `confidence` to `low`; `empty`/`blocked` also set `retrieval_incomplete` + a
+  critical `retrieval_incomplete` operator hint. Closes the gap the
+  `extraction_empty` guard leaves for a fluent-but-unfounded (non-empty) answer.
+  Applied at the ask projection (where `obstacle` reaches the wire); `fetch_raw`
+  is unaffected.
+- **Paid render for SPA shells**: the paid last-resort planner now treats a
+  post-browser `length_floor` with subsystem `js_required` as a wall worth a
+  paid render (Zyte `browserHtml`), so a JS-shell SPA that the browser rung can't
+  render escalates instead of dying as `length_floor`. Cost-gated on the
+  `js_required` subsystem (never bare `length_floor`) and the single-paid-dispatch
+  cap.
+- **Escalate to a paid site render**: a new typed `escalate_to_render` signal on
+  `TierResult`. A handler sets it when its rewritten fetch fails (HN's
+  `hn.algolia.com/?q=` → the Algolia API) **or** its surface is walled (Reddit
+  search/listing behind a 403). The orchestrator records the attempt as a
+  diagnostic, **stops the free ladder** (raw/jina get fooled — an SPA shell can
+  exceed the 500-char length floor and pass the gate as `ok`; the own-browser is
+  unreliable on these), and renders the ORIGINAL URL directly via the paid tier
+  (Zyte `browserHtml`). Even a `404` (normally authoritative for a site handler)
+  no longer ends the run before the real page is rendered. No paid key / render
+  failure → loud never-silently-miss (`retrieval_incomplete` + critical
+  `try_user_browser`). Built generically; HN and Reddit are the first adopters.
+
 ## [0.28.0] — 2026-07-05
 
 > Config-gated Google OAuth on the HTTP MCP endpoint (`a2web-serve`) — closes the

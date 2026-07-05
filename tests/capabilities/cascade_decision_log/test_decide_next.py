@@ -269,6 +269,34 @@ def test_gate_browser_signal_outranks_reddit_archive_when_both_apply() -> None:
     assert isinstance(action, EscalateBrowser)
 
 
+# --------------------------------------------------------------------- #
+# js_required SPA shell → paid render (search-retrieval-and-confabulation-guard P1)
+# --------------------------------------------------------------------- #
+
+
+def test_paid_fires_on_js_required_length_floor_after_browser_exhausted() -> None:
+    """A post-browser length_floor whose subsystem is js_required is a genuine
+    SPA shell — the paid render (Zyte browserHtml) is the last resort."""
+    log = [_tier(Verdict.ok), _gate(Verdict.length_floor, suggested_tier="browser", subsystem="js_required")]
+    caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=2, paid_dispatches=0)
+    assert isinstance(decide_next(log, url="https://x.com/", caps=caps), EscalatePaid)
+
+
+def test_paid_does_not_fire_on_bare_length_floor() -> None:
+    """length_floor WITHOUT the js_required subsystem (a thin page / empty
+    result) must not trigger paid egress — the cost guard."""
+    log = [_tier(Verdict.ok), _gate(Verdict.length_floor)]
+    caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=2, paid_dispatches=0)
+    assert isinstance(decide_next(log, url="https://x.com/", caps=caps), Continue)
+
+
+def test_js_required_paid_suppressed_when_paid_cap_spent() -> None:
+    """Once the single paid render is spent the rule stops firing (no spin)."""
+    log = [_tier(Verdict.ok), _gate(Verdict.length_floor, suggested_tier="browser", subsystem="js_required")]
+    caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=2, paid_dispatches=1)
+    assert isinstance(decide_next(log, url="https://x.com/", caps=caps), Continue)
+
+
 def test_rule_names_are_unique() -> None:
     """Adding a new PlannerRule must not collide with an existing one."""
     from a2web.actions.playbook import _RULES

@@ -594,13 +594,13 @@ async def test_reddit_handler_signals_archive_on_403(monkeypatch: pytest.MonkeyP
 
 
 @pytest.mark.asyncio
-async def test_reddit_search_403_fails_loud_with_eager_browser_hint(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A hard block on a search/listing surface is terminal → fail loud.
+async def test_reddit_search_403_escalates_to_site_render(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 403 on Reddit's RSS search/listing surface escalates to a paid site render.
 
-    Never-silently-miss tenet: the handler emits `block_page_detected`
-    (so the envelope's `retrieval_incomplete` flag is set) plus the critical
-    `try_user_browser` operator hint, EAGERLY — the archive/browser ladder
-    can't recover a dynamic search surface.
+    Reddit rate-limits/blocks the keyless RSS, but Zyte `browserHtml` reads the
+    page fine. The handler signals `escalate_to_render` (not the eager
+    `try_user_browser` hint) so the render is tried before any wall is declared;
+    if no paid tier is keyed, the orchestrator's never-silently-miss hint fires.
     """
 
     def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
@@ -610,11 +610,10 @@ async def test_reddit_search_403_fails_loud_with_eager_browser_hint(monkeypatch:
 
     result = await RedditHandler().fetch("https://www.reddit.com/r/x/search/?q=bell", state=_make_state())
 
-    assert result.verdict == Verdict.block_page_detected
+    assert result.escalate_to_render is True
+    assert result.verdict == Verdict.block_page_detected  # non-authoritative; never ends the run alone
     assert result.pre_rendered is None
-    assert result.operator_hint is not None
-    assert result.operator_hint.code == "try_user_browser"
-    assert result.operator_hint.severity == "critical"
+    assert result.operator_hint is None  # no eager wall hint — the render is tried first
 
 
 @pytest.mark.asyncio

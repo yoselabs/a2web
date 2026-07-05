@@ -291,6 +291,10 @@ class FetchContext:
     archive_dispatches: int = 0
     browser_dispatches: int = 0
     paid_dispatches: int = 0
+    # A handler asked for a direct paid site render (TierResult.escalate_to_render):
+    # the free ladder was stopped, and the gate/escalate phase dispatches the paid
+    # tier straight onto the original URL.
+    render_requested: bool = False
 
     # Extraction outputs
     content_md: str = ""
@@ -1015,6 +1019,26 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 )
             )
 
+            # Escalate to a paid site render: a converting handler's rewritten
+            # fetch failed (HN's Algolia API), or a walled surface (Reddit
+            # search 403) can only be read by rendering the real page. The
+            # diagnostic above records the failed attempt; here we log a
+            # NON-authoritative observation, flag the fetch for a direct paid
+            # render, and STOP the free ladder — raw/jina would get fooled by the
+            # SPA shell (which can exceed the length floor) or the block page. The
+            # gate/escalate phase dispatches the paid tier onto the original URL.
+            if tier_result.escalate_to_render:
+                fc.observe(
+                    kind=ObservationKind.tier_outcome,
+                    source=tier_result.handler_name or tier_name,
+                    verdict=tier_result.verdict,
+                    authoritative=False,
+                    status_code=tier_result.status_code,
+                    cloudflare=False,
+                )
+                fc.render_requested = True
+                return  # stop the free ladder; the paid render happens in gate/escalate
+
             # Append the tier observation BEFORE consulting the planner, so
             # `decide_next` sees the full decision log; then execute its action.
             authoritative = tier_name == "site_handler" and tier_result.verdict is Verdict.not_found
@@ -1344,6 +1368,20 @@ def _records_to_next_links(record_set: RecordSet, *, page_url: str) -> list[Next
 
 async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None:
     """Run the gate; on signals, escalate to browser or archive (each capped to 1)."""
+    # Forced site render (escalate_to_render): a converting/walled handler asked
+    # to render the original URL directly. Go STRAIGHT to the paid tier (Zyte
+    # browserHtml) — the free ladder gets fooled by SPA shells / block pages, and
+    # the own-browser is unreliable on them. On success the paid content installs
+    # and is gated below like any other; if no paid tier is keyed, `_escalate_paid`
+    # is a no-op and the empty body falls through to the never-silently-miss hint.
+    if fc.render_requested and fc.pre_rendered_payload is None and fc.paid_dispatches < 1:
+        await _escalate_paid(fc, state=state)
+        # The render was our only route to this page (the free tiers were stopped).
+        # If it produced nothing — no paid tier keyed, or the paid tier failed —
+        # this is a loud miss: emit the critical never-silently-miss hint.
+        if fc.pre_rendered_payload is None and not _has_browser_hint(fc):
+            fc.operator_hints.append(try_user_browser_hint(fc.final_url))
+
     if not (fc.body and fc.resolved_verdict() is Verdict.ok):
         return
 

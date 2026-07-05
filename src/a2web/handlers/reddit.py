@@ -197,10 +197,13 @@ class RedditHandler:
             return await _fetch_old_reddit_or_archive_signal(url, state=state, cookies=cookies)
         if outcome.status_code == 403:
             if shape in ("search", "listing"):
-                # A hard block on a dynamic surface is terminal — the archive
-                # tier can't usefully cache search/listing. Fail loud with the
-                # eager critical browser hint (never-silently-miss tenet).
-                return _walled_signal(url)
+                # A 403 on Reddit's RSS search/listing surface is a wall (Reddit
+                # rate-limits/blocks the keyless RSS). The archive tier can't
+                # cache these dynamic pages — but the paid render (Zyte
+                # browserHtml) reads them fine. Escalate to a direct site render;
+                # if no paid tier is keyed, the orchestrator falls through to the
+                # never-silently-miss hint (fail loud). Not authoritative.
+                return _render_escalation_signal(url)
             # Thread 403 (quarantined / NSFW-unauth / private) — Wayback often
             # has a public capture from before the gate dropped.
             return _archive_escalation_signal(
@@ -666,6 +669,27 @@ def _archive_escalation_signal(url: str, *, reason: str, message: str) -> TierRe
         final_url=url,
         verdict=Verdict.not_found,
         operator_hint=OperatorHint(code=reason, message=message),
+    )
+
+
+def _render_escalation_signal(url: str) -> TierResult:
+    """Ask the orchestrator to render this walled surface via the paid tier.
+
+    Reddit's RSS search/listing 403s under rate-limiting, but Zyte `browserHtml`
+    reads the same page fine. Carries `escalate_to_render` (not the eager
+    `try_user_browser` hint) so the render is tried before any wall is declared;
+    if no paid tier is keyed, the orchestrator's never-silently-miss hint fires.
+    Non-authoritative `block_page_detected` so it never ends the run on its own.
+    """
+    from ..tiers import TierResult
+
+    return TierResult(
+        body=b"",
+        content_type="",
+        status_code=0,
+        final_url=url,
+        verdict=Verdict.block_page_detected,
+        escalate_to_render=True,
     )
 
 

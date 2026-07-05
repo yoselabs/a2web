@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from typing import TYPE_CHECKING, Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from ..models import Heading, NextLink, Verdict
 from ..packages.html_fragment import to_markdown
@@ -20,17 +20,33 @@ if TYPE_CHECKING:
 
 _DEFAULT_TIMEOUT_S = 10
 _HN_HOST = "news.ycombinator.com"
+# The Algolia-backed search UI (a client-side SPA). Its `?q=` URLs resolve to
+# the same public search API this handler already uses for the front page, so
+# we route them directly rather than let the generic ladder render the shell.
+_ALGOLIA_HOST = "hn.algolia.com"
 _ID_RE = re.compile(r"^\d+$")
 _FRONT_PAGE_PATHS = frozenset({"/", "/news", "/news/"})
+_ALGOLIA_SEARCH_HITS_PER_PAGE = 30
+
+
+def _algolia_query(url: str) -> str | None:
+    """Return the search query for an `hn.algolia.com/?q=` URL, else None."""
+    parsed = urlparse(url)
+    if (parsed.hostname or "") != _ALGOLIA_HOST:
+        return None
+    q = (parse_qs(parsed.query).get("q") or [""])[0].strip()
+    return q or None
 
 
 class HNHandler:
-    """Tier-0 handler for Hacker News items and front page."""
+    """Tier-0 handler for Hacker News items, front page, and Algolia search."""
 
     name: str = "site_handler:hn"
 
     def matches(self, url: str, settings: AppSettings | None = None) -> bool:
         del settings
+        if _algolia_query(url) is not None:
+            return True
         parsed = urlparse(url)
         if (parsed.hostname or "") != _HN_HOST:
             return False
@@ -46,11 +62,18 @@ class HNHandler:
         del cookies  # handler manages its own transport
         from ..tiers import Rendered, TierResult
 
+        query = _algolia_query(url)
         parsed = urlparse(url)
         path = parsed.path or "/"
-        is_front_page = path in _FRONT_PAGE_PATHS
+        # A search-UI URL and the bare front page render identically (both are
+        # Algolia `search` hit-lists); an item URL renders the kids tree.
+        is_hit_list = query is not None or (query is None and path in _FRONT_PAGE_PATHS)
 
-        if is_front_page:
+        if query is not None:
+            api_url = "https://hn.algolia.com/api/v1/search?" + urlencode(
+                {"query": query, "tags": "story", "hitsPerPage": _ALGOLIA_SEARCH_HITS_PER_PAGE},
+            )
+        elif path in _FRONT_PAGE_PATHS:
             api_url = "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30"
         else:
             item_id = parse_qs(parsed.query).get("id", [""])[0]
@@ -66,14 +89,20 @@ class HNHandler:
 
         non_ok = map_non_ok(outcome, url=url)
         if non_ok is not None:
+            # Escalate to a paid site render: this handler rewrote the request to
+            # the Algolia API; on its failure, don't surface the API's transport
+            # error — render the ORIGINAL url via the paid tier (search-…-guard P4).
+            non_ok.escalate_to_render = True
             return non_ok
 
         try:
             payload = json.loads(outcome.body)
         except (ValueError, json.JSONDecodeError):
-            return empty_result(url, Verdict.content_type_mismatch)
+            fallback = empty_result(url, Verdict.content_type_mismatch)
+            fallback.escalate_to_render = True  # unparseable API body → render the site instead
+            return fallback
 
-        if is_front_page:
+        if is_hit_list:
             rendered = _render_front_page(payload)
             next_links = _front_page_candidates(payload)
         else:

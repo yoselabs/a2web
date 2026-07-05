@@ -118,6 +118,39 @@ async def test_paid_tier_dispatched_on_wall_and_installs(monkeypatch: pytest.Mon
     assert result.retrieval_incomplete is False
 
 
+# Thin JS-shell SPA: <500 chars of extractable text, a <script> tag, and a
+# root marker (`id="root"`) — the block detector flags this length_floor +
+# subsystem=js_required. The autouse browser stub is unavailable, so the browser
+# rung exhausts and the paid render becomes the last resort.
+_SPA_SHELL_HTML = (
+    b'<html><head><title>Search</title></head><body>'
+    b'<div id="root"></div><script src="/static/app.js"></script></body></html>'
+)
+
+
+class _SpaShellRawTier:
+    name = "raw"
+
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
+        del state, kwargs
+        return TierResult(body=_SPA_SHELL_HTML, content_type="text/html", status_code=200, final_url=url)
+
+
+@pytest.mark.asyncio
+async def test_js_required_spa_shell_escalates_to_paid_render(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A raw SPA shell that the (unavailable) browser rung can't render escalates
+    to the paid render tier, which wins the fetch — search-…-guard P1."""
+    monkeypatch.setitem(REGISTRY, "raw", _SpaShellRawTier())
+    monkeypatch.setitem(REGISTRY, "zyte", _OkPaidTier("zyte"))
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+
+    result = await fetch("https://spa.example/?q=claude", state=make_default_state(), debug=True)
+
+    assert result.status == FetchStatus.ok
+    assert result.tier == "zyte"
+    assert any(d.step == "zyte" for d in result.diagnostics)
+
+
 @pytest.mark.asyncio
 async def test_paid_not_dispatched_when_ladder_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
     """A clean fetch never touches the paid tier (no speculative cost)."""

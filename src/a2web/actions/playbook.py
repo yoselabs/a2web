@@ -221,6 +221,21 @@ def _decide_gate_paywall_or_block_archive(ctx: _RuleContext) -> Action | None:
 _PAID_WALL_VERDICTS = (Verdict.paywall, Verdict.block_page_detected, Verdict.anti_bot)
 
 
+def _is_paid_worthy_wall(obs: Observation) -> bool:
+    """Is this gate outcome a wall a paid render could plausibly pass?
+
+    The three hard walls (`_PAID_WALL_VERDICTS`) qualify unconditionally. A
+    `length_floor` qualifies ONLY when the block detector fingerprinted the body
+    as a JS-required SPA shell (`subsystem == "js_required"`) — the paid render
+    (Zyte `browserHtml`) is proven to render these. A bare `length_floor` (a
+    thin page, an empty result set) is NOT paid-worthy: gating paid egress on the
+    subsystem keeps spend scoped to genuine SPAs, never every short page.
+    """
+    if obs.verdict in _PAID_WALL_VERDICTS:
+        return True
+    return obs.verdict is Verdict.length_floor and obs.subsystem == "js_required"
+
+
 def _decide_paid_last_resort(ctx: _RuleContext) -> Action | None:
     """Terminal wall after every free escalation is spent → paid tier.
 
@@ -236,7 +251,7 @@ def _decide_paid_last_resort(ctx: _RuleContext) -> Action | None:
     last = ctx.last
     if last is None:
         return None
-    if last.kind is ObservationKind.gate_outcome and last.verdict in _PAID_WALL_VERDICTS and ctx.caps.paid_dispatches < 1:
+    if last.kind is ObservationKind.gate_outcome and _is_paid_worthy_wall(last) and ctx.caps.paid_dispatches < 1:
         return EscalatePaid()
     return None
 

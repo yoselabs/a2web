@@ -62,7 +62,10 @@ install-global:
 	# [cookies] (local-browser cookie mirror — the one place it actually works).
 	# To expose the cookies_refresh tool in a local `serve`, also set
 	# A2WEB_EXPOSE_COOKIES_TOOL=true (off by default; server-safe).
-	uv tool install --force --from '.[claude-code,browser,cookies]' a2web
+	# --reinstall-package forces a2web to rebuild even when the version string is
+	# unchanged — otherwise uv reuses a cached wheel and source edits don't
+	# propagate to the installed binary.
+	uv tool install --force --reinstall-package a2web --from '.[claude-code,browser,cookies]' a2web
 	# Fetch the browser rungs' Chromium binary into the tool env — a runtime
 	# asset, not a Python dep. Without this the first browser escalation
 	# silently hangs while patchright downloads its bundled Chromium. zendriver

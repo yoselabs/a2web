@@ -97,6 +97,17 @@ def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
 # --------------------------------------------------------------------- #
 
 
+# Extractor `obstacle` values (Obstacle enum) that cap ask confidence to `low`.
+# All four are page-level failure modes the model itself reported — none should
+# ride out as a confident answer.
+_CONFIDENCE_CAPPING_OBSTACLES = frozenset({"paywalled", "blocked", "empty", "error"})
+# The subset that additionally means "no answer-bearing content was retrieved"
+# → retrieval_incomplete + a critical hint. `paywalled`/`error` cap confidence
+# but may still carry a legitimate partial answer, and the wall/verdict
+# machinery already owns the incomplete signal for true walls.
+_INCOMPLETE_OBSTACLES = frozenset({"empty", "blocked"})
+
+
 def _confidence_for(verdict: Verdict, content_md: str) -> Confidence:
     if verdict != Verdict.ok:
         return Confidence.low
@@ -238,6 +249,12 @@ def build_response(fc: FetchContext) -> FetchResponse:
     if ask_unanswered:
         status = FetchStatus.failed
         retrieval_incomplete = True
+    # A requested site render (escalate_to_render) that ended in failure means the
+    # page was NOT retrieved — the free ladder was stopped, so the render was the
+    # only route. Mark it incomplete regardless of the handler's placeholder
+    # verdict (HN's Algolia 404 is not a "wall" verdict, but the miss is real).
+    if fc.render_requested and status == FetchStatus.failed:
+        retrieval_incomplete = True
     gate_outcome = fc.last_gate_outcome()
     gate_subsystem = gate_outcome.subsystem if gate_outcome else None
 
@@ -360,17 +377,47 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         )
 
     routing = fr.routing
+
+    # Confabulation guard (search-retrieval-and-confabulation-guard P2): the
+    # extractor's own `obstacle` signal reconciles confidence + completeness.
+    # `_confidence_for` runs in `build_response` — before the answer-extraction
+    # phase produces `obstacle` — so it can only see (verdict, length) and would
+    # rate a fluent-but-unfounded answer over a rendered SPA shell as `high`.
+    # Here, at the ask projection, `obstacle` is known: downgrade-only, never a
+    # bump. `empty`/`blocked` additionally flag retrieval as incomplete with a
+    # critical hint (the "do not answer as if you do" class), closing the gap the
+    # extraction_empty guard leaves open for a NON-empty confabulated answer.
+    obstacle = routing.obstacle if routing is not None else None
+    confidence = fr.confidence
+    retrieval_incomplete = fr.retrieval_incomplete
+    if obstacle in _CONFIDENCE_CAPPING_OBSTACLES:
+        confidence = Confidence.low
+    if obstacle in _INCOMPLETE_OBSTACLES:
+        retrieval_incomplete = True
+        op_hints.append(
+            OperatorHint(
+                code="retrieval_incomplete",
+                message=(
+                    "The extractor flagged this page as not carrying the requested content "
+                    "(likely a single-page-app shell, or a stale/unrelated page); the answer "
+                    "may not reflect the requested resource. Do not answer as if it does."
+                ),
+                fix="Verify against the live URL in a browser, or try fetch_raw / an alternate source.",
+                severity="critical",
+            ),
+        )
+
     return AskResponse(
         url=fr.url,
         status=fr.status,
         tier=fr.tier,
-        confidence=fr.confidence,
+        confidence=confidence,
         answer=fr.extracted_answer,
         title=fr.title,
         byline=fr.byline,
         published=fr.published,
         operator_hints=op_hints,
-        retrieval_incomplete=fr.retrieval_incomplete,
+        retrieval_incomplete=retrieval_incomplete,
         comments_loaded=fr.comments_loaded,
         comments_total=fr.comments_total,
         next_links=list(fr.next_links),
