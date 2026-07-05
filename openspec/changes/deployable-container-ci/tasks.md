@@ -26,24 +26,27 @@
 
 - [x] 4.1 Workflow on `v*` tags: job 1 runs `make check` (the gate)
 - [x] 4.2 Job 2 (needs job 1): `docker/metadata-action` + `docker/build-push-action` → `ghcr.io/yoselabs/a2web:{version,latest}`, login via `GITHUB_TOKEN` (`packages: write`)
-- [ ] 4.3 Set the GHCR package Public (one-time repo/org setting); document it — **OPERATOR: after first publish, GHCR package settings → Public. Documented in workflow header + README.**
-- [ ] 4.4 Cut a throwaway pre-release tag to confirm publish + unauthenticated `docker pull` succeeds; confirm image version matches the tag — **OPERATOR: `git tag v0.0.0-rc1 && git push --tags`; the workflow's `Verify published version` step checks `importlib.metadata.version('a2web')` == tag (a2web has no `--version` flag).**
+- [x] 4.3 GHCR package `ghcr.io/yoselabs/a2web` published (v0.27.0) and is **public** (inherited from repo visibility — no manual toggle needed). Confirmed via API: `visibility: public`.
+- [x] 4.4 First release cut as `v0.27.0` (real, not throwaway). Workflow green (gate + build+push); `Verify published version` step passed. Confirmed from a logged-OUT client: unauthenticated `docker pull --platform linux/amd64 ghcr.io/yoselabs/a2web:0.27.0` succeeds, image reports `0.27.0`, 367MB. (amd64-only — fits the N100 homelab; multi-arch stays deferred.)
 
 ## 5. Endpoint auth — config-gated Google OAuth
 
-> **BLOCKED on a2kit (round 16, `docs/history/A2KIT_FEEDBACK_v0.49.md`).**
-> a2kit v0.49.1 advertises `GoogleAuth` in its `packages.auth` docstring but does
-> NOT export/implement it (only `APIKeyAuth` + `TokenAuth` ship). The
-> registration mechanism (`App.auth(spec)`) works — there is no OAuth AuthSpec to
-> hand it. Operator decision (2026-07-05): add `GoogleAuth` upstream in a2kit
-> FIRST, then bump the pin and wire it here. Container ships **open** meanwhile
-> (Tailscale/private-LAN-only, documented in group 7). Do not fake this rung —
-> never-silently-miss applies to the deploy contract too.
+> **UNBLOCKED (2026-07-05, `docs/history/A2KIT_FEEDBACK_v0.49.md` round 16 — RESOLVED).**
+> a2kit's answer is direction A: no `GoogleAuth` AuthSpec, no pin bump. MCP OAuth
+> is already wired — a2web replaces the bare `serve` CMD with a ~15-line
+> programmatic entrypoint that builds a `fastmcp …google.GoogleProvider(client_id,
+> client_secret, base_url, …)` and passes it via
+> `serve_process(app, mcp_options={"auth": provider})`; `build_mcp_server`
+> forwards `auth=` to FastMCP and the mounted `PrincipalMiddleware` lands the
+> principal in the per-call DI scope. Blessed recipe: `a2kit/docs/patterns/mcp-auth.md`.
+> Sharp edge: `base_url` must be the **public** URL (the OAuth redirect derives
+> from it), NOT `--host 0.0.0.0`. Ready to build; container still ships open
+> (Tailscale/LAN) until wired.
 
-- [ ] 5.1 Add Google-auth config to `AppSettings` (env-only: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, resolved from env) — **blocked: land after a2kit `GoogleAuth` ships**
-- [ ] 5.2 Register a2kit's `GoogleAuth` AuthSpec on the HTTP surface only when configured; settle the mount target (`surface=mcp` alone vs `mcp`+`api`) — **blocked: `GoogleAuth` absent in a2kit v0.49.1**
-- [ ] 5.3 Tests: unconfigured → no AuthSpec registered, behavior unchanged; configured → anonymous request rejected, Google principal admitted — **blocked**
-- [ ] 5.4 Confirm no `GOOGLE_*` value is written to any repo file or image layer — **blocked**
+- [ ] 5.1 Add Google-auth config to `AppSettings` (env-only: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, resolved from env) — ready (programmatic `GoogleProvider` entrypoint)
+- [ ] 5.2 Register a2kit's `GoogleAuth` AuthSpec on the HTTP surface only when configured; settle the mount target (`surface=mcp` alone vs `mcp`+`api`) — ready (FastMCP `auth=` via `serve_process(mcp_options={"auth":…})`)
+- [ ] 5.3 Tests: unconfigured → no AuthSpec registered, behavior unchanged; configured → anonymous request rejected, Google principal admitted — ready
+- [ ] 5.4 Confirm no `GOOGLE_*` value is written to any repo file or image layer — ready
 
 ## 6. Transport-native liveness (FastMCP `/health`)
 
