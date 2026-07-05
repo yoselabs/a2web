@@ -195,7 +195,7 @@ silent empty answer.
 **Liveness** is wired as a Docker `HEALTHCHECK` (`curl -f /health`) against the
 live serve process.
 
-**The published image is slim (~550 MB) and browserless.** The browser rendering
+**The published image is slim (~410 MB) and browserless.** The browser rendering
 tier (Chromium + its desktop system-lib tree) and the Claude Code OS-session
 backend (`claude-agent-sdk`) are both **build-arg opt-ins**, because each is
 large and neither is on the common path:

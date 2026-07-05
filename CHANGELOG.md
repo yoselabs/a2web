@@ -44,8 +44,9 @@ All notable changes to **a2web** are recorded here. The format follows
   ~1.35 GB of a 2 GB image, yet the browser tier is escalation-only. When the
   extra is absent, the browser-backend manifests report `Unavailable` and a
   browser-only site degrades to a critical `try_user_browser` operator hint —
-  never a crash or silent miss. The published container is slim (~550 MB,
-  browserless); bake the browser with `--build-arg INSTALL_BROWSER=true`.
+  never a crash or silent miss. The published container is slim (~410 MB,
+  browserless, multi-stage build); bake the browser with
+  `--build-arg INSTALL_BROWSER=true`.
 - `make install-global` installs `a2web[claude-code,browser]`, so the local
   tool keeps both — the workflow is unchanged.
 
