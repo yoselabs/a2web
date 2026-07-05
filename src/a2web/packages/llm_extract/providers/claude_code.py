@@ -39,9 +39,22 @@ class ClaudeCodeProvider:
     name: str = "claude-code"
 
     def __init__(self) -> None:
-        # a2web v0.7+: `claude-agent-sdk` is a baseline dep, no ImportError gate.
-        # OAuth/session detection happens at first `complete()` call.
-        return
+        # `claude-agent-sdk` is an OPTIONAL extra (`a2web[claude-code]`) — the
+        # slim container ships without it. Gate on presence here so an
+        # SDK-absent env degrades to `LLMNotAvailable` (which the manifest maps
+        # to `Unavailable`, dropping this rung so auto-select falls through to
+        # anthropic/openai_compatible) rather than crashing with a bare
+        # ImportError on the first `complete()` call. `find_spec` is cheap — it
+        # does NOT import the heavy (~210MB) module. OAuth/session detection
+        # still happens at first `complete()`.
+        import importlib.util
+
+        if importlib.util.find_spec("claude_agent_sdk") is None:
+            raise LLMNotAvailable(
+                "claude-agent-sdk is not installed. Install the extra with "
+                "`pip install a2web[claude-code]`, or set ANTHROPIC_API_KEY / "
+                "OPENAI_API_KEY to use a different backend."
+            )
 
     async def complete(
         self,

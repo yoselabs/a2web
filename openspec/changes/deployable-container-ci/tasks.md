@@ -1,10 +1,10 @@
 ## 1. Packaging — claude-agent-sdk becomes an extra
 
-- [ ] 1.1 Move `claude-agent-sdk` from baseline deps to an optional extra `[claude-code]` in `pyproject.toml`
-- [ ] 1.2 Update `make install-global` to install `a2web[claude-code]` so the local piggyback is unchanged
-- [ ] 1.3 Verify/adjust the `claude-code` manifest gates on import availability → `Unavailable` when the SDK is absent (no crash, no module-level import error)
-- [ ] 1.4 Tests for the provider-selection delta: SDK-absent + `ANTHROPIC_API_KEY` → auto-select returns `anthropic`; SDK-absent + no backend → none sentinel (loud); SDK-present → still `claude-code`
-- [ ] 1.5 CHANGELOG/README note the BREAKING piggyback packaging change
+- [x] 1.1 Move `claude-agent-sdk` from baseline deps to an optional extra `[claude-code]` in `pyproject.toml`
+- [x] 1.2 Update `make install-global` to install `a2web[claude-code]` so the local piggyback is unchanged
+- [x] 1.3 Verify/adjust the `claude-code` manifest gates on import availability → `Unavailable` when the SDK is absent (no crash, no module-level import error)
+- [x] 1.4 Tests for the provider-selection delta: SDK-absent + `ANTHROPIC_API_KEY` → auto-select returns `anthropic`; SDK-absent + no backend → none sentinel (loud); SDK-present → still `claude-code`
+- [x] 1.5 CHANGELOG/README note the BREAKING piggyback packaging change
 
 ## 2. Dockerfile
 

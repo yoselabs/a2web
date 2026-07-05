@@ -47,7 +47,6 @@ dependencies = [
     { name = "anthropic" },
     { name = "anyio" },
     { name = "browser-cookie3" },
-    { name = "claude-agent-sdk" },
     { name = "cryptography" },
     { name = "curl-cffi" },
     { name = "gidgethub" },
@@ -67,6 +66,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+claude-code = [
+    { name = "claude-agent-sdk" },
+]
 paid = [
     { name = "firecrawl-py" },
 ]
@@ -94,7 +96,7 @@ requires-dist = [
     { name = "anthropic", specifier = ">=0.40,<1" },
     { name = "anyio", specifier = ">=4,<5" },
     { name = "browser-cookie3", specifier = ">=0.20,<1" },
-    { name = "claude-agent-sdk", specifier = ">=0.1.80,<1" },
+    { name = "claude-agent-sdk", marker = "extra == 'claude-code'", specifier = ">=0.1.80,<1" },
     { name = "cryptography", specifier = ">=43,<46" },
     { name = "curl-cffi", specifier = ">=0.7,<1" },
     { name = "firecrawl-py", marker = "extra == 'paid'", specifier = ">=1,<2" },
@@ -113,7 +115,7 @@ requires-dist = [
     { name = "trafilatura", specifier = ">=1.12,<2" },
     { name = "zendriver", specifier = ">=0.15,<1" },
 ]
-provides-extras = ["paid"]
+provides-extras = ["paid", "claude-code"]
 
 [package.metadata.requires-dev]
 dev = [

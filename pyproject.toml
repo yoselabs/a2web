@@ -59,10 +59,14 @@ dependencies = [
     # markdownify is the Python equivalent of WebFetch's Turndown — used by
     # WebFetchBaseline to keep HTML→markdown behavior close to Claude Code's.
     "markdownify>=0.13,<2",
-    # claude-agent-sdk lets a2web piggyback on the user's Claude Code OS
-    # session (OAuth subscription or whichever auth `claude` CLI is logged
-    # into) — no separate API key required when this is preferred.
-    "claude-agent-sdk>=0.1.80,<1",
+    # NOTE: `claude-agent-sdk` (the Claude Code OS-session piggyback) was moved
+    # OUT of baseline to the optional `[claude-code]` extra below
+    # (deployable-container-ci): it bundles a ~210MB Claude Code binary that a
+    # slim server container has no use for, and the container's default backend
+    # is now OpenAI-compatible (DeepSeek). The local `make install-global`
+    # piggyback installs `a2web[claude-code]`, so nothing changes for the
+    # OS-session workflow. This is a BREAKING packaging change for anyone who
+    # relied on `pip install a2web` bringing the SDK.
     # Browser rendering engines (browser-backend-bakeoff, 2026-06-27). Two rungs
     # ship by default so a fresh install renders both:
     #   - patchright: the fast Chromium rung (`browser` tier). An undetected
@@ -85,6 +89,12 @@ dependencies = [
 
 [project.optional-dependencies]
 paid = ["firecrawl-py>=1,<2"]
+# Claude Code OS-session piggyback (OAuth subscription / whichever auth the
+# `claude` CLI is logged into — no separate API key). Bundles a ~210MB binary;
+# kept out of the slim container. `make install-global` installs this extra so
+# the local workflow is unchanged. Absent → the `claude-code` provider reports
+# Unavailable and auto-select falls through to anthropic/openai_compatible.
+claude-code = ["claude-agent-sdk>=0.1.80,<1"]
 
 [dependency-groups]
 dev = [

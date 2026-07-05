@@ -8,6 +8,39 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added — OpenAI-compatible LLM backend (`openai-compatible-llm-provider`)
+
+- **Third extraction backend** alongside `anthropic` and `claude-code`, reached
+  through the `openai` SDK's **standard** env vars — `OPENAI_API_KEY`,
+  `OPENAI_BASE_URL`, `OPENAI_MODEL` — not custom `A2WEB_LLM_*` ones. Presence of
+  `OPENAI_API_KEY` gates availability and derives the backend as the
+  last-resort fallback in auto order (never shadows Claude/Anthropic). Unset
+  base URL → OpenAI proper; set it for DeepSeek / Gemini / OpenRouter / local.
+  Model resolves from `OPENAI_MODEL`, else a host-keyed recommendation, else a
+  loud failure. Validate a custom model with the data-contract axis as the
+  pass/fail gate — see the `eval/model_benchmark/` reference experiment.
+- **Reference model benchmark** committed at `eval/model_benchmark/`
+  (methodology-as-code + provenance-stamped results). Verdict: **DeepSeek V4
+  Flash** is the cheapest backend clearing the router-shape contract at
+  Haiku-class quality (~1/14th the cost).
+- **Model-agnostic router-shape parsing:** the wobble funnel now recovers a
+  leading JSON object when a verbose model appends a trailing `next_links`
+  fence, and a critical `extraction_empty` operator hint fires when real
+  content is fetched but the LLM returns an empty answer (ADR-0009 at
+  extraction granularity).
+
+### Changed — BREAKING packaging: `claude-agent-sdk` is now an optional extra (`deployable-container-ci`)
+
+- **`claude-agent-sdk` moved out of baseline deps** into the optional
+  `a2web[claude-code]` extra. It bundles a ~210MB Claude Code binary the slim
+  server container has no use for, and the container's default backend is now
+  OpenAI-compatible (DeepSeek). `plain pip install a2web` no longer brings the
+  SDK — install `a2web[claude-code]` for the Claude Code OS-session piggyback.
+  `make install-global` installs the extra, so the local workflow is unchanged.
+  When the SDK is absent, the `claude-code` provider reports `Unavailable` and
+  auto-select falls through to `anthropic` / `openai_compatible` (loud `None`
+  if nothing is keyed) — no crash on first use.
+
 ## [0.26.0] — 2026-07-04
 
 ### Added — Reddit via Zyte: scored/nested comments + honest-partial contract (`reddit-via-zyte`)
