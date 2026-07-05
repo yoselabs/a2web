@@ -28,6 +28,12 @@ All notable changes to **a2web** are recorded here. The format follows
   fence, and a critical `extraction_empty` operator hint fires when real
   content is fetched but the LLM returns an empty answer (ADR-0009 at
   extraction granularity).
+- **`extraction_empty` now fails hard (structured).** An `ask` that fetches real
+  content (>500 chars) but gets an empty answer back from the model — the
+  model-swap risk — is escalated from a hint-on-`ok` to a full
+  `status: failed` + `retrieval_incomplete: true` at the single response
+  chokepoint, so a status-checking agent can never read an empty answer as a
+  complete one. Applies to every route.
 
 ### Changed — BREAKING packaging: heavy deps are now optional extras (`deployable-container-ci`)
 

@@ -215,6 +215,22 @@ def build_response(fc: FetchContext) -> FetchResponse:
         Verdict.paywall,
         Verdict.paid_auth_error,
     )
+    # never-silently-miss at extraction granularity (ADR-0009): `ask` ran
+    # extraction over real fetched content (>500 chars) yet the answer came back
+    # empty. That is a parse failure or an off-contract model (the model-swap
+    # risk that motivated the backend benchmark), NOT an empty page. Escalate to
+    # a FULL failure — status=failed + retrieval_incomplete, not merely a hint —
+    # so an agent that branches on `status` can never read an empty answer as a
+    # complete one. This is the single chokepoint, so it holds for every route.
+    extraction_empty = (
+        fc.extraction_meta is not None
+        and final_verdict == Verdict.ok
+        and not (fc.extracted_answer or "").strip()
+        and len(fc.content_md) > 500
+    )
+    if extraction_empty:
+        status = FetchStatus.failed
+        retrieval_incomplete = True
     gate_outcome = fc.last_gate_outcome()
     gate_subsystem = gate_outcome.subsystem if gate_outcome else None
 
@@ -229,17 +245,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
     wrapped_md = _wrap_content_md(fc.content_md, source=fc.final_url, fetched_at=fc.started_at) if fc.wrap_content else fc.content_md
     tokens = TokenCounts(full=len(wrapped_md)) if fc.debug and final_verdict == Verdict.ok and fc.content_md else None
     op_hints: list[OperatorHint] = list(fc.operator_hints)
-
-    # never-silently-miss at extraction granularity (ADR-0009): if `ask` ran
-    # extraction (extraction_meta present) over real fetched content yet the
-    # answer came back empty, that is a dangerous silent miss — an extraction /
-    # parse failure or a model off-contract, NOT an empty page. Surface it loud.
-    if (
-        fc.extraction_meta is not None
-        and final_verdict == Verdict.ok
-        and not (fc.extracted_answer or "").strip()
-        and len(fc.content_md) > 500
-    ):
+    if extraction_empty:
         op_hints.append(extraction_empty_hint(content_chars=len(fc.content_md)))
 
     diagnostics_summary = _build_diagnostics_summary(
@@ -248,6 +254,11 @@ def build_response(fc: FetchContext) -> FetchResponse:
         total_ms=total_ms,
         gate_subsystem=gate_subsystem,
     )
+    # The fetch verdict is `ok` (content retrieved) but the answer is empty, so
+    # give the failed envelope a coherent narrative instead of the "→ ok" line.
+    if extraction_empty:
+        narrative = f"{fc.tier_used} → fetched ok but extraction returned an empty answer ({fmt_dur(total_ms)})."
+        diagnostics_summary = f"extraction_empty: {len(fc.content_md)} chars fetched, empty answer from {fc.tier_used}"
 
     # `url` is redirect-only: carry the final URL only when it differs from
     # what the caller requested (HTTP redirect, captcha-host rewrite, or

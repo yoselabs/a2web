@@ -181,16 +181,29 @@ docker run -d --name a2web -p 8000:8000 \
 > to the public internet. Run it behind Tailscale or a private LAN. Config-gated
 > Google OAuth is planned (blocked on an upstream a2kit `GoogleAuth` AuthSpec).
 
-**Environment matrix** (secrets are env-only, never baked into a layer):
+**Environment matrix** (secrets are env-only, never baked into a layer). Every
+`AppSettings` field is settable as `A2WEB_<FIELD>` (case-insensitive; nested via
+`__`) — the full list lives in `src/a2web/settings.py`. The deployment-relevant
+ones:
 
 | Variable | Purpose |
 |---|---|
+| **LLM backend** | |
 | `OPENAI_API_KEY` + `OPENAI_BASE_URL` + `OPENAI_MODEL` | OpenAI-compatible LLM backend — the container default. Point at DeepSeek / OpenAI / Gemini / OpenRouter / a local endpoint. Unset base URL → OpenAI proper. |
 | `ANTHROPIC_API_KEY` | Alternative LLM backend (Anthropic Messages API). Auto-selected over openai-compatible when set. |
-| `A2WEB_ZYTE_KEY` | Paid Zyte tier (Reddit thread depth + hard walls). Optional. |
-| `A2WEB_JINA_KEY` | Optional Jina reader free-tier key. |
+| `A2WEB_LLM_OPENAI_API_KEY_ENV` | Rename the key env var a2web reads for the OpenAI-compatible backend (default `OPENAI_API_KEY`; set to `OPENROUTER_API_KEY` etc.). `A2WEB_LLM_API_KEY_ENV` does the same for the Anthropic key. |
+| `A2WEB_LLM_MODEL` / `A2WEB_LLM_PROVIDER` | Override the extraction model / pin the backend (`auto` default). |
+| **Paid + token tiers** (all optional) | |
+| `A2WEB_ZYTE_KEY` | Paid Zyte tier (Reddit thread depth + hard walls). |
+| `A2WEB_FIRECRAWL_KEY` | Paid Firecrawl tier (needs the `[paid]` extra). |
+| `A2WEB_JINA_KEY` | Jina reader — raises the keyless free-tier limits. |
+| `A2WEB_GITHUB_TOKEN` | GitHub handler token — raises the API rate limit 60 → 5000 req/hr. Set this if you fetch GitHub issues/PRs at any volume. |
+| `A2WEB_REDDIT_TIER_POLICY` | `robustness` (default: Reddit → Zyte → RSS) or `privacy` (RSS-only; no third party ever sees the URL). |
+| **Storage + surface** | |
 | `A2WEB_CACHE_DIR` | sqlite HTTP-cache dir. Defaults to `/data` in the image; back it with a volume so the cache survives restarts. |
-| `A2WEB_*` | Any `AppSettings` field (`A2WEB_STEALTH`, `A2WEB_DIAGNOSTICS_DEFAULT`, …). |
+| `A2WEB_EXPOSE_COOKIES_TOOL` | Leave **unset** on a server (the cookie mirror is local-only). Set `true` only for a local `serve`. |
+| `A2KIT_MCP__CODE_MODE` | `true` re-enables a2kit's code-execution sandbox (search/get_schema/execute meta-tools). a2web ships it off; only flip per-deployment if a client needs it. |
+| `A2WEB_*` | Any other `AppSettings` field (`A2WEB_STEALTH`, `A2WEB_DIAGNOSTICS_DEFAULT`, `A2WEB_BROWSER_MAX_POOL`, cache TTLs, …). |
 
 Without any LLM key the container still serves `fetch_raw` (raw pages, no
 extraction); `ask` returns a loud `llm_unavailable` operator hint rather than a

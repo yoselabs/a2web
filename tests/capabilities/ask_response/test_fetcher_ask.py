@@ -168,10 +168,11 @@ async def test_ask_set_populates_extracted_answer(
 
 
 @pytest.mark.asyncio
-async def test_ask_empty_answer_emits_extraction_empty_hint(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_ask_empty_answer_fails_hard_with_extraction_empty_hint(monkeypatch: pytest.MonkeyPatch) -> None:
     """never-silently-miss at extraction granularity: real content fetched but
-    the LLM produced an EMPTY answer → a critical `extraction_empty` hint, so the
-    caller never reads it as an empty page."""
+    the LLM produced an EMPTY answer → a FULL failure (status=failed +
+    retrieval_incomplete), not just a hint, so an agent that branches on `status`
+    can never read an empty answer as a complete one (the model-swap risk)."""
     body = (_FIX / "blog.html").read_bytes()
     _swap_raw(monkeypatch, body)
 
@@ -185,11 +186,14 @@ async def test_ask_empty_answer_emits_extraction_empty_hint(monkeypatch: pytest.
         llm_extractor=lazy(extractor_res),
     )
 
-    assert result.status == FetchStatus.ok
+    assert result.status == FetchStatus.failed
+    assert result.retrieval_incomplete is True
     assert not (result.extracted_answer or "").strip()
     hints = [h for h in result.operator_hints if h.code == "extraction_empty"]
     assert len(hints) == 1
     assert hints[0].severity == "critical"
+    # A failed envelope must carry the failure-only narrative (not the "→ ok" line).
+    assert "empty answer" in result.narrative
 
 
 @pytest.mark.asyncio
