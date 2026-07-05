@@ -46,7 +46,15 @@ class CookieAccessError(RuntimeError):
 
 
 def _dispatch(source: CookieSource):
-    import browser_cookie3 as bc3
+    try:
+        import browser_cookie3 as bc3
+    except ModuleNotFoundError as err:
+        # `browser-cookie3` is the optional `[cookies]` extra (local-only). The
+        # deferred import lets a slim/server install omit it entirely; when a
+        # caller nonetheless tries to read a real browser, degrade to the shared
+        # CookieAccessError (the refresh tool catches it → loud note, no crash).
+        msg = "cookie mirroring needs the [cookies] extra — install a2web[cookies] (a local-only feature; the server container omits it)"
+        raise CookieAccessError(msg) from err
 
     table = {
         "chrome": bc3.chrome,

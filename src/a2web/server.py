@@ -31,7 +31,7 @@ from .cookie_jar import build_cookie_jar
 from .packages.http_cache import SqliteResource
 from .packages.llm_extract import Provider
 from .routers import CookiesRouter, WebRouter
-from .settings import get_settings
+from .settings import AppSettings, get_settings
 from .state import (
     RobustBrowserBackend,
     build_breakers,
@@ -72,13 +72,31 @@ class A2Web(a2kit.App):
     config = A2kitConfig(mcp=McpConfig(code_mode=False))
 
 
+class _A2WebServer(A2Web):
+    """Server-safe variant: the local-only `cookies_refresh` tool is NOT exposed.
+
+    a2web served as a network MCP server has no local browser to mirror cookies
+    from, so `CookiesRouter` is dropped from the surface. `build_app` selects
+    this class unless `settings.expose_cookies_tool` is set (local serve). Name +
+    config are inherited; only `routers` narrows.
+    """
+
+    routers = (WebRouter,)
+
+
+def _app_class_for(settings: AppSettings) -> type[A2Web]:
+    """Pick the App class from the cookies-exposure toggle. Pure — no I/O — so the
+    router-gating decision is unit-testable without the settings cache."""
+    return A2Web if settings.expose_cookies_tool else _A2WebServer
+
+
 def build_app() -> A2Web:
     """Build a fresh a2web `A2Web` instance.
 
     Tests build a fresh app per test and pass fakes via `.provide(T, fake)`
     last-write-wins, then enter `make_client(build_app_for_test(...))`.
     """
-    app = A2Web()
+    app = _app_class_for(get_settings())()
 
     # Order matters: deps before dependents.
     app.provide(get_settings)  # AppSettings (BaseSettings) — explicit per design.md decision 4

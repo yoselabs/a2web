@@ -46,7 +46,6 @@ dependencies = [
     { name = "aiosqlite" },
     { name = "anthropic" },
     { name = "anyio" },
-    { name = "browser-cookie3" },
     { name = "cryptography" },
     { name = "curl-cffi" },
     { name = "gidgethub" },
@@ -70,6 +69,9 @@ browser = [
 ]
 claude-code = [
     { name = "claude-agent-sdk" },
+]
+cookies = [
+    { name = "browser-cookie3" },
 ]
 paid = [
     { name = "firecrawl-py" },
@@ -97,7 +99,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20,<1" },
     { name = "anthropic", specifier = ">=0.40,<1" },
     { name = "anyio", specifier = ">=4,<5" },
-    { name = "browser-cookie3", specifier = ">=0.20,<1" },
+    { name = "browser-cookie3", marker = "extra == 'cookies'", specifier = ">=0.20,<1" },
     { name = "claude-agent-sdk", marker = "extra == 'claude-code'", specifier = ">=0.1.80,<1" },
     { name = "cryptography", specifier = ">=43,<46" },
     { name = "curl-cffi", specifier = ">=0.7,<1" },
@@ -117,7 +119,7 @@ requires-dist = [
     { name = "trafilatura", specifier = ">=1.12,<2" },
     { name = "zendriver", marker = "extra == 'browser'", specifier = ">=0.15,<1" },
 ]
-provides-extras = ["paid", "browser", "claude-code"]
+provides-extras = ["paid", "browser", "claude-code", "cookies"]
 
 [package.metadata.requires-dev]
 dev = [

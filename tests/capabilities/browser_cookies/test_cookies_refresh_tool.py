@@ -9,14 +9,17 @@ from a2web.cookie_jar import CookieJarResource, CookiesRefreshResult, build_cook
 from a2web.packages.cookie_store.models import CookieRow
 from a2web.packages.http_cache import SqliteResource
 from a2web.routers import CookiesRouter
-from a2web.server import app
+from a2web.server import A2Web, app
 from a2web.settings import AppSettings
 from tests.conftest import make_default_state
 
 
 def test_cookies_router_registered() -> None:
-    """The `refresh` tool is exposed on the app (CLI: `a2web cookies refresh`)."""
-    names = {desc.name for desc in app.tools()}
+    """The `refresh` tool is exposed on the cookies-enabled app (CLI:
+    `a2web cookies refresh`). It is toggle-gated (`expose_cookies_tool`): the
+    default server `app` omits it, the `A2Web` class includes it."""
+    assert "refresh" not in {desc.name for desc in app.tools()}  # server-safe default
+    names = {desc.name for desc in A2Web().tools()}
     # a2kit derives MCP tool name from the function name. CLI grouping by
     # router slug ("cookies") gives the user-facing `a2web cookies refresh`.
     assert "refresh" in names

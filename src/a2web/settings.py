@@ -212,10 +212,21 @@ class AppSettings(BaseSettings):
     extraction_max_chars: int = 100_000  # matches WebFetch's BD_ constant
     extraction_cache_ttl_s: int = 900  # matches WebFetch's sg5 (15 min)
 
+    # Exposure toggle for the local-only `cookies_refresh` tool. Default OFF:
+    # a2web served as a network MCP server has no local browser to read cookies
+    # from, so the tool is pointless (and mildly surprising) on a server — the
+    # `CookiesRouter` is simply not registered. Flip to `true`
+    # (`A2WEB_EXPOSE_COOKIES_TOOL=true`) when running serve LOCALLY and you want
+    # the cookie mirror. Independent of the `[cookies]` extra: this controls
+    # whether the tool is *exposed*; the extra controls whether it can *function*
+    # (absent extra → the tool returns a loud "install a2web[cookies]" note).
+    expose_cookies_tool: bool = False
+
     # v0.16: opt-in browser cookie source. Default `none` keeps the subsystem
     # inert — no resource construction, no DB access, no Keychain prompts.
-    # Backed by browser-cookie3: cross-platform (macOS / Linux / Windows) and
-    # multi-browser. The Keychain prompt fires only on `cookies_refresh`.
+    # Backed by the `[cookies]` extra (browser-cookie3): local-only, cross-browser
+    # (Chrome / Chromium / Brave / Edge / Firefox / Safari / …). The Keychain
+    # prompt fires only on `cookies_refresh`.
     cookie_source: Literal[
         "none",
         "chrome",

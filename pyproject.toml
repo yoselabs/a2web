@@ -29,11 +29,14 @@ dependencies = [
     # transitively by curl_cffi; promoted to direct in v0.8 so the
     # dependency is explicit at the boundary where we use it.
     "cryptography>=43,<46",
-    # v0.16: browser-cookie3 replaces hand-rolled Chrome/Firefox readers.
-    # Cross-platform (macOS/Linux/Windows) + multi-browser (Chrome, Chromium,
-    # Brave, Edge, Firefox, Safari, Vivaldi, Opera, Opera GX). Pulls pycryptodome
-    # transitively — coexists with cryptography (separate import namespaces).
-    "browser-cookie3>=0.20,<1",
+    # NOTE: `browser-cookie3` (the local-browser cookie mirror) moved OUT of
+    # baseline into the optional `[cookies]` extra below (deployable-container-ci
+    # image-slimming). It reads the *local* machine's Chrome/Firefox cookie store,
+    # so it is inherently a LOCAL-ONLY feature — useless in a server container
+    # (there is no browser there to read from). It also drags `lz4` +
+    # `pycryptodome` transitively. Absent → `cookies_refresh` returns a loud
+    # "install a2web[cookies]" note; normal fetches read the sqlite mirror and are
+    # unaffected. `make install-global` installs it; the container never does.
     "trafilatura>=1.12,<2",
     "selectolax>=0.3,<1",
     # async + observability
@@ -96,6 +99,11 @@ browser = ["patchright>=1.60,<2", "zendriver>=0.15,<1"]
 # the local workflow is unchanged. Absent → the `claude-code` provider reports
 # Unavailable and auto-select falls through to anthropic/openai_compatible.
 claude-code = ["claude-agent-sdk>=0.1.80,<1"]
+# Local-browser cookie mirror (`cookies_refresh`). Reads the local machine's
+# Chrome/Firefox cookie store — a LOCAL-ONLY feature, deliberately absent from
+# the server container (no browser there). Drags lz4 + pycryptodome. Absent →
+# `cookies_refresh` returns a loud "install a2web[cookies]" note.
+cookies = ["browser-cookie3>=0.20,<1"]
 
 [dependency-groups]
 dev = [

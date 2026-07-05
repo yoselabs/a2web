@@ -199,3 +199,18 @@ def test_read_cookies_wraps_upstream_exception(monkeypatch: pytest.MonkeyPatch) 
 def test_unsupported_source_raises_cookie_access_error() -> None:
     with pytest.raises(CookieAccessError):
         read_cookies("nope")  # type: ignore[arg-type]
+
+
+def test_missing_extra_degrades_to_cookie_access_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`browser-cookie3` is the optional `[cookies]` extra. When absent, the
+    deferred import must degrade to `CookieAccessError` with an actionable
+    'install a2web[cookies]' message — not a raw ModuleNotFoundError. (Setting
+    sys.modules[name]=None makes `import browser_cookie3` raise ModuleNotFoundError,
+    simulating the extra being uninstalled.)"""
+    import sys
+
+    monkeypatch.setitem(sys.modules, "browser_cookie3", None)
+    with pytest.raises(CookieAccessError) as exc_info:
+        read_cookies("chrome")
+    assert "a2web[cookies]" in str(exc_info.value)
+    assert isinstance(exc_info.value.__cause__, ModuleNotFoundError)

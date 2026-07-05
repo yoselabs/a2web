@@ -57,10 +57,12 @@ dev:
 # Use after shipping a new version when Claude Code's MCP entry points at
 # /Users/iorlas/.local/bin/a2web (see CLAUDE.md → Global install).
 install-global:
-	# `[claude-code]` + `[browser]` extras keep the local OS-session piggyback
-	# (claude-agent-sdk) and the browser rungs (patchright/zendriver) — both moved
-	# out of baseline for the slim container, restored here for the local tool.
-	uv tool install --force --from '.[claude-code,browser]' a2web
+	# Local tool keeps every extra that was slimmed out of the container:
+	# [claude-code] (OS-session piggyback), [browser] (patchright/zendriver),
+	# [cookies] (local-browser cookie mirror — the one place it actually works).
+	# To expose the cookies_refresh tool in a local `serve`, also set
+	# A2WEB_EXPOSE_COOKIES_TOOL=true (off by default; server-safe).
+	uv tool install --force --from '.[claude-code,browser,cookies]' a2web
 	# Fetch the browser rungs' Chromium binary into the tool env — a runtime
 	# asset, not a Python dep. Without this the first browser escalation
 	# silently hangs while patchright downloads its bundled Chromium. zendriver

@@ -44,11 +44,23 @@ All notable changes to **a2web** are recorded here. The format follows
   ~1.35 GB of a 2 GB image, yet the browser tier is escalation-only. When the
   extra is absent, the browser-backend manifests report `Unavailable` and a
   browser-only site degrades to a critical `try_user_browser` operator hint —
-  never a crash or silent miss. The published container is slim (~410 MB,
+  never a crash or silent miss. The published container is slim (~390 MB,
   browserless, multi-stage build); bake the browser with
   `--build-arg INSTALL_BROWSER=true`.
-- `make install-global` installs `a2web[claude-code,browser]`, so the local
-  tool keeps both — the workflow is unchanged.
+- **`browser-cookie3` moved out of baseline** into the optional `a2web[cookies]`
+  extra (drops `lz4` + `pycryptodome` from the default image). The cookie mirror
+  reads the *local* machine's browser store, so it is inherently local-only and
+  useless in a server container. Absent → `cookies_refresh` returns a loud
+  "install a2web[cookies]" note; normal fetches read the sqlite mirror unchanged.
+- **New `expose_cookies_tool` toggle (default `false`, BREAKING for local cookie
+  users).** The `cookies_refresh` tool is no longer registered by default — a
+  network MCP server has no local browser to mirror. Set
+  `A2WEB_EXPOSE_COOKIES_TOOL=true` for local `serve` where you want it. This is
+  independent of the extra: the toggle controls *exposure*, the extra controls
+  *function*.
+- `make install-global` installs `a2web[claude-code,browser,cookies]`, so the
+  local tool keeps every extra — set `A2WEB_EXPOSE_COOKIES_TOOL=true` to surface
+  the cookies tool in a local serve.
 
 ## [0.26.0] — 2026-07-04
 

@@ -8,7 +8,8 @@ registered, no connections CLI).
 
 from __future__ import annotations
 
-from a2web.server import app, main
+from a2web.server import A2Web, _A2WebServer, _app_class_for, app, main
+from a2web.settings import AppSettings
 from a2web.state import AppState
 
 
@@ -30,10 +31,29 @@ def test_canonical_tool_names_pinned_under_flat_naming() -> None:
     naming` (a2kit-v043-migration). `app.tools()` exposes the descriptors whose
     `.name` is the canonical identity used on the MCP wire.
     """
+    # The default (server-safe) app: ask/fetch_raw pinned to bare names.
     names = {desc.name for desc in app.tools()}
-    assert {"ask", "fetch_raw", "refresh"} <= names
-    # The flat slug-prefixed names MUST NOT appear — the override pins beat them.
-    assert names.isdisjoint({"web_ask", "web_fetch_raw", "cookies_refresh"})
+    assert {"ask", "fetch_raw"} <= names
+    assert names.isdisjoint({"web_ask", "web_fetch_raw"})
+    # The cookies-enabled app pins `refresh` (not `cookies_refresh`).
+    cookie_names = {desc.name for desc in A2Web().tools()}
+    assert "refresh" in cookie_names
+    assert "cookies_refresh" not in cookie_names
+
+
+def test_cookies_tool_gated_off_by_default() -> None:
+    """`expose_cookies_tool` defaults False → the local-only `refresh` tool is NOT
+    on the served surface (a server has no local browser to mirror). The module
+    `app` is built with default settings, so it uses the server-safe class."""
+    assert _app_class_for(AppSettings()) is _A2WebServer
+    assert "refresh" not in {desc.name for desc in app.tools()}
+
+
+def test_cookies_tool_exposed_when_toggled_on() -> None:
+    """`expose_cookies_tool=True` (local serve) selects the cookies-enabled class,
+    exposing `refresh`."""
+    assert _app_class_for(AppSettings(expose_cookies_tool=True)) is A2Web
+    assert "refresh" in {desc.name for desc in A2Web().tools()}
 
 
 def test_app_has_no_connections_subcommand() -> None:

@@ -21,17 +21,21 @@ uv tool install a2web
 a2web --help
 ```
 
-The stealth browser tier ships in the base install: the `camoufox` Firefox binary, around 150 MB. First browser use pulls it once.
+The base install is lean. Heavy, situational capabilities are opt-in extras so a
+server deployment stays small:
+
+| Extra | Adds | For |
+|---|---|---|
+| `[browser]` | patchright + zendriver (stealth Chromium rungs) | JS-heavy / hard anti-bot sites without a paid tier. First browser use pulls a Chromium once. |
+| `[cookies]` | `browser-cookie3` | mirroring your *local* browser cookies (local-only; see Cookies). |
+| `[claude-code]` | `claude-agent-sdk` | the Claude Code OS-session LLM backend (OAuth piggyback). |
+| `[paid]` | `firecrawl-py` | the env-gated Firecrawl paid tier. |
 
 ```bash
-python -m camoufox fetch
+uv tool install 'a2web[browser,cookies,claude-code]'   # full local experience
 ```
 
-Optional paid tier (Firecrawl, env-gated):
-
-```bash
-uv tool install 'a2web[paid]'
-```
+`make install-global` installs all of these for the local Claude Code MCP server.
 
 ### As an MCP server
 
@@ -51,7 +55,7 @@ Point your MCP client at the installed binary over stdio. For Claude Code:
 |---|---|---|
 | `ask` | read | The one you'll reach for. Fetches the URL through the cascade, then a small fast model (Claude Haiku 4.5 by default) extracts a focused answer to your `question` server-side. Returns a lean answer envelope, not the page. |
 | `fetch_raw` | read | Fallback. Same cascade, no LLM. Returns the page itself: `content_md`, headings, links. Use it when you want the raw page or plan to extract yourself. |
-| `refresh` (cookies) | write | Refreshes the local browser-cookie mirror so fetches arrive logged-in. The one moment a Keychain prompt may fire. |
+| `refresh` (cookies) | write | Refreshes the local browser-cookie mirror so fetches arrive logged-in. Local-only, off by default — set `A2WEB_EXPOSE_COOKIES_TOOL=true` to expose it (see Cookies). The one moment a Keychain prompt may fire. |
 
 ### CLI
 
@@ -195,7 +199,7 @@ silent empty answer.
 **Liveness** is wired as a Docker `HEALTHCHECK` (`curl -f /health`) against the
 live serve process.
 
-**The published image is slim (~410 MB) and browserless.** The browser rendering
+**The published image is slim (~390 MB) and browserless.** The browser rendering
 tier (Chromium + its desktop system-lib tree) and the Claude Code OS-session
 backend (`claude-agent-sdk`) are both **build-arg opt-ins**, because each is
 large and neither is on the common path:
@@ -219,15 +223,21 @@ builds and pushes `ghcr.io/yoselabs/a2web:{version,latest}`
 (`.github/workflows/release.yml`). One-time after the first publish: set the
 GHCR package visibility to **Public** so `docker pull` needs no auth.
 
-## Cookies (opt-in)
+## Cookies (opt-in, local-only)
 
-a2web can mirror your local browser cookies into its own sqlite, so fetches arrive logged-in. It leans on `browser-cookie3`, which is cross-platform (macOS, Linux, Windows) and reads most browsers (Chrome, Chromium, Brave, Edge, Firefox, Safari).
+a2web can mirror your local browser cookies into its own sqlite, so fetches arrive logged-in. It leans on `browser-cookie3` (the `[cookies]` extra), which is cross-platform (macOS, Linux, Windows) and reads most browsers (Chrome, Chromium, Brave, Edge, Firefox, Safari).
+
+This is a **local-only** feature: it reads the cookie store on the machine a2web runs on, so it does nothing useful in a server container (there's no browser there). Two independent switches guard it:
+
+- `[cookies]` **extra** — controls whether it can *function*. `make install-global` installs it; the published container omits it. Absent → `cookies_refresh` returns a loud "install `a2web[cookies]`" note.
+- `expose_cookies_tool` **toggle** (default `false`) — controls whether the `cookies_refresh` tool is even *exposed*. A server never registers it; set `A2WEB_EXPOSE_COOKIES_TOOL=true` for a local `serve` (or CLI use) where you want it.
 
 ```bash
-export A2WEB_COOKIE_SOURCE=chrome         # or firefox, brave, …; default: none
+export A2WEB_EXPOSE_COOKIES_TOOL=true      # register the tool (default: off, server-safe)
+export A2WEB_COOKIE_SOURCE=chrome          # or firefox, brave, …; default: none
 export A2WEB_COOKIE_PROFILE=Default
 export A2WEB_COOKIE_STALE_AFTER_HOURS=24
-a2web cookies refresh                     # the only moment a Keychain prompt may fire
+a2web cookies refresh                      # the only moment a Keychain prompt may fire
 ```
 
 After a refresh, every fetch attaches cookies for the request host to the raw (`curl_cffi`) and browser tiers. The Jina tier skips them on purpose, since its reader is third-party. When the mirror goes stale, or was never refreshed, responses carry an `OperatorHint(code="cookies_stale", …)`, so agents can branch on it and operators see a "run `a2web cookies refresh`" suggestion. Cookie values are redacted everywhere a2web logs. Only names, hosts, and lengths show up.
