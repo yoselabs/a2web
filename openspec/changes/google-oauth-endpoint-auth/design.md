@@ -72,6 +72,26 @@ thin `main()` that branches on it. Tests assert: unconfigured → None (and the
 `client_id`/`base_url`; partial config → a loud `ValueError`/settings error. The
 provider object is inspected, not exercised against Google.
 
+### D6: Off-the-shelf `FileTreeStore` for token persistence — no new dep, no SQLite
+The recipe's blessed disk store (`key_value[disk]` → `diskcache`) is a new
+dependency; a custom `AsyncKeyValue` adapter over a2web's existing sqlite is
+~80 lines to own. Neither is needed: fastmcp's `key_value` already ships
+`FileTreeStore` (one file per key on disk) with **zero extra deps**. Point it at
+`<cache_dir>/oauth` on the volume → sessions survive restarts. Optional
+`FernetEncryptionWrapper(source_material=<env>, salt=<fixed>)` encrypts at rest
+for free (`cryptography` is already baseline). **Alternatives rejected:**
+in-memory default (restart = re-login), `diskcache`/`duckdb` (new dep), custom
+sqlite adapter (custom code to maintain for no benefit over `FileTreeStore`).
+
+### D7: Dedicated `a2web-serve` console script, not a `main()` branch
+a2web's `main()` (the `a2web` console script) stays `a2kit.run(app)` for every
+CLI command + stdio serve, unchanged. The authenticated HTTP path is a separate
+`a2web-serve` entrypoint the container CMD invokes — no argv sniffing, no fork of
+a2kit's serve arg parsing. Host/port via `A2WEB_HTTP_HOST`/`A2WEB_HTTP_PORT`
+(defaults `0.0.0.0`/`8000`); surface narrowed with `apply_selection(build(app),
+["surface=mcp"])`, matching the old CLI CMD. Local `a2web serve` (open) is
+unchanged for dev.
+
 ## Risks / Trade-offs
 
 - **`base_url` misconfiguration** → the OAuth redirect breaks at runtime. Mitigated

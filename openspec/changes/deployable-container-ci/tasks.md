@@ -31,7 +31,9 @@
 
 ## 5. Endpoint auth — config-gated Google OAuth
 
-> **UNBLOCKED (2026-07-05, `docs/history/A2KIT_FEEDBACK_v0.49.md` round 16 — RESOLVED).**
+> **SUPERSEDED by the `google-oauth-endpoint-auth` change (shipped 2026-07-05).** Group 5 is
+> implemented there (config-gated Google OAuth via the `a2web-serve` entrypoint +
+> FastMCP `GoogleProvider`; no a2kit change). Tasks 5.1–5.4 below are DONE in that change.
 > a2kit's answer is direction A: no `GoogleAuth` AuthSpec, no pin bump. MCP OAuth
 > is already wired — a2web replaces the bare `serve` CMD with a ~15-line
 > programmatic entrypoint that builds a `fastmcp …google.GoogleProvider(client_id,
@@ -43,10 +45,10 @@
 > from it), NOT `--host 0.0.0.0`. Ready to build; container still ships open
 > (Tailscale/LAN) until wired.
 
-- [ ] 5.1 Add Google-auth config to `AppSettings` (env-only: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, resolved from env) — ready (programmatic `GoogleProvider` entrypoint)
-- [ ] 5.2 Register a2kit's `GoogleAuth` AuthSpec on the HTTP surface only when configured; settle the mount target (`surface=mcp` alone vs `mcp`+`api`) — ready (FastMCP `auth=` via `serve_process(mcp_options={"auth":…})`)
-- [ ] 5.3 Tests: unconfigured → no AuthSpec registered, behavior unchanged; configured → anonymous request rejected, Google principal admitted — ready
-- [ ] 5.4 Confirm no `GOOGLE_*` value is written to any repo file or image layer — ready
+- [x] 5.1 Add Google-auth config to `AppSettings` (env-only: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, resolved from env) — ready (programmatic `GoogleProvider` entrypoint)
+- [x] 5.2 Register a2kit's `GoogleAuth` AuthSpec on the HTTP surface only when configured; settle the mount target (`surface=mcp` alone vs `mcp`+`api`) — ready (FastMCP `auth=` via `serve_process(mcp_options={"auth":…})`)
+- [x] 5.3 Tests: unconfigured → no AuthSpec registered, behavior unchanged; configured → anonymous request rejected, Google principal admitted — ready
+- [x] 5.4 Confirm no `GOOGLE_*` value is written to any repo file or image layer — ready
 
 ## 6. Transport-native liveness (FastMCP `/health`)
 

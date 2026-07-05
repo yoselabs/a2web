@@ -89,5 +89,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -fsS http://localhost:8000/health || exit 1
 
 USER app
-ENTRYPOINT ["a2web"]
-CMD ["serve", "--transport=http", "--host=0.0.0.0", "--port=8000", "--select", "surface=mcp"]
+# `a2web-serve` is the programmatic HTTP serve entrypoint: MCP under /mcp on
+# 0.0.0.0:8000, config-gated Google OAuth (open when GOOGLE_* is unset). It
+# replaces the bare `a2web serve` CLI because a FastMCP auth provider can't be
+# expressed as a CLI flag (a2kit `docs/patterns/mcp-auth.md`). Override host/port
+# with A2WEB_HTTP_HOST / A2WEB_HTTP_PORT. For a non-serve command in the
+# container, use `docker run --entrypoint a2web <image> …`.
+ENTRYPOINT ["a2web-serve"]

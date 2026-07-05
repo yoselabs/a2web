@@ -126,9 +126,13 @@ dev = [
 
 [project.scripts]
 a2web = "a2web.server:main"
+# Container/HTTP serve entrypoint with config-gated Google OAuth (the a2kit
+# MCP-auth recipe's programmatic path — a provider object can't be a CLI flag).
+# The published image's CMD uses this; `a2web serve` (open) stays for local dev.
+a2web-serve = "a2web.server:serve_http_main"
 
 [tool.uv.sources]
-a2kit = { git = "https://github.com/yoselabs/a2kit.git", tag = "v0.49.1" }
+a2kit = { git = "https://github.com/yoselabs/a2kit.git", tag = "v0.49.2" }
 
 [build-system]
 requires = ["hatchling"]

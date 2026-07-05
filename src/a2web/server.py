@@ -149,5 +149,99 @@ def main() -> None:
     a2kit.run(app)
 
 
+# --------------------------------------------------------------------- #
+# Authenticated HTTP serve entrypoint (a2kit `docs/patterns/mcp-auth.md`)
+# --------------------------------------------------------------------- #
+
+
+def build_google_provider(settings: AppSettings) -> object | None:
+    """Construct the FastMCP Google OAuth provider from env, or None if unset.
+
+    a2kit is auth-agnostic on the MCP surface by design (ADR 0010) — the OAuth
+    provider is a FastMCP object handed to `serve_process(mcp_options={"auth": …})`,
+    not an `a2kit.packages.auth` AuthSpec. Gating:
+
+    - No `GOOGLE_CLIENT_ID` → `None` (endpoint stays open; ship behind Tailscale/LAN).
+    - `GOOGLE_CLIENT_ID` set but `GOOGLE_CLIENT_SECRET`/`GOOGLE_BASE_URL` missing →
+      loud `ValueError` at boot (never silently serve open on a half-config).
+    - All three set → a `GoogleProvider` with a persistent FileTreeStore token
+      store (survives restarts; optionally Fernet-encrypted at rest).
+    """
+    if not settings.google_client_id:
+        return None
+    missing = [
+        name
+        for name, value in (
+            ("GOOGLE_CLIENT_SECRET", settings.google_client_secret),
+            ("GOOGLE_BASE_URL", settings.google_base_url),
+        )
+        if not value
+    ]
+    if missing:
+        raise ValueError(
+            "Google OAuth is partially configured: GOOGLE_CLIENT_ID is set but "
+            f"{' and '.join(missing)} {'is' if len(missing) == 1 else 'are'} missing. "
+            "Set all of GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_BASE_URL, "
+            "or unset GOOGLE_CLIENT_ID to serve without auth."
+        )
+
+    from fastmcp.server.auth.providers.google import GoogleProvider
+    from key_value.aio.stores.filetree import FileTreeStore
+
+    from .packages.http_cache import cache_dir
+
+    store_dir = settings.oauth_cache_dir or str(cache_dir() / "oauth")
+    token_store: object = FileTreeStore(data_directory=store_dir)
+    if settings.oauth_encryption_key:
+        from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
+
+        # Fixed salt: the secret is `oauth_encryption_key`; the salt only needs to
+        # be STABLE across restarts so the derived key reproduces (else the stored
+        # tokens can't be decrypted after a restart).
+        token_store = FernetEncryptionWrapper(
+            key_value=token_store,
+            source_material=settings.oauth_encryption_key,
+            salt="a2web-oauth-token-store",
+        )
+
+    return GoogleProvider(
+        client_id=settings.google_client_id,
+        client_secret=settings.google_client_secret,
+        base_url=settings.google_base_url,
+        required_scopes=settings.google_required_scopes or None,
+        jwt_signing_key=settings.google_jwt_signing_key or None,
+        client_storage=token_store,
+    )
+
+
+def serve_http_main() -> None:
+    """Container entrypoint: serve MCP over HTTP, config-gated Google OAuth.
+
+    This is the programmatic serve path a2kit's MCP-auth recipe prescribes — the
+    bare `a2web serve` CLI cannot express a provider object. Builds the runtime,
+    narrows to the MCP surface, and injects the provider (when configured) via
+    `serve_process(mcp_options={"auth": provider})`. When unconfigured, the
+    endpoint serves open — identical to the pre-auth container. Host/port come
+    from `A2WEB_HTTP_HOST` / `A2WEB_HTTP_PORT` (defaults `0.0.0.0` / `8000`).
+    """
+    import os
+
+    from a2kit.packages.serve import serve_process
+    from a2kit.runtime import apply_selection, build
+
+    settings = get_settings()
+    provider = build_google_provider(settings)
+    runtime = apply_selection(build(app), ["surface=mcp"])
+    mcp_options = {"auth": provider} if provider is not None else None
+    serve_process(
+        runtime,
+        transport="http",
+        host=os.environ.get("A2WEB_HTTP_HOST", "0.0.0.0"),  # noqa: S104 - container binds all interfaces by design
+        port=int(os.environ.get("A2WEB_HTTP_PORT", "8000")),
+        internal_uds=None,
+        mcp_options=mcp_options,
+    )
+
+
 if __name__ == "__main__":
     main()

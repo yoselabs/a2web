@@ -177,9 +177,46 @@ docker run -d --name a2web -p 8000:8000 \
 # liveness: http://<host>:8000/health   -> 200 {"status":"ok"}
 ```
 
-> ⚠️ **The HTTP endpoint has no authentication yet.** Do **not** expose port 8000
-> to the public internet. Run it behind Tailscale or a private LAN. Config-gated
-> Google OAuth is planned (blocked on an upstream a2kit `GoogleAuth` AuthSpec).
+> ⚠️ **Unauthenticated by default.** With no `GOOGLE_*` config, the HTTP endpoint
+> is open — do **not** expose port 8000 to the public internet; run it behind
+> Tailscale or a private LAN. To expose it publicly, configure **Google OAuth**
+> (below).
+
+### Authentication (optional, Google OAuth)
+
+The container serves via `a2web-serve`, which turns on Google OAuth when
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_BASE_URL` are all set (per
+a2kit's blessed MCP-auth recipe — a FastMCP `GoogleProvider`, no a2kit auth
+abstraction). Unset → open, as above. Partial config (id without secret/base_url)
+fails loud at boot rather than silently serving open.
+
+```bash
+docker run -d --name a2web -p 8000:8000 -v a2web-cache:/data \
+  -e OPENAI_API_KEY=... -e OPENAI_BASE_URL=https://api.deepseek.com -e OPENAI_MODEL=deepseek-v4-flash \
+  -e GOOGLE_CLIENT_ID=...apps.googleusercontent.com \
+  -e GOOGLE_CLIENT_SECRET=... \
+  -e GOOGLE_BASE_URL=https://a2web.example.com \
+  -e GOOGLE_JWT_SIGNING_KEY="$(openssl rand -hex 32)" \
+  ghcr.io/yoselabs/a2web:latest
+```
+
+Setup:
+1. Create a GCP OAuth **client** (Web application) and add
+   `https://a2web.example.com/auth/callback` (your `GOOGLE_BASE_URL` + FastMCP's
+   redirect path) as an authorized redirect URI.
+2. **`GOOGLE_BASE_URL` MUST be the public URL** clients reach — the OAuth redirect
+   derives from it. It is **not** the bind host (`0.0.0.0`). Getting this wrong is
+   the #1 failure mode.
+3. Recommended: set a stable `GOOGLE_JWT_SIGNING_KEY` (`openssl rand -hex 32`) so
+   tokens survive restarts. OAuth sessions persist in an encrypted-optional
+   FileTree store under `/data/oauth` (back the volume). Set
+   `A2WEB_OAUTH_ENCRYPTION_KEY` to encrypt the store at rest.
+4. Gate access with the GCP consent screen's test-user list (the GCP project *is*
+   the allowlist — keep none in code).
+
+**Operator verification** (not automated — needs the live GCP client): an
+anonymous `curl`/MCP request to `/mcp` is rejected; a browser OAuth login admits
+the Google principal.
 
 **Environment matrix** (secrets are env-only, never baked into a layer). Every
 `AppSettings` field is settable as `A2WEB_<FIELD>` (case-insensitive; nested via
@@ -203,6 +240,13 @@ ones:
 | `A2WEB_CACHE_DIR` | sqlite HTTP-cache dir. Defaults to `/data` in the image; back it with a volume so the cache survives restarts. |
 | `A2WEB_EXPOSE_COOKIES_TOOL` | Leave **unset** on a server (the cookie mirror is local-only). Set `true` only for a local `serve`. |
 | `A2KIT_MCP__CODE_MODE` | `true` re-enables a2kit's code-execution sandbox (search/get_schema/execute meta-tools). a2web ships it off; only flip per-deployment if a client needs it. |
+| `A2WEB_HTTP_HOST` / `A2WEB_HTTP_PORT` | Bind host/port for the `a2web-serve` entrypoint (defaults `0.0.0.0` / `8000`). |
+| **Auth (Google OAuth — optional)** | |
+| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | GCP OAuth client. Both (with `GOOGLE_BASE_URL`) turn auth on; unset → open. |
+| `GOOGLE_BASE_URL` | **Public** URL clients reach — the OAuth redirect derives from it (NOT the bind host). |
+| `GOOGLE_JWT_SIGNING_KEY` | `openssl rand -hex 32` — stable signing key so sessions survive restarts. Recommended. |
+| `GOOGLE_REQUIRED_SCOPES` | OAuth scopes (default `openid,email`). |
+| `A2WEB_OAUTH_CACHE_DIR` / `A2WEB_OAUTH_ENCRYPTION_KEY` | Token-store dir (default `<cache_dir>/oauth`) + optional Fernet passphrase to encrypt it at rest. |
 | `A2WEB_*` | Any other `AppSettings` field (`A2WEB_STEALTH`, `A2WEB_DIAGNOSTICS_DEFAULT`, `A2WEB_BROWSER_MAX_POOL`, cache TTLs, …). |
 
 Without any LLM key the container still serves `fetch_raw` (raw pages, no

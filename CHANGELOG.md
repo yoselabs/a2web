@@ -8,6 +8,25 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added — Config-gated Google OAuth on the HTTP MCP endpoint (`google-oauth-endpoint-auth`)
+
+- The published container now serves via **`a2web-serve`**, which turns on Google
+  OAuth when `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_BASE_URL` are
+  set — a FastMCP `GoogleProvider` passed through
+  `serve_process(mcp_options={"auth": provider})` (a2kit's blessed MCP-auth
+  recipe; a2kit stays auth-agnostic on the MCP surface by design, ADR 0010). No
+  new dependency: `fastmcp` + `key_value` already ship.
+- **Unconfigured → open, unchanged** (ship behind Tailscale/LAN). **Partial config
+  fails loud** at boot (id without secret/base_url) rather than silently serving
+  open. `GOOGLE_BASE_URL` must be the **public** URL (the OAuth redirect derives
+  from it), never the bind host.
+- OAuth sessions persist in an off-the-shelf **FileTree** token store under
+  `/data/oauth` (survives restarts; optional Fernet-at-rest via
+  `A2WEB_OAUTH_ENCRYPTION_KEY`). `GOOGLE_JWT_SIGNING_KEY` recommended for
+  cross-restart token validity. `GOOGLE_*` are env-only (never in repo or image).
+- a2kit pin bumped `v0.49.1 → v0.49.2` (MCP-auth recipe + honest auth docstrings).
+- Supersedes `deployable-container-ci` group 5.
+
 ## [0.27.0] — 2026-07-05
 
 > Deployable container arc: OpenAI-compatible LLM backend (DeepSeek prescribed),

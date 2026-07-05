@@ -83,7 +83,17 @@ def _resolve_yaml_path() -> Path | None:
 class _YamlSourceWithoutSecrets(YamlConfigSettingsSource):
     """YAML source that drops fields the user must supply via env only."""
 
-    EXCLUDE: ClassVar[frozenset[str]] = frozenset({"jina_key", "github_token", "zyte_key", "firecrawl_key"})
+    EXCLUDE: ClassVar[frozenset[str]] = frozenset(
+        {
+            "jina_key",
+            "github_token",
+            "zyte_key",
+            "firecrawl_key",
+            "google_client_secret",
+            "google_jwt_signing_key",
+            "oauth_encryption_key",
+        }
+    )
 
     def __call__(self) -> dict[str, Any]:
         data = super().__call__()
@@ -241,6 +251,29 @@ class AppSettings(BaseSettings):
     ] = "none"
     cookie_profile: str = "Default"
     cookie_stale_after_hours: int = 24
+
+    # Google OAuth on the HTTP MCP endpoint (env-only; a2kit `docs/patterns/mcp-auth.md`).
+    # Unset → the endpoint stays open (ship behind Tailscale/LAN). Auth engages
+    # only when the HTTP serve entrypoint (`a2web-serve`) sees all three of
+    # client_id/secret/base_url set. Secrets are env-only (dropped from YAML).
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    # PUBLIC base URL of the deployment. FastMCP derives the OAuth redirect from
+    # it, so it MUST be the externally-reachable URL (e.g. https://a2web.example.com),
+    # NOT the bind host (0.0.0.0). Must match the GCP client's authorized redirect.
+    google_base_url: str = ""
+    google_required_scopes: list[str] = ["openid", "email"]
+    # Stable JWT signing key (`openssl rand -hex 32`). Recommended: without it,
+    # tokens can't be re-validated across a restart. Optional here (in-memory-ish
+    # sessions until the persistent store is populated). Env-only.
+    google_jwt_signing_key: str = ""
+    # Persistent OAuth token store (fastmcp FileTreeStore). Default: <cache_dir>/oauth
+    # on the volume, so sessions survive container restarts. No new dependency —
+    # the store ships with fastmcp.
+    oauth_cache_dir: str = ""
+    # Optional Fernet passphrase to encrypt the token store at rest (cryptography
+    # is already a dep, so this is free). Env-only. Unset → plaintext on the volume.
+    oauth_encryption_key: str = ""
 
     @classmethod
     def settings_customise_sources(
