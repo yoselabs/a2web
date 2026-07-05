@@ -8,6 +8,30 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-07-06
+
+> Two residual retrieval-miss holes closed: JSON served under a lying
+> content-type is now recovered, and a rate-limited Reddit search/listing takes
+> the fast render path instead of the slow ladder. No wire-shape change.
+
+### Fixed — JSON body-sniff + Reddit 429 render shortcut (`json-body-sniff-and-reddit-429-render`)
+
+- **JSON served under a non-JSON content-type is recovered.** v0.30.0 routes
+  JSON responses directly, but keyed on the content-type header. A misconfigured
+  API returning JSON as `text/html` / `text/plain` slipped through (trafilatura
+  over JSON, or jina-mangled → false `length_floor`). The raw tier now sniffs a
+  2xx body and, when it parses as JSON, normalizes the content-type to
+  `application/json` so the v0.30.0 synthesis path handles it. Prefix-guarded on
+  `{`/`[` within a bounded window (large HTML/binary bodies are never decoded);
+  HTML never parses as JSON, so the sniff only ever upgrades a genuine JSON body.
+- **Reddit search/listing `429` → paid site render.** A rate-limited (429)
+  Reddit search or listing RSS surface now escalates straight to a paid render
+  (like the v0.29.0 `403` wall case) instead of returning `rate_limited` and
+  walking the slow ladder (which still reached Zyte, just later). Thread/permalink
+  `429` is unchanged — still fails loud with `rate_limited`.
+- Both are correctness/latency hardening: no wire-shape change, no new tool
+  params, `json.loads` stays funnelled in the `json_in_script` package.
+
 ## [0.30.0] — 2026-07-06
 
 > JSON API endpoints stop being mangled. A JSON response is now first-class

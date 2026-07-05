@@ -617,6 +617,39 @@ async def test_reddit_search_403_escalates_to_site_render(monkeypatch: pytest.Mo
 
 
 @pytest.mark.asyncio
+async def test_reddit_search_429_escalates_to_site_render(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A rate-limited (429) search/listing RSS surface escalates to a paid site
+    render like the 403 case — not the slow ladder (which reaches Zyte later)."""
+    monkeypatch.setattr("a2web.handlers.reddit._RSS_BACKOFF_S", ())  # no sleeping in tests
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(429)
+
+    patch_curl_session(monkeypatch, handler)
+
+    result = await RedditHandler().fetch("https://www.reddit.com/r/x/search/?q=bell", state=_make_state())
+
+    assert result.escalate_to_render is True
+    assert result.verdict == Verdict.block_page_detected
+    assert result.pre_rendered is None
+
+
+@pytest.mark.asyncio
+async def test_reddit_listing_429_escalates_to_site_render(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 429 on a subreddit listing RSS surface also escalates to a site render."""
+    monkeypatch.setattr("a2web.handlers.reddit._RSS_BACKOFF_S", ())
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(429)
+
+    patch_curl_session(monkeypatch, handler)
+
+    result = await RedditHandler().fetch("https://www.reddit.com/r/gravelcycling/", state=_make_state())
+
+    assert result.escalate_to_render is True
+
+
+@pytest.mark.asyncio
 async def test_reddit_rss_429_fails_loud_after_backoff(monkeypatch: pytest.MonkeyPatch) -> None:
     """Repeated RSS 429s exhaust the bounded backoff, then fail loud (never silent)."""
     monkeypatch.setattr("a2web.handlers.reddit._RSS_BACKOFF_S", ())  # no sleeping in tests

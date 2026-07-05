@@ -218,6 +218,26 @@ async def test_fetch_json_content_type_is_ok(monkeypatch: pytest.MonkeyPatch) ->
 
 
 @pytest.mark.asyncio
+async def test_fetch_json_body_under_html_content_type_is_sniffed(monkeypatch: pytest.MonkeyPatch) -> None:
+    # json-body-sniff: a misconfigured API serving JSON as text/html is recovered
+    # — the body sniffs as JSON, so raw normalizes to application/json (ok),
+    # never escalating to the jina HTML reader.
+    _patch_session(monkeypatch, _FakeResponse(content_type="text/html", content=b'{"items": [{"title": "A"}]}'))
+    result = await RawTier().fetch("https://api.example.com/feed", state=_state())
+    assert result.verdict == Verdict.ok
+    assert result.content_type == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_fetch_real_html_is_not_sniffed_as_json(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A genuine HTML page never parses as JSON, so the sniff leaves it untouched.
+    _patch_session(monkeypatch, _FakeResponse(content_type="text/html", content=b"<html><body>hi</body></html>"))
+    result = await RawTier().fetch("https://example.com/", state=_state())
+    assert result.verdict == Verdict.ok
+    assert result.content_type == "text/html"
+
+
+@pytest.mark.asyncio
 async def test_fetch_uses_default_ua_from_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     fake = _patch_session(monkeypatch, _FakeResponse())
     await RawTier().fetch("https://example.com/", state=_state(default_ua="UA-Custom"))

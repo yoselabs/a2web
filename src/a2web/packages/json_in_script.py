@@ -516,6 +516,23 @@ def is_json_content_type(content_type: str | None) -> bool:
     return ct.startswith("application/") and ct.endswith("+json")
 
 
+def sniff_json_body(body: bytes) -> bool:
+    """Cheap check: does this raw response body parse as a JSON document?
+
+    Recovers a JSON payload served under a non-JSON content-type (a
+    misconfigured API returning JSON as `text/html` / `text/plain`). Guarded by
+    a `{` / `[` prefix check so binary bodies (PDF, images) are never decoded or
+    parsed. Owns nothing new — delegates the parse to `parse_json_response`.
+    """
+    if not body:
+        return False
+    # Cheap prefix guard on a bounded window — never lstrip a full (possibly
+    # multi-MB) body. Real HTML opens with `<`; only a JSON prefix is decoded.
+    if body[:64].lstrip()[:1] not in (b"{", b"["):
+        return False
+    return parse_json_response(body.decode("utf-8", errors="replace")) is not None
+
+
 def parse_json_response(text: str) -> JsonPayload | None:
     """Parse a whole response body as a single top-level JSON document.
 
@@ -544,4 +561,5 @@ __all__ = [
     "is_json_content_type",
     "parse_json_response",
     "rank_payloads",
+    "sniff_json_body",
 ]

@@ -11,6 +11,7 @@ from a2web.packages.json_in_script import (
     is_json_content_type,
     parse_json_response,
     rank_payloads,
+    sniff_json_body,
 )
 from tests.fixtures import FIXTURES_DIR
 
@@ -74,6 +75,30 @@ class TestParseJsonResponse:
         # A bare scalar is valid JSON but not a document we synthesize.
         assert parse_json_response("42") is None
         assert parse_json_response('"just a string"') is None
+
+
+class TestSniffJsonBody:
+    def test_json_object_bytes(self) -> None:
+        assert sniff_json_body(b'{"a": 1}')
+
+    def test_json_array_bytes(self) -> None:
+        assert sniff_json_body(b'[{"x": 1}]')
+
+    def test_leading_whitespace_tolerated(self) -> None:
+        assert sniff_json_body(b'  \n  {"a": 1}')
+
+    def test_html_is_not_json(self) -> None:
+        assert not sniff_json_body(b"<html><body>hi</body></html>")
+
+    def test_binary_prefix_skipped(self) -> None:
+        # A PDF/binary body never starts with { or [ → never decoded/parsed.
+        assert not sniff_json_body(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3")
+
+    def test_plain_text_not_json(self) -> None:
+        assert not sniff_json_body(b"just some text")
+
+    def test_empty(self) -> None:
+        assert not sniff_json_body(b"")
 
 
 def test_next_data_detected_from_trendyol_fixture() -> None:

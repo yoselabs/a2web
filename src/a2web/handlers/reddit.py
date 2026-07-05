@@ -188,8 +188,14 @@ class RedditHandler:
         if outcome.verdict is FetchVerdict.timeout:
             return empty_result(url, Verdict.timeout)
         if outcome.verdict is FetchVerdict.rate_limited or outcome.status_code == 429:
-            # Retries exhausted (see `_fetch_rss`). Fail loud — never a silent
-            # empty. A `rate_limited` verdict surfaces in the narrative.
+            # Retries exhausted (see `_fetch_rss`). A rate-limited search/listing
+            # surface is a wall like the 403 case — go straight to a paid site
+            # render (Zyte browserHtml reads it fine) instead of the slow ladder
+            # (which still reaches Zyte, just later, via browser attempts first).
+            if shape in ("search", "listing"):
+                return _render_escalation_signal(url)
+            # Thread/permalink: fail loud with `rate_limited` — the narrative
+            # surfaces it and the archive/ladder path handles the retry.
             return empty_result(url, Verdict.rate_limited)
         if outcome.verdict is FetchVerdict.not_found:
             if shape in ("search", "listing"):

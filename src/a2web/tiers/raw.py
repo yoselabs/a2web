@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 
 from ..models import Verdict
 from ..packages.http_fetch import FetchVerdict, fetch_bytes
-from ..packages.json_in_script import is_json_content_type
+from ..packages.json_in_script import is_json_content_type, sniff_json_body
 
 if TYPE_CHECKING:
     from ..state import AppState
@@ -127,9 +127,25 @@ class RawTier:
 
         # 2xx response — apply raw's HTML-tier content-type policy.
         verdict = _verdict_for_status(outcome.status_code, outcome.content_type)
+        content_type = outcome.content_type
+        # Recover a JSON payload served under a non-JSON content-type (a
+        # misconfigured API returning JSON as text/html / text/plain): sniff the
+        # 2xx body; if it parses as JSON, normalize the content-type to
+        # application/json so the orchestrator synthesizes it in-place instead of
+        # running trafilatura over JSON or escalating to the jina HTML reader
+        # (both mangle it into a false length_floor). The prefix-guarded sniff
+        # only decodes bodies opening with `{`/`[`, and real HTML never parses as
+        # JSON, so this only ever upgrades a genuine JSON body.
+        if (
+            verdict in (Verdict.ok, Verdict.content_type_mismatch)
+            and not is_json_content_type(content_type)
+            and sniff_json_body(outcome.body)
+        ):
+            verdict = Verdict.ok
+            content_type = "application/json"
         return TierResult(
             body=outcome.body,
-            content_type=outcome.content_type,
+            content_type=content_type,
             status_code=outcome.status_code,
             final_url=outcome.final_url,
             headers=outcome.headers,
