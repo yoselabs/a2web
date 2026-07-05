@@ -37,7 +37,7 @@ from .domain import (
 )
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .events.types import CookiesAttached, CookiesStale
-from .fetcher_response import build_response
+from .fetcher_response import _INCOMPLETE_OBSTACLES, build_response
 from .llm_resource import LlmExtractorResource
 from .models import (
     CacheState,
@@ -1773,10 +1773,16 @@ async def _run_pipeline(
     # the agent-facing fields (title, content_md, etc.) are produced by extraction.
     await _phase_extract(fc)
     await _phase_gate_and_escalate(fc, state=state)
-    await _phase_cache_write(fc, state=state)
     # v0.4: optional LLM extraction. Runs only when ask= is set and the fetch
     # succeeded. Graceful when no API key + no Claude Code OAuth available.
     await _phase_extract_answer(fc, state=state)
+    # Obstacle-driven render: when the extractor flagged an empty/blocked
+    # obstacle (a fat SPA shell that passed the gate), attempt one paid render +
+    # re-extraction before declaring the retrieval incomplete. Runs BEFORE
+    # cache_write so the final (possibly re-rendered) body is cached once and a
+    # confabulated shell never lands in the cache.
+    await _phase_obstacle_render(fc, state=state)
+    await _phase_cache_write(fc, state=state)
     # v0.8: emit cookies_stale hint once per fetch when mirror is stale.
     await _phase_cookies_staleness(fc, state=state)
     return build_response(fc)
@@ -1906,6 +1912,49 @@ async def _phase_extract_answer(
             },
         ),
     )
+
+
+def _obstacle_wants_render(fc: FetchContext) -> bool:
+    """True when the extractor's obstacle should drive one paid render.
+
+    Gated hard on cost: the ask path (obstacle exists only there), an
+    `empty`/`blocked` obstacle (`_INCOMPLETE_OBSTACLES` — shared with the
+    retrieval-completeness logic so the trigger stays in lockstep), and an unspent
+    paid budget (`paid_dispatches < 1`, so a prior gate/handler render suppresses
+    this). `paywalled`/`error` obstacles are excluded — a render won't clear a
+    paywall, and archive owns that path.
+    """
+    if fc.ask is None or fc.routing is None:
+        return False
+    if fc.paid_dispatches >= 1:
+        return False
+    return fc.routing.obstacle in _INCOMPLETE_OBSTACLES
+
+
+async def _phase_obstacle_render(fc: FetchContext, *, state: AppState) -> None:
+    """Attempt one paid render when the extractor flagged an unretrieved obstacle.
+
+    The extractor is the only component that can say "the answer isn't in this
+    content" (a fat SPA shell that passed the gate). When it reports
+    `obstacle ∈ {empty, blocked}`, dispatch one paid render of the original URL —
+    `_escalate_paid` already installs the rendered `content_md`, runs the
+    extraction-escalation ladder, and re-gates — then re-run answer extraction
+    over the real content. If the render produced nothing new (no paid tier keyed,
+    failure, or an identical body), the v0.29.0 `retrieval_incomplete` signal
+    stands (never-silently-miss). Bounded to one render + one extra LLM call.
+    """
+    if not _obstacle_wants_render(fc):
+        return
+    prev_md = fc.content_md
+    await _escalate_paid(fc, state=state)
+    if fc.content_md == prev_md:
+        # No new content (unavailable / failed / paid_auth_error hard-stop /
+        # identical shell) — leave the obstacle-flagged answer; the surviving
+        # obstacle drives retrieval_incomplete in build_ask_response.
+        return
+    # Fresh content installed by the render — re-extract the answer over it. The
+    # fresh obstacle is now authoritative for completeness.
+    await _phase_extract_answer(fc, state=state)
 
 
 def _to_llm_next_link(nl: NextLink) -> LlmNextLink:

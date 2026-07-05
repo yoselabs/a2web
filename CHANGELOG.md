@@ -8,6 +8,38 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.32.0] — 2026-07-06
+
+> The extractor's own "the answer isn't here" signal now drives a re-fetch. When
+> an `ask` reports `obstacle ∈ {empty, blocked}` over content that passed the
+> gate (a fat SPA shell), the orchestrator renders the page and re-extracts
+> before declaring the retrieval incomplete — instead of just downgrading
+> confidence. Closes the confabulation loophole generically, for any host.
+
+### Added — Obstacle-driven render escalation (`obstacle-driven-render-escalation`)
+
+- **`obstacle` drives a render, not just a confidence downgrade.** A new
+  `_phase_obstacle_render` runs after answer extraction: when the LLM reports
+  `obstacle ∈ {empty, blocked}` (a fat SPA shell / stale render that slipped the
+  length floor), it dispatches one paid render of the original URL (Zyte
+  `browserHtml`), re-extracts the answer over the real content, and only then
+  falls back to `retrieval_incomplete`. Previously (v0.29.0) the obstacle only
+  capped confidence + flagged incomplete — it declared defeat.
+- **Generic SPA-host coverage falls out for free.** Because the trigger is the
+  LLM's obstacle signal rather than a per-host rule, ANY host where the extractor
+  sees an empty/blocked shell escalates — no per-site `escalate_to_render` wiring.
+- **Strict, shared cost cap.** Fires only on the `ask` path, only for
+  `empty`/`blocked` obstacles (not `paywalled`/`error` — a render won't clear a
+  paywall), and only when no paid render was already spent (`paid_dispatches < 1`,
+  shared with the gate-wall and handler triggers). Bounded to one render + one
+  extra LLM call. Un-keyed deployments no-op and keep the loud
+  `retrieval_incomplete` miss.
+- **Never-silently-miss preserved.** If no paid tier is keyed, the render adds
+  nothing, or the re-extraction still reports the obstacle, the v0.29.0
+  `retrieval_incomplete` + critical hint stands. `_phase_cache_write` moved after
+  the render phase so the final body is cached once and a confabulated shell never
+  enters the cache. No wire-shape change, no new tool params.
+
 ## [0.31.0] — 2026-07-06
 
 > Two residual retrieval-miss holes closed: JSON served under a lying
