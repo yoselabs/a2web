@@ -8,6 +8,14 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-07-05
+
+> Deployable container arc: OpenAI-compatible LLM backend (DeepSeek prescribed),
+> a slim published image (2.05 GB → 391 MB via optional extras + multi-stage),
+> a GHCR release pipeline, hardened fail-loud guardrails, and a complete
+> deployment env-var reference. **BREAKING** packaging: `claude-agent-sdk`,
+> `patchright`/`zendriver`, and `browser-cookie3` are now optional extras.
+
 ### Added — OpenAI-compatible LLM backend (`openai-compatible-llm-provider`)
 
 - **Third extraction backend** alongside `anthropic` and `claude-code`, reached
