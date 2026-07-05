@@ -8,6 +8,13 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-07-05
+
+> Config-gated Google OAuth on the HTTP MCP endpoint (`a2web-serve`) — closes the
+> open-endpoint gap. No new dependency; a2kit stays auth-agnostic on MCP by
+> design. **BREAKING** container change: the image ENTRYPOINT is now `a2web-serve`
+> (unconfigured → still open, so behavior is unchanged unless `GOOGLE_*` is set).
+
 ### Added — Config-gated Google OAuth on the HTTP MCP endpoint (`google-oauth-endpoint-auth`)
 
 - The published container now serves via **`a2web-serve`**, which turns on Google

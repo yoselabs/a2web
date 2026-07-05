@@ -201,6 +201,7 @@ docker run -d --name a2web -p 8000:8000 -v a2web-cache:/data \
 ```
 
 Setup:
+
 1. Create a GCP OAuth **client** (Web application) and add
    `https://a2web.example.com/auth/callback` (your `GOOGLE_BASE_URL` + FastMCP's
    redirect path) as an authorized redirect URI.
