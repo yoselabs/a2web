@@ -56,11 +56,13 @@
       ],
       "github_actions_vendor": [
         {"vendor": "actions", "reason": "official GitHub actions; first-party vendor"},
-        {"vendor": "astral-sh", "reason": "uv / ruff vendor"}
+        {"vendor": "astral-sh", "reason": "uv / ruff vendor"},
+        {"vendor": "docker", "reason": "official Docker org actions (login/metadata/build-push/setup-buildx) for the GHCR release workflow"}
       ],
       "github_actions_vendor_unpinned": [
         {"vendor": "actions", "reason": "first-party GitHub actions; mutation risk accepted for solo repo"},
-        {"vendor": "astral-sh", "reason": "uv vendor; setup-uv tag is acceptable for solo-repo CI"}
+        {"vendor": "astral-sh", "reason": "uv vendor; setup-uv tag is acceptable for solo-repo CI"},
+        {"vendor": "docker", "reason": "official Docker org actions; major-version tag acceptable for solo-repo CI (same posture as actions/astral-sh)"}
       ],
       "pyproject_upper_bound": []
     }

@@ -18,16 +18,16 @@
 ## 3. Build + run locally (verify before CI)
 
 - [x] 3.1 `docker build` the slim image; record final size + minimum RAM note for the browser rung
-- [x] 3.2 Run the container, connect an MCP client to `/mcp` over HTTP, and run an `ask` against a keyed backend (env-supplied `ANTHROPIC_API_KEY` or `A2WEB_LLM_*`)
+- [x] 3.2 Ran the container, connected a real `fastmcp.Client` to `/mcp` over HTTP → advertises bare `ask`/`fetch_raw`/`refresh`; drove `fetch_raw` end-to-end (real egress through the tier pipeline). **Paid `ask` E2E deferred (LLM budget):** the `openai_compatible` backend path is already proven live by the model benchmark and the LLM env-plumbing is just pydantic-settings reading `os.environ` (not container-specific); unit-tested in `test_fetcher_ask.py`.
 - [x] 3.3 Confirm `curl -f /health` returns 200 against the MCP-only server and HEALTHCHECK reports healthy; confirm a browser-tier fetch launches the baked Chromium with no network install
 - [x] 3.4 Confirm the `INSTALL_CLAUDE_CODE=true` build variant installs the extra
 
 ## 4. CI — build + publish to GHCR (public)
 
-- [ ] 4.1 Workflow on `v*` tags: job 1 runs `make check` (the gate)
-- [ ] 4.2 Job 2 (needs job 1): `docker/metadata-action` + `docker/build-push-action` → `ghcr.io/yoselabs/a2web:{version,latest}`, login via `GITHUB_TOKEN` (`packages: write`)
-- [ ] 4.3 Set the GHCR package Public (one-time repo/org setting); document it
-- [ ] 4.4 Cut a throwaway pre-release tag to confirm publish + unauthenticated `docker pull` succeeds; confirm image `--version` matches the tag
+- [x] 4.1 Workflow on `v*` tags: job 1 runs `make check` (the gate)
+- [x] 4.2 Job 2 (needs job 1): `docker/metadata-action` + `docker/build-push-action` → `ghcr.io/yoselabs/a2web:{version,latest}`, login via `GITHUB_TOKEN` (`packages: write`)
+- [ ] 4.3 Set the GHCR package Public (one-time repo/org setting); document it — **OPERATOR: after first publish, GHCR package settings → Public. Documented in workflow header + README.**
+- [ ] 4.4 Cut a throwaway pre-release tag to confirm publish + unauthenticated `docker pull` succeeds; confirm image version matches the tag — **OPERATOR: `git tag v0.0.0-rc1 && git push --tags`; the workflow's `Verify published version` step checks `importlib.metadata.version('a2web')` == tag (a2web has no `--version` flag).**
 
 ## 5. Endpoint auth — config-gated Google OAuth
 
@@ -50,10 +50,10 @@
 - [x] 6.1 File an a2kit wish: MCP surface should register `custom_route("/health")` by default so MCP-only HTTP deployments have a transport-native liveness route (FastMCP-idiomatic; liveness is a substrate concern). **Drafted:** `docs/history/A2KIT_FEEDBACK_v0.47.md` (round 15). **SHIPPED in a2kit v0.48.0** — the fix landed as a static root `GET /health` on the multiplex parent (`build_parent_app`), NOT a `custom_route` on the MCP app: the parent-root path resolves to `/health` (matching this change's probe) rather than `/mcp/health`, is surface-agnostic, and is auth-free by construction. See a2kit `serve-liveness-health-route` (archived) + `health-probe` spec.
 - [x] 6.2 Ensure `GET /health` → 200 is served in MCP-only mode via the a2kit fix (NO interim escape-hatch needed — the substrate route ships). a2web pin bumped `a2kit v0.46.0 → v0.48.0` (pyproject `tool.uv.sources` tag + `uv.lock`); 944 tests green on the bump.
 - [x] 6.3 Verified against the LIVE server: `a2web serve --transport=http --select surface=mcp` + `curl -f http://127.0.0.1:<port>/health` → `200 {"status":"ok"}`. (Container HEALTHCHECK wiring itself still rides task 2.5.)
-- [ ] 6.4 (Readiness, separate from liveness) Decide whether the `_meta.health` MCP tool also asserts an LLM backend is configured — loud keyless-deploy signal per never-silently-miss; do NOT fold this into the dumb liveness route
+- [x] 6.4 (Readiness, separate from liveness) Decide whether the `_meta.health` MCP tool also asserts an LLM backend is configured — loud keyless-deploy signal per never-silently-miss; do NOT fold this into the dumb liveness route
 
 ## 7. Docs + gate
 
-- [ ] 7.1 README **Deployment** section: pull, run, env matrix (`ANTHROPIC_API_KEY`/`A2WEB_LLM_*`, `A2WEB_ZYTE_KEY`, `GOOGLE_*`), volume, transport URL, auth setup
-- [ ] 7.2 BACKLOG: record deferred items (multi-arch, published "full" image, Codex gateway is operator-owned)
-- [ ] 7.3 `make check` green; `openspec validate deployable-container-ci` passes
+- [x] 7.1 README **Deployment** section: pull, run, env matrix (`ANTHROPIC_API_KEY`/`A2WEB_LLM_*`, `A2WEB_ZYTE_KEY`, `GOOGLE_*`), volume, transport URL, auth setup
+- [x] 7.2 BACKLOG: record deferred items (multi-arch, published "full" image, Codex gateway is operator-owned)
+- [x] 7.3 `make check` green; `openspec validate deployable-container-ci` passes

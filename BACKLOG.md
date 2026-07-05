@@ -17,6 +17,34 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-05 — deployable-container-ci deferrals
+
+Source: `deployable-container-ci` (Out of Scope). Shipped: slim Dockerfile,
+local build verification, GHCR publish workflow, transport-native `/health`.
+
+- **Google OAuth endpoint auth (M)** — the container's HTTP MCP endpoint ships
+  with **no auth** (run behind Tailscale/private LAN). Blocked on an upstream
+  a2kit `GoogleAuth` AuthSpec: v0.49.1 advertises it in the `packages.auth`
+  docstring but does not export/implement it (only `APIKeyAuth`/`TokenAuth`
+  ship). Filed `docs/history/A2KIT_FEEDBACK_v0.49.md` (round 16). Operator
+  decision: add `GoogleAuth` to a2kit first, bump the pin, then wire
+  `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (change §5 tasks stay open).
+- **Multi-arch image (S)** — publish is `linux/amd64` only. Add
+  `linux/arm64` via a `docker/build-push-action` platforms matrix + QEMU when a
+  concrete arm64 homelab target appears (buildx arm64 with baked browsers is
+  slow, so gate it on real need).
+- **Published "full" image (S)** — only the slim image is published; the
+  `INSTALL_CLAUDE_CODE=true` variant is build-your-own. If a published full tag
+  is ever justified, it's a one-line matrix addition (D1).
+- **Multi-stage build to drop `git` from the runtime layer (S)** — `git` is
+  installed for the a2kit git-dependency resolve and currently stays in the
+  final image. A builder stage could copy just the venv + browsers and shed
+  `git`. Marginal size win; deferred.
+- **Codex/ChatGPT-subscription reuse (out of scope, operator-owned)** — reusing
+  an OpenAI Codex subscription is handled by the operator's own gateway
+  (OpenAI-compatible endpoint), consumed via `OPENAI_BASE_URL`. Not an a2web
+  concern.
+
 ## 2026-06-26 — Browser backend pluggability (roadmap + Camoufox/Playwright compat)
 
 Surfaced by the Trendyol incident (`surface-browser-internal-errors-as-hints`):

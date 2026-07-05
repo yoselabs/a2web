@@ -154,6 +154,61 @@ export A2WEB_JINA_KEY=...     # optional Jina free-tier API key
 export A2WEB_STEALTH=true
 ```
 
+## Deployment (container)
+
+a2web publishes a slim, public image to GHCR that any homelab instance can pull
+and run as a networked MCP service. It serves MCP under `/mcp` (HTTP transport,
+MCP-only) plus a transport-native liveness route at `/health`.
+
+```bash
+docker pull ghcr.io/yoselabs/a2web:latest
+
+docker run -d --name a2web -p 8000:8000 \
+  -v a2web-cache:/data \
+  -e OPENAI_API_KEY=... \
+  -e OPENAI_BASE_URL=https://api.deepseek.com \
+  -e OPENAI_MODEL=deepseek-v4-flash \
+  ghcr.io/yoselabs/a2web:latest
+# MCP:      http://<host>:8000/mcp
+# liveness: http://<host>:8000/health   -> 200 {"status":"ok"}
+```
+
+> ⚠️ **The HTTP endpoint has no authentication yet.** Do **not** expose port 8000
+> to the public internet. Run it behind Tailscale or a private LAN. Config-gated
+> Google OAuth is planned (blocked on an upstream a2kit `GoogleAuth` AuthSpec).
+
+**Environment matrix** (secrets are env-only, never baked into a layer):
+
+| Variable | Purpose |
+|---|---|
+| `OPENAI_API_KEY` + `OPENAI_BASE_URL` + `OPENAI_MODEL` | OpenAI-compatible LLM backend — the container default. Point at DeepSeek / OpenAI / Gemini / OpenRouter / a local endpoint. Unset base URL → OpenAI proper. |
+| `ANTHROPIC_API_KEY` | Alternative LLM backend (Anthropic Messages API). Auto-selected over openai-compatible when set. |
+| `A2WEB_ZYTE_KEY` | Paid Zyte tier (Reddit thread depth + hard walls). Optional. |
+| `A2WEB_JINA_KEY` | Optional Jina reader free-tier key. |
+| `A2WEB_CACHE_DIR` | sqlite HTTP-cache dir. Defaults to `/data` in the image; back it with a volume so the cache survives restarts. |
+| `A2WEB_*` | Any `AppSettings` field (`A2WEB_STEALTH`, `A2WEB_DIAGNOSTICS_DEFAULT`, …). |
+
+Without any LLM key the container still serves `fetch_raw` (raw pages, no
+extraction); `ask` returns a loud `llm_unavailable` operator hint rather than a
+silent empty answer.
+
+**Liveness** is wired as a Docker `HEALTHCHECK` (`curl -f /health`) against the
+live serve process. **Minimum RAM:** allow ~1.5–2 GB when the browser tier
+escalates (baked Chromium); lighter for raw/jina-only fetches.
+
+**Claude Code piggyback backend.** The published image is slim and does **not**
+bundle `claude-agent-sdk` (~210 MB). To use the Claude Code OS-session backend,
+build the image yourself with the extra:
+
+```bash
+docker build --build-arg INSTALL_CLAUDE_CODE=true -t a2web-full .
+```
+
+**Publishing** is automated: pushing a `v*` tag runs the quality gate, then
+builds and pushes `ghcr.io/yoselabs/a2web:{version,latest}`
+(`.github/workflows/release.yml`). One-time after the first publish: set the
+GHCR package visibility to **Public** so `docker pull` needs no auth.
+
 ## Cookies (opt-in)
 
 a2web can mirror your local browser cookies into its own sqlite, so fetches arrive logged-in. It leans on `browser-cookie3`, which is cross-platform (macOS, Linux, Windows) and reads most browsers (Chrome, Chromium, Brave, Edge, Firefox, Safari).

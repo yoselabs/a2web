@@ -113,6 +113,13 @@ async def _check_sqlite(sqlite: SqliteResource) -> a2kit.HealthResult:
     probe loudly during resolution — that's correct for a catastrophic
     sqlite-open failure, not a "degraded" check.
     """
+    # Scope decision (deployable-container-ci §6.4): readiness asserts the
+    # SUBSTRATE only, NOT that an LLM backend is configured. `fetch_raw` serves
+    # with zero LLM config, so a keyless deploy is degraded-but-serving, not
+    # broken — and `ask` already surfaces a loud per-request `llm_unavailable`
+    # operator hint (ADR-0009). Gating readiness on LLM config would make an
+    # orchestrator restart-loop a valid fetch-only container. Liveness
+    # (`GET /health`) stays dumber still. Do not add an LLM assertion here.
     _ = sqlite
     return a2kit.HealthResult.ok()
 
