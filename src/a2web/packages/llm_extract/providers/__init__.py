@@ -6,6 +6,9 @@
 `claude_code.py` — Claude Code OS-session via `claude-agent-sdk` (no
                    API key needed; uses whatever Claude Code is logged
                    into — OAuth subscription or API key).
+`openai_compatible.py` — any OpenAI-compatible `chat/completions` endpoint
+                   via the `openai` SDK + a configured `base_url` (OpenAI,
+                   Gemini-compat, local, gateways). Pin-only; config-gated.
 """
 
 from __future__ import annotations

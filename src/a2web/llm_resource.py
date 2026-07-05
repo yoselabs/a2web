@@ -36,10 +36,15 @@ if TYPE_CHECKING:
 
 # The provider preference order, declared once. Claude Code's OS session
 # (OAuth subscription — no `ANTHROPIC_API_KEY`) is preferred; the Anthropic
-# API provider is the credential-bearing fallback. This is the single source
-# of truth for both the production `ask` path and the bench harness.
+# API provider is the credential-bearing fallback; `openai_compatible` is the
+# LAST-resort derived fallback, gated on `OPENAI_API_KEY` presence by its
+# manifest. Placing it last means a configured OpenAI key can never SHADOW a
+# working Claude/Anthropic path (it only activates when neither is available) —
+# so `openai_compatible` derives from config with no explicit pin needed, which
+# is exactly the headless-container case. Single source of truth for both the
+# production `ask` path and the bench harness.
 _PROVIDER_SURFACE = "a2web._manifests.llm_providers"
-_PROVIDER_ORDER = ("claude-code", "anthropic")
+_PROVIDER_ORDER = ("claude-code", "anthropic", "openai_compatible")
 
 
 def select_provider(settings: AppSettings, *, override: str | None = None) -> tuple[str, Provider] | None:
@@ -123,9 +128,15 @@ class LlmExtractorResource:
         else:
             cache = ExtractionCache(conn, ttl_s=s.extraction_cache_ttl_s)
 
+        # A provider may carry its own resolved model (openai_compatible sets
+        # `default_model` from OPENAI_MODEL / a host recommendation); it wins over
+        # the Anthropic-shaped `llm_model` default so a Claude id is never sent
+        # to an OpenAI endpoint.
+        model_id = getattr(provider, "default_model", "") or s.llm_model
+
         return Extractor(
             provider=provider,
-            model=ModelSpec(s.llm_model),
+            model=ModelSpec(model_id),
             template=EXTRACT_CACHEABLE_V1,
             max_content_chars=s.extraction_max_chars,
             cache=cache,

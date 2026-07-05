@@ -31,7 +31,7 @@ _ENV_REF_RE = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
 # LLM provider selection mode. `auto` resolves via the preference order in
 # `llm_resource.select_provider`; the concrete ids name a single backend.
 # Declared once here so the field and the bench's selection boundary share it.
-ProviderMode = Literal["auto", "anthropic", "claude-code"]
+ProviderMode = Literal["auto", "anthropic", "claude-code", "openai_compatible"]
 
 # Default Discourse-forum allowlist for `DiscourseHandler.matches()`. Shared
 # between the `AppSettings.discourse_hosts` field default and the handler's
@@ -190,6 +190,25 @@ class AppSettings(BaseSettings):
     llm_provider: ProviderMode = "auto"
     llm_model: str = "claude-haiku-4-5-20251001"
     llm_api_key_env: str = "ANTHROPIC_API_KEY"
+    # OpenAI-compatible backend — reads the OpenAI SDK's STANDARD env vars, not
+    # custom a2web ones: `OPENAI_API_KEY` (key; presence gates availability and
+    # derives the backend as the last-resort fallback), `OPENAI_BASE_URL`
+    # (endpoint; unset → OpenAI proper, set for Gemini/DeepSeek/OpenRouter/
+    # local), `OPENAI_MODEL` (model; else a host-keyed recommendation, else a
+    # loud failure). Only this indirection is a2web-native: the NAME of the key
+    # env var, defaulting to the standard `OPENAI_API_KEY` (override for e.g.
+    # `OPENROUTER_API_KEY`). Secret stays env-only.
+    #
+    # Validating a custom model before you trust it in prod: run the output bench
+    # through the backend and read the **data-contract axis as the pass/fail gate**
+    # (a model that cannot emit valid router-shape JSON is disqualified regardless
+    # of quality) —
+    #   A2WEB_BENCH_PROVIDER=openai_compatible OPENAI_BASE_URL=… OPENAI_API_KEY=… \
+    #   OPENAI_MODEL=… make bench
+    # The committed reference sweep (`eval/model_benchmark/`, re-run every couple
+    # of months) prescribes the current default; DeepSeek V4 Flash is the
+    # cheapest backend that clears the contract at Haiku-class quality.
+    llm_openai_api_key_env: str = "OPENAI_API_KEY"
     extraction_max_chars: int = 100_000  # matches WebFetch's BD_ constant
     extraction_cache_ttl_s: int = 900  # matches WebFetch's sg5 (15 min)
 

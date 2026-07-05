@@ -17,7 +17,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SRC_ROOT = _REPO_ROOT / "src" / "a2web"
 
 _SURFACE_STRING = "a2web._manifests.llm_providers"
-_ORDER_TUPLE = ("claude-code", "anthropic")
+_ORDER_TUPLE = ("claude-code", "anthropic", "openai_compatible")
 
 
 def _str_tuple(node: ast.AST) -> tuple[str, ...] | None:

@@ -49,9 +49,16 @@ def _pick_provider(settings: AppSettings) -> tuple[Provider, str]:
     otherwise the shared auto-order applies. Raises `LLMNotAvailable` when
     nothing resolves.
     """
-    override = os.environ.get(_PROVIDER_ENV, "").strip().lower().replace("_", "-") or None
+    override = os.environ.get(_PROVIDER_ENV, "").strip().lower() or None
     if override is not None and override not in _PROVIDER_ORDER:
-        raise LLMNotAvailable(f"unknown provider id: {override}")
+        # Tolerate hyphen/underscore confusion, but only as a fallback — the
+        # canonical ids are mixed (`claude-code` hyphen, `openai_compatible`
+        # underscore), so a blanket `_`→`-` would mangle the underscore id.
+        alt = override.replace("_", "-")
+        if alt in _PROVIDER_ORDER:
+            override = alt
+        else:
+            raise LLMNotAvailable(f"unknown provider id: {override}")
     selection = select_provider(settings, override=override)
     if selection is None:
         target = override or f"auto ({', '.join(_PROVIDER_ORDER)})"
