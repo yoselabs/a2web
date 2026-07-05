@@ -8,6 +8,42 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-07-06
+
+> JSON API endpoints stop being mangled. A JSON response is now first-class
+> content — synthesized to markdown in-place — instead of being escalated to the
+> jina HTML reader (which read JSON as a webpage and produced a false
+> `length_floor` failure). Closes Issue 3 from the 2026-07-05 Reddit/HN feedback
+> report. No wire-shape change, no new tool params.
+
+### Fixed — JSON endpoints route directly, never through the jina HTML reader (`json-endpoint-direct-routing`)
+
+- **Raw tier: a JSON response is `ok`, not a mismatch.** A 2xx response with a
+  JSON-family content-type (`application/json`, `application/<x>+json`,
+  `text/json`) maps to `Verdict.ok` instead of `content_type_mismatch`. The raw
+  tier wins, the JSON body reaches extraction, and jina is never consulted.
+  Non-JSON mismatches (PDF, octet-stream, `text/plain`) keep escalating as before.
+- **Extract phase synthesizes JSON response bodies.** When the won tier's
+  content-type is JSON, `_phase_extract` parses the body and renders it via the
+  existing `json_to_markdown_rows` synthesis (the same renderer the JSON-in-script
+  path uses) — known shapes (`products` / `items` / Product / Article / ItemList)
+  become tables/records.
+- **Never-lose fallback for unknown JSON shapes.** An arbitrary API shape that
+  synthesis doesn't recognize falls back to the JSON text itself — pretty-printed,
+  capped at 20 000 chars — so a valid-but-unrecognized payload still reaches the
+  caller and the `ask` extractor (never a silent empty miss).
+- **JSON bypasses the thin-shell length floor.** A small-but-complete JSON body
+  (`{"count": 42}`) is a valid answer, not a truncated SPA shell; the exemption
+  keys strictly on the JSON content-type, so HTML shells keep the full floor and
+  the v0.29.0 confabulation guard is untouched.
+- **`json.loads` stays funnelled.** Response-body parsing lives in the
+  `json_in_script` package as `parse_json_response` (which already owns
+  `json.loads` for the in-script path); the json-loads-funnel arch invariant
+  holds — no new `json.loads` outside the package.
+- Live-verified: `web fetch_raw` and `web ask` over
+  `jsonplaceholder.typicode.com/users/1` (a JSON endpoint that previously
+  false-failed via jina) now return the data and a correct extracted answer.
+
 ## [0.29.0] — 2026-07-05
 
 > Community-site search retrieval + a confabulation guard. HN/Algolia search

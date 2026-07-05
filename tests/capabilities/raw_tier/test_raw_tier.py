@@ -45,9 +45,18 @@ class TestVerdictForStatus:
         assert _verdict_for_status(403, "text/html") == Verdict.connection_error
         assert _verdict_for_status(401, "text/html") == Verdict.connection_error
 
-    def test_non_html_content_type_mismatches(self) -> None:
-        assert _verdict_for_status(200, "application/json") == Verdict.content_type_mismatch
+    def test_json_content_type_is_ok(self) -> None:
+        # json-endpoint-direct-routing: a JSON response is first-class content,
+        # not a mismatch — it is synthesized downstream, never sent to jina.
+        assert _verdict_for_status(200, "application/json") == Verdict.ok
+        assert _verdict_for_status(200, "application/json; charset=utf-8") == Verdict.ok
+        assert _verdict_for_status(200, "application/vnd.api+json") == Verdict.ok
+        assert _verdict_for_status(200, "text/json") == Verdict.ok
+
+    def test_non_html_non_json_content_type_mismatches(self) -> None:
+        # Only JSON is carved out; other non-HTML bodies still mismatch/escalate.
         assert _verdict_for_status(200, "application/pdf") == Verdict.content_type_mismatch
+        assert _verdict_for_status(200, "application/octet-stream") == Verdict.content_type_mismatch
 
     def test_html_content_type_ok(self) -> None:
         assert _verdict_for_status(200, "text/html") == Verdict.ok
@@ -191,9 +200,21 @@ async def test_fetch_proxy_error_without_proxy_still_connection_error(monkeypatc
 
 @pytest.mark.asyncio
 async def test_fetch_non_html_content_type_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_session(monkeypatch, _FakeResponse(content_type="application/json"))
+    # A non-JSON non-HTML body still mismatches (escalates). JSON is carved out
+    # separately (see test below).
+    _patch_session(monkeypatch, _FakeResponse(content_type="application/pdf"))
     result = await RawTier().fetch("https://example.com/", state=_state())
     assert result.verdict == Verdict.content_type_mismatch
+
+
+@pytest.mark.asyncio
+async def test_fetch_json_content_type_is_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    # json-endpoint-direct-routing: a JSON response wins at raw (Verdict.ok) so
+    # the body reaches synthesis, never the jina HTML reader.
+    _patch_session(monkeypatch, _FakeResponse(content_type="application/json"))
+    result = await RawTier().fetch("https://api.example.com/data", state=_state())
+    assert result.verdict == Verdict.ok
+    assert result.content_type == "application/json"
 
 
 @pytest.mark.asyncio

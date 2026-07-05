@@ -8,11 +8,72 @@ from __future__ import annotations
 from a2web.packages.json_in_script import (
     JsonPayload,
     extract_json_payloads,
+    is_json_content_type,
+    parse_json_response,
     rank_payloads,
 )
 from tests.fixtures import FIXTURES_DIR
 
 _FIX = FIXTURES_DIR
+
+
+# --------------------------------------------------------------------- #
+# Whole-response JSON — json-endpoint-direct-routing
+# --------------------------------------------------------------------- #
+
+
+class TestIsJsonContentType:
+    def test_application_json(self) -> None:
+        assert is_json_content_type("application/json")
+        assert is_json_content_type("application/json; charset=utf-8")
+        assert is_json_content_type("APPLICATION/JSON")
+
+    def test_suffix_json_types(self) -> None:
+        assert is_json_content_type("application/vnd.api+json")
+        assert is_json_content_type("application/ld+json")
+        assert is_json_content_type("text/json")
+
+    def test_non_json_types(self) -> None:
+        assert not is_json_content_type("text/html")
+        assert not is_json_content_type("application/pdf")
+        assert not is_json_content_type("text/plain")
+
+    def test_empty_or_none(self) -> None:
+        assert not is_json_content_type("")
+        assert not is_json_content_type(None)
+
+
+class TestParseJsonResponse:
+    def test_object_response_is_generic_payload(self) -> None:
+        p = parse_json_response('{"products": [{"name": "Widget", "price": "9.99"}]}')
+        assert p is not None
+        assert p.source == "generic"
+        assert p.script_id is None
+        assert isinstance(p.data, dict)
+        assert p.data["products"][0]["name"] == "Widget"
+        assert p.byte_size > 0
+
+    def test_array_response_is_generic_payload(self) -> None:
+        p = parse_json_response('[{"title": "A"}, {"title": "B"}]')
+        assert p is not None
+        assert p.source == "generic"
+        assert isinstance(p.data, list)
+        assert len(p.data) == 2
+
+    def test_non_json_returns_none(self) -> None:
+        assert parse_json_response("<html>not json</html>") is None
+
+    def test_malformed_json_returns_none(self) -> None:
+        assert parse_json_response('{"a": 1,') is None
+
+    def test_empty_returns_none(self) -> None:
+        assert parse_json_response("") is None
+        assert parse_json_response("   ") is None
+
+    def test_json_scalar_root_returns_none(self) -> None:
+        # A bare scalar is valid JSON but not a document we synthesize.
+        assert parse_json_response("42") is None
+        assert parse_json_response('"just a string"') is None
 
 
 def test_next_data_detected_from_trendyol_fixture() -> None:

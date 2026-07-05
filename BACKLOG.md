@@ -17,6 +17,44 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-06 — json-endpoint-direct-routing deferrals
+
+Source: `json-endpoint-direct-routing` (Out of Scope). Shipped: JSON responses
+are synthesized in-place (raw-tier JSON→ok, extract-phase synthesis, never-lose
+text fallback, length-floor exemption). Four adjacent tracks were deliberately
+left out — Issue 3 from the 2026-07-05 Reddit/HN feedback report is now closed;
+these are the residual follow-ups.
+
+- **🟡 Requested-vs-actual fetch URL transparency (M).** The second half of the
+  feedback report's Issue 3: when the orchestrator rewrites the fetched URL
+  (jina-wrapping, `rewrite_captcha_host` → DDG, archive), the caller sees only
+  the original request URL. Surface both — what was asked for and what was
+  actually fetched. This is an **envelope change** (ask-first — touches the wire
+  shape parsers depend on); the existing `url` deviation field covers redirects
+  but not tier-level rewrites. Its own small change. Scope: M.
+- **🟢 Reddit `429` → escalate-to-render (S).** Today only a Reddit search/listing
+  `403` triggers the straight-to-Zyte `escalate_to_render` shortcut (v0.29.0). A
+  `429` (rate_limited) takes the slow ladder — it still reaches Zyte, just less
+  directly. One-line extension in `handlers/reddit.py` to also render on 429.
+  Scope: S.
+- **🟢 `obstacle` drives escalation, not just confidence (M).** design.md open
+  question from v0.29.0. The LLM's `obstacle` signal is born in
+  `_phase_extract_answer`, AFTER all escalation, so a confabulated SPA that slips
+  the gate only gets flagged `retrieval_incomplete` — it can't trigger a re-fetch
+  / render. Reordering so `obstacle` can drive a render (a second extraction
+  pass) would close the loop. Bigger pipeline change. Scope: M.
+- **🟢 Generic SPA-search-host coverage (M).** The fat-shell confabulation
+  problem (a JS SPA whose shell exceeds the length floor) is host-agnostic, but
+  only HN + Reddit are wired to `escalate_to_render`. Other JS-SPA search UIs
+  still rely on the `<500`-char `js_required` net, which misses fat shells. No
+  concrete failing host reported yet — trip condition: a benchmark URL confabulates
+  through a fat SPA shell. Scope: M.
+- **🟢 Body-sniff JSON served as `text/html` (S).** JSON detection keys on the
+  response content-type; a misconfigured API serving JSON under `text/html`
+  misses and takes the HTML path. A body-parse-on-mismatch fallback would catch
+  it, but risks HTML false positives — deferred until a real case surfaces. From
+  `json-endpoint-direct-routing` design Risks. Scope: S.
+
 ## 2026-07-05 — deployable-container-ci deferrals
 
 Source: `deployable-container-ci` (Out of Scope). Shipped: slim Dockerfile,

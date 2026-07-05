@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 from ..models import Verdict
 from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ..packages.json_in_script import is_json_content_type
 
 if TYPE_CHECKING:
     from ..state import AppState
@@ -39,6 +40,12 @@ def _verdict_for_status(status: int, content_type: str) -> Verdict:
         return Verdict.connection_error
     if status >= 400:
         return Verdict.connection_error
+    # A JSON response is first-class content, not a mismatch: it is synthesized
+    # to markdown downstream (json-endpoint-direct-routing), never escalated to
+    # the jina HTML reader (which mangles JSON into a false length_floor). This
+    # carve-out is evaluated BEFORE the non-HTML mismatch check.
+    if is_json_content_type(content_type):
+        return Verdict.ok
     if "html" not in content_type.lower():
         return Verdict.content_type_mismatch
     return Verdict.ok

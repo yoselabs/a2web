@@ -31,6 +31,7 @@ from .decision_log import Observation, ObservationKind, resolve_verdict
 from .domain import (
     compute_profile_hash,
     is_live_only,
+    json_response_fallback,
     json_to_markdown_rows,
     rewrite_captcha_host,
 )
@@ -61,7 +62,12 @@ from .packages.content_extract import (
 )
 from .packages.escalation import EscalationSignal
 from .packages.http_cache import CacheRow, SqliteResource
-from .packages.json_in_script import extract_json_payloads, rank_payloads
+from .packages.json_in_script import (
+    extract_json_payloads,
+    is_json_content_type,
+    parse_json_response,
+    rank_payloads,
+)
 from .packages.llm_extract import LlmNextLink, RouterPayload
 from .packages.record_extract import Record, RecordSet, extract_records
 from .settings import AppSettings
@@ -112,6 +118,7 @@ def evaluate(
     tier: str | None = None,
     host: str | None = None,
     settings: AppSettings | None = None,
+    is_json: bool = False,
 ) -> _GateResult:
     """Run the package's block detector, map BlockVerdict → Verdict.
 
@@ -141,6 +148,14 @@ def evaluate(
     if host_matches:
         verdict = Verdict.length_floor
         subsystem = "thin_browser_response"
+
+    # A small-but-complete JSON response (`{"count": 42}`) is a valid answer, not
+    # a truncated SPA shell. Exempt JSON from the thin-shell length floor — keyed
+    # STRICTLY on the JSON content-type, so HTML shells keep the full floor (the
+    # v0.29.0 confabulation guard is untouched).
+    if is_json and verdict is Verdict.length_floor:
+        verdict = Verdict.ok
+        subsystem = None
 
     return _GateResult(verdict=verdict, subsystem=subsystem, escalation=escalation)
 
@@ -1082,6 +1097,36 @@ async def _phase_extract(fc: FetchContext) -> None:
         fc.headings = fc.pre_rendered_payload.headings
         return
 
+    # JSON response body (json-endpoint-direct-routing): the raw tier now wins on
+    # JSON (Verdict.ok), so the body lands here. Synthesize it — trafilatura
+    # produces nothing on JSON, and escalating to the jina HTML reader mangles it
+    # into a false length_floor. Reuse the JSON-in-script synthesis; an
+    # unrecognized shape falls back to the capped JSON text so a valid payload is
+    # never lost. Installing pre_rendered_payload skips the gate's content-type
+    # guard, exactly like a handler's pre-rendered result.
+    if fc.body and is_json_content_type(fc.content_type):
+        json_text = fc.body.decode("utf-8", errors="replace")
+        json_payload = parse_json_response(json_text)
+        if json_payload is not None:
+            md = json_to_markdown_rows(json_payload) or json_response_fallback(json_payload.data)
+            fc.content_md = md
+            fc.pre_rendered_payload = Rendered(content_md=md)
+            fc.diagnostics.append(
+                Diagnostic(
+                    t_ms=extract_dur_start,
+                    step="json_response",
+                    engine="json_synth",
+                    host=None,
+                    proxy=None,
+                    verdict=Verdict.ok,
+                    dur_ms=int((time.perf_counter() - fc.start_perf) * 1000) - extract_dur_start,
+                    extra={"chars": len(md)},
+                )
+            )
+            return
+        # Content-type declared JSON but the body did not parse — fall through to
+        # normal handling rather than fabricating content.
+
     if not (fc.body and fc.resolved_verdict() is Verdict.ok):
         return
 
@@ -1394,6 +1439,9 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
     is_pre_rendered = fc.pre_rendered_payload is not None
     gate_content_type = None if is_pre_rendered else fc.content_type
     gate_raw_html = fc.content_md if is_pre_rendered else (fc.body.decode("utf-8", errors="replace") if fc.body else "")
+    # A JSON response body is pre-rendered above, so `gate_content_type` is None;
+    # thread the JSON-ness explicitly so the gate exempts a short JSON body from
+    # the length floor (keyed on the original `fc.content_type`).
     gate_result = evaluate(
         content_md=fc.content_md,
         raw_html=gate_raw_html,
@@ -1401,6 +1449,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
         tier=fc.tier_used,
         host=urlparse(fc.final_url).hostname if fc.final_url else None,
         settings=state.settings,
+        is_json=is_json_content_type(fc.content_type),
     )
     gate_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - gate_dur_start
     fc.diagnostics.append(

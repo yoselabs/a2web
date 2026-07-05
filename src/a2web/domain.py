@@ -12,6 +12,7 @@ Pure functions only. No I/O. No class state.
 from __future__ import annotations
 
 import hashlib
+import json
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, quote, urlparse
 
@@ -22,9 +23,28 @@ if TYPE_CHECKING:
 __all__ = (
     "compute_profile_hash",
     "is_live_only",
+    "json_response_fallback",
     "json_to_markdown_rows",
     "rewrite_captcha_host",
 )
+
+# Cap the never-lose JSON text fallback so an unbounded API dump can't blow the
+# response envelope (mirrors the synthetic-output caps elsewhere in this module).
+_JSON_FALLBACK_CAP = 20_000
+
+
+def json_response_fallback(data: dict | list) -> str:
+    """Render an unrecognized JSON response body as a readable, capped code fence.
+
+    The never-lose fallback for the JSON-response path: when
+    `json_to_markdown_rows` doesn't recognize the shape, a valid-but-unknown
+    payload still reaches the caller and the `ask` extractor as pretty-printed
+    JSON, instead of a silent empty miss. Pure — no I/O.
+    """
+    text = json.dumps(data, indent=2, ensure_ascii=False, default=str)
+    if len(text) > _JSON_FALLBACK_CAP:
+        text = text[:_JSON_FALLBACK_CAP] + "\n… (truncated)"
+    return f"```json\n{text}\n```"
 
 
 # Hosts that emit captcha pages on `/search` for unauth scrapers.

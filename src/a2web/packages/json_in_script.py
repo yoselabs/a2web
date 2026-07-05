@@ -494,4 +494,54 @@ def _microdata_strong(data: dict | list) -> bool:
     return False
 
 
-__all__ = ["JsonPayload", "JsonSource", "extract_json_payloads", "rank_payloads"]
+# --------------------------------------------------------------------- #
+# Whole-response JSON (not JSON-in-script) — json-endpoint-direct-routing
+# --------------------------------------------------------------------- #
+
+
+def is_json_content_type(content_type: str | None) -> bool:
+    """Return True for a JSON-family content-type.
+
+    Matches `application/json`, `text/json`, and any `application/<x>+json`
+    suffix type (e.g. `application/vnd.api+json`, `application/ld+json`).
+    Case-insensitive; tolerant of a trailing `; charset=` parameter. This is
+    the single source of truth both the raw tier and the orchestrator consult,
+    so they agree on what counts as a JSON response.
+    """
+    if not content_type:
+        return False
+    ct = content_type.split(";", 1)[0].strip().lower()
+    if ct in ("application/json", "text/json"):
+        return True
+    return ct.startswith("application/") and ct.endswith("+json")
+
+
+def parse_json_response(text: str) -> JsonPayload | None:
+    """Parse a whole response body as a single top-level JSON document.
+
+    Returns a `JsonPayload(source="generic")` on success, or `None` on any
+    parse failure or a non-object/array root (the caller falls back to normal
+    handling — never raises). Owns `json.loads` for the response-body path, so
+    the json-loads funnel invariant stays intact (no `json.loads` is added
+    outside this package).
+    """
+    stripped = text.strip()
+    if not stripped:
+        return None
+    try:
+        data = json.loads(stripped)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(data, (dict, list)):
+        return None
+    return JsonPayload(source="generic", data=data, script_id=None, byte_size=len(text))
+
+
+__all__ = [
+    "JsonPayload",
+    "JsonSource",
+    "extract_json_payloads",
+    "is_json_content_type",
+    "parse_json_response",
+    "rank_payloads",
+]
