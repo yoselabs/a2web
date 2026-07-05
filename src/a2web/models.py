@@ -170,6 +170,27 @@ def comments_partial_hint(*, loaded: int, total: int) -> OperatorHint:
     )
 
 
+def extraction_empty_hint(*, content_chars: int) -> OperatorHint:
+    """Dangerous silent-miss guard: content was fetched but extraction produced
+    no answer (never-silently-miss / ADR-0009 at extraction granularity).
+
+    Critical: `ask` fetched `content_chars` of real content yet the LLM
+    extraction returned an empty answer — an extraction/parse failure or a model
+    that did not follow the answer contract. The caller must NOT read an empty
+    answer as "no data on the page"; the data is present but unextracted.
+    """
+    return OperatorHint(
+        code="extraction_empty",
+        message=(
+            f"Fetched {content_chars} characters of content but extraction produced an EMPTY answer. "
+            "This is an extraction/parse failure, not an empty page — do not conclude the page has no "
+            "relevant data."
+        ),
+        fix="Retry the fetch, use `fetch_raw` to inspect the raw content, or rephrase the question.",
+        severity="critical",
+    )
+
+
 NextLinkKind = Literal["drilldown", "related", "source", "discussion"]
 
 

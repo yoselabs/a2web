@@ -31,6 +31,7 @@ from .models import (
     RouterPayload,
     TokenCounts,
     Verdict,
+    extraction_empty_hint,
 )
 from .utils.time import fmt_dur
 
@@ -228,6 +229,18 @@ def build_response(fc: FetchContext) -> FetchResponse:
     wrapped_md = _wrap_content_md(fc.content_md, source=fc.final_url, fetched_at=fc.started_at) if fc.wrap_content else fc.content_md
     tokens = TokenCounts(full=len(wrapped_md)) if fc.debug and final_verdict == Verdict.ok and fc.content_md else None
     op_hints: list[OperatorHint] = list(fc.operator_hints)
+
+    # never-silently-miss at extraction granularity (ADR-0009): if `ask` ran
+    # extraction (extraction_meta present) over real fetched content yet the
+    # answer came back empty, that is a dangerous silent miss — an extraction /
+    # parse failure or a model off-contract, NOT an empty page. Surface it loud.
+    if (
+        fc.extraction_meta is not None
+        and final_verdict == Verdict.ok
+        and not (fc.extracted_answer or "").strip()
+        and len(fc.content_md) > 500
+    ):
+        op_hints.append(extraction_empty_hint(content_chars=len(fc.content_md)))
 
     diagnostics_summary = _build_diagnostics_summary(
         tier_used=fc.tier_used,

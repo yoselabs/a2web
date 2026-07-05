@@ -168,6 +168,50 @@ async def test_ask_set_populates_extracted_answer(
 
 
 @pytest.mark.asyncio
+async def test_ask_empty_answer_emits_extraction_empty_hint(monkeypatch: pytest.MonkeyPatch) -> None:
+    """never-silently-miss at extraction granularity: real content fetched but
+    the LLM produced an EMPTY answer → a critical `extraction_empty` hint, so the
+    caller never reads it as an empty page."""
+    body = (_FIX / "blog.html").read_bytes()
+    _swap_raw(monkeypatch, body)
+
+    state = _make_state()
+    extractor_res, _ = _make_extractor_resource(state, answer="")  # extraction runs, yields nothing
+
+    result = await fetch(
+        "https://example.org/post",
+        state=state,
+        ask="What is this article about?",
+        llm_extractor=lazy(extractor_res),
+    )
+
+    assert result.status == FetchStatus.ok
+    assert not (result.extracted_answer or "").strip()
+    hints = [h for h in result.operator_hints if h.code == "extraction_empty"]
+    assert len(hints) == 1
+    assert hints[0].severity == "critical"
+
+
+@pytest.mark.asyncio
+async def test_ask_nonempty_answer_has_no_extraction_empty_hint(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A populated answer must NOT trigger the empty-extraction guard."""
+    body = (_FIX / "blog.html").read_bytes()
+    _swap_raw(monkeypatch, body)
+
+    state = _make_state()
+    extractor_res, _ = _make_extractor_resource(state, answer="A real, substantive answer about the article.")
+
+    result = await fetch(
+        "https://example.org/post",
+        state=state,
+        ask="What is this article about?",
+        llm_extractor=lazy(extractor_res),
+    )
+
+    assert not any(h.code == "extraction_empty" for h in result.operator_hints)
+
+
+@pytest.mark.asyncio
 async def test_ask_skipped_on_failed_fetch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

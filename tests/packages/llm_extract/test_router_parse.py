@@ -229,3 +229,27 @@ def test_next_url_boundary_is_frozen_dataclass() -> None:
     except Exception:
         return
     raise AssertionError("NextUrlBoundary must be frozen")
+
+
+# --------------------------------------------------------------------- #
+# Robustness: object present but not the whole payload (model-agnostic parse)
+# --------------------------------------------------------------------- #
+
+
+def test_trailing_next_links_fence_is_recovered() -> None:
+    """DeepSeek pattern: a valid router object followed by a separate
+    ```next_links``` fence. The funnel extracts the leading object instead of
+    dumping raw JSON into the answer."""
+    text = _healthy_envelope() + '\n\n```next_links\n[{"anchor":"x","url":"https://e/"}]\n```'
+    answer, payload = _routing(text)
+    assert payload is not None
+    assert answer.startswith("Rust's borrow checker")
+    assert "structural_form" not in answer
+    assert "```" not in answer
+
+
+def test_trailing_prose_after_object_is_recovered() -> None:
+    text = _healthy_envelope() + "\n\nNote: some extra prose the model appended."
+    answer, payload = _routing(text)
+    assert payload is not None
+    assert answer.startswith("Rust's borrow checker")

@@ -87,3 +87,13 @@ def test_raw_excerpt_bounded_in_log() -> None:
     events = [r for r in logs if r.get("event") == "llm_wobble"]
     assert len(events) == 1
     assert len(events[0]["raw"]) <= 200
+
+
+def test_first_json_object_extracts_leading_balanced_object() -> None:
+    from a2web.packages.llm_extract.wobble._internal import _first_json_object
+
+    assert _first_json_object('{"a": 1} trailing junk') == '{"a": 1}'
+    assert _first_json_object('pre {"a": {"b": 2}} post') == '{"a": {"b": 2}}'
+    # brace inside a string value must not close the object early
+    assert _first_json_object('{"s": "brace } inside"}') == '{"s": "brace } inside"}'
+    assert _first_json_object("no object here") is None

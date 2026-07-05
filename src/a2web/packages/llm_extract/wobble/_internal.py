@@ -95,6 +95,42 @@ def _strip_fences(text: str) -> str:
     return body.strip()
 
 
+def _first_json_object(text: str) -> str | None:
+    """Return the first balanced top-level ``{...}`` object substring, or None.
+
+    Recovery path for model outputs that carry the router-shape object but do
+    not have it as the *whole* payload — e.g. a trailing ```` ```next_links ````
+    fence after the object (DeepSeek), or prose after the JSON. Scanning for the
+    first balanced object lets the funnel parse the envelope instead of falling
+    back to raw text (which surfaces as JSON noise in the answer). String- and
+    escape-aware so braces inside string values do not fool the depth counter.
+    """
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    for idx in range(start, len(text)):
+        ch = text[idx]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+        elif ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : idx + 1]
+    return None
+
+
 def emit_wobble(
     *,
     boundary: str,
@@ -188,7 +224,17 @@ def parse_with_policy(
     try:
         parsed = json.loads(stripped)
     except (ValueError, json.JSONDecodeError) as exc:
-        raise ParseError(f"{boundary}: invalid JSON: {exc}") from exc
+        # Recovery: the object may be present but not the whole payload (trailing
+        # ```next_links``` fence or prose after it). Extract the first balanced
+        # object and retry, firing an `llm_wobble` so the recovery is visible.
+        obj = _first_json_object(stripped)
+        if obj is None:
+            raise ParseError(f"{boundary}: invalid JSON: {exc}") from exc
+        try:
+            parsed = json.loads(obj)
+        except (ValueError, json.JSONDecodeError) as exc2:
+            raise ParseError(f"{boundary}: invalid JSON: {exc2}") from exc2
+        emit_wobble(boundary=boundary, field="_envelope", tolerance=WobbleTolerance.DERIVE, model=model, raw_excerpt=raw)
     if not isinstance(parsed, dict):
         raise ParseError(f"{boundary}: expected JSON object, got {type(parsed).__name__}")
 

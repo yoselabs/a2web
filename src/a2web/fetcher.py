@@ -1621,9 +1621,7 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState) -> None:
             # (trafilatura + json/record synth) on the HTML first, mirroring
             # `_escalate_browser`. Markdown-native paid tiers (Firecrawl) return
             # no HTML body, so this is skipped and the clean markdown stands.
-            rendered_html = (
-                result.body.decode("utf-8", errors="replace") if ("html" in result.content_type and result.body) else ""
-            )
+            rendered_html = result.body.decode("utf-8", errors="replace") if ("html" in result.content_type and result.body) else ""
             if rendered_html:
                 await _run_extraction_escalation(fc, raw_html=rendered_html)
             _regate_after_escalation(fc)
