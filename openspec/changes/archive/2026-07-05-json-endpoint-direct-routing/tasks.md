@@ -72,4 +72,4 @@ makes it pass. `make check` (lint + ty + test, coverage ≥85%) is the gate.
 - [x] 7.2 Move the deferred Out-of-Scope items (requested-vs-actual URL transparency;
       Reddit 429→escalate-to-render; obstacle-drives-escalation reorder; generic
       SPA-search-host coverage) into `BACKLOG.md`.
-- [ ] 7.3 Version bump + `make install-global` to propagate to the MCP binary.
+- [x] 7.3 Version bump + `make install-global` to propagate to the MCP binary.
