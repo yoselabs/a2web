@@ -1,0 +1,29 @@
+# Keep the build context lean + reproducible. Only pyproject/uv.lock/README/src
+# are COPYed by the Dockerfile; everything else is noise or would bust the cache.
+.git
+.github
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+htmlcov
+coverage.xml
+.coverage
+.coverage.*
+
+# Local caches, eval artifacts, docs, specs — not needed to build or run.
+eval/runs/
+eval/model_benchmark/runs/
+eval/runs
+docs
+openspec
+tests
+Makefile
+
+# Local env / secrets — never into an image layer.
+.env
+.env.*
+*.log

@@ -8,19 +8,19 @@
 
 ## 2. Dockerfile
 
-- [ ] 2.1 Author `Dockerfile`: slim Python base + `uv` install from lockfile, non-root user, `ARG INSTALL_CLAUDE_CODE=false`
-- [ ] 2.2 Bake browsers at build: `patchright install --with-deps chromium` + system libs zendriver needs; confirm no runtime download path
-- [ ] 2.3 Place the sqlite cache at a volume-backable path; declare the `VOLUME`
-- [ ] 2.4 `CMD` → `serve --transport=http --host=0.0.0.0 --select surface=mcp` (MCP-only); document the port
-- [ ] 2.5 `HEALTHCHECK` → `curl -f http://localhost:<port>/health` (probes the live MCP server's `/health`, not the CLI)
-- [ ] 2.6 Add `.dockerignore` (`.venv`, `.git`, `eval/runs/`, `__pycache__`, etc.)
+- [x] 2.1 Author `Dockerfile`: slim Python base + `uv` install from lockfile, non-root user, `ARG INSTALL_CLAUDE_CODE=false`
+- [x] 2.2 Bake browsers at build: `patchright install --with-deps chromium` + system libs zendriver needs; confirm no runtime download path
+- [x] 2.3 Place the sqlite cache at a volume-backable path; declare the `VOLUME`
+- [x] 2.4 `CMD` → `serve --transport=http --host=0.0.0.0 --select surface=mcp` (MCP-only); document the port
+- [x] 2.5 `HEALTHCHECK` → `curl -f http://localhost:<port>/health` (probes the live MCP server's `/health`, not the CLI)
+- [x] 2.6 Add `.dockerignore` (`.venv`, `.git`, `eval/runs/`, `__pycache__`, etc.)
 
 ## 3. Build + run locally (verify before CI)
 
-- [ ] 3.1 `docker build` the slim image; record final size + minimum RAM note for the browser rung
-- [ ] 3.2 Run the container, connect an MCP client to `/mcp` over HTTP, and run an `ask` against a keyed backend (env-supplied `ANTHROPIC_API_KEY` or `A2WEB_LLM_*`)
-- [ ] 3.3 Confirm `curl -f /health` returns 200 against the MCP-only server and HEALTHCHECK reports healthy; confirm a browser-tier fetch launches the baked Chromium with no network install
-- [ ] 3.4 Confirm the `INSTALL_CLAUDE_CODE=true` build variant installs the extra
+- [x] 3.1 `docker build` the slim image; record final size + minimum RAM note for the browser rung
+- [x] 3.2 Run the container, connect an MCP client to `/mcp` over HTTP, and run an `ask` against a keyed backend (env-supplied `ANTHROPIC_API_KEY` or `A2WEB_LLM_*`)
+- [x] 3.3 Confirm `curl -f /health` returns 200 against the MCP-only server and HEALTHCHECK reports healthy; confirm a browser-tier fetch launches the baked Chromium with no network install
+- [x] 3.4 Confirm the `INSTALL_CLAUDE_CODE=true` build variant installs the extra
 
 ## 4. CI — build + publish to GHCR (public)
 
@@ -31,10 +31,19 @@
 
 ## 5. Endpoint auth — config-gated Google OAuth
 
-- [ ] 5.1 Add Google-auth config to `AppSettings` (env-only: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, resolved from env)
-- [ ] 5.2 Register a2kit's `GoogleAuth` AuthSpec on the HTTP surface only when configured; settle the mount target (`surface=mcp` alone vs `mcp`+`api`)
-- [ ] 5.3 Tests: unconfigured → no AuthSpec registered, behavior unchanged; configured → anonymous request rejected, Google principal admitted
-- [ ] 5.4 Confirm no `GOOGLE_*` value is written to any repo file or image layer
+> **BLOCKED on a2kit (round 16, `docs/history/A2KIT_FEEDBACK_v0.49.md`).**
+> a2kit v0.49.1 advertises `GoogleAuth` in its `packages.auth` docstring but does
+> NOT export/implement it (only `APIKeyAuth` + `TokenAuth` ship). The
+> registration mechanism (`App.auth(spec)`) works — there is no OAuth AuthSpec to
+> hand it. Operator decision (2026-07-05): add `GoogleAuth` upstream in a2kit
+> FIRST, then bump the pin and wire it here. Container ships **open** meanwhile
+> (Tailscale/private-LAN-only, documented in group 7). Do not fake this rung —
+> never-silently-miss applies to the deploy contract too.
+
+- [ ] 5.1 Add Google-auth config to `AppSettings` (env-only: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, resolved from env) — **blocked: land after a2kit `GoogleAuth` ships**
+- [ ] 5.2 Register a2kit's `GoogleAuth` AuthSpec on the HTTP surface only when configured; settle the mount target (`surface=mcp` alone vs `mcp`+`api`) — **blocked: `GoogleAuth` absent in a2kit v0.49.1**
+- [ ] 5.3 Tests: unconfigured → no AuthSpec registered, behavior unchanged; configured → anonymous request rejected, Google principal admitted — **blocked**
+- [ ] 5.4 Confirm no `GOOGLE_*` value is written to any repo file or image layer — **blocked**
 
 ## 6. Transport-native liveness (FastMCP `/health`)
 
