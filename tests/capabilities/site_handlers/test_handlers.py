@@ -79,7 +79,10 @@ def test_reddit_to_rss_url_projects_every_shape() -> None:
         _to_rss_url("https://www.reddit.com/r/gravelcycling/search/?q=bell&restrict_sr=1&sort=top", "search")
         == "https://www.reddit.com/r/gravelcycling/search.rss?q=bell&restrict_sr=1&sort=top"
     )
-    assert _to_rss_url("https://www.reddit.com/r/gravelcycling/top/?t=year", "listing") == "https://www.reddit.com/r/gravelcycling/top.rss?t=year"
+    assert (
+        _to_rss_url("https://www.reddit.com/r/gravelcycling/top/?t=year", "listing")
+        == "https://www.reddit.com/r/gravelcycling/top.rss?t=year"
+    )
     # Bare / hot / best all map to the default feed (verified live: the bare
     # `.rss` feed IS the hot feed).
     assert _to_rss_url("https://www.reddit.com/r/gravelcycling/", "listing") == "https://www.reddit.com/r/gravelcycling/.rss"

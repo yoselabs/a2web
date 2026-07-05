@@ -23,6 +23,7 @@ def _pw(c: Cookie) -> dict[str, Any]:
     """Domain Cookie → BackendCookie (tier) → Playwright shape (backend)."""
     return _cookie_to_playwright(_cookie_to_backend(c))
 
+
 # --------------------------------------------------------------------- #
 # Raw tier
 # --------------------------------------------------------------------- #

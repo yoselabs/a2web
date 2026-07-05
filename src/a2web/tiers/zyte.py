@@ -71,9 +71,7 @@ class ZyteTier:
         if not key:
             # Defensive: the manifest gates registration on the key, so this
             # path is unreachable in production. Skip silently rather than error.
-            return TierResult(
-                body=b"", content_type="text/html", status_code=0, final_url=url, skipped=True, verdict=Verdict.other
-            )
+            return TierResult(body=b"", content_type="text/html", status_code=0, final_url=url, skipped=True, verdict=Verdict.other)
 
         raw = mode == "httpResponseBody"
         request: dict[str, Any] = {"url": url, "httpResponseBody": True} if raw else {"url": url, "browserHtml": True}
@@ -84,15 +82,11 @@ class ZyteTier:
         except httpx.TimeoutException:
             return TierResult(body=b"", content_type="text/html", status_code=0, final_url=url, verdict=Verdict.timeout)
         except httpx.HTTPError:
-            return TierResult(
-                body=b"", content_type="text/html", status_code=0, final_url=url, verdict=Verdict.connection_error
-            )
+            return TierResult(body=b"", content_type="text/html", status_code=0, final_url=url, verdict=Verdict.connection_error)
 
         verdict = paid_verdict_for_status(resp.status_code)
         if verdict is not Verdict.ok:
-            return TierResult(
-                body=b"", content_type="text/html", status_code=resp.status_code, final_url=url, verdict=verdict
-            )
+            return TierResult(body=b"", content_type="text/html", status_code=resp.status_code, final_url=url, verdict=verdict)
 
         payload = resp.json()
         final_url = payload.get("url") or url

@@ -53,28 +53,20 @@ class FirecrawlTier:
         if not key:
             # Defensive: the manifest gates registration on the key, so this
             # path is unreachable in production. Skip silently rather than error.
-            return TierResult(
-                body=b"", content_type="text/markdown", status_code=0, final_url=url, skipped=True, verdict=Verdict.other
-            )
+            return TierResult(body=b"", content_type="text/markdown", status_code=0, final_url=url, skipped=True, verdict=Verdict.other)
 
         headers = {"Authorization": f"Bearer {key}"}
         try:
             async with httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True) as client:
                 resp = await client.post(_API_URL, json={"url": url, "formats": ["markdown"]}, headers=headers)
         except httpx.TimeoutException:
-            return TierResult(
-                body=b"", content_type="text/markdown", status_code=0, final_url=url, verdict=Verdict.timeout
-            )
+            return TierResult(body=b"", content_type="text/markdown", status_code=0, final_url=url, verdict=Verdict.timeout)
         except httpx.HTTPError:
-            return TierResult(
-                body=b"", content_type="text/markdown", status_code=0, final_url=url, verdict=Verdict.connection_error
-            )
+            return TierResult(body=b"", content_type="text/markdown", status_code=0, final_url=url, verdict=Verdict.connection_error)
 
         verdict = paid_verdict_for_status(resp.status_code)
         if verdict is not Verdict.ok:
-            return TierResult(
-                body=b"", content_type="text/markdown", status_code=resp.status_code, final_url=url, verdict=verdict
-            )
+            return TierResult(body=b"", content_type="text/markdown", status_code=resp.status_code, final_url=url, verdict=verdict)
 
         payload = resp.json()
         data = payload.get("data") or {}

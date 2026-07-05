@@ -107,13 +107,4 @@ class CookiesStale:
     threshold_hours: int
 
 
-Event = (
-    TierStarted
-    | TierEnded
-    | StageStarted
-    | StageEnded
-    | TierHeartbeat
-    | CookiesAttached
-    | CookiesStale
-    | BrowserSubprocessStderr
-)
+Event = TierStarted | TierEnded | StageStarted | StageEnded | TierHeartbeat | CookiesAttached | CookiesStale | BrowserSubprocessStderr

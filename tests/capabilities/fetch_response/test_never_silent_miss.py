@@ -17,8 +17,7 @@ from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult
 from tests.conftest import make_default_state
 
 _BLOCK_HTML = (
-    b"<html><head><title>Just a moment...</title></head><body><h1>Just a moment...</h1>"
-    b"<noscript>cf-chl-bypass</noscript></body></html>"
+    b"<html><head><title>Just a moment...</title></head><body><h1>Just a moment...</h1><noscript>cf-chl-bypass</noscript></body></html>"
 )
 
 

@@ -25,8 +25,7 @@ from tests.conftest import make_default_state
 # Cloudflare interstitial — the gate flags this as block_page_detected, driving
 # the free ladder to a wall so the paid last resort becomes eligible.
 _BLOCK_HTML = (
-    b"<html><head><title>Just a moment...</title></head><body><h1>Just a moment...</h1>"
-    b"<noscript>cf-chl-bypass</noscript></body></html>"
+    b"<html><head><title>Just a moment...</title></head><body><h1>Just a moment...</h1><noscript>cf-chl-bypass</noscript></body></html>"
 )
 
 
@@ -65,9 +64,7 @@ class _BadKeyPaidTier:
 
     async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
         del url, state, kwargs
-        return TierResult(
-            body=b"", content_type="text/markdown", status_code=401, final_url="", verdict=Verdict.paid_auth_error
-        )
+        return TierResult(body=b"", content_type="text/markdown", status_code=401, final_url="", verdict=Verdict.paid_auth_error)
 
 
 # --------------------------------------------------------------------- #
