@@ -1,0 +1,39 @@
+# a2web extraction-backend model benchmark — candidate set.
+#
+# Which LLM should power a2web's server-side `ask` extraction? Goal:
+# closest quality to the reference (claude-haiku-4.5) at lower cost.
+#
+# Re-run this benchmark every ~couple of months, and after any change to the
+# extraction prompt or the router-shape parser (the "prescription"), because
+# those shift the clarity/quality numbers. Each run records provenance
+# (a2web version, git sha, prescription note) so runs stay comparable.
+#
+# All ids are OpenRouter model ids — the bench reaches every candidate through
+# ONE OpenAI-compatible endpoint (https://openrouter.ai/api/v1), varying only
+# the model, so a single key sweeps the field and OpenRouter reports per-call cost.
+
+# Fixed judge — independent of the candidates it scores (never let a candidate
+# judge itself). COST NOTE: the judge runs on every cell, so it dominates run
+# cost — a Sonnet-class judge ($3/$15 per 1M) made a full sweep cost ~$10. This
+# cheap-but-capable judge keeps a re-run affordable (a few cents). Keep it
+# STABLE across runs so scores stay comparable; only change it deliberately.
+judge: google/gemini-2.5-flash
+
+# Quality reference + cost red-line: the current production model. Candidates
+# aim to match its quality below its cost. Benched alongside the candidates.
+reference: anthropic/claude-haiku-4.5
+
+candidates:
+  - anthropic/claude-haiku-4.5        # reference (benched too)
+  - deepseek/deepseek-v4-flash
+  - deepseek/deepseek-v4-pro
+  - openai/gpt-5-mini
+  - openai/gpt-4.1-mini
+  - openai/gpt-oss-120b
+  - google/gemini-2.5-flash
+  - qwen/qwen3-235b-a22b-2507
+  - qwen/qwen3.5-flash-02-23
+  - z-ai/glm-4.7-flash
+  - ibm-granite/granite-4.1-8b
+  - mistralai/mistral-medium-3.1
+  - moonshotai/kimi-k2.5

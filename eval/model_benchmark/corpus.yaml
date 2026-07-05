@@ -1,0 +1,79 @@
+urls:
+- slug: hn-front
+  url: https://news.ycombinator.com/
+  class: listing
+  next_links_expected: true
+  task: "List the top 5 stories on this page, each as 'TITLE \u2014 POINTS'."
+  needs:
+  - content+links
+  criteria:
+  - Identifies 5 distinct stories from the front page
+  - Each story has a title
+  - Each story has a numeric points count
+- slug: pypi-httpx
+  url: https://pypi.org/project/httpx/
+  class: listing
+  next_links_expected: true
+  task: What is httpx, what is its current version, and what project links (docs,
+    source) does the page expose?
+  needs:
+  - content+links
+  criteria:
+  - Describes httpx as a Python HTTP client
+  - States a version number
+  - Identifies project links such as documentation or source repository
+- slug: gh-trending
+  url: https://github.com/trending/python?since=daily
+  class: listing
+  next_links_expected: true
+  task: List 5 trending Python repositories today, each with its owner/name slug and
+    a one-line description.
+  needs:
+  - content+links
+  criteria:
+  - Identifies at least 5 repositories
+  - Each repository has an owner/name slug
+  - Each repository has a description or language tag
+- slug: lobste-active
+  url: https://lobste.rs/active
+  class: listing
+  next_links_expected: true
+  task: "List the 5 most active stories on this page, each as 'TITLE \u2014 TAGS \u2014\
+    \ COMMENT-COUNT'."
+  needs:
+  - content+links
+  criteria:
+  - Identifies 5 distinct stories
+  - Each story has a title that reads like a real submission, not navigation chrome
+  - Each story has at least one tag or a comment count
+- slug: hn-item
+  url: https://news.ycombinator.com/item?id=9224
+  class: comments
+  task: What is this Hacker News discussion about, and what is the prevailing sentiment
+    in the comments?
+  needs:
+  - content_only
+  criteria:
+  - Identifies the linked submission's topic
+  - Characterizes the comment-thread sentiment or main disagreement
+  - Distinguishes the submission from the discussion about it
+- slug: wikipedia-rust
+  url: https://en.wikipedia.org/wiki/Rust_(programming_language)
+  class: clean
+  task: Who designed Rust originally, what year did it first appear, and what memory-safety
+    mechanism is it known for?
+  needs:
+  - content_only
+  criteria:
+  - Identifies Graydon Hoare as the original designer
+  - Names a release/appearance year (2010 first appearance or 2015 for 1.0)
+  - Describes ownership / the borrow checker as the memory-safety mechanism
+- slug: arxiv-abstract
+  url: https://arxiv.org/abs/2401.05566
+  class: clean
+  task: What is the paper's title and its main contribution in one sentence?
+  needs:
+  - content_only
+  criteria:
+  - "Identifies the paper title (Sleeper Agents \u2026)"
+  - 'Summarizes the contribution: deceptive behavior persists through safety training'

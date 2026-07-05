@@ -21,3 +21,4 @@ coverage.xml
 
 # Benchmark run outputs — regenerable via `make bench`.
 eval/runs/
+eval/model_benchmark/runs/
