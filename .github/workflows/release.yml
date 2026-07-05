@@ -29,6 +29,12 @@ jobs:
           version: "0.10.12"
       - name: Sync dependencies (all extras + dev)
         run: uv sync --all-extras
+      - name: Install OPA (a2kit's rego lint needs the `opa` binary on PATH)
+        run: |
+          curl -fsSL -o opa https://github.com/open-policy-agent/opa/releases/download/v1.16.2/opa_linux_amd64_static
+          chmod +x opa
+          sudo mv opa /usr/local/bin/opa
+          opa version
       - name: Quality gate — lint + ty + tests (cov >=85%) + arch
         run: make check
 
