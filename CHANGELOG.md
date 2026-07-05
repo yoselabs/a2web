@@ -28,12 +28,17 @@ All notable changes to **a2web** are recorded here. The format follows
   fence, and a critical `extraction_empty` operator hint fires when real
   content is fetched but the LLM returns an empty answer (ADR-0009 at
   extraction granularity).
-- **`extraction_empty` now fails hard (structured).** An `ask` that fetches real
-  content (>500 chars) but gets an empty answer back from the model — the
-  model-swap risk — is escalated from a hint-on-`ok` to a full
-  `status: failed` + `retrieval_incomplete: true` at the single response
-  chokepoint, so a status-checking agent can never read an empty answer as a
-  complete one. Applies to every route.
+- **`ask` fails hard when it delivers no answer (structured, every route).** At
+  the single response chokepoint, an `ask` whose fetch succeeded but produced no
+  answer is escalated from a hint-on-`ok` to a full `status: failed` +
+  `retrieval_incomplete: true`, with a critical operator hint naming the fix.
+  Covers the three misconfiguration/quality cases a homelab deploy will hit:
+  no LLM backend configured (`llm_unavailable`, now **critical**), a bad LLM
+  key/model (the provider returns empty text → `extraction_empty`), and an
+  off-contract/empty model response (the model-swap risk). A status-checking
+  agent can never read an answerless response as complete. (A bad **paid-tier**
+  key — Zyte/Firecrawl — already failed loud via `paid_auth_error`.) `fetch_raw`
+  is unaffected: it needs no answer.
 
 ### Changed — BREAKING packaging: heavy deps are now optional extras (`deployable-container-ci`)
 

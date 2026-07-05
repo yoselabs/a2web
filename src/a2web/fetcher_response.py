@@ -215,20 +215,27 @@ def build_response(fc: FetchContext) -> FetchResponse:
         Verdict.paywall,
         Verdict.paid_auth_error,
     )
-    # never-silently-miss at extraction granularity (ADR-0009): `ask` ran
-    # extraction over real fetched content (>500 chars) yet the answer came back
-    # empty. That is a parse failure or an off-contract model (the model-swap
-    # risk that motivated the backend benchmark), NOT an empty page. Escalate to
-    # a FULL failure — status=failed + retrieval_incomplete, not merely a hint —
-    # so an agent that branches on `status` can never read an empty answer as a
-    # complete one. This is the single chokepoint, so it holds for every route.
+    # never-silently-miss at extraction granularity (ADR-0009): an `ask` that
+    # fetched real content (verdict ok) but delivered NO answer is a failure the
+    # caller must not read as complete. Two causes, both escalated to a FULL
+    # failure (status=failed + retrieval_incomplete, not merely a hint), each
+    # with its own critical operator hint naming the fix:
+    #   - extraction_empty: extraction ran (meta present) over >500 chars but the
+    #     answer is empty — a parse failure, a bad LLM key/model (the provider
+    #     turns an API error into empty text), or an off-contract model. The
+    #     model-swap risk the backend benchmark surfaced.
+    #   - llm_unavailable: no LLM backend was configured at all, so extraction
+    #     never ran (the `_extract_answer` phase emitted a critical hint).
+    # This is the single response chokepoint, so the guarantee holds for every
+    # route. `fetch_raw` (no `fc.ask`) is unaffected — it needs no answer.
     extraction_empty = (
         fc.extraction_meta is not None
-        and final_verdict == Verdict.ok
         and not (fc.extracted_answer or "").strip()
         and len(fc.content_md) > 500
     )
-    if extraction_empty:
+    llm_unavailable = any(h.code == "llm_unavailable" for h in fc.operator_hints)
+    ask_unanswered = final_verdict == Verdict.ok and bool(fc.ask) and (extraction_empty or llm_unavailable)
+    if ask_unanswered:
         status = FetchStatus.failed
         retrieval_incomplete = True
     gate_outcome = fc.last_gate_outcome()
@@ -254,11 +261,12 @@ def build_response(fc: FetchContext) -> FetchResponse:
         total_ms=total_ms,
         gate_subsystem=gate_subsystem,
     )
-    # The fetch verdict is `ok` (content retrieved) but the answer is empty, so
+    # The fetch verdict is `ok` (content retrieved) but `ask` got no answer, so
     # give the failed envelope a coherent narrative instead of the "→ ok" line.
-    if extraction_empty:
-        narrative = f"{fc.tier_used} → fetched ok but extraction returned an empty answer ({fmt_dur(total_ms)})."
-        diagnostics_summary = f"extraction_empty: {len(fc.content_md)} chars fetched, empty answer from {fc.tier_used}"
+    if ask_unanswered:
+        reason = "no LLM backend configured" if (llm_unavailable and not extraction_empty) else "extraction returned an empty answer"
+        narrative = f"{fc.tier_used} → fetched ok but {reason} ({fmt_dur(total_ms)})."
+        diagnostics_summary = f"ask_unanswered ({reason}): {len(fc.content_md)} chars fetched, no answer"
 
     # `url` is redirect-only: carry the final URL only when it differs from
     # what the caller requested (HTTP redirect, captcha-host rewrite, or

@@ -1747,7 +1747,12 @@ async def _phase_extract_answer(
             OperatorHint(
                 code="llm_unavailable",
                 message=exc.reason,
-                fix=f"Set {state.settings.llm_api_key_env} in the environment or run inside Claude Code.",
+                fix=(
+                    f"Set {state.settings.llm_api_key_env} (Anthropic) or OPENAI_API_KEY "
+                    "(+ OPENAI_BASE_URL / OPENAI_MODEL) in the environment, or run inside "
+                    "Claude Code. `fetch_raw` works without an LLM."
+                ),
+                severity="critical",
             )
         )
         dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms

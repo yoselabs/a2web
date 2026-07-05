@@ -241,11 +241,13 @@ async def test_ask_skipped_on_failed_fetch(
 
 
 @pytest.mark.asyncio
-async def test_ask_without_llm_available_records_operator_hint(
+async def test_ask_without_llm_available_fails_hard_with_critical_hint(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """No extractor available → fetch still succeeds; operator_hints
-    contains a code=llm_unavailable entry with an actionable message."""
+    """`ask` with no LLM backend configured → the fetch itself succeeds, but the
+    ask delivered no answer, so it fails hard (status=failed + retrieval_incomplete)
+    with a CRITICAL llm_unavailable hint — a misconfigured/keyless server can't
+    silently return an answerless-but-ok response. `fetch_raw` is unaffected."""
     body = (_FIX / "blog.html").read_bytes()
     _swap_raw(monkeypatch, body)
 
@@ -259,10 +261,10 @@ async def test_ask_without_llm_available_records_operator_hint(
         llm_extractor=lazy(extractor_res),
     )
 
-    assert result.status == FetchStatus.ok
+    assert result.status == FetchStatus.failed
+    assert result.retrieval_incomplete is True
     assert result.extracted_answer is None
     assert result.extraction is None
-    codes = [h.code for h in result.operator_hints]
-    assert "llm_unavailable" in codes
-    msg = next(h for h in result.operator_hints if h.code == "llm_unavailable").message
-    assert "API key" in msg
+    hint = next(h for h in result.operator_hints if h.code == "llm_unavailable")
+    assert hint.severity == "critical"
+    assert "API key" in hint.message

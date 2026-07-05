@@ -182,7 +182,8 @@ async def test_ask_includes_populated_optionals(monkeypatch: pytest.MonkeyPatch)
     from a2web.models import NextLink
 
     handler_links = [NextLink(anchor="Related post", url="https://example.org/related", reason="related", kind="related")]
-    # An unavailable LLM still succeeds the fetch and surfaces an operator hint.
+    # An unavailable LLM fails the ask hard (no answer delivered), but the
+    # handler-derived next_links + the critical hint still surface on the wire.
     data = await _ask_wire(
         monkeypatch,
         raw_next_links=handler_links,
@@ -190,7 +191,7 @@ async def test_ask_includes_populated_optionals(monkeypatch: pytest.MonkeyPatch)
         url="https://example.org/post",
         question="q?",
     )
-    assert "status" not in data  # success → status omitted
+    assert data["status"] == "failed"  # ask delivered no answer → loud failure
     assert "operator_hints" in data
     assert any(h["code"] == "llm_unavailable" for h in data["operator_hints"])
     # next_links is a TSV string, not a JSON array
