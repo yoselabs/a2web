@@ -1,11 +1,38 @@
 # a2kit feedback — round 16 (2026-07-05)
 
-> **Status: OPEN — blocks `deployable-container-ci` group 5 (endpoint auth).**
-> a2web operator chose "GoogleAuth in a2kit first": add the `GoogleAuth`
-> AuthSpec upstream, bump the a2web pin, then a2web wires
-> `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`. Until then the container ships
-> **open** (documented Tailscale/private-LAN-only) — no auth on the HTTP MCP
-> endpoint.
+> **Status: RESOLVED (2026-07-05) — NOT blocked; no a2kit release required.**
+>
+> a2kit's answer is direction **A** (honest docstrings + blessed recipe),
+> not a `GoogleAuth` AuthSpec. Reason: MCP OAuth on a2kit is **already
+> wired today** and is auth-agnostic by deliberate decision (ADR 0010 /
+> 0011). `packages.auth` covers the HTTP/REST surface only; it never
+> shipped `GoogleAuth`/`JwtAuth` and won't — the docstrings that
+> advertised them were the bug, now fixed.
+>
+> **How a2web unblocks group 5 with no a2kit pin bump:** replace the bare
+> `a2kit serve` container CMD with a ~15-line programmatic entrypoint that
+> constructs `fastmcp...google.GoogleProvider(client_id, client_secret,
+> base_url, jwt_signing_key, client_storage=...)` and passes it through
+> the serve seam: `serve_process(app, ..., mcp_options={"auth": provider})`.
+> `build_mcp_server` forwards `auth=` straight to `FastMCP`, and the
+> already-mounted `PrincipalMiddleware` lands the Google principal in the
+> per-call DI scope (the `_principal_bridge` acceptance criterion is met
+> with zero new code).
+>
+> **Blessed recipe (copy-pasteable, with the pitfalls encoded):**
+> `a2kit/docs/patterns/mcp-auth.md`. Note the `base_url` sharp edge — it
+> must be the **public** URL, not `--host 0.0.0.0` (the OAuth redirect
+> derives from it and must match the GCP client).
+>
+> The `a2kit serve` CLI has no `--auth` flag by design (a provider is a
+> constructed object, not a CLI string), which is why a2web needs the
+> small programmatic entrypoint rather than a flag.
+>
+> Interim "ship open behind Tailscale/LAN" remains valid until a2web
+> wires the entrypoint.
+>
+> ---
+> _Original ask (superseded by the resolution above):_
 
 ## Ship the `GoogleAuth` AuthSpec (advertised in docs, absent from the package)
 
