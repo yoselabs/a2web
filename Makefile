@@ -57,9 +57,10 @@ dev:
 # Use after shipping a new version when Claude Code's MCP entry points at
 # /Users/iorlas/.local/bin/a2web (see CLAUDE.md → Global install).
 install-global:
-	# `[claude-code]` extra keeps the local OS-session piggyback (claude-agent-sdk)
-	# — moved out of baseline for the slim container, restored here.
-	uv tool install --force --from '.[claude-code]' a2web
+	# `[claude-code]` + `[browser]` extras keep the local OS-session piggyback
+	# (claude-agent-sdk) and the browser rungs (patchright/zendriver) — both moved
+	# out of baseline for the slim container, restored here for the local tool.
+	uv tool install --force --from '.[claude-code,browser]' a2web
 	# Fetch the browser rungs' Chromium binary into the tool env — a runtime
 	# asset, not a Python dep. Without this the first browser escalation
 	# silently hangs while patchright downloads its bundled Chromium. zendriver

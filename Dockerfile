@@ -6,11 +6,17 @@
 # browser tier never hits a runtime download on a read-only rootfs. It runs as a
 # non-root user and keeps the sqlite HTTP cache on a volume-backable /data.
 #
-# The Claude Code OS-session backend (claude-agent-sdk, ~210MB) is OUT of the
-# slim image; the container's default LLM path is OpenAI-compatible (DeepSeek).
-# Bake it locally with --build-arg INSTALL_CLAUDE_CODE=true if you need it.
+# Two heavy things are OUT of the slim image, each behind a build arg:
+#   - the browser rung (patchright + zendriver + baked Chromium + its desktop
+#     system-lib tree, ~1.35GB) — INSTALL_BROWSER=true. The tier is
+#     escalation-only; when absent, browser sites degrade to a loud
+#     `try_user_browser` hint (Zyte/Firecrawl still cover hard sites via API).
+#   - the Claude Code OS-session backend (claude-agent-sdk, ~210MB) —
+#     INSTALL_CLAUDE_CODE=true. The container's default LLM path is
+#     OpenAI-compatible (DeepSeek).
 #
-#   docker build -t a2web .
+#   docker build -t a2web .                                   # slim, ~600MB
+#   docker build --build-arg INSTALL_BROWSER=true -t a2web-browser .   # ~1.9GB
 #   docker run --rm -p 8000:8000 -v a2web-cache:/data \
 #     -e OPENAI_API_KEY=... -e OPENAI_BASE_URL=... -e OPENAI_MODEL=... a2web
 #   # MCP:    http://localhost:8000/mcp   liveness: http://localhost:8000/health
@@ -46,16 +52,20 @@ COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 
-# Layer 2: the application source + the project install.
+# Layer 2: the application source + the project install. Extras are opt-in:
+# --extra browser adds patchright + zendriver; --extra claude-code adds the SDK.
 COPY src ./src
 ARG INSTALL_CLAUDE_CODE=false
+ARG INSTALL_BROWSER=false
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev $( [ "$INSTALL_CLAUDE_CODE" = "true" ] && echo "--extra claude-code" )
+    uv sync --frozen --no-dev \
+      $( [ "$INSTALL_BROWSER" = "true" ] && echo "--extra browser" ) \
+      $( [ "$INSTALL_CLAUDE_CODE" = "true" ] && echo "--extra claude-code" )
 
 # Bake the Chromium rung + every system lib a Chromium needs (fonts, libnss,
-# libatk, ...). --with-deps runs apt as root here, so nothing is downloaded at
-# runtime. Runs after the project install so `patchright` is on PATH.
-RUN patchright install --with-deps chromium
+# libatk, ...) ONLY when the browser extra is installed. --with-deps runs apt as
+# root here, so nothing is downloaded at runtime. Skipped for the slim image.
+RUN if [ "$INSTALL_BROWSER" = "true" ]; then patchright install --with-deps chromium; fi
 
 # Non-root runtime. The browser cache and the source tree stay root-owned and
 # world-readable (read-only at runtime); only the sqlite cache dir needs to be

@@ -33,9 +33,11 @@ local build verification, GHCR publish workflow, transport-native `/health`.
   `linux/arm64` via a `docker/build-push-action` platforms matrix + QEMU when a
   concrete arm64 homelab target appears (buildx arm64 with baked browsers is
   slow, so gate it on real need).
-- **Published "full" image (S)** — only the slim image is published; the
-  `INSTALL_CLAUDE_CODE=true` variant is build-your-own. If a published full tag
-  is ever justified, it's a one-line matrix addition (D1).
+- **Published "full" / "browser" image (S)** — only the slim browserless image
+  is published; the `INSTALL_BROWSER=true` and `INSTALL_CLAUDE_CODE=true`
+  variants are build-your-own. If a published browser tag is ever justified
+  (e.g. a homelab without a Zyte key that needs local browser escalation), it's
+  a one-line matrix addition.
 - **Multi-stage build to drop `git` from the runtime layer (S)** — `git` is
   installed for the a2kit git-dependency resolve and currently stays in the
   final image. A builder stage could copy just the venv + browsers and shed

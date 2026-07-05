@@ -193,16 +193,26 @@ extraction); `ask` returns a loud `llm_unavailable` operator hint rather than a
 silent empty answer.
 
 **Liveness** is wired as a Docker `HEALTHCHECK` (`curl -f /health`) against the
-live serve process. **Minimum RAM:** allow ~1.5–2 GB when the browser tier
-escalates (baked Chromium); lighter for raw/jina-only fetches.
+live serve process.
 
-**Claude Code piggyback backend.** The published image is slim and does **not**
-bundle `claude-agent-sdk` (~210 MB). To use the Claude Code OS-session backend,
-build the image yourself with the extra:
+**The published image is slim (~550 MB) and browserless.** The browser rendering
+tier (Chromium + its desktop system-lib tree) and the Claude Code OS-session
+backend (`claude-agent-sdk`) are both **build-arg opt-ins**, because each is
+large and neither is on the common path:
+
+| Build arg | Adds | When you need it |
+|---|---|---|
+| `--build-arg INSTALL_BROWSER=true` | patchright + zendriver + baked Chromium (~1.35 GB) | JS-heavy / hard anti-bot sites *without* a Zyte key. Image grows to ~1.9 GB; allow ~1.5–2 GB RAM for the browser rung. |
+| `--build-arg INSTALL_CLAUDE_CODE=true` | `claude-agent-sdk` (~210 MB) | the Claude Code OS-session LLM backend (OAuth piggyback). |
 
 ```bash
-docker build --build-arg INSTALL_CLAUDE_CODE=true -t a2web-full .
+docker build --build-arg INSTALL_BROWSER=true -t a2web-browser .
 ```
+
+The slim default covers raw / jina / paid (Zyte, Firecrawl) / all site handlers.
+On a browser-only site, a browserless container degrades **loudly** — it returns
+a critical `try_user_browser` operator hint, never a silent empty result — so
+lean on a `A2WEB_ZYTE_KEY` for hard sites, or build the browser image.
 
 **Publishing** is automated: pushing a `v*` tag runs the quality gate, then
 builds and pushes `ghcr.io/yoselabs/a2web:{version,latest}`

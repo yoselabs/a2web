@@ -29,17 +29,25 @@ All notable changes to **a2web** are recorded here. The format follows
   content is fetched but the LLM returns an empty answer (ADR-0009 at
   extraction granularity).
 
-### Changed — BREAKING packaging: `claude-agent-sdk` is now an optional extra (`deployable-container-ci`)
+### Changed — BREAKING packaging: heavy deps are now optional extras (`deployable-container-ci`)
 
 - **`claude-agent-sdk` moved out of baseline deps** into the optional
   `a2web[claude-code]` extra. It bundles a ~210MB Claude Code binary the slim
   server container has no use for, and the container's default backend is now
   OpenAI-compatible (DeepSeek). `plain pip install a2web` no longer brings the
   SDK — install `a2web[claude-code]` for the Claude Code OS-session piggyback.
-  `make install-global` installs the extra, so the local workflow is unchanged.
   When the SDK is absent, the `claude-code` provider reports `Unavailable` and
   auto-select falls through to `anthropic` / `openai_compatible` (loud `None`
   if nothing is keyed) — no crash on first use.
+- **`patchright` + `zendriver` moved out of baseline** into the optional
+  `a2web[browser]` extra. The baked Chromium + its desktop system-lib tree were
+  ~1.35 GB of a 2 GB image, yet the browser tier is escalation-only. When the
+  extra is absent, the browser-backend manifests report `Unavailable` and a
+  browser-only site degrades to a critical `try_user_browser` operator hint —
+  never a crash or silent miss. The published container is slim (~550 MB,
+  browserless); bake the browser with `--build-arg INSTALL_BROWSER=true`.
+- `make install-global` installs `a2web[claude-code,browser]`, so the local
+  tool keeps both — the workflow is unchanged.
 
 ## [0.26.0] — 2026-07-04
 

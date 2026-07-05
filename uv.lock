@@ -56,16 +56,18 @@ dependencies = [
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "opentelemetry-sdk" },
-    { name = "patchright" },
     { name = "purgatory" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "selectolax" },
     { name = "trafilatura" },
-    { name = "zendriver" },
 ]
 
 [package.optional-dependencies]
+browser = [
+    { name = "patchright" },
+    { name = "zendriver" },
+]
 claude-code = [
     { name = "claude-agent-sdk" },
 ]
@@ -107,15 +109,15 @@ requires-dist = [
     { name = "opentelemetry-api", specifier = ">=1.25,<2" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.25,<2" },
     { name = "opentelemetry-sdk", specifier = ">=1.25,<2" },
-    { name = "patchright", specifier = ">=1.60,<2" },
+    { name = "patchright", marker = "extra == 'browser'", specifier = ">=1.60,<2" },
     { name = "purgatory", specifier = ">=3,<4" },
     { name = "pydantic-settings", specifier = ">=2.5,<3" },
     { name = "pyyaml", specifier = ">=6,<7" },
     { name = "selectolax", specifier = ">=0.3,<1" },
     { name = "trafilatura", specifier = ">=1.12,<2" },
-    { name = "zendriver", specifier = ">=0.15,<1" },
+    { name = "zendriver", marker = "extra == 'browser'", specifier = ">=0.15,<1" },
 ]
-provides-extras = ["paid", "claude-code"]
+provides-extras = ["paid", "browser", "claude-code"]
 
 [package.metadata.requires-dev]
 dev = [

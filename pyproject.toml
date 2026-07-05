@@ -67,28 +67,29 @@ dependencies = [
     # piggyback installs `a2web[claude-code]`, so nothing changes for the
     # OS-session workflow. This is a BREAKING packaging change for anyone who
     # relied on `pip install a2web` bringing the SDK.
-    # Browser rendering engines (browser-backend-bakeoff, 2026-06-27). Two rungs
-    # ship by default so a fresh install renders both:
-    #   - patchright: the fast Chromium rung (`browser` tier). An undetected
-    #     Playwright fork that vendors its own playwright-core + browser binary,
-    #     so there is NO direct/transitive `playwright` dep here and no <1.60
-    #     version-skew exposure.
-    #   - zendriver: the robust CDP rung (`browser_robust` tier), escalated to
-    #     only when the fast rung comes back thin/blocked (Trendyol/Hepsiburada
-    #     class). Drives Chromium directly over CDP.
-    # Camoufox was dropped here (its build pins a stale Firefox and lacks juggler
-    # #625); its launcher code is retained but GATED off in
-    # _manifests/browser_backends/camoufox.py — re-add the dep + flip the gate
-    # when a Camoufox build ships b05563291d. First browser use fetches a
-    # Chromium binary (`python -m patchright install chromium`) — a runtime asset
-    # (zendriver drives a system/cached Chromium directly).
-    "patchright>=1.60,<2",
-    "zendriver>=0.15,<1",
+    # NOTE: the browser rendering engines (`patchright` + `zendriver`) moved OUT
+    # of baseline to the optional `[browser]` extra below (deployable-container-ci
+    # image-slimming): patchright vendors playwright-core and its baked Chromium +
+    # the full desktop system-lib tree dominate image size (~1.35GB of a 2GB
+    # image), yet the browser tier is escalation-ONLY (raw/jina/paid/handlers
+    # cover the common path). When absent, the browser-backend manifests report
+    # `Unavailable` (find_spec gate) and the tier short-circuits to a loud
+    # `try_user_browser` hint — never a crash (mirrors the LLM-provider degrade).
+    # The slim published container omits it; `make install-global` and
+    # `uv sync --all-extras` (dev/CI) install it.
     "gidgethub>=5.4,<6",
 ]
 
 [project.optional-dependencies]
 paid = ["firecrawl-py>=1,<2"]
+# Browser rendering engines — the fast Chromium rung (`patchright`, `browser`
+# tier) + the robust CDP rung (`zendriver`, `browser_robust` tier). Optional:
+# baked Chromium + its desktop system libs are the bulk of image size, and the
+# tier is escalation-only. Absent → backends report Unavailable, browser sites
+# degrade to a loud `try_user_browser` hint. Bake into a container with
+# `--build-arg INSTALL_BROWSER=true`; first browser use needs
+# `patchright install chromium` (baked at image build).
+browser = ["patchright>=1.60,<2", "zendriver>=0.15,<1"]
 # Claude Code OS-session piggyback (OAuth subscription / whichever auth the
 # `claude` CLI is logged into — no separate API key). Bundles a ~210MB binary;
 # kept out of the slim container. `make install-global` installs this extra so

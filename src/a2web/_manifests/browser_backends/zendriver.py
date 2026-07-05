@@ -19,7 +19,7 @@ from a2web.settings import AppSettings
 
 def _build(settings: AppSettings) -> BrowserBackend | Unavailable:
     if importlib.util.find_spec("zendriver") is None:
-        return Unavailable("zendriver not installed (uv sync --extra bakeoff)")
+        return Unavailable("zendriver not installed (install the [browser] extra)")
     return ZendriverBackend(name="zendriver", page_budget_s=settings.browser_page_budget_s)
 
 

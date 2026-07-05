@@ -16,7 +16,7 @@ from .playwright import chromium_launch
 
 def patchright_launcher() -> Any:
     """Yield an async-CM launching headless Chromium via Patchright. ImportError
-    (no `bakeoff` extra) propagates → the backend reports `unavailable`."""
+    (no `[browser]` extra) propagates → the backend reports `unavailable`."""
     from patchright.async_api import async_playwright
 
     return chromium_launch(async_playwright)
