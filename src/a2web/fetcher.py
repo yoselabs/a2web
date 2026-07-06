@@ -53,6 +53,7 @@ from .models import (
     try_user_browser_hint,
 )
 from .packages.block_detector import evaluate as _package_evaluate
+from .packages.block_detector import looks_like_unrendered_spa
 from .packages.browser_backends import BrowserBackend
 from .packages.content_extract import (
     extract_markdown as _package_extract_markdown,
@@ -1914,21 +1915,38 @@ async def _phase_extract_answer(
     )
 
 
+# Tiers that already execute JavaScript, so re-rendering their output via the
+# paid tier would return the same content — the obstacle render is redundant.
+_JS_EXECUTED_TIERS = frozenset({"jina", "browser", "browser_robust"})
+
+
 def _obstacle_wants_render(fc: FetchContext) -> bool:
     """True when the extractor's obstacle should drive one paid render.
 
-    Gated hard on cost: the ask path (obstacle exists only there), an
-    `empty`/`blocked` obstacle (`_INCOMPLETE_OBSTACLES` — shared with the
-    retrieval-completeness logic so the trigger stays in lockstep), and an unspent
-    paid budget (`paid_dispatches < 1`, so a prior gate/handler render suppresses
-    this). `paywalled`/`error` obstacles are excluded — a render won't clear a
-    paywall, and archive owns that path.
+    Gated hard on cost:
+    - the ask path (obstacle exists only there);
+    - an `empty`/`blocked` obstacle (`_INCOMPLETE_OBSTACLES` — shared with the
+      retrieval-completeness logic so the trigger stays in lockstep;
+      `paywalled`/`error` are excluded — a render won't clear a paywall);
+    - an unspent paid budget (`paid_dispatches < 1`, so a prior gate/handler
+      render suppresses this);
+    - **evidence a render would actually add content** (the false-positive
+      guard): the content did NOT come from a JS-executing tier (jina/browser
+      already ran JS, so a render is redundant), AND the raw body shows
+      unrendered-SPA markers. A plain static page that simply lacks the answer
+      (a spec doc, a book) is already complete — re-rendering it is pure cost,
+      so `obstacle: empty` on such a page must NOT trigger a render.
     """
     if fc.ask is None or fc.routing is None:
         return False
     if fc.paid_dispatches >= 1:
         return False
-    return fc.routing.obstacle in _INCOMPLETE_OBSTACLES
+    if fc.routing.obstacle not in _INCOMPLETE_OBSTACLES:
+        return False
+    if fc.tier_used in _JS_EXECUTED_TIERS:
+        return False
+    raw = fc.body.decode("utf-8", errors="replace") if fc.body else ""
+    return looks_like_unrendered_spa(raw)
 
 
 async def _phase_obstacle_render(fc: FetchContext, *, state: AppState) -> None:

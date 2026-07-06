@@ -24,9 +24,22 @@ from a2web.state import AppState
 from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult
 from tests.conftest import make_default_state
 
-# A fat shell: trafilatura keeps >500 chars, so it passes the length floor and
-# reaches answer extraction — where only the LLM notices the answer isn't there.
-_SHELL_HTML = ("<html><body><article>" + ("Boilerplate shell chrome that reads like prose. " * 25) + "</article></body></html>").encode()
+# A fat SPA shell: >500 chars of chrome (passes the length floor) PLUS
+# unrendered-SPA markers (a root mount + a script), so the false-positive guard
+# recognizes that a render could add content. Only the LLM notices the answer
+# isn't there.
+_SHELL_HTML = (
+    '<html><head><script src="/static/app.js"></script></head><body>'
+    '<div id="root"></div>'
+    "<article>" + ("Boilerplate shell chrome that reads like prose. " * 25) + "</article>"
+    "</body></html>"
+).encode()
+
+# A complete static page (like an RFC / a book): substantial real prose, NO SPA
+# markers — rendering it again cannot add the missing answer, so the guard must
+# NOT trigger a render even when the extractor reports obstacle=empty.
+_STATIC_PROSE = "A complete static document with real prose and no client-render markers. " * 20
+_STATIC_HTML = ("<html><body><article>" + _STATIC_PROSE + "</article></body></html>").encode()
 
 _OBSTACLE_EMPTY = json.dumps(
     {"answer": "A fluent but unfounded answer.", "structural_form": "article", "shape": "prose", "obstacle": "empty"}
@@ -51,6 +64,8 @@ class _Fc:
     ask: str | None
     routing: object
     paid_dispatches: int
+    tier_used: str = "raw"
+    body: bytes = _SHELL_HTML  # SPA-shell markers by default → render-worthy
 
 
 class TestObstacleWantsRender:
@@ -76,6 +91,19 @@ class TestObstacleWantsRender:
     def test_spent_paid_budget_suppresses(self) -> None:
         # A prior gate/handler render already spent the budget — don't pay twice.
         assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=1))
+
+    def test_js_executed_tier_suppresses(self) -> None:
+        # jina / browser already executed JS — a re-render returns the same content.
+        for tier in ("jina", "browser", "browser_robust"):
+            assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, tier_used=tier))
+
+    def test_static_page_without_spa_markers_suppresses(self) -> None:
+        # The RFC false-positive: complete static content, no SPA markers → a
+        # render cannot add the missing answer, so don't pay for one.
+        assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, body=_STATIC_HTML))
+
+    def test_spa_shell_with_markers_fires(self) -> None:
+        assert _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, body=_SHELL_HTML))
 
 
 # --------------------------------------------------------------------- #
@@ -237,5 +265,41 @@ async def test_render_that_adds_nothing_keeps_obstacle(monkeypatch: pytest.Monke
     # Render dispatched but produced nothing new → no second LLM call, obstacle survives.
     assert len(provider.calls) == 1
     assert result.routing is not None and result.routing.obstacle == "empty"
+    ask = build_ask_response(result, include_content=False, debug=False)
+    assert ask.retrieval_incomplete is True
+
+
+class _StaticRawTier:
+    """A complete static page (no SPA markers) — a render can't add content."""
+
+    name = "raw"
+
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
+        del state, kwargs
+        return TierResult(body=_STATIC_HTML, content_type="text/html", status_code=200, final_url=url, verdict=Verdict.ok)
+
+
+@pytest.mark.asyncio
+async def test_static_page_obstacle_does_not_render(monkeypatch: pytest.MonkeyPatch) -> None:
+    """False-positive fix (the RFC case): a complete static page with no SPA
+    markers reporting obstacle=empty must NOT trigger a paid render — the answer
+    genuinely isn't there and a render can't add it."""
+    monkeypatch.setitem(REGISTRY, "raw", _StaticRawTier())
+    monkeypatch.setitem(REGISTRY, "zyte", _RenderPaidTier("zyte"))
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    state = make_default_state(settings=AppSettings())
+    provider = _SequencedProvider([_OBSTACLE_EMPTY])
+
+    result = await fetch(
+        "https://spec.example/doc",
+        state=state,
+        ask="What is the cookie recipe?",
+        llm_extractor=lazy(_extractor(state, provider)),
+        debug=True,
+    )
+
+    # No render, one LLM call, obstacle survives → incomplete (loud miss, no cost).
+    assert not any(d.step == "zyte" for d in result.diagnostics)
+    assert len(provider.calls) == 1
     ask = build_ask_response(result, include_content=False, debug=False)
     assert ask.retrieval_incomplete is True

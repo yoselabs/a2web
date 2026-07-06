@@ -8,6 +8,28 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.32.1] — 2026-07-06
+
+> Follow-up to v0.32.0, from live testing. Guards the obstacle-driven render
+> against a false-positive cost: an unanswerable question on a complete static
+> page no longer burns a paid render.
+
+### Fixed — Obstacle-render false-positive guard (`obstacle-render-false-positive-guard`)
+
+- **Only render when a render could actually add content.** Live testing found
+  that `obstacle: empty` conflates "the page is a shell / didn't load" (a render
+  helps) with "the page loaded fully but doesn't contain the answer" (a render is
+  waste — e.g. asking RFC 2616 for a cookie recipe rendered pointlessly). The
+  obstacle-driven render now additionally requires: the content did NOT come from
+  a JS-executing tier (`jina`/`browser`/`browser_robust` — a re-render is
+  redundant), AND the raw body shows unrendered-SPA markers (a root mount +
+  `<script>`, via the new length-independent `block_detector.looks_like_unrendered_spa`).
+  A complete static page with no such markers no longer triggers paid egress on
+  `obstacle: empty`.
+- Behavior-narrowing only: strictly fewer renders. The never-silently-miss floor
+  is unchanged — a surviving obstacle still flags `retrieval_incomplete`. No
+  wire-shape change.
+
 ## [0.32.0] — 2026-07-06
 
 > The extractor's own "the answer isn't here" signal now drives a re-fetch. When

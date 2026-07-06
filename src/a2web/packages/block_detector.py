@@ -133,6 +133,19 @@ _JS_SHELL_ROOT_MARKERS = re.compile(
 )
 
 
+def looks_like_unrendered_spa(raw_html: str) -> bool:
+    """True when the HTML shows client-side-rendering markers — a root mount
+    point (`id="root"` / `__next` / a web-component tag) plus `<script>` tags.
+
+    Length-independent, unlike the `js_required` branch in `evaluate` (which
+    only fires below the length floor): a FAT SPA shell that passed the length
+    floor still reads as unrendered here. Used to gate the obstacle-driven
+    render — a plain static page that simply lacks the answer (a spec doc, a
+    book) has no such markers, so re-rendering it would be pure cost.
+    """
+    return bool(_SCRIPT_TAG_RE.search(raw_html) and _JS_SHELL_ROOT_MARKERS.search(raw_html))
+
+
 def evaluate(
     *,
     content_md: str,

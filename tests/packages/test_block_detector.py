@@ -8,7 +8,7 @@ with `subsystem="captcha_redirect"` so the gate surfaces an actionable hint.
 
 from __future__ import annotations
 
-from a2web.packages.block_detector import BlockVerdict, evaluate
+from a2web.packages.block_detector import BlockVerdict, evaluate, looks_like_unrendered_spa
 
 
 def _eval(raw_html: str, content_md: str = "", content_type: str = "text/html"):
@@ -236,3 +236,35 @@ def test_reddit_shreddit_fixture_routes_to_browser() -> None:
     assert result.verdict == BlockVerdict.length_floor
     assert result.subsystem == "js_required"
     assert result.escalation is not None and result.escalation.next_tier == "browser"
+
+
+# --------------------------------------------------------------------- #
+# looks_like_unrendered_spa — length-independent SPA-shell detection
+# (obstacle-driven-render false-positive guard)
+# --------------------------------------------------------------------- #
+
+
+def test_spa_shell_with_root_and_script_is_detected() -> None:
+    html = (
+        '<html><head><script src="/app.js"></script></head><body><div id="root"></div>' + ("lots of chrome text " * 40) + "</body></html>"
+    )
+    assert looks_like_unrendered_spa(html)
+
+
+def test_next_root_marker_detected() -> None:
+    assert looks_like_unrendered_spa('<html><body><div id="__next"></div><script src="/a.js"></script></body></html>')
+
+
+def test_plain_static_page_is_not_a_spa() -> None:
+    # A complete document (RFC / book) with real prose and no root mount → not a shell.
+    assert not looks_like_unrendered_spa("<html><body><article>A complete static document with real prose.</article></body></html>")
+
+
+def test_root_marker_without_script_is_not_flagged() -> None:
+    # A root mount alone (no scripts) is not evidence of client-side rendering.
+    assert not looks_like_unrendered_spa('<html><body><div id="root">already has server-rendered content here</div></body></html>')
+
+
+def test_script_without_root_marker_is_not_flagged() -> None:
+    # Analytics/ad scripts on a static page must not read as an unrendered SPA.
+    assert not looks_like_unrendered_spa('<html><body><article>Static prose.</article><script src="/analytics.js"></script></body></html>')
