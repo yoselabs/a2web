@@ -41,8 +41,8 @@ class _StubBackend:
     def __init__(self, page: RenderedPage) -> None:
         self._page = page
 
-    async def render(self, url: str, *, cookies: Any, budget_s: float, js_heavy: bool) -> RenderedPage:
-        del url, cookies, budget_s, js_heavy
+    async def render(self, url: str, *, cookies: Any, budget_s: float, js_heavy: bool, scroll_to_stable: bool = False) -> RenderedPage:
+        del url, cookies, budget_s, js_heavy, scroll_to_stable
         return self._page
 
     async def __aenter__(self) -> _StubBackend:

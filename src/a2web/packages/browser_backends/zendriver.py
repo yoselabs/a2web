@@ -27,7 +27,7 @@ from contextlib import suppress
 from typing import Any
 
 from .base import BackendCookie, RenderedPage, RenderOutcome
-from .playwright import _THIN_FLOOR, _ms, _summarize_exc
+from .playwright import _SCROLL_STABLE_MAX_PASSES, _THIN_FLOOR, _ms, _summarize_exc
 
 _SAMESITE = {"strict": "STRICT", "lax": "LAX", "none": "NONE"}
 
@@ -69,6 +69,26 @@ async def _scroll_and_retry_cdp(tab: Any, original_html: str) -> str:
     return larger
 
 
+async def _scroll_to_stable_cdp(tab: Any, original_html: str, *, max_passes: int = _SCROLL_STABLE_MAX_PASSES) -> str:
+    """CDP mirror of `playwright._scroll_to_stable` — scroll to listing completion.
+
+    Scroll → settle → re-snapshot, keeping the largest capture, until a pass adds
+    nothing (fully materialised) or `max_passes` is reached. Never raises.
+    """
+    best = original_html
+    for _ in range(max_passes):
+        try:
+            await tab.scroll_down(150)
+            await asyncio.sleep(2.0)
+            html = await tab.get_content()
+        except Exception:
+            break
+        if len(html) <= len(best):
+            break
+        best = html
+    return best
+
+
 class ZendriverBackend:
     """CDP rendering engine. Per-render launch (v1). Satisfies `BrowserBackend`."""
 
@@ -83,6 +103,7 @@ class ZendriverBackend:
         cookies: list[BackendCookie],
         budget_s: float,
         js_heavy: bool,
+        scroll_to_stable: bool = False,
     ) -> RenderedPage:
         try:
             import zendriver as zd
@@ -112,7 +133,7 @@ class ZendriverBackend:
 
             try:
                 html, final_url = await asyncio.wait_for(
-                    self._navigate(browser, url, js_heavy),
+                    self._navigate(browser, url, js_heavy, scroll_to_stable),
                     timeout=budget_s,
                 )
             except TimeoutError:
@@ -144,12 +165,14 @@ class ZendriverBackend:
             bytes_transferred=len(html),
         )
 
-    async def _navigate(self, browser: Any, url: str, js_heavy: bool) -> tuple[str, str]:
+    async def _navigate(self, browser: Any, url: str, js_heavy: bool, scroll_to_stable: bool = False) -> tuple[str, str]:
         tab = await browser.get(url)
         await tab.wait_for_ready_state("complete", timeout=int(self.page_budget_s))
         html = await tab.get_content()
         if len(html) < _THIN_FLOOR and js_heavy:
             html = await _scroll_and_retry_cdp(tab, html)
+        if scroll_to_stable:
+            html = await _scroll_to_stable_cdp(tab, html)
         return html, tab.url or url
 
     async def __aenter__(self) -> ZendriverBackend:

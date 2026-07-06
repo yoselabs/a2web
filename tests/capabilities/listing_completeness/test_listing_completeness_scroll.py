@@ -66,6 +66,9 @@ class _Fc:
 
 
 def _settings(**kw: object) -> AppSettings:
+    # `browser_enabled=False` isolates the PAID scroll path — the free
+    # own-browser scroll (preferred first) is exercised separately below.
+    kw.setdefault("browser_enabled", False)
     return AppSettings(complete_listings=True, listing_scroll_max=200, **kw)
 
 
@@ -200,6 +203,68 @@ async def test_no_paid_tier_keeps_signal(monkeypatch: pytest.MonkeyPatch) -> Non
     assert result.items_loaded == 31
     assert result.items_total == 40
     assert "listing_partial" in [h.code for h in result.operator_hints]
+
+
+class _ScrollBrowserStub:
+    """Free own-browser tier that (after scrolling) returns the full listing."""
+
+    name = "browser"
+
+    def __init__(self, records: int) -> None:
+        self._body = _listing_html(records, oracle_jsonld=40)
+        self.scroll_seen: bool | None = None
+
+    async def fetch(self, url: str, *, state: AppState, backend: object = None, scroll: bool = False, **kwargs: object) -> TierResult:
+        del state, backend, kwargs
+        self.scroll_seen = scroll
+        return TierResult(
+            body=self._body,
+            content_type="text/html",
+            status_code=200,
+            final_url=url,
+            from_browser=True,
+            pre_rendered=Rendered(content_md="rendered listing"),
+            verdict=Verdict.ok,
+        )
+
+
+@pytest.mark.asyncio
+async def test_free_browser_scroll_completes_and_skips_paid(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The free own-browser scroll completes the listing → the paid tier is never
+    # dispatched (spec: own-browser preferred before paid egress).
+    browser = _ScrollBrowserStub(records=40)
+    zyte = _ScrollZyteStub(records=40)
+    monkeypatch.setitem(REGISTRY, "raw", _PartialListingRawTier())
+    monkeypatch.setitem(REGISTRY, "browser", browser)
+    monkeypatch.setitem(REGISTRY, "zyte", zyte)
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    state = make_default_state(settings=_settings(browser_enabled=True))
+
+    result = await _ask_fetch(state)
+
+    assert browser.scroll_seen is True  # the free browser was asked to scroll
+    assert zyte.scroll_seen is None  # paid egress never spent
+    assert not any(d.step == "zyte" for d in result.diagnostics)
+    assert result.items_loaded is None  # completed → signal cleared
+    assert result.items_total is None
+    assert "listing_partial" not in [h.code for h in result.operator_hints]
+
+
+@pytest.mark.asyncio
+async def test_free_browser_unavailable_falls_to_paid(monkeypatch: pytest.MonkeyPatch) -> None:
+    # browser_enabled=True but no backend provisioned → the real BrowserTier
+    # short-circuits to unavailable, so completion falls through to the paid tier.
+    zyte = _ScrollZyteStub(records=40)
+    monkeypatch.setitem(REGISTRY, "raw", _PartialListingRawTier())
+    monkeypatch.setitem(REGISTRY, "zyte", zyte)
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    state = make_default_state(settings=_settings(browser_enabled=True))
+
+    result = await _ask_fetch(state)
+
+    assert zyte.scroll_seen is True  # paid ran after the free browser no-op'd
+    assert result.items_loaded is None  # paid completed → signal cleared
+    assert result.items_total is None
 
 
 @pytest.mark.asyncio

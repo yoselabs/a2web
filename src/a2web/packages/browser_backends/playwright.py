@@ -33,6 +33,11 @@ _A2KIT_LOG = logging.getLogger("a2kit")
 # First-snapshot length below which a JS-heavy host triggers scroll-on-thin.
 _THIN_FLOOR = 4_096
 
+# Safety bound on the scroll-to-stable loop (listing-completeness Slice 2b) —
+# the number of scroll passes before giving up on an ever-growing (or
+# non-terminating) infinite-scroll page.
+_SCROLL_STABLE_MAX_PASSES = 8
+
 
 def camoufox_launcher() -> Any:
     """Yield an async-CM that launches headless Camoufox.
@@ -129,6 +134,41 @@ async def _scroll_and_retry(page: Any, original_html: str) -> str:
     return larger
 
 
+async def _scroll_to_stable(page: Any, original_html: str, *, max_passes: int = _SCROLL_STABLE_MAX_PASSES) -> str:
+    """Scroll repeatedly until the captured HTML stops growing (listing Slice 2b).
+
+    Unlike `_scroll_and_retry` (one thin-triggered pass), this drives an
+    infinite-scroll listing to completion: scroll → settle → re-snapshot, keeping
+    the largest capture, terminating when a pass adds nothing (the list is fully
+    materialised) OR `max_passes` is reached (the safety bound for an
+    ever-growing / virtualised page). Never raises — a page error ends the loop
+    and returns the best capture so far. Emits `browser_scroll_stable` diagnostics
+    on the `a2kit` logger (typed-record shape) so operators measure firing rate.
+    """
+    _A2KIT_LOG.info("StageStarted", extra={"a2kit_fields": {"t_ms": 0, "step": "browser_scroll_stable"}})
+    start = time.perf_counter()
+    best = original_html
+    passes = 0
+    for _ in range(max_passes):
+        passes += 1
+        try:
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            try:
+                await page.wait_for_load_state("networkidle", timeout=2_000)
+            except Exception:
+                await asyncio.sleep(0.5)
+            html = await page.content()
+        except Exception:
+            break
+        if len(html) <= len(best):
+            break  # no growth this pass → the listing is fully materialised.
+        best = html
+    dur_ms = int((time.perf_counter() - start) * 1000)
+    fields = {"t_ms": 0, "step": "browser_scroll_stable", "verdict": "ok", "dur_ms": dur_ms, "extra": {"passes": passes}}
+    _A2KIT_LOG.info("StageEnded", extra={"a2kit_fields": fields})
+    return best
+
+
 class _StderrFilenoShim:
     """Stand-in for ``sys.stderr`` that lies only about its file descriptor.
 
@@ -199,9 +239,14 @@ class PlaywrightBackend:
         cookies: list[BackendCookie],
         budget_s: float,
         js_heavy: bool,
+        scroll_to_stable: bool = False,
     ) -> RenderedPage:
         """Launch (lazily), navigate, capture rendered HTML. Never raises for
         routine failures — returns a `RenderedPage` with the matching outcome.
+
+        `scroll_to_stable` (listing-completeness Slice 2b) drives an
+        infinite-scroll listing to completion after navigation — scroll until the
+        captured HTML stops growing — instead of the single thin-triggered pass.
         """
         try:
             await self._ensure()
@@ -229,6 +274,9 @@ class PlaywrightBackend:
                 # scroll + 2s networkidle, keep the larger snapshot (Trendyol).
                 if len(html) < _THIN_FLOOR and js_heavy:
                     html = await _scroll_and_retry(page, html)
+                # Explicit listing completion: scroll to stable (Slice 2b).
+                if scroll_to_stable:
+                    html = await _scroll_to_stable(page, html)
         except Exception as exc:  # navigation/network/driver errors
             return RenderedPage(
                 outcome=RenderOutcome.error,

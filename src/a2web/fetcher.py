@@ -1622,8 +1622,11 @@ def _regate_after_escalation(fc: FetchContext) -> None:
     )
 
 
-async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
+async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool = False) -> None:
     """Dispatch a browser rung out-of-band; install its result on success.
+
+    `scroll` (listing-completeness Slice 2b) asks the browser to scroll the page
+    to stable before snapshotting — the free own-browser listing-completion path.
 
     Two-rung fast→robust ladder on the SAME out-of-band dispatch: the rung is
     selected from `fc.browser_dispatches` — the first dispatch is the fast
@@ -1646,7 +1649,7 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
         backend = None
     browser_tier = REGISTRY[rung]
     br_start_ms = await _emit_tier_started(step=rung, host=_host(fc.final_url), start_perf=fc.start_perf)
-    browser_result = await browser_tier.fetch(fc.final_url, state=state, backend=backend)
+    browser_result = await browser_tier.fetch(fc.final_url, state=state, backend=backend, scroll=scroll)
     fc.browser_dispatches += 1
     br_dur_ms = await _emit_tier_ended(
         step=rung,
@@ -2092,22 +2095,29 @@ def _listing_wants_render(fc: FetchContext, *, settings: AppSettings) -> bool:
 
 
 async def _phase_listing_render(fc: FetchContext, *, state: AppState) -> None:
-    """Complete a partial listing with one bounded scrolling render (Slice 2).
+    """Complete a partial listing with one bounded scrolling render (Slice 2 / 2b).
 
-    Dispatches one paid render (Zyte `browserHtml` + scroll actions) of the
-    original URL — sharing the single paid-dispatch cap — then re-counts the
-    records the fuller page yields and re-assesses. When the listing is now
-    complete the `listing_partial` signal is dropped (fields nulled); when it is
-    still short (a capped or DOM-virtualised scroll) the signal stands with the
-    updated count — the miss stays loud. If the render added nothing (no paid
-    tier keyed, or a failure), the Slice 1 signal stands unchanged.
+    Free own-browser first, paid egress second (spec: own-browser preferred).
+    When `browser_enabled`, a free browser render scrolls the original URL to
+    stable; only if that changed nothing (browser off / unavailable / failed) and
+    the single paid budget remains does the paid Zyte scroll fire. Either render
+    re-counts the records the fuller page yields (via the shared extraction
+    escalation) and the listing is re-assessed: complete → the `listing_partial`
+    signal is dropped (fields nulled); still short (a capped or DOM-virtualised
+    scroll) → the signal stands with the updated count, the miss loud. If nothing
+    rendered, the Slice 1 signal stands unchanged.
     """
     if not _listing_wants_render(fc, settings=state.settings):
         return
     prev_md = fc.content_md
-    await _escalate_paid(fc, state=state, scroll=True)
+    # Free own-browser scroll first — no egress cost, just latency.
+    if state.settings.browser_enabled:
+        await _escalate_browser(fc, state=state, scroll=True)
+    # Paid fallback only if the free attempt changed nothing and budget remains.
+    if fc.content_md == prev_md and fc.paid_dispatches < 1:
+        await _escalate_paid(fc, state=state, scroll=True)
     if fc.content_md == prev_md:
-        return  # render added nothing → the partial signal stands (never-silently-miss).
+        return  # nothing rendered → the partial signal stands (never-silently-miss).
     if fc.record_count is None or fc.items_total is None:
         return
     if content_expectations.assess(loaded=fc.record_count, total=fc.items_total) == "partial":

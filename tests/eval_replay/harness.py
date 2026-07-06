@@ -102,8 +102,10 @@ class CassetteBrowserPool:
     async def __aexit__(self, *_: object) -> None:
         return None
 
-    async def render(self, url: str, *, cookies: object = (), budget_s: float = 30.0, js_heavy: bool = False) -> Any:
-        del cookies, budget_s, js_heavy
+    async def render(
+        self, url: str, *, cookies: object = (), budget_s: float = 30.0, js_heavy: bool = False, scroll_to_stable: bool = False
+    ) -> Any:
+        del cookies, budget_s, js_heavy, scroll_to_stable
         from a2web.packages.browser_backends import RenderedPage, RenderOutcome
 
         html = self._case.inputs.rendered_html

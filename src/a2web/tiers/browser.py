@@ -111,9 +111,10 @@ class BrowserTier:
         proxy_url: str | None = None,
         conditional_extras: dict[str, str] | None = None,
         cookies_full: list[Cookie] | None = None,
+        scroll: bool = False,
         **kwargs: Any,
     ) -> TierResult:
-        del proxy_url, conditional_extras, kwargs  # Browser tier ignores all today.
+        del proxy_url, conditional_extras, kwargs  # Browser tier ignores the rest today.
         from . import Rendered, TierResult  # local - circular with package init
 
         if not state.settings.browser_enabled:
@@ -125,7 +126,9 @@ class BrowserTier:
         budget_s = float(state.settings.browser_page_budget_s)
         js_heavy = _host_is_js_heavy(url, state)
 
-        page: RenderedPage = await backend.render(url, cookies=cookies, budget_s=budget_s, js_heavy=js_heavy)
+        # `scroll` (listing-completeness Slice 2b) asks the backend to scroll an
+        # infinite-scroll listing to completion before snapshotting.
+        page: RenderedPage = await backend.render(url, cookies=cookies, budget_s=budget_s, js_heavy=js_heavy, scroll_to_stable=scroll)
 
         if page.outcome is RenderOutcome.unavailable:
             return _unavailable_result(url, page.detail or "browser engine unavailable")

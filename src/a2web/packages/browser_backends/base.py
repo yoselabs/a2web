@@ -84,6 +84,7 @@ class BrowserBackend(Protocol):
         cookies: list[BackendCookie],
         budget_s: float,
         js_heavy: bool,
+        scroll_to_stable: bool = False,
     ) -> RenderedPage: ...
 
     async def __aenter__(self) -> BrowserBackend: ...
