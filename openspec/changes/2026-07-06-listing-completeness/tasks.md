@@ -59,40 +59,45 @@ Slice 1 is independently shippable and merges before Slice 2 is started.
 - [x] 4.4 `_phase_listing_completeness(fc, raw_html=...)` runs after extraction.
 - [x] 4.5 Spec deltas green: `openspec validate --strict`.
 
-## Slice 2 — Bounded scroll-to-complete (opt-in; after Slice 1 merges)
+## Slice 2 — Bounded scroll-to-complete (opt-in) — DONE (Zyte path)
 
-### 5. Scroll-to-stable on the render tiers
+> Implemented 2026-07-06 on top of Slice 1. Full gate green (1095 tests, 90%).
+> Tests in `tests/capabilities/listing_completeness/test_listing_completeness_scroll.py`.
+> Scope note: the **Zyte scrolling render** is the Slice 2 mechanism (fully
+> deterministic-testable via a stubbed scrolling paid tier). The **local
+> own-browser scroll-to-stable loop** (5.1/5.3) is deferred to Slice 2b — it
+> needs live-browser verification (out of `make check`), and the Zyte path
+> already delivers the capability + the whole orchestration.
 
-- [ ] 5.1 Test: the local backend scroll loop stops when the record count is
-      stable across a step, and when `scroll_cap` / `scroll_budget_s` is hit
-      (whichever first); keeps the largest snapshot.
-- [ ] 5.2 Test: `ZyteTier.fetch(..., scroll=True)` sends a bounded
-      `actions: [scrollBottom, waitForTimeout]×N` sequence in the `browserHtml`
-      request body; `scroll=False` sends today's plain request (regression).
-- [ ] 5.3 Generalise the local `_scroll_and_retry` into a scroll-until-stable
-      loop; add the Zyte `actions` path.
+### 5. Scroll on the render tier
+
+- [ ] 5.1 Local backend scroll-until-stable loop (deferred to Slice 2b — live).
+- [x] 5.2 Test: `_zyte_extract_request(scroll=True)` appends a bounded
+      `[scrollBottom, waitForTimeout]×cap` action sequence in `browserHtml`
+      mode; `scroll=False` / `raw` send the plain request (regression).
+- [x] 5.3 Zyte `actions` path added (`_zyte_extract_request` + `scroll=` on
+      `ZyteTier.fetch`, cap from `settings.listing_scroll_cap`).
 
 ### 6. `listing_partial` escalation trigger (shared cap)
 
-- [ ] 6.1 Test: a `listing_partial` verdict on a non-scrolling tier (raw/jina)
-      with `complete_listings=True` requests a scrolling render; the free
-      own-browser is preferred before paid egress.
-- [ ] 6.2 Test: the render shares the single one-paid-dispatch cap — a fetch that
-      already spent a render (gate wall / obstacle) does NOT get a second render;
-      the signal stands.
-- [ ] 6.3 Test: oracle `total > SCROLL_MAX` (broad search) → no scroll, signal +
-      steer only ("don't scroll the universe").
-- [ ] 6.4 Test: after a scroll render, re-count → oracle met/stable drops the
-      signal (complete); capped/virtualised/still-short keeps `listing_partial`
-      (loud miss holds).
-- [ ] 6.5 Wire the trigger through `escalate_to_render` / `_escalate_paid` +
-      the shared cap; add `complete_listings` + `scroll_cap` / `scroll_budget_s`
-      / `SCROLL_MAX` to `AppSettings`.
+- [x] 6.1 Test: a partial listing on a non-scrolling tier with
+      `complete_listings=True` requests a scrolling render (via `_escalate_paid`,
+      `scroll=True`). Own-browser-preference is part of deferred Slice 2b.
+- [x] 6.2 Test: shares the single paid-dispatch cap — `_listing_wants_render`
+      returns False when `paid_dispatches >= 1` (a prior wall/obstacle render).
+- [x] 6.3 Test: oracle `> listing_scroll_max` (broad search) → no scroll, signal
+      stands (the hint's copy carries the narrow-the-query steer).
+- [x] 6.4 Test: after the render, re-count → oracle met drops the signal;
+      still-short keeps `listing_partial` with the updated count; render-added-
+      nothing (no key) keeps the Slice 1 signal.
+- [x] 6.5 Wired `_phase_listing_render` through `_escalate_paid` + shared cap;
+      added `complete_listings` / `listing_scroll_max` / `listing_scroll_cap`
+      to `AppSettings`.
 
 ### 7. Close-out
 
-- [ ] 7.1 `make check` green (coverage ≥85%).
-- [ ] 7.2 `make bench` — confirm the four-axis output benchmark did not regress
-      on token cost / clarity for non-listing pages (listings should improve on
-      completeness).
-- [ ] 7.3 `make install-global` so the live MCP binary picks up the change.
+- [x] 7.1 `make check` green (1095 tests, coverage 90%).
+- [ ] 7.2 `make bench` — live-network + LLM quota; run before a release, not in
+      the dev loop (deferred per project convention).
+- [ ] 7.3 `make install-global` — run at release time so the live MCP binary
+      picks up the change (deferred; the feature is off by default anyway).

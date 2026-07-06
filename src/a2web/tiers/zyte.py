@@ -49,6 +49,25 @@ _TIMEOUT_S = 40.0  # Zyte renders server-side — allow generous headroom.
 ZyteMode = str  # "browserHtml" | "httpResponseBody"
 
 
+def _zyte_extract_request(url: str, *, raw: bool, scroll: bool, scroll_cap: int) -> dict[str, Any]:
+    """Build the Zyte `/extract` request body.
+
+    `raw` (httpResponseBody) proxies the origin — no browser, no actions.
+    `browserHtml` renders; when `scroll` is set (listing-completeness Slice 2),
+    a bounded `scrollBottom` + `waitForTimeout` action sequence is appended so
+    the server-side render materialises lazy-loaded / infinite-scroll items
+    before snapshotting. Pure — the httpx POST lives in `fetch`.
+    """
+    if raw:
+        return {"url": url, "httpResponseBody": True}
+    request: dict[str, Any] = {"url": url, "browserHtml": True}
+    if scroll and scroll_cap > 0:
+        request["actions"] = [
+            step for _ in range(scroll_cap) for step in ({"action": "scrollBottom"}, {"action": "waitForTimeout", "timeout": 2})
+        ]
+    return request
+
+
 class ZyteTier:
     """Zyte extract as a paid tier — rendered (`browserHtml`) or raw (`httpResponseBody`)."""
 
@@ -62,6 +81,7 @@ class ZyteTier:
         proxy_url: str | None = None,
         conditional_extras: dict[str, str] | None = None,
         mode: ZyteMode = "browserHtml",
+        scroll: bool = False,
         **kwargs: Any,
     ) -> TierResult:
         del proxy_url, conditional_extras, kwargs  # Zyte owns egress + challenge solving.
@@ -74,7 +94,7 @@ class ZyteTier:
             return TierResult(body=b"", content_type="text/html", status_code=0, final_url=url, skipped=True, verdict=Verdict.other)
 
         raw = mode == "httpResponseBody"
-        request: dict[str, Any] = {"url": url, "httpResponseBody": True} if raw else {"url": url, "browserHtml": True}
+        request = _zyte_extract_request(url, raw=raw, scroll=scroll, scroll_cap=state.settings.listing_scroll_cap)
 
         try:
             async with httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True) as client:

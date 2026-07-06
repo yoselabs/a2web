@@ -52,7 +52,6 @@ from .models import (
     NextLinkKind,
     OperatorHint,
     Verdict,
-    listing_partial_hint,
     try_user_browser_hint,
 )
 from .packages.block_detector import evaluate as _package_evaluate
@@ -1233,9 +1232,11 @@ def _phase_listing_completeness(fc: FetchContext, *, raw_html: str) -> None:
         return
     if content_expectations.assess(loaded=fc.record_count, total=total) != "partial":
         return
+    # Flag the partial state; the `listing_partial` hint is appended by
+    # `build_response` from these fields, so a later scroll-to-complete (Slice 2)
+    # can clear the signal simply by nulling them.
     fc.items_loaded = fc.record_count
     fc.items_total = total
-    fc.operator_hints.append(listing_partial_hint(loaded=fc.record_count, total=total))
 
 
 def _pick_display_candidate(candidates: list[ContentCandidate]) -> str:
@@ -1681,12 +1682,16 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState) -> None:
 _PAID_TIER_ORDER = ("zyte", "firecrawl")
 
 
-async def _escalate_paid(fc: FetchContext, *, state: AppState) -> None:
+async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = False) -> None:
     """Dispatch the paid last-resort tier out-of-band; install on success.
 
     Cost-incurring, so capped at one escalation per fetch: `fc.paid_dispatches`
     is bumped unconditionally at entry (even when no paid tier is registered) so
     the planner's `paid_last_resort` rule cannot re-fire and spin.
+
+    `scroll` (listing-completeness Slice 2) asks a browser-rendering paid tier
+    to scroll the page before snapshotting — passed through to `tier.fetch`;
+    tiers that don't render (Firecrawl) ignore it via `**kwargs`.
 
     FAIL-LOUD contract (task 4.6): a paid tier returning `paid_auth_error`
     (bad key / exhausted billing) records an AUTHORITATIVE observation and STOPS
@@ -1702,7 +1707,7 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState) -> None:
         if tier is None:
             continue  # un-keyed at boot — not registered.
         paid_start_ms = await _emit_tier_started(step=tier_name, host=_host(fc.final_url), start_perf=fc.start_perf)
-        result = await tier.fetch(fc.final_url, state=state)
+        result = await tier.fetch(fc.final_url, state=state, scroll=scroll)
         paid_dur_ms = await _emit_tier_ended(
             step=tier_name,
             engine=tier_name,
@@ -1828,6 +1833,11 @@ async def _run_pipeline(
     # cache_write so the final (possibly re-rendered) body is cached once and a
     # confabulated shell never lands in the cache.
     await _phase_obstacle_render(fc, state=state)
+    # Listing scroll-to-complete: when a partial listing was flagged and
+    # `complete_listings` is enabled, dispatch one bounded scrolling render to
+    # load the rest of the items (shares the obstacle/wall paid-dispatch cap).
+    # Runs BEFORE cache_write so the completed body is the one cached.
+    await _phase_listing_render(fc, state=state)
     await _phase_cache_write(fc, state=state)
     # v0.8: emit cookies_stale hint once per fetch when mirror is stale.
     await _phase_cookies_staleness(fc, state=state)
@@ -2030,6 +2040,65 @@ async def _phase_obstacle_render(fc: FetchContext, *, state: AppState) -> None:
     # Fresh content installed by the render — re-extract the answer over it. The
     # fresh obstacle is now authoritative for completeness.
     await _phase_extract_answer(fc, state=state)
+
+
+def _listing_wants_render(fc: FetchContext, *, settings: AppSettings) -> bool:
+    """True when a partial listing should drive one bounded scrolling render.
+
+    Gated on cost + product surface (listing-completeness Slice 2):
+    - `complete_listings` is enabled (the operator opted into paid egress on
+      the common listing path);
+    - the ask path is active (scroll-to-complete is the distilled-answer
+      product; `fetch_raw` is signal-only);
+    - the listing was flagged partial (`items_total` set by
+      `_phase_listing_completeness`);
+    - the shared paid budget is unspent (`paid_dispatches < 1` — one render per
+      fetch, shared with the gate-wall and obstacle triggers);
+    - the content did NOT come from a JS-executing tier (jina/browser already
+      ran JS, so a scroll render is redundant);
+    - the oracle is within the completeness ceiling (`listing_scroll_max`) —
+      above it (a broad search with thousands of hits) the response steers
+      toward a narrower query rather than scrolling the universe.
+    """
+    if not settings.complete_listings:
+        return False
+    if fc.ask is None:
+        return False
+    if fc.items_total is None:
+        return False
+    if fc.paid_dispatches >= 1:
+        return False
+    if fc.tier_used in _JS_EXECUTED_TIERS:
+        return False
+    return fc.items_total <= settings.listing_scroll_max
+
+
+async def _phase_listing_render(fc: FetchContext, *, state: AppState) -> None:
+    """Complete a partial listing with one bounded scrolling render (Slice 2).
+
+    Dispatches one paid render (Zyte `browserHtml` + scroll actions) of the
+    original URL — sharing the single paid-dispatch cap — then re-counts the
+    records the fuller page yields and re-assesses. When the listing is now
+    complete the `listing_partial` signal is dropped (fields nulled); when it is
+    still short (a capped or DOM-virtualised scroll) the signal stands with the
+    updated count — the miss stays loud. If the render added nothing (no paid
+    tier keyed, or a failure), the Slice 1 signal stands unchanged.
+    """
+    if not _listing_wants_render(fc, settings=state.settings):
+        return
+    prev_md = fc.content_md
+    await _escalate_paid(fc, state=state, scroll=True)
+    if fc.content_md == prev_md:
+        return  # render added nothing → the partial signal stands (never-silently-miss).
+    if fc.record_count is None or fc.items_total is None:
+        return
+    if content_expectations.assess(loaded=fc.record_count, total=fc.items_total) == "partial":
+        fc.items_loaded = fc.record_count  # still short — keep the signal, updated count.
+    else:
+        fc.items_loaded = None  # completed — clear the signal.
+        fc.items_total = None
+    if fc.ask is not None:
+        await _phase_extract_answer(fc, state=state)
 
 
 def _to_llm_next_link(nl: NextLink) -> LlmNextLink:

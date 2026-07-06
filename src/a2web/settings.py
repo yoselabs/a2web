@@ -146,6 +146,18 @@ class AppSettings(BaseSettings):
     zyte_key: str = ""
     firecrawl_key: str = ""
 
+    # listing-completeness Slice 2 — bounded scroll-to-complete. OFF by default:
+    # enabling it lets a partial listing (parsed records short of the page's
+    # advertised item oracle) escalate to ONE scrolling paid render, shifting the
+    # common listing path from free-curl to paid egress — an operator's choice,
+    # not a silent default. `listing_scroll_max` is the completeness ceiling:
+    # above it (a broad search with thousands of hits) the response steers
+    # (narrow the query) instead of scrolling. `listing_scroll_cap` bounds the
+    # scroll actions per render.
+    complete_listings: bool = False
+    listing_scroll_max: int = 200
+    listing_scroll_cap: int = 8
+
     # Reddit tier-arbitration policy (reddit-via-zyte). Governs whether the
     # Reddit handler routes threads eagerly through a paid tier (Zyte) for a
     # rich scored/nested comment sample, or stays on the keyless RSS channel:
