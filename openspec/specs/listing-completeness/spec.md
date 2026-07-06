@@ -43,10 +43,13 @@ first, then an anchored visible-count match (result/product/item nouns, e.g.
 "40 sonuç", "1,234 results", "showing 1–24 of 40"), else `None`. Oracle
 extraction SHALL be pure and non-raising: any failure yields `None` and the page
 is treated as having no numeric oracle. When no numeric oracle exists but a
-structural "more exists" indicator is present (a `rel=next` link, a load-more
-control, or pagination navigation) on a non-scrolling tier, the response MAY
-carry a countless `listing_partial` signal ("more items available") without a
-fabricated total.
+structural "more exists" indicator is present (a `rel=next` link or an explicit
+load-more / next-page control, English or Turkish) on a confirmed listing (a
+`RecordSet`), the response SHALL carry a distinct `listing_more` operator hint
+plus `items_loaded` (the parsed count) while `items_total` stays absent — the
+unquantified "more exists" fallback, with no fabricated total. The numeric
+oracle is authoritative: when a count is present the structural affordance is
+ignored (a leftover `rel=next` on a complete last page is not a truncation).
 
 #### Scenario: Structured count wins
 
@@ -60,8 +63,13 @@ fabricated total.
 
 #### Scenario: No oracle, structural signal only
 
-- **WHEN** no numeric oracle is extractable but the page carries a `rel=next` / load-more control and was served by a non-scrolling tier
-- **THEN** a countless `listing_partial` signal ("more items available") is emitted with no `items_total`
+- **WHEN** no numeric oracle is extractable but a confirmed listing carries a `rel=next` / load-more control
+- **THEN** a `listing_more` info hint is emitted with `items_loaded` set and `items_total` absent
+
+#### Scenario: Numeric oracle wins over a co-present structural affordance
+
+- **WHEN** a complete listing (count meets the oracle within tolerance) also carries a `rel=next` / load-more control
+- **THEN** no `listing_more` (nor `listing_partial`) signal is emitted — the count is authoritative
 
 ### Requirement: Sufficiency verdict reuses the content-expectations contract
 

@@ -14,16 +14,24 @@ from __future__ import annotations
 
 import pytest
 
-from a2web.listing_oracle import listing_oracle
+from a2web.listing_oracle import listing_has_more, listing_oracle
 from tests.capabilities.ask_response.test_ask_response import _MINIMAL_HTML, _ask_wire
 from tests.capabilities.fetch_response.test_fetch_response import _fetch_raw_wire
 
 
-def _listing_html(n_records: int, *, oracle_jsonld: int | None = None, oracle_visible: str | None = None) -> bytes:
+def _listing_html(
+    n_records: int,
+    *,
+    oracle_jsonld: int | None = None,
+    oracle_visible: str | None = None,
+    more_control: str | None = None,
+) -> bytes:
     """A listing page with `n_records` detectable records and an optional oracle.
 
     Each row carries a heading link plus >20 chars of own text so the record
     detector fires (`_MIN_RECORDS=5`, `_MIN_RECORD_TEXT=20`, own-link required).
+    `more_control` injects raw HTML after the list (a pagination / load-more
+    affordance) for the structural "more exists" fallback.
     """
     rows = "".join(
         f'<li class="product-card"><h3><a href="/product/{i}">Aerator {i}</a></h3>'
@@ -35,7 +43,8 @@ def _listing_html(n_records: int, *, oracle_jsonld: int | None = None, oracle_vi
         head += f'<script type="application/ld+json">{{"@type":"ItemList","numberOfItems":{oracle_jsonld}}}</script>'
     if oracle_visible is not None:
         head += f'<div class="result-count">{oracle_visible}</div>'
-    return (f"<html><body><main>{head}<ul>{rows}</ul></main></body></html>").encode()
+    tail = more_control or ""
+    return (f"<html><body><main>{head}<ul>{rows}</ul>{tail}</main></body></html>").encode()
 
 
 # --------------------------------------------------------------------- #
@@ -143,3 +152,92 @@ async def test_ask_partial_listing_surfaces_signal(monkeypatch: pytest.MonkeyPat
     assert "listing_partial" in [h["code"] for h in data["operator_hints"]]
     # Sufficiency signal is info — it must not flip the ask into an incomplete wall.
     assert "retrieval_incomplete" not in data
+
+
+# --------------------------------------------------------------------- #
+# listing_has_more — structural "more exists" fallback (no numeric oracle)
+# --------------------------------------------------------------------- #
+
+
+def test_has_more_detects_rel_next() -> None:
+    assert listing_has_more('<link rel="next" href="?page=2">') is True
+
+
+def test_has_more_detects_load_more_button() -> None:
+    assert listing_has_more('<button class="load-more">Load more</button>') is True
+
+
+def test_has_more_detects_turkish_daha_fazla() -> None:
+    assert listing_has_more("<button>Daha fazla ürün göster</button>") is True
+
+
+def test_has_more_detects_infinite_scroll_marker() -> None:
+    assert listing_has_more('<div data-widget="infinite-scroll"></div>') is True
+
+
+def test_has_more_false_on_plain_article() -> None:
+    assert listing_has_more("<p>Just an article with a link to the next article.</p>") is False
+
+
+def test_has_more_false_on_last_page_listing() -> None:
+    # A complete listing on its last page has no pagination affordance.
+    assert listing_has_more("<ul><li>item</li><li>item</li></ul>") is False
+
+
+# --------------------------------------------------------------------- #
+# fetch_raw — the un-counted infinite-scroll listing is NOT silent
+# --------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_fetch_raw_uncounted_listing_with_more_control_surfaces_signal(monkeypatch: pytest.MonkeyPatch) -> None:
+    # 31 records, NO numeric oracle, but a load-more control → structural signal.
+    # This is the Hepsiburada case with the visible count stripped: the page
+    # advertises no total, yet infinite scroll means more items exist.
+    body = _listing_html(31, more_control='<button class="load-more">Daha fazla</button>')
+    data = await _fetch_raw_wire(monkeypatch, body=body, url="https://shop.example/ara?q=aerator")
+
+    assert data["items_loaded"] == 31
+    # No reliable total from a structural affordance — the field stays absent.
+    assert "items_total" not in data
+    assert "listing_more" in [h["code"] for h in data["operator_hints"]]
+    # A structural "more exists" signal is info, never a wall.
+    assert "retrieval_incomplete" not in data
+    assert data.get("status") != "failed"
+
+
+@pytest.mark.asyncio
+async def test_fetch_raw_uncounted_listing_no_pagination_is_silent(monkeypatch: pytest.MonkeyPatch) -> None:
+    # 31 records, no oracle, no pagination affordance → a complete single-page
+    # listing; nothing to signal.
+    body = _listing_html(31)
+    data = await _fetch_raw_wire(monkeypatch, body=body, url="https://shop.example/ara?q=aerator")
+    assert "items_loaded" not in data
+    assert "items_total" not in data
+    assert "listing_more" not in [h["code"] for h in data.get("operator_hints", [])]
+
+
+@pytest.mark.asyncio
+async def test_fetch_raw_numeric_oracle_wins_over_structural(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A complete numeric listing (40/40) that also carries a load-more control
+    # must stay silent — the count is authoritative, the affordance is a
+    # last-page/leftover artifact, not evidence of a truncated sample.
+    body = _listing_html(40, oracle_jsonld=40, more_control='<link rel="next" href="?page=2">')
+    data = await _fetch_raw_wire(monkeypatch, body=body, url="https://shop.example/ara?q=aerator")
+    assert "items_loaded" not in data
+    assert "listing_more" not in [h["code"] for h in data.get("operator_hints", [])]
+    assert "listing_partial" not in [h["code"] for h in data.get("operator_hints", [])]
+
+
+@pytest.mark.asyncio
+async def test_ask_uncounted_listing_with_more_control_surfaces_signal(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = _listing_html(31, more_control='<a rel="next" href="?page=2">Next</a>')
+    data = await _ask_wire(
+        monkeypatch,
+        body=body,
+        url="https://shop.example/search?q=aerator",
+        question="List the water-saving aerators.",
+    )
+    assert data["items_loaded"] == 31
+    assert "items_total" not in data
+    assert "listing_more" in [h["code"] for h in data["operator_hints"]]

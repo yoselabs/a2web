@@ -39,7 +39,7 @@ from .domain import (
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .events.types import CookiesAttached, CookiesStale
 from .fetcher_response import _INCOMPLETE_OBSTACLES, build_response
-from .listing_oracle import listing_oracle
+from .listing_oracle import listing_has_more, listing_oracle
 from .llm_resource import LlmExtractorResource
 from .models import (
     CacheState,
@@ -372,6 +372,11 @@ class FetchContext:
     record_count: int | None = None
     items_loaded: int | None = None
     items_total: int | None = None
+    # Structural "more exists" fallback: set when the listing has no numeric
+    # oracle but exposes a pagination / infinite-scroll affordance. `items_loaded`
+    # is set (record count) while `items_total` stays None; `build_response`
+    # appends a `listing_more` hint instead of the quantified `listing_partial`.
+    items_more: bool = False
 
     # v0.10: caller-supplied cap on content chars sent to the extractor LLM.
     # None = inherit Extractor's default (100_000).
@@ -1220,23 +1225,36 @@ def _phase_listing_completeness(fc: FetchContext, *, raw_html: str) -> None:
     axis). Pure verdict — no fetching; the bounded scroll-to-complete action is
     a later slice.
 
-    Silent when: the page is not a listing (`record_count is None`); no oracle
-    is extractable (no completeness claim to check); or the count meets the
-    oracle within tolerance (`assess` → `ready`). A positive-oracle/zero-record
-    `fail` is the presence axis — left to the obstacle/wall machinery.
+    Silent when: the page is not a listing (`record_count is None`); the count
+    meets the oracle within tolerance (`assess` → `ready`); or there is neither
+    a numeric oracle nor a structural "more exists" affordance. A
+    positive-oracle/zero-record `fail` is the presence axis — left to the
+    obstacle/wall machinery.
+
+    Two evidence paths, numeric-first: a quantified oracle drives the exact
+    `listing_partial` signal (`items_loaded` + `items_total`); absent a count, a
+    pagination / infinite-scroll affordance drives the unquantified
+    `listing_more` fallback (`items_loaded` set, `items_total` unknown). The
+    numeric oracle is authoritative — when present, the structural affordance is
+    ignored (a leftover "next" on a complete last page is not a truncation).
     """
     if fc.record_count is None:
         return
     total = listing_oracle(raw_html)
-    if total is None:
+    if total is not None:
+        if content_expectations.assess(loaded=fc.record_count, total=total) != "partial":
+            return
+        # Flag the partial state; the `listing_partial` hint is appended by
+        # `build_response` from these fields, so a later scroll-to-complete
+        # (Slice 2) can clear the signal simply by nulling them.
+        fc.items_loaded = fc.record_count
+        fc.items_total = total
         return
-    if content_expectations.assess(loaded=fc.record_count, total=total) != "partial":
-        return
-    # Flag the partial state; the `listing_partial` hint is appended by
-    # `build_response` from these fields, so a later scroll-to-complete (Slice 2)
-    # can clear the signal simply by nulling them.
-    fc.items_loaded = fc.record_count
-    fc.items_total = total
+    # No numeric oracle — fall back to the structural affordance. `items_total`
+    # stays None (unknown); `build_response` emits `listing_more` off `items_more`.
+    if listing_has_more(raw_html):
+        fc.items_loaded = fc.record_count
+        fc.items_more = True
 
 
 def _pick_display_candidate(candidates: list[ContentCandidate]) -> str:

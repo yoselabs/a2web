@@ -28,6 +28,20 @@ _VISIBLE_COUNT_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Structural "more exists" affordances — pagination / infinite-scroll controls
+# that imply items beyond the rendered batch. Consulted ONLY as a fallback when
+# no numeric oracle is extractable, and ONLY on a page already confirmed to be a
+# listing (a parsed record set). Anchored to strong, listing-specific markers so
+# a bare "next article" nav link on a non-listing never fires: `rel="next"` (the
+# HTML pagination standard) and explicit load-more / next-page controls
+# (English + Turkish `daha fazla` / `sonraki sayfa`). The per-item-generic "show
+# more" expander is deliberately excluded to keep false positives low.
+_REL_NEXT_RE = re.compile(r"""rel\s*=\s*["']?[^"'>]*\bnext\b""", re.IGNORECASE)
+_MORE_CONTROL_RE = re.compile(
+    r"(?:load[-_\s]?more|infinite[-_\s]?scroll|daha\s+fazla|sonraki\s+sayfa|next\s+page)",
+    re.IGNORECASE,
+)
+
 
 def _parse_count(raw: str) -> int | None:
     """Parse a matched count, stripping thousands separators (',' and '.')."""
@@ -53,4 +67,19 @@ def listing_oracle(html: str) -> int | None:
     return max(visible) if visible else None
 
 
-__all__ = ["listing_oracle"]
+def listing_has_more(html: str) -> bool:
+    """True when the page exposes a pagination / infinite-scroll affordance.
+
+    The structural fallback to `listing_oracle`: when a listing carries records
+    but advertises no numeric total, a `rel="next"` link or an explicit
+    load-more / next-page control is evidence that items exist beyond the
+    rendered batch. Callers use this only after confirming the page is a listing
+    with no numeric oracle — the record-set gate is what keeps a stray "next"
+    link on an ordinary article from being read as a truncated listing.
+    """
+    if not html:
+        return False
+    return bool(_REL_NEXT_RE.search(html) or _MORE_CONTROL_RE.search(html))
+
+
+__all__ = ["listing_has_more", "listing_oracle"]

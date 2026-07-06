@@ -32,6 +32,7 @@ from .models import (
     TokenCounts,
     Verdict,
     extraction_empty_hint,
+    listing_more_hint,
     listing_partial_hint,
 )
 from .utils.time import fmt_dur
@@ -270,9 +271,13 @@ def build_response(fc: FetchContext) -> FetchResponse:
         op_hints.append(extraction_empty_hint(content_chars=len(fc.content_md)))
     # listing-completeness: a partial listing (items fields set, and not cleared
     # by a Slice 2 scroll-to-complete) carries the honest `listing_partial` info
-    # signal alongside the structured counts.
+    # signal alongside the structured counts. When only a structural "more
+    # exists" affordance was found (no numeric oracle → `items_total` unknown),
+    # the unquantified `listing_more` fallback fires instead.
     if fc.items_loaded is not None and fc.items_total is not None:
         op_hints.append(listing_partial_hint(loaded=fc.items_loaded, total=fc.items_total))
+    elif fc.items_more and fc.items_loaded is not None:
+        op_hints.append(listing_more_hint(loaded=fc.items_loaded))
 
     diagnostics_summary = _build_diagnostics_summary(
         tier_used=fc.tier_used,

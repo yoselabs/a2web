@@ -191,6 +191,28 @@ def listing_partial_hint(*, loaded: int, total: int) -> OperatorHint:
     )
 
 
+def listing_more_hint(*, loaded: int) -> OperatorHint:
+    """Honest structural "more exists" signal — a listing with no numeric oracle.
+
+    Informational (not critical): the fetch returned `loaded` real records, and
+    the page exposes a pagination / infinite-scroll control, so more items exist
+    beyond this batch — but the page advertises no total, so the shortfall
+    cannot be quantified (unlike `listing_partial`). The agent must not treat
+    the retrieved records as the complete listing. Pairs with the structured
+    `items_loaded` field (set) while `items_total` stays absent (unknown).
+    """
+    return OperatorHint(
+        code="listing_more",
+        message=(
+            f"Parsed {loaded} items, but the page exposes a load-more / next-page control — more items "
+            "exist beyond this batch and were NOT retrieved. The total is not advertised, so this is a "
+            "partial sample of unknown size, not the complete listing."
+        ),
+        fix="Narrow the search query for a smaller, complete set, or open the URL in a browser tool to scroll / paginate.",
+        severity="info",
+    )
+
+
 def extraction_empty_hint(*, content_chars: int) -> OperatorHint:
     """Dangerous silent-miss guard: content was fetched but extraction produced
     no answer (never-silently-miss / ADR-0009 at extraction granularity).
