@@ -8,6 +8,34 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.33.0] — 2026-07-06
+
+> Closes the listing-completeness coverage gap: a partial listing with **no
+> printed count** was silent. "Partial listings signal" was only true for pages
+> advertising a numeric total — a pure infinite-scroll listing (the Hepsiburada
+> case minus the visible number) passed as complete.
+
+### Added — Structural "more exists" fallback (`listing-completeness` follow-up)
+
+- **`listing_has_more(html)` structural detector.** When a confirmed listing (a
+  `RecordSet`) carries no numeric oracle, strong pagination markers (`rel=next`,
+  load-more / next-page controls, Turkish `daha fazla` / `sonraki sayfa`) are
+  evidence that items exist beyond the rendered batch. Consulted ONLY on a
+  record-bearing page with no numeric oracle — the record-set gate keeps a stray
+  "next article" link on an ordinary page from firing it.
+- **New `listing_more` operator hint.** On a structural hit, `items_loaded` is
+  set (the parsed count) while `items_total` stays absent (honestly unknown), and
+  a distinct `listing_more` info hint surfaces the "more exists, total unknown"
+  sample signal — never a wall, never `retrieval_incomplete`.
+- **Numeric oracle keeps precedence.** A count that meets the oracle within
+  tolerance stays silent even with a co-present `rel=next` (a leftover control on
+  a complete last page is not a truncation).
+- **Signal-only, no scroll.** An unknown total can't bound a render, so the
+  structural case raises the floor loudly and leaves completion to the caller
+  (the bounded paid scroll stays numeric-only).
+- Regression pinned under `tests/capabilities/listing_completeness/`: oracle
+  unit tests + `fetch_raw` / `ask` surfacing + numeric-precedence + silent-when-complete.
+
 ## [0.32.2] — 2026-07-06
 
 > The v0.32.1 marker guard wasn't enough — SSR framework sites (Next/Nuxt) carry
