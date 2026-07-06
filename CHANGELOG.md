@@ -8,6 +8,31 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.34.0] — 2026-07-06
+
+> Listing completion now prefers the **free own-browser** scroll before paid
+> egress (spec: own-browser preferred). Closes the last listing-completeness
+> backlog item — a partial listing is completed for free where a browser is
+> available, and only falls to paid Zyte when it is not.
+
+### Added — Free own-browser scroll-to-stable (`listing-completeness` Slice 2b)
+
+- **`BrowserBackend.render(scroll_to_stable=…)`.** A scroll-to-completion loop
+  (scroll → settle → re-snapshot, keep the largest capture, terminate when
+  growth stalls or an 8-pass safety cap is hit) — distinct from the single
+  thin-triggered `_scroll_and_retry`. Implemented in the Playwright engine
+  (Camoufox / Patchright) and the zendriver CDP engine.
+- **`_phase_listing_render` prefers the free browser.** When `browser_enabled`,
+  a free browser render scrolls the listing to stable first; the paid Zyte scroll
+  fires only if that changed nothing and the single paid-dispatch budget remains.
+  Both paths re-count records via the shared extraction escalation and re-assess:
+  complete → the `listing_partial` signal clears; still short → it stands loud
+  with the updated count.
+- Stub-tested in `make check`: the scroll-to-stable loop (termination, pass cap,
+  exception safety), the tier→backend passthrough, and the free-first
+  orchestration. The engine loop's real multi-item loading is live-verify only
+  (bench / manual) — the documented Slice 2b caveat.
+
 ## [0.33.0] — 2026-07-06
 
 > Closes the listing-completeness coverage gap: a partial listing with **no
