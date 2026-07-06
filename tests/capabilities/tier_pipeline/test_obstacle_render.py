@@ -54,9 +54,7 @@ _SSR_HTML = (
 _OBSTACLE_EMPTY = json.dumps(
     {"answer": "A fluent but unfounded answer.", "structural_form": "article", "shape": "prose", "obstacle": "empty"}
 )
-_CLEAN_ANSWER = json.dumps(
-    {"answer": "The real answer from the rendered page.", "structural_form": "article", "shape": "prose"}
-)
+_CLEAN_ANSWER = json.dumps({"answer": "The real answer from the rendered page.", "structural_form": "article", "shape": "prose"})
 
 
 # --------------------------------------------------------------------- #

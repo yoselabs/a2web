@@ -122,10 +122,7 @@ async def test_paid_tier_dispatched_on_wall_and_installs(monkeypatch: pytest.Mon
 # root marker (`id="root"`) — the block detector flags this length_floor +
 # subsystem=js_required. The autouse browser stub is unavailable, so the browser
 # rung exhausts and the paid render becomes the last resort.
-_SPA_SHELL_HTML = (
-    b'<html><head><title>Search</title></head><body>'
-    b'<div id="root"></div><script src="/static/app.js"></script></body></html>'
-)
+_SPA_SHELL_HTML = b'<html><head><title>Search</title></head><body><div id="root"></div><script src="/static/app.js"></script></body></html>'
 
 
 class _SpaShellRawTier:

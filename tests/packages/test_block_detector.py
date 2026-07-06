@@ -274,8 +274,7 @@ def test_noscript_plus_analytics_is_not_a_spa() -> None:
     # The RFC-editor false positive: a complete static doc with a <noscript>
     # block + an analytics <script> but NO framework mount must NOT be a shell.
     html = (
-        '<html><head><script src="/ga.js"></script></head>'
-        "<body><noscript>Enable JS</noscript><pre>Full RFC text here.</pre></body></html>"
+        '<html><head><script src="/ga.js"></script></head><body><noscript>Enable JS</noscript><pre>Full RFC text here.</pre></body></html>'
     )
     assert not looks_like_unrendered_spa(html)
 
