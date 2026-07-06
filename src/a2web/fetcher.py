@@ -1919,6 +1919,14 @@ async def _phase_extract_answer(
 # paid tier would return the same content — the obstacle render is redundant.
 _JS_EXECUTED_TIERS = frozenset({"jina", "browser", "browser_robust"})
 
+# Above this much extracted content, the page is treated as complete (SSR /
+# static): the answer's absence is real and a render can't add it. Only a THIN
+# result (in the (LENGTH_FLOOR, ceiling) window) is plausibly an unrendered
+# shell worth a render. This is the load-bearing guard for SSR framework sites
+# (Next/Nuxt), which carry SPA mount markers yet already contain their content —
+# markers alone can't tell an SSR page from a CSR shell.
+_RENDER_CONTENT_CEILING = 2000
+
 
 def _obstacle_wants_render(fc: FetchContext) -> bool:
     """True when the extractor's obstacle should drive one paid render.
@@ -1932,10 +1940,12 @@ def _obstacle_wants_render(fc: FetchContext) -> bool:
       render suppresses this);
     - **evidence a render would actually add content** (the false-positive
       guard): the content did NOT come from a JS-executing tier (jina/browser
-      already ran JS, so a render is redundant), AND the raw body shows
-      unrendered-SPA markers. A plain static page that simply lacks the answer
-      (a spec doc, a book) is already complete — re-rendering it is pure cost,
-      so `obstacle: empty` on such a page must NOT trigger a render.
+      already ran JS, so a render is redundant); the extracted content is THIN
+      (`< _RENDER_CONTENT_CEILING`, so plausibly an unrendered shell rather than
+      a complete SSR/static page that merely lacks the answer — the load-bearing
+      check for Next/Nuxt SSR sites, which carry SPA markers yet already contain
+      their content); AND the raw body shows unrendered-SPA markers. A complete
+      page (a spec doc, a book, any content-rich SSR page) is NOT re-rendered.
     """
     if fc.ask is None or fc.routing is None:
         return False
@@ -1944,6 +1954,8 @@ def _obstacle_wants_render(fc: FetchContext) -> bool:
     if fc.routing.obstacle not in _INCOMPLETE_OBSTACLES:
         return False
     if fc.tier_used in _JS_EXECUTED_TIERS:
+        return False
+    if len(fc.content_md) >= _RENDER_CONTENT_CEILING:
         return False
     raw = fc.body.decode("utf-8", errors="replace") if fc.body else ""
     return looks_like_unrendered_spa(raw)

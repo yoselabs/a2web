@@ -41,6 +41,16 @@ _SHELL_HTML = (
 _STATIC_PROSE = "A complete static document with real prose and no client-render markers. " * 20
 _STATIC_HTML = ("<html><body><article>" + _STATIC_PROSE + "</article></body></html>").encode()
 
+# An SSR framework page (Next/Nuxt): carries SPA mount markers YET already
+# contains substantial content (>2000 extracted chars). The answer's absence is
+# real — a render can't add it, so the ceiling must suppress the render even
+# though the markers match. Mirrors the live rfc-editor.org (Nuxt) case.
+_SSR_PROSE = "Substantial server-rendered documentation content in full. " * 60
+_SSR_HTML = (
+    '<html><head><script src="/_nuxt/app.js"></script></head><body>'
+    '<div id="__nuxt"><article>' + _SSR_PROSE + "</article></div></body></html>"
+).encode()
+
 _OBSTACLE_EMPTY = json.dumps(
     {"answer": "A fluent but unfounded answer.", "structural_form": "article", "shape": "prose", "obstacle": "empty"}
 )
@@ -66,6 +76,7 @@ class _Fc:
     paid_dispatches: int
     tier_used: str = "raw"
     body: bytes = _SHELL_HTML  # SPA-shell markers by default → render-worthy
+    content_md: str = "thin shell content"  # below the ceiling by default
 
 
 class TestObstacleWantsRender:
@@ -98,12 +109,20 @@ class TestObstacleWantsRender:
             assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, tier_used=tier))
 
     def test_static_page_without_spa_markers_suppresses(self) -> None:
-        # The RFC false-positive: complete static content, no SPA markers → a
-        # render cannot add the missing answer, so don't pay for one.
+        # A thin static page with no SPA markers → a render cannot add the
+        # missing answer, so don't pay for one.
         assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, body=_STATIC_HTML))
 
-    def test_spa_shell_with_markers_fires(self) -> None:
-        assert _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, body=_SHELL_HTML))
+    def test_substantial_content_suppresses(self) -> None:
+        # The SSR false-positive (Next/Nuxt): the body has SPA mount markers but
+        # substantial content was already retrieved → the page is complete, the
+        # answer's absence is real, a render is pure waste.
+        fc = _Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, body=_SHELL_HTML, content_md="x" * 2500)
+        assert not _obstacle_wants_render(fc)
+
+    def test_thin_spa_shell_with_markers_fires(self) -> None:
+        fc = _Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, body=_SHELL_HTML, content_md="thin shell")
+        assert _obstacle_wants_render(fc)
 
 
 # --------------------------------------------------------------------- #
@@ -303,3 +322,36 @@ async def test_static_page_obstacle_does_not_render(monkeypatch: pytest.MonkeyPa
     assert len(provider.calls) == 1
     ask = build_ask_response(result, include_content=False, debug=False)
     assert ask.retrieval_incomplete is True
+
+
+class _SsrRawTier:
+    """An SSR framework page: SPA markers + substantial content already present."""
+
+    name = "raw"
+
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
+        del state, kwargs
+        return TierResult(body=_SSR_HTML, content_type="text/html", status_code=200, final_url=url, verdict=Verdict.ok)
+
+
+@pytest.mark.asyncio
+async def test_ssr_page_with_markers_but_full_content_does_not_render(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The rfc-editor.org (Nuxt) case: SPA mount markers are present, but the
+    page already carries its full content. `obstacle: empty` (the answer isn't
+    there) must NOT trigger a render — the content ceiling suppresses it."""
+    monkeypatch.setitem(REGISTRY, "raw", _SsrRawTier())
+    monkeypatch.setitem(REGISTRY, "zyte", _RenderPaidTier("zyte"))
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    state = make_default_state(settings=AppSettings())
+    provider = _SequencedProvider([_OBSTACLE_EMPTY])
+
+    result = await fetch(
+        "https://ssr.example/doc",
+        state=state,
+        ask="What is the cookie recipe?",
+        llm_extractor=lazy(_extractor(state, provider)),
+        debug=True,
+    )
+
+    assert not any(d.step == "zyte" for d in result.diagnostics)  # ceiling suppressed the render
+    assert len(provider.calls) == 1

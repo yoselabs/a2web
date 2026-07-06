@@ -8,6 +8,28 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.32.2] — 2026-07-06
+
+> The v0.32.1 marker guard wasn't enough — SSR framework sites (Next/Nuxt) carry
+> SPA markers yet already contain their content. Adds a content-length ceiling as
+> the real distinguisher, so content-rich pages never render on `obstacle: empty`.
+
+### Fixed — Obstacle-render SSR content ceiling (`obstacle-render-ssr-ceiling`)
+
+- **Content-length ceiling is the load-bearing guard.** Live testing found that
+  the v0.32.1 marker check still rendered rfc-editor.org (a Nuxt SSR app): SSR
+  sites carry `id="__nuxt"` / `__NUXT_DATA__` markers but already contain their
+  full content, and markers can't tell an SSR page from a CSR shell. The
+  obstacle-driven render now also requires the already-extracted `content_md` to
+  be THIN (`< 2000` chars) — substantial content means the page is complete and
+  the answer's absence is real, so a render can't help. Only a thin result (in
+  the `(length_floor, 2000)` window) is plausibly an unrendered shell.
+- Widened the SPA mount markers to include Nuxt (`id="__nuxt"`, `__NUXT_DATA__`,
+  `__NEXT_DATA__`); the ceiling, not the markers, now carries the SSR exclusion.
+- Live-verified: rfc-editor.org (Nuxt) + a Wikipedia off-topic ask no longer
+  render — both flag `retrieval_incomplete` (loud miss) with zero paid egress.
+  Behavior-narrowing only; the never-silently-miss floor is unchanged.
+
 ## [0.32.1] — 2026-07-06
 
 > Follow-up to v0.32.0, from live testing. Guards the obstacle-driven render

@@ -268,3 +268,18 @@ def test_root_marker_without_script_is_not_flagged() -> None:
 def test_script_without_root_marker_is_not_flagged() -> None:
     # Analytics/ad scripts on a static page must not read as an unrendered SPA.
     assert not looks_like_unrendered_spa('<html><body><article>Static prose.</article><script src="/analytics.js"></script></body></html>')
+
+
+def test_noscript_plus_analytics_is_not_a_spa() -> None:
+    # The RFC-editor false positive: a complete static doc with a <noscript>
+    # block + an analytics <script> but NO framework mount must NOT be a shell.
+    html = (
+        '<html><head><script src="/ga.js"></script></head>'
+        "<body><noscript>Enable JS</noscript><pre>Full RFC text here.</pre></body></html>"
+    )
+    assert not looks_like_unrendered_spa(html)
+
+
+def test_custom_element_without_mount_is_not_a_spa() -> None:
+    # Web components on an otherwise-static page are not evidence of CSR.
+    assert not looks_like_unrendered_spa("<html><body><my-widget>rendered</my-widget><script>x()</script></body></html>")
