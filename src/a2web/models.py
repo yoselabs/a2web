@@ -170,6 +170,27 @@ def comments_partial_hint(*, loaded: int, total: int) -> OperatorHint:
     )
 
 
+def listing_partial_hint(*, loaded: int, total: int) -> OperatorHint:
+    """Honest partial-listing signal (listing-completeness sufficiency axis).
+
+    Informational (not critical): the fetch DID return real records — but fewer
+    than the page advertises, because infinite-scroll / lazy-load only
+    materialised the first batch. Names the loaded and total counts so an agent
+    knows it is holding a truncated sample, never the whole listing. Pairs with
+    the structured `items_loaded`/`items_total` fields on the response envelope.
+    """
+    return OperatorHint(
+        code="listing_partial",
+        message=(
+            f"Parsed {loaded} of {total} listed items — the rest load on scroll / a later page and were "
+            "NOT retrieved. This is a partial sample, not the complete listing. For a narrower, complete "
+            "set, refine the query (for a search) or open the page in a browser tool."
+        ),
+        fix="Narrow the search query for fewer, complete results, or open the URL in a browser tool to scroll the full listing.",
+        severity="info",
+    )
+
+
 def extraction_empty_hint(*, content_chars: int) -> OperatorHint:
     """Dangerous silent-miss guard: content was fetched but extraction produced
     no answer (never-silently-miss / ADR-0009 at extraction granularity).
@@ -380,6 +401,14 @@ class FetchResponse(BaseModel):
     comments_loaded: int | None = None
     comments_total: int | None = None
 
+    # listing-completeness (sufficiency axis): parsed record count vs the page's
+    # advertised item oracle for a listing page. Both None (omitted from the
+    # wire) unless the page was a partial listing. When set, `items_total`
+    # exceeds `items_loaded` and a `listing_partial` operator hint accompanies
+    # them — the honest "N of M items" truncated-sample signal.
+    items_loaded: int | None = None
+    items_total: int | None = None
+
     # v0.4: present only when the caller passed `ask=`. None when ask is unset.
     extracted_answer: str | None = None
     extraction: ExtractionMeta | None = None
@@ -579,6 +608,12 @@ class AskResponse(BaseModel):
     # flagged by a `comments_partial` operator hint.
     comments_loaded: int | None = None
     comments_total: int | None = None
+
+    # Mirrors FetchResponse — parsed vs advertised item counts for a partial
+    # listing (listing-completeness). Both None (omitted) unless the page was a
+    # partial listing; a shortfall is flagged by a `listing_partial` hint.
+    items_loaded: int | None = None
+    items_total: int | None = None
 
     content_md: str = ""
     headings: list[Heading] = Field(default_factory=list)

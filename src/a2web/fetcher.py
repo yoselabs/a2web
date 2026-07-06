@@ -25,6 +25,7 @@ import a2kit
 import a2kit.log
 from a2kit import Lazy
 
+from . import content_expectations
 from .actions import Action, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
 from .cookie_jar import Cookie, CookieJarResource
 from .decision_log import Observation, ObservationKind, resolve_verdict
@@ -38,6 +39,7 @@ from .domain import (
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .events.types import CookiesAttached, CookiesStale
 from .fetcher_response import _INCOMPLETE_OBSTACLES, build_response
+from .listing_oracle import listing_oracle
 from .llm_resource import LlmExtractorResource
 from .models import (
     CacheState,
@@ -50,6 +52,7 @@ from .models import (
     NextLinkKind,
     OperatorHint,
     Verdict,
+    listing_partial_hint,
     try_user_browser_hint,
 )
 from .packages.block_detector import evaluate as _package_evaluate
@@ -361,6 +364,15 @@ class FetchContext:
     # the response envelope by `build_response`.
     comments_loaded: int | None = None
     comments_total: int | None = None
+
+    # listing-completeness (sufficiency axis): the parsed record count the
+    # detector produced (progress metric — set by `_escalate_via_records`, None
+    # on a non-listing page), and the wire counts surfaced only when the listing
+    # is partial (oracle > records beyond tolerance). Threaded onto the envelope
+    # by `build_response`; the shortfall also appends a `listing_partial` hint.
+    record_count: int | None = None
+    items_loaded: int | None = None
+    items_total: int | None = None
 
     # v0.10: caller-supplied cap on content chars sent to the extractor LLM.
     # None = inherit Extractor's default (100_000).
@@ -1141,6 +1153,7 @@ async def _phase_extract(fc: FetchContext) -> None:
     fc.links = extract_result.links
     fc.meta_dict = parse_metadata(raw_html)
     await _run_extraction_escalation(fc, raw_html=raw_html)
+    _phase_listing_completeness(fc, raw_html=raw_html)
     extract_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - extract_dur_start
     fc.diagnostics.append(
         Diagnostic(
@@ -1194,6 +1207,35 @@ async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None
         if cand.next_links:
             fc.next_links_handler = cand.next_links
             break
+
+
+def _phase_listing_completeness(fc: FetchContext, *, raw_html: str) -> None:
+    """Sufficiency check — is a fetched listing complete, or a truncated sample?
+
+    Runs after record extraction (listing-completeness Slice 1). When the page
+    is a listing (`fc.record_count` set by `_escalate_via_records`) and an item
+    oracle (the advertised total) exceeds the parsed record count beyond
+    tolerance, surface an honest `listing_partial` signal plus the structured
+    `items_loaded`/`items_total` counts — so the caller can never mistake an
+    infinite-scroll sample for the whole listing (ADR-0009 on the sufficiency
+    axis). Pure verdict — no fetching; the bounded scroll-to-complete action is
+    a later slice.
+
+    Silent when: the page is not a listing (`record_count is None`); no oracle
+    is extractable (no completeness claim to check); or the count meets the
+    oracle within tolerance (`assess` → `ready`). A positive-oracle/zero-record
+    `fail` is the presence axis — left to the obstacle/wall machinery.
+    """
+    if fc.record_count is None:
+        return
+    total = listing_oracle(raw_html)
+    if total is None:
+        return
+    if content_expectations.assess(loaded=fc.record_count, total=total) != "partial":
+        return
+    fc.items_loaded = fc.record_count
+    fc.items_total = total
+    fc.operator_hints.append(listing_partial_hint(loaded=fc.record_count, total=total))
 
 
 def _pick_display_candidate(candidates: list[ContentCandidate]) -> str:
@@ -1326,6 +1368,9 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCa
     if record_set is not None:
         synthetic = record_set.to_markdown()
         if synthetic:
+            # Promote the parsed record count (previously logged and discarded)
+            # onto fc as the listing-completeness progress metric.
+            fc.record_count = len(record_set.records)
             next_links = _records_to_next_links(record_set, page_url=fc.final_url or "")
             await a2kit.log.info(
                 StageEnded(

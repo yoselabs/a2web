@@ -239,11 +239,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
     #     never ran (the `_extract_answer` phase emitted a critical hint).
     # This is the single response chokepoint, so the guarantee holds for every
     # route. `fetch_raw` (no `fc.ask`) is unaffected — it needs no answer.
-    extraction_empty = (
-        fc.extraction_meta is not None
-        and not (fc.extracted_answer or "").strip()
-        and len(fc.content_md) > 500
-    )
+    extraction_empty = fc.extraction_meta is not None and not (fc.extracted_answer or "").strip() and len(fc.content_md) > 500
     llm_unavailable = any(h.code == "llm_unavailable" for h in fc.operator_hints)
     ask_unanswered = final_verdict == Verdict.ok and bool(fc.ask) and (extraction_empty or llm_unavailable)
     if ask_unanswered:
@@ -317,6 +313,8 @@ def build_response(fc: FetchContext) -> FetchResponse:
         retrieval_incomplete=retrieval_incomplete,
         comments_loaded=fc.comments_loaded,
         comments_total=fc.comments_total,
+        items_loaded=fc.items_loaded,
+        items_total=fc.items_total,
         next_links=_compose_next_links(fc),
         extracted_answer=fc.extracted_answer,
         extraction=fc.extraction_meta,
@@ -420,6 +418,8 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         retrieval_incomplete=retrieval_incomplete,
         comments_loaded=fr.comments_loaded,
         comments_total=fr.comments_total,
+        items_loaded=fr.items_loaded,
+        items_total=fr.items_total,
         next_links=list(fr.next_links),
         meta=dict(fr.meta),
         extraction=_debug_extraction(fr.extraction, debug=debug),

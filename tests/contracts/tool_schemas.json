@@ -531,6 +531,30 @@
           "title": "Headings",
           "type": "array"
         },
+        "items_loaded": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Items Loaded"
+        },
+        "items_total": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Items Total"
+        },
         "meta": {
           "additionalProperties": {
             "type": "string"
@@ -1275,6 +1299,30 @@
           },
           "title": "Headings",
           "type": "array"
+        },
+        "items_loaded": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Items Loaded"
+        },
+        "items_total": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Items Total"
         },
         "links": {
           "items": {
