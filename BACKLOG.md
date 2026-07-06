@@ -17,6 +17,25 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-06 — listing-completeness Slice 2b (local-browser scroll)
+
+Source: `listing-completeness` (Slice 2 shipped the Zyte scrolling render; this
+is the deferred free path).
+
+- **🟢 Free local-browser scroll-to-stable loop.** Slice 2's bounded
+  scroll-to-complete goes through the paid Zyte `browserHtml` render
+  (`_phase_listing_render` → `_escalate_paid(scroll=True)`). The *free* own-browser
+  path — generalising the local backend's single-shot `_scroll_and_retry` into a
+  scroll-until-the-record-count-is-stable-or-cap loop, and preferring it before
+  paid egress in `_phase_listing_render` — was deferred because it needs
+  live-browser verification (out of `make check`) and the Zyte path already
+  delivers the mechanism + full orchestration. When built: a keyed paid tier is
+  no longer required to complete a partial listing. Composes with the existing
+  `content-expectations action loop for a scrolling browser rung` note below (same
+  seam, different consumer). Scope: M.
+
+---
+
 ## 2026-07-06 — json-endpoint-direct-routing deferrals
 
 Source: `json-endpoint-direct-routing` (Out of Scope). Shipped: JSON responses
