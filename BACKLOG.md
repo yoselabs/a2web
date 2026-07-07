@@ -17,6 +17,94 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-07 — Output benchmark for structured-data pages (S)
+
+Source: `structured-data-answers` + `structured-grounded-completeness`
+(shipped v0.35.0, 2026-07-07), task 6.2. Deferred because `make bench` is
+live-network and spends LLM quota, so it is deliberately out of `make check`.
+
+- **Add a contact/LocalBusiness case to `eval/corpus.yaml`.** A thin page
+  whose only answer source is JSON-LD (the `veito.com/iletisim-EN.html`
+  shape) — the class the v0.35.0 exemption now answers. Guards against a
+  future regression that re-fails these pages at the length floor.
+- **Run `make bench` and record findings** in `eval/findings_<date>.md`.
+  Quantifies the answer-quality / data-contract-conformance movement on the
+  structured-page class (the four-axis harness tests in `make check` keep the
+  harness from rotting but do not measure live quality). Scope: S — one corpus
+  entry + one bench run + a short findings note.
+
+## 2026-07-07 — DataDome / hard-wall handling (Koçtaş explore session)
+
+Source: 2026-07-07 explore session on a real DataDome wall
+(`koctas.com.tr`, product price behind the challenge). a2web behaved
+*correctly* — escalated the full free ladder (raw → jina → browser →
+browser_robust), hit `anti_bot` every time, returned `status:failed` +
+`retrieval_incomplete:true` + a critical `try_user_browser` hint. Not a
+bug; a set of gaps in *how* it fails and what next-move it can offer.
+Code map cited below. Cross-refs: 2026-05-23 "Agent-identity stealth"
+(§ Sec-Fetch / cookie carry-through, same theme, header side); AliExpress
+"Browser tier honors `proxy_url`" keystone; PR7e "Browser-tier proxy
+plumbing".
+
+- **🔴 Wire the operator's real cookies into the browser tier (the
+  keystone).** `_escalate_browser` calls `browser_tier.fetch(url, state,
+  backend)` with **no `cookies_full=`** (`fetcher.py:~1497`). The browser
+  tier already accepts `cookies_full` and converts via `_cookie_to_backend`
+  → `backend.render(..., cookies=...)` (`tiers/browser.py:105-128, 43-54`),
+  but the orchestrator never supplies them, so every browser render runs
+  **logged-out**. Cookies resolved in `_phase_resolve_cookies`
+  (`fetcher.py:603-642`) reach only the raw/curl tier (`fetcher.py:949-955`)
+  — the one tier a JS challenge defeats regardless. This is the single
+  load-bearing gap for cookie/JS walls like DataDome: the entire cookie-jar
+  subsystem (v0.8) mirrors the user's authenticated session, then never
+  hands it to the tier that executes the challenge. **This is "be the real
+  user," not fingerprint spoofing** — a fundamentally more winnable and more
+  defensible game than the Camoufox arms race. Caveat: even with cookies, a
+  headless fingerprint may still betray it (Patchright/Zendriver active;
+  Camoufox gated OFF, see 2026-06-26 §Camoufox). Trip condition is already
+  met (this session). Scope: S (wire the kwarg) + M (verify it actually
+  passes a real DataDome host with a live operator session).
+
+- **🟡 Per-domain wall memory (kill the ~40s tax).** Walled fetches are
+  **never cached** — `_phase_cache_write` writes only when
+  `resolved_verdict() is Verdict.ok` (`fetcher.py:~1646`). The circuit
+  breaker is per-host HTTP-only (5-fail / 30s / process-local,
+  `state.py:86-88`, consumed only in `tiers/raw.py:80`) and does **not**
+  short-circuit the browser/archive/paid cascade. So a2web re-runs the full
+  ~40s ladder on a known-walled host **every request**, learning nothing.
+  Add a short-TTL negative memory ("host hard-walled at `anti_bot` →
+  fail-fast with the `try_user_browser` hint, skip the browser rungs") with
+  an operator override. Care needed: walls come and go — short TTL, and a
+  successful fetch clears it. Division of labor note: the *market-routing*
+  compensation ("koctas → price via Hepsiburada") belongs in the
+  products-picker profile, not here; a2web owns only the *fetch fact* ("this
+  host hard-walls"). Scope: M.
+
+- **🟡 Activate the dead `partial` status (shell-vs-answer split).**
+  `FetchStatus.partial` exists in the enum (`models.py:48`) but is **never
+  assigned** — `build_response` is strictly binary (`ok` else `failed`,
+  `fetcher_response.py:207`). On a 200 + JS-shell wall, `<head>` OG/JSON-LD
+  metadata *does* leak onto the failed envelope (`meta` survives `_prune_wire`
+  when non-empty, `models.py:508-529`), but it's never labeled "got the
+  catalog shell, not the price." A real `partial` status could model
+  "retrieved the page shell / metadata, but the answer-bearing body is
+  walled" — exactly the split the Koçtaş case produced (confirmed the model
+  is in-catalog, could not get its price). **Envelope change → ask-first**
+  (breaking for parsers; same gate as the 2026-07-06 "requested-vs-actual
+  URL" item). Its own deliberate design pass. Scope: M.
+
+- **🟢 DataDome-specific detector.** `packages/block_detector.py` matches
+  Cloudflare/Turnstile/Akamai/Anubis/Alibaba-Baxia/search-captcha (lines
+  54-133) but has **no `datadome` pattern** — a DataDome challenge is caught
+  only generically via `length_floor` / `js_required` (lines 193-200), so
+  a2web can't name the wall or branch on it. A `datadome` subsystem tag
+  would let the wall-memory + fail-fast items above target the one wall
+  class that is genuinely unbeatable-by-headless, and sharpen the operator
+  hint. Cheap marker addition. Scope: S. (Prereq/enabler for the 🟡
+  wall-memory item to be DataDome-precise rather than generic-`anti_bot`.)
+
+---
+
 ## 2026-07-06 — listing-completeness Slice 2b (local-browser scroll)
 
 Source: `listing-completeness` (Slice 2 shipped the Zyte scrolling render; this
