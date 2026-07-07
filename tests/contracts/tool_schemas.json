@@ -394,6 +394,25 @@
           "title": "OperatorHint",
           "type": "object"
         },
+        "RefinementAxis": {
+          "description": "One dimensional refinement axis for a partial listing.\n\nA *dimension* the agent can re-query on to narrow a truncated / sorted\nlisting (e.g. \"price floor\", \"sort order\", \"brand\") \u2014 never a specific value\ndrawn from the retrieved (possibly biased) sample. `how` is a one-line\nguidance on applying that dimension. The dimensional-not-value discipline is\nenforced upstream in the extraction prompt; the model here just carries it.",
+          "properties": {
+            "dimension": {
+              "title": "Dimension",
+              "type": "string"
+            },
+            "how": {
+              "title": "How",
+              "type": "string"
+            }
+          },
+          "required": [
+            "dimension",
+            "how"
+          ],
+          "title": "RefinementAxis",
+          "type": "object"
+        },
         "Verdict": {
           "enum": [
             "ok",
@@ -611,6 +630,13 @@
           ],
           "default": null,
           "title": "Published"
+        },
+        "refinement_axes": {
+          "items": {
+            "$ref": "#/$defs/RefinementAxis"
+          },
+          "title": "Refinement Axes",
+          "type": "array"
         },
         "retrieval_incomplete": {
           "default": false,
@@ -1073,8 +1099,27 @@
           "title": "OperatorHint",
           "type": "object"
         },
+        "RefinementAxis": {
+          "description": "One dimensional refinement axis for a partial listing.\n\nA *dimension* the agent can re-query on to narrow a truncated / sorted\nlisting (e.g. \"price floor\", \"sort order\", \"brand\") \u2014 never a specific value\ndrawn from the retrieved (possibly biased) sample. `how` is a one-line\nguidance on applying that dimension. The dimensional-not-value discipline is\nenforced upstream in the extraction prompt; the model here just carries it.",
+          "properties": {
+            "dimension": {
+              "title": "Dimension",
+              "type": "string"
+            },
+            "how": {
+              "title": "How",
+              "type": "string"
+            }
+          },
+          "required": [
+            "dimension",
+            "how"
+          ],
+          "title": "RefinementAxis",
+          "type": "object"
+        },
         "RouterPayload": {
-          "description": "Router-shape payload emitted by the `extract_router_v1` template.\n\nThree required fields (`answer`, `structural_form`, `shape`) describe what\nthe page IS. Four conditional fields (`genre`, `obstacle`, `ask_here`,\n`try_url`) describe what it's ABOUT plus drilldown hints; the serializer\non `AskResponse` omits the conditionals from the wire when empty.",
+          "description": "Router-shape payload emitted by the `extract_router_v1` template.\n\nThree required fields (`answer`, `structural_form`, `shape`) describe what\nthe page IS. Four conditional fields (`genre`, `obstacle`, `ask_here`,\n`try_url`) describe what it's ABOUT plus drilldown hints; the serializer\non `AskResponse` omits the conditionals from the wire when empty.\n`refinement_axes` carries content-aware refinement guidance for a partial\nlisting (dimensional only); it too is omit-empty at the wire.",
           "properties": {
             "answer": {
               "title": "Answer",
@@ -1108,6 +1153,18 @@
               "default": null,
               "title": "Genre"
             },
+            "item_total_seen": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Item Total Seen"
+            },
             "obstacle": {
               "anyOf": [
                 {
@@ -1125,6 +1182,13 @@
               ],
               "default": null,
               "title": "Obstacle"
+            },
+            "refinement_axes": {
+              "items": {
+                "$ref": "#/$defs/RefinementAxis"
+              },
+              "title": "Refinement Axes",
+              "type": "array"
             },
             "shape": {
               "enum": [

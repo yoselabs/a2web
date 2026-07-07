@@ -8,6 +8,41 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added — Content-aware refinement guidance (`content-aware-refinement-guidance`)
+
+> A truncated listing was often not just partial but **biased** — a
+> price-ascending search returned the cheapest N of 1123, and any "best
+> product" judgment over that batch was systematically wrong. The tool now
+> reasons over the content in hand (never a per-site parser) to hand the agent
+> the levers to escape the truncation. Motivating case: a Hepsiburada crimping-
+> tool search sorted `siralama=artanFiyat` returned 36 of 1123 with no way to
+> narrow.
+
+- **Dimensional refinement axes on a partial listing.** On the `ask` path the
+  extractor proposes *axes to re-query on* (add a price floor, sort by rating,
+  narrow by brand) — never specific values drawn from the biased sample, so a
+  truncated read can't launder into a biased recommendation. Rides `AskResponse`
+  as a conditional `refinement_axes` field, omitted from the wire unless the
+  listing is partial (gated on `items_loaded`).
+- **LLM-side partialness detection.** The extractor reports `item_total_seen`
+  (the total it *read* off the page, in any language), used as an oracle
+  fallback when the regex noun list misses the page's language (RU `товаров`,
+  JP `件`). A strict superset of the regex oracle — only ever adds a partial
+  signal, never overrides a regex verdict. Closes the region-coverage gap for a
+  distributed tool.
+- **Content-type guidance.** A per-**kind** (never per-site) "what matters"
+  line surfaces as an info `content_guidance` operator hint, keyed off the
+  closed `structural_form` enum (`listing` → completeness + selection bias;
+  `thread` → consensus vs dissent; `product` → price/specs/availability).
+- **Context bundle.** `parse_query_params` surfaces a URL's query string as
+  opaque, uninterpreted `key=value` pairs (a2web never decodes `artanFiyat` —
+  that would be per-site scar tissue); the reasoning model decodes meaning.
+- **Non-goal, explicit:** no deterministic per-site pagination (`page` /
+  `offset` / cursor) — paging contracts are per-site chaos.
+- Additive wire fields only (no tool-signature change); the static MCP tool
+  description is unchanged. New architecture invariant:
+  `KIND_GUIDANCE` carries no site/host string.
+
 ## [0.35.0] — 2026-07-07
 
 > Thin pages whose answer lives only in structured data (company contact

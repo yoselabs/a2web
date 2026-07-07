@@ -147,8 +147,7 @@ async def test_above_floor_prose_keeps_display_over_structured(monkeypatch: pyte
 from a2web.fetcher_response import build_ask_response  # noqa: E402
 
 _ROUTER_EMPTY_OBSTACLE = (
-    '{"answer": "Phone 444 3 061, email destek@veito.com", '
-    '"structural_form": "product", "shape": "key-value", "obstacle": "empty"}'
+    '{"answer": "Phone 444 3 061, email destek@veito.com", "structural_form": "product", "shape": "key-value", "obstacle": "empty"}'
 )
 
 

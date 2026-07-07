@@ -235,6 +235,22 @@ EXTRACT_ROUTER_V1 = PromptTemplate(
         "  (WHY this URL likely has what the current page is missing) and ≤120 chars. Context\n"
         "  decides count: 3 good, 5 great, up to 10 on rich pages, OMIT on simple pages.\n"
         "\n"
+        "  item_total_seen (optional, int) — ONLY when structural_form=listing: the TOTAL number\n"
+        "  of items/results the PAGE ITSELF advertises (e.g. a '1123 results' / '1,123 ürün' /\n"
+        "  '32,346 comments' count), in ANY language. Report the number you can READ on the page\n"
+        "  even when only a subset of rows is shown. OMIT when the page states no total.\n"
+        "\n"
+        "  refinement_axes (optional, list of {{dimension, how}}) — ONLY when structural_form=listing\n"
+        "  AND the shown rows are a truncated or sorted SUBSET of a larger set. Propose DIMENSIONS the\n"
+        '  agent can re-query on to narrow the field: e.g. {{"dimension": "price floor", "how": "add a\n'
+        '  minimum price to skip the cheapest tier"}}, {{"dimension": "sort order", "how": "sort by\n'
+        '  rating instead of price"}}, {{"dimension": "brand", "how": "narrow to one brand to compare"}}.\n'
+        "  NEVER name a specific value or item from the rows shown (no 'buy brand X', no 'the cheapest\n"
+        "  are best') — the shown rows may be a biased sample, so name the AXIS, not a value. Consider\n"
+        "  the page's own URL and its query parameters (visible in the content) — an existing sort or\n"
+        "  filter is itself an axis the agent can change. Context decides count: 2-4 axes. OMIT on\n"
+        "  complete listings and on non-listings.\n"
+        "\n"
         "Envelope discipline: when a field is empty / null / does-not-apply, OMIT the key\n"
         "ENTIRELY. Do not emit `null` or `[]` — absence carries the meaning.\n"
         "\n"
@@ -262,6 +278,19 @@ EXTRACT_ROUTER_V1 = PromptTemplate(
         '    "shape": "prose",\n'
         '    "obstacle": "paywalled",\n'
         '    "try_url": [{{"url": "<archive-url>", "reason": "archive snapshot"}}]\n'
+        "  }}\n"
+        "\n"
+        "Example (truncated, price-sorted product listing):\n"
+        "  {{\n"
+        '    "answer": "<concise answer over the rows shown>",\n'
+        '    "structural_form": "listing",\n'
+        '    "shape": "records",\n'
+        '    "item_total_seen": 1123,\n'
+        '    "refinement_axes": [\n'
+        '      {{"dimension": "price floor", "how": "add a minimum price to skip the cheapest tier"}},\n'
+        '      {{"dimension": "sort order", "how": "sort by rating instead of price"}},\n'
+        '      {{"dimension": "brand", "how": "narrow to one brand to compare like-for-like"}}\n'
+        "    ]\n"
         "  }}\n"
     ),
 )

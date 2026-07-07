@@ -15,6 +15,7 @@ import time
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from .content_guidance import kind_guidance
 from .decision_log import resolve_verdict
 from .log import log_warning
 from .models import (
@@ -67,6 +68,8 @@ def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
                 "obstacle": boundary.obstacle,
                 "ask_here": list(boundary.ask_here),
                 "try_url": [{"url": u.url, "reason": u.reason} for u in boundary.try_url],
+                "refinement_axes": [{"dimension": a.dimension, "how": a.how} for a in boundary.refinement_axes],
+                "item_total_seen": boundary.item_total_seen,
             }
         )
     except Exception as exc:
@@ -246,9 +249,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # This is the single response chokepoint, so the guarantee holds for every
     # route. `fetch_raw` (no `fc.ask`) is unaffected — it needs no answer.
     extraction_empty = (
-        fc.extraction_meta is not None
-        and not (fc.extracted_answer or "").strip()
-        and (len(fc.content_md) > 500 or fc.structured_grounded)
+        fc.extraction_meta is not None and not (fc.extracted_answer or "").strip() and (len(fc.content_md) > 500 or fc.structured_grounded)
     )
     llm_unavailable = any(h.code == "llm_unavailable" for h in fc.operator_hints)
     ask_unanswered = final_verdict == Verdict.ok and bool(fc.ask) and (extraction_empty or llm_unavailable)
@@ -396,6 +397,24 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
 
     routing = fr.routing
 
+    # Content-type guidance (content-aware refinement): when the extractor
+    # classified the page kind, surface a one-line "what matters for this kind"
+    # info hint for the caller's model — keyed off the closed structural_form
+    # enum, never a site (see content_guidance.KIND_GUIDANCE).
+    if routing is not None:
+        guidance = kind_guidance(routing.structural_form)
+        if guidance is not None:
+            op_hints.append(
+                OperatorHint(code="content_guidance", message=guidance, fix="", severity="info"),
+            )
+
+    # Dimensional refinement axes ride the envelope ONLY on a partial listing:
+    # `fr.items_loaded` is set exactly when the listing is partial (numeric or
+    # structural-more) and None on a complete listing or a non-listing page, so
+    # this gate drops axes precisely where the spec requires (biased-sample
+    # laundering guard — the axes themselves are dimensional by prompt contract).
+    refinement_axes = list(routing.refinement_axes) if routing is not None and fr.items_loaded is not None else []
+
     # Confabulation guard (search-retrieval-and-confabulation-guard P2): the
     # extractor's own `obstacle` signal reconciles confidence + completeness.
     # `_confidence_for` runs in `build_response` — before the answer-extraction
@@ -416,9 +435,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     # extractor's `obstacle: empty` a false positive — do NOT flag retrieval
     # incomplete (the `confidence = low` cap above is retained as the honest
     # hedge). `blocked`, an empty answer, and non-grounded pages are unaffected.
-    structured_grounded_empty = (
-        obstacle == "empty" and bool((fr.extracted_answer or "").strip()) and fr.structured_grounded
-    )
+    structured_grounded_empty = obstacle == "empty" and bool((fr.extracted_answer or "").strip()) and fr.structured_grounded
     if obstacle in _INCOMPLETE_OBSTACLES and not structured_grounded_empty:
         retrieval_incomplete = True
         op_hints.append(
@@ -466,6 +483,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         obstacle=routing.obstacle if routing is not None else None,
         ask_here=list(routing.ask_here) if routing is not None else [],
         try_url=list(routing.try_url) if routing is not None else [],
+        refinement_axes=refinement_axes,
     )
 
 

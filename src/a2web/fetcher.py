@@ -181,9 +181,7 @@ def evaluate(
         subsystem = None
         promoted_structured = True
 
-    return _GateResult(
-        verdict=verdict, subsystem=subsystem, escalation=escalation, promoted_structured=promoted_structured
-    )
+    return _GateResult(verdict=verdict, subsystem=subsystem, escalation=escalation, promoted_structured=promoted_structured)
 
 
 @dataclass(slots=True, frozen=True)
@@ -405,6 +403,11 @@ class FetchContext:
     record_count: int | None = None
     items_loaded: int | None = None
     items_total: int | None = None
+    # The numeric oracle the regex path extracted (set even when it deemed the
+    # listing complete), so the LLM-side oracle fallback fires ONLY when the
+    # regex found no numeric total at all — never overriding a regex verdict
+    # (content-aware refinement, LLM-side detection never suppresses a signal).
+    regex_oracle_total: int | None = None
     # Structural "more exists" fallback: set when the listing has no numeric
     # oracle but exposes a pagination / infinite-scroll affordance. `items_loaded`
     # is set (record count) while `items_total` stays None; `build_response`
@@ -1275,6 +1278,9 @@ def _phase_listing_completeness(fc: FetchContext, *, raw_html: str) -> None:
         return
     total = listing_oracle(raw_html)
     if total is not None:
+        # Record the regex oracle even on a complete verdict — the LLM-side
+        # fallback consults this to stay a strict superset (never overrides).
+        fc.regex_oracle_total = total
         if content_expectations.assess(loaded=fc.record_count, total=total) != "partial":
             return
         # Flag the partial state; the `listing_partial` hint is appended by
@@ -1288,6 +1294,39 @@ def _phase_listing_completeness(fc: FetchContext, *, raw_html: str) -> None:
     if listing_has_more(raw_html):
         fc.items_loaded = fc.record_count
         fc.items_more = True
+
+
+def _apply_llm_listing_oracle(fc: FetchContext) -> None:
+    """LLM-side partialness detection — the regex oracle's language-agnostic superset.
+
+    Runs after `_phase_extract_answer` sets `fc.routing`, so the model's
+    `item_total_seen` (a total it READ off the page, in any language) is
+    available. Closes the regex noun-list's language-coverage gap for a
+    distributed, multi-region tool: a page whose "1123 ürün" / "товаров" / "件"
+    count the regex could not match still surfaces an honest partial signal.
+
+    Strict superset — it ONLY adds a signal, never suppresses one:
+    - fires only when the regex found NO numeric oracle at all
+      (`regex_oracle_total is None`), so a regex "complete" verdict stands;
+    - only on a confirmed listing (`record_count` set) whose LLM total exceeds
+      the parsed count beyond tolerance;
+    - quantifies a prior structural-`listing_more` into a numeric `listing_partial`
+      when it can (clearing `items_more` in favour of `items_total`).
+    """
+    if fc.record_count is None:
+        return
+    if fc.regex_oracle_total is not None:
+        return
+    if fc.routing is None:
+        return
+    total = fc.routing.item_total_seen
+    if total is None:
+        return
+    if content_expectations.assess(loaded=fc.record_count, total=total) != "partial":
+        return
+    fc.items_loaded = fc.record_count
+    fc.items_total = total
+    fc.items_more = False
 
 
 def _pick_display_candidate(candidates: list[ContentCandidate]) -> str:
@@ -2025,6 +2064,9 @@ async def _phase_extract_answer(
     # the model returned malformed JSON or `include_routing=False`, this is
     # None.
     fc.routing = result.routing
+    # LLM-side partialness detection (superset of the regex oracle) now that the
+    # model's `item_total_seen` is available — closes the noun-list language gap.
+    _apply_llm_listing_oracle(fc)
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
     await a2kit.log.info(
         StageEnded(
