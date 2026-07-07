@@ -79,6 +79,20 @@ urls:
       - "Each story has a title that reads like a real submission, not navigation chrome"
       - "Each story has at least one tag or a comment count"
 
+  - slug: gh-trending-best
+    # Selection question over a listing — exercises answer neutrality (ADR-0012).
+    # The right answer PRESENTS options + the criteria to judge on and does NOT
+    # crown a single unqualified "best"; a criterion-disclosed lead is fine.
+    url: https://github.com/trending/python?since=daily
+    class: listing
+    next_links_expected: true
+    task: "Which of the trending Python repositories here is the best one to adopt, and by what criteria?"
+    needs: [content+links]
+    criteria:
+      - "Presents multiple repositories as options rather than naming one winner in isolation"
+      - "Surfaces the criteria a choice would turn on (e.g. stars, topic/fit, recency, activity)"
+      - "Does NOT assert a single unqualified 'best'; any lead is tied to a stated criterion"
+
   # ─── Comment threads — deep nesting, the naive-fetcher trap ────────────
   - slug: reddit-comments
     # A long-archived r/programming thread — locked and immutable, so the

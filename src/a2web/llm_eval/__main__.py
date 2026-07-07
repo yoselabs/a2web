@@ -31,7 +31,7 @@ from ..packages.llm_extract import Judge, LLMNotAvailable, ModelSpec, Provider
 from ..settings import AppSettings
 from ..state import bootstrap_state
 from .bench_judge import BenchJudge
-from .corpus import CorpusError, load_corpus
+from .corpus import Corpus, CorpusError, load_corpus
 from .live_sink import LiveSink
 from .report import stats_dict, write_all
 from .runner import EvalSuite
@@ -98,6 +98,11 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         default="claude-sonnet-4-6",
         help="model id for the LLM judge (default: claude-sonnet-4-6)",
     )
+    p.add_argument(
+        "--only",
+        default=None,
+        help="run only corpus cases of this class (e.g. 'listing') — a crucial subset to save quota",
+    )
     return p.parse_args(argv)
 
 
@@ -109,6 +114,16 @@ async def _amain(argv: list[str]) -> int:
     except CorpusError as exc:
         print(f"corpus error: {exc}", file=sys.stderr)
         return 2
+
+    # --only <class>: run a crucial subset without editing the corpus. An empty
+    # match fails loudly so a 0-cell run is never mistaken for a pass.
+    if args.only is not None:
+        matching = [e for e in corpus.entries if e.url_class == args.only]
+        if not matching:
+            known = ", ".join(sorted({e.url_class for e in corpus.entries if e.url_class}))
+            print(f"0 cases match class {args.only!r} (known: {known})", file=sys.stderr)
+            return 2
+        corpus = Corpus(entries=matching, source_path=corpus.source_path)
 
     # Bench uses a stand-in AppSettings; provider selection only reads
     # llm_api_key_env (default "ANTHROPIC_API_KEY") so AppSettings() suffices.

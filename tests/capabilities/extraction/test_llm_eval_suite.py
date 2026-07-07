@@ -410,6 +410,19 @@ async def test_report_writes_all_expected_artifacts(tmp_path: Path) -> None:
     frozen = yaml.safe_load((out / "corpus.frozen.yaml").read_text())
     assert frozen == yaml.safe_load(corpus_path.read_text())
 
+    # results.json: {summary, rows} with a cost/token rollup (eval-results-json-and-subset)
+    rj = json.loads((out / "results.json").read_text())
+    assert len(rj["rows"]) == 4  # same cell count as results.tsv
+    assert {r["system"] for r in rj["rows"]} == {"alpha", "beta"}
+    assert set(rj["summary"]["per_system"]) == {"alpha", "beta"}
+    overall = rj["summary"]["overall"]
+    assert overall["cells"] == 4
+    # summary totals equal the sum over rows
+    assert overall["total_cost_usd"] == round(
+        sum(r["fetch_cost_usd"] + r["judge_cost_usd"] for r in rj["rows"]), 6
+    )
+    assert overall["fetch_prompt_tokens"] == sum(r["fetch_prompt_tokens"] for r in rj["rows"])
+
 
 @pytest.mark.asyncio
 async def test_stats_dict_summarizes_run(tmp_path: Path) -> None:

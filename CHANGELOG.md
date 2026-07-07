@@ -8,6 +8,30 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.39.0] — 2026-07-08
+
+> Harness-only: make a bench run legible and cheap. Every run now writes a
+> machine-readable `results.json` with the real cost/token totals the SDK already
+> reports, and `--only <class>` runs a crucial subset instead of the full 22×3
+> matrix. Plus a "which is best?" corpus case so a run actually exercises the
+> answer-neutrality change (ADR-0012).
+
+### Added — structured eval results + crucial subset (`eval-results-json-and-subset`)
+
+- **`results.json` per run** — `{summary, rows}`: one object per (corpus × system)
+  cell plus a rollup of `total_cost_usd` and prompt/completion tokens, overall and
+  per-system. Values come straight from the provider (the claude-code SDK's
+  `ResultMessage` on the subscription path), so a run's spend is legible without
+  parsing markdown. `results.tsv` / `manifest.json` / `cost.md` unchanged.
+- **`--only <class>` subset filter** — run only cases of a class (e.g.
+  `--only listing`) to save quota; an unknown class fails loudly ("0 cases match…")
+  and exits non-zero, so an empty run is never mistaken for a pass.
+- **Selection-question corpus case** (`gh-trending-best`) — a "which is best?" task
+  over a listing whose criteria reward presenting options + criteria and forbid an
+  unqualified single "best", so the bench exercises answer neutrality.
+- Harness-only; no product-wire change, `make check` green with stubs (no live LLM
+  calls to build or test).
+
 ## [0.38.0] — 2026-07-07
 
 > `ask` stopped **manufacturing a verdict it can't own**. Asked "which is best?"
