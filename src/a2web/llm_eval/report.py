@@ -54,12 +54,62 @@ def write_all(report: EvalReport) -> None:
     report.output_dir.mkdir(parents=True, exist_ok=True)
 
     _write_results_tsv(report)
+    _write_results_json(report)
     _write_manifest(report)
     _write_leaderboard(report)
     _write_axes(report)
     _write_cost(report)
     _write_findings(report)
     _copy_corpus(report)
+
+
+def _cost_token_summary(rows: list[EvalRow]) -> dict[str, object]:
+    """Roll up a run's spend — the numbers the provider (claude-code SDK on the
+    subscription path) already reported. `total_cost_usd` covers fetch + judge;
+    token totals are fetch-side (judge tokens are not retained per row)."""
+    return {
+        "cells": len(rows),
+        "total_cost_usd": round(sum(r.fetch_cost_usd + r.judge_cost_usd for r in rows), 6),
+        "fetch_prompt_tokens": sum(r.fetch_prompt_tokens for r in rows),
+        "fetch_completion_tokens": sum(r.fetch_completion_tokens for r in rows),
+    }
+
+
+def _write_results_json(report: EvalReport) -> None:
+    """Structured `{summary, rows}` — a run's every result plus its cost/token
+    rollup, legible to any downstream tool without parsing the markdown."""
+    rows = [
+        {
+            "slug": r.slug,
+            "url": r.url,
+            "class": r.url_class,
+            "system": r.system,
+            "task": r.task,
+            "quality": r.judge_overall,
+            "reached": r.judge_reached,
+            "clarity": r.clarity_score,
+            "contract_ok": r.contract_conformant,
+            "next_links_score": r.next_links_score,
+            "envelope_tokens_total": r.envelope_tokens_total,
+            "fetch_cost_usd": r.fetch_cost_usd,
+            "fetch_prompt_tokens": r.fetch_prompt_tokens,
+            "fetch_completion_tokens": r.fetch_completion_tokens,
+            "judge_cost_usd": r.judge_cost_usd,
+            "fetch_error": r.fetch_error,
+        }
+        for r in report.rows
+    ]
+    per_system: dict[str, list[EvalRow]] = {}
+    for r in report.rows:
+        per_system.setdefault(r.system, []).append(r)
+    payload = {
+        "summary": {
+            "overall": _cost_token_summary(report.rows),
+            "per_system": {system: _cost_token_summary(rs) for system, rs in per_system.items()},
+        },
+        "rows": rows,
+    }
+    (report.output_dir / "results.json").write_text(json.dumps(payload, indent=2) + "\n")
 
 
 def _write_results_tsv(report: EvalReport) -> None:
