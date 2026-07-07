@@ -24,6 +24,8 @@ def _build(settings: AppSettings) -> BrowserBackend | Unavailable:
         max_pool=settings.browser_max_pool,
         idle_timeout_s=settings.browser_idle_timeout_s,
         page_budget_s=settings.browser_page_budget_s,
+        launch_budget_s=settings.browser_launch_budget_s,
+        reaper_interval_s=settings.browser_reaper_interval_s,
         stderr_sink=_emit_browser_stderr,
     )
 

@@ -1578,10 +1578,22 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
     # is a no-op and the empty body falls through to the never-silently-miss hint.
     if fc.render_requested and fc.pre_rendered_payload is None and fc.paid_dispatches < 1:
         await _escalate_paid(fc, state=state)
-        # The render was our only route to this page (the free tiers were stopped).
-        # If it produced nothing — no paid tier keyed, or the paid tier failed —
-        # this is a loud miss: emit the critical never-silently-miss hint.
-        if fc.pre_rendered_payload is None and not _has_browser_hint(fc):
+        # Paid tier absent/failed → try the own-browser BEFORE conceding. The
+        # ladder is paid-scraper → real-browser → hint: a real (anti-detect)
+        # browser passes soft per-IP walls the HTTP client cannot (e.g. Reddit
+        # RSS throttling), and the local install ships Camoufox. A missing
+        # backend short-circuits to an unavailable verdict (cheap no-op), so this
+        # only installs content when a browser genuinely renders the surface.
+        if fc.pre_rendered_payload is None and fc.browser_dispatches < 1:
+            await _escalate_browser(fc, state=state)
+        # The render ladder was our only route (the free tiers were stopped). If
+        # it did not yield a usable (ok) page — nothing rendered, OR the browser
+        # rendered a page the gate flagged as a wall (Reddit login gate: the
+        # browser passed the anti-bot but the SITE walls it) — this is a loud
+        # miss: emit the critical never-silently-miss hint. Gate on the resolved
+        # verdict, NOT `pre_rendered_payload is None`: a walled browser render
+        # installs a payload yet is still a miss (ADR-0009).
+        if fc.resolved_verdict() is not Verdict.ok and not _has_browser_hint(fc):
             fc.operator_hints.append(try_user_browser_hint(fc.final_url))
 
     if not (fc.body and fc.resolved_verdict() is Verdict.ok):

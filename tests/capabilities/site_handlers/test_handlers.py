@@ -668,6 +668,64 @@ async def test_reddit_rss_429_fails_loud_after_backoff(monkeypatch: pytest.Monke
 
 
 @pytest.mark.asyncio
+async def test_reddit_rss_429_honors_ratelimit_reset_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 429 carrying `x-ratelimit-reset` backs off for that window, then the
+    retry lands fresh and renders — Reddit's transient per-IP rate-limit is
+    ridden out, not walled (the mission-critical property). The measured live
+    signal is `x-ratelimit-reset: <seconds>`; the handler must honor it instead
+    of the blind ~2s fixed backoff that fails loud far too early."""
+    slept: list[float] = []
+
+    async def _fake_sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    monkeypatch.setattr("a2web.handlers.reddit.anyio.sleep", _fake_sleep)
+
+    responses = iter(
+        [
+            FakeCurlResp(429, extra_headers={"x-ratelimit-reset": "12"}),
+            FakeCurlResp(200, body=_rss_bytes("listing.rss"), content_type="application/atom+xml"),
+        ]
+    )
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return next(responses)
+
+    patch_curl_session(monkeypatch, handler)
+
+    result = await RedditHandler().fetch("https://www.reddit.com/r/gravelcycling/", state=_make_state())
+
+    assert result.verdict == Verdict.ok
+    assert result.pre_rendered is not None
+    # Waited ~the reset window (12s + small margin), not the blind 0.5s first step.
+    assert slept, "handler must back off on a 429 that carries x-ratelimit-reset"
+    assert 12.0 <= slept[0] <= 15.0
+
+
+@pytest.mark.asyncio
+async def test_reddit_rss_429_reset_too_long_fails_loud(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 429 whose `x-ratelimit-reset` exceeds the in-band wait ceiling is not
+    ridden out — the handler declines to block the tool call for a minute and
+    fails loud (search/listing escalate to a render; never a silent wait)."""
+    slept: list[float] = []
+
+    async def _fake_sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    monkeypatch.setattr("a2web.handlers.reddit.anyio.sleep", _fake_sleep)
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(429, extra_headers={"x-ratelimit-reset": "600"})
+
+    patch_curl_session(monkeypatch, handler)
+
+    result = await RedditHandler().fetch("https://www.reddit.com/r/gravelcycling/", state=_make_state())
+
+    assert result.escalate_to_render is True
+    assert slept == []  # never waited — 600s is past the ceiling
+
+
+@pytest.mark.asyncio
 async def test_reddit_handler_resolves_short_url_then_renders(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

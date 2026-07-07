@@ -179,6 +179,13 @@ class AppSettings(BaseSettings):
     browser_max_pool: int = 4
     browser_idle_timeout_s: int = 300
     browser_page_budget_s: int = 30
+    # Hard ceiling on the browser LAUNCH — a wedged engine spawn returns
+    # `unavailable` and unblocks the caller instead of hanging the tool call.
+    browser_launch_budget_s: int = 45
+    # How often the idle reaper checks whether the launched browser has gone
+    # idle past `browser_idle_timeout_s` and should be shut down (bounds
+    # resident browser processes on a long-lived server).
+    browser_reaper_interval_s: int = 30
 
     # v0.10: hosts known to be JS-heavy CSR apps. When the gate sees a
     # thin browser-tier response (<1KB) from one of these hosts, it

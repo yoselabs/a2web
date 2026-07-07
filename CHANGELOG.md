@@ -8,6 +8,66 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.40.0] — 2026-07-08
+
+> Reddit reliability + a browser-lifecycle leak found while fixing it. The
+> keyless `.rss` channel is the mission-critical Reddit path, and it was walling
+> on a *transient* per-IP rate-limit. Fixes: ride out the transient throttle at
+> the handler; restore the missing browser rung so a walled render-request
+> escalates paid-scraper → real-browser → hint; and — surfaced by the browser
+> rung firing more often — bound the browser backend so a stuck launch can't hang
+> the tool call and an idle browser can't leak for hours. The 2026-07-07 bench
+> caught the Reddit wall (`reddit-listing` → `tier=none
+> verdict=block_page_detected`); the leak was caught live (orphaned chromium alive
+> 3-8h from the MCP server, plus a 20-min launch hang).
+
+### Fixed — bound the browser backend: launch timeout + idle reaper (`browser-lifecycle-no-hang-no-leak`)
+
+- `packages/browser_backends/playwright.py`: three unbounded awaits are now
+  bounded. **Launch** (`_ensure`) is wrapped in `browser_launch_budget_s` (45s
+  default) — a wedged engine spawn returns `unavailable` and unblocks the caller
+  instead of hanging the tool call indefinitely; the half-open launch is torn
+  down so it can't leak. **`page.content()`** is bounded by the remaining page
+  budget (a page that never settles times out, not hangs). An **idle reaper**
+  background task closes the launched browser *process* after
+  `browser_idle_timeout_s` idle (was: only per-host contexts got trimmed, lazily
+  on the next acquire — the browser process lived until the whole server exited,
+  so a long-lived/leaked MCP server orphaned hours-old chromium). The reaper
+  sleeps the engine re-openably; the next render transparently re-launches.
+- New settings: `browser_launch_budget_s` (45), `browser_reaper_interval_s` (30).
+- Root cause of the observed 20-min hang: no launch timeout, aggravated by
+  resource contention from already-leaked browsers. Both are now bounded.
+
+### Fixed — restore the browser rung on a walled render-request (`render-escalation-tries-browser`)
+
+- `fetcher.py`: when a handler asks for a direct site render (`escalate_to_render`
+  — Reddit search/listing throttle, HN Algolia failure) and no paid tier is
+  keyed, the orchestrator now dispatches the **own-browser** rung before emitting
+  the never-silently-miss hint. Previously it tried only the paid tier, then
+  `return`ed straight to the `try_user_browser` hint — the intended
+  paid → browser → hint ladder was missing its middle rung, so an un-keyed
+  deployment conceded Reddit throttling with `tier=none`. A real (anti-detect)
+  browser passes soft per-IP walls the HTTP client cannot; a missing backend is a
+  cheap unavailable no-op that still falls through to the loud hint.
+
+### Fixed — ride out Reddit's transient RSS rate-limit (`reddit-rss-ratelimit-reset`)
+
+- `handlers/reddit.py::_fetch_rss` now honors Reddit's `x-ratelimit-reset`
+  header on a `429`: it waits the exact reset window (plus a 1s margin, capped at
+  `_RSS_RATELIMIT_MAX_WAIT_S = 40s`) and retries once, landing the retry in a
+  fresh budget. A reset past the ceiling is **not** ridden out — the handler
+  declines to block the tool call for a minute and fails loud (search/listing
+  escalate to a render — now including the browser rung above; thread/permalink
+  surface the wall with the eager `try_user_browser` hint). The old blind
+  `_RSS_BACKOFF_S = (0.5, 1.5)` schedule remains as the fallback only when no
+  reset header is present.
+- Root cause was the too-short backoff, **not** a permanent block: a cooled-down
+  IP serves the feed `200`. Known residual gap (follow-up, not in this change):
+  the Reddit handler fetches **direct, unproxied** (`proxy: "direct"` in the
+  decision log), so a genuinely IP-blocked address can't be dodged by waiting —
+  routing the RSS fetch through the proxy pool (as every other tier does) is the
+  robust long-term answer, but is inert until proxies are configured.
+
 ## [0.39.0] — 2026-07-08
 
 > Harness-only: make a bench run legible and cheap. Every run now writes a

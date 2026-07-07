@@ -46,7 +46,7 @@ import anyio
 from .. import content_expectations
 from ..models import Heading, NextLink, OperatorHint, Verdict, comments_partial_hint, try_user_browser_hint
 from ..packages.html_fragment import to_markdown
-from ..packages.http_fetch import FetchVerdict, fetch_bytes
+from ..packages.http_fetch import FetchOutcome, FetchVerdict, fetch_bytes
 from . import _reddit_html as rh
 from ._common import empty_result
 
@@ -74,10 +74,28 @@ _RSS_SORTS = frozenset({"top", "new", "rising", "controversial"})
 _REDDIT_HOSTS = frozenset({"reddit.com", "www.reddit.com", "old.reddit.com", "np.reddit.com"})
 _SHORT_HOSTS = frozenset({"redd.it"})
 _DEFAULT_TIMEOUT_S = 10
-# Bounded backoff for RSS 429s. Retries are attempted between these sleeps;
-# on exhaustion the handler fails loud (never a silent empty). Tests patch
-# this to `()` to disable sleeping.
+# Bounded backoff for RSS 429s when Reddit sends NO `x-ratelimit-reset`
+# header. Retries are attempted between these sleeps; on exhaustion the
+# handler fails loud (never a silent empty). Tests patch this to `()`.
 _RSS_BACKOFF_S: tuple[float, ...] = (0.5, 1.5)
+# Reddit's keyless `.rss` channel throttles per-IP and, on a `429`, returns
+# `x-ratelimit-reset: <seconds>` — the exact wait until the window clears
+# (measured live: `server: snooserv`, reset ~12-40s). Honoring it rides out
+# the transient limit instead of failing loud after the blind ~2s backoff
+# (which walled the mission-critical Reddit surface — see ADR-0011). The
+# reset header is preferred; the fixed schedule above is the fallback.
+_RSS_RATELIMIT_RESET_HEADER = "x-ratelimit-reset"
+# Ceiling on the in-band wait. A reset longer than this is NOT ridden out —
+# we decline to block the tool call for a minute and fail loud (search/listing
+# escalate to a render; thread/permalink surfaces the wall). Bounds worst-case
+# added latency while covering the common transient window.
+_RSS_RATELIMIT_MAX_WAIT_S = 40.0
+# Retry attempts on a 429 (each preceded by a reset-driven or fixed backoff
+# sleep). One retry: honoring the *exact* reset window lands the retry in a
+# fresh budget. If it STILL 429s after the full stated window, the IP is in a
+# deeper penalty box a second wait won't clear — fail loud instead of stacking
+# another ~40s block onto the tool call.
+_RSS_MAX_RETRIES = 1
 # Atom namespace stdlib ElementTree prepends to every tag.
 _A = "{http://www.w3.org/2005/Atom}"
 
@@ -297,29 +315,64 @@ def _to_rss_url(url: str, shape: _UrlShape) -> str:
     return urlunparse(parsed._replace(netloc="www.reddit.com", path=rss_path, query=new_query))
 
 
-async def _fetch_rss(rss_url: str, *, state: AppState, cookies: dict[str, str] | None):  # type: ignore[no-untyped-def]
-    """Fetch an RSS feed with bounded backoff on 429.
+def _is_rate_limited(outcome: FetchOutcome) -> bool:
+    return outcome.verdict is FetchVerdict.rate_limited or outcome.status_code == 429
 
-    Reddit throttles bursts of RSS hits with `429`. This retries after each
-    `_RSS_BACKOFF_S` sleep; on exhaustion it returns the last (still
-    rate-limited) outcome so the caller fails loud. Response caching is the
-    orchestrator's `http_cache` responsibility, one layer up.
+
+def _ratelimit_backoff_s(outcome: FetchOutcome, attempt: int) -> float | None:
+    """Seconds to wait before retrying a rate-limited RSS fetch, or None to stop.
+
+    Prefers Reddit's `x-ratelimit-reset` (exact seconds until the per-IP window
+    clears) plus a 1s margin, capped at `_RSS_RATELIMIT_MAX_WAIT_S`. A reset
+    longer than the ceiling returns None (fail loud — don't block the tool call
+    for a minute). When the header is absent/unparseable, falls back to the
+    fixed `_RSS_BACKOFF_S` schedule; None once that schedule is exhausted.
     """
-    last = None
-    for backoff in (0.0, *_RSS_BACKOFF_S):
-        if backoff:
-            await anyio.sleep(backoff)
+    raw = outcome.headers.get(_RSS_RATELIMIT_RESET_HEADER)
+    if raw is not None:
+        try:
+            reset = float(raw)
+        except ValueError:
+            reset = None
+        if reset is not None:
+            if reset > _RSS_RATELIMIT_MAX_WAIT_S:
+                return None
+            return min(reset + 1.0, _RSS_RATELIMIT_MAX_WAIT_S)
+    if attempt < len(_RSS_BACKOFF_S):
+        return _RSS_BACKOFF_S[attempt]
+    return None
+
+
+async def _fetch_rss(rss_url: str, *, state: AppState, cookies: dict[str, str] | None) -> FetchOutcome:
+    """Fetch an RSS feed, riding out a transient 429 via `x-ratelimit-reset`.
+
+    Reddit throttles bursts of keyless RSS hits with `429` + an
+    `x-ratelimit-reset` window (~12-40s). This waits that window (capped) and
+    retries; a reset past the ceiling, or an absent header past the fixed
+    fallback schedule, returns the last (still rate-limited) outcome so the
+    caller fails loud. Response caching is the orchestrator's `http_cache`
+    responsibility, one layer up.
+    """
+    outcome = await fetch_bytes(
+        rss_url,
+        headers={"User-Agent": state.settings.default_ua},
+        timeout_s=_DEFAULT_TIMEOUT_S,
+        cookies=cookies,
+    )
+    attempt = 0
+    while _is_rate_limited(outcome) and attempt < _RSS_MAX_RETRIES:
+        wait = _ratelimit_backoff_s(outcome, attempt)
+        if wait is None:
+            break
+        await anyio.sleep(wait)
         outcome = await fetch_bytes(
             rss_url,
             headers={"User-Agent": state.settings.default_ua},
             timeout_s=_DEFAULT_TIMEOUT_S,
             cookies=cookies,
         )
-        last = outcome
-        rate_limited = outcome.verdict is FetchVerdict.rate_limited or outcome.status_code == 429
-        if not rate_limited:
-            return outcome
-    return last
+        attempt += 1
+    return outcome
 
 
 # --------------------------------------------------------------------- #

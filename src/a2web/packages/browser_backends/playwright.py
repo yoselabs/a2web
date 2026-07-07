@@ -209,6 +209,8 @@ class PlaywrightBackend:
         max_pool: int = 4,
         idle_timeout_s: int = 300,
         page_budget_s: int = 30,
+        launch_budget_s: float = 30.0,
+        reaper_interval_s: float = 30.0,
         stderr_sink: Callable[[str], Coroutine[Any, Any, None]] | None = None,
     ) -> None:
         self.name = name
@@ -216,6 +218,13 @@ class PlaywrightBackend:
         self.max_pool = max_pool
         self.idle_timeout_s = idle_timeout_s
         self.page_budget_s = page_budget_s
+        # Hard ceiling on the browser LAUNCH — a stuck engine spawn must return
+        # `unavailable` and unblock the caller, never hang the tool call forever.
+        self.launch_budget_s = launch_budget_s
+        # How often the idle reaper checks whether the launched browser has gone
+        # idle past `idle_timeout_s` and should be shut down (bounds resident
+        # browser processes on a long-lived server — the leak this fixes).
+        self.reaper_interval_s = reaper_interval_s
         # Insertion order = LRU (move-to-end on touch).
         self._contexts: OrderedDict[str, _HostContext] = OrderedDict()
         self._launch_cm: Any | None = None
@@ -223,6 +232,11 @@ class PlaywrightBackend:
         self._lock = asyncio.Lock()
         self._closed = False
         self._eviction_tasks: set[asyncio.Task[None]] = set()
+        # Idle-reaper bookkeeping: last render activity + in-flight page count so
+        # the reaper never shuts an engine that is mid-render.
+        self._last_activity = time.monotonic()
+        self._active_pages = 0
+        self._reaper_task: asyncio.Task[None] | None = None
         # Driver-stderr capture (opt-in via injected async sink — keeps this
         # package domain-free; the domain wires emission of typed log events).
         self._stderr_sink = stderr_sink
@@ -249,7 +263,15 @@ class PlaywrightBackend:
         captured HTML stops growing — instead of the single thin-triggered pass.
         """
         try:
-            await self._ensure()
+            await asyncio.wait_for(self._ensure(), timeout=self.launch_budget_s)
+        except TimeoutError:
+            # A wedged engine spawn: tear down the half-open launch so it can't
+            # leak, and unblock the caller with `unavailable` (the never-hang
+            # guarantee). A truly-wedged subprocess is best-effort here — the
+            # point is the tool call returns instead of hanging indefinitely.
+            await self._abort_launch()
+            detail = f"browser launch timed out after {self.launch_budget_s:.0f}s"
+            return RenderedPage(outcome=RenderOutcome.unavailable, final_url=url, detail=detail)
         except ImportError as exc:
             return RenderedPage(outcome=RenderOutcome.unavailable, final_url=url, detail=f"engine not installed: {exc}")
         except Exception as exc:  # launch failed
@@ -265,11 +287,15 @@ class PlaywrightBackend:
                     await page.context.add_cookies([_cookie_to_playwright(c) for c in cookies])
                 try:
                     response = await asyncio.wait_for(page.goto(url, wait_until="networkidle"), timeout=budget_s)
+                    status_code = response.status if response is not None else 200
+                    final_url = page.url or url
+                    # `content()` can hang on a page that never settles the DOM;
+                    # bound it by the remaining budget so a stuck snapshot times
+                    # out instead of blocking the caller indefinitely.
+                    remaining = max(1.0, budget_s - (time.perf_counter() - wall_start))
+                    html = await asyncio.wait_for(page.content(), timeout=remaining)
                 except TimeoutError:
                     return RenderedPage(outcome=RenderOutcome.timeout, final_url=url, js_executed=True, wall_ms=_ms(wall_start))
-                status_code = response.status if response is not None else 200
-                final_url = page.url or url
-                html = await page.content()
                 # Scroll-on-thin: sub-floor first snapshot on a JS-heavy host →
                 # scroll + 2s networkidle, keep the larger snapshot (Trendyol).
                 if len(html) < _THIN_FLOOR and js_heavy:
@@ -320,6 +346,8 @@ class PlaywrightBackend:
             finally:
                 self._restore_stderr(saved_stderr)
             self._begin_stderr_drain()
+            self._last_activity = time.monotonic()
+            self._start_reaper_locked()
 
     def _install_stderr_capture(self) -> Any:
         """Swap `sys.stderr` for a pipe-backed shim across the driver launch.
@@ -408,17 +436,69 @@ class PlaywrightBackend:
         if self._closed:
             return
         self._closed = True
+        await self._cancel_reaper()
         self._stop_stderr_capture()
         async with self._lock:
-            for host_ctx in list(self._contexts.values()):
-                with suppress(Exception):
-                    await host_ctx.context.close()
-            self._contexts.clear()
+            await self._teardown_engine_locked()
+
+    async def _teardown_engine_locked(self) -> None:
+        """Close all host contexts + the browser process. Leaves the backend
+        RE-OPENABLE (does not set `_closed`) — shared by terminal `close()` and
+        the idle reaper, which sleeps the engine so the next render re-launches.
+        Caller holds `self._lock`.
+        """
+        for host_ctx in list(self._contexts.values()):
+            with suppress(Exception):
+                await host_ctx.context.close()
+        self._contexts.clear()
         if self._launch_cm is not None:
             with suppress(Exception):
                 await self._launch_cm.__aexit__(None, None, None)
-            self._launch_cm = None
-            self._browser = None
+        self._launch_cm = None
+        self._browser = None
+
+    async def _abort_launch(self) -> None:
+        """Tear down a half-open launch after a launch-budget timeout so the
+        dangling CM/subprocess can't leak and a later render can retry cleanly."""
+        async with self._lock:
+            await self._teardown_engine_locked()
+
+    def _start_reaper_locked(self) -> None:
+        """Start the idle reaper if not already running. Caller holds the lock."""
+        if self._reaper_task is not None and not self._reaper_task.done():
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        self._reaper_task = loop.create_task(self._reap_idle_loop())
+
+    async def _cancel_reaper(self) -> None:
+        task = self._reaper_task
+        self._reaper_task = None
+        if task is not None and not task.done():
+            task.cancel()
+            with suppress(asyncio.CancelledError, Exception):
+                await task
+
+    async def _reap_idle_loop(self) -> None:
+        """Close the launched browser once it has been idle past `idle_timeout_s`.
+
+        Bounds resident browser processes on a long-lived server: without this
+        the chromium/Camoufox process lives until the whole server exits, so a
+        leaked/wedged server orphans hours-old browsers. The reaper sleeps the
+        engine (re-openable) rather than terminally closing the backend.
+        """
+        while not self._closed:
+            await asyncio.sleep(self.reaper_interval_s)
+            async with self._lock:
+                if self._closed or self._browser is None:
+                    return
+                idle_for = time.monotonic() - self._last_activity
+                if self._active_pages > 0 or idle_for <= self.idle_timeout_s:
+                    continue
+                await self._teardown_engine_locked()
+                return  # engine slept; next _ensure re-launches + restarts the reaper
 
     # Framework-facing async-CM protocol. Thin wrappers around the idempotent
     # `_ensure` / `close` internal surface.
@@ -438,9 +518,14 @@ class PlaywrightBackend:
         """
         host = urlparse(url).hostname or "_default"
         page = await self._open_page(host)
+        # Mark in-flight so the idle reaper never shuts an engine mid-render.
+        self._active_pages += 1
+        self._last_activity = time.monotonic()
         try:
             yield page
         finally:
+            self._active_pages -= 1
+            self._last_activity = time.monotonic()
             with suppress(Exception):
                 await page.close()
 

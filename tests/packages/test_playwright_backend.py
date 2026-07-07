@@ -20,11 +20,12 @@ class _Resp:
 
 
 class _FakePage:
-    def __init__(self, html: str, *, goto_exc: Exception | None = None, goto_sleep: float = 0.0) -> None:
+    def __init__(self, html: str, *, goto_exc: Exception | None = None, goto_sleep: float = 0.0, content_sleep: float = 0.0) -> None:
         self.closed = False
         self._html = html
         self._goto_exc = goto_exc
         self._goto_sleep = goto_sleep
+        self._content_sleep = content_sleep
         self.url = "https://example.com/final"
         self.context: Any = None
 
@@ -36,6 +37,8 @@ class _FakePage:
         return _Resp()
 
     async def content(self) -> str:
+        if self._content_sleep:
+            await asyncio.sleep(self._content_sleep)
         return self._html
 
     async def close(self) -> None:
@@ -76,11 +79,14 @@ class _FakeBrowser:
 
 
 class _FakeLaunchCM:
-    def __init__(self, browser: _FakeBrowser) -> None:
+    def __init__(self, browser: _FakeBrowser, *, enter_sleep: float = 0.0) -> None:
         self.browser = browser
         self.exited = False
+        self._enter_sleep = enter_sleep
 
     async def __aenter__(self) -> _FakeBrowser:
+        if self._enter_sleep:
+            await asyncio.sleep(self._enter_sleep)
         return self.browser
 
     async def __aexit__(self, *exc: Any) -> None:
@@ -92,6 +98,9 @@ def _make_backend(
     html: str = "<html><body>" + ("x" * 5000) + "</body></html>",
     max_pool: int = 4,
     idle_timeout_s: int = 300,
+    launch_budget_s: float = 30.0,
+    reaper_interval_s: float = 30.0,
+    launch_enter_sleep: float = 0.0,
     stderr_sink: Any = None,
     **page_kw: Any,
 ) -> tuple[PlaywrightBackend, _FakeBrowser, dict[str, _FakeLaunchCM]]:
@@ -99,11 +108,18 @@ def _make_backend(
     holder: dict[str, _FakeLaunchCM] = {}
 
     def _launch() -> _FakeLaunchCM:
-        cm = _FakeLaunchCM(browser)
+        cm = _FakeLaunchCM(browser, enter_sleep=launch_enter_sleep)
         holder["cm"] = cm
         return cm
 
-    backend = PlaywrightBackend(_launch, max_pool=max_pool, idle_timeout_s=idle_timeout_s, stderr_sink=stderr_sink)
+    backend = PlaywrightBackend(
+        _launch,
+        max_pool=max_pool,
+        idle_timeout_s=idle_timeout_s,
+        launch_budget_s=launch_budget_s,
+        reaper_interval_s=reaper_interval_s,
+        stderr_sink=stderr_sink,
+    )
     return backend, browser, holder
 
 
@@ -222,6 +238,77 @@ async def test_render_timeout() -> None:
         page = await backend.render("https://slow.example/", cookies=[], budget_s=0.2, js_heavy=False)
         assert page.outcome is RenderOutcome.timeout
         assert page.js_executed is True
+    finally:
+        await backend.close()
+
+
+@pytest.mark.asyncio
+async def test_render_unavailable_on_launch_timeout() -> None:
+    """A launch that hangs past the launch budget must NOT hang the caller — it
+    returns `unavailable` within the budget, and the partial launch is cleaned
+    up so a later render can retry (never leak a half-open launch CM)."""
+    backend, _browser, _holder = _make_backend(launch_enter_sleep=10.0, launch_budget_s=0.2)
+    try:
+        page = await asyncio.wait_for(
+            backend.render("https://example.com/", cookies=[], budget_s=5.0, js_heavy=False),
+            timeout=3.0,  # test-level guard: if render hangs, fail loudly instead of blocking
+        )
+        assert page.outcome is RenderOutcome.unavailable
+        assert "timed out" in page.detail.lower() or "timeout" in page.detail.lower()
+        # The half-open launch CM was torn down (not left dangling to leak).
+        assert backend._launch_cm is None
+        assert backend._browser is None
+    finally:
+        await backend.close()
+
+
+@pytest.mark.asyncio
+async def test_idle_reaper_closes_browser_when_idle() -> None:
+    """A launched-but-idle browser is closed by the background reaper WITHOUT a
+    subsequent acquire — bounding resident browser processes so a long-lived
+    server can't accumulate 8-hour-old chromium (the leak this fixes)."""
+    backend, _browser, holder = _make_backend(idle_timeout_s=0, reaper_interval_s=0.02)
+    await backend.start()
+    assert backend._browser is not None
+    # Wait for the reaper to notice the idle engine and shut it down.
+    for _ in range(200):
+        if holder["cm"].exited:
+            break
+        await asyncio.sleep(0.01)
+    assert holder["cm"].exited is True  # browser process closed by the reaper
+    assert backend._browser is None  # engine put to sleep, re-openable on next use
+    assert backend._closed is False  # NOT terminally closed — a later render re-launches
+    await backend.close()
+
+
+@pytest.mark.asyncio
+async def test_idle_reaper_relaunches_on_next_render() -> None:
+    """After the reaper sleeps the engine, the next render transparently re-launches."""
+    backend, _browser, _ = _make_backend(idle_timeout_s=0, reaper_interval_s=0.02, html="<html><body>" + ("ok " * 100) + "</body></html>")
+    await backend.start()
+    for _ in range(200):
+        if backend._browser is None:
+            break
+        await asyncio.sleep(0.01)
+    assert backend._browser is None  # reaped
+    try:
+        page = await backend.render("https://example.com/", cookies=[], budget_s=5.0, js_heavy=False)
+        assert page.outcome is RenderOutcome.ok  # re-launched and served
+    finally:
+        await backend.close()
+
+
+@pytest.mark.asyncio
+async def test_render_timeout_on_hung_content() -> None:
+    """`page.content()` hanging past the budget must not hang the caller — it
+    resolves to a bounded timeout, not an indefinite block."""
+    backend, _, _ = _make_backend(content_sleep=10.0)
+    try:
+        page = await asyncio.wait_for(
+            backend.render("https://slow.example/", cookies=[], budget_s=0.2, js_heavy=False),
+            timeout=3.0,
+        )
+        assert page.outcome is RenderOutcome.timeout
     finally:
         await backend.close()
 
