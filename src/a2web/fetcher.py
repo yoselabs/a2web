@@ -54,8 +54,8 @@ from .models import (
     Verdict,
     try_user_browser_hint,
 )
+from .packages.block_detector import LENGTH_FLOOR, looks_like_unrendered_spa
 from .packages.block_detector import evaluate as _package_evaluate
-from .packages.block_detector import looks_like_unrendered_spa
 from .packages.browser_backends import BrowserBackend
 from .packages.content_extract import (
     extract_markdown as _package_extract_markdown,
@@ -67,6 +67,7 @@ from .packages.escalation import EscalationSignal
 from .packages.http_cache import CacheRow, SqliteResource
 from .packages.json_in_script import (
     extract_json_payloads,
+    is_answer_bearing,
     is_json_content_type,
     parse_json_response,
     rank_payloads,
@@ -122,6 +123,7 @@ def evaluate(
     host: str | None = None,
     settings: AppSettings | None = None,
     is_json: bool = False,
+    structured_answer: bool = False,
 ) -> _GateResult:
     """Run the package's block detector, map BlockVerdict → Verdict.
 
@@ -160,6 +162,17 @@ def evaluate(
         verdict = Verdict.ok
         subsystem = None
 
+    # A thin page whose answer lives in answer-bearing structured data (a strong
+    # JSON-LD LocalBusiness/Product/…) is small-but-complete, not a truncated
+    # shell — mirror the `is_json` promotion. Scoped to the BARE length_floor
+    # (`subsystem is None`): a `js_required` / `thin_browser_response` shell keeps
+    # its subsystem here and continues escalating even if it embeds a stub
+    # payload, so no wall is masked. The `structured_answer` flag is set by the
+    # caller from `ContentCandidate.answer_bearing` (strong payloads only).
+    if structured_answer and verdict is Verdict.length_floor and subsystem is None:
+        verdict = Verdict.ok
+        subsystem = None
+
     return _GateResult(verdict=verdict, subsystem=subsystem, escalation=escalation)
 
 
@@ -183,6 +196,11 @@ class ContentCandidate:
     # Threaded record renders carry structure trafilatura flattens away — the
     # one non-length quality signal that overrides prose for the display pick.
     is_threaded: bool = False
+    # Set by the json_synth rung from `is_answer_bearing(payload)` — a strong
+    # structured payload (contact/org/product/…) carries an answer, not chrome.
+    # The quality-gate small-but-complete exemption and the sub-floor display
+    # pick key on this flag. Prose and record candidates leave it False.
+    answer_bearing: bool = False
 
 
 @_dc(slots=True)
@@ -1270,6 +1288,14 @@ def _pick_display_candidate(candidates: list[ContentCandidate]) -> str:
     """
     prose = next((c for c in candidates if c.source == "trafilatura"), None)
     prose_md = prose.content_md if prose is not None else ""
+    # Sub-floor prose is a thin nav/footer fragment. When a strong structured
+    # candidate carries the answer, surface it for display — so `fetch_raw`
+    # (which returns only `content_md`, not the extractor menu) yields the
+    # answer, not the fragment. Above-floor prose keeps the legacy length pick.
+    if len(prose_md) < LENGTH_FLOOR:
+        answer_c = next((c for c in candidates if c.answer_bearing), None)
+        if answer_c is not None:
+            return answer_c.content_md
     json_c = next((c for c in candidates if c.source == "json_synth"), None)
     if json_c is not None and len(json_c.content_md) > len(prose_md):
         return json_c.content_md
@@ -1358,7 +1384,13 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[Content
         rendered = json_to_markdown_rows(payload)
         if rendered and rendered not in seen:
             seen.add(rendered)
-            candidates.append(ContentCandidate(source="json_synth", content_md=rendered))
+            candidates.append(
+                ContentCandidate(
+                    source="json_synth",
+                    content_md=rendered,
+                    answer_bearing=is_answer_bearing(payload),
+                )
+            )
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
     outcome = "no_payloads" if not payloads else ("no_synth" if not candidates else "collected")
     await a2kit.log.info(
@@ -1515,6 +1547,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
         host=urlparse(fc.final_url).hostname if fc.final_url else None,
         settings=state.settings,
         is_json=is_json_content_type(fc.content_type),
+        structured_answer=any(c.answer_bearing for c in fc.content_candidates),
     )
     gate_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - gate_dur_start
     fc.diagnostics.append(

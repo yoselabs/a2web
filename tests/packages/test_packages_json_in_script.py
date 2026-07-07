@@ -8,6 +8,7 @@ from __future__ import annotations
 from a2web.packages.json_in_script import (
     JsonPayload,
     extract_json_payloads,
+    is_answer_bearing,
     is_json_content_type,
     parse_json_response,
     rank_payloads,
@@ -181,6 +182,96 @@ def test_rank_payloads_prefers_strong_ld_json() -> None:
     ranked = rank_payloads([next_data, strong_ld])
     assert ranked[0] is strong_ld
     assert ranked[1] is next_data
+
+
+def test_rank_payloads_strong_localbusiness_ranks_bucket_zero() -> None:
+    """A strong LocalBusiness ld_json (contact schema) ranks ahead of opengraph."""
+    strong_lb = JsonPayload(
+        source="ld_json",
+        data={
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            "name": "VEITO",
+            "telephone": "444 3 061",
+            "email": "destek@veito.com",
+            "url": "https://www.veito.com/",
+            "image": "https://www.veito.com/images/logo.png",
+        },
+        script_id=None,
+        byte_size=200,
+    )
+    og = JsonPayload(source="opengraph", data={"og:title": "Contact"}, script_id=None, byte_size=50)
+    ranked = rank_payloads([og, strong_lb])
+    assert ranked[0] is strong_lb
+
+
+def test_rank_payloads_weak_organization_ranks_bucket_four() -> None:
+    """An Organization with only name+url (2 fields) is weak — behind next_data + og."""
+    weak_org = JsonPayload(
+        source="ld_json",
+        data={"@context": "https://schema.org", "@type": "Organization", "name": "x", "url": "https://x"},
+        script_id=None,
+        byte_size=80,
+    )
+    next_data = JsonPayload(
+        source="next_data",
+        data={"props": {"pageProps": {"x": 1}}},
+        script_id="__NEXT_DATA__",
+        byte_size=500,
+    )
+    ranked = rank_payloads([weak_org, next_data])
+    assert ranked[0] is next_data
+
+
+class TestIsAnswerBearing:
+    """`is_answer_bearing` — strong structured payloads only (json-extract cap.)."""
+
+    def test_strong_product_is_answer_bearing(self) -> None:
+        p = JsonPayload(
+            source="ld_json",
+            data={"@type": "Product", "name": "X", "offers": {"price": 1}, "aggregateRating": {"ratingValue": "4.5"}},
+            script_id=None,
+            byte_size=100,
+        )
+        assert is_answer_bearing(p) is True
+
+    def test_strong_localbusiness_is_answer_bearing(self) -> None:
+        p = JsonPayload(
+            source="ld_json",
+            data={"@type": "LocalBusiness", "name": "VEITO", "telephone": "444 3 061", "email": "destek@veito.com"},
+            script_id=None,
+            byte_size=120,
+        )
+        assert is_answer_bearing(p) is True
+
+    def test_strong_microdata_is_answer_bearing(self) -> None:
+        p = JsonPayload(
+            source="microdata",
+            data={
+                "type": ["https://schema.org/LocalBusiness"],
+                "properties": {"name": "V", "telephone": "1", "email": "a@b"},
+            },
+            script_id=None,
+            byte_size=120,
+        )
+        assert is_answer_bearing(p) is True
+
+    def test_weak_organization_is_not_answer_bearing(self) -> None:
+        p = JsonPayload(
+            source="ld_json",
+            data={"@type": "Organization", "name": "x", "url": "https://x"},
+            script_id=None,
+            byte_size=60,
+        )
+        assert is_answer_bearing(p) is False
+
+    def test_opengraph_is_not_answer_bearing(self) -> None:
+        p = JsonPayload(source="opengraph", data={"og:title": "T", "og:type": "website"}, script_id=None, byte_size=40)
+        assert is_answer_bearing(p) is False
+
+    def test_next_data_is_not_answer_bearing(self) -> None:
+        p = JsonPayload(source="next_data", data={"props": {"a": 1}}, script_id="__NEXT_DATA__", byte_size=200)
+        assert is_answer_bearing(p) is False
 
 
 def test_rank_payloads_weak_ld_json_loses_to_next_data() -> None:
