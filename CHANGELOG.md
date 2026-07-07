@@ -8,6 +8,48 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.35.0] — 2026-07-07
+
+> Thin pages whose answer lives only in structured data (company contact
+> pages, org/event pages) now **answer** instead of failing. A `LocalBusiness`
+> JSON-LD carrying a phone + email is a complete answer, not a truncated shell
+> — the length floor no longer deletes it. Motivating case:
+> `veito.com/iletisim-EN.html` moved from `failed`/`null` to the phone + email
+> answered.
+
+### Added — Answer thin structured-data pages (`structured-data-answers`)
+
+- **Quality-gate small-but-complete exemption.** A bare `length_floor`
+  promotes to `ok` when the content menu carries an answer-bearing structured
+  candidate — mirroring the existing `is_json` exemption. Scoped to the bare
+  `length_floor` (`subsystem is None`), so `js_required` / `thin_browser` SPA
+  shells keep escalating to the browser tier; no wall is masked.
+- **Contact / org / event schemas are first-class.** `LocalBusiness`,
+  `Organization`, `ContactPoint`, `Event`, `Recipe` join `_PREFERRED_LD_TYPES`;
+  new `is_answer_bearing(payload)` predicate marks strong structured payloads.
+  The single-entity JSON-LD renderer dispatch is widened to these types (it
+  previously returned an empty string for `LocalBusiness`).
+- **`ContentCandidate.answer_bearing`.** Set by the `json_synth` rung; drives
+  the gate exemption and the display pick.
+- **Display pick prefers structured over sub-floor prose.** When the prose pick
+  is below the length floor and an answer-bearing structured candidate exists,
+  `content_md` surfaces the structured answer — so `fetch_raw` (no LLM) carries
+  it too.
+
+### Fixed — Structured-grounded answers not flagged incomplete (`structured-grounded-completeness`)
+
+- **No self-contradicting envelope.** A thin structured page promoted to `ok`
+  answered correctly but the extractor still self-reported `obstacle: empty`,
+  driving `retrieval_incomplete: true` + a critical "do not answer as if it
+  does" hint. Now an `empty` obstacle on a `structured_grounded` page with a
+  non-empty answer does not flag incompleteness. `confidence` stays `low` (the
+  honest hedge); `blocked` / non-grounded pages / empty answers are unaffected.
+- **ADR-0009 gap closed.** The `extraction_empty` guard's `content_md > 500`
+  threshold assumed thin pages already failed at the length floor; the promotion
+  broke that. Extended with `or structured_grounded` so a promoted thin page
+  with an empty extraction hard-fails instead of returning a silent `ok` empty
+  answer.
+
 ## [0.34.0] — 2026-07-06
 
 > Listing completion now prefers the **free own-browser** scroll before paid

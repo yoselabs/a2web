@@ -1,6 +1,6 @@
 [project]
 name = "a2web"
-version = "0.34.0"
+version = "0.35.0"
 description = "Agent-to-Web — adaptive web fetching MCP server and CLI for AI agents."
 readme = "README.md"
 requires-python = ">=3.11"
