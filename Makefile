@@ -77,12 +77,14 @@ install-global:
 # data-contract conformance), writes a dated report under eval/runs/.
 # Prefers the Claude Code OS session (no ANTHROPIC_API_KEY needed);
 # `A2WEB_BENCH_PROVIDER` forces the provider.
+# Pass extra flags via ARGS, e.g. `make bench ARGS="--only listing --mode detail"`
+# to run a crucial subset instead of the full (expensive) matrix.
 bench:
-	uv run python -m a2web.llm_eval
+	uv run python -m a2web.llm_eval $(ARGS)
 
 # `make eval` is kept as an alias of `make bench`.
 eval:
-	uv run python -m a2web.llm_eval
+	uv run python -m a2web.llm_eval $(ARGS)
 
 eval-baseline:
 	uv run python -m a2web.llm_eval --mode baseline
