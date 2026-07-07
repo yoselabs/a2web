@@ -236,12 +236,20 @@ def build_response(fc: FetchContext) -> FetchResponse:
     #   - extraction_empty: extraction ran (meta present) over >500 chars but the
     #     answer is empty — a parse failure, a bad LLM key/model (the provider
     #     turns an API error into empty text), or an off-contract model. The
-    #     model-swap risk the backend benchmark surfaced.
+    #     model-swap risk the backend benchmark surfaced. The >500 threshold
+    #     assumes thin pages already failed at the length floor — EXCEPT a
+    #     structured-answer-promoted page (thin, but promoted to ok), where an
+    #     empty extraction must still hard-fail or it becomes a silent miss
+    #     (structured-grounded-completeness / ADR-0009).
     #   - llm_unavailable: no LLM backend was configured at all, so extraction
     #     never ran (the `_extract_answer` phase emitted a critical hint).
     # This is the single response chokepoint, so the guarantee holds for every
     # route. `fetch_raw` (no `fc.ask`) is unaffected — it needs no answer.
-    extraction_empty = fc.extraction_meta is not None and not (fc.extracted_answer or "").strip() and len(fc.content_md) > 500
+    extraction_empty = (
+        fc.extraction_meta is not None
+        and not (fc.extracted_answer or "").strip()
+        and (len(fc.content_md) > 500 or fc.structured_grounded)
+    )
     llm_unavailable = any(h.code == "llm_unavailable" for h in fc.operator_hints)
     ask_unanswered = final_verdict == Verdict.ok and bool(fc.ask) and (extraction_empty or llm_unavailable)
     if ask_unanswered:
@@ -322,6 +330,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
         content_md=wrapped_md,
         operator_hints=op_hints,
         retrieval_incomplete=retrieval_incomplete,
+        structured_grounded=fc.structured_grounded,
         comments_loaded=fc.comments_loaded,
         comments_total=fc.comments_total,
         items_loaded=fc.items_loaded,
@@ -401,7 +410,16 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     retrieval_incomplete = fr.retrieval_incomplete
     if obstacle in _CONFIDENCE_CAPPING_OBSTACLES:
         confidence = Confidence.low
-    if obstacle in _INCOMPLETE_OBSTACLES:
+    # Structured-grounded carve-out (structured-grounded-completeness): a thin
+    # page promoted to ok by the structured-answer exemption answers from
+    # structured data by construction. A non-empty answer there makes the
+    # extractor's `obstacle: empty` a false positive — do NOT flag retrieval
+    # incomplete (the `confidence = low` cap above is retained as the honest
+    # hedge). `blocked`, an empty answer, and non-grounded pages are unaffected.
+    structured_grounded_empty = (
+        obstacle == "empty" and bool((fr.extracted_answer or "").strip()) and fr.structured_grounded
+    )
+    if obstacle in _INCOMPLETE_OBSTACLES and not structured_grounded_empty:
         retrieval_incomplete = True
         op_hints.append(
             OperatorHint(

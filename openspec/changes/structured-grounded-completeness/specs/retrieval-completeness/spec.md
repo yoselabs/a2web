@@ -45,6 +45,11 @@ The never-silently-miss floor SHALL extend to the confabulation case: when an `a
 - **WHEN** a structured-exemption-promoted page yields an empty answer
 - **THEN** the `extraction_empty` guard fires (`status: failed` + `retrieval_incomplete`), unchanged by the carve-out
 
+#### Scenario: The empty-answer guard covers thin promoted pages
+
+- **WHEN** an `ask` on a `structured_grounded` page has `extraction_meta` set but an empty extracted answer, and `content_md` is below the 500-char `extraction_empty` length threshold
+- **THEN** `extraction_empty` STILL fires (`status: failed` + `retrieval_incomplete`) — the `>500` threshold, which assumed thin pages already failed at the length floor, is extended with `or structured_grounded` so a promoted thin page cannot return an `ok` empty answer (ADR-0009 never-silently-miss)
+
 #### Scenario: A blocked obstacle on a promoted page is still flagged
 
 - **WHEN** a structured-exemption-promoted page reports `obstacle: "blocked"` (not `empty`)

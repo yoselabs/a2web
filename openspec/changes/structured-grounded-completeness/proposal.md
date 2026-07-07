@@ -26,8 +26,13 @@ critical hint.
   stays `low` for these answers (they bypassed the usual prose-quality signal),
   so the caller is still told "verify me" — but via a low-confidence answer, not
   a "do not answer as if it does" klaxon that contradicts a delivered answer.
-- **The never-silently-miss floor is preserved everywhere else.** A genuinely
-  empty answer still fails hard (the `extraction_empty` guard is untouched).
+- **The never-silently-miss floor is preserved everywhere else — and a gap the
+  prior change opened is closed.** A genuinely empty answer still fails hard.
+  The `extraction_empty` guard's `len(content_md) > 500` threshold assumed thin
+  pages already failed at the length floor; `structured-data-answers` broke that
+  assumption (thin pages now promote to `ok`), so the guard is extended with
+  `or structured_grounded` — a promoted thin page with an empty extraction
+  hard-fails instead of returning a silent `ok` empty answer (ADR-0009).
   `blocked` / `paywalled` / `error` obstacles are untouched. A page with a real
   prose answer source (not a structured-exemption promotion) keeps today's
   obstacle-driven incompleteness behavior. The paid-render-before-incomplete

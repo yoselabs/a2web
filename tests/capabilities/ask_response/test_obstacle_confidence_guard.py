@@ -96,3 +96,56 @@ def test_healthy_page_not_flagged() -> None:
     ask = build_ask_response(_fr(obstacle=None), include_content=False, debug=False)
     assert ask.retrieval_incomplete is False
     assert "retrieval_incomplete" not in _hint_codes(ask)
+
+
+# --------------------------------------------------------------------- #
+# structured-grounded carve-out (structured-grounded-completeness)
+# --------------------------------------------------------------------- #
+
+
+def _fr_grounded(*, obstacle: Obstacle | None, answer: str, structured_grounded: bool) -> FetchResponse:
+    """An ok ask response from a (maybe) structured-exemption-promoted page."""
+    routing = RouterPayload(answer=answer, structural_form="product", shape="key-value", obstacle=obstacle)
+    return FetchResponse(
+        url="https://www.veito.com/iletisim-EN.html",
+        status=FetchStatus.ok,
+        tier="raw",
+        confidence=Confidence.medium,  # promoted-thin page: verdict ok, short content
+        extracted_answer=answer,
+        routing=routing,
+        structured_grounded=structured_grounded,
+    )
+
+
+def test_structured_grounded_empty_obstacle_not_flagged() -> None:
+    """Thin structured page, non-empty answer, obstacle=empty → NOT incomplete,
+    no critical hint, but confidence stays low (the honest hedge)."""
+    fr = _fr_grounded(obstacle="empty", answer="Phone 444 3 061, email destek@veito.com", structured_grounded=True)
+    ask = build_ask_response(fr, include_content=False, debug=False)
+    assert ask.retrieval_incomplete is False
+    assert "retrieval_incomplete" not in _hint_codes(ask)
+    assert ask.confidence == Confidence.low
+
+
+def test_structured_grounded_blocked_still_flagged() -> None:
+    """The carve-out is empty-only: a blocked obstacle still flags incomplete."""
+    fr = _fr_grounded(obstacle="blocked", answer="Some answer", structured_grounded=True)
+    ask = build_ask_response(fr, include_content=False, debug=False)
+    assert ask.retrieval_incomplete is True
+    assert "retrieval_incomplete" in _hint_codes(ask)
+
+
+def test_structured_grounded_empty_answer_still_flagged() -> None:
+    """An EMPTY answer is out of scope — the carve-out requires a non-empty answer."""
+    fr = _fr_grounded(obstacle="empty", answer="", structured_grounded=True)
+    ask = build_ask_response(fr, include_content=False, debug=False)
+    assert ask.retrieval_incomplete is True
+    assert "retrieval_incomplete" in _hint_codes(ask)
+
+
+def test_non_grounded_empty_obstacle_still_flagged() -> None:
+    """Without the structured_grounded signal, empty obstacle flags as before."""
+    fr = _fr_grounded(obstacle="empty", answer="A fluent answer", structured_grounded=False)
+    ask = build_ask_response(fr, include_content=False, debug=False)
+    assert ask.retrieval_incomplete is True
+    assert "retrieval_incomplete" in _hint_codes(ask)
