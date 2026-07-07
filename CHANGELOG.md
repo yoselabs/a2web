@@ -8,15 +8,16 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
-### Added — Content-aware refinement guidance (`content-aware-refinement-guidance`)
+## [0.36.0] — 2026-07-07
 
 > A truncated listing was often not just partial but **biased** — a
 > price-ascending search returned the cheapest N of 1123, and any "best
-> product" judgment over that batch was systematically wrong. The tool now
-> reasons over the content in hand (never a per-site parser) to hand the agent
-> the levers to escape the truncation. Motivating case: a Hepsiburada crimping-
-> tool search sorted `siralama=artanFiyat` returned 36 of 1123 with no way to
-> narrow.
+> product" judgment over that batch was systematically wrong. `ask` now reasons
+> over the content in hand (never a per-site parser) to hand the agent generic
+> levers to escape the truncation. Motivating case: a Hepsiburada crimping-tool
+> search sorted `siralama=artanFiyat` returned 36 of 1123 with no way to narrow.
+
+### Added — Content-aware refinement guidance (`content-aware-refinement-guidance`)
 
 - **Dimensional refinement axes on a partial listing.** On the `ask` path the
   extractor proposes *axes to re-query on* (add a price floor, sort by rating,
