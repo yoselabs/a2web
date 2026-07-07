@@ -27,6 +27,7 @@ from .models import (
     ExtractionMeta,
     FetchResponse,
     FetchStatus,
+    ListingOption,
     NextLink,
     OperatorHint,
     RouterPayload,
@@ -41,6 +42,7 @@ from .utils.time import fmt_dur
 if TYPE_CHECKING:
     from .fetcher import FetchContext
     from .packages.llm_extract import RouterPayload as RouterBoundary
+    from .packages.record_extract import RecordSet
 
 
 def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
@@ -186,6 +188,50 @@ def _build_diagnostics_summary(
 _NEXT_LINKS_CAP = 10
 
 
+# rank-don't-skip: the retained option shelf. Capped so a pathological first
+# batch cannot balloon the envelope; the cap is a no-skip-within-fetched bound,
+# NOT a completeness claim (listing_partial still owns completeness). `detail`
+# is whitespace-collapsed and length-capped — no semantic edit.
+_OPTIONS_CAP = 50
+_OPTION_DETAIL_CAP = 240
+
+
+def _normalize_detail(text: str) -> str:
+    """Collapse whitespace and cap length — wire-compact, no semantic change."""
+    collapsed = " ".join(text.split())
+    if len(collapsed) > _OPTION_DETAIL_CAP:
+        return collapsed[: _OPTION_DETAIL_CAP - 1].rstrip() + "…"
+    return collapsed
+
+
+def _records_to_options(record_set: RecordSet | None) -> list[ListingOption]:
+    """Project the parsed record set into the neutral, page-order option shelf.
+
+    Title from the record heading (text-lead fallback), url from the heading
+    link, detail from the record's own text. Page order is preserved — a2web
+    does not re-rank. Records with neither a title nor detail are skipped
+    (nothing to show); the set is capped at `_OPTIONS_CAP`.
+    """
+    if record_set is None:
+        return []
+    options: list[ListingOption] = []
+    for record in record_set.records[:_OPTIONS_CAP]:
+        detail = _normalize_detail(record.text)
+        # The record text usually leads with the title; strip that duplicated
+        # prefix so `detail` carries the distinguishing signal (price / rating)
+        # and the length cap does not eat it on a long title.
+        if record.heading_text:
+            title = " ".join(record.heading_text.split())
+            if detail.startswith(title):
+                detail = detail[len(title) :].lstrip(" -–—:·|").strip()  # noqa: RUF001 — en/em dash are intentional separators
+        title = record.heading_text or (detail[:80].rstrip() if detail else "")
+        if not title and not detail:
+            continue
+        url = record.heading_link[1] if record.heading_link else None
+        options.append(ListingOption(title=title, url=url, detail=detail))
+    return options
+
+
 def _compose_next_links(fc: FetchContext) -> list[NextLink]:
     """Fold handler + LLM candidate lists into the final wire list.
 
@@ -310,7 +356,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # eval harness reads them); the serializer drops them on a successful wire.
     # Timing / cache / tokens are debug-only — the serializer drops them when
     # absent, so leaving them None here is the gate.
-    return FetchResponse(
+    response = FetchResponse(
         url=deviated_url,
         status=status,
         tier=fc.tier_used,
@@ -344,6 +390,10 @@ def build_response(fc: FetchContext) -> FetchResponse:
         ),
         routing=_project_routing(fc.routing),
     )
+    # rank-don't-skip carrier — a PrivateAttr, set after construction (off the
+    # fetch_raw wire + schema; lifted onto AskResponse by build_ask_response).
+    response._options = _records_to_options(fc.record_set)
+    return response
 
 
 # --------------------------------------------------------------------- #
@@ -484,6 +534,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         ask_here=list(routing.ask_here) if routing is not None else [],
         try_url=list(routing.try_url) if routing is not None else [],
         refinement_axes=refinement_axes,
+        options=list(fr._options),
     )
 
 

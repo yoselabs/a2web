@@ -8,6 +8,35 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.37.0] — 2026-07-07
+
+> "Best" over a listing was a *destructive* answer: `ask` crowned a
+> popularity-ranked winner and **deleted every other option** off the wire —
+> so the premium/niche tool (fewer reviews, lower crowd rating *by nature*) was
+> exactly what got thrown away. Ranking is fair; skipping the field is not.
+> `ask` now keeps the ranked verdict **and** the shelf it came from.
+
+### Added — ask retains the listing option set (`ask-retains-listing-options`)
+
+- **`ask` carries a neutral `options` list on a listing.** When the record
+  detector parses a listing, the `ask` envelope now includes one entry per
+  fetched record (`title`, `url`, `detail` carrying price/rating as extracted),
+  in **page order** — a2web does not re-rank. The ranked pick stays in `answer`;
+  the shelf stays visible, so a lower-ranked premium option is no longer deleted.
+- **The structured `RecordSet` is retained** on `FetchContext` instead of being
+  discarded after markdown rendering, and projected into `options` at the ask
+  seam. `detail` strips the duplicated title prefix and is whitespace-collapsed +
+  length-capped (no semantic edit); the set is capped at 50.
+- **Gated + honest:** `options` appears only on a listing, is absent on
+  articles/single entities, rides the `_prune_wire` omit-empty path, and never
+  appears on the `fetch_raw` wire **or its schema** (a `PrivateAttr` carrier —
+  `fetch_raw` already returns the record block in `content_md`). It carries the
+  fetched sample only and makes no completeness claim (`listing_partial` still
+  owns that).
+- **Explicit non-goal:** retrieval diversity — fetching the premium tail excluded
+  by a cheapest-first sort — is a stratified/preference-driven fetch and stays
+  with the shopping caller, not a2web.
+
 ## [0.36.0] — 2026-07-07
 
 > A truncated listing was often not just partial but **biased** — a

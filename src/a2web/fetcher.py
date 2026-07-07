@@ -401,6 +401,10 @@ class FetchContext:
     # is partial (oracle > records beyond tolerance). Threaded onto the envelope
     # by `build_response`; the shortfall also appends a `listing_partial` hint.
     record_count: int | None = None
+    # The parsed record set itself (rank-don't-skip): retained so the ask
+    # projection can surface the option shelf, instead of keeping only the count
+    # and discarding the structured records. None on a non-listing page.
+    record_set: RecordSet | None = None
     items_loaded: int | None = None
     items_total: int | None = None
     # The numeric oracle the regex path extracted (set even when it deemed the
@@ -1474,8 +1478,10 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCa
         synthetic = record_set.to_markdown()
         if synthetic:
             # Promote the parsed record count (previously logged and discarded)
-            # onto fc as the listing-completeness progress metric.
+            # onto fc as the listing-completeness progress metric, and retain the
+            # structured record set for the rank-don't-skip option shelf.
             fc.record_count = len(record_set.records)
+            fc.record_set = record_set
             next_links = _records_to_next_links(record_set, page_url=fc.final_url or "")
             await a2kit.log.info(
                 StageEnded(

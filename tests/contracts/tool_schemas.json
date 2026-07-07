@@ -298,6 +298,37 @@
           "title": "Heading",
           "type": "object"
         },
+        "ListingOption": {
+          "description": "One retained option from a listing `ask` (rank-don't-skip).\n\nA neutral, page-order entry for a parsed listing record \u2014 the shelf the\nranked `answer` was drawn from, kept so a lower-ranked or unrated item (a\npremium/niche option) stays visible rather than deleted. `title` is the\nrecord's heading (or a text lead); `url` its identifying link (absent on a\ntext-led row); `detail` its own text carrying price / rating as extracted.\na2web does NOT reorder these \u2014 any ranking lives only in `answer`.",
+          "properties": {
+            "detail": {
+              "default": "",
+              "title": "Detail",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Url"
+            }
+          },
+          "required": [
+            "title"
+          ],
+          "title": "ListingOption",
+          "type": "object"
+        },
         "NextLink": {
           "description": "One curated \"what to fetch next\" candidate.\n\nReturned on `FetchResponse.next_links`. `anchor` and `reason` are\ntruncated (not rejected) when over-cap so a misbehaving handler or\nprovider can never fail the whole fetch.",
           "properties": {
@@ -616,6 +647,13 @@
             "$ref": "#/$defs/OperatorHint"
           },
           "title": "Operator Hints",
+          "type": "array"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/ListingOption"
+          },
+          "title": "Options",
           "type": "array"
         },
         "published": {

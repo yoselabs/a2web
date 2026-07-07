@@ -20,6 +20,7 @@ from a2kit.packages.formatter.tsv import encode_tsv
 from pydantic import (
     BaseModel,
     Field,
+    PrivateAttr,
     SerializerFunctionWrapHandler,
     field_validator,
     model_serializer,
@@ -332,6 +333,22 @@ class NextUrl(BaseModel):
     reason: str
 
 
+class ListingOption(BaseModel):
+    """One retained option from a listing `ask` (rank-don't-skip).
+
+    A neutral, page-order entry for a parsed listing record — the shelf the
+    ranked `answer` was drawn from, kept so a lower-ranked or unrated item (a
+    premium/niche option) stays visible rather than deleted. `title` is the
+    record's heading (or a text lead); `url` its identifying link (absent on a
+    text-led row); `detail` its own text carrying price / rating as extracted.
+    a2web does NOT reorder these — any ranking lives only in `answer`.
+    """
+
+    title: str
+    url: str | None = None
+    detail: str = ""
+
+
 class RefinementAxis(BaseModel):
     """One dimensional refinement axis for a partial listing.
 
@@ -471,6 +488,12 @@ class FetchResponse(BaseModel):
     # FetchResponse so the seam projector (`build_ask_response`) can lift it
     # onto AskResponse. `fetch_raw` never sets this (it does not run the LLM).
     routing: RouterPayload | None = None
+    # rank-don't-skip: the parsed listing options, projected in `build_response`
+    # and lifted onto `AskResponse` by `build_ask_response`. A PrivateAttr — off
+    # both the `fetch_raw` wire AND its JSON schema (the record block already
+    # rides `content_md`), yet attribute-accessible for the ask projection. Set
+    # after construction via `_options`.
+    _options: list[ListingOption] = PrivateAttr(default_factory=list)
 
     @model_serializer(mode="wrap")
     def _omit_empty(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
@@ -689,6 +712,10 @@ class AskResponse(BaseModel):
     # only on a partial listing (gated in `build_ask_response`). Empty list is
     # dropped from the wire by `_prune_wire` (like `ask_here` / `try_url`).
     refinement_axes: list[RefinementAxis] = Field(default_factory=list)
+    # rank-don't-skip: the parsed listing options in page order (neutral shelf).
+    # Present only on a listing (record set parsed); dropped from the wire when
+    # empty by `_prune_wire`. Any ranking lives in `answer`, not this order.
+    options: list[ListingOption] = Field(default_factory=list)
 
     @model_serializer(mode="wrap")
     def _envelope_discipline(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
