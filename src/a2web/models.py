@@ -415,6 +415,12 @@ class FetchResponse(BaseModel):
     # False (see `_prune_wire`); absence therefore means retrieval was complete.
     retrieval_incomplete: bool = False
 
+    # Internal signal (never on the wire — `exclude=True`): the ok verdict came
+    # from the structured-answer length-floor exemption, so the answer was
+    # grounded in structured data. `build_ask_response` reads it to suppress a
+    # false `obstacle: empty` incompleteness flag (structured-grounded-completeness).
+    structured_grounded: bool = Field(default=False, exclude=True)
+
     # reddit-via-zyte content-expectations: loaded vs authoritative-oracle
     # comment counts for a comment-bearing page. Both None (omitted from the
     # wire) unless a handler measured them. When `comments_total` exceeds

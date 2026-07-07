@@ -1390,6 +1390,11 @@
         "status": {
           "$ref": "#/$defs/FetchStatus"
         },
+        "structured_grounded": {
+          "default": false,
+          "title": "Structured Grounded",
+          "type": "boolean"
+        },
         "tier": {
           "title": "Tier",
           "type": "string"

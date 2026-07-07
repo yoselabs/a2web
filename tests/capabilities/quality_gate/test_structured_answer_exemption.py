@@ -138,3 +138,67 @@ async def test_above_floor_prose_keeps_display_over_structured(monkeypatch: pyte
 
     assert result.status == FetchStatus.ok
     assert "Adaptive web fetching" in result.content_md
+
+
+# --------------------------------------------------------------------- #
+# structured-grounded-completeness — the promoted page is not flagged incomplete
+# --------------------------------------------------------------------- #
+
+from a2web.fetcher_response import build_ask_response  # noqa: E402
+
+_ROUTER_EMPTY_OBSTACLE = (
+    '{"answer": "Phone 444 3 061, email destek@veito.com", '
+    '"structural_form": "product", "shape": "key-value", "obstacle": "empty"}'
+)
+
+
+def _no_paid(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delitem(REGISTRY, "zyte", raising=False)
+    monkeypatch.delitem(REGISTRY, "firecrawl", raising=False)
+
+
+@pytest.mark.asyncio
+async def test_promoted_page_not_flagged_incomplete_on_empty_obstacle(monkeypatch: pytest.MonkeyPatch) -> None:
+    """End-to-end: thin LocalBusiness page promoted to ok, extractor reports a
+    (false) obstacle=empty with a non-empty answer → structured_grounded set,
+    and the ask projection does NOT flag retrieval_incomplete (confidence low)."""
+    _swap_raw(monkeypatch, _VEITO_CONTACT_HTML)
+    _no_paid(monkeypatch)
+    state = make_default_state(settings=AppSettings())
+    extractor_res, _ = _extractor(state, answer=_ROUTER_EMPTY_OBSTACLE)
+
+    result = await fetch(
+        "https://www.veito.com/iletisim-EN.html",
+        state=state,
+        ask="What is the phone and email?",
+        llm_extractor=lazy(extractor_res),
+    )
+
+    assert result.status == FetchStatus.ok
+    assert result.structured_grounded is True  # gate → context → response threading
+    assert result.routing is not None and result.routing.obstacle == "empty"
+
+    ask = build_ask_response(result, include_content=False, debug=False)
+    assert ask.retrieval_incomplete is False
+    assert "retrieval_incomplete" not in [h.code for h in ask.operator_hints]
+    assert ask.confidence.value == "low"  # honest hedge retained
+
+
+@pytest.mark.asyncio
+async def test_promoted_page_empty_answer_still_hard_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The carve-out does not rescue an EMPTY answer — extraction_empty hard-fails
+    even on a structured-exemption-promoted page."""
+    _swap_raw(monkeypatch, _VEITO_CONTACT_HTML)
+    _no_paid(monkeypatch)
+    state = make_default_state(settings=AppSettings())
+    extractor_res, _ = _extractor(state, answer="")  # genuinely empty extraction
+
+    result = await fetch(
+        "https://www.veito.com/iletisim-EN.html",
+        state=state,
+        ask="What is the phone and email?",
+        llm_extractor=lazy(extractor_res),
+    )
+
+    assert result.status == FetchStatus.failed
+    assert result.retrieval_incomplete is True

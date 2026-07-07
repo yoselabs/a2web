@@ -86,6 +86,12 @@ class _GateResult:
     verdict: Verdict
     subsystem: str | None = None
     escalation: EscalationSignal | None = None
+    # True when the structured-answer exemption is what flipped a bare
+    # length_floor to ok — i.e. this ok is a thin page whose only answer source
+    # was an answer-bearing structured candidate. Carried so the ask projection
+    # can suppress a false `obstacle: empty` incompleteness flag
+    # (structured-grounded-completeness).
+    promoted_structured: bool = False
 
 
 _JINA_PAYWALL_STUB_RE = re.compile(r"Target URL returned error 40[13]")
@@ -169,11 +175,15 @@ def evaluate(
     # its subsystem here and continues escalating even if it embeds a stub
     # payload, so no wall is masked. The `structured_answer` flag is set by the
     # caller from `ContentCandidate.answer_bearing` (strong payloads only).
+    promoted_structured = False
     if structured_answer and verdict is Verdict.length_floor and subsystem is None:
         verdict = Verdict.ok
         subsystem = None
+        promoted_structured = True
 
-    return _GateResult(verdict=verdict, subsystem=subsystem, escalation=escalation)
+    return _GateResult(
+        verdict=verdict, subsystem=subsystem, escalation=escalation, promoted_structured=promoted_structured
+    )
 
 
 @dataclass(slots=True, frozen=True)
@@ -331,6 +341,11 @@ class FetchContext:
     # the free ladder was stopped, and the gate/escalate phase dispatches the paid
     # tier straight onto the original URL.
     render_requested: bool = False
+    # True when the gate promoted a bare length_floor to ok via the
+    # structured-answer exemption — this ok is a thin page answered from
+    # structured data only. Suppresses the false `obstacle: empty`
+    # retrieval-incomplete flag at the ask projection.
+    structured_grounded: bool = False
 
     # Extraction outputs
     content_md: str = ""
@@ -1549,6 +1564,8 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
         is_json=is_json_content_type(fc.content_type),
         structured_answer=any(c.answer_bearing for c in fc.content_candidates),
     )
+    if gate_result.promoted_structured:
+        fc.structured_grounded = True
     gate_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - gate_dur_start
     fc.diagnostics.append(
         Diagnostic(
