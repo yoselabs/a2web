@@ -154,7 +154,10 @@ def _ld_json_to_markdown(data: dict | list) -> str:
             t = t[0] if t else None
         if t == "Recipe":
             lines.append(_recipe_md(entry))
-        elif t in ("Product", "Article", "NewsArticle"):
+        elif t in ("Product", "Article", "NewsArticle", "LocalBusiness", "Organization", "ContactPoint", "Event"):
+            # Answer/entity schemas render by the same default-keep path — a
+            # contact page's LocalBusiness (telephone/email/address) is an answer,
+            # not chrome (structured-data-answers).
             lines.append(_single_entity_md(entry, kind=str(t)))
         elif t == "ItemList":
             items = entry.get("itemListElement") or []

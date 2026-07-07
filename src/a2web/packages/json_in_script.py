@@ -76,7 +76,22 @@ class JsonPayload:
 # --------------------------------------------------------------------- #
 
 
-_PREFERRED_LD_TYPES: frozenset[str] = frozenset({"Product", "Article", "NewsArticle", "ItemList", "BreadcrumbList"})
+_PREFERRED_LD_TYPES: frozenset[str] = frozenset(
+    {
+        # commerce / editorial
+        "Product",
+        "Article",
+        "NewsArticle",
+        "ItemList",
+        "BreadcrumbList",
+        # entity / answer schemas (thin-but-complete pages: contact, org, event)
+        "LocalBusiness",
+        "Organization",
+        "ContactPoint",
+        "Event",
+        "Recipe",
+    }
+)
 _MIN_LD_FIELDS: int = 3
 
 
@@ -554,10 +569,33 @@ def parse_json_response(text: str) -> JsonPayload | None:
     return JsonPayload(source="generic", data=data, script_id=None, byte_size=len(text))
 
 
+def is_answer_bearing(payload: JsonPayload) -> bool:
+    """True when `payload` is a strong (answer-bearing) structured source.
+
+    Strong = a preferred `@type` (`_PREFERRED_LD_TYPES`) with ≥3 populated
+    fields, for the `ld_json` and `microdata` sources only. Every other source
+    (framework app-state, opengraph, window vars, generic) and every weak
+    ld_json / microdata payload is page chrome, not an answer, and returns
+    False.
+
+    This is the package-owned definition of "this payload carries an answer,
+    not just page chrome." The extraction ladder tags
+    `ContentCandidate.answer_bearing` from it, and the quality-gate
+    small-but-complete exemption keys on that flag — so schema knowledge stays
+    inside the package and out of the gate seam.
+    """
+    if payload.source == "ld_json":
+        return _ld_json_strong(payload.data)
+    if payload.source == "microdata":
+        return _microdata_strong(payload.data)
+    return False
+
+
 __all__ = [
     "JsonPayload",
     "JsonSource",
     "extract_json_payloads",
+    "is_answer_bearing",
     "is_json_content_type",
     "parse_json_response",
     "rank_payloads",

@@ -160,3 +160,61 @@ def test_non_browser_tier_not_subject_to_thin_browser_rule() -> None:
         host="x.com",
     )
     assert r.subsystem != "thin_browser_response"
+
+
+# --------------------------------------------------------------------- #
+# structured-answer small-but-complete exemption (structured-data-answers)
+# --------------------------------------------------------------------- #
+
+# A thin static contact page: below LENGTH_FLOOR, no SPA/anti-bot markers.
+_THIN_CONTACT_HTML = (
+    "<html><head><title>Contact</title>"
+    '<script type="application/ld+json">'
+    '{"@type":"LocalBusiness","name":"VEITO","telephone":"444 3 061","email":"destek@veito.com"}'
+    "</script></head><body><p>Contact us.</p></body></html>"
+)
+
+# A JS-required SPA shell: below the floor, <script> + a React root marker.
+_SPA_SHELL_HTML = '<html><body><div id="__next"></div><script>1</script></body></html>'
+
+
+def test_bare_length_floor_promoted_with_structured_answer() -> None:
+    """A thin page carrying an answer-bearing structured candidate is
+    small-but-complete → promoted to ok (mirrors the is_json exemption)."""
+    r = evaluate(
+        content_md="Contact us.",  # < LENGTH_FLOOR, no markers → bare length_floor
+        raw_html=_THIN_CONTACT_HTML,
+        content_type="text/html",
+        tier="raw",
+        structured_answer=True,
+    )
+    assert r.verdict == Verdict.ok
+    assert r.subsystem is None
+
+
+def test_bare_length_floor_stays_failed_without_structured_answer() -> None:
+    """No answer-bearing candidate (weak-only payload) → behavior unchanged."""
+    r = evaluate(
+        content_md="Contact us.",
+        raw_html=_THIN_CONTACT_HTML,
+        content_type="text/html",
+        tier="raw",
+        structured_answer=False,
+    )
+    assert r.verdict == Verdict.length_floor
+    assert r.subsystem is None
+
+
+def test_js_required_shell_not_masked_by_structured_answer() -> None:
+    """A genuine SPA shell keeps its js_required subsystem + browser escalation
+    even when structured_answer is set — no wall is masked."""
+    r = evaluate(
+        content_md="",  # thin
+        raw_html=_SPA_SHELL_HTML,
+        content_type="text/html",
+        tier="raw",
+        structured_answer=True,
+    )
+    assert r.verdict == Verdict.length_floor
+    assert r.subsystem == "js_required"
+    assert r.escalation is not None and r.escalation.next_tier == "browser"
