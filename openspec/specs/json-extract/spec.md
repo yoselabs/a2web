@@ -65,7 +65,7 @@ Parse failures SHALL be silently skipped — the extractor returns a partial lis
 
 When multiple payloads are present, downstream consumers SHALL prefer them in this bucket order, descending:
 
-0. `ld_json` (strong: `Product`, `Article`, `ItemList`, `BreadcrumbList`, `NewsArticle` with ≥3 populated fields)
+0. `ld_json` (strong: `Product`, `Article`, `ItemList`, `BreadcrumbList`, `NewsArticle`, `LocalBusiness`, `Organization`, `ContactPoint`, `Event`, `Recipe` with ≥3 populated fields)
 1. `microdata` (strong: same `@type` set as ld_json strong, ≥3 populated fields)
 2. `next_data`, `nuxt_data`
 3. `opengraph`
@@ -74,6 +74,8 @@ When multiple payloads are present, downstream consumers SHALL prefer them in th
 6. `generic`
 
 Within each bucket, larger payloads (`byte_size` descending) rank first. The ranking SHALL be implemented as a pure function `rank_payloads(payloads: list[JsonPayload]) -> list[JsonPayload]` so callers can override.
+
+The strong `@type` set (`_PREFERRED_LD_TYPES`) SHALL cover both the commerce/editorial types (`Product`, `Article`, `NewsArticle`, `ItemList`, `BreadcrumbList`) AND the entity/answer types (`LocalBusiness`, `Organization`, `ContactPoint`, `Event`, `Recipe`). The `≥3 populated fields beyond @type` threshold is unchanged, so a stub entity (e.g. a `LocalBusiness` with only `name` + `url`) remains weak. `@type` matching SHALL continue to accept a single string or a list of strings, and a `LocalBusiness` subtype string (e.g. `Store`, `Restaurant`) that appears in the set matches directly.
 
 #### Scenario: Product LD-JSON wins over Next.js pageProps
 
@@ -94,6 +96,16 @@ Within each bucket, larger payloads (`byte_size` descending) rank first. The ran
 
 - **WHEN** a page has both `next_data` and `opengraph`
 - **THEN** `rank_payloads` returns the `next_data` payload first
+
+#### Scenario: Strong LocalBusiness ld_json ranks in bucket 0
+
+- **WHEN** a page carries a `LocalBusiness` JSON-LD with `name`, `telephone`, `email`, `url`, `image` (5 populated fields) alongside an `opengraph` payload
+- **THEN** `rank_payloads` returns the `LocalBusiness` ld_json first (bucket 0, ahead of opengraph in bucket 3)
+
+#### Scenario: Weak Organization ld_json ranks in bucket 4
+
+- **WHEN** a page carries an `Organization` JSON-LD with only `name` + `url` (2 fields, below threshold)
+- **THEN** it ranks in bucket 4 (`ld_json` weak), behind framework app-state and opengraph
 
 ### Requirement: Package independence preserved
 
@@ -131,4 +143,41 @@ The emitted `source="generic"` payload SHALL route through the existing `json_to
 
 - **WHEN** `parse_json_response('{"a": 1,')` is called
 - **THEN** it returns `None` (no raise)
+
+### Requirement: is_answer_bearing predicate marks strong structured payloads
+
+The `json_in_script` package SHALL expose a pure predicate
+`is_answer_bearing(payload: JsonPayload) -> bool` that returns `True` when the
+payload is a **strong** `ld_json` or **strong** `microdata` payload — i.e. an
+`@type` in the strong set (`_PREFERRED_LD_TYPES`) with ≥3 populated fields beyond
+`@type`, per the same `_ld_json_strong` / `_microdata_strong` predicates used by
+`rank_payloads` bucketing. All other sources (`next_data`, `nuxt_data`,
+`opengraph`, `window_var`, `generic`, and weak `ld_json` / `microdata`) SHALL
+return `False`.
+
+The predicate is the package-owned definition of "this payload carries an answer,
+not just page chrome." Consumers (the extraction ladder tagging
+`ContentCandidate.answer_bearing`, and thereby the quality-gate exemption) SHALL
+use it rather than re-deriving schema strength, so schema knowledge stays inside
+the package and out of the gate seam.
+
+#### Scenario: Strong Product payload is answer-bearing
+
+- **WHEN** `is_answer_bearing` is called on an `ld_json` payload holding a `Product` with `name`, `offers`, `aggregateRating` (≥3 fields)
+- **THEN** it returns `True`
+
+#### Scenario: Strong LocalBusiness payload is answer-bearing
+
+- **WHEN** `is_answer_bearing` is called on an `ld_json` payload holding a `LocalBusiness` with `name`, `telephone`, `email` (≥3 fields)
+- **THEN** it returns `True`
+
+#### Scenario: Weak entity payload is not answer-bearing
+
+- **WHEN** `is_answer_bearing` is called on an `ld_json` `Organization` with only `name` + `url` (2 fields)
+- **THEN** it returns `False`
+
+#### Scenario: OpenGraph and framework state are not answer-bearing
+
+- **WHEN** `is_answer_bearing` is called on an `opengraph` payload, or on a `next_data` payload
+- **THEN** it returns `False` (these rank behind strong structured data and do not, on their own, exempt a page from the length floor)
 
