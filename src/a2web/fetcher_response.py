@@ -458,12 +458,13 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
                 OperatorHint(code="content_guidance", message=guidance, fix="", severity="info"),
             )
 
-    # Dimensional refinement axes ride the envelope ONLY on a partial listing:
-    # `fr.items_loaded` is set exactly when the listing is partial (numeric or
-    # structural-more) and None on a complete listing or a non-listing page, so
-    # this gate drops axes precisely where the spec requires (biased-sample
-    # laundering guard — the axes themselves are dimensional by prompt contract).
-    refinement_axes = list(routing.refinement_axes) if routing is not None and fr.items_loaded is not None else []
+    # Dimensional refinement axes are the CRITERIA of the option set — needed by
+    # any listing selection question, complete or partial (criteria and
+    # completeness are orthogonal). Gate on the listing kind, not on partialness;
+    # the model omits axes on non-selection listings and `_prune_wire` drops the
+    # empty list. Axes are dimensional-only by prompt contract (never values off a
+    # possibly-biased sample).
+    refinement_axes = list(routing.refinement_axes) if routing is not None and routing.structural_form == "listing" else []
 
     # Confabulation guard (search-retrieval-and-confabulation-guard P2): the
     # extractor's own `obstacle` signal reconciles confidence + completeness.

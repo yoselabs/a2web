@@ -8,6 +8,36 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.38.0] — 2026-07-07
+
+> `ask` stopped **manufacturing a verdict it can't own**. Asked "which is best?"
+> it used to crown a winner by review count — a criterion a2web invented — while
+> its own hint said the sample was unrepresentative. "Best" is criteria-less to a
+> fetcher; criteria belong to the caller. a2web now **presents & relays; it never
+> selects.** New product tenet: ADR-0012.
+
+### Added — answer neutrality for selection questions (`answer-neutrality-for-selection`)
+
+- **Neutral answer on selection questions.** On a which/best/compare question over
+  a set, `ask` no longer asserts its own unqualified "best". It presents the option
+  space, offers only **criterion-disclosed leads** ("by rating, X leads; by price,
+  Y"), and **relays any source-stated preference attributed to the page** ("the site
+  marks WhatsApp as preferred") — never as a2web's own verdict. Single-fact asks
+  (a phone number, a date) are unchanged and stay lean.
+- **Neutral is not lazy.** The answer stays exhaustive — declining to crown is not
+  license to under-deliver. Guarded by the four pillars: Exhaustive · Faithful ·
+  Neutral · One-shot (never force a same-page re-fetch for data already in hand; the
+  scarce cost is the proxy fetch, not tokens).
+- **Criteria decoupled from completeness.** `refinement_axes` (the judgable
+  dimensions of the option set — including ones read from the item *names*: power,
+  class, connector type) now surface on **any** listing selection question, not only
+  truncated ones. Criteria and partialness are orthogonal.
+- **Product tenet recorded** as ADR-0012 + a CLAUDE.md "Never" line (not
+  CONSTITUTION.md — per ADR-0009's placement precedent; a product invariant, not
+  substrate governance).
+- No new wire fields, no tool-signature change — a behavioral change validated by
+  `make bench` (the neutrality change is measured, not assumed).
+
 ## [0.37.0] — 2026-07-07
 
 > "Best" over a listing was a *destructive* answer: `ask` crowned a

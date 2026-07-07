@@ -194,6 +194,16 @@ EXTRACT_ROUTER_V1 = PromptTemplate(
         "  answer (required, string) — your concise answer to the question. If the\n"
         "    question asks for an enumeration (top N, list, etc.) put the list IN the\n"
         "    answer as compact markdown.\n"
+        "    SELECTION questions (which / best / compare / all, over a SET of items —\n"
+        "    products, contact channels, menu items): do NOT assert YOUR OWN 'best'. You have\n"
+        "    no criteria; the criteria belong to the caller. Instead PRESENT the option space\n"
+        "    and stay exhaustive (declining to crown is NOT license to under-deliver — give\n"
+        "    the full set, not a thin pick). You MAY offer a criterion-disclosed lead — name\n"
+        "    the criterion and frame it as ONE lens ('by rating, X leads; by price, Y') — but\n"
+        "    never an unqualified 'X is best'. RELAY any preference the PAGE ITSELF states,\n"
+        "    attributed to the source ('the site marks WhatsApp as the preferred contact'),\n"
+        "    never as your own verdict. Single-fact questions (a phone number, a date) are\n"
+        "    unaffected — answer directly and leanly.\n"
         "\n"
         "  structural_form (required, ONE of):\n"
         "    article    — long-form prose (essay, post, news story)\n"
@@ -240,16 +250,18 @@ EXTRACT_ROUTER_V1 = PromptTemplate(
         "  '32,346 comments' count), in ANY language. Report the number you can READ on the page\n"
         "  even when only a subset of rows is shown. OMIT when the page states no total.\n"
         "\n"
-        "  refinement_axes (optional, list of {{dimension, how}}) — ONLY when structural_form=listing\n"
-        "  AND the shown rows are a truncated or sorted SUBSET of a larger set. Propose DIMENSIONS the\n"
-        '  agent can re-query on to narrow the field: e.g. {{"dimension": "price floor", "how": "add a\n'
-        '  minimum price to skip the cheapest tier"}}, {{"dimension": "sort order", "how": "sort by\n'
-        '  rating instead of price"}}, {{"dimension": "brand", "how": "narrow to one brand to compare"}}.\n'
-        "  NEVER name a specific value or item from the rows shown (no 'buy brand X', no 'the cheapest\n"
-        "  are best') — the shown rows may be a biased sample, so name the AXIS, not a value. Consider\n"
-        "  the page's own URL and its query parameters (visible in the content) — an existing sort or\n"
-        "  filter is itself an axis the agent can change. Context decides count: 2-4 axes. OMIT on\n"
-        "  complete listings and on non-listings.\n"
+        "  refinement_axes (optional, list of {{dimension, how}}) — when structural_form=listing and\n"
+        "  the question is a SELECTION (which/best/compare), surface the CRITERIA this option set can\n"
+        "  be judged on — the dimensions a 'best' would need, since you supply none yourself. This\n"
+        "  applies to ANY such listing, complete or truncated. Propose DIMENSIONS the agent can\n"
+        '  re-query or judge on: e.g. {{"dimension": "price floor", "how": "add a minimum price to skip\n'
+        '  the cheapest tier"}}, {{"dimension": "sort order", "how": "sort by rating instead of price"}},\n'
+        '  {{"dimension": "brand", "how": "narrow to one brand to compare"}}, and dimensions visible in\n'
+        '  the item NAMES themselves (power/wattage, class, capacity, connector type). NEVER name a\n'
+        "  specific value or item from the rows shown (no 'buy brand X', no 'the cheapest are best') —\n"
+        "  name the AXIS, not a value. Consider the page's own URL and its query parameters (visible in\n"
+        "  the content) — an existing sort or filter is itself an axis the agent can change. Context\n"
+        "  decides count: 2-4 axes. OMIT on non-listings and non-selection questions.\n"
         "\n"
         "Envelope discipline: when a field is empty / null / does-not-apply, OMIT the key\n"
         "ENTIRELY. Do not emit `null` or `[]` — absence carries the meaning.\n"
