@@ -25,6 +25,10 @@ EXTRACTOR_ROUTING_POLICY: dict[str, WobblePolicy] = {
     "obstacle": WobblePolicy(WobbleTolerance.DEFAULT, default=None),
     "ask_here": WobblePolicy(WobbleTolerance.DEFAULT, default=()),
     "try_url": WobblePolicy(WobbleTolerance.DEFAULT, default=()),
+    # Content-aware refinement guidance — both optional; the model omits them on
+    # non-partial / non-listing pages, so DEFAULT-recover to empty / None.
+    "refinement_axes": WobblePolicy(WobbleTolerance.DEFAULT, default=()),
+    "item_total_seen": WobblePolicy(WobbleTolerance.DEFAULT, default=None),
 }
 
 # Bench output-clarity axis. Score is load-bearing; reasoning is decorative.

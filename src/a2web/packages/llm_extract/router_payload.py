@@ -41,6 +41,21 @@ class NextUrlBoundary:
 
 
 @dataclass(frozen=True, slots=True)
+class RefinementAxisBoundary:
+    """One dimensional refinement axis for a partial listing (boundary side).
+
+    A *dimension* to re-query on (e.g. "brand", "price floor", "sort order"),
+    never a specific value drawn from the retrieved (possibly biased) sample.
+    `how` is the model's one-line guidance on applying that dimension. The
+    dimensional-not-value discipline is a prompt instruction; the boundary type
+    stays loose (any string) and the domain seam does not truncate.
+    """
+
+    dimension: str
+    how: str
+
+
+@dataclass(frozen=True, slots=True)
 class RouterPayload:
     """The full router-shape payload (boundary side).
 
@@ -57,6 +72,15 @@ class RouterPayload:
     obstacle: str | None = None
     ask_here: tuple[str, ...] = field(default_factory=tuple)
     try_url: tuple[NextUrlBoundary, ...] = field(default_factory=tuple)
+    # Dimensional refinement axes for a partial listing (content-aware
+    # refinement guidance). Empty tuple omitted at the wire; the domain layer
+    # additionally drops them unless the listing is confirmed partial.
+    refinement_axes: tuple[RefinementAxisBoundary, ...] = field(default_factory=tuple)
+    # The total item/result/comment count the model READ off the page,
+    # language-agnostic (works where the regex count oracle's noun list does
+    # not). Used at the domain seam as an oracle fallback for LLM-side
+    # partialness detection. None when the page advertised no readable total.
+    item_total_seen: int | None = None
 
 
-__all__ = ["NextUrlBoundary", "RouterPayload"]
+__all__ = ["NextUrlBoundary", "RefinementAxisBoundary", "RouterPayload"]

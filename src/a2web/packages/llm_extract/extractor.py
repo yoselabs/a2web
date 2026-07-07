@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 
 from .prompts import EXTRACT_ROUTER_V1, WEBFETCH_DEFAULT_V1, PromptTemplate
 from .providers.base import Provider
-from .router_payload import NextUrlBoundary, RouterPayload
+from .router_payload import NextUrlBoundary, RefinementAxisBoundary, RouterPayload
 from .wobble import (
     EXTRACTOR_ROUTING_POLICY,
     ParseError,
@@ -405,6 +405,21 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
             reason = item.get("reason", "")
             try_urls.append(NextUrlBoundary(url=url_val, reason=reason if isinstance(reason, str) else ""))
 
+    axes: list[RefinementAxisBoundary] = []
+    axes_raw = parsed.get("refinement_axes", ())
+    if isinstance(axes_raw, list):
+        for item in axes_raw:
+            if not isinstance(item, dict):
+                continue
+            dimension = item.get("dimension")
+            if not isinstance(dimension, str) or not dimension:
+                continue
+            how = item.get("how", "")
+            axes.append(RefinementAxisBoundary(dimension=dimension, how=how if isinstance(how, str) else ""))
+
+    total_seen_raw = parsed.get("item_total_seen")
+    item_total_seen = total_seen_raw if isinstance(total_seen_raw, int) and not isinstance(total_seen_raw, bool) else None
+
     payload = RouterPayload(
         answer=answer,
         structural_form=structural_form,
@@ -413,6 +428,8 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
         obstacle=obstacle,
         ask_here=ask_here,
         try_url=tuple(try_urls),
+        refinement_axes=tuple(axes),
+        item_total_seen=item_total_seen,
     )
     return _RoutingResult(answer=answer, payload=payload)
 

@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 from typing import TYPE_CHECKING, Any
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, parse_qsl, quote, urlparse
 
 if TYPE_CHECKING:
     from .packages.json_in_script import JsonPayload
@@ -25,6 +25,7 @@ __all__ = (
     "is_live_only",
     "json_response_fallback",
     "json_to_markdown_rows",
+    "parse_query_params",
     "rewrite_captcha_host",
 )
 
@@ -73,6 +74,29 @@ def is_live_only(url: str, settings: AppSettings) -> bool:
     """Return True if `url`'s host should bypass the cache entirely."""
     host = urlparse(url).hostname or ""
     return any(host == h or host.endswith(f".{h}") for h in settings.live_only_hosts)
+
+
+def parse_query_params(url: str) -> list[tuple[str, str]]:
+    """Parse a URL's query string into opaque `(key, value)` pairs.
+
+    Part of the content-aware refinement context bundle: the query string is a
+    filter/sort surface, but a2web must NOT interpret it — decoding
+    `siralama=artanFiyat` as "ascending price sort" would require per-site,
+    per-language knowledge (the exact scar tissue the constitution bans). This
+    returns the pairs verbatim; the reasoning model decodes their meaning.
+
+    Pure and total: a malformed or empty query yields `[]`, never raises. Order
+    is preserved; repeated keys yield multiple pairs.
+    """
+    try:
+        query = urlparse(url).query
+    except (ValueError, TypeError):
+        return []
+    if not query:
+        return []
+    # keep_blank_values so `?filter=` surfaces too; strict_parsing off so a
+    # malformed fragment degrades to what parsed rather than raising.
+    return [(k, v) for k, v in parse_qsl(query, keep_blank_values=True)]
 
 
 def rewrite_captcha_host(url: str) -> str | None:

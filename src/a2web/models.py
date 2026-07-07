@@ -332,6 +332,20 @@ class NextUrl(BaseModel):
     reason: str
 
 
+class RefinementAxis(BaseModel):
+    """One dimensional refinement axis for a partial listing.
+
+    A *dimension* the agent can re-query on to narrow a truncated / sorted
+    listing (e.g. "price floor", "sort order", "brand") — never a specific value
+    drawn from the retrieved (possibly biased) sample. `how` is a one-line
+    guidance on applying that dimension. The dimensional-not-value discipline is
+    enforced upstream in the extraction prompt; the model here just carries it.
+    """
+
+    dimension: str
+    how: str
+
+
 class RouterPayload(BaseModel):
     """Router-shape payload emitted by the `extract_router_v1` template.
 
@@ -339,6 +353,8 @@ class RouterPayload(BaseModel):
     the page IS. Four conditional fields (`genre`, `obstacle`, `ask_here`,
     `try_url`) describe what it's ABOUT plus drilldown hints; the serializer
     on `AskResponse` omits the conditionals from the wire when empty.
+    `refinement_axes` carries content-aware refinement guidance for a partial
+    listing (dimensional only); it too is omit-empty at the wire.
     """
 
     answer: str
@@ -348,6 +364,11 @@ class RouterPayload(BaseModel):
     obstacle: Obstacle | None = None
     ask_here: list[str] = Field(default_factory=list)
     try_url: list[NextUrl] = Field(default_factory=list)
+    refinement_axes: list[RefinementAxis] = Field(default_factory=list)
+    # The item total the model READ off the page (language-agnostic); used as an
+    # oracle fallback for LLM-side partialness detection at the fetcher seam.
+    # None when the page advertised no readable total.
+    item_total_seen: int | None = None
 
 
 class ExtractionMeta(BaseModel):
@@ -664,6 +685,10 @@ class AskResponse(BaseModel):
     obstacle: Obstacle | None = None
     ask_here: list[str] = Field(default_factory=list)
     try_url: list[NextUrl] = Field(default_factory=list)
+    # Content-aware refinement guidance: dimensional axes to re-query on, present
+    # only on a partial listing (gated in `build_ask_response`). Empty list is
+    # dropped from the wire by `_prune_wire` (like `ask_here` / `try_url`).
+    refinement_axes: list[RefinementAxis] = Field(default_factory=list)
 
     @model_serializer(mode="wrap")
     def _envelope_discipline(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
