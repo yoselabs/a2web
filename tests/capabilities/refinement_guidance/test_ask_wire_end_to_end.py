@@ -73,9 +73,10 @@ async def test_partial_listing_wire_carries_axes_and_guidance(monkeypatch: pytes
 
 
 @pytest.mark.asyncio
-async def test_complete_listing_wire_drops_axes(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Model total meets the parsed count → not partial → axes dropped, no
-    # items_* on the wire (but the listing content_guidance still fires).
+async def test_complete_listing_keeps_criteria_drops_partial_signal(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Complete listing (total meets count): no partial signal (no items_total),
+    # but criteria/axes STILL surface — they are decoupled from completeness
+    # (answer-neutrality-for-selection). The gate is the listing kind, not partial.
     data = await _ask_listing_wire(
         monkeypatch,
         body=_listing_html(6),
@@ -83,5 +84,5 @@ async def test_complete_listing_wire_drops_axes(monkeypatch: pytest.MonkeyPatch)
         url="https://shop.example/ara?q=crimp",
         question="which crimping tool is best?",
     )
-    assert "refinement_axes" not in data
+    assert data["refinement_axes"] == _AXES
     assert "items_total" not in data

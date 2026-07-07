@@ -140,16 +140,18 @@ def test_axes_present_on_partial_listing() -> None:
     assert wire["refinement_axes"] == [{"dimension": "price floor", "how": "add a minimum price"}]
 
 
-def test_axes_dropped_on_complete_listing() -> None:
-    # Complete listing: items_loaded is None (build_response nulls the counts).
+def test_axes_present_on_complete_listing() -> None:
+    # Criteria are decoupled from completeness (answer-neutrality-for-selection):
+    # a COMPLETE listing (items_loaded None) still surfaces its criteria — the
+    # gate is the listing kind, not partialness.
     axes = [RefinementAxis(dimension="price floor", how="add a minimum price")]
     ask = build_ask_response(
         _fr(structural_form="listing", axes=axes, items_loaded=None, items_total=None),
         include_content=False,
         debug=False,
     )
-    assert ask.refinement_axes == []
-    assert "refinement_axes" not in ask.model_dump()
+    assert ask.refinement_axes == axes
+    assert ask.model_dump()["refinement_axes"] == [{"dimension": "price floor", "how": "add a minimum price"}]
 
 
 def test_axes_dropped_on_non_listing() -> None:
