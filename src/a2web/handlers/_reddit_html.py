@@ -24,9 +24,8 @@ from dataclasses import dataclass, field
 from typing import Literal
 from urllib.parse import urlencode, urlparse, urlunparse
 
+from html_fragment import to_markdown
 from selectolax.parser import HTMLParser, Node
-
-from ..packages.html_fragment import to_markdown
 
 Channel = Literal["thread", "listing"]
 

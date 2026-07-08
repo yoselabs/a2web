@@ -33,7 +33,7 @@ everything through `fetch_bytes` means the test seam *is* the transport seam.
 
 When a site's API returns HTML fragments (Discourse `cooked`, Habr `textHtml`,
 V2EX `content_rendered`, HN Algolia `text`), use `to_markdown` /
-`to_text` from `a2web.packages.html_fragment`. Don't hand-roll regex
+`to_text` from `html_fragment` (the shelf package). Don't hand-roll regex
 strippers — they miss HTML entities (the `&rsquo;` class of bug).
 
 ## Live probe

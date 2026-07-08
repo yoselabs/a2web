@@ -31,9 +31,9 @@ import base64
 from typing import TYPE_CHECKING, Any
 
 import httpx
+from html_fragment import to_markdown
 
 from ..models import Verdict
-from ..packages.html_fragment import to_markdown
 from ._paid import paid_verdict_for_status
 
 if TYPE_CHECKING:

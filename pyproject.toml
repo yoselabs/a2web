@@ -37,6 +37,9 @@ dependencies = [
     # OpenGraph, window.__X__ vars, raw JSON bodies) — promoted to the shelf and
     # adopted back (was src/a2web/packages/json_in_script).
     "json-in-html>=0.1,<1",
+    # html-fragment: convert a server-supplied HTML fragment to link-preserving
+    # markdown/text — promoted to the shelf and adopted back (was packages/html_fragment).
+    "html-fragment>=0.1,<1",
     "curl_cffi>=0.7,<1",
     "httpx>=0.27,<1",
     # cookie decryption (Chrome v10/v11 AES-GCM). Already pulled in
@@ -151,6 +154,7 @@ http-fetch = { git = "https://github.com/yoselabs/shelf", subdirectory = "packag
 sqlite-resource = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/sqlite-resource", tag = "sqlite-resource-v0.1.0" }
 http-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-cache", tag = "http-cache-v0.1.0" }
 json-in-html = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/json-in-html", tag = "json-in-html-v0.1.0" }
+html-fragment = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/html-fragment", tag = "html-fragment-v0.1.0" }
 
 [build-system]
 requires = ["hatchling"]
