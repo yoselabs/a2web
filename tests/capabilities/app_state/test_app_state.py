@@ -15,7 +15,7 @@ import a2kit.testing
 import pytest
 from purgatory import AsyncCircuitBreakerFactory
 
-from a2web.packages.http_cache import SqliteResource
+from a2web.cache import SqliteResource
 from a2web.packages.proxy_routing import ProxyPool
 from a2web.routers import WebRouter
 from a2web.settings import AppSettings

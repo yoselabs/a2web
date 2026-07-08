@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from a2web.domain import compute_profile_hash, is_live_only
-from a2web.packages.http_cache import (
+from a2web.cache import (
     cache_get,
     cache_put,
     open_sqlite_with_schema,
 )
+from a2web.domain import compute_profile_hash, is_live_only
 from a2web.settings import AppSettings
 
 

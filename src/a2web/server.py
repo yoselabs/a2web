@@ -27,8 +27,8 @@ from a2kit.config import A2kitConfig, McpConfig
 
 from ._manifests.sinks import Sink
 from ._plugin import load_surface
+from .cache import SqliteResource
 from .cookie_jar import build_cookie_jar
-from .packages.http_cache import SqliteResource
 from .packages.llm_extract import Provider
 from .routers import CookiesRouter, WebRouter
 from .settings import AppSettings, get_settings
@@ -188,7 +188,7 @@ def build_google_provider(settings: AppSettings) -> object | None:
     from fastmcp.server.auth.providers.google import GoogleProvider
     from key_value.aio.stores.filetree import FileTreeStore
 
-    from .packages.http_cache import cache_dir
+    from .cache import cache_dir
 
     store_dir = settings.oauth_cache_dir or str(cache_dir() / "oauth")
     token_store: object = FileTreeStore(data_directory=store_dir)

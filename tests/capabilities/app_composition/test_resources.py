@@ -2,8 +2,9 @@
 
 Verifies the canonical a2kit v0.27 Resource shape:
 - Sync __init__ (no I/O).
-- `_ensure()` opens lazily under internal lock; concurrent first calls race-safe.
-- `close()` is idempotent; `_ensure()` after `close()` reopens.
+- lazy open under an internal lock; concurrent first calls race-safe (SqliteResource
+  exposes the shelf-primitive `ensure()`; LlmExtractorResource/BrowserPool keep `_ensure()`).
+- `close()` is idempotent; a subsequent open reopens.
 - AppState fields stay non-Optional in callers — Resource owns the None handling.
 """
 
@@ -14,9 +15,9 @@ from pathlib import Path
 
 import pytest
 
+from a2web.cache import SqliteResource
 from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.browser_backends import PlaywrightBackend, camoufox_launcher
-from a2web.packages.http_cache import SqliteResource
 from a2web.packages.llm_extract import Provider
 from a2web.settings import AppSettings
 from a2web.state import (
@@ -45,7 +46,7 @@ async def test_sqlite_resource_lazy_open(cache_dir: Path) -> None:
     assert resource._conn is None
     assert not (cache_dir / "cache.sqlite").exists()
 
-    conn = await resource._ensure()
+    conn = await resource.ensure()
     assert conn is not None
     assert resource._conn is conn
     assert (cache_dir / "cache.sqlite").exists()
@@ -59,7 +60,7 @@ async def test_sqlite_resource_concurrent_first_calls_share_connection(cache_dir
     del cache_dir
     resource = SqliteResource(db_path=None)
 
-    results = await asyncio.gather(*[resource._ensure() for _ in range(20)])
+    results = await asyncio.gather(*[resource.ensure() for _ in range(20)])
     assert all(r is results[0] for r in results)
 
     await resource.close()
@@ -70,7 +71,7 @@ async def test_sqlite_resource_close_is_idempotent(cache_dir: Path) -> None:
     """Calling close() twice is safe and a no-op the second time."""
     del cache_dir
     resource = SqliteResource(db_path=None)
-    await resource._ensure()
+    await resource.ensure()
     await resource.close()
     await resource.close()  # must not raise
     assert resource._conn is None
@@ -78,12 +79,12 @@ async def test_sqlite_resource_close_is_idempotent(cache_dir: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_sqlite_resource_ensure_after_close_reopens(cache_dir: Path) -> None:
-    """After close(), a subsequent _ensure() opens a fresh connection."""
+    """After close(), a subsequent ensure() opens a fresh connection."""
     del cache_dir
     resource = SqliteResource(db_path=None)
-    conn1 = await resource._ensure()
+    conn1 = await resource.ensure()
     await resource.close()
-    conn2 = await resource._ensure()
+    conn2 = await resource.ensure()
     assert conn2 is not conn1
     await resource.close()
 

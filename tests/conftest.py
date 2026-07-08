@@ -20,9 +20,9 @@ import aiosqlite.core
 import pytest
 from a2kit.testing import ambient_for_tests_autouse  # noqa: F401 — autouse fixture by import (v0.39.3+)
 
+from a2web.cache import SqliteResource
 from a2web.cookie_jar import build_cookie_jar
 from a2web.models import OperatorHint, Verdict
-from a2web.packages.http_cache import SqliteResource
 from a2web.settings import AppSettings
 from a2web.state import (
     AppState,

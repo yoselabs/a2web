@@ -27,6 +27,7 @@ from a2kit import Lazy
 
 from . import content_expectations
 from .actions import Action, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
+from .cache import CacheRow, SqliteResource
 from .cookie_jar import Cookie, CookieJarResource
 from .decision_log import Observation, ObservationKind, resolve_verdict
 from .domain import (
@@ -64,7 +65,6 @@ from .packages.content_extract import (
     parse_metadata,
 )
 from .packages.escalation import EscalationSignal
-from .packages.http_cache import CacheRow, SqliteResource
 from .packages.json_in_script import (
     extract_json_payloads,
     is_answer_bearing,

@@ -18,7 +18,7 @@ from typing import cast
 
 from purgatory import AsyncCircuitBreakerFactory
 
-from ..packages.http_cache import SqliteResource
+from ..cache import SqliteResource
 from ..packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from ..settings import AppSettings
 from ..state import build_state

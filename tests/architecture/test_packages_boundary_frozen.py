@@ -20,13 +20,14 @@ from a2web.packages.browser_backends import BackendCookie, RenderedPage
 from a2web.packages.content_extract import ExtractedContent, ExtractedHeading, ExtractedLink
 from a2web.packages.cookie_store.models import CookieRow
 from a2web.packages.escalation import EscalationSignal
-from a2web.packages.http_cache import CacheRow
+
+# NB: CacheRow left `packages/` when the cache primitive was promoted to the shelf
+# (`http_cache`); its freeze is now the shelf's invariant, so it drops off this list.
 
 _FROZEN_BOUNDARY_TYPES = (
     ExtractedHeading,
     ExtractedLink,
     ExtractedContent,
-    CacheRow,
     CookieRow,
     BlockResult,
     EscalationSignal,
@@ -55,9 +56,8 @@ def test_no_default_dataclass_carries_runtime_setattr() -> None:
     with pytest.raises(FrozenInstanceError):
         signal.next_tier = "archive"  # type: ignore[misc]
 
-    # ExtractedContent / CacheRow have required positional fields, but a
-    # FrozenInstanceError on any field set on a constructed instance proves
-    # the freeze. Walk one field per type.
+    # ExtractedContent has required positional fields, but a FrozenInstanceError
+    # on any field set on a constructed instance proves the freeze.
     sample = ExtractedContent(content_md="x")
     with pytest.raises(FrozenInstanceError):
         sample.content_md = "y"  # type: ignore[misc]

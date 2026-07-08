@@ -21,10 +21,10 @@ from typing import Any, ClassVar
 import pytest
 from a2kit.testing import lazy
 
+from a2web.cache import SqliteResource
 from a2web.cookie_jar import build_cookie_jar
 from a2web.fetcher import fetch
 from a2web.packages.cookie_store.models import CookieRow
-from a2web.packages.http_cache import SqliteResource
 from a2web.settings import AppSettings
 from tests.conftest import make_default_state
 
@@ -148,7 +148,7 @@ async def test_chrome_stale_mirror_cookies_flow_with_hint_once(
     try:
         await jar.refresh()
         # Tamper with last_refresh_at to look 30h old.
-        conn = await sqlite._ensure()
+        conn = await sqlite.ensure()
         thirty_h_ago = int(time.time()) - 30 * 3600
         await conn.execute(
             "UPDATE cookies_meta SET last_refresh_at = ? WHERE profile = ? AND browser = ?",

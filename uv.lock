@@ -49,6 +49,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "curl-cffi" },
     { name = "gidgethub" },
+    { name = "http-cache" },
     { name = "http-fetch" },
     { name = "httpx" },
     { name = "markdownify" },
@@ -60,6 +61,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "selectolax" },
+    { name = "sqlite-resource" },
     { name = "trafilatura" },
 ]
 
@@ -106,6 +108,7 @@ requires-dist = [
     { name = "curl-cffi", specifier = ">=0.7,<1" },
     { name = "firecrawl-py", marker = "extra == 'paid'", specifier = ">=1,<2" },
     { name = "gidgethub", specifier = ">=5.4,<6" },
+    { name = "http-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-cache&tag=http-cache-v0.1.0" },
     { name = "http-fetch", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.1.0" },
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "markdownify", specifier = ">=0.13,<2" },
@@ -118,6 +121,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.5,<3" },
     { name = "pyyaml", specifier = ">=6,<7" },
     { name = "selectolax", specifier = ">=0.3,<1" },
+    { name = "sqlite-resource", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fsqlite-resource&tag=sqlite-resource-v0.1.0" },
     { name = "trafilatura", specifier = ">=1.12,<2" },
     { name = "zendriver", marker = "extra == 'browser'", specifier = ">=0.15,<1" },
 ]
@@ -1178,6 +1182,14 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9d/10/ead9dabc999f353c3aa5d0dc0835b1e355215a5ecb489a7f4ef2ddad5e33/htmldate-1.9.4.tar.gz", hash = "sha256:1129063e02dd0354b74264de71e950c0c3fcee191178321418ccad2074cc8ed0", size = 44690, upload-time = "2025-11-04T17:46:44.983Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a1/bd/adfcdaaad5805c0c5156aeefd64c1e868c05e9c1cd6fd21751f168cd88c7/htmldate-1.9.4-py3-none-any.whl", hash = "sha256:1b94bcc4e08232a5b692159903acf95548b6a7492dddca5bb123d89d6325921c", size = 31558, upload-time = "2025-11-04T17:46:43.258Z" },
+]
+
+[[package]]
+name = "http-cache"
+version = "0.1.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-cache&tag=http-cache-v0.1.0#7de08f766f4013c00d7b7f09a715b090b891b790" }
+dependencies = [
+    { name = "sqlite-resource" },
 ]
 
 [[package]]
@@ -3180,6 +3192,14 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7b/ae/2d9c981590ed9999a0d91755b47fc74f74de286b0f5cee14c9269041e6c4/soupsieve-2.8.3.tar.gz", hash = "sha256:3267f1eeea4251fb42728b6dfb746edc9acaffc4a45b27e19450b676586e8349", size = 118627, upload-time = "2026-01-20T04:27:02.457Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/2c/1462b1d0a634697ae9e55b3cecdcb64788e8b7d63f54d923fcd0bb140aed/soupsieve-2.8.3-py3-none-any.whl", hash = "sha256:ed64f2ba4eebeab06cc4962affce381647455978ffc1e36bb79a545b91f45a95", size = 37016, upload-time = "2026-01-20T04:27:01.012Z" },
+]
+
+[[package]]
+name = "sqlite-resource"
+version = "0.1.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fsqlite-resource&tag=http-cache-v0.1.0#7de08f766f4013c00d7b7f09a715b090b891b790" }
+dependencies = [
+    { name = "aiosqlite" },
 ]
 
 [[package]]

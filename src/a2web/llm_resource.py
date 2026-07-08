@@ -30,7 +30,7 @@ from .settings import AppSettings
 if TYPE_CHECKING:
     from a2kit.packages.di import Lazy
 
-    from .packages.http_cache import SqliteResource
+    from .cache import SqliteResource
     from .packages.llm_extract import ExtractionResult, Extractor, LlmNextLink, Provider
 
 
@@ -121,7 +121,7 @@ class LlmExtractorResource:
         # Hook the extraction cache into the same sqlite file as the HTTP
         # cache. Ensures the underlying connection is open first.
         try:
-            conn = await self._sqlite._ensure()
+            conn = await self._sqlite.ensure()
         except Exception as exc:  # sqlite open failure shouldn't block extraction
             cache: ExtractionCache | None = None
             del exc

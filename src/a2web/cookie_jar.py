@@ -34,10 +34,10 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
+from .cache import SqliteResource
 from .packages.cookie_store import read_cookies as _read_cookies
 from .packages.cookie_store.models import SameSite
 from .packages.cookie_store.store import CookieSource
-from .packages.http_cache import SqliteResource
 from .settings import AppSettings
 
 if TYPE_CHECKING:
@@ -177,7 +177,7 @@ class CookieJarResource:
 
     async def _ensure(self) -> aiosqlite.Connection:
         """Open the underlying sqlite (via SqliteResource) and create tables."""
-        conn = await self._sqlite._ensure()
+        conn = await self._sqlite.ensure()
         if self._tables_ready:
             return conn
         async with self._lock:

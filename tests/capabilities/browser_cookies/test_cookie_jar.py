@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
+from a2web.cache import SqliteResource
 from a2web.cookie_jar import CookieJarResource, build_cookie_jar
 from a2web.packages.cookie_store import models as cs_models
 from a2web.packages.cookie_store.models import CookieRow
-from a2web.packages.http_cache import SqliteResource
 from a2web.settings import AppSettings
 
 
@@ -64,7 +64,7 @@ async def test_factory_returns_resource(sqlite_res: SqliteResource) -> None:
 async def test_aenter_creates_tables(sqlite_res: SqliteResource) -> None:
     jar = build_cookie_jar(_settings(), sqlite_res)
     async with jar:
-        conn = await sqlite_res._ensure()
+        conn = await sqlite_res.ensure()
         async with conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('a2web_cookies', 'cookies_meta')",
         ) as cursor:
@@ -96,7 +96,7 @@ async def test_refresh_atomic_swap(sqlite_res: SqliteResource, monkeypatch: pyte
         assert r1.refreshed_count == 5
         r2 = await jar.refresh()
         assert r2.refreshed_count == 3
-        conn = await sqlite_res._ensure()
+        conn = await sqlite_res.ensure()
         async with conn.execute(
             "SELECT name FROM a2web_cookies WHERE profile='Default' AND browser='chrome'",
         ) as cursor:
@@ -118,7 +118,7 @@ async def test_refresh_isolates_profile_browser(sqlite_res: SqliteResource, monk
     async with jar_a, jar_b:
         await jar_a.refresh()
         await jar_b.refresh()
-        conn = await sqlite_res._ensure()
+        conn = await sqlite_res.ensure()
         async with conn.execute(
             "SELECT profile, browser, name FROM a2web_cookies ORDER BY browser",
         ) as cursor:
@@ -237,7 +237,7 @@ async def test_staleness_stale(sqlite_res: SqliteResource, monkeypatch: pytest.M
     jar = build_cookie_jar(_settings(stale_h=24), sqlite_res)
     async with jar:
         await jar.refresh()
-        conn = await sqlite_res._ensure()
+        conn = await sqlite_res.ensure()
         thirty_h_ago = int(time.time()) - 30 * 3600
         await conn.execute(
             "UPDATE cookies_meta SET last_refresh_at = ? WHERE profile = ? AND browser = ?",

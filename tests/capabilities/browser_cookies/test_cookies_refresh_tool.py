@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 from a2kit.testing import lazy
 
+from a2web.cache import SqliteResource
 from a2web.cookie_jar import CookieJarResource, CookiesRefreshResult, build_cookie_jar
 from a2web.packages.cookie_store.models import CookieRow
-from a2web.packages.http_cache import SqliteResource
 from a2web.routers import CookiesRouter
 from a2web.server import A2Web, app
 from a2web.settings import AppSettings
@@ -91,7 +91,7 @@ async def test_refresh_with_chrome_source_returns_count(
         assert result.notes == ""
 
         # Meta was written.
-        conn = await sqlite._ensure()
+        conn = await sqlite.ensure()
         async with conn.execute(
             "SELECT refreshed_count FROM cookies_meta WHERE profile=? AND browser=?",
             ("Work", "chrome"),
