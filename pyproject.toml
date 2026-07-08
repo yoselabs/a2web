@@ -55,6 +55,13 @@ dependencies = [
     # [documents] extra, which a2web does NOT install, so cold-start stays slim and
     # docling's typer<0.13 pin never collides with a2kit's Typer CLI.
     "content-extract>=0.1,<1",
+    # anyllm: the LLM-provider contract (LLMProvider Protocol + Completion + PromptParts)
+    # and its adapters (Anthropic Messages API, Claude Code SDK OS-session, OpenAI-compatible)
+    # — promoted to the shelf and adopted back (was src/a2web/packages/llm_extract/providers).
+    # The extras pull the concrete SDKs: [anthropic]=anthropic, [openai]=openai,
+    # [claude-code-sdk]=claude-agent-sdk. a2web keeps its own Extractor/Judge/prompts/cache
+    # and composes anyllm's provider surface via the manifests at the _manifests seam.
+    "anyllm[anthropic,openai,claude-code-sdk]>=0.2,<1",
     # timefmt: the adaptive duration formatter (fmt_dur) — promoted to the shelf and
     # adopted back (was utils/time). settings-base: the generic env/YAML settings
     # machinery (${VAR} + secret-stripping YAML source) — a2web keeps its AppSettings
@@ -179,6 +186,7 @@ html-fragment = { git = "https://github.com/yoselabs/shelf", subdirectory = "pac
 record-mine = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/record-mine", tag = "record-mine-v0.1.0" }
 browser-cookies = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/browser-cookies", tag = "browser-cookies-v0.1.0" }
 content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/content-extract", tag = "content-extract-v0.1.1" }
+anyllm = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/anyllm", tag = "anyllm-v0.2.0" }
 timefmt = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/timefmt", tag = "timefmt-v0.1.0" }
 settings-base = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/settings-base", tag = "settings-base-v0.1.0" }
 

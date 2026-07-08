@@ -33,6 +33,9 @@ class _MockJudgeProvider:
         self.cost_usd = cost_usd
         self.calls: list[dict] = []
 
+    def available(self) -> bool:
+        return True
+
     async def complete(
         self,
         *,
@@ -263,3 +266,30 @@ def test_judge_parse_error_carries_raw_text() -> None:
     err = JudgeParseError("bad", raw_text="<<garbage>>")
     assert err.raw_text == "<<garbage>>"
     assert "bad" in str(err)
+
+
+class _RaisingJudgeProvider:
+    """Provider whose `complete()` fails loud with `AnyLLMError`."""
+
+    name = "raising"
+
+    def available(self) -> bool:
+        return True
+
+    async def complete(self, *, system, user, model, **_: object) -> ProviderResponse:
+        from anyllm import AnyLLMError
+
+        raise AnyLLMError("boom: provider down", retryable=True)
+
+
+@pytest.mark.asyncio
+async def test_judge_degrades_anyllm_error_to_parse_error() -> None:
+    """AnyLLMError from the provider → empty verdict text → JudgeParseError.
+
+    Mirrors the pre-adoption behavior: the old providers returned empty text on
+    API failure and the funnel raised JudgeParseError. The AnyLLMError itself
+    must NOT propagate out of `score()`.
+    """
+    judge = Judge(provider=_RaisingJudgeProvider(), model=ModelSpec("m"))
+    with pytest.raises(JudgeParseError):
+        await judge.score(task="Q", criteria=["A"], answer="ans")

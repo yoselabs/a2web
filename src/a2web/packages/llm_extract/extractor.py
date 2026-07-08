@@ -14,8 +14,10 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from anyllm import AnyLLMError, Completion
+from anyllm import LLMProvider as Provider
+
 from .prompts import EXTRACT_ROUTER_V1, WEBFETCH_DEFAULT_V1, PromptTemplate
-from .providers.base import Provider
 from .router_payload import NextUrlBoundary, RefinementAxisBoundary, RouterPayload
 from .wobble import (
     EXTRACTOR_ROUTING_POLICY,
@@ -201,14 +203,25 @@ class Extractor:
             )
         user = parts.cache_prefix + parts.tail if parts.cache_prefix else parts.tail
 
-        response = await self._provider.complete(
-            system=active_template.system,
-            user=user,
-            model=self._model.model,
-            max_tokens=self._max_tokens,
-            thinking_disabled=True,
-            parts=parts,
-        )
+        # anyllm providers are fail-loud: any provider/API failure raises
+        # `AnyLLMError` instead of returning an empty-text result. a2web's
+        # extractor historically degraded on error — the local providers
+        # translated API errors into a `ProviderResponse(text="", raw={"error":
+        # ...})` and the orchestrator's "empty answer → degrade to raw + operator
+        # hint" path took over. Preserve that seam: catch `AnyLLMError` and rebuild
+        # the same empty-answer Completion the old providers produced, so nothing
+        # downstream (that never previously saw an exception) starts seeing one.
+        try:
+            response = await self._provider.complete(
+                system=active_template.system,
+                user=user,
+                model=self._model.model,
+                max_tokens=self._max_tokens,
+                thinking_disabled=True,
+                parts=parts,
+            )
+        except AnyLLMError as exc:
+            response = Completion(text="", model=self._model.model, raw={"error": str(exc)})
 
         routing_payload: RouterPayload | None = None
         if request_routing:

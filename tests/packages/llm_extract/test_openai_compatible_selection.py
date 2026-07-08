@@ -53,7 +53,7 @@ def test_manifest_builds_with_key_and_recognized_host(monkeypatch: pytest.Monkey
     _install_fake_openai(monkeypatch)
     result = manifest._build(AppSettings())
     assert not isinstance(result, Unavailable)
-    assert result.name == "openai_compatible"
+    assert result.name == "openai-compatible"  # anyllm adapter's contract name
     assert result.default_model == "deepseek-v4-flash"  # host recommendation
 
 

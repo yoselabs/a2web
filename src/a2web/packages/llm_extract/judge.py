@@ -15,9 +15,11 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from anyllm import AnyLLMError, Completion
+from anyllm import LLMProvider as Provider
+
 from .extractor import ModelSpec
 from .prompts import JUDGE_V1
-from .providers.base import Provider
 from .wobble import (
     ParseError,
     WobblePolicy,
@@ -158,13 +160,21 @@ class Judge:
         on un-parseable output."""
         criteria_lines = "\n".join(f"  {i + 1}. {c}" for i, c in enumerate(criteria))
         user = JUDGE_V1.user_template.format(ask=task, content=criteria_lines, answer=answer)
-        response = await self._provider.complete(
-            system=JUDGE_V1.system,
-            user=user,
-            model=self._model.model,
-            max_tokens=self._max_tokens,
-            thinking_disabled=True,
-        )
+        # Fail-loud → degrade seam (mirrors Extractor.extract): anyllm providers
+        # raise `AnyLLMError` on failure where the old providers returned an
+        # empty-text `ProviderResponse`. Rebuild that empty Completion so the
+        # verdict funnel below raises `JudgeParseError` on empty output exactly as
+        # it did before — no `AnyLLMError` leaks out of `score()`.
+        try:
+            response = await self._provider.complete(
+                system=JUDGE_V1.system,
+                user=user,
+                model=self._model.model,
+                max_tokens=self._max_tokens,
+                thinking_disabled=True,
+            )
+        except AnyLLMError as exc:
+            response = Completion(text="", model=self._model.model, raw={"error": str(exc)})
 
         wobbled = _funnel_verdict(response.text, model=self._model.model)
         fields: _ParsedJudgeFields = unwrap(wobbled)

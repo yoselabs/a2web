@@ -28,8 +28,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import httpx
 
-from ..packages.llm_extract import WEBFETCH_DEFAULT_V1
-from ..packages.llm_extract.providers.base import Provider
+from ..packages.llm_extract import WEBFETCH_DEFAULT_V1, Provider
 from .tokens import envelope_token_breakdown, estimate_tokens
 
 if TYPE_CHECKING:

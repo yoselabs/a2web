@@ -27,9 +27,8 @@ _ALLOWLIST: frozenset[tuple[str, str]] = frozenset(
         # JudgeVerdict.raw carries the same provider-side metrics + an
         # optional `reached_derived` flag set by the funnel.
         ("packages/llm_extract/judge.py", "raw"),
-        # ProviderResponse.raw is the literal provider HTTP response body —
-        # heterogeneous by construction.
-        ("packages/llm_extract/providers/base.py", "raw"),
+        # NOTE: ProviderResponse (now anyllm's `Completion`) moved to the shelf —
+        # its `raw` bag lives in anyllm, outside this repo's scan root.
         # AppSettings receives env/YAML values whose shape is user-controlled
         # at the boundary — pydantic-settings owns coercion downstream.
         ("settings.py", "raw_extras"),

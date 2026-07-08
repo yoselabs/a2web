@@ -46,6 +46,9 @@ class MockProvider:
         self.cost_usd = cost_usd
         self.calls: list[dict] = []
 
+    def available(self) -> bool:
+        return True
+
     async def complete(
         self,
         *,
@@ -223,30 +226,10 @@ def test_llm_not_available_is_runtime_error() -> None:
     assert issubclass(LLMNotAvailable, RuntimeError)
 
 
-@pytest.mark.asyncio
-async def test_anthropic_provider_missing_key_raises_llm_not_available(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """No API key in env → AnthropicProvider construction raises with a
-    pointer at the env var."""
-    from a2web.packages.llm_extract.providers.anthropic import AnthropicProvider
-
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    with pytest.raises(LLMNotAvailable) as ei:
-        AnthropicProvider()
-    assert "ANTHROPIC_API_KEY" in str(ei.value)
-
-
-@pytest.mark.asyncio
-async def test_anthropic_provider_constructs_with_key(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """With a key present, construction succeeds (no API call made)."""
-    from a2web.packages.llm_extract.providers.anthropic import AnthropicProvider
-
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-not-real")
-    provider = AnthropicProvider()
-    assert provider.name == "anthropic"
+# The Anthropic provider IMPLEMENTATION moved to the shelf (anyllm's
+# `AnthropicApiAdapter`); its construction/availability behavior is anyllm's own
+# test surface now. a2web's manifest-level gating (missing key → `Unavailable`)
+# is covered by the manifest/selection tests.
 
 
 # --------------------------------------------------------------------- #
@@ -325,3 +308,38 @@ async def test_extract_handler_candidates_appear_in_prompt() -> None:
     assert "site handler suggests" in user.lower()
     assert "Top post" in user
     assert "https://r/x/1" in user
+
+
+# --------------------------------------------------------------------- #
+# Fail-loud → degrade seam (anyllm adoption)
+#
+# anyllm providers RAISE `AnyLLMError` on provider/API failure where a2web's
+# old local providers returned an empty-text `ProviderResponse`. The Extractor
+# catches it and rebuilds that empty result so the orchestrator's "empty answer
+# → degrade to raw" path still fires; the error never propagates out of extract().
+# --------------------------------------------------------------------- #
+
+
+class _RaisingProvider:
+    """Provider whose `complete()` fails loud with `AnyLLMError`."""
+
+    name = "raising"
+
+    def available(self) -> bool:
+        return True
+
+    async def complete(self, *, system, user, model, **_: object) -> ProviderResponse:
+        from anyllm import AnyLLMError
+
+        raise AnyLLMError("boom: rate limited", retryable=True, hint="retry later")
+
+
+@pytest.mark.asyncio
+async def test_extract_degrades_on_anyllm_error_instead_of_raising() -> None:
+    """AnyLLMError from the provider → empty-answer ExtractionResult, no raise."""
+    ex = Extractor(provider=_RaisingProvider(), model=ModelSpec("m"), template=WEBFETCH_DEFAULT_V1)
+    result = await ex.extract(content="page body", ask="what?")
+    assert result.answer == ""
+    assert result.cost_usd == 0.0
+    assert result.prompt_tokens == 0
+    assert result.completion_tokens == 0

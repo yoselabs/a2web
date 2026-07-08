@@ -23,10 +23,11 @@ import os
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
+from anyllm import OpenAICompatibleAdapter
+
 from a2web._plugin import PluginManifest, Unavailable
 from a2web.log import log_info
 from a2web.packages.llm_extract import LLMNotAvailable, Provider
-from a2web.packages.llm_extract.providers.openai_compatible import OpenAICompatibleProvider
 from a2web.settings import AppSettings
 
 
@@ -88,20 +89,30 @@ def _build(settings: AppSettings) -> Provider | Unavailable:
     model = _resolve_model(base_url)
     if isinstance(model, Unavailable):
         return model
-    try:
-        provider = OpenAICompatibleProvider(
-            base_url=base_url,
-            api_key_env=settings.llm_openai_api_key_env,
-            default_model=model,
+    # anyllm's adapter never raises on construction; `available()` re-checks the
+    # key env. The explicit key-gate above already returns a2web's specific
+    # message, so a failing `available()` here is only a belt-and-suspenders
+    # guard. `default_model` (the OPENAI_MODEL / host-recommendation resolution)
+    # rides on the adapter so the resolved model travels with the provider.
+    adapter = OpenAICompatibleAdapter(
+        base_url=base_url,
+        api_key_env=settings.llm_openai_api_key_env,
+        default_model=model,
+    )
+    if not adapter.available():
+        return Unavailable(
+            str(
+                LLMNotAvailable(
+                    f"No OpenAI-compatible API key found. Set the {settings.llm_openai_api_key_env} environment variable."
+                )
+            )
         )
-    except LLMNotAvailable as exc:
-        return Unavailable(str(exc))
     log_info(
         "openai_compatible.active",
         base_url=base_url or _DEFAULT_HOST,
         model=model,
     )
-    return provider
+    return adapter
 
 
 MANIFEST = PluginManifest(

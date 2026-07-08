@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import pytest
 
+from a2web.packages.llm_extract import ProviderResponse
 from a2web.packages.llm_extract.extractor import Extractor, ModelSpec
-from a2web.packages.llm_extract.providers.base import ProviderResponse
 
 
 class _RecordingProvider:

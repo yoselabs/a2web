@@ -20,8 +20,6 @@ import pytest
 from a2web._manifests.llm_providers import claude_code as manifest
 from a2web._plugin import Unavailable
 from a2web.llm_resource import select_provider
-from a2web.packages.llm_extract import LLMNotAvailable
-from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
 from a2web.settings import AppSettings
 
 _SDK = "claude_agent_sdk"
@@ -47,14 +45,12 @@ def _hide_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 # --------------------------------------------------------------------- #
-# Constructor + manifest gate on SDK presence
+# Manifest gate on SDK presence
+#
+# The provider IMPLEMENTATION now lives in the shelf (anyllm's
+# `ClaudeCodeSdkAdapter`) — it never raises on construction; usability is probed
+# via `available()` (a cheap `find_spec`). a2web's manifest gates on that probe.
 # --------------------------------------------------------------------- #
-
-
-def test_constructor_raises_when_sdk_absent(monkeypatch: pytest.MonkeyPatch) -> None:
-    _hide_sdk(monkeypatch)
-    with pytest.raises(LLMNotAvailable, match="claude-agent-sdk is not installed"):
-        ClaudeCodeProvider()
 
 
 def test_manifest_unavailable_when_sdk_absent(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -65,11 +61,11 @@ def test_manifest_unavailable_when_sdk_absent(monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_manifest_builds_when_sdk_present() -> None:
-    # Dev env has the extra installed → provider constructs (session detection
+    # Dev env has the extra installed → adapter is available (session detection
     # is deferred to the first `complete()` call, so this does not touch auth).
     result = manifest._build(AppSettings())
     assert not isinstance(result, Unavailable)
-    assert result.name == "claude-code"
+    assert result.name == "claude-code-sdk"
 
 
 # --------------------------------------------------------------------- #

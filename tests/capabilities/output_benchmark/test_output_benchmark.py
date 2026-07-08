@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 
 import pytest
+from anyllm import ClaudeCodeSdkAdapter
 
 from a2web.llm_eval import (
     BenchJudge,
@@ -33,7 +34,6 @@ from a2web.packages.llm_extract import (
     ModelSpec,
     ProviderResponse,
 )
-from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
 
 # --------------------------------------------------------------------- #
 # Provider selection — task 2.3
@@ -46,7 +46,7 @@ def test_pick_provider_defaults_to_claude_code(monkeypatch: pytest.MonkeyPatch) 
 
     provider, provider_id = _pick_provider(AppSettings())
     assert provider_id == "claude-code"
-    assert isinstance(provider, ClaudeCodeProvider)
+    assert isinstance(provider, ClaudeCodeSdkAdapter)
 
 
 def test_pick_provider_honours_claude_code_override(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -55,7 +55,7 @@ def test_pick_provider_honours_claude_code_override(monkeypatch: pytest.MonkeyPa
 
     provider, provider_id = _pick_provider(AppSettings())
     assert provider_id == "claude-code"
-    assert isinstance(provider, ClaudeCodeProvider)
+    assert isinstance(provider, ClaudeCodeSdkAdapter)
 
 
 def test_pick_provider_honours_anthropic_override(monkeypatch: pytest.MonkeyPatch) -> None:

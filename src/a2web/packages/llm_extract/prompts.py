@@ -22,22 +22,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
-@dataclass(frozen=True, slots=True)
-class PromptParts:
-    """The rendered prompt split for cache-marker placement.
-
-    `system` and `cache_prefix` together form the byte-stable prefix that
-    a provider's caching layer keys on. `tail` carries the per-call
-    variable portion (typically `{ask}`).
-
-    Non-cacheable templates render with `cache_prefix=""` — providers then
-    concatenate `cache_prefix + tail` and behave as before.
-    """
-
-    system: str
-    cache_prefix: str
-    tail: str
+# PromptParts moved to the shelf (anyllm) with the provider contract — a2web's
+# Extractor/Judge templates render into it and the anyllm adapters consume it.
+# Re-exported here so the package's own consumers keep importing it from
+# `llm_extract.prompts` unchanged.
+from anyllm import PromptParts
 
 
 @dataclass(frozen=True, slots=True)
