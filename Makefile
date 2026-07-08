@@ -79,12 +79,17 @@ install-global:
 # `A2WEB_BENCH_PROVIDER` forces the provider.
 # Pass extra flags via ARGS, e.g. `make bench ARGS="--only listing --mode detail"`
 # to run a crucial subset instead of the full (expensive) matrix.
+#
+# Runs under eval/_prod_env.py so the bench inherits the installed MCP server's
+# env (A2WEB_ZYTE_KEY etc.) from ~/.claude.json — production parity, so
+# Zyte-served hosts (Reddit) aren't falsely flagged blocked. Keyless still works
+# (the shim is a no-op when no config/keys are present); your own env wins.
 bench:
-	uv run python -m a2web.llm_eval $(ARGS)
+	uv run python eval/_prod_env.py python -m a2web.llm_eval $(ARGS)
 
 # `make eval` is kept as an alias of `make bench`.
 eval:
-	uv run python -m a2web.llm_eval $(ARGS)
+	uv run python eval/_prod_env.py python -m a2web.llm_eval $(ARGS)
 
 eval-baseline:
 	uv run python -m a2web.llm_eval --mode baseline
