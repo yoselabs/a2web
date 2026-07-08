@@ -31,6 +31,7 @@ from json_in_html import (
     parse_json_response,
     rank_payloads,
 )
+from record_mine import Record, RecordSet, extract_records
 
 from . import content_expectations
 from .actions import Action, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
@@ -73,7 +74,6 @@ from .packages.content_extract import (
 )
 from .packages.escalation import EscalationSignal
 from .packages.llm_extract import LlmNextLink, RouterPayload
-from .packages.record_extract import Record, RecordSet, extract_records
 from .settings import AppSettings
 from .state import AppState, ResourceUnavailable, RobustBrowserBackend, unavailable_lazy
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult

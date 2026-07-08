@@ -40,6 +40,9 @@ dependencies = [
     # html-fragment: convert a server-supplied HTML fragment to link-preserving
     # markdown/text — promoted to the shelf and adopted back (was packages/html_fragment).
     "html-fragment>=0.1,<1",
+    # record-mine: locate + render the dominant repeated-record region on listing/
+    # thread pages — promoted to the shelf and adopted back (was packages/record_extract).
+    "record-mine>=0.1,<1",
     "curl_cffi>=0.7,<1",
     "httpx>=0.27,<1",
     # cookie decryption (Chrome v10/v11 AES-GCM). Already pulled in
@@ -155,6 +158,7 @@ sqlite-resource = { git = "https://github.com/yoselabs/shelf", subdirectory = "p
 http-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-cache", tag = "http-cache-v0.1.0" }
 json-in-html = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/json-in-html", tag = "json-in-html-v0.1.0" }
 html-fragment = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/html-fragment", tag = "html-fragment-v0.1.0" }
+record-mine = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/record-mine", tag = "record-mine-v0.1.0" }
 
 [build-system]
 requires = ["hatchling"]

@@ -40,9 +40,10 @@ from .models import (
 from .utils.time import fmt_dur
 
 if TYPE_CHECKING:
+    from record_mine import RecordSet
+
     from .fetcher import FetchContext
     from .packages.llm_extract import RouterPayload as RouterBoundary
-    from .packages.record_extract import RecordSet
 
 
 def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:

@@ -8,9 +8,9 @@ on non-listings, and never on the `fetch_raw` wire.
 from __future__ import annotations
 
 import pytest
+from record_mine import Record, RecordSet
 
 from a2web.fetcher_response import _records_to_options
-from a2web.packages.record_extract import Record, RecordSet
 from tests.capabilities.ask_response.test_ask_response import _MINIMAL_HTML, _ask_wire
 from tests.capabilities.fetch_response.test_fetch_response import _fetch_raw_wire
 from tests.capabilities.listing_completeness.test_listing_completeness import _listing_html

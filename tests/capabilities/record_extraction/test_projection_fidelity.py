@@ -11,7 +11,7 @@ ever saw the content. See ADR-0003 / ADR-0004.
 
 from __future__ import annotations
 
-from a2web.packages.record_extract import extract_records
+from record_mine import extract_records
 
 
 def _discount_card(i: int) -> str:

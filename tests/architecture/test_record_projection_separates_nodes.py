@@ -23,7 +23,7 @@ Acceptance check (re-run after any refactor):
 
 from __future__ import annotations
 
-from a2web.packages.record_extract import extract_records
+from record_mine import extract_records
 
 
 def _listing(price_html: str) -> str:
