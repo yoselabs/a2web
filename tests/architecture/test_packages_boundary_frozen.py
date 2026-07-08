@@ -17,17 +17,14 @@ import pytest
 
 from a2web.packages.block_detector import BlockResult
 from a2web.packages.browser_backends import BackendCookie, RenderedPage
-from a2web.packages.content_extract import ExtractedContent, ExtractedHeading, ExtractedLink
 from a2web.packages.escalation import EscalationSignal
 
-# NB: CacheRow and CookieRow left `packages/` when the cache and cookie-store
-# primitives were promoted to the shelf (`http_cache`, `browser_cookies`); their
-# freeze is now the shelf's invariant, so they drop off this list.
+# NB: CacheRow, CookieRow, and the ExtractedContent/Heading/Link trio left
+# `packages/` when the cache, cookie-store, and content-extract primitives were
+# promoted to the shelf (`http_cache`, `browser_cookies`, `content_extract`);
+# their freeze is now the shelf's invariant, so they drop off this a2web list.
 
 _FROZEN_BOUNDARY_TYPES = (
-    ExtractedHeading,
-    ExtractedLink,
-    ExtractedContent,
     BlockResult,
     EscalationSignal,
     BackendCookie,
@@ -55,12 +52,5 @@ def test_no_default_dataclass_carries_runtime_setattr() -> None:
     with pytest.raises(FrozenInstanceError):
         signal.next_tier = "archive"  # type: ignore[misc]
 
-    # ExtractedContent has required positional fields, but a FrozenInstanceError
-    # on any field set on a constructed instance proves the freeze.
-    sample = ExtractedContent(content_md="x")
-    with pytest.raises(FrozenInstanceError):
-        sample.content_md = "y"  # type: ignore[misc]
-
-    # Use field names from the actual schema to keep the assertion robust if
-    # the dataclass gains fields later.
+    # Every frozen boundary type still carries fields (guards an empty tuple).
     assert all(fields(cls) for cls in _FROZEN_BOUNDARY_TYPES)

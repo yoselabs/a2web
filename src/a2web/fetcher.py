@@ -24,6 +24,12 @@ from urllib.parse import urlparse
 import a2kit
 import a2kit.log
 from a2kit import Lazy
+from content_extract import (
+    extract_markdown as _package_extract_markdown,
+)
+from content_extract import (
+    parse_metadata,
+)
 from json_in_html import (
     extract_json_payloads,
     is_answer_bearing,
@@ -66,12 +72,6 @@ from .models import (
 from .packages.block_detector import LENGTH_FLOOR, looks_like_unrendered_spa
 from .packages.block_detector import evaluate as _package_evaluate
 from .packages.browser_backends import BrowserBackend
-from .packages.content_extract import (
-    extract_markdown as _package_extract_markdown,
-)
-from .packages.content_extract import (
-    parse_metadata,
-)
 from .packages.escalation import EscalationSignal
 from .packages.llm_extract import LlmNextLink, RouterPayload
 from .settings import AppSettings
@@ -213,7 +213,7 @@ class ContentCandidate:
 
 @_dc(slots=True)
 class _ExtractResult:
-    """Domain-typed wrapper over `packages.content_extract.ExtractedContent`."""
+    """Domain-typed wrapper over `content_extract.ExtractedContent` (shelf)."""
 
     content_md: str
     title: str | None

@@ -48,6 +48,13 @@ dependencies = [
     # reader lib browser-cookie3 stays in a2web's optional [cookies] extra below; the
     # shelf package lazily imports it and degrades when absent.
     "browser-cookies>=0.1,<1",
+    # content-extract: page -> structured content (body md via convert-md's convert_html,
+    # + title/byline/date + headings/links). Promoted to the shelf, adopted back (was
+    # packages/content_extract). Pulls convert-md v0.3.0 BASE (trafilatura + html2text
+    # only) — the heavy document engines (docling/pandoc/office) stay behind convert-md's
+    # [documents] extra, which a2web does NOT install, so cold-start stays slim and
+    # docling's typer<0.13 pin never collides with a2kit's Typer CLI.
+    "content-extract>=0.1,<1",
     "curl_cffi>=0.7,<1",
     "httpx>=0.27,<1",
     # cookie decryption (Chrome v10/v11 AES-GCM). Already pulled in
@@ -165,6 +172,7 @@ json-in-html = { git = "https://github.com/yoselabs/shelf", subdirectory = "pack
 html-fragment = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/html-fragment", tag = "html-fragment-v0.1.0" }
 record-mine = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/record-mine", tag = "record-mine-v0.1.0" }
 browser-cookies = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/browser-cookies", tag = "browser-cookies-v0.1.0" }
+content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/content-extract", tag = "content-extract-v0.1.1" }
 
 [build-system]
 requires = ["hatchling"]
