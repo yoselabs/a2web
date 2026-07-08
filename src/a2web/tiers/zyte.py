@@ -42,7 +42,11 @@ if TYPE_CHECKING:
 
 
 _API_URL = "https://api.zyte.com/v1/extract"
-_TIMEOUT_S = 40.0  # Zyte renders server-side — allow generous headroom.
+# Zyte renders server-side (browserHtml) — allow generous headroom. Heavy pages
+# like a Reddit listing take ~8-40s solo and can exceed 40s under concurrent
+# load, timing out into a weaker fallback; 60s covers the slow tail while
+# staying bounded (the caller's overall ladder is still finite).
+_TIMEOUT_S = 60.0
 
 # The two supported fetch modes. `browserHtml` renders; `httpResponseBody`
 # proxies the raw origin response (cheap, no browser) for server-rendered pages.
