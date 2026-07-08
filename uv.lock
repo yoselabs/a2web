@@ -46,6 +46,7 @@ dependencies = [
     { name = "aiosqlite" },
     { name = "anthropic" },
     { name = "anyio" },
+    { name = "browser-cookies" },
     { name = "cryptography" },
     { name = "curl-cffi" },
     { name = "gidgethub" },
@@ -106,6 +107,7 @@ requires-dist = [
     { name = "anthropic", specifier = ">=0.40,<1" },
     { name = "anyio", specifier = ">=4,<5" },
     { name = "browser-cookie3", marker = "extra == 'cookies'", specifier = ">=0.20,<1" },
+    { name = "browser-cookies", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fbrowser-cookies&tag=browser-cookies-v0.1.0" },
     { name = "claude-agent-sdk", marker = "extra == 'claude-code'", specifier = ">=0.1.80,<1" },
     { name = "cryptography", specifier = ">=43,<46" },
     { name = "curl-cffi", specifier = ">=0.7,<1" },
@@ -341,6 +343,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/e0/e1/652adea0ce25948e6
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4e/57/2a716f4ecf6c50b2dbe27439507c480bb7ca5725edef82349ecdcfcdd084/browser_cookie3-0.20.1-py3-none-any.whl", hash = "sha256:4b38bf669d386250733c8339f0036e1cf09c3d8e4d326fd507b9afb84def13d6", size = 17229, upload-time = "2025-01-04T14:46:14.753Z" },
 ]
+
+[[package]]
+name = "browser-cookies"
+version = "0.1.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fbrowser-cookies&tag=browser-cookies-v0.1.0#70073bf147fe5ef6dddbb9d3d0fe203a853f12b9" }
 
 [[package]]
 name = "cachetools"

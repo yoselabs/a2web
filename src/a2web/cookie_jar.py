@@ -1,7 +1,7 @@
 """CookieJarResource — domain-coupled mirror of a browser profile's cookies.
 
 Reads cookies from a user's local Chrome (macOS) or Firefox profile via the
-pure `packages.cookie_store` package, upserts them into the existing
+pure `browser_cookies` shelf package, upserts them into the existing
 `SqliteResource` under two tables (`a2web_cookies`, `cookies_meta`), and
 serves per-host queries at fetch time without re-touching the source DB.
 
@@ -32,12 +32,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from browser_cookies import read_cookies as _read_cookies
+from browser_cookies.models import SameSite
+from browser_cookies.store import CookieSource
 from pydantic import BaseModel
 
 from .cache import SqliteResource
-from .packages.cookie_store import read_cookies as _read_cookies
-from .packages.cookie_store.models import SameSite
-from .packages.cookie_store.store import CookieSource
 from .settings import AppSettings
 
 if TYPE_CHECKING:

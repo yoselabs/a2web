@@ -6,11 +6,11 @@ import time
 from pathlib import Path
 
 import pytest
+from browser_cookies import models as cs_models
+from browser_cookies.models import CookieRow
 
 from a2web.cache import SqliteResource
 from a2web.cookie_jar import CookieJarResource, build_cookie_jar
-from a2web.packages.cookie_store import models as cs_models
-from a2web.packages.cookie_store.models import CookieRow
 from a2web.settings import AppSettings
 
 

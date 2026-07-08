@@ -43,6 +43,11 @@ dependencies = [
     # record-mine: locate + render the dominant repeated-record region on listing/
     # thread pages — promoted to the shelf and adopted back (was packages/record_extract).
     "record-mine>=0.1,<1",
+    # browser-cookies: read the local browser cookie store (Chrome Keychain / Firefox
+    # sqlite) — promoted to the shelf and adopted back (was packages/cookie_store). The
+    # reader lib browser-cookie3 stays in a2web's optional [cookies] extra below; the
+    # shelf package lazily imports it and degrades when absent.
+    "browser-cookies>=0.1,<1",
     "curl_cffi>=0.7,<1",
     "httpx>=0.27,<1",
     # cookie decryption (Chrome v10/v11 AES-GCM). Already pulled in
@@ -159,6 +164,7 @@ http-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packag
 json-in-html = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/json-in-html", tag = "json-in-html-v0.1.0" }
 html-fragment = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/html-fragment", tag = "html-fragment-v0.1.0" }
 record-mine = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/record-mine", tag = "record-mine-v0.1.0" }
+browser-cookies = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/browser-cookies", tag = "browser-cookies-v0.1.0" }
 
 [build-system]
 requires = ["hatchling"]

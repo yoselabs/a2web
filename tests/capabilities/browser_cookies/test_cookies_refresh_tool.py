@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 from a2kit.testing import lazy
+from browser_cookies.models import CookieRow
 
 from a2web.cache import SqliteResource
 from a2web.cookie_jar import CookieJarResource, CookiesRefreshResult, build_cookie_jar
-from a2web.packages.cookie_store.models import CookieRow
 from a2web.routers import CookiesRouter
 from a2web.server import A2Web, app
 from a2web.settings import AppSettings
@@ -107,7 +107,7 @@ async def test_refresh_handles_chrome_access_error_gracefully(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Reader raising ChromeCookieAccessError → zero count + descriptive note."""
-    from a2web.packages.cookie_store.models import ChromeCookieAccessError
+    from browser_cookies.models import ChromeCookieAccessError
 
     def _boom(browser: str, profile: str) -> list[CookieRow]:
         msg = "test: keychain access denied"

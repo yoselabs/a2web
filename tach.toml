@@ -26,7 +26,6 @@ depends_on = [
     "a2web.packages.block_detector",
     "a2web.packages.browser_backends",
     "a2web.packages.content_extract",
-    "a2web.packages.cookie_store",
     "a2web.packages.escalation",
     "a2web.packages.llm_extract",
     "a2web.packages.proxy_routing",
@@ -53,10 +52,6 @@ depends_on = []
 
 [[modules]]
 path = "a2web.packages.content_extract"
-depends_on = []
-
-[[modules]]
-path = "a2web.packages.cookie_store"
 depends_on = []
 
 [[modules]]

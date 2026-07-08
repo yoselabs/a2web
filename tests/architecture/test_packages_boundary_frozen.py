@@ -18,17 +18,16 @@ import pytest
 from a2web.packages.block_detector import BlockResult
 from a2web.packages.browser_backends import BackendCookie, RenderedPage
 from a2web.packages.content_extract import ExtractedContent, ExtractedHeading, ExtractedLink
-from a2web.packages.cookie_store.models import CookieRow
 from a2web.packages.escalation import EscalationSignal
 
-# NB: CacheRow left `packages/` when the cache primitive was promoted to the shelf
-# (`http_cache`); its freeze is now the shelf's invariant, so it drops off this list.
+# NB: CacheRow and CookieRow left `packages/` when the cache and cookie-store
+# primitives were promoted to the shelf (`http_cache`, `browser_cookies`); their
+# freeze is now the shelf's invariant, so they drop off this list.
 
 _FROZEN_BOUNDARY_TYPES = (
     ExtractedHeading,
     ExtractedLink,
     ExtractedContent,
-    CookieRow,
     BlockResult,
     EscalationSignal,
     BackendCookie,
