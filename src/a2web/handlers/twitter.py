@@ -22,9 +22,9 @@ from urllib.parse import urlparse
 
 import a2kit.log
 import trafilatura
+from http_fetch import FetchVerdict, fetch_bytes
 
 from ..models import Heading, Verdict
-from ..packages.http_fetch import FetchVerdict, fetch_bytes
 from ._common import empty_result
 
 if TYPE_CHECKING:

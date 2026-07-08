@@ -35,7 +35,7 @@ from a2kit.ldd import ldd_state_for_call
 from a2kit.packages.testing.null_context import null_context
 
 from a2web import fetcher
-from a2web.packages.http_fetch import FetchOutcome
+from http_fetch import FetchOutcome
 from a2web.settings import AppSettings
 from a2web.state import bootstrap_state
 
@@ -48,7 +48,7 @@ _CORPUS_ROOT = _REPO_ROOT / "eval" / "corpus"
 @contextlib.contextmanager
 def _tee_fetch_bytes(recorder: dict[str, FetchOutcome]) -> Iterator[None]:
     """Record every `fetch_bytes` egress (URL→outcome) at all import sites."""
-    from a2web.packages.http_fetch import fetch as fetch_module
+    from http_fetch import fetch as fetch_module
 
     real = fetch_module.fetch_bytes
 

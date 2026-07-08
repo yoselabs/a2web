@@ -7,9 +7,10 @@ import re
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
+from http_fetch import fetch_bytes
+
 from ..models import Heading, NextLink, Verdict
 from ..packages.html_fragment import to_markdown
-from ..packages.http_fetch import fetch_bytes
 from ._common import empty_result, map_non_ok
 
 if TYPE_CHECKING:

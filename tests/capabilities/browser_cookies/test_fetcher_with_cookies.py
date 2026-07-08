@@ -64,7 +64,7 @@ class _FakeSession:
 @pytest.fixture(autouse=True)
 def _patch_curl(monkeypatch: pytest.MonkeyPatch) -> None:
 
-    monkeypatch.setattr("a2web.packages.http_fetch.fetch.cr.AsyncSession", _FakeSession)
+    monkeypatch.setattr("http_fetch.fetch.cr.AsyncSession", _FakeSession)
     _FakeSession.last_kwargs = {}
 
 

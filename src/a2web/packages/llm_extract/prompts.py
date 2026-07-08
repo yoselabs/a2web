@@ -257,7 +257,7 @@ EXTRACT_ROUTER_V1 = PromptTemplate(
         '  re-query or judge on: e.g. {{"dimension": "price floor", "how": "add a minimum price to skip\n'
         '  the cheapest tier"}}, {{"dimension": "sort order", "how": "sort by rating instead of price"}},\n'
         '  {{"dimension": "brand", "how": "narrow to one brand to compare"}}, and dimensions visible in\n'
-        '  the item NAMES themselves (power/wattage, class, capacity, connector type). NEVER name a\n'
+        "  the item NAMES themselves (power/wattage, class, capacity, connector type). NEVER name a\n"
         "  specific value or item from the rows shown (no 'buy brand X', no 'the cheapest are best') —\n"
         "  name the AXIS, not a value. Consider the page's own URL and its query parameters (visible in\n"
         "  the content) — an existing sort or filter is itself an axis the agent can change. Context\n"

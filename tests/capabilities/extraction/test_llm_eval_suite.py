@@ -418,9 +418,7 @@ async def test_report_writes_all_expected_artifacts(tmp_path: Path) -> None:
     overall = rj["summary"]["overall"]
     assert overall["cells"] == 4
     # summary totals equal the sum over rows
-    assert overall["total_cost_usd"] == round(
-        sum(r["fetch_cost_usd"] + r["judge_cost_usd"] for r in rj["rows"]), 6
-    )
+    assert overall["total_cost_usd"] == round(sum(r["fetch_cost_usd"] + r["judge_cost_usd"] for r in rj["rows"]), 6)
     assert overall["fetch_prompt_tokens"] == sum(r["fetch_prompt_tokens"] for r in rj["rows"])
 
 

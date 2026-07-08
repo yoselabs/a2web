@@ -11,9 +11,9 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
+from http_fetch import FetchOutcome, FetchVerdict
 
 from a2web.models import Verdict
-from a2web.packages.http_fetch import FetchOutcome, FetchVerdict
 from a2web.state import AppState
 from a2web.tiers.archive import ArchiveTier
 from tests.conftest import make_default_state

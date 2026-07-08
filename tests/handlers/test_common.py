@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from http_fetch import FetchOutcome, FetchVerdict
+
 from a2web.handlers._common import empty_result, map_non_ok
 from a2web.models import Verdict
-from a2web.packages.http_fetch import FetchOutcome, FetchVerdict
 
 
 def _outcome(verdict: FetchVerdict, *, status: int = 200) -> FetchOutcome:

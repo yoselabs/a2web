@@ -21,9 +21,10 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse, urlunparse
 
+from http_fetch import fetch_bytes
+
 from ..models import Heading, NextLink, Verdict
 from ..packages.html_fragment import to_markdown, to_text
-from ..packages.http_fetch import fetch_bytes
 from ..settings import DEFAULT_DISCOURSE_HOSTS
 from ._common import empty_result, map_non_ok
 

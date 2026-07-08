@@ -58,7 +58,7 @@ class _FakeSession:
 
 async def test_raw_tier_no_cookies_kwarg_when_none(monkeypatch: pytest.MonkeyPatch) -> None:
 
-    monkeypatch.setattr("a2web.packages.http_fetch.fetch.cr.AsyncSession", _FakeSession)
+    monkeypatch.setattr("http_fetch.fetch.cr.AsyncSession", _FakeSession)
     state = make_default_state()
     tier = RawTier()
     await tier.fetch("https://example.com/", state=state, cookies=None)
@@ -67,7 +67,7 @@ async def test_raw_tier_no_cookies_kwarg_when_none(monkeypatch: pytest.MonkeyPat
 
 async def test_raw_tier_no_cookies_kwarg_when_empty(monkeypatch: pytest.MonkeyPatch) -> None:
 
-    monkeypatch.setattr("a2web.packages.http_fetch.fetch.cr.AsyncSession", _FakeSession)
+    monkeypatch.setattr("http_fetch.fetch.cr.AsyncSession", _FakeSession)
     state = make_default_state()
     tier = RawTier()
     await tier.fetch("https://example.com/", state=state, cookies={})
@@ -76,7 +76,7 @@ async def test_raw_tier_no_cookies_kwarg_when_empty(monkeypatch: pytest.MonkeyPa
 
 async def test_raw_tier_forwards_cookies(monkeypatch: pytest.MonkeyPatch) -> None:
 
-    monkeypatch.setattr("a2web.packages.http_fetch.fetch.cr.AsyncSession", _FakeSession)
+    monkeypatch.setattr("http_fetch.fetch.cr.AsyncSession", _FakeSession)
     state = make_default_state()
     tier = RawTier()
     await tier.fetch("https://example.com/", state=state, cookies={"sid": "x", "csrf": "y"})

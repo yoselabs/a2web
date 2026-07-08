@@ -32,7 +32,7 @@ from typing import Any
 
 import yaml
 
-from a2web.packages.http_fetch import FetchOutcome
+from http_fetch import FetchOutcome
 
 from .cassette import parse_exchanges
 

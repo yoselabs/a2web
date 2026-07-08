@@ -27,11 +27,7 @@ def test_unknown_class_matches_nothing() -> None:
 
 def test_corpus_has_a_selection_question_case() -> None:
     # A case whose task is a selection ("which is best / which should I pick").
-    selection = [
-        e
-        for e in _CORPUS.entries
-        if any(k in e.task.lower() for k in ("which is the best", "which of", "best one to"))
-    ]
+    selection = [e for e in _CORPUS.entries if any(k in e.task.lower() for k in ("which is the best", "which of", "best one to"))]
     assert selection, "corpus should carry a selection-question case (answer-neutrality bench cell)"
     case = selection[0]
     assert case.url_class == "listing"

@@ -23,7 +23,7 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass
 
-from a2web.packages.http_fetch import FetchOutcome, FetchVerdict
+from http_fetch import FetchOutcome, FetchVerdict
 
 # Sentinel separating exchanges within a single `.http` file. Chosen to be
 # vanishingly unlikely in a real body; the writer falls back to base64 for

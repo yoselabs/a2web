@@ -49,6 +49,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "curl-cffi" },
     { name = "gidgethub" },
+    { name = "http-fetch" },
     { name = "httpx" },
     { name = "markdownify" },
     { name = "openai" },
@@ -105,6 +106,7 @@ requires-dist = [
     { name = "curl-cffi", specifier = ">=0.7,<1" },
     { name = "firecrawl-py", marker = "extra == 'paid'", specifier = ">=1,<2" },
     { name = "gidgethub", specifier = ">=5.4,<6" },
+    { name = "http-fetch", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.1.0" },
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "markdownify", specifier = ">=0.13,<2" },
     { name = "openai", specifier = ">=1.40,<3" },
@@ -1176,6 +1178,14 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9d/10/ead9dabc999f353c3aa5d0dc0835b1e355215a5ecb489a7f4ef2ddad5e33/htmldate-1.9.4.tar.gz", hash = "sha256:1129063e02dd0354b74264de71e950c0c3fcee191178321418ccad2074cc8ed0", size = 44690, upload-time = "2025-11-04T17:46:44.983Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a1/bd/adfcdaaad5805c0c5156aeefd64c1e868c05e9c1cd6fd21751f168cd88c7/htmldate-1.9.4-py3-none-any.whl", hash = "sha256:1b94bcc4e08232a5b692159903acf95548b6a7492dddca5bb123d89d6325921c", size = 31558, upload-time = "2025-11-04T17:46:43.258Z" },
+]
+
+[[package]]
+name = "http-fetch"
+version = "0.1.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.1.0#42bca98028602d5c4fe44b00aac751a8033fc904" }
+dependencies = [
+    { name = "curl-cffi" },
 ]
 
 [[package]]

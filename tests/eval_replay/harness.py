@@ -23,8 +23,7 @@ from eval._capture.corpus import ReplayCase
 
 if TYPE_CHECKING:
     import pytest
-
-    from a2web.packages.http_fetch import FetchOutcome
+    from http_fetch import FetchOutcome
 
 
 class CassetteMiss(RuntimeError):
@@ -63,7 +62,7 @@ def make_replay_fetch_bytes(case: ReplayCase) -> Any:
 def patch_fetch_bytes(monkeypatch: pytest.MonkeyPatch, case: ReplayCase) -> None:
     """Centralized chokepoint patch — every `a2web.*` module that imported
     `fetch_bytes` by name is rebound to the cassette reader."""
-    from a2web.packages.http_fetch import fetch as fetch_module
+    from http_fetch import fetch as fetch_module
 
     real = fetch_module.fetch_bytes
     replay_fn = make_replay_fetch_bytes(case)

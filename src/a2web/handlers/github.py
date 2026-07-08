@@ -25,9 +25,9 @@ from urllib.parse import urlparse
 
 import gidgethub
 from gidgethub.abc import GitHubAPI
+from http_fetch import FetchVerdict, fetch_bytes
 
 from ..models import Heading, NextLink, Verdict
-from ..packages.http_fetch import FetchVerdict, fetch_bytes
 from ._common import empty_result
 
 if TYPE_CHECKING:

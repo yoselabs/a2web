@@ -120,7 +120,7 @@ def _patch_session(monkeypatch: pytest.MonkeyPatch, payload: _FakeResponse | Bas
     """Replace `curl_requests.AsyncSession` with one that yields `payload`."""
     fake = _FakeSession(payload)
     monkeypatch.setattr(
-        "a2web.packages.http_fetch.fetch.cr.AsyncSession",
+        "http_fetch.fetch.cr.AsyncSession",
         lambda **kw: fake,
     )
     return fake

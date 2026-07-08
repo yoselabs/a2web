@@ -6,6 +6,23 @@
 > a2kit; this repo carries a verbatim copy. Currently Phase A: agents
 > apply, human confirms each Constitution-touching change.
 
+## The shelf — shared micro-software you consume
+
+This project consumes **the shelf** (`github.com/yoselabs/shelf`) — shared, ownable,
+contract-guaranteed software pieces, pinned in `pyproject.toml` by git tag. Reach for it before
+hand-rolling substrate; adopt only if **DEEP · STABLE · WINS**; contribute back by *promotion*.
+
+**Full behaviour = the shelf loop.** Resolve it **once per session, lazily** — the first time you
+consider adopting or promoting substrate, never at startup:
+
+1. Find the local clone: `$SHELF_HOME` → `../shelf` → `~/Workspaces/shelf`.
+2. If absent (greenfield), clone it once: `git clone https://github.com/yoselabs/shelf ~/Workspaces/shelf`.
+3. Read `<shelf>/docs/agent-loop.md` and follow it. Load once; cache for the session.
+
+Never hit GitHub to start a session or to write code — only to clone (once) or during an actual
+adopt/promote (a lazy `git pull` at that checkpoint). Never commit a local `path=`/editable shelf
+source (the commit guard installed via `tools/hooks/install.py` blocks it).
+
 CLI and MCP server for AI agents to fetch web content adaptively. Built on `a2kit` v0.44+ (which handles MCP, Typer CLI, DI with `Lazy[T]` + per-resource providers, lifecycle via the async-CM protocol, formatter, typed events on **stdlib logging**, schema discovery, in-process testing).
 
 Design lives in `~/Documents/Knowledge/Projects/120-a2web/`. Read `handover.md` first. Migration history lives in `openspec/changes/archive/`; the most recent is `a2kit-v043-migration/` (ADR-0028 unified surface: App authored by subclassing + flat `{slug}_{leaf}` canonical names pinned back to bare names via `canonical_name_override`; ADR-0027 LDD refound: `a2kit.ldd` retired, events emit via `await a2kit.log.info(...)` and sinks are `logging.Handler`s). Outgoing feedback rounds in `docs/history/A2KIT_FEEDBACK_v0.*.md`; deferred wishes in `docs/history/A2KIT_WISHES_DEFERRED.md`.

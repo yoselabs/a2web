@@ -42,11 +42,11 @@ from typing import TYPE_CHECKING, Literal
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import anyio
+from http_fetch import FetchOutcome, FetchVerdict, fetch_bytes
 
 from .. import content_expectations
 from ..models import Heading, NextLink, OperatorHint, Verdict, comments_partial_hint, try_user_browser_hint
 from ..packages.html_fragment import to_markdown
-from ..packages.http_fetch import FetchOutcome, FetchVerdict, fetch_bytes
 from . import _reddit_html as rh
 from ._common import empty_result
 

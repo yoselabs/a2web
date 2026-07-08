@@ -12,8 +12,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
+from http_fetch import FetchVerdict, fetch_bytes
+
 from ..models import Verdict
-from ..packages.http_fetch import FetchVerdict, fetch_bytes
 from ..packages.json_in_script import is_json_content_type, sniff_json_body
 
 if TYPE_CHECKING:

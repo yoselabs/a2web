@@ -22,10 +22,10 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode, urlparse
 
 import anyio
+from http_fetch import FetchVerdict, fetch_bytes
 
 from ..models import Heading, Verdict
 from ..packages.html_fragment import to_markdown, to_text
-from ..packages.http_fetch import FetchVerdict, fetch_bytes
 from ._common import empty_result
 
 if TYPE_CHECKING:

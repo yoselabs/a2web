@@ -85,5 +85,5 @@ def patch_curl_session(monkeypatch: pytest.MonkeyPatch, responder: Any) -> FakeC
         fake.session_kwargs = kw
         return fake
 
-    monkeypatch.setattr("a2web.packages.http_fetch.fetch.cr.AsyncSession", _factory)
+    monkeypatch.setattr("http_fetch.fetch.cr.AsyncSession", _factory)
     return fake

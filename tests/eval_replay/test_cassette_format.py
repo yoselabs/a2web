@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from a2web.packages.http_fetch import FetchOutcome, FetchVerdict
+from http_fetch import FetchOutcome, FetchVerdict
+
 from eval._capture.cassette import parse_exchanges, serialize_exchanges
 
 

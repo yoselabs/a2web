@@ -20,11 +20,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from http_fetch import FetchVerdict
+
 from ..models import Verdict
-from ..packages.http_fetch import FetchVerdict
 
 if TYPE_CHECKING:
-    from ..packages.http_fetch import FetchOutcome
+    from http_fetch import FetchOutcome
+
     from ..tiers import TierResult
 
 

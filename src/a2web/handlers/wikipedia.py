@@ -12,9 +12,9 @@ from typing import TYPE_CHECKING
 from urllib.parse import unquote, urlparse
 
 import trafilatura
+from http_fetch import fetch_bytes
 
 from ..models import NextLink, Verdict
-from ..packages.http_fetch import fetch_bytes
 from ._common import empty_result, map_non_ok
 
 if TYPE_CHECKING:

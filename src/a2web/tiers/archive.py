@@ -20,9 +20,9 @@ from urllib.parse import urlencode
 
 import anyio
 import trafilatura
+from http_fetch import FetchVerdict, fetch_bytes
 
 from ..models import Verdict
-from ..packages.http_fetch import FetchVerdict, fetch_bytes
 
 
 @dataclass(slots=True)
