@@ -24,6 +24,13 @@ from urllib.parse import urlparse
 import a2kit
 import a2kit.log
 from a2kit import Lazy
+from json_in_html import (
+    extract_json_payloads,
+    is_answer_bearing,
+    is_json_content_type,
+    parse_json_response,
+    rank_payloads,
+)
 
 from . import content_expectations
 from .actions import Action, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
@@ -65,13 +72,6 @@ from .packages.content_extract import (
     parse_metadata,
 )
 from .packages.escalation import EscalationSignal
-from .packages.json_in_script import (
-    extract_json_payloads,
-    is_answer_bearing,
-    is_json_content_type,
-    parse_json_response,
-    rank_payloads,
-)
 from .packages.llm_extract import LlmNextLink, RouterPayload
 from .packages.record_extract import Record, RecordSet, extract_records
 from .settings import AppSettings

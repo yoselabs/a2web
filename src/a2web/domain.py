@@ -17,7 +17,8 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, parse_qsl, quote, urlparse
 
 if TYPE_CHECKING:
-    from .packages.json_in_script import JsonPayload
+    from json_in_html import JsonPayload
+
     from .settings import AppSettings
 
 __all__ = (

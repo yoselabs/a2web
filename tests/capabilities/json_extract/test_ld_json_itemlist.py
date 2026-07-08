@@ -1,6 +1,6 @@
 """JSON-LD `ItemList` synthesis — `json_to_markdown_rows`.
 
-`json_in_script` already detects `ld_json` payloads and `rank_payloads`
+`json_in_html` already detects `ld_json` payloads and `rank_payloads`
 already prefers `ItemList`; this covers the synthesis adapter rendering an
 `ItemList` into record rows, including the commerce offer-lift (price,
 currency, url) and linked-record rendering.
@@ -11,8 +11,9 @@ from __future__ import annotations
 import json
 import re
 
+from json_in_html import JsonPayload
+
 from a2web.domain import json_to_markdown_rows
-from a2web.packages.json_in_script import JsonPayload
 from tests.fixtures import FIXTURES_DIR
 
 

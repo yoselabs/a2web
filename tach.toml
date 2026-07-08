@@ -29,7 +29,6 @@ depends_on = [
     "a2web.packages.cookie_store",
     "a2web.packages.escalation",
     "a2web.packages.html_fragment",
-    "a2web.packages.json_in_script",
     "a2web.packages.llm_extract",
     "a2web.packages.proxy_routing",
     "a2web.packages.record_extract",
@@ -68,10 +67,6 @@ depends_on = []
 
 [[modules]]
 path = "a2web.packages.html_fragment"
-depends_on = []
-
-[[modules]]
-path = "a2web.packages.json_in_script"
 depends_on = []
 
 [[modules]]
