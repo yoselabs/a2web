@@ -12,21 +12,17 @@ expected default.
 
 from __future__ import annotations
 
-import os
-import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, ClassVar, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
-    YamlConfigSettingsSource,
 )
-
-_ENV_REF_RE = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
+from settings_base import SecretStrippingYamlSource, resolve_config_path, resolve_env_refs
 
 # LLM provider selection mode. `auto` resolves via the preference order in
 # `llm_resource.select_provider`; the concrete ids name a single backend.
@@ -39,15 +35,6 @@ ProviderMode = Literal["auto", "anthropic", "claude-code", "openai_compatible"]
 DEFAULT_DISCOURSE_HOSTS: tuple[str, ...] = ("linux.do", "meta.discourse.org")
 
 
-def _resolve_env_refs(value: str) -> str:
-    """Replace `${VAR}` with `os.environ[VAR]`; leave literal on miss."""
-
-    def _sub(match: re.Match[str]) -> str:
-        return os.environ.get(match.group(1), match.group(0))
-
-    return _ENV_REF_RE.sub(_sub, value)
-
-
 class ProxyEntry(BaseModel):
     """One proxy in the pool. `${ENV_VAR}` references in `url` are resolved at load."""
 
@@ -58,7 +45,7 @@ class ProxyEntry(BaseModel):
     @field_validator("url", mode="after")
     @classmethod
     def _resolve_env(cls, value: str) -> str:
-        return _resolve_env_refs(value)
+        return resolve_env_refs(value)
 
 
 class RouteRule(BaseModel):
@@ -71,35 +58,19 @@ class RouteRule(BaseModel):
     fallback: list[str] = Field(default_factory=list)
 
 
-def _resolve_yaml_path() -> Path | None:
-    override = os.environ.get("A2WEB_CONFIG")
-    if override:
-        path = Path(override).expanduser()
-        return path if path.is_file() else None
-    default = Path.home() / ".a2web" / "config.yaml"
-    return default if default.is_file() else None
-
-
-class _YamlSourceWithoutSecrets(YamlConfigSettingsSource):
-    """YAML source that drops fields the user must supply via env only."""
-
-    EXCLUDE: ClassVar[frozenset[str]] = frozenset(
-        {
-            "jina_key",
-            "github_token",
-            "zyte_key",
-            "firecrawl_key",
-            "google_client_secret",
-            "google_jwt_signing_key",
-            "oauth_encryption_key",
-        }
-    )
-
-    def __call__(self) -> dict[str, Any]:
-        data = super().__call__()
-        for key in self.EXCLUDE:
-            data.pop(key, None)
-        return data
+# Fields the user MUST supply via env only — a YAML-set value for any of these is
+# dropped by `SecretStrippingYamlSource` so a secret never lives in a config file.
+_SECRET_FIELDS: frozenset[str] = frozenset(
+    {
+        "jina_key",
+        "github_token",
+        "zyte_key",
+        "firecrawl_key",
+        "google_client_secret",
+        "google_jwt_signing_key",
+        "oauth_encryption_key",
+    }
+)
 
 
 class AppSettings(BaseSettings):
@@ -137,7 +108,7 @@ class AppSettings(BaseSettings):
 
     # Paid last-resort fetch tiers (reddit-reachability-never-silent-miss).
     # Env-only secrets (`A2WEB_ZYTE_KEY` / `A2WEB_FIRECRAWL_KEY`); a YAML-set
-    # value is dropped by `_YamlSourceWithoutSecrets`. Empty = the tier's
+    # value is dropped by `SecretStrippingYamlSource` (with a2web's `_SECRET_FIELDS`). Empty = the tier's
     # manifest returns `Unavailable` at boot, so the tier never registers and
     # zero-config fetches never incur cost. Dispatched out-of-band only after
     # the free/proxied ladder (raw → jina → browser → archive) is exhausted on
@@ -303,10 +274,10 @@ class AppSettings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        yaml_path = _resolve_yaml_path()
+        yaml_path = resolve_config_path("A2WEB_CONFIG", Path.home() / ".a2web" / "config.yaml")
         sources: list[PydanticBaseSettingsSource] = [init_settings, env_settings]
         if yaml_path is not None:
-            sources.append(_YamlSourceWithoutSecrets(settings_cls, yaml_file=yaml_path))
+            sources.append(SecretStrippingYamlSource(settings_cls, exclude=_SECRET_FIELDS, yaml_file=yaml_path))
         return tuple(sources)
 
 

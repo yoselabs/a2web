@@ -15,6 +15,8 @@ import time
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from timefmt import fmt_dur
+
 from .content_guidance import kind_guidance
 from .decision_log import resolve_verdict
 from .log import log_warning
@@ -37,7 +39,6 @@ from .models import (
     listing_more_hint,
     listing_partial_hint,
 )
-from .utils.time import fmt_dur
 
 if TYPE_CHECKING:
     from record_mine import RecordSet

@@ -14,7 +14,7 @@ import pytest
 
 from a2web import server
 from a2web.server import build_google_provider, serve_http_main
-from a2web.settings import AppSettings, _YamlSourceWithoutSecrets
+from a2web.settings import _SECRET_FIELDS, AppSettings
 
 _FULL = {
     "google_client_id": "cid.apps.googleusercontent.com",
@@ -68,7 +68,7 @@ def test_encryption_wraps_the_store(tmp_path: Any) -> None:
 
 
 def test_google_secrets_excluded_from_yaml() -> None:
-    exclude = _YamlSourceWithoutSecrets.EXCLUDE
+    exclude = _SECRET_FIELDS
     assert {"google_client_secret", "google_jwt_signing_key", "oauth_encryption_key"} <= exclude
 
 

@@ -55,6 +55,12 @@ dependencies = [
     # [documents] extra, which a2web does NOT install, so cold-start stays slim and
     # docling's typer<0.13 pin never collides with a2kit's Typer CLI.
     "content-extract>=0.1,<1",
+    # timefmt: the adaptive duration formatter (fmt_dur) — promoted to the shelf and
+    # adopted back (was utils/time). settings-base: the generic env/YAML settings
+    # machinery (${VAR} + secret-stripping YAML source) — a2web keeps its AppSettings
+    # schema, secret set, and path defaults and composes it (was in settings.py).
+    "timefmt>=0.1,<1",
+    "settings-base>=0.1,<1",
     "curl_cffi>=0.7,<1",
     "httpx>=0.27,<1",
     # cookie decryption (Chrome v10/v11 AES-GCM). Already pulled in
@@ -173,6 +179,8 @@ html-fragment = { git = "https://github.com/yoselabs/shelf", subdirectory = "pac
 record-mine = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/record-mine", tag = "record-mine-v0.1.0" }
 browser-cookies = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/browser-cookies", tag = "browser-cookies-v0.1.0" }
 content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/content-extract", tag = "content-extract-v0.1.1" }
+timefmt = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/timefmt", tag = "timefmt-v0.1.0" }
+settings-base = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/settings-base", tag = "settings-base-v0.1.0" }
 
 [build-system]
 requires = ["hatchling"]

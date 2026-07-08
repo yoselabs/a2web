@@ -66,7 +66,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "record-mine" },
     { name = "selectolax" },
+    { name = "settings-base" },
     { name = "sqlite-resource" },
+    { name = "timefmt" },
     { name = "trafilatura" },
 ]
 
@@ -131,7 +133,9 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6,<7" },
     { name = "record-mine", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Frecord-mine&tag=record-mine-v0.1.0" },
     { name = "selectolax", specifier = ">=0.3,<1" },
+    { name = "settings-base", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fsettings-base&tag=settings-base-v0.1.0" },
     { name = "sqlite-resource", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fsqlite-resource&tag=sqlite-resource-v0.1.0" },
+    { name = "timefmt", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Ftimefmt&tag=timefmt-v0.1.0" },
     { name = "trafilatura", specifier = ">=1.12,<2" },
     { name = "zendriver", marker = "extra == 'browser'", specifier = ">=0.15,<1" },
 ]
@@ -3187,6 +3191,14 @@ wheels = [
 ]
 
 [[package]]
+name = "settings-base"
+version = "0.1.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fsettings-base&tag=settings-base-v0.1.0#a682db5847b6eb7c4e4b8960de6e408e974a9b13" }
+dependencies = [
+    { name = "pydantic-settings" },
+]
+
+[[package]]
 name = "shadowcopy"
 version = "0.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3327,6 +3339,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2e/e5/054784261781dbcb8ac663a5d09af6c7996f5bde5230282b4c062dcf1f1f/tach-0.35.0-cp37-abi3-win32.whl", hash = "sha256:72dd6553d9fdd1e72fbd8e5b71892a463e8cd70b3ff6377b4f682aab100937d3", size = 3378975, upload-time = "2026-05-12T12:49:00.79Z" },
     { url = "https://files.pythonhosted.org/packages/4b/1d/5dddf88fa9433bf4fcc76afad18e49d8e50e24f1f40c981c286edccd6c2d/tach-0.35.0-cp37-abi3-win_amd64.whl", hash = "sha256:746271a5313c348e00c1b85927260e3e1a75351d86b2da1746e85c5dd77051e6", size = 3671788, upload-time = "2026-05-12T12:48:59.619Z" },
 ]
+
+[[package]]
+name = "timefmt"
+version = "0.1.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Ftimefmt&tag=timefmt-v0.1.0#a682db5847b6eb7c4e4b8960de6e408e974a9b13" }
 
 [[package]]
 name = "tld"
