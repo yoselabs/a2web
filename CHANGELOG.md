@@ -8,7 +8,65 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
-## [0.40.0] — 2026-07-08
+## [0.41.0] — 2026-07-08
+
+> Externalize substrate to **the shelf**. Ten in-tree `packages/` modules that
+> were generic, ownable micro-software — not a2web's fetching moat — were
+> promoted to `github.com/yoselabs/shelf`, catalogued as born candidates, and
+> adopted back by git tag. a2web sheds **~2.1k lines of production source**
+> (~3.7k with tests) and now leans on contract-guaranteed substrate that a2kay
+> can share, in exchange for ten git-tag dep pins plus thin domain seams. The
+> code didn't vanish — it moved once to the shelf instead of being copied per
+> consumer. Two round-trips caught real bugs (a cache-schema migration crash, a
+> hard dependency conflict) before they shipped.
+
+### Changed — adopt the shelf; delete the in-tree copies
+
+- **http-fetch** (`http-fetch-v0.1.0`): the shared HTTP GET primitive (browser
+  TLS impersonation, conditional GET, injected proxy + breaker, closed-verdict
+  mapping). Was `packages/http_fetch`.
+- **sqlite-resource** + **http-cache** (`…-v0.1.0`): the lazy sqlite connection
+  lifecycle and the conditional-GET cache mechanics. a2web composes them at a new
+  `src/a2web/cache.py` seam (default-path policy + schema + the `(url,
+  profile_hash)` accessor). Was `packages/http_cache.py`. **Migration fix:** the
+  promoted schema renamed a2web's `profile_hash` column to the generic `variant`;
+  the seam drops a legacy-shaped `cache` table so existing installs (and the
+  global `~/.a2web/cache.sqlite`) **rebuild instead of crashing** with `no such
+  column: variant` — the never-crash invariant held.
+- **json-in-html** (`json-in-html-v0.1.0`): mine embedded structured data
+  (LD-JSON / microdata / OpenGraph / `window.__X__` / raw JSON). Was
+  `packages/json_in_script`.
+- **html-fragment** (`html-fragment-v0.1.0`): `to_markdown`/`to_text` over a
+  server-supplied HTML fragment. Was `packages/html_fragment`.
+- **record-mine** (`record-mine-v0.1.0`): locate + depth-render the dominant
+  repeated-record region on listing/thread pages. Was `packages/record_extract`.
+- **browser-cookies** (`browser-cookies-v0.1.0`): read the local browser cookie
+  store; `browser-cookie3` stays a lazily-imported optional engine (a2web keeps
+  it in its own `[cookies]` extra). Was `packages/cookie_store`.
+- **content-extract** (`content-extract-v0.1.1`): page → structured content. Its
+  body markdown now **composes convert-md's `convert_html`** instead of a
+  hand-rolled trafilatura call (behavior-equivalent). Was
+  `packages/content_extract`.
+- **timefmt** (`timefmt-v0.1.0`): the `fmt_dur` adaptive duration formatter. Was
+  `utils/time.py`.
+- **settings-base** (`settings-base-v0.1.0`): the generic env/YAML machinery
+  (`${VAR}` resolution, secret-stripping YAML source, config-path resolution).
+  a2web keeps its `AppSettings` schema, its `_SECRET_FIELDS` set, and its path
+  defaults and composes the primitive.
+- **convert-md** grown to `v0.3.0`: gained a url-aware in-memory `convert_html`
+  string door (`v0.2.0`), then split its heavy document engines
+  (docling/pandoc/office) into a `[documents]` extra so an HTML-only consumer no
+  longer drags them. a2web adopts the **light base** (trafilatura + html2text) —
+  which also sidesteps a hard lock conflict (docling's `typer<0.13` vs a2kit's
+  Typer CLI). a2kay stays correct on `convert-md-v0.1.0`; it re-pins
+  `convert-md[documents]` when it adopts.
+
+### Changed — adopt anyllm; delete the in-tree LLM providers
+
+- **anyllm** (`anyllm[anthropic,openai,claude-code-sdk]>=0.2,<1`): the LLM
+  provider contract (Protocol + Completion + PromptParts) moves to the shelf;
+  a2web deletes `packages/llm_extract/providers/` and composes anyllm's provider
+  surface via the `_manifests` seam.
 
 > Reddit reliability + a browser-lifecycle leak found while fixing it. The
 > keyless `.rss` channel is the mission-critical Reddit path, and it was walling
