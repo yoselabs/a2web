@@ -224,6 +224,26 @@ urls:
       - "Does NOT emit an `options` list of site navigation / footer categories — this is a product page, not a listing"
       - "Emits no option/menu entries with a null or missing URL (page chrome is never surfaced as a selectable option)"
 
+  - slug: hepsiburada-reviews-drilldown-on-page
+    # Positive counterpart to hepsiburada-product-reviews (honest-absence): on a
+    # product with many reviews (BIC Flex 5, 4.7★ / 2814 evals) hepsiburada DOES
+    # server-render a real `-yorumlari` reviews anchor in the fetched HTML.
+    # Verified 2026-07-11: the `…-HBCV00001XNOZN-yorumlari` URL is a genuine href
+    # among the 264 fetched links (NOT in content_md prose), so a2web MUST surface
+    # it as an `other_pages` drilldown — rehydrated from the closed link set, not
+    # pattern-guessed by appending `-yorumlari`. This is the ADR-0014 "surface it
+    # BECAUSE it is on the page" side; the razor entry is the "stay silent when it
+    # is NOT" side. Whether the anchor is present is the load-bearing distinction.
+    url: https://www.hepsiburada.com/bic-flex-5-tiras-bicagi-6-yedek-tiras-bicagi-canta-p-HBCV00001XNOZN
+    class: affordance
+    task: "Summarize the customer reviews for this product — what do buyers say?"
+    needs: [content+links]
+    criteria:
+      - "Surfaces a reviews drilldown pointing at the on-page `-yorumlari` anchor when that anchor is genuinely in the fetched HTML"
+      - "The surfaced reviews URL is traceable to a real href on the page, never fabricated by appending `-yorumlari` to the product slug (ADR-0014)"
+      - "Does NOT fabricate specific review quotes / per-review ratings not present on the fetched page"
+      - "Distinguishes the aggregate rating shown on-page from the individual review content that lives on the drilldown page"
+
   - slug: amazon-product-reviews-elsewhere
     url: https://www.amazon.com/dp/B0CHX1W1XY
     class: affordance
