@@ -211,6 +211,21 @@ urls:
       - "If the full reviews live behind a separate link, surfaces that link as a drilldown"
       - "Honest about retrieval completeness — flags when the reviews were not fully on this page"
 
+  - slug: koctas-product-narrow-ask-index
+    # ADR-0015 withheld-body index: a NARROW factual ask (price/stock) on a RICH
+    # product page must still populate `also_here` with the sections the answer
+    # did not surface. Observed 2026-07-11: digest fired (json_synth x3, 55 links,
+    # classified `product`) yet the model emitted also_here=[] — it treated
+    # "answered the asked question" as "covered the page". The index must fire.
+    url: https://www.koctas.com.tr/einhell-te-cd-18-48-li-i-darbeli-matkap-125-ah-starter-kit/p/5001125801
+    class: affordance
+    task: "What is the price of this product, its currency, and is it in stock?"
+    needs: [content+links]
+    criteria:
+      - "Answer states the price, its currency, and the stock status"
+      - "also_here is NON-EMPTY — a narrow price/stock ask does not 'cover' a rich product page; also_here indexes the unsurfaced sections (specs / description / kit contents) as terse query-grammar strings, NOT full questions"
+      - "Any surfaced URL is a real on-page link (ADR-0014), never a guessed reviews URL; other_pages MAY be empty if no drilldown link is present in the fetched HTML"
+
   - slug: trendyol-listing-which-best
     url: https://www.trendyol.com/sr?q=bluetooth+kulaklik
     class: affordance
