@@ -191,15 +191,21 @@ urls:
   # the marketplaces rotating their catalogs.
 
   - slug: hepsiburada-product-reviews
-    url: https://www.hepsiburada.com/apple-iphone-15-128-gb-p-HBCV00003XABLM
+    # NOTE: the prior iPhone URL (HBCV00003XABLM) rotted — delisted, now silently
+    # serves a drill-bit CATEGORY listing (a2web correctly relayed it as such,
+    # 2026-07-11). Swapped to a live product. Hepsiburada is server-rendered
+    # (~10.8k chars, classified `product`), but reviews are client-rendered and
+    # NOT linked in the fetched HTML — so the stable behavior here is the
+    # honest-absence path (ADR-0009/0014), not a surfaced `-yorumlari` drilldown.
+    url: https://www.hepsiburada.com/wilkinson-sword-wilkinson-swrod-hydro-5-ultimate-erkek-tiras-bicagi-sap-baslik-pm-HBC0000FWLZQH
     class: affordance
     task: "Summarize the customer reviews for this product — what do buyers say?"
     needs: [content+links]
     criteria:
       - "Does NOT fabricate or invent specific review quotes / ratings not on the fetched page"
-      - "States that the reviews are not on this page (or are on a separate section)"
-      - "Surfaces a link to the product's reviews page (e.g. a `-yorumlari` URL) as a real, followable drilldown rather than a guessed URL"
-      - "Never asserts the product has no reviews; distinguishes 'not on this page' from 'do not exist'"
+      - "States that the reviews are not on the fetched page, scoped to THIS page's evidence (ADR-0009)"
+      - "Never guesses a reviews URL that is not present on the page (ADR-0014) — surfaces a reviews drilldown ONLY if one is genuinely in the fetched HTML"
+      - "Never asserts the product has no reviews at all; distinguishes 'not on this page' from 'do not exist'"
 
   - slug: amazon-product-reviews-elsewhere
     url: https://www.amazon.com/dp/B0CHX1W1XY
