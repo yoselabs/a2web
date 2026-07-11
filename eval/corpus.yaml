@@ -194,9 +194,12 @@ urls:
     # NOTE: the prior iPhone URL (HBCV00003XABLM) rotted — delisted, now silently
     # serves a drill-bit CATEGORY listing (a2web correctly relayed it as such,
     # 2026-07-11). Swapped to a live product. Hepsiburada is server-rendered
-    # (~10.8k chars, classified `product`), but reviews are client-rendered and
-    # NOT linked in the fetched HTML — so the stable behavior here is the
-    # honest-absence path (ADR-0009/0014), not a surfaced `-yorumlari` drilldown.
+    # (~10.8k chars, classified `product`). Verified 2026-07-11 by grepping the
+    # 262 fetched links: this low-review razor carries NO `-yorumlari` anchor
+    # (hepsiburada only server-renders that anchor for reviewed products — cf.
+    # hepsiburada-reviews-drilldown-on-page, BIC Flex 5, which DOES). So the
+    # stable behavior here is the honest-absence path (ADR-0009/0014): a2web must
+    # NOT fabricate a `HBC0000FWLZQH-yorumlari` URL by pattern from the slug.
     url: https://www.hepsiburada.com/wilkinson-sword-wilkinson-swrod-hydro-5-ultimate-erkek-tiras-bicagi-sap-baslik-pm-HBC0000FWLZQH
     class: affordance
     task: "Summarize the customer reviews for this product — what do buyers say?"
