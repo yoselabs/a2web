@@ -149,3 +149,36 @@ def test_router_template_schema_lives_in_tail_not_prefix() -> None:
     assert "structural_form" in parts.tail
     assert "discussion" not in parts.cache_prefix
     assert "discussion" in parts.tail
+
+
+# v0.22 (ask-extraction-token-tuning) — token-efficiency + partial-signal
+# honesty instructions live in `system`, never in `cache_prefix_template`.
+
+
+def test_router_template_carries_token_efficiency_instruction_in_system() -> None:
+    parts = EXTRACT_ROUTER_V1.render(content=_PAGE, ask="Q?")
+    assert "ASCII" in parts.system
+    assert "never drop a factual value" in parts.system.lower() or "never drop a factual" in parts.system
+    # Preserving the cache-prefix invariant is the whole point of putting this in system.
+    assert parts.cache_prefix == EXTRACT_CACHEABLE_V1.render(content=_PAGE, ask="Q?").cache_prefix
+
+
+def test_router_template_carries_partial_signal_honesty_instruction_in_system() -> None:
+    parts = EXTRACT_ROUTER_V1.render(content=_PAGE, ask="Q?")
+    assert "lacks the specific" in parts.system
+    assert "does not address the topic" in parts.system
+
+
+def test_router_handle_markers_render_double_brace() -> None:
+    """The `{{n}}` handle markers in the router prompt must survive `.format()`
+    as literal `{{n}}` (matching the digest + rehydration regex), NOT collapse
+    to `{n}`. Regression guard: a bare `{{n}}` in source renders `{n}` and the
+    model's inline answer handles then never rehydrate (leak)."""
+    tail = EXTRACT_ROUTER_V1.render(content="X", ask="Y").tail
+    assert "{{n}}" in tail  # the marker the model is told to emit
+    # a single-brace `{n}` marker must NOT appear (that is the collapsed bug form)
+    import re
+
+    assert not re.search(r"(?<!\{)\{n\}(?!\})", tail)
+    # JSON examples stay single-brace (they are literal JSON, not markers)
+    assert '{"handle": 3' in tail

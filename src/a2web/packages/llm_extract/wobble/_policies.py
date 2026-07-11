@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from ._internal import WobblePolicy, WobbleTolerance
 
-# Extractor router-shape envelope (v0.21). Three required + four optional.
+# Extractor router-shape envelope (v0.21). Three required + three optional.
 # The pydantic mirror at the seam (`fetcher_response._project_routing`) enforces
 # closed-enum membership; this table only governs presence-recovery.
 EXTRACTOR_ROUTING_POLICY: dict[str, WobblePolicy] = {
@@ -21,7 +21,6 @@ EXTRACTOR_ROUTING_POLICY: dict[str, WobblePolicy] = {
     "answer": WobblePolicy(WobbleTolerance.STRICT),
     "structural_form": WobblePolicy(WobbleTolerance.DEFAULT, default=None),
     "shape": WobblePolicy(WobbleTolerance.DEFAULT, default=None),
-    "genre": WobblePolicy(WobbleTolerance.DEFAULT, default=None),
     "obstacle": WobblePolicy(WobbleTolerance.DEFAULT, default=None),
     "ask_here": WobblePolicy(WobbleTolerance.DEFAULT, default=()),
     "try_url": WobblePolicy(WobbleTolerance.DEFAULT, default=()),

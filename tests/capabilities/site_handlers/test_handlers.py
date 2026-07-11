@@ -783,11 +783,17 @@ def test_playbook_escalates_reddit_not_found_to_archive() -> None:
     assert action.url == url
 
 
-def test_playbook_does_not_escalate_not_found_on_other_hosts() -> None:
-    """The reddit not_found rule does not fire for non-reddit hosts."""
-    from a2web.actions import Continue, PlannerCaps, decide_next
+def test_playbook_does_not_archive_not_found_on_other_hosts() -> None:
+    """The reddit not_found *archive* rule does not fire for non-reddit hosts.
+
+    A non-authoritative not_found on a non-reddit host is now treated as a
+    possible soft-404 anti-scrape by the transport catch-all
+    (`uncorroborated_404_escalate`) and escalates to browser — but it must NOT
+    route to archive (that path is reserved for genuinely-gone Reddit threads)."""
+    from a2web.actions import EscalateBrowser, PlannerCaps, RetryViaArchive, decide_next
     from a2web.decision_log import Observation, ObservationKind
 
     log = [Observation(ObservationKind.tier_outcome, "raw", Verdict.not_found, False, 1)]
     action = decide_next(log, url="https://example.com/page", caps=PlannerCaps(0, 0, 0, 0))
-    assert isinstance(action, Continue)
+    assert not isinstance(action, RetryViaArchive)
+    assert isinstance(action, EscalateBrowser)

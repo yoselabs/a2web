@@ -50,6 +50,27 @@ The `AskResponse` serializer SHALL omit optional fields whose value is `None`, a
 - **WHEN** `ask` is invoked through the in-process test client (the production formatter wrapper chain)
 - **THEN** the marshaled result has the empty optional fields absent, not present as `null` / `[]` / `{}`
 
+### Requirement: AskResponse meta is curated to an allowlist
+
+`AskResponse.meta` SHALL be populated from a curated allowlist of the raw metadata dict — `og.description` only — not a verbatim copy of every key `parse_metadata` produces. `og.title` SHALL NOT appear in the allowlist — it duplicates the already-promoted top-level `title` field (same source, same string). `og.site_name` SHALL NOT appear in the allowlist either — a live sweep of 6 real pages (design D6) found it always equal to the obvious human-readable form of the domain already present in the requested URL, carrying no incremental signal. Keys outside the allowlist (e.g. `og.title`, `og.site_name`, `og.locale`, `og.image`, `og.image:width`, `og.image:height`, `og.image:type`, `og.type`, `og.url`, `twitter.card`, `twitter.creator`, `twitter.site`, `twitter.title`, `twitter.description`, `twitter.label1`/`data1`, `twitter.label2`/`data2`, `jsonld[0].@context`, `jsonld[0].name`, `jsonld[0].url`) SHALL NOT appear on the `ask` wire. `FetchResponse.meta` (the `fetch_raw` envelope) SHALL remain the full, uncurated dict — this requirement applies only to the `AskResponse` projection.
+
+This requirement governs only the shallow `og:*`/`twitter:*`/`jsonld[0].*` scalar flatten `parse_metadata` produces — it is out of scope for (and does not gatekeep) structured facts like a phone number or address, since the shelf's `_flatten_jsonld` already drops nested JSON-LD objects before this allowlist ever runs (design D7). Such facts, when present, are surfaced through a different pipeline entirely — the extraction escalation ladder's entity renderer (`extraction` capability, "JSON-LD single-entity rendering is default-keep") — which this requirement does not modify.
+
+#### Scenario: ask curates meta to the allowlist
+
+- **WHEN** `ask` completes against a fixture whose raw metadata carries `og.title`, `og.description`, `og.site_name`, `og.image`, `og.image:width`, `twitter.card`, `twitter.label1`, and `jsonld[0].@context`
+- **THEN** the `ask` wire payload's `meta` object contains `og.description` and omits `og.title`, `og.site_name`, `og.image`, `og.image:width`, `twitter.card`, `twitter.label1`, and `jsonld[0].@context`
+
+#### Scenario: fetch_raw keeps the full raw metadata
+
+- **WHEN** `fetch_raw` completes against the same fixture
+- **THEN** the `fetch_raw` wire payload's `meta` object contains every key `parse_metadata` produced, uncurated
+
+#### Scenario: empty allowlisted meta is still omitted
+
+- **WHEN** `ask` completes against a fixture whose raw metadata carries only non-allowlisted keys
+- **THEN** the `ask` wire payload contains no `meta` key
+
 ### Requirement: narrative and diagnostics_summary are failure-only on ask
 
 `AskResponse` SHALL include `narrative` and `diagnostics_summary` only when `status != ok`. On a successful `ask` they SHALL be absent from the wire payload.
@@ -162,35 +183,39 @@ When `AskResponse.next_links` is non-empty, the serializer SHALL render it on th
 
 ### Requirement: AskResponse carries router-shape fields by default
 
-`AskResponse` SHALL declare seven router-shape fields replacing the v0.20 `affordances` field:
+`AskResponse` SHALL declare four router-shape fields (narrowed from the prior six — `structural_form` and `shape` are no longer projected onto the wire):
 
-Required fields (always present on the wire when the LLM extractor returned a routing payload):
+Required field (always present on the wire when the LLM extractor returned a routing payload):
 - `answer: str` — the model's answer to the question.
-- `structural_form: Literal["article","thread","listing","reference","tutorial","changelog","code","product","media","other"]` — what the page IS structurally.
-- `shape: Literal["prose","records","key-value","code","table","discussion","mixed"]` — the data shape of the answer-bearing content.
 
 Conditional fields (omitted from the wire via `_prune_wire` when empty/null):
-- `genre: Literal["news","encyclopedia","spec","paper","personal","official","community"] | None` — what the page is ABOUT; omitted when no value clearly applies.
 - `obstacle: Literal["paywalled","blocked","empty","error"] | None` — page-level failure mode; omitted on healthy pages.
 - `ask_here: list[str]` — same-URL re-asks; omitted when `[]`.
 - `try_url: list[NextUrl]` — different-URL re-asks where each entry has `{url, reason}`; omitted when `[]`.
 
-The `ask` tool SHALL accept an `include_routing: bool` parameter defaulting to `True`. When `include_routing=False`, all seven fields SHALL be `None` / absent and the wire SHALL carry the lean v0.14 envelope shape. When `include_routing=True` but the extractor returned no routing payload (no LLM, fetch error, parse failure), all seven fields SHALL be absent.
+`AskResponse` SHALL NOT declare a `genre` field, and SHALL NOT declare `structural_form` or `shape` fields. `RouterPayload` (the internal LLM-parse boundary type) is UNCHANGED — it still requires `structural_form` and `shape` from the extractor, and internal consumers (`content_guidance.kind_guidance()`, the `refinement_axes` gate) continue reading `routing.structural_form` directly; only the wire projection onto `AskResponse` is removed. Audit finding: `shape` had no downstream consumer anywhere in the pipeline (the earlier `genre`-removal audit's claim that `structural_form`/`shape`/`obstacle` each had "a confirmed consumer" did not hold up for `shape` under a direct trace); `structural_form`'s only two internal consumers already surface their own derived output on the wire independently (the `content_guidance` operator hint, and `refinement_axes` itself), making the raw enum redundant for display. `obstacle` is unaffected — it has a real consumer (the incompleteness gate) and stays on the wire.
+
+The `ask` tool SHALL accept an `include_routing: bool` parameter defaulting to `True`. When `include_routing=False`, all four fields SHALL be `None` / absent and the wire SHALL carry the lean v0.14 envelope shape. When `include_routing=True` but the extractor returned no routing payload (no LLM, fetch error, parse failure), all four fields SHALL be absent.
 
 #### Scenario: Default ask includes the router-shape fields
 
 - **WHEN** `ask` is called without `include_routing` against a content page that the LLM successfully extracts
-- **THEN** the wire carries `answer`, `structural_form`, `shape` always, plus `genre` / `obstacle` / `ask_here` / `try_url` only when populated
+- **THEN** the wire carries `answer` always, plus `obstacle` / `ask_here` / `try_url` only when populated, and no `genre`, `structural_form`, or `shape` key under any circumstance
 
-#### Scenario: Opt-out via include_routing=False suppresses all seven fields
+#### Scenario: Opt-out via include_routing=False suppresses all four fields
 
 - **WHEN** `ask` is called with `include_routing=False`
-- **THEN** the wire carries no `structural_form`, `shape`, `genre`, `obstacle`, `ask_here`, or `try_url` keys (and `answer` remains the unstructured extractor answer)
+- **THEN** the wire carries no `obstacle`, `ask_here`, or `try_url` keys (and `answer` remains the unstructured extractor answer)
 
 #### Scenario: Extractor unavailable leaves router fields absent
 
 - **WHEN** `ask` is called with `include_routing=True` but the LLM extractor is unavailable
-- **THEN** the wire carries none of the seven router-shape fields, and an `operator_hint` with `code="llm_unavailable"` records the reason
+- **THEN** the wire carries none of the four router-shape fields, and an `operator_hint` with `code="llm_unavailable"` records the reason
+
+#### Scenario: structural_form and shape never reach the wire even though RouterPayload requires them
+
+- **WHEN** `ask` is called against a page the LLM classifies as `structural_form: "product"`, `shape: "key-value"`
+- **THEN** `RouterPayload.structural_form` and `RouterPayload.shape` are populated internally (consumed by `content_guidance.kind_guidance()` to emit the `content_guidance` operator hint), but neither `structural_form` nor `shape` appears as a key on the `AskResponse` wire
 
 ### Requirement: RouterPayload uses closed enums on every typed field
 
@@ -198,51 +223,54 @@ The `RouterPayload` pydantic model SHALL declare each typing field as a typed `L
 
 - `structural_form` — `Literal["article","thread","listing","reference","tutorial","changelog","code","product","media","other"]` (9 values, required).
 - `shape` — `Literal["prose","records","key-value","code","table","discussion","mixed"]` (7 values, required).
-- `genre` — `Literal["news","encyclopedia","spec","paper","personal","official","community"] | None` (7 values, optional).
 - `obstacle` — `Literal["paywalled","blocked","empty","error"] | None` (4 values, optional).
 
-`NextUrl.url` SHALL be a string. `NextUrl.reason` SHALL be a string. Values outside the closed enums SHALL be rejected by pydantic validation at the model boundary, and the boundary projection SHALL leave the seven router-shape fields absent on validation failure (the answer text on `AskResponse.answer` is unaffected).
+`RouterPayload` SHALL NOT declare a `genre` field. `NextUrl.url` SHALL be a string. `NextUrl.reason` SHALL be a string. Values outside the closed enums SHALL be rejected by pydantic validation at the model boundary, and the boundary projection SHALL leave the six router-shape fields absent on validation failure (the answer text on `AskResponse.answer` is unaffected).
 
 #### Scenario: Closed structural_form rejects unknown values
 
 - **WHEN** an extractor response carries `structural_form: "blog-post"` (a v0.20-era label not in the new enum)
-- **THEN** the boundary projection raises a pydantic validation error, all seven router-shape fields are absent from `AskResponse`, and `answer` carries the extractor's answer text unchanged
+- **THEN** the boundary projection raises a pydantic validation error, all six router-shape fields are absent from `AskResponse`, and `answer` carries the extractor's answer text unchanged
 
 #### Scenario: Closed shape rejects unknown values
 
 - **WHEN** an extractor response carries `shape: "diagram"`
-- **THEN** the boundary projection raises a pydantic validation error and the seven router-shape fields are absent
+- **THEN** the boundary projection raises a pydantic validation error and the six router-shape fields are absent
 
-#### Scenario: Optional fields accept None and string values
+#### Scenario: Optional obstacle field accepts None
 
-- **WHEN** an extractor response carries `genre: null` and no `obstacle` key
-- **THEN** `RouterPayload.genre` resolves to `None`, `RouterPayload.obstacle` resolves to `None`, and both fields are absent from the wire
+- **WHEN** an extractor response carries no `obstacle` key
+- **THEN** `RouterPayload.obstacle` resolves to `None` and is absent from the wire
+
+#### Scenario: A stray genre key from a non-conforming extractor response is ignored
+
+- **WHEN** an extractor response carries a `genre` key (e.g. from a stale prompt version or a non-conforming provider)
+- **THEN** `RouterPayload` parses successfully ignoring the extra key, and no `genre` key reaches the `AskResponse` wire
 
 ### Requirement: Router-shape envelope omits empty conditional fields via _prune_wire
 
-The `AskResponse._prune_wire` serializer SHALL treat the four conditional router-shape fields as omit-empty:
+The `AskResponse._prune_wire` serializer SHALL treat the three conditional router-shape fields as omit-empty:
 
-- `genre` is omitted when `None`.
 - `obstacle` is omitted when `None`.
 - `ask_here` is omitted when `[]`.
 - `try_url` is omitted when `[]`.
 
-The three required fields (`answer`, `structural_form`, `shape`) SHALL always appear when present on the model.
+The one required field (`answer`) SHALL always appear when present on the model. No `genre`, `structural_form`, or `shape` field exists on `AskResponse` to prune.
 
-#### Scenario: Healthy article with complete answer omits all four conditionals
+#### Scenario: Healthy article with complete answer omits all three conditionals
 
-- **WHEN** `ask` returns a routing payload with `obstacle=None`, `genre=None`, `ask_here=[]`, `try_url=[]`
-- **THEN** the wire payload contains exactly `answer`, `structural_form`, `shape`, plus the rest of the AskResponse envelope; no `genre`, `obstacle`, `ask_here`, or `try_url` keys
+- **WHEN** `ask` returns a routing payload with `obstacle=None`, `ask_here=[]`, `try_url=[]`
+- **THEN** the wire payload contains `answer` plus the rest of the AskResponse envelope; no `genre`, `structural_form`, `shape`, `obstacle`, `ask_here`, or `try_url` keys
 
 #### Scenario: Obstacle page populates obstacle and try_url
 
 - **WHEN** `ask` returns a routing payload with `obstacle="paywalled"` and `try_url=[{...}]`
-- **THEN** the wire contains both keys, plus `answer`, `structural_form`, `shape`, with `genre` and `ask_here` omitted if not populated
+- **THEN** the wire contains both keys, plus `answer`, with `ask_here` omitted if not populated, and no `genre`, `structural_form`, or `shape` key under any circumstance
 
 #### Scenario: Field shape survives the formatter wire path
 
 - **WHEN** `ask` with the router-shape is invoked through the in-process test client (production formatter wrapper chain)
-- **THEN** the marshaled result has omit-empty conditionals absent (not present as `null` or `[]`)
+- **THEN** the marshaled result has omit-empty conditionals absent (not present as `null` or `[]`), and no `genre`, `structural_form`, or `shape` key
 
 ### Requirement: confidence reflects the extractor obstacle signal on ask
 
@@ -402,4 +430,36 @@ additive and omit-empty (absent when there are no axes or the page is not a list
 
 - **WHEN** an `ask` fetch returns a non-listing page
 - **THEN** `refinement_axes` is absent from the wire
+
+### Requirement: try_url URLs are rehydrated, never model-typed
+
+`try_url` entries SHALL carry hrefs rehydrated from the closed digest set (owned by `link-affordances`), not URLs typed by the extractor. An entry whose handle is absent from the digest SHALL NOT appear. The prior "URL must appear verbatim in content" instruction is superseded: the model references a handle, and the server supplies the real URL.
+
+#### Scenario: try_url carries a real anchor href
+
+- **WHEN** the extractor selects handle `{{3}}` for a drilldown
+- **THEN** the `try_url` entry's URL is the real href for handle 3
+
+#### Scenario: Hallucinated URL cannot appear
+
+- **WHEN** the extractor emits a handle not in the digest
+- **THEN** no corresponding `try_url` entry is produced
+
+### Requirement: try_url entries flag off-domain targets
+
+Each `try_url` entry SHALL indicate whether its target is off the fetched page's domain, so the caller can treat off-domain suggestions (whose anchor labels are attacker-controllable) with appropriate caution.
+
+#### Scenario: Off-domain flag present
+
+- **WHEN** a `try_url` target is on a different registrable domain than the fetched page
+- **THEN** the entry is marked off-domain on the wire
+
+### Requirement: Continuation link promoted on incomplete answers
+
+When the answer is incomplete and a continuation link exists, that link SHALL be surfaced with top priority (first, or in a dedicated continuation position) rather than buried among speculative drilldowns, consistent with the retrieval-completeness invariant.
+
+#### Scenario: Reviews continuation ranked first
+
+- **WHEN** a product page cannot answer a reviews question but links the reviews page
+- **THEN** the reviews link is the top-priority `try_url` entry
 

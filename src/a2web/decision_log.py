@@ -70,14 +70,27 @@ def _verdict_rank(verdict: Verdict) -> int:
             # Highest precedence: a keyed paid service failing auth/billing is a
             # hard operator error that must surface, never be masked by a wall
             # verdict from a cheaper tier. Paired with `authoritative=True`.
-            return 12
+            return 14
+        case Verdict.dns_error:
+            # A genuine DNS-resolution failure (NXDOMAIN): the domain does not
+            # exist. Definitive and terminal — a real browser resolves the same
+            # name identically, so there is nothing to escalate. Ranks just below
+            # the operator-error paid_auth_error and above not_found (NXDOMAIN is
+            # more definitive than a server-issued 404).
+            return 13
         case Verdict.not_found:
-            return 11
+            return 12
         case Verdict.paywall:
-            return 10
+            return 11
         case Verdict.block_page_detected:
-            return 9
+            return 10
         case Verdict.anti_bot:
+            return 9
+        case Verdict.blank_page:
+            # An essentially-empty document surviving the full ladder (browser +
+            # paid scraper both saw nothing). A wall-class terminal peer of
+            # block_page_detected / anti_bot — a definitive miss, ranked just
+            # below anti_bot and above rate_limited.
             return 8
         case Verdict.rate_limited:
             return 7

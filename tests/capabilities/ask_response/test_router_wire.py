@@ -41,6 +41,11 @@ class _JsonEnvelopeProvider:
 
     The Extractor's router-shape path parses the JSON, so the stub must return
     exactly the router envelope (answer + structural_form + shape + ...).
+    `structural_form`/`shape` are still required in the LLM-side envelope —
+    `RouterPayload` (internal boundary) still validates them, and internal
+    consumers (`content_guidance`, the `refinement_axes` gate) still need
+    them — they're just no longer projected onto the `AskResponse` wire (see
+    `drop-structural-form-shape-wire`).
     """
 
     name = "stub"
@@ -84,7 +89,6 @@ _HEALTHY_ENVELOPE = {
     "answer": "Adaptive fetching keeps context small.",
     "structural_form": "article",
     "shape": "prose",
-    "genre": "personal",
     "ask_here": [
         "Why does context size matter for agents?",
         "What is the cost of streaming raw HTML to a large model?",
@@ -96,6 +100,13 @@ _HEALTHY_MINIMAL_ENVELOPE = {
     "answer": "Adaptive fetching keeps context small.",
     "structural_form": "article",
     "shape": "prose",
+}
+
+
+_PRODUCT_ENVELOPE = {
+    "answer": "Price: 42.00 USD. In stock.",
+    "structural_form": "product",
+    "shape": "key-value",
 }
 
 
@@ -117,7 +128,8 @@ _OBSTACLE_ENVELOPE = {
 
 @pytest.mark.asyncio
 async def test_default_ask_includes_required_router_fields(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Default `ask` (no `include_routing` kwarg) returns the 3 required + populated optionals."""
+    """Default `ask` (no `include_routing` kwarg) returns `answer` + populated optionals.
+    `structural_form`/`shape` are never on the wire (drop-structural-form-shape-wire)."""
     data = await _ask_wire(
         monkeypatch,
         envelope=_HEALTHY_ENVELOPE,
@@ -125,31 +137,67 @@ async def test_default_ask_includes_required_router_fields(monkeypatch: pytest.M
         question="What is this page about?",
     )
     assert data["answer"] == "Adaptive fetching keeps context small."
-    assert data["structural_form"] == "article"
-    assert data["shape"] == "prose"
-    assert data["genre"] == "personal"
     assert "ask_here" in data
     assert len(data["ask_here"]) == 2
-    # No obstacle / try_url emitted → omitted from wire.
+    # No obstacle / try_url emitted → omitted from wire. genre never exists.
+    # structural_form / shape are never projected onto the wire at all.
     assert "obstacle" not in data
     assert "try_url" not in data
+    assert "genre" not in data
+    assert "structural_form" not in data
+    assert "shape" not in data
 
 
 @pytest.mark.asyncio
-async def test_healthy_page_omits_all_four_conditionals(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A minimal healthy payload (no genre / obstacle / ask_here / try_url) drops them all."""
+async def test_healthy_page_omits_all_three_conditionals(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A minimal healthy payload (no obstacle / ask_here / try_url) drops them all."""
     data = await _ask_wire(
         monkeypatch,
         envelope=_HEALTHY_MINIMAL_ENVELOPE,
         url="https://example.org/post",
         question="What is this?",
     )
-    assert data["structural_form"] == "article"
-    assert data["shape"] == "prose"
+    assert data["answer"] == "Adaptive fetching keeps context small."
     assert "genre" not in data
     assert "obstacle" not in data
     assert "ask_here" not in data
     assert "try_url" not in data
+    assert "structural_form" not in data
+    assert "shape" not in data
+
+
+@pytest.mark.asyncio
+async def test_structural_form_consumed_internally_but_absent_from_wire(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`structural_form: "product"` drives the internal `content_guidance` hint
+    (RouterPayload still requires it, content_guidance.kind_guidance() still
+    reads it) but neither `structural_form` nor `shape` ever reaches the wire."""
+    data = await _ask_wire(
+        monkeypatch,
+        envelope=_PRODUCT_ENVELOPE,
+        url="https://example.org/product",
+        question="What is the price?",
+    )
+    assert data["answer"] == "Price: 42.00 USD. In stock."
+    codes = [h["code"] for h in data.get("operator_hints", [])]
+    assert "content_guidance" in codes
+    assert "structural_form" not in data
+    assert "shape" not in data
+
+
+@pytest.mark.asyncio
+async def test_stray_genre_key_is_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A `genre` key from a stale prompt version or non-conforming provider is
+    silently dropped — the extractor no longer reads it, so it never reaches
+    `RouterPayload` or the wire, and the rest of the envelope parses normally."""
+    envelope = {**_HEALTHY_MINIMAL_ENVELOPE, "genre": "encyclopedia"}
+    data = await _ask_wire(
+        monkeypatch,
+        envelope=envelope,
+        url="https://example.org/post",
+        question="What is this?",
+    )
+    assert data["answer"] == "Adaptive fetching keeps context small."
+    assert "genre" not in data
 
 
 @pytest.mark.asyncio
@@ -164,14 +212,14 @@ async def test_obstacle_page_populates_obstacle_and_try_url(monkeypatch: pytest.
     assert "try_url" in data
     assert len(data["try_url"]) == 1
     assert data["try_url"][0]["url"] == "https://example.org/missing"
-    # genre / ask_here not emitted → omitted.
+    # ask_here not emitted → omitted. genre never exists.
     assert "genre" not in data
     assert "ask_here" not in data
 
 
 @pytest.mark.asyncio
 async def test_opt_out_via_include_routing_false(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`include_routing=False` MUST omit all seven router-shape fields from the wire."""
+    """`include_routing=False` MUST omit all router-shape fields from the wire."""
     # With routing off, the extractor uses EXTRACT_CACHEABLE_V1 — no JSON parse —
     # so the JSON envelope IS the answer text. We only verify field absence.
     data = await _ask_wire(
@@ -181,17 +229,16 @@ async def test_opt_out_via_include_routing_false(monkeypatch: pytest.MonkeyPatch
         question="What is this page about?",
         include_routing=False,
     )
-    # Required (with routing on) and conditional router fields all absent.
-    assert "structural_form" not in data
-    assert "shape" not in data
     assert "genre" not in data
     assert "obstacle" not in data
     assert "ask_here" not in data
     assert "try_url" not in data
+    assert "structural_form" not in data
+    assert "shape" not in data
 
 
 # --------------------------------------------------------------------- #
-# Parse failure degrades gracefully — answer survives, 7 fields absent
+# Parse failure degrades gracefully — answer survives, router fields absent
 # --------------------------------------------------------------------- #
 
 
@@ -200,7 +247,7 @@ async def test_malformed_envelope_drops_routing_keeps_answer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """If the model returns plain text (no JSON envelope), the extractor
-    returns the text as `answer` and all 7 router-shape fields are absent."""
+    returns the text as `answer` and all router-shape fields are absent."""
 
     class _PlainTextProvider:
         name = "stub"
@@ -229,9 +276,10 @@ async def test_malformed_envelope_drops_routing_keeps_answer(
         )
     data = json.loads(wire)
     assert data["answer"] == "Just plain text, no JSON."
-    # All 7 router-shape fields absent — parse failure degraded gracefully.
-    for field in ("structural_form", "shape", "genre", "obstacle", "ask_here", "try_url"):
+    # All router-shape fields absent — parse failure degraded gracefully.
+    for field in ("obstacle", "ask_here", "try_url", "structural_form", "shape"):
         assert field not in data
+    assert "genre" not in data
 
 
 @pytest.mark.asyncio
@@ -239,7 +287,8 @@ async def test_unknown_enum_value_drops_router_keeps_answer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A `structural_form` outside the closed 9-value enum fails pydantic
-    validation at the seam; the 7 router fields are absent but `answer` survives."""
+    validation at the seam (internal `RouterPayload` boundary); the router
+    fields are absent but `answer` survives."""
     envelope = {
         "answer": "Some answer.",
         "structural_form": "blog-post",  # not in the 9-value enum
@@ -252,5 +301,6 @@ async def test_unknown_enum_value_drops_router_keeps_answer(
         question="What is this?",
     )
     assert data["answer"] == "Some answer."
-    for field in ("structural_form", "shape", "genre", "obstacle", "ask_here", "try_url"):
+    for field in ("obstacle", "ask_here", "try_url", "structural_form", "shape"):
         assert field not in data
+    assert "genre" not in data

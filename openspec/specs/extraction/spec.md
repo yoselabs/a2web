@@ -192,8 +192,7 @@ When `request_routing=False`, `ExtractionResult.routing` SHALL be `None` and the
 The `EXTRACT_ROUTER_V1` template SHALL share `cache_prefix_template` byte-equality with `EXTRACT_CACHEABLE_V1` so the cache-prefix discipline survives — the two prompts differ only in their `tail_template`.
 
 The router-shape tail prompt SHALL:
-- Declare the closed-enum vocabulary for `structural_form` (9 values), `shape` (7 values), `genre` (7 values, optional), and `obstacle` (4 values, optional).
-- Instruct the model to omit `genre` when no value clearly applies.
+- Declare the closed-enum vocabulary for `structural_form` (9 values), `shape` (7 values), and `obstacle` (4 values, optional).
 - Instruct the model to omit `obstacle` on healthy pages.
 - Instruct the model to emit `ask_here` and `try_url` only when populated — empty arrays acceptable but soft-discouraged via a "context decides count, 3 good 5 great" rule.
 - Instruct the model that `ask_here` MUST emit only questions whose answer requires reading the body (no obvious-from-title questions).
@@ -207,7 +206,7 @@ The router-shape tail prompt SHALL:
 #### Scenario: request_routing=True populates the routing field
 
 - **WHEN** `Extractor.extract(content=..., ask=..., request_routing=True)` is awaited against a content page and the model returns a well-formed JSON router-shape addendum
-- **THEN** `ExtractionResult.routing` is a `RouterPayload` instance with `answer`, `structural_form`, `shape` populated, plus any of `genre` / `obstacle` / `ask_here` / `try_url` that the model included
+- **THEN** `ExtractionResult.routing` is a `RouterPayload` instance with `answer`, `structural_form`, `shape` populated, plus any of `obstacle` / `ask_here` / `try_url` that the model included
 
 #### Scenario: Cache-prefix integrity survives the new template
 
@@ -219,6 +218,34 @@ The router-shape tail prompt SHALL:
 - **WHEN** both `EXTRACT_ROUTER_V1.render(content=X, ask=Y)` and `EXTRACT_CACHEABLE_V1.render(content=X, ask=Y)` are called
 - **THEN** their `cache_prefix` strings are byte-identical (assertable via `test_prompt_cache_stability.py`)
 
+### Requirement: Router extraction prompt instructs token-efficient, fact-lossless framing
+
+`EXTRACT_ROUTER_V1.system` SHALL include an explicit instruction directing the model to frame its `answer` tersely — minimizing filler prose and hedging language — while never omitting a factual value, identifier, name, number, or unit present in the source content. The instruction SHALL direct a preference for ASCII punctuation (straight quotes, hyphens, `...`) over Unicode look-alikes (curly quotes, em dashes, ellipsis character) in the model's own prose framing, where meaning is unaffected; this preference SHALL NOT apply to verbatim quoted material, which remains governed by the existing 125-character quote rule. This instruction SHALL be added to `system`, not to `cache_prefix_template` or the `{content}`-bearing portion of any template, preserving the v0.19 byte-stable cache-prefix invariant.
+
+#### Scenario: Terseness instruction present without touching the cache prefix
+
+- **WHEN** `EXTRACT_ROUTER_V1.render(content, ask)` is called
+- **THEN** the resulting `cache_prefix` is byte-identical to `EXTRACT_CACHEABLE_V1.render(content, ask).cache_prefix`, and the `system` text contains the token-efficiency instruction
+
+#### Scenario: Terse framing does not drop a cited number
+
+- **WHEN** the extractor answers a question whose source content contains a specific figure (e.g. a version number, a count, a price)
+- **THEN** the answer preserves that figure verbatim, even when the surrounding prose is compressed
+
+### Requirement: Router extraction prompt instructs partial-signal honesty
+
+`EXTRACT_ROUTER_V1.system` SHALL include an explicit instruction directing the model: when the fetched content mentions the topic asked about but lacks the specific level of detail requested, the `answer` SHALL report what IS present (e.g. "the page lists X as a category but gives no further detail") rather than asserting the page does not address the topic at all. This instruction supersedes any implicit binary answer/no-answer framing for the router template; `TERSE_V1`'s existing binary framing is unaffected (it is a separate, non-router template).
+
+#### Scenario: Partial signal is reported, not denied
+
+- **WHEN** the extractor is asked a detailed question about a topic that the source content mentions only in passing (e.g. named as one item in a list, with no elaboration)
+- **THEN** the `answer` states what the content does say about the topic, and does not claim the content "does not address" the topic
+
+#### Scenario: Genuinely absent topic is still reported as absent
+
+- **WHEN** the extractor is asked about a topic entirely absent from the source content
+- **THEN** the `answer` states the content does not address the topic — this scenario is unaffected by the partial-signal instruction, which only changes behavior when partial signal genuinely exists
+
 ### Requirement: RouterPayload boundary type lives in packages/llm_extract
 
 `RouterPayload` SHALL be a frozen dataclass with `slots=True` declared in `src/a2web/packages/llm_extract/router_payload.py`. It SHALL carry these fields:
@@ -226,7 +253,6 @@ The router-shape tail prompt SHALL:
 - `answer: str`
 - `structural_form: str` (string at the package boundary; the pydantic mirror enforces the 9-value closed enum at the domain seam)
 - `shape: str` (string at the package boundary; the pydantic mirror enforces the 7-value closed enum)
-- `genre: str | None` (optional, `None` when none applies)
 - `obstacle: str | None` (optional, `None` on healthy pages)
 - `ask_here: tuple[str, ...]` (empty tuple by default)
 - `try_url: tuple[NextUrlBoundary, ...]` (empty tuple by default)
@@ -249,7 +275,7 @@ The module SHALL NOT import from `a2web.<domain>` (enforced by `tests/test_packa
 
 The `Extractor` SHALL parse the router-shape JSON from the model response using a fence-tolerant parser (accepting raw JSON or `\`\`\`json` fenced blocks). When parsing fails, `ExtractionResult.routing` SHALL be `None`, an operator-relevant log message SHALL be emitted, and the extraction call SHALL otherwise succeed (`answer` SHALL still be returned via the existing extraction path).
 
-When the parsed payload omits any of the optional fields (`genre`, `obstacle`, `ask_here`, `try_url`), the boundary type SHALL accept the omission (defaults to `None` for `genre` and `obstacle`; empty tuples for `ask_here` and `try_url`).
+When the parsed payload omits any of the optional fields (`obstacle`, `ask_here`, `try_url`), the boundary type SHALL accept the omission (defaults to `None` for `obstacle`; empty tuples for `ask_here` and `try_url`).
 
 When the parsed payload contains an `obstacle` value, the model SHOULD still populate `structural_form` and `shape` with best-guess values; if the model omits them on an obstacle page, the boundary parser SHALL leave `ExtractionResult.routing` as `None` (the obstacle is recorded via the standard fetch-failure path instead).
 
@@ -258,10 +284,10 @@ When the parsed payload contains an `obstacle` value, the model SHOULD still pop
 - **WHEN** the extractor receives a model response with malformed JSON in the router-shape block
 - **THEN** `ExtractionResult.routing` is `None` and `ExtractionResult.answer` still carries the successfully parsed answer text
 
-#### Scenario: Healthy page with no obstacle or follow-ups omits all four optionals
+#### Scenario: Healthy page with no obstacle or follow-ups omits all three optionals
 
-- **WHEN** the model returns a router-shape payload with `genre`, `obstacle`, `ask_here`, `try_url` all absent
-- **THEN** the boundary type constructs successfully with `genre=None`, `obstacle=None`, `ask_here=()`, `try_url=()`
+- **WHEN** the model returns a router-shape payload with `obstacle`, `ask_here`, `try_url` all absent
+- **THEN** the boundary type constructs successfully with `obstacle=None`, `ask_here=()`, `try_url=()`
 
 ### Requirement: Claude Code provider isolates MCP servers, subagents, and surfaces num_turns
 
@@ -401,4 +427,59 @@ Single-entity JSON-LD rendering (`Product` / `Article` / `NewsArticle` / `Recipe
 
 - **WHEN** `json_to_markdown_rows` is given an `ld_json` payload holding a `LocalBusiness` with `name`, `telephone`, `email`, `url`
 - **THEN** the rendered markdown is non-empty and contains the `telephone` and `email` values (previously it rendered to an empty string because the type was outside the dispatch allowlist)
+
+### Requirement: Extractor input includes the link digest
+
+For pages classified `structural_form ∈ {product, listing}`, the extractor input menu SHALL include the placeholder link digest (owned by `link-affordances`) in addition to the existing content candidates. The digest SHALL be appended such that the byte-stable cache prefix is preserved (digest rides the tail, like the routing schema).
+
+#### Scenario: Digest present for product page
+
+- **WHEN** the extractor runs on a `product` page with a non-empty digest
+- **THEN** the digest lines are present in the extractor's input alongside prose/JSON-LD
+
+#### Scenario: Cache prefix stability preserved
+
+- **WHEN** the digest is appended to the extractor input
+- **THEN** the cache prefix used for prompt caching is unchanged by digest content
+
+### Requirement: Router prompt carries an affordance principle, not a genre table
+
+The router prompt SHALL instruct link selection via a generative principle — surface links that extend the page's primary entity (deeper detail, community signal, transaction terms, sibling/parent entities) — plus at most one or two worked examples explicitly marked non-exhaustive. The prompt SHALL NOT contain a per-genre affordance checklist. Per-genre expectations SHALL be encoded as eval-corpus tests, not prompt content.
+
+#### Scenario: No genre checklist in prompt
+
+- **WHEN** the router prompt is rendered
+- **THEN** it contains the extend-the-primary-entity principle and no hardcoded `product ⇒ {reviews, specs, …}` table
+
+### Requirement: Link references emitted as handles and validated closed-set
+
+The extractor SHALL reference links by their `{{n}}` handle, never by raw URL. The router-payload parser SHALL validate emitted handles against the closed digest set, dropping any handle not present, and SHALL rehydrate surviving handles to real hrefs at the domain seam. A closed-set violation SHALL emit the `llm_wobble` signal (consistent with existing closed-enum handling) without failing the fetch.
+
+#### Scenario: Handle rehydrated
+
+- **WHEN** the extractor emits `{{3}}` and handle 3 maps to a real href
+- **THEN** the response carries that real href
+
+#### Scenario: Invalid handle wobbles, fetch survives
+
+- **WHEN** the extractor emits a handle absent from the digest
+- **THEN** the entry is dropped, `llm_wobble` is emitted, and the fetch still returns an answer
+
+### Requirement: Suggestion count is justification-gated, not quantity-targeted
+
+The router prompt SHALL NOT contain a quantity gradient (e.g. "3 good, 5 great, up to 10"). It SHALL instruct emitting a link only when the model can state what question the link answers that the current page cannot, with zero being an acceptable count. A hard maximum SHALL be enforced server-side as a circuit breaker, never surfaced in the prompt as a target.
+
+#### Scenario: Zero suggestions is valid
+
+- **WHEN** no linked page answers a question the current page cannot
+- **THEN** the extractor emits no suggestion links and this is accepted
+
+### Requirement: ask_here items disclose unreturned page content
+
+Each `ask_here` item SHALL point at specific content present on the page but not returned in the answer (a coverage inventory), not a speculative curiosity whose answer the caller could generate unaided.
+
+#### Scenario: ask_here grounded in omitted content
+
+- **WHEN** the page contains a specs table the answer did not include
+- **THEN** an `ask_here` item may point at that omitted specs content
 

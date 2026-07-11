@@ -1,14 +1,25 @@
 # a2web output benchmark corpus
 #
 # Tricky-scenario coverage — the cases that break naive fetchers:
-#   listing  — index pages with a drilldown layer (gets the next_links axis)
-#   comments — deeply nested comment threads
+#   listing    — index pages with a drilldown layer (gets the next_links axis)
+#   comments   — deeply nested comment threads
+#   affordance — the answer (or the link to it) lives on a DIFFERENT page than
+#                the one fetched; a2web must surface the real link, never guess
+#                or fabricate (link-affordances / ADR-0009 / ADR-0012)
 # plus clean / gated / spa controls.
+#
+# ── STANDING RULE: never lose a case ──────────────────────────────────────
+# Every time we discuss a NEW failure, edge case, or scenario — in chat, in a
+# proposal, in a bug report — capture it HERE as a corpus entry the same session,
+# before the context is lost. A discussed-but-unrecorded case is a regression
+# waiting to happen. Phrase `criteria` against STABLE STRUCTURAL facts (not
+# today's page text) so the entry survives content rotation. Mirrored in
+# CLAUDE.md ("## Benchmark").
 #
 # Each entry:
 #   slug                — filesystem-safe id
 #   url                 — absolute http(s) URL
-#   class               — listing | comments | clean | gated | spa
+#   class               — listing | comments | affordance | clean | gated | spa
 #   task                — natural-language question put to every system
 #   needs               — output fields the task plausibly needs
 #   criteria            — pass/fail rubric for the judge; phrased against
@@ -149,6 +160,21 @@ urls:
       - "Returns real article topics or titles, not a login/paywall stub"
       - "The topics are programming-related"
 
+  # An aggressive anti-bot wall over a content-rich page: g2 403s every
+  # server-side + headless client but renders fully in a real browser. The
+  # cascade may pass it (archive snapshot) OR get a thin body the gate calls
+  # `length_floor` after the 403 — either way the ADR-0009 floor holds:
+  # NEVER a bare empty-but-ok result. (prescribe-browser-on-any-wall / the
+  # motivating case; the systematic never-silently-miss floor.)
+  - slug: g2-crm-wall
+    url: https://www.g2.com/categories/crm
+    class: gated
+    task: "What are the top CRM products listed on this page?"
+    needs: [content+links]
+    criteria:
+      - "EITHER returns real CRM product names (e.g. Salesforce, HubSpot), not a block/empty stub"
+      - "OR, if the wall could not be passed, the result is a LOUD miss (retrieval incomplete + a try-your-own-browser hint), never a bare empty success"
+
   # ─── SPA — JS-rendered, raw HTML is a near-empty shell ─────────────────
   - slug: spa-react-dev
     url: https://react.dev/
@@ -158,3 +184,61 @@ urls:
     criteria:
       - "Describes React as a JavaScript library for building user interfaces"
       - "Returns substantive page content rather than an empty shell"
+
+  # ─── Affordance — answer/link lives on a SEPARATE page; surface it, never guess ─
+  # These encode the cases we worked through designing `link-affordances`
+  # (surface-page-links-to-extractor). Criteria are structural so they survive
+  # the marketplaces rotating their catalogs.
+
+  - slug: hepsiburada-product-reviews
+    url: https://www.hepsiburada.com/apple-iphone-15-128-gb-p-HBCV00003XABLM
+    class: affordance
+    task: "Summarize the customer reviews for this product — what do buyers say?"
+    needs: [content+links]
+    criteria:
+      - "Does NOT fabricate or invent specific review quotes / ratings not on the fetched page"
+      - "States that the reviews are not on this page (or are on a separate section)"
+      - "Surfaces a link to the product's reviews page (e.g. a `-yorumlari` URL) as a real, followable drilldown rather than a guessed URL"
+      - "Never asserts the product has no reviews; distinguishes 'not on this page' from 'do not exist'"
+
+  - slug: amazon-product-reviews-elsewhere
+    url: https://www.amazon.com/dp/B0CHX1W1XY
+    class: affordance
+    task: "What are the most common complaints in the reviews?"
+    needs: [content+links]
+    criteria:
+      - "Reports only review content actually present on the fetched page; does not fabricate complaints"
+      - "If the full reviews live behind a separate link, surfaces that link as a drilldown"
+      - "Honest about retrieval completeness — flags when the reviews were not fully on this page"
+
+  - slug: trendyol-listing-which-best
+    url: https://www.trendyol.com/sr?q=bluetooth+kulaklik
+    class: affordance
+    next_links_expected: true
+    task: "Which of these Bluetooth headphones is the best one to buy?"
+    needs: [content+links]
+    criteria:
+      - "Does NOT crown a single 'best' of the fetcher's own choosing (ADR-0012 — no manufactured selection)"
+      - "Presents the option space — multiple products with their disclosed metadata (price / rating) as shown"
+      - "Any lead offered is criterion-disclosed ('by rating, X leads'), never an unqualified 'X is best'"
+      - "Relays a source-stated preference (e.g. 'çok satan' / bestseller badge) attributed to the page, not as its own verdict"
+
+  - slug: github-repo-issues-affordance
+    url: https://github.com/astral-sh/ruff
+    class: affordance
+    task: "What are the currently open issues people are reporting for this project?"
+    needs: [content+links]
+    criteria:
+      - "Recognizes the repo landing page does not itself list the open issues in detail"
+      - "Surfaces the issues page as a followable link rather than inventing issue titles"
+      - "Does not fabricate specific issue numbers or titles absent from the fetched page"
+
+  - slug: contact-page-channels
+    url: https://www.python.org/about/help/
+    class: affordance
+    task: "How can I contact them — is there an email or a specific channel?"
+    needs: [content+links]
+    criteria:
+      - "Returns the actual contact channels present on the page (mailing lists, IRC/Discord, etc.)"
+      - "If a mailto:/tel: link is present, reports its literal value (address / number), not just the label"
+      - "Does not fabricate a contact address not on the page"

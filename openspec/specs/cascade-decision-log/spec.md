@@ -49,7 +49,7 @@ The final verdict SHALL be computed by a pure function `resolve_verdict(log) -> 
 
 ### Requirement: Escalation is decided by a pure planner over the observation log
 
-The orchestrator's next action SHALL be chosen by a pure function `decide_next(log, url, caps) -> Action` that reads the entire observation log, the request URL, and the per-fetch caps. `decide_next` SHALL be total. The `Action` vocabulary SHALL include: `RewriteUrl`, `RetryViaArchive`, `EscalateBrowser`, and a `Continue` no-op action.
+The orchestrator's next action SHALL be chosen by a pure function `decide_next(log, url, caps) -> Action` that reads the entire observation log, the request URL, and the per-fetch caps. `decide_next` SHALL be total. The `Action` vocabulary SHALL include: `RewriteUrl`, `RetryViaArchive`, `EscalateBrowser`, `EscalatePaid`, and a `Continue` no-op action.
 
 `decide_next` SHALL be implemented as the enumeration of a module-level immutable tuple of `PlannerRule` instances. Each `PlannerRule` SHALL declare three fields explicitly: (a) a `name: str` identifying the rule, (b) a `priority: RulePriority` drawn from a closed enum with at least four levels (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), and (c) a pure callable returning `Action | None` over the planner's input context (the observation log, the most-recent observation, the URL, and the caps). A rule that returns `None` SHALL defer to the next rule.
 
@@ -87,14 +87,40 @@ The orchestrator's next action SHALL be chosen by a pure function `decide_next(l
 - **WHEN** the log carries (a) a tier observation on a Reddit-comment URL with `verdict=not_found` carrying `subsystem="js_required"`, and (b) a later gate observation with `escalation.next_tier="browser"`, with the browser budget unspent
 - **THEN** `decide_next` returns `EscalateBrowser` (the gate-browser rule at `HIGH`), not `RetryViaArchive` (the Reddit-comment rule at `MEDIUM`)
 
+#### Scenario: EscalatePaid is a member of the Action vocabulary the executor dispatches
+
+- **WHEN** the `paid_last_resort` rule fires (a terminal wall after every free escalation is spent, paid budget unspent)
+- **THEN** `decide_next` returns `EscalatePaid`, and the single executor dispatches it via the paid tier path
+
 ### Requirement: The orchestrator is a pure executor of planner actions
 
-The orchestrator SHALL hold no escalation, rewrite, or stop policy of its own. After each tier and after the gate, it SHALL append the resulting `Observation`, call `decide_next`, and execute the returned `Action`. Every escalation, rewrite, and cascade-stop decision SHALL originate from `decide_next`.
+The orchestrator SHALL hold no escalation, rewrite, or stop policy of its own for planner-driven cascade escalation, and SHALL execute planner actions through **exactly one executor function**. That single executor SHALL handle the full `Action` union (`RewriteUrl`, `RetryViaArchive`, `EscalateBrowser`, `EscalatePaid`, `Continue`) in one place — no `Action` type is a silent no-op in a position where the planner can legally return it. There SHALL NOT be two divergent executors each handling a different subset of the `Action` union.
+
+The single executor SHALL be invoked from both the tier-walk (after each tier appends its observation) and the post-gate escalation loop (after the gate appends its observation) — so the escalation ladder (`EscalateBrowser` → archive → `EscalatePaid`) is reachable from any position where an observation has just been appended, NOT gated behind the tier loop having produced a 2xx body to extract-and-gate. After appending an `Observation`, the orchestrator SHALL call `decide_next` and dispatch the returned `Action` through this one executor; every planner-driven escalation, rewrite, and cascade-stop decision SHALL originate from `decide_next`.
+
+`RewriteUrl` — which restarts the tier walk — SHALL be modeled as a first-class control outcome of the single executor (a restart signal the tier loop consumes), so that the tier-loop-restart action and the escalation actions are dispatched by the same mechanism rather than by two phase-specific executors.
+
+The one genuine pipeline-region divergence — `RetryViaArchive` installs the body only during the tier-walk (the gate runs later) but installs extracted fields and regates when dispatched post-gate — SHALL be an explicit parameter of the single executor, not a second executor. (Note: post-extraction completeness escalations — the obstacle-driven render, the listing scroll render, and the handler `escalate_to_render` ladder — are a separate concern folded into the planner in a follow-up change; this requirement governs the planner-driven cascade executor.)
+
+#### Scenario: One executor handles every Action type
+
+- **WHEN** the executor is exercised over representative log states that make `decide_next` return each of `RewriteUrl`, `RetryViaArchive`, `EscalateBrowser`, `EscalatePaid`, and `Continue`
+- **THEN** the same single executor function dispatches each action correctly; no action type is a silent no-op in the position where the planner can legally return it
 
 #### Scenario: Orchestrator escalates only on a planner action
 
 - **WHEN** a tier result would historically have triggered an inline escalation but `decide_next` returns the continue / no-op action
-- **THEN** the orchestrator performs no escalation and advances to the next `TIER_ORDER` slot
+- **THEN** the orchestrator performs no escalation and advances to the next pipeline step
+
+#### Scenario: RewriteUrl restarts the tier walk via the single executor
+
+- **WHEN** the planner returns `RewriteUrl` during the tier-walk (e.g. an arxiv PDF → abs-page rewrite) with the rewrite budget unspent
+- **THEN** the single executor returns a restart control outcome, the tier loop restarts with the new URL, and the 1-rewrite cap is preserved
+
+#### Scenario: The escalation ladder is reachable without a 2xx body
+
+- **WHEN** the tier-walk appended a failure observation and the planner (now or via a future rule) returns an escalation action from that log
+- **THEN** the single executor dispatches it — the ladder is not gated behind the tier loop having produced gate-passing content
 
 ### Requirement: The fetch response derives its verdict from the observation log
 
@@ -167,3 +193,110 @@ All `PlannerRule` instances SHALL be declared in `src/a2web/actions/playbook.py`
 - **WHEN** the rules tuple would grow past 10 entries
 - **THEN** the rules MUST be split into per-category modules before the new rule lands; the patch that adds the 11th rule also performs the split
 
+### Requirement: Transport and status failures escalate through the ladder
+
+`decide_next` SHALL include `PlannerRule`s that route **ambiguous transport/status tier failures** into the escalation ladder by returning `EscalateBrowser`, so that no such failure ends the cascade without the browser (and, via the existing ladder, archive and paid) having been attempted. Each rule SHALL read the most-recent `tier_outcome` observation's `verdict`, `status_code`, and `authoritative` fields — the discriminator is the `status_code` already carried on the observation; the rules SHALL NOT require new `Verdict` members to be introduced in the tier layer.
+
+The following tier-failure classes are **ambiguous** and SHALL escalate (each rule guarded by `browser_dispatches < 2` so it cannot re-fire past the browser cap):
+
+- **403 forbidden** — `connection_error` with `status_code == 403`. Treated as anti-bot by default.
+- **5xx server error** — `connection_error` with `status_code >= 500`.
+- **other 4xx** — `connection_error` with `400 <= status_code < 500`, excluding 403 (and 404/429, which are their own verdicts).
+- **timeout** — `Verdict.timeout`.
+- **network/TLS drop** — `connection_error` with `status_code == 0` that is NOT a genuine DNS-resolution failure (see the DNS carve-out requirement).
+- **uncorroborated 404** — `not_found` WITHOUT the `authoritative` flag.
+- **exhausted 429** — `rate_limited` (retry/backoff already spent by the tier), generalized to every URL shape (not only search/listing).
+
+These rules SHALL sit at `LOW` priority — below the `HIGH` gate-browser signal and the specific archive heuristics — so a more-specific content/gate-based decision always wins; they are the catch-all floor. They SHALL return `EscalateBrowser` (never `EscalatePaid` directly): the free self-hosted browser rung is tried first, and the existing `paid_last_resort` rule handles paid egress only after the browser cap is spent and the result is still a wall. `proxy_unavailable` (local proxy-pool exhaustion, not a site wall) SHALL NOT be swept into these rules.
+
+Every added rule SHALL carry a unique `name` and a test pair, per the existing rule-identity contract.
+
+#### Scenario: A 403 escalates to browser
+
+- **WHEN** the last tier observation is `connection_error` with `status_code == 403` and the browser budget is unspent
+- **THEN** `decide_next` returns `EscalateBrowser`
+
+#### Scenario: A 5xx escalates to browser
+
+- **WHEN** the last tier observation is `connection_error` with `status_code == 502` and the browser budget is unspent
+- **THEN** `decide_next` returns `EscalateBrowser`
+
+#### Scenario: A timeout escalates to browser
+
+- **WHEN** the last tier observation is `Verdict.timeout` and the browser budget is unspent
+- **THEN** `decide_next` returns `EscalateBrowser`
+
+#### Scenario: An uncorroborated 404 escalates to browser
+
+- **WHEN** the last tier observation is `not_found` with `authoritative == False` and the browser budget is unspent
+- **THEN** `decide_next` returns `EscalateBrowser`
+
+#### Scenario: An authoritative 404 does NOT escalate
+
+- **WHEN** the last tier observation is `not_found` with `authoritative == True` (a site handler that models the site's real "gone" semantics)
+- **THEN** the transport rules return `None` for this observation (the page is genuinely gone; no browser escalation)
+
+#### Scenario: An exhausted 429 escalates on any shape
+
+- **WHEN** the last tier observation is `rate_limited` (the tier already spent its retry/backoff) on a non-search, non-listing URL
+- **THEN** `decide_next` returns `EscalateBrowser` (generalized from the prior search/listing-only render escalation)
+
+#### Scenario: Transport rules do not fire past the browser cap
+
+- **WHEN** any transport-failure observation is present but `browser_dispatches >= 2`
+- **THEN** no transport rule returns `EscalateBrowser` (the ladder proceeds to paid / the loud terminal)
+
+#### Scenario: A content-gate browser signal outranks the transport catch-all
+
+- **WHEN** the log carries both a transport-failure observation and a `gate_outcome` with `escalation.next_tier == "browser"` (HIGH), with the browser budget unspent
+- **THEN** the HIGH gate-browser rule's `EscalateBrowser` is what fires; the transport catch-all is not the deciding rule (same action, higher-priority source)
+
+#### Scenario: proxy_unavailable is not swept into transport escalation
+
+- **WHEN** the last tier observation is `proxy_unavailable` (local proxy-pool exhaustion, `status_code == 0`)
+- **THEN** the transport rules return `None` (proxy exhaustion is not a site wall; it is handled at the proxy layer)
+
+### Requirement: Genuine DNS resolution failure stays terminal, not escalated
+
+A genuine DNS resolution failure (the domain does not resolve) SHALL be terminal — no browser, archive, or paid escalation — because a real browser resolves the same name identically; there is nothing to gain. This carve-out depends on the tier layer surfacing DNS failure as a distinct terminal `Verdict.dns_error` (adopted from the shelf `http-fetch` `FetchVerdict.dns_error`). The `network/TLS drop` transport rule (status-0 `connection_error`) SHALL fire only when the failure is NOT `dns_error`.
+
+Until `dns_error` is available, the implementation MAY fall back to escalating all status-0 `connection_error` (a genuinely-dead domain then incurs one bounded, capped browser attempt before the loud terminal); this interim SHALL be tightened to the `dns_error` carve-out once the shelf verdict lands.
+
+#### Scenario: NXDOMAIN does not escalate
+
+- **WHEN** the last tier observation is `dns_error` (the domain does not resolve)
+- **THEN** the transport rules return `None`; the cascade ends terminal (a real browser cannot resolve a nonexistent domain)
+
+#### Scenario: A network drop that is not DNS still escalates
+
+- **WHEN** the last tier observation is `connection_error` with `status_code == 0` that is NOT `dns_error` (connection reset / TLS handshake drop)
+- **THEN** `decide_next` returns `EscalateBrowser` (a network-layer block may be passable by a real browser)
+
+
+### Requirement: A blank_page verdict escalates through browser then paid before terminating
+
+The `blank_page` verdict SHALL be a **wall-class** verdict for escalation: a cascade that ends on `blank_page` SHALL route through the escalation ladder — the self-hosted browser first, then the paid scraper rung — before any terminal is declared, exactly as content-gated wall verdicts (`block_page_detected`, `anti_bot`, `paywall`) do.
+
+`Verdict.blank_page` SHALL be a total member of the verdict projection, ranked as a wall-class terminal (peer of `block_page_detected` / `anti_bot`) in the pure `_verdict_rank` projection, so the final verdict remains a pure total projection of the observation log.
+
+The browser dispatch SHALL be driven by the gate's `EscalationSignal(next_tier="browser", reason="blank_page")` via the existing gate-browser rule. If the browser render re-gates to `blank_page`, the existing `paid_last_resort` rule SHALL carry the still-blank result to the paid scraper. Both dispatches SHALL respect the existing caps (browser ≤ 2, paid ≤ 1) so the ladder terminates; no new escalation action type is introduced.
+
+#### Scenario: blank_page is ranked as a wall-class terminal
+
+- **WHEN** `_verdict_rank` projects a log whose last outcome is `blank_page`
+- **THEN** `blank_page` ranks as a wall-class terminal (a definitive miss, peer of `block_page_detected`), not as an `ok`/success
+
+#### Scenario: A blank_page dispatches the browser via the gate signal
+
+- **WHEN** the gate emits `blank_page` with `escalation.next_tier == "browser"` and the browser budget is unspent
+- **THEN** `decide_next` returns `EscalateBrowser` (the existing gate-browser rule fires on the typed signal)
+
+#### Scenario: A blank_page surviving the browser reaches the paid scraper
+
+- **WHEN** the browser render re-gates to `blank_page`, the browser cap is spent, and a paid tier is keyed with `paid_dispatches < 1`
+- **THEN** `paid_last_resort` returns `EscalatePaid` (blank_page is a wall verdict the last-resort rung acts on)
+
+#### Scenario: A blank_page past both caps stops escalating
+
+- **WHEN** the log carries a `blank_page` outcome but `browser_dispatches >= 2` and `paid_dispatches >= 1`
+- **THEN** no rule returns an escalation action (the ladder is exhausted; the loud terminal fires)

@@ -263,3 +263,69 @@ schema — see `json-extract`), so a stub `LocalBusiness` carrying only `name` a
 - **THEN** `structured_answer == False` and the verdict follows the existing
   classifier path (bare `length_floor` → `failed`)
 
+### Requirement: Answer-bearing structured content exempts a length-independent anti-bot marker from forced escalation
+
+The quality-gate seam (`fetcher.evaluate(...)`) SHALL promote a length-independent anti-bot verdict — `akamai_bmp` or `turnstile` only — to `Verdict.ok` (clearing its subsystem and escalation) when BOTH of the following hold:
+
+1. The extracted `content_md` length is **at or above `LENGTH_FLOOR`** (the response is not thin/shell-shaped).
+2. `structured_answer` is `True` — the same `structured_answer: bool` input already accepted by `evaluate()` for the existing bare-`length_floor` promotion, computed by the orchestrator as `any(c.answer_bearing for c in fc.content_candidates)`.
+
+This is a distinct exemption from the "Answer-bearing structured content exempts a bare length_floor from failure" requirement above — that one only ever fires on **thin** content; this one only ever fires on content **above** the floor. The two SHALL NOT overlap and SHALL NOT be merged into one branch, so each remains independently testable and the thin/stub anti-bot scenarios above are unaffected.
+
+This exemption SHALL NOT extend to `anubis`, `alibaba_punish`, `cf_iuam`, `search_captcha`, or generic `block_page_detected` verdicts — only the two markers that are checked length-independently today (`akamai_bmp`, `turnstile`). Existing callers of `evaluate()` that do not pass `structured_answer` SHALL default it to `False`, preserving current behavior for every call site not yet updated.
+
+#### Scenario: Above-floor content with akamai_bmp marker and strong answer-bearing JSON-LD is promoted to ok
+
+- **WHEN** the gate evaluates a raw-tier `200` response whose extracted `content_md` is at or above `LENGTH_FLOOR`, the `akamai_bmp` marker (`_abck`/`bm_sz` cookie names) is present in `raw_html`, and `fc.content_candidates` contains a `json_synth` candidate with `answer_bearing = True` (a `Product` carrying `offers.price`, `availability`, and other populated fields)
+- **THEN** `verdict == Verdict.ok`, `subsystem is None`, no browser escalation is triggered, and extraction proceeds from the existing content
+
+#### Scenario: Above-floor content with turnstile marker and strong answer-bearing JSON-LD is promoted to ok
+
+- **WHEN** the gate evaluates a response above `LENGTH_FLOOR` carrying a `cf-turnstile` marker and an `answer_bearing = True` structured candidate
+- **THEN** `verdict == Verdict.ok`, `subsystem is None`, no browser escalation is triggered
+
+#### Scenario: Above-floor content with akamai_bmp marker but no answer-bearing candidate escalates as before
+
+- **WHEN** the gate evaluates a response above `LENGTH_FLOOR` carrying the `akamai_bmp` marker, and `fc.content_candidates` has no `answer_bearing = True` entry (`structured_answer = False`)
+- **THEN** `verdict == Verdict.anti_bot`, `subsystem == "akamai_bmp"`, and `escalation.next_tier == "browser"` — behavior is unchanged from today
+
+#### Scenario: Thin content with akamai_bmp marker and a strong answer-bearing candidate still escalates
+
+- **WHEN** the gate evaluates a response whose extracted `content_md` is **below** `LENGTH_FLOOR`, the `akamai_bmp` marker is present, and `structured_answer = True`
+- **THEN** `verdict == Verdict.anti_bot`, `subsystem == "akamai_bmp"`, and escalation proceeds — the new exemption does not apply below the length floor; this scenario is orthogonal to (and does not reuse) the bare-`length_floor` promotion above, which never touches an `akamai_bmp`/`turnstile`-classified verdict
+
+#### Scenario: Existing thin/stub anti-bot scenarios are unaffected
+
+- **WHEN** the gate evaluates `anubis`, `alibaba_punish`, `cf_iuam`, or generic `block_page_detected` markers, with or without `structured_answer`
+- **THEN** verdict and escalation behavior are identical to before this change — the new exemption applies only to `akamai_bmp` and `turnstile`
+
+
+### Requirement: Near-empty raw HTML is detected as a blank_page and escalated
+
+The content gate SHALL detect a response whose **raw body carries near-zero visible text** as a distinct `BlockVerdict.blank_page`, separate from the extracted-thin `length_floor` verdict. Visible text SHALL be computed from `raw_html` by stripping tags and collapsing whitespace; the branch SHALL fire when that visible text length is below a small `BLANK_HTML_THRESHOLD` (near-zero — sized so a bare/empty document matches but a short-but-present stub page, e.g. a ~480-char "JavaScript is disabled" notice, does not) AND the extracted `content_md` is below `LENGTH_FLOOR`.
+
+The `blank_page` check SHALL run **after** all anti-bot marker branches (turnstile, akamai_bmp, anubis, alibaba_punish, cf_iuam, search-captcha) and **after** the `js_required` JS-shell branch, and **before** the bare `length_floor` fallthrough. A body a marker or the JS-shell branch already claims keeps that specific verdict; only a marker-less near-empty body becomes `blank_page`. A page carrying JSON-LD structured data (`application/ld+json`) SHALL NOT be classified `blank_page` — its answer lives in the markup — and a JSON body (`is_json`) SHALL be promoted to `ok`, not blank.
+
+A `blank_page` result SHALL carry `escalation = EscalationSignal(next_tier="browser", reason="blank_page")` so the orchestrator escalates to the browser tier (a JS-rendered page can fill an empty shell) rather than returning the empty body.
+
+This detection keys on the **raw HTML** being empty, NOT on a fully-rendered page extracting sparse content. Pages with substantial raw HTML that merely extract thin SHALL continue to return `length_floor` per the existing thin-content behavior — the two populations are disjoint and that behavior is unchanged.
+
+#### Scenario: An empty document escalates to browser
+
+- **WHEN** the gate evaluates an HTTP 200 `text/html` response whose raw body is `<html><head></head><body></body></html>` (visible text below `BLANK_HTML_THRESHOLD`) with no anti-bot marker
+- **THEN** `verdict == BlockVerdict.blank_page` and `escalation == EscalationSignal(next_tier="browser", reason="blank_page")`
+
+#### Scenario: A short-but-present stub is NOT blank_page
+
+- **WHEN** the gate evaluates a body carrying a real visible sentence (e.g. "JavaScript is disabled...") above `BLANK_HTML_THRESHOLD` with no marker
+- **THEN** `verdict != BlockVerdict.blank_page` (it remains `length_floor` — the raw body has real visible text)
+
+#### Scenario: A JSON-LD card is not blank_page
+
+- **WHEN** the gate evaluates a near-empty-visible-text page carrying an `application/ld+json` payload
+- **THEN** `verdict == BlockVerdict.length_floor` (the answer lives in the markup; the structured-answer exemption still applies), NOT `blank_page`
+
+#### Scenario: A fingerprinted empty shell keeps its specific verdict
+
+- **WHEN** the gate evaluates a near-empty body that ALSO matches a JS-shell marker (`js_required`) or an anti-bot fingerprint
+- **THEN** the specific marker branch wins (`length_floor`+`js_required` or the `anti_bot` fingerprint), NOT `blank_page`

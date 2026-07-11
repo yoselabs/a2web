@@ -17,6 +17,108 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-11 — surface-page-links-to-extractor: eval gates (bench-deferred)
+
+Source: openspec change `surface-page-links-to-extractor`, tasks 9.1/9.2 + the
+answer-inline-links / `content_md` follow-up. The link-affordance feature shipped
+(digest → `{{n}}` handles → closed-set rehydration, on-the-page-only grounding
+(ADR-0014), off-domain flag, answer-inline links, uptake telemetry, prose+JSON-LD
+`content_md`). Three items are **bench-deferred** because `make bench` is
+live-network and spends LLM quota (deliberately not in `make check`):
+
+- **9.1 — adversarial sentinel re-run (S).** Re-run the `{{n}}`-collision sentinel
+  eval against the deployed extractor (DeepSeek V4 Flash) whenever the model
+  changes. The matrix already exists; this is a re-run, not new work.
+- **9.2 — token-budget assertion (S).** Add a bench assertion that extractor
+  OUTPUT tokens stay ≤ the pre-digest baseline and the digest INPUT stays within
+  budget (~1.4k input tokens on a product page; gated to `structural_form ∈
+  {product, listing}`, so articles pay nothing).
+- **Full `affordance`-corpus bench (S).** Run `make bench` across the new
+  `affordance` corpus class (hepsiburada/amazon reviews, trendyol which-best,
+  github issues, contact-page channels) to score the answer-inline-links +
+  `content_md` concatenation changes for quality/cost/neutrality before they are
+  considered fully validated. Findings → `eval/findings_<date>.md`.
+
+## 2026-07-11 — uncommitted envelope/verdict changes from already-archived changes (not fully green)
+
+Source: pre-existing dirty working tree — NOT `surface-page-links-to-extractor`.
+Several openspec changes are **archived (marked done) but never committed to git**;
+their code sits uncommitted in `models.py` / `fetcher_response.py` /
+`decision_log.py` and the contract goldens, tangled together:
+
+- `2026-07-09-drop-structural-form-shape-wire` — dropped `genre`; pulled
+  `structural_form`/`shape` off the `AskResponse` wire.
+- `2026-07-11-escalate-on-status-derived-walls` / `-thin-page-walls` /
+  `-unify-escalation-executor` — added `Verdict.dns_error` + `Verdict.blank_page`
+  and reworked wall/escalation.
+
+Net effect: the response/verdict envelope shape changed, but **three capability
+tests still assert the OLD shape** (always-present `status`) and are red with the
+same `KeyError: 'status'`:
+
+- `tests/capabilities/ask_response/test_ask_response.py::test_ask_status_is_failure_only`
+- `tests/capabilities/ask_response/test_ask_response.py::test_ask_failure_carries_narrative`
+- `tests/capabilities/fetch_response/test_fetch_response.py::test_fetch_raw_failure_carries_status_and_narrative`
+
+The a2web contract goldens (`tests/contracts/tool_schemas.json`,
+`ask_success_rich.json`) are ALSO half-re-blessed in the tree. Closing this =
+finish those archived changes, update the three stale tests, then
+`make bless-contracts` (a2web-only golden-snapshot update: `A2WEB_BLESS_CONTRACTS=1
+pytest tests/contracts/test_contracts.py` overwrites the goldens with current wire
+output) — done per-change, NOT as one lump, so each contract delta stays
+attributable. Then commit. Scope: M. Owner: whoever authored those archived changes.
+
+## 2026-07-09 — Telegram message search (explore session, shelved)
+
+Source: 2026-07-09 `/opsx:explore` session. Idea: a new `telegram_search` tool
+alongside `ask`/`fetch_raw` — search across many public Telegram channels by
+keyword without knowing the channel ahead of time, then expand a hit into a
+±20-message context window (via the existing no-login `t.me/s/<channel>
+?before=<id>` public preview surface, which a2web could fetch today with its
+normal tiers). Shelved for now — no proposal started — but the option space is
+narrowed enough to be worth recording precisely.
+
+- **🟡 Apify "Telegram Keyword Search Scraper" as the search backend.**
+  Best-shaped candidate found: open-corpus (no pre-specified channel list),
+  ~15-20s freshness, $2.50/1,000 results pay-per-use, no Telegram
+  account/MTProto (scrapes the public `t.me/s/` surface — same trust category
+  a2web already operates in), no payment friction (normal Western SaaS
+  billing). Would pair with a new `t.me/s/<channel>?before=<id>` context-
+  expansion hop (parse ±N messages + `reply_to`/`forwarded_from` references)
+  built the same way as existing site handlers. Not spiked yet — a real query
+  against it (coverage, result quality, rate-limit ceiling at scale) is the
+  next step before any proposal. Scope: M (new tool + new handler-shaped
+  fetch logic + a paid-tier settings toggle, mirroring the existing
+  Firecrawl/paid-tier pattern in `tiers/paid.py`).
+  Ruled out in the same session: **TGStat** (genuine open-corpus + real-time
+  API, but priced as a per-tracked-keyword monitoring product — 2,100-12,600₽
+  ($25-150+)/mo — not ad hoc free-text search, plus payment from outside
+  Russia is reportedly broken for non-Russian cards, plus coverage skews hard
+  CIS/Russian-sphere); **Telemetr.io** (its cross-channel Post Search API is
+  "coming soon", not shipped); **Lyzem** (no API, unverifiable coverage);
+  general web search (`site:t.me` — confirmed weak/noisy, not a real
+  substitute); **TGDataset** (a free academic dataset — 121k channels/498M
+  messages/2023 snapshot — but Zenodo-hosted with zero remote-query capability;
+  would require downloading a ~20GB shard and self-hosting MongoDB, which is
+  exactly the "not yet" the user drew a line at).
+
+- **⛔ Personal-account (MTProto) Telegram access — explicitly not pursued.**
+  The original framing was "people sign in with their own Telegram account
+  and we use the Telegram API on their behalf." Ruled out deliberately, twice
+  over: (a) storing a live per-user MTProto session is a permanent,
+  password-equivalent credential — a materially heavier multi-tenant secret-
+  custody problem than anything a2web does today (contrast `cookie_jar.py`,
+  which only ever mirrors *the operator's own* local browser cookies for
+  their own single-user use); (b) automating a personal Telegram account
+  (even a single a2web-owned service account, not just end-user accounts) to
+  bulk-search channels sits in Telegram's ToS gray zone for "automated
+  account" behavior — the user was explicit they don't want to challenge ToS.
+  Record this rejection so a future session doesn't re-litigate it without
+  new information (e.g. Telegram publishing an official Bot API search
+  surface, which does not exist today).
+
+---
+
 ## 2026-07-07 — Output benchmark for structured-data pages (S)
 
 Source: `structured-data-answers` + `structured-grounded-completeness`
@@ -35,73 +137,105 @@ live-network and spends LLM quota, so it is deliberately out of `make check`.
 
 ## 2026-07-07 — DataDome / hard-wall handling (Koçtaş explore session)
 
-Source: 2026-07-07 explore session on a real DataDome wall
-(`koctas.com.tr`, product price behind the challenge). a2web behaved
-*correctly* — escalated the full free ladder (raw → jina → browser →
-browser_robust), hit `anti_bot` every time, returned `status:failed` +
-`retrieval_incomplete:true` + a critical `try_user_browser` hint. Not a
-bug; a set of gaps in *how* it fails and what next-move it can offer.
-Code map cited below. Cross-refs: 2026-05-23 "Agent-identity stealth"
-(§ Sec-Fetch / cookie carry-through, same theme, header side); AliExpress
-"Browser tier honors `proxy_url`" keystone; PR7e "Browser-tier proxy
-plumbing".
+Source: 2026-07-07 explore session on what looked like a real DataDome wall
+(`koctas.com.tr`, product price apparently behind a challenge). Original
+read: a2web escalated the full free ladder and hit `anti_bot` every time,
+so the fix had to be "pass the wall" (cookies, wall memory, a `partial`
+status, a DataDome-specific marker). **This framing was wrong — see the
+2026-07-09 re-probe below, which supersedes items 🔴🟡🟡 here.** Only the
+🟢 item is corrected-and-kept.
 
-- **🔴 Wire the operator's real cookies into the browser tier (the
-  keystone).** `_escalate_browser` calls `browser_tier.fetch(url, state,
-  backend)` with **no `cookies_full=`** (`fetcher.py:~1497`). The browser
-  tier already accepts `cookies_full` and converts via `_cookie_to_backend`
-  → `backend.render(..., cookies=...)` (`tiers/browser.py:105-128, 43-54`),
-  but the orchestrator never supplies them, so every browser render runs
-  **logged-out**. Cookies resolved in `_phase_resolve_cookies`
-  (`fetcher.py:603-642`) reach only the raw/curl tier (`fetcher.py:949-955`)
-  — the one tier a JS challenge defeats regardless. This is the single
-  load-bearing gap for cookie/JS walls like DataDome: the entire cookie-jar
-  subsystem (v0.8) mirrors the user's authenticated session, then never
-  hands it to the tier that executes the challenge. **This is "be the real
-  user," not fingerprint spoofing** — a fundamentally more winnable and more
-  defensible game than the Camoufox arms race. Caveat: even with cookies, a
-  headless fingerprint may still betray it (Patchright/Zendriver active;
-  Camoufox gated OFF, see 2026-06-26 §Camoufox). Trip condition is already
-  met (this session). Scope: S (wire the kwarg) + M (verify it actually
-  passes a real DataDome host with a live operator session).
+- **⚪️ (superseded) Wire the operator's real cookies into the browser
+  tier.** Was framed as the keystone fix for "DataDome-shaped" walls. The
+  2026-07-09 re-probe shows Koçtaş isn't cookie-gated at all — the raw
+  `curl_cffi` tier gets a clean `200` with the full answer already in
+  JSON-LD, no session needed. Cookie-wiring may still be worth doing for a
+  genuinely session-gated site, but Koçtaş is not evidence for it. Not
+  pursuing off this incident.
 
-- **🟡 Per-domain wall memory (kill the ~40s tax).** Walled fetches are
-  **never cached** — `_phase_cache_write` writes only when
-  `resolved_verdict() is Verdict.ok` (`fetcher.py:~1646`). The circuit
-  breaker is per-host HTTP-only (5-fail / 30s / process-local,
-  `state.py:86-88`, consumed only in `tiers/raw.py:80`) and does **not**
-  short-circuit the browser/archive/paid cascade. So a2web re-runs the full
-  ~40s ladder on a known-walled host **every request**, learning nothing.
-  Add a short-TTL negative memory ("host hard-walled at `anti_bot` →
-  fail-fast with the `try_user_browser` hint, skip the browser rungs") with
-  an operator override. Care needed: walls come and go — short TTL, and a
-  successful fetch clears it. Division of labor note: the *market-routing*
-  compensation ("koctas → price via Hepsiburada") belongs in the
-  products-picker profile, not here; a2web owns only the *fetch fact* ("this
-  host hard-walls"). Scope: M.
+- **⚪️ (superseded) Per-domain wall memory (kill the ~40s tax).** Correct
+  problem (repeat-fetching a known-bad host is wasteful), wrong host
+  attribution — Koçtaş's cost wasn't tax from a genuinely unbeatable host,
+  it was one avoidable false-positive escalation (see 🔴 below). Revisit if
+  a future incident finds a host that is *actually* deterministically
+  unbeatable across the free ladder.
 
-- **🟡 Activate the dead `partial` status (shell-vs-answer split).**
-  `FetchStatus.partial` exists in the enum (`models.py:48`) but is **never
-  assigned** — `build_response` is strictly binary (`ok` else `failed`,
-  `fetcher_response.py:207`). On a 200 + JS-shell wall, `<head>` OG/JSON-LD
-  metadata *does* leak onto the failed envelope (`meta` survives `_prune_wire`
-  when non-empty, `models.py:508-529`), but it's never labeled "got the
-  catalog shell, not the price." A real `partial` status could model
-  "retrieved the page shell / metadata, but the answer-bearing body is
-  walled" — exactly the split the Koçtaş case produced (confirmed the model
-  is in-catalog, could not get its price). **Envelope change → ask-first**
-  (breaking for parsers; same gate as the 2026-07-06 "requested-vs-actual
-  URL" item). Its own deliberate design pass. Scope: M.
+- **⚪️ (superseded) Activate the dead `partial` status (shell-vs-answer
+  split).** Motivated by "OG/JSON-LD metadata leaked through but price
+  didn't" — but the price *did* come through (see re-probe); there was no
+  shell/answer split to model here. Still a plausible envelope idea for a
+  host where the split is real, just not proven by this incident.
 
-- **🟢 DataDome-specific detector.** `packages/block_detector.py` matches
-  Cloudflare/Turnstile/Akamai/Anubis/Alibaba-Baxia/search-captcha (lines
-  54-133) but has **no `datadome` pattern** — a DataDome challenge is caught
-  only generically via `length_floor` / `js_required` (lines 193-200), so
-  a2web can't name the wall or branch on it. A `datadome` subsystem tag
-  would let the wall-memory + fail-fast items above target the one wall
-  class that is genuinely unbeatable-by-headless, and sharpen the operator
-  hint. Cheap marker addition. Scope: S. (Prereq/enabler for the 🟡
-  wall-memory item to be DataDome-precise rather than generic-`anti_bot`.)
+- **🟢 (confirmed, corrected) Site runs Akamai Bot Manager Premium, not
+  DataDome.** The 07-09 re-probe's gate diagnostic reads `subsystem:
+  akamai_bmp`, matched by `_AKAMAI_BMP_MARKER` in
+  `packages/block_detector.py:194-199` (already exists — the original
+  "no DataDome pattern" framing was itself imprecise; a2web already names
+  this wall class, just under its real name).
+
+---
+
+## 2026-07-09 — Koçtaş re-probe: it wasn't a wall (supersedes 2026-07-07 above)
+
+Source: same-day explore session re-poking the identical Koçtaş product URL
+with the current install. `ask` returned the correct price/currency/stock
+("4,221.97 TRY... In stock") with zero cookies and zero browser-session
+trickery. The 2026-07-07 read was simply wrong for this host: two real,
+narrow gaps explain the whole story, and neither is "pass the bot wall."
+
+- **✅ SHIPPED (`answer-bearing-gate-exemption`) Gate ignores `answer_bearing`
+  when deciding to force browser escalation.** `fetcher.py`'s domain-level
+  `evaluate()` wrapper (not `packages/block_detector.py` — correction from
+  implementation: the pure package function has no `structured_answer`
+  param; the domain wrapper already did, for the existing bare-`length_floor`
+  promotion) fired `anti_bot`/`akamai_bmp`/`turnstile` on marker presence
+  alone, **length-independent** — confirmed deliberate by
+  `tests/packages/test_gate.py:48-61` (asserts the verdict fires even with
+  600 chars of content). Fixed: when content is above `LENGTH_FLOOR` and a
+  `content_candidates` entry has `answer_bearing=True`, the `akamai_bmp`/
+  `turnstile` branches now promote to `Verdict.ok` and skip the escalation.
+  Live-reverified on the exact Koçtaş URL: diagnostics trace dropped from
+  4 steps (raw → extract → gate → **browser**) to 3 (raw → extract → gate,
+  verdict `ok`), total latency ~8.6-9.3s → ~5.5s, same correct answer.
+  `anubis`/`alibaba_punish`/`cf_iuam`/`search_captcha`/generic
+  `block_page_detected` untouched. See
+  `openspec/changes/answer-bearing-gate-exemption/` (design.md has the full
+  decision record + risk analysis).
+
+- **🟡 (deferred, redefined) `_pick_display_candidate` picks by length, not
+  by answer-bearing, once prose clears the length floor.**
+  `fetcher.py:1350-1373`: the `answer_bearing` short-circuit only fires when
+  prose is *sub-floor* (`len(prose_md) < LENGTH_FLOOR`). Koçtaş's actual page
+  has ABOVE-floor prose that is pure boilerplate (a Q&A submission-policy
+  footer, ~1300 chars) which beats the shorter but correct `json_synth`
+  block on the length comparison — so `fetch_raw` (and anything reading
+  top-level `content_md`/`meta`) silently gets the wrong content, while
+  `ask` dodges it because `assemble_menu` sends every non-subset candidate
+  to the extractor regardless of the display pick.
+  **Attempted and reverted in `answer-bearing-gate-exemption` (2026-07-09):**
+  an unconditional "answer_bearing beats prose" rule regressed ordinary
+  articles — `Article`/`NewsArticle` are `json_in_html._PREFERRED_LD_TYPES`
+  too, so routine SEO `Article` JSON-LD (headline/author/date) on any
+  normal blog/news page is `answer_bearing=True`, and the rule silently
+  swapped real article prose for that metadata stub
+  (`tests/capabilities/tier_pipeline/test_fetcher.py::test_blog_fixture_yields_real_envelope`
+  caught it). A pre-existing test
+  (`tests/capabilities/quality_gate/test_structured_answer_exemption.py::test_above_floor_prose_keeps_display_over_structured`)
+  independently confirms the current sub-floor-only behavior is deliberate,
+  not an oversight. `answer_bearing` measures structured-payload strength,
+  not prose relevance — the wrong signal to gate this on alone. Two
+  candidate directions for a real fix, both needing their own design pass:
+  (a) a `@type`-level split — treat `Product`/`LocalBusiness`/`ContactPoint`/
+  `Event` ("entity" schemas, rarely co-occurring with substantial unrelated
+  prose) differently from `Article`/`NewsArticle`/`ItemList`/`BreadcrumbList`
+  ("editorial" schemas that routinely do) — requires plumbing the schema
+  `@type` onto `ContentCandidate` (currently just a bool); or (b) an actual
+  prose-quality signal, e.g. threading trafilatura's own extraction
+  confidence (`_ExtractResult.score`, already computed, currently dropped)
+  onto the candidate and gating on that instead of/alongside
+  `answer_bearing`. Scope: M (needs the new signal, not just a conditional
+  tweak). Full postscript in
+  `openspec/changes/answer-bearing-gate-exemption/design.md`.
 
 ---
 
@@ -747,15 +881,23 @@ two new capability ideas; recording them here so they don't slip.
   RDFa-shaped failure surfaces in a future `make bench` run
   (academic-publishing URL that ships RDFa but no microdata / LD-JSON).
   Scope: S.
-- **PDF tier (`pymupdf` or `marker`).** Source: 2026-05-23 — was raised
-  in the mission-driven-library exploration but not pursued in the
-  trio. Tier 4. Many high-value agent destinations (regulatory
-  filings, academic papers, manuals) are PDF-first; the cascade
-  currently 404s or content-type-mismatches them. Choice between
-  `pymupdf` (fast, lightweight, classic) and `marker` (LLM-aware,
-  better tables / figure handling, much heavier). Decide via a
-  small spike on a representative corpus. Scope: M (pymupdf) / L
-  (marker).
+- **PDF tier — SUPERSEDED (2026-07-09), don't spike independently.** Source:
+  2026-05-23 — was raised in the mission-driven-library exploration but not
+  pursued in the trio. Tier 4. Many high-value agent destinations (regulatory
+  filings, academic papers, manuals) are PDF-first; the cascade currently
+  404s or content-type-mismatches them (`content_type_mismatch` in
+  `src/a2web/tiers/raw.py::_verdict_for_status`). The original `pymupdf` vs
+  `marker` framing predates the shelf's `convert-md[documents]` extra and is
+  stale — the engine choice is now owned by the shelf's
+  `pdf-engine-verification` change (compares docling, pymupdf4llm, markitdown,
+  pdfplumber, unstructured, marker on fidelity, with a2web's
+  `typer==0.25.1`/`docling-core typer<0.25` conflict as a hard filter, not a
+  tiebreaker, per that change's D3). a2web's own future work narrows to the
+  tier-routing plumbing only — a content-type carve-out in `raw.py` +
+  extraction phase, mirroring `json-endpoint-direct-routing` — once the shelf
+  lands an engine and a2web decides it's worth pulling the `documents` extra
+  in at all (not yet decided; this backlog item alone isn't sufficient
+  evidence of value).
 
 ---
 

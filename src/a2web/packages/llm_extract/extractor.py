@@ -129,6 +129,7 @@ class Extractor:
         handler_candidates: list[LlmNextLink] | None = None,
         max_content_chars: int | None = None,
         request_routing: bool = False,
+        link_digest: str | None = None,
     ) -> ExtractionResult:
         """Run the template over (content, ask). Returns ExtractionResult.
 
@@ -190,16 +191,22 @@ class Extractor:
                 )
 
         parts = active_template.render(content=truncated, ask=ask)
+        # Append to `tail` only — keeps `cache_prefix` byte-stable so cache hits
+        # aren't lost. Tail varies per-call already; these are just more per-call
+        # variation. The link digest rides here (not the cache prefix) so the
+        # ~95% no-digest path keeps the same prompt-cache slot.
+        tail_suffix = ""
         if request_next_links:
-            # Append to `tail` only — keeps `cache_prefix` byte-stable so cache
-            # hits aren't lost. Tail varies per-call already; the next-links
-            # request is just another per-call variation.
+            tail_suffix += _next_links_suffix(handler_candidates)
+        if link_digest:
+            tail_suffix += _link_digest_suffix(link_digest)
+        if tail_suffix:
             from .prompts import PromptParts
 
             parts = PromptParts(
                 system=parts.system,
                 cache_prefix=parts.cache_prefix,
-                tail=parts.tail + _next_links_suffix(handler_candidates),
+                tail=parts.tail + tail_suffix,
             )
         user = parts.cache_prefix + parts.tail if parts.cache_prefix else parts.tail
 
@@ -325,6 +332,19 @@ def _next_links_suffix(handler_candidates: list[LlmNextLink] | None) -> str:
     return intro
 
 
+def _link_digest_suffix(link_digest: str) -> str:
+    """Append the page's real links so `try_url` can reference them by handle.
+
+    The digest is a closed list of `{{n}} <label> · <path>` lines. The model
+    references a link by its handle (`{"handle": 3, ...}`); the server supplies
+    the real URL, so the model can never emit a URL it did not see — the exact
+    hole that made the old "must appear verbatim" rule unsatisfiable (the page's
+    links were never in the content). Selection over the set follows the
+    extend-the-primary-entity principle stated in the router schema.
+    """
+    return "\n\n---\n\n" + link_digest + "\n"
+
+
 def _next_link_from_entry(entry: dict[str, Any]) -> LlmNextLink | None:
     """Per-item filter for the next_links JSON array.
 
@@ -398,8 +418,6 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
     if not isinstance(shape, str) or not shape:
         return _RoutingResult(answer=answer, payload=None)
 
-    genre_raw = parsed.get("genre")
-    genre = genre_raw if isinstance(genre_raw, str) and genre_raw else None
     obstacle_raw = parsed.get("obstacle")
     obstacle = obstacle_raw if isinstance(obstacle_raw, str) and obstacle_raw else None
 
@@ -412,11 +430,18 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
         for item in try_url_raw:
             if not isinstance(item, dict):
                 continue
-            url_val = item.get("url")
-            if not isinstance(url_val, str) or not url_val:
+            reason_raw = item.get("reason", "")
+            reason = reason_raw if isinstance(reason_raw, str) else ""
+            # Preferred (digest path): a `{{n}}` handle the domain seam
+            # rehydrates from the closed link set. Fall back to a raw `url`
+            # (legacy / no-digest pages).
+            handle_val = item.get("handle")
+            if isinstance(handle_val, int) and not isinstance(handle_val, bool):
+                try_urls.append(NextUrlBoundary(url="", reason=reason, handle=handle_val))
                 continue
-            reason = item.get("reason", "")
-            try_urls.append(NextUrlBoundary(url=url_val, reason=reason if isinstance(reason, str) else ""))
+            url_val = item.get("url")
+            if isinstance(url_val, str) and url_val:
+                try_urls.append(NextUrlBoundary(url=url_val, reason=reason))
 
     axes: list[RefinementAxisBoundary] = []
     axes_raw = parsed.get("refinement_axes", ())
@@ -437,7 +462,6 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
         answer=answer,
         structural_form=structural_form,
         shape=shape,
-        genre=genre,
         obstacle=obstacle,
         ask_here=ask_here,
         try_url=tuple(try_urls),

@@ -21,7 +21,14 @@ from tests.fixtures import FIXTURES_DIR
 
 # A 200 OK page whose body extracts to well under the 500-char length floor and
 # carries no block markers / script tags — the gate verdict is plain length_floor.
-_THIN_HTML = b"<html><head><title>x</title></head><body><p>placeholder</p></body></html>"
+# A thin-but-present page (real visible text, still under LENGTH_FLOOR) — a
+# length_floor failure, NOT a near-empty blank_page shell. Kept above the
+# blank-page visible-text threshold so this precedence test stays about the
+# not_found-vs-length_floor rule, not blank detection.
+_THIN_HTML = (
+    b"<html><head><title>Archived</title></head><body><p>This entry is thin: a short "
+    b"archived stub with a little real text but well under the length floor.</p></body></html>"
+)
 
 
 class _NotFoundHandlerTier:

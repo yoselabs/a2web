@@ -50,10 +50,10 @@ if TYPE_CHECKING:
 def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
     """Project the package-side boundary type into the pydantic mirror.
 
-    Pydantic validates the closed enums (`structural_form`, `shape`, `genre`,
+    Pydantic validates the closed enums (`structural_form`, `shape`,
     `obstacle`). On validation failure (model returned a value outside the
     closed vocabulary), we log a warning and return None — the caller still
-    gets `answer`; the 7 router-shape fields are best-effort.
+    gets `answer`; the 6 router-shape fields are best-effort.
 
     Uses `model_validate` so pydantic does the closed-enum validation at the
     boundary (the package-side type carries `str`, the pydantic mirror needs
@@ -68,10 +68,13 @@ def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
                 "answer": boundary.answer,
                 "structural_form": boundary.structural_form,
                 "shape": boundary.shape,
-                "genre": boundary.genre,
                 "obstacle": boundary.obstacle,
                 "ask_here": list(boundary.ask_here),
-                "try_url": [{"url": u.url, "reason": u.reason} for u in boundary.try_url],
+                "try_url": [
+                    {"url": u.url, "reason": u.reason, "off_domain": u.off_domain}
+                    for u in boundary.try_url
+                    if u.url  # rehydrated entries only; an unresolved handle is dropped
+                ],
                 "refinement_axes": [{"dimension": a.dimension, "how": a.how} for a in boundary.refinement_axes],
                 "item_total_seen": boundary.item_total_seen,
             }
@@ -104,6 +107,20 @@ def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
 # --------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------- #
+
+
+# `ask` meta allowlist (ask-extraction-token-tuning): every other key
+# `parse_metadata` produces (og.image*, og.locale, og.type, og.url, og.site_name,
+# twitter.*, jsonld[0].*) either carries zero incremental signal for an `ask`
+# caller or duplicates an already-promoted top-level field (`og.title` ==
+# `title`; `og.site_name` == the domain already visible in the requested URL;
+# `jsonld[0].author`/`datePublished` == `byline`/`published`). `fetch_raw`'s
+# `FetchResponse.meta` stays the full uncurated dict for debug/inspection.
+_ASK_META_ALLOWLIST = ("og.description",)
+
+
+def _curate_ask_meta(meta: dict[str, str]) -> dict[str, str]:
+    return {k: v for k, v in meta.items() if k in _ASK_META_ALLOWLIST}
 
 
 # Extractor `obstacle` values (Obstacle enum) that cap ask confidence to `low`.
@@ -269,16 +286,14 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # log, never a stored field. See `decision_log.resolve_verdict`.
     final_verdict = resolve_verdict(fc.observations)
     status = FetchStatus.ok if final_verdict == Verdict.ok else FetchStatus.failed
-    # never-silently-miss: a terminal wall — or a paid last-resort tier failing
-    # auth/billing — means the URL's content was not retrieved. Surface it
-    # explicitly so the caller can never mistake the (empty) result for a
-    # complete answer.
-    retrieval_incomplete = final_verdict in (
-        Verdict.block_page_detected,
-        Verdict.anti_bot,
-        Verdict.paywall,
-        Verdict.paid_auth_error,
-    )
+    # never-silently-miss: `retrieval_incomplete` is derived from the systematic
+    # floor, not a parallel wall-verdict whitelist. Every wall now carries the
+    # critical `try_user_browser` hint (emitted by `_prescribe_browser_on_wall`),
+    # and the "failed + try_user_browser hint" hook below turns that into
+    # incompleteness — a single source of truth. Only `paid_auth_error` is special:
+    # it keeps its OWN dedicated hint (an operator error, a bad paid key) instead of
+    # `try_user_browser`, so it is seeded here.
+    retrieval_incomplete = final_verdict == Verdict.paid_auth_error
     # never-silently-miss at extraction granularity (ADR-0009): an `ask` that
     # fetched real content (verdict ok) but delivered NO answer is a failure the
     # caller must not read as complete. Two causes, both escalated to a FULL
@@ -309,6 +324,17 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # only route. Mark it incomplete regardless of the handler's placeholder
     # verdict (HN's Algolia 404 is not a "wall" verdict, but the miss is real).
     if fc.render_requested and status == FetchStatus.failed:
+        retrieval_incomplete = True
+    # A failed fetch carrying the critical `try_user_browser` hint is definitionally
+    # a retrieval miss — the cascade exhausted its ladder and told the caller to use
+    # their own browser. This is the SINGLE source of truth for incompleteness: the
+    # systematic floor (`fetcher._prescribe_browser_on_wall`) attaches that hint to
+    # every non-ok terminal that is not genuinely gone (content walls, transport
+    # walls, AND the former fall-throughs `length_floor`/`proxy_unavailable`/`other`),
+    # so incompleteness follows it for free. Genuine-gone terminals (dns_error,
+    # authoritative not_found, content_type_mismatch) never emit the hint, so they
+    # stay complete-looking failures, not "behind a wall" misses.
+    if status == FetchStatus.failed and any(h.code == "try_user_browser" for h in fc.operator_hints):
         retrieval_incomplete = True
     gate_outcome = fc.last_gate_outcome()
     gate_subsystem = gate_outcome.subsystem if gate_outcome else None
@@ -457,7 +483,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         guidance = kind_guidance(routing.structural_form)
         if guidance is not None:
             op_hints.append(
-                OperatorHint(code="content_guidance", message=guidance, fix="", severity="info"),
+                OperatorHint(code="content_guidance", message=guidance),
             )
 
     # Dimensional refinement axes are the CRITERIA of the option set — needed by
@@ -520,7 +546,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         items_loaded=fr.items_loaded,
         items_total=fr.items_total,
         next_links=list(fr.next_links),
-        meta=dict(fr.meta),
+        meta=_curate_ask_meta(fr.meta),
         extraction=_debug_extraction(fr.extraction, debug=debug),
         content_md=fr.content_md if include_content else "",
         headings=list(fr.headings) if include_content else [],
@@ -530,9 +556,6 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         total_ms=fr.total_ms if debug else None,
         cache=fr.cache if debug else None,
         diagnostics=list(fr.diagnostics) if debug else [],
-        structural_form=routing.structural_form if routing is not None else None,
-        shape=routing.shape if routing is not None else None,
-        genre=routing.genre if routing is not None else None,
         obstacle=routing.obstacle if routing is not None else None,
         ask_here=list(routing.ask_here) if routing is not None else [],
         try_url=list(routing.try_url) if routing is not None else [],

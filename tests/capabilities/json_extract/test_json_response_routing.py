@@ -112,5 +112,8 @@ def test_gate_exempts_short_json_from_length_floor() -> None:
 
 def test_gate_keeps_length_floor_for_short_non_json() -> None:
     # is_json=False → the thin-shell floor stands (the v0.29.0 guard is untouched).
-    result = evaluate(content_md="thin", raw_html="<html><body>thin</body></html>", content_type=None, is_json=False)
+    # Thin-but-present body (above the blank threshold) so this isolates the
+    # is_json=False → length_floor path from blank-page detection.
+    html = "<html><body>A thin but present non-JSON body with a few real words.</body></html>"
+    result = evaluate(content_md="A thin but present non-JSON body with a few real words.", raw_html=html, content_type=None, is_json=False)
     assert result.verdict is Verdict.length_floor

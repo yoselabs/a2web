@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from dataclasses import dataclass as _dc
 from datetime import UTC, date, datetime
 from enum import Enum
@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 
 import a2kit
 import a2kit.log
+import aiosqlite
 from a2kit import Lazy
 from content_extract import (
     extract_markdown as _package_extract_markdown,
@@ -31,6 +32,7 @@ from content_extract import (
     parse_metadata,
 )
 from json_in_html import (
+    JsonPayload,
     extract_json_payloads,
     is_answer_bearing,
     is_json_content_type,
@@ -54,8 +56,10 @@ from .domain import (
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .events.types import CookiesAttached, CookiesStale
 from .fetcher_response import _INCOMPLETE_OBSTACLES, build_response
+from .link_digest import LinkDigest, build_digest
 from .listing_oracle import listing_has_more, listing_oracle
 from .llm_resource import LlmExtractorResource
+from .log import log_warning
 from .models import (
     CacheState,
     Diagnostic,
@@ -73,10 +77,11 @@ from .packages.block_detector import LENGTH_FLOOR, looks_like_unrendered_spa
 from .packages.block_detector import evaluate as _package_evaluate
 from .packages.browser_backends import BrowserBackend
 from .packages.escalation import EscalationSignal
-from .packages.llm_extract import LlmNextLink, RouterPayload
+from .packages.llm_extract import LlmNextLink, NextUrlBoundary, RouterPayload
 from .settings import AppSettings
 from .state import AppState, ResourceUnavailable, RobustBrowserBackend, unavailable_lazy
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
+from .uptake import note_visit, record_suggestions
 
 
 @_dc(slots=True)
@@ -164,9 +169,10 @@ def evaluate(
     # a truncated SPA shell. Exempt JSON from the thin-shell length floor — keyed
     # STRICTLY on the JSON content-type, so HTML shells keep the full floor (the
     # v0.29.0 confabulation guard is untouched).
-    if is_json and verdict is Verdict.length_floor:
+    if is_json and verdict in (Verdict.length_floor, Verdict.blank_page):
         verdict = Verdict.ok
         subsystem = None
+        escalation = None
 
     # A thin page whose answer lives in answer-bearing structured data (a strong
     # JSON-LD LocalBusiness/Product/…) is small-but-complete, not a truncated
@@ -179,6 +185,20 @@ def evaluate(
     if structured_answer and verdict is Verdict.length_floor and subsystem is None:
         verdict = Verdict.ok
         subsystem = None
+        promoted_structured = True
+
+    # A length-independent anti-bot marker (akamai_bmp/turnstile) only means
+    # "this site is bot-defended" — not "this specific response was blocked".
+    # When the response is well above the length floor (a real page, not a
+    # challenge shell) AND its answer already lives in an answer-bearing
+    # structured candidate, forcing a browser escalation changes nothing but
+    # cost. Scoped to exactly these two markers: anubis/alibaba_punish/cf_iuam
+    # and generic block_page_detected are genuine thin-shell/interstitial
+    # fingerprints and must keep escalating regardless of structured_answer.
+    if structured_answer and verdict is Verdict.anti_bot and subsystem in ("akamai_bmp", "turnstile") and len(content_md) >= LENGTH_FLOOR:
+        verdict = Verdict.ok
+        subsystem = None
+        escalation = None
         promoted_structured = True
 
     return _GateResult(verdict=verdict, subsystem=subsystem, escalation=escalation, promoted_structured=promoted_structured)
@@ -209,6 +229,12 @@ class ContentCandidate:
     # The quality-gate small-but-complete exemption and the sub-floor display
     # pick key on this flag. Prose and record candidates leave it False.
     answer_bearing: bool = False
+    # True for Article/NewsArticle JSON-LD — a metadata echo (headline/author/
+    # date) the extracted prose already carries. Kept OFF the caller-facing
+    # `content_md` concatenation (task 7.2) so it never bloats above-floor prose
+    # (the historical blog.html regression). Product/Org/records leave it False —
+    # they ARE additive. Does NOT affect the extractor menu (it still sees all).
+    is_prose_metadata: bool = False
 
 
 @_dc(slots=True)
@@ -316,6 +342,10 @@ class FetchContext:
     # `fetcher_response.build_response`.
     routing: RouterPayload | None = None
     include_routing: bool = True
+    # v1 link-affordances — the closed link-digest fed to the extractor for
+    # `{{n}}` handle references; built in `_phase_extract_answer` gated on a
+    # product/listing proxy. None on genres that skip the digest.
+    link_digest: LinkDigest | None = None
 
     # Body & content state (set by tier loop, escalations append observations)
     body: bytes = b""
@@ -602,6 +632,12 @@ async def fetch(
     )
 
     response = await _run_pipeline(fc, state=state)
+
+    # v1 suggestion-uptake telemetry: only on the ask path, best-effort. Records
+    # whether this ask followed an earlier suggestion + logs the targets this ask
+    # now emits, so follow-through can be measured (openspec D12 / task 8.2).
+    if ask is not None and state.sqlite is not None:
+        await _record_uptake(fc, state)
 
     # v0.3 envelope diet: apply opt-in gates AT THE WIRE BOUNDARY.
     # `diagnostics_summary` is always populated and carries verdict + timing.
@@ -933,20 +969,31 @@ def _tier_is_cloudflare(tier_result: TierResult) -> bool:
     return "cloudflare" in server or "cf-ray" in tier_result.headers
 
 
-async def _execute_tier_action(
+async def _dispatch_action(
     fc: FetchContext,
     action: Action,
-    tier_result: TierResult,
-    tier_name: str,
-    tier: Tier,
     *,
     state: AppState,
+    post_gate: bool,
 ) -> _Exec:
-    """Execute a planner action inside the tier loop; report loop control flow.
+    """The single executor for every planner `Action` (unify-escalation-executor).
 
-    `RewriteUrl` restarts the loop (cap 1). `RetryViaArchive` dispatches the
-    archive tier (cap 1) and stops on success. Otherwise a winning tier
-    installs its content and stops; a failed tier continues to the next.
+    Shared by the tier-walk (`post_gate=False`) and the post-gate escalation
+    loop (`post_gate=True`). Handles the full 5-member `Action` union in one
+    place — no action type is a silent no-op in a position where the planner can
+    legally return it. Returns an `_Exec` control signal the caller interprets.
+
+    The one genuine pipeline-region divergence (design D6) is the `RetryViaArchive`
+    install: during the tier-walk the gate phase runs *later*, so archive installs
+    the body only (`_install_archive_payload`, which observes a tier_outcome) and
+    STOPs; post-gate the gate already ran, so archive installs the extracted
+    fields (`_install_gate_archive`) and explicitly regates. `post_gate` selects
+    the variant — this reflects the pipeline's real shape, not accidental
+    coupling.
+
+    `RewriteUrl` returns `_Exec.RESTART` (D2 — a first-class control outcome the
+    tier loop consumes to restart the walk); the planner does not return it
+    post-gate (asserted by test), so the caller there never acts on it.
     """
     if isinstance(action, RewriteUrl):
         fc.url_rewrites += 1
@@ -963,14 +1010,26 @@ async def _execute_tier_action(
             start_perf=fc.start_perf,
             diagnostics=fc.diagnostics,
         )
+        if post_gate:
+            if outcome.success and outcome.pre_rendered is not None:
+                _install_gate_archive(fc, outcome)
+                _regate_after_escalation(fc)
+            return _Exec.CONTINUE  # post-gate loop reconsults decide_next
         if outcome.success:
             _install_archive_payload(fc, outcome)
             return _Exec.STOP
-        # Archive failed — fall through to the win / continue decision.
+        return _Exec.CONTINUE  # archive failed → caller decides tier-win / advance
 
-    if tier_result.verdict is Verdict.ok:
-        _install_won_tier(fc, tier_result, tier_name, tier)
-        return _Exec.STOP
+    if isinstance(action, EscalateBrowser):
+        await _escalate_browser(fc, state=state)
+        return _Exec.CONTINUE
+
+    if isinstance(action, EscalatePaid):
+        await _escalate_paid(fc, state=state)
+        return _Exec.CONTINUE
+
+    # Continue — no escalation. The tier-walk caller decides won-tier install /
+    # advance; the post-gate caller ends the loop.
     return _Exec.CONTINUE
 
 
@@ -1129,13 +1188,28 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
             if tier_result.operator_hint is not None:
                 fc.operator_hints.append(tier_result.operator_hint)
             action = decide_next(fc.observations, url=fc.url, caps=_planner_caps(fc))
-            executed = await _execute_tier_action(fc, action, tier_result, tier_name, tier, state=state)
+            executed = await _dispatch_action(fc, action, state=state, post_gate=False)
             if executed is _Exec.RESTART:
                 restart_loop = True
                 break  # break inner for; while True restarts
             if executed is _Exec.STOP:
+                return  # archive content installed
+            # A transport/status failure now escalates to the browser mid-walk
+            # (escalate-on-status-derived-walls). When that out-of-band render
+            # installs a gate-passing result, end the walk on it rather than
+            # advancing to — and clobbering it with — the next free tier. A
+            # normal won tier has not set `tier_used` yet (that happens just
+            # below), so this only catches an already-installed escalation win.
+            if fc.tier_used != "none" and fc.resolved_verdict() is Verdict.ok:
                 return
-            # _Exec.CONTINUE → next tier
+            # _Exec.CONTINUE → the planner did not stop the walk. Install a
+            # winning tier's content and finish; otherwise advance to the next
+            # tier. (The won-tier install lives here, not in the dispatcher — it
+            # is keyed on the tier result, not on a planner Action.)
+            if tier_result.verdict is Verdict.ok:
+                _install_won_tier(fc, tier_result, tier_name, tier)
+                return
+            # tier lost → next tier
 
         if not restart_loop:
             return
@@ -1246,7 +1320,7 @@ async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None
         candidates.append(record_candidate)
 
     fc.content_candidates = candidates
-    fc.content_md = _pick_display_candidate(candidates)
+    fc.content_md = _wire_content_md(candidates)
     for cand in candidates:
         if cand.next_links:
             fc.next_links_handler = cand.next_links
@@ -1333,6 +1407,68 @@ def _apply_llm_listing_oracle(fc: FetchContext) -> None:
     fc.items_more = False
 
 
+_PROSE_METADATA_LD_TYPES = frozenset({"Article", "NewsArticle"})
+
+
+def _is_prose_metadata_ld(payload: JsonPayload) -> bool:
+    """True when a JSON-LD payload is an Article/NewsArticle metadata echo.
+
+    Such payloads (headline/author/date) merely restate metadata the extracted
+    prose already carries, so appending them to above-floor prose on the caller
+    wire is redundant bloat — and historically regressed the `blog.html` fixture.
+    Product / Organization / ItemList / records are additive and stay eligible.
+    Walks `@graph` one level down and tolerates a `@type` that is a str or list.
+    """
+    data = payload.data
+    for entry in data if isinstance(data, list) else [data]:
+        if not isinstance(entry, dict):
+            continue
+        graph = entry.get("@graph")
+        for node in graph if isinstance(graph, list) else [entry]:
+            if not isinstance(node, dict):
+                continue
+            raw_type = node.get("@type") or node.get("type")
+            types = {raw_type} if isinstance(raw_type, str) else set(raw_type) if isinstance(raw_type, list) else set()
+            if types & _PROSE_METADATA_LD_TYPES:
+                return True
+    return False
+
+
+def _wire_content_md(candidates: list[ContentCandidate]) -> str:
+    """Caller-facing `content_md` — concatenate prose + JSON-LD instead of replacing (task 7.2).
+
+    Narrow, surgical reversal of the 2026-06-07 pick-one decision: the ONLY change
+    is the json_synth-wins branch. When above-floor prose coexists with a JSON-LD
+    render that would otherwise REPLACE it (json longer than prose — the legacy
+    `_pick_display_candidate` rule), surface BOTH, subset-suppressed via the same
+    coarse dedup the extractor menu uses. So a product page's specs no longer blind
+    the caller to its prose (and vice versa).
+
+    Everything else defers byte-identically to the legacy single-pick:
+    - sub-floor / absent prose — the structured answer is what the caller needs;
+    - threaded / longer RECORD sets — they RENDER structure prose lost, so they
+      genuinely replace (not additive); their contract is untouched;
+    - Article/NewsArticle JSON-LD (`is_prose_metadata`) — a metadata echo, never
+      concatenated onto prose (the historical blog.html regression).
+
+    The extractor menu is untouched — `assemble_menu` still sees every candidate.
+    """
+    prose = next((c for c in candidates if c.source == "trafilatura"), None)
+    prose_md = prose.content_md if prose is not None else ""
+    if prose is None or len(prose_md) < LENGTH_FLOOR:
+        return _pick_display_candidate(candidates)
+    json_c = next((c for c in candidates if c.source == "json_synth"), None)
+    json_would_replace = json_c is not None and len(json_c.content_md) > len(prose_md)
+    if json_c is not None and json_would_replace:
+        # A metadata echo (Article/NewsArticle) never displaces real above-floor
+        # prose: return prose alone — no replace (7.2 intent), no bloat concat.
+        if json_c.is_prose_metadata:
+            return prose_md
+        kept = _suppress_subsets([prose, json_c])
+        return "\n\n".join(c.content_md for c in kept if c.content_md)
+    return _pick_display_candidate(candidates)
+
+
 def _pick_display_candidate(candidates: list[ContentCandidate]) -> str:
     """Wire `content_md` default — preserves the pre-ADR-0005 selection.
 
@@ -1349,7 +1485,14 @@ def _pick_display_candidate(candidates: list[ContentCandidate]) -> str:
     # Sub-floor prose is a thin nav/footer fragment. When a strong structured
     # candidate carries the answer, surface it for display — so `fetch_raw`
     # (which returns only `content_md`, not the extractor menu) yields the
-    # answer, not the fragment. Above-floor prose keeps the legacy length pick.
+    # answer, not the fragment. Above-floor prose keeps the legacy length pick
+    # — `answer_bearing` alone is NOT a safe unconditional override here: e.g.
+    # `Article`/`NewsArticle` JSON-LD (headline/author/date) is `answer_bearing`
+    # by design (see `json_in_html._PREFERRED_LD_TYPES`) yet routinely
+    # accompanies genuine, substantial article prose that trafilatura already
+    # extracts correctly — swapping it for the metadata stub would be a
+    # regression, not a fix (see `answer-bearing-gate-exemption` design notes,
+    # 2026-07-09 `make check` finding on the `blog.html` fixture).
     if len(prose_md) < LENGTH_FLOOR:
         answer_c = next((c for c in candidates if c.answer_bearing), None)
         if answer_c is not None:
@@ -1447,6 +1590,7 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[Content
                     source="json_synth",
                     content_md=rendered,
                     answer_bearing=is_answer_bearing(payload),
+                    is_prose_metadata=_is_prose_metadata_ld(payload),
                 )
             )
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
@@ -1586,15 +1730,10 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
         # only installs content when a browser genuinely renders the surface.
         if fc.pre_rendered_payload is None and fc.browser_dispatches < 1:
             await _escalate_browser(fc, state=state)
-        # The render ladder was our only route (the free tiers were stopped). If
-        # it did not yield a usable (ok) page — nothing rendered, OR the browser
-        # rendered a page the gate flagged as a wall (Reddit login gate: the
-        # browser passed the anti-bot but the SITE walls it) — this is a loud
-        # miss: emit the critical never-silently-miss hint. Gate on the resolved
-        # verdict, NOT `pre_rendered_payload is None`: a walled browser render
-        # installs a payload yet is still a miss (ADR-0009).
-        if fc.resolved_verdict() is not Verdict.ok and not _has_browser_hint(fc):
-            fc.operator_hints.append(try_user_browser_hint(fc.final_url))
+        # The render ladder was our only route (the free tiers were stopped). A
+        # still-non-ok verdict here is a loud miss — but the never-silently-miss
+        # hint is now emitted ONCE by `_prescribe_browser_on_wall` at the end of
+        # `_run_pipeline` (the single systematic floor), not per-phase here.
 
     if not (fc.body and fc.resolved_verdict() is Verdict.ok):
         return
@@ -1660,48 +1799,67 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
             )
         )
 
-    # Planner-driven escalation. Consult `decide_next` over the decision log,
-    # execute its action, repeat until it says Continue. Each escalation is
-    # capped at one dispatch, so the loop terminates.
+    # Planner-driven escalation. Consult `decide_next` over the decision log and
+    # dispatch its action through the single unified executor, repeating until it
+    # returns a non-escalation action. Each escalation is capped at one dispatch,
+    # so the loop terminates. Only the three escalation actions are acted on here;
+    # Continue (and the never-in-practice post-gate RewriteUrl) ends the loop —
+    # matching the prior `else: break` exactly.
     while True:
         action = decide_next(fc.observations, url=fc.final_url, caps=_planner_caps(fc))
-        if isinstance(action, EscalateBrowser):
-            await _escalate_browser(fc, state=state)
-        elif isinstance(action, RetryViaArchive):
-            fc.archive_dispatches += 1
-            outcome = await _dispatch_archive(
-                action.url,
-                state=state,
-                start_perf=fc.start_perf,
-                diagnostics=fc.diagnostics,
-            )
-            if outcome.success and outcome.pre_rendered is not None:
-                _install_gate_archive(fc, outcome)
-                _regate_after_escalation(fc)
-        elif isinstance(action, EscalatePaid):
-            await _escalate_paid(fc, state=state)
-        else:
-            break  # Continue (or a URL rewrite — not used post-gate)
+        if not isinstance(action, (EscalateBrowser, RetryViaArchive, EscalatePaid)):
+            break
+        await _dispatch_action(fc, action, state=state, post_gate=True)
 
-    # Late never-silently-miss escalation: the tier + escalation ladder is now
-    # exhausted. If the fetch ended on a terminal wall, tell the caller —
-    # loudly — that the URL was not retrieved and only a real browser can pass.
-    # This is the safety net that catches every host, including Reddit shapes
-    # the site handler does NOT claim (e.g. `/user/`, `/wiki/`), which fall
-    # through to raw/jina and hit the wall with no eager hint. The
-    # `_has_browser_hint` dedup guarantees we never double-emit when the Reddit
-    # handler already attached its eager hint.
-    if fc.resolved_verdict() in _WALL_VERDICTS and not _has_browser_hint(fc):
-        fc.operator_hints.append(try_user_browser_hint(fc.final_url))
-
-
-# Terminal "walled" verdicts: the content was not retrieved and only a real
-# (logged-in) browser can pass. Drives the never-silently-miss escalation.
-_WALL_VERDICTS = (Verdict.block_page_detected, Verdict.anti_bot, Verdict.paywall)
+    # The never-silently-miss hint is emitted ONCE, systematically, by
+    # `_prescribe_browser_on_wall` at the end of `_run_pipeline` — not per-phase
+    # here. This phase only runs the gate + planner escalation ladder.
 
 
 def _has_browser_hint(fc: FetchContext) -> bool:
     return any(h.code == "try_user_browser" for h in fc.operator_hints)
+
+
+def _is_genuine_gone(fc: FetchContext) -> bool:
+    """The ONLY failed terminals that must NOT prescribe the caller's browser.
+
+    A real browser genuinely cannot do better on these, so the systematic floor
+    (`_prescribe_browser_on_wall`) skips them; everything else that ends non-ok is
+    treated as a passable wall (ADR-0009). See the `retrieval-completeness` spec.
+
+    - `dns_error` — the domain does not resolve; a browser resolves it identically.
+    - authoritative `not_found` — a site handler modelling the site's real "gone"
+      semantics (a deleted item); a browser won't un-delete it.
+    - `content_type_mismatch` — a non-HTML resource WAS retrieved (a PDF/image);
+      a browser won't extract it better.
+    - `paid_auth_error` — an operator error (a bad paid key) that carries its OWN
+      dedicated hint, not `try_user_browser` (it IS still `retrieval_incomplete`).
+    """
+    verdict = fc.resolved_verdict()
+    if verdict in (Verdict.dns_error, Verdict.content_type_mismatch, Verdict.paid_auth_error):
+        return True
+    if verdict is Verdict.not_found:
+        return any(o.authoritative and o.verdict is Verdict.not_found for o in fc.observations)
+    return False
+
+
+def _prescribe_browser_on_wall(fc: FetchContext) -> None:
+    """The single systematic never-silently-miss floor (ADR-0009).
+
+    Any fetch that ends non-ok and is NOT a genuine-gone terminal prescribes the
+    caller's own real browser — one rule, not a per-verdict whitelist. This covers
+    every content wall (`block_page_detected` / `anti_bot` / `paywall` /
+    `blank_page`), every transport wall (`connection_error` / `timeout` /
+    `rate_limited` / uncorroborated `not_found`), AND the verdicts that fell
+    through the retired whitelists (`length_floor` / `proxy_unavailable` /
+    `other`) — including a `length_floor` that arises downstream of a 403, by
+    construction. Emitted once at the end of the pipeline so it fires regardless
+    of which phase terminated the cascade (the bodyless transport early-return AND
+    the body-bearing wall alike); the `_has_browser_hint` dedup guarantees no
+    double-emit when a handler (e.g. Reddit) already attached the hint eagerly.
+    """
+    if fc.resolved_verdict() is not Verdict.ok and not _is_genuine_gone(fc) and not _has_browser_hint(fc):
+        fc.operator_hints.append(try_user_browser_hint(fc.final_url))
 
 
 def _regate_after_escalation(fc: FetchContext) -> None:
@@ -1969,7 +2127,94 @@ async def _run_pipeline(
     await _phase_cache_write(fc, state=state)
     # v0.8: emit cookies_stale hint once per fetch when mirror is stale.
     await _phase_cookies_staleness(fc, state=state)
+    # never-silently-miss floor (ADR-0009): after EVERY escalation phase has run
+    # (so an obstacle/listing render that recovered the page to `ok` already
+    # counts), prescribe the caller's own browser on any non-ok terminal that is
+    # not genuinely gone. Single systematic emission — no per-verdict whitelist.
+    _prescribe_browser_on_wall(fc)
     return build_response(fc)
+
+
+# Server-side ceiling on digest size — a circuit breaker on token cost, never a
+# target surfaced to the model (relevance is the model's job, ADR-0012).
+_DIGEST_LINK_CAP = 200
+# Candidate sources that stand in for `structural_form ∈ {product, listing}`
+# BEFORE the LLM classifies (structural_form is post-hoc): a product page yields
+# a json_synth (Product schema) candidate; a listing yields record_synth.
+_DIGEST_GATE_SOURCES = frozenset({"json_synth", "record_synth"})
+
+
+def _build_link_digest(fc: FetchContext) -> LinkDigest | None:
+    """Build the link digest when the page looks product/listing-shaped.
+
+    Pre-LLM gate: feed the digest only when a structured (json_synth /
+    record_synth) candidate is present — the signal a product/listing page
+    leaves before the model runs. Prose-only articles skip it and pay nothing.
+    """
+    if not fc.links:
+        return None
+    if not any(c.source in _DIGEST_GATE_SOURCES for c in fc.content_candidates):
+        return None
+    digest = build_digest(fc.links, page_url=fc.final_url or "", limit=_DIGEST_LINK_CAP)
+    return digest or None
+
+
+def _rehydrate_routing_handles(routing: RouterPayload | None, digest: LinkDigest | None) -> RouterPayload | None:
+    """Resolve `try_url` `{{n}}` handles to real hrefs against the closed set.
+
+    Each boundary entry carrying a handle is looked up in the digest: a hit
+    becomes a rehydrated entry (real `url`, `off_domain` from the affordance, no
+    handle); a miss is dropped — a handle the digest doesn't know is never
+    guessed into a URL. Legacy entries that already carry a `url` pass through.
+    """
+    if routing is None or not routing.try_url:
+        return routing
+    by_handle = {e.handle: e for e in digest.entries} if digest else {}
+    resolved: list[NextUrlBoundary] = []
+    for entry in routing.try_url:
+        if entry.handle is not None:
+            aff = by_handle.get(entry.handle)
+            if aff is None:
+                # Closed-set violation — the model referenced a handle the
+                # digest doesn't know. Drop it (never guess a URL) but surface
+                # the recovery via the unified `llm_wobble` key, consistent with
+                # the other LLM-contract boundaries. The fetch still succeeds.
+                log_warning(
+                    "llm_wobble",
+                    boundary="try_url_handle",
+                    field="handle",
+                    tolerance="skip",
+                    handle=entry.handle,
+                )
+                continue
+            resolved.append(replace(entry, url=aff.href, off_domain=aff.off_domain, handle=None))
+        elif entry.url:
+            resolved.append(entry)
+    return replace(routing, try_url=tuple(resolved))
+
+
+async def _record_uptake(fc: FetchContext, state: AppState) -> None:
+    """Best-effort suggestion-uptake telemetry (D12 / task 8.2).
+
+    Two correlated writes on the shared sqlite connection: (1) `note_visit` marks
+    any earlier suggestion of THIS ask's requested url as followed — a non-zero
+    return means the caller acted on a prior `try_url`; (2) `record_suggestions`
+    logs the (rehydrated) targets this ask now emits, for a future ask to close.
+    Uses `requested_url` (the caller's actual input, pre-rewrite) as the join key.
+
+    Telemetry must never fail a fetch — a sqlite hiccup is swallowed to a warning.
+    """
+    try:
+        conn = await state.sqlite.ensure()
+        followed = await note_visit(conn, fc.requested_url)
+        if followed:
+            await a2kit.log.info("try_url_followed", url=fc.requested_url, fulfilled=followed)
+        targets = [(e.url, e.off_domain) for e in (fc.routing.try_url if fc.routing else ()) if e.url]
+        stored = await record_suggestions(conn, source_url=fc.requested_url, question=fc.ask, targets=targets)
+        if stored:
+            await a2kit.log.info("try_url_suggested", url=fc.requested_url, count=stored)
+    except (aiosqlite.Error, OSError) as exc:  # telemetry is best-effort — never break the fetch
+        log_warning("uptake_write_failed", error=str(exc))
 
 
 async def _phase_extract_answer(
@@ -2005,6 +2250,14 @@ async def _phase_extract_answer(
     # `content_candidates` empty — fall back to `content_md` there.
     menu = assemble_menu(fc.content_candidates) or fc.content_md
 
+    # v1 link-affordances: feed the extractor the page's real links so `try_url`
+    # references a `{{n}}` handle instead of guessing a URL. Gated on a pre-LLM
+    # product/listing proxy (structural_form is post-hoc) — the presence of a
+    # json_synth (product schema) or record_synth (listing) candidate. Article
+    # fetches pay nothing.
+    fc.link_digest = _build_link_digest(fc)
+    digest_text = fc.link_digest.render() if fc.link_digest else None
+
     # One unavailability path: resolving the resource (not provisioned) and
     # awaiting the injected provider inside extract() (no provider configured)
     # both raise ResourceUnavailable. Graceful degrade — the fetch succeeded,
@@ -2018,6 +2271,7 @@ async def _phase_extract_answer(
             handler_candidates=handler_candidates_for_llm,
             max_content_chars=fc.max_content_chars,
             request_routing=fc.include_routing,
+            link_digest=digest_text,
         )
     except ResourceUnavailable as exc:
         fc.operator_hints.append(
@@ -2043,7 +2297,13 @@ async def _phase_extract_answer(
             ),
         )
         return
-    fc.extracted_answer = result.answer
+    # Defensive rehydration of the answer text: if the model referenced a link
+    # by its `{{n}}` handle inside its prose (not just in `try_url`), turn that
+    # handle into the real URL rather than leaking `{{n}}` to the caller. Known
+    # handle -> href (an actionable inline link); unknown handle -> removed.
+    # No-op when no digest was fed. Also the seam a future "links in the answer"
+    # eval builds on (findings 2026-07-11-answer-inline-links).
+    fc.extracted_answer = fc.link_digest.rehydrate_text(result.answer) if fc.link_digest else result.answer
 
     # v0.7 link-discovery: validate LLM-supplied URLs against the markdown
     # the LLM was given. URLs not present in the content are dropped with a
@@ -2080,8 +2340,9 @@ async def _phase_extract_answer(
     )
     # v0.21 — surface the router-shape payload for the seam projector. When
     # the model returned malformed JSON or `include_routing=False`, this is
-    # None.
-    fc.routing = result.routing
+    # None. v1 link-affordances: rehydrate `{{n}}` handles → real hrefs against
+    # the closed digest set (unknown handles dropped, never guessed).
+    fc.routing = _rehydrate_routing_handles(result.routing, fc.link_digest)
     # LLM-side partialness detection (superset of the regex oracle) now that the
     # model's `item_total_seen` is available — closes the noun-list language gap.
     _apply_llm_listing_oracle(fc)

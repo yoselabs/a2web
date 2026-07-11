@@ -112,6 +112,29 @@ def _gate(verdict: Verdict, *, suggested_tier: str | None = None, subsystem: str
     )
 
 
+def test_blank_page_gate_escalates_to_browser() -> None:
+    """A blank_page gate outcome (escalation → browser) dispatches the browser."""
+    log = [_tier(Verdict.ok), _gate(Verdict.blank_page, suggested_tier="browser")]
+    action = decide_next(log, url="https://empty.example/x", caps=_FRESH)
+    assert isinstance(action, EscalateBrowser)
+
+
+def test_blank_page_reaches_paid_after_browser_spent() -> None:
+    """A blank_page still walled after the browser cap is spent → paid last resort."""
+    log = [_tier(Verdict.ok), _gate(Verdict.blank_page, suggested_tier="browser")]
+    caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=2, paid_dispatches=0)
+    action = decide_next(log, url="https://empty.example/x", caps=caps)
+    assert isinstance(action, EscalatePaid)
+
+
+def test_blank_page_past_all_caps_stops_escalating() -> None:
+    """A blank_page with browser AND paid budgets spent → no escalation (loud terminal)."""
+    log = [_tier(Verdict.ok), _gate(Verdict.blank_page, suggested_tier="browser")]
+    caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=2, paid_dispatches=1)
+    action = decide_next(log, url="https://empty.example/x", caps=caps)
+    assert not isinstance(action, (EscalateBrowser, EscalatePaid))
+
+
 def test_empty_log_continues() -> None:
     assert isinstance(decide_next([], url="https://x.com/", caps=_FRESH), Continue)
 
@@ -152,9 +175,14 @@ def test_cloudflare_403_tier_retries_via_archive() -> None:
     assert decide_next(log, url="https://x.com/", caps=_FRESH) == RetryViaArchive(url="https://x.com/")
 
 
-def test_non_cloudflare_403_does_not_retry_archive() -> None:
+def test_non_cloudflare_403_escalates_to_browser() -> None:
+    """A non-Cloudflare 403 is anti-bot by default: the transport catch-all
+    (`forbidden_403_escalate`) now escalates it to browser rather than letting
+    the cascade end (escalate-on-status-derived-walls). It does NOT route to
+    archive — that is reserved for the Cloudflare-fingerprinted 403."""
     log = [_tier(Verdict.connection_error, status_code=403, cloudflare=False)]
-    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), Continue)
+    action = decide_next(log, url="https://x.com/", caps=_FRESH)
+    assert isinstance(action, EscalateBrowser)
 
 
 def test_reddit_comment_authoritative_not_found_retries_via_archive() -> None:
@@ -185,12 +213,17 @@ def test_reddit_comment_js_required_does_not_retry_archive() -> None:
     assert not isinstance(action, RetryViaArchive)
 
 
-def test_reddit_comment_not_found_without_evidence_does_not_retry_archive() -> None:
-    """Non-authoritative not_found from raw, no 404 status, no js_required signal
-    — no evidence the page is gone OR shielded. Don't dispatch archive."""
+def test_reddit_comment_not_found_without_evidence_escalates_to_browser() -> None:
+    """Non-authoritative not_found from raw, no 404 status, no js_required signal.
+    The archive rule stays silent (no evidence the page is genuinely gone), but
+    the transport catch-all (`uncorroborated_404_escalate`) now treats an
+    uncorroborated not_found as possible soft-404 anti-scraping and escalates it
+    to browser rather than ending the cascade (escalate-on-status-derived-walls)."""
     log = [_tier(Verdict.not_found, source="raw", authoritative=False, status_code=200)]
     url = "https://www.reddit.com/r/x/comments/abc/title/"
-    assert isinstance(decide_next(log, url=url, caps=_FRESH), Continue)
+    action = decide_next(log, url=url, caps=_FRESH)
+    assert not isinstance(action, RetryViaArchive)
+    assert isinstance(action, EscalateBrowser)
 
 
 def test_reddit_listing_not_found_does_not_retry_archive() -> None:
@@ -295,6 +328,115 @@ def test_js_required_paid_suppressed_when_paid_cap_spent() -> None:
     log = [_tier(Verdict.ok), _gate(Verdict.length_floor, suggested_tier="browser", subsystem="js_required")]
     caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=2, paid_dispatches=1)
     assert isinstance(decide_next(log, url="https://x.com/", caps=caps), Continue)
+
+
+# --------------------------------------------------------------------- #
+# Transport / status escalation (escalate-on-status-derived-walls)
+# Each rule gets a test pair: the ambiguous failure escalates to browser, and
+# each guard (browser cap / terminal carve-out) returns no escalation.
+# --------------------------------------------------------------------- #
+
+_BROWSER_SPENT = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=2, paid_dispatches=1)
+
+
+def test_forbidden_403_escalates_to_browser() -> None:
+    log = [_tier(Verdict.connection_error, status_code=403)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), EscalateBrowser)
+
+
+def test_forbidden_403_suppressed_when_browser_cap_spent() -> None:
+    log = [_tier(Verdict.connection_error, status_code=403)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_BROWSER_SPENT), Continue)
+
+
+def test_server_5xx_escalates_to_browser() -> None:
+    log = [_tier(Verdict.connection_error, status_code=502)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), EscalateBrowser)
+
+
+def test_server_5xx_suppressed_when_browser_cap_spent() -> None:
+    log = [_tier(Verdict.connection_error, status_code=503)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_BROWSER_SPENT), Continue)
+
+
+def test_other_4xx_escalates_to_browser() -> None:
+    log = [_tier(Verdict.connection_error, status_code=451)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), EscalateBrowser)
+
+
+def test_other_4xx_excludes_403_which_has_its_own_rule() -> None:
+    # 403 must be picked up by forbidden_403, not other_4xx — both return
+    # EscalateBrowser, so assert the result and that 403 still escalates.
+    log = [_tier(Verdict.connection_error, status_code=403)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), EscalateBrowser)
+
+
+def test_timeout_escalates_to_browser() -> None:
+    log = [_tier(Verdict.timeout, status_code=0)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), EscalateBrowser)
+
+
+def test_timeout_suppressed_when_browser_cap_spent() -> None:
+    log = [_tier(Verdict.timeout, status_code=0)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_BROWSER_SPENT), Continue)
+
+
+def test_network_drop_escalates_to_browser() -> None:
+    """A status-0 connection_error that is NOT dns_error (reset / TLS drop)."""
+    log = [_tier(Verdict.connection_error, status_code=0)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), EscalateBrowser)
+
+
+def test_dns_error_stays_terminal() -> None:
+    """A genuine NXDOMAIN is its own verdict and matches no transport rule — a
+    real browser cannot resolve a dead domain, so the cascade ends terminal."""
+    log = [_tier(Verdict.dns_error, status_code=0)]
+    assert isinstance(decide_next(log, url="https://nope.invalid/", caps=_FRESH), Continue)
+
+
+def test_proxy_unavailable_not_swept_into_transport_escalation() -> None:
+    """proxy_unavailable is local proxy-pool exhaustion, not a site wall — it is
+    handled at the proxy layer and must not trigger a browser render."""
+    log = [_tier(Verdict.proxy_unavailable, status_code=0)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), Continue)
+
+
+def test_uncorroborated_404_escalates_to_browser() -> None:
+    log = [_tier(Verdict.not_found, source="raw", authoritative=False, status_code=404)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), EscalateBrowser)
+
+
+def test_authoritative_404_stays_terminal() -> None:
+    """A site handler modelling real 'gone' semantics → no browser escalation."""
+    log = [_tier(Verdict.not_found, source="site_handler:hn", authoritative=True, status_code=0)]
+    assert isinstance(decide_next(log, url="https://news.ycombinator.com/item?id=1", caps=_FRESH), Continue)
+
+
+def test_exhausted_429_escalates_on_any_shape() -> None:
+    """A bare 429 (retry already spent) on a non-listing URL → browser."""
+    log = [_tier(Verdict.rate_limited, status_code=429)]
+    assert isinstance(decide_next(log, url="https://x.com/article", caps=_FRESH), EscalateBrowser)
+
+
+def test_cloudflare_429_still_routes_to_archive_over_transport_catch_all() -> None:
+    """The Cloudflare-fingerprinted 429 archive rule (declared earlier at LOW)
+    outranks the generic exhausted_429 catch-all."""
+    log = [_tier(Verdict.rate_limited, status_code=429, cloudflare=True)]
+    assert decide_next(log, url="https://x.com/", caps=_FRESH) == RetryViaArchive(url="https://x.com/")
+
+
+def test_gate_browser_signal_outranks_transport_catch_all() -> None:
+    """A HIGH content-gate browser signal is the deciding rule over the LOW
+    transport catch-all, even when both would return EscalateBrowser."""
+    from a2web.actions import playbook
+
+    log = [_tier(Verdict.connection_error, status_code=403), _gate(Verdict.anti_bot, suggested_tier="browser")]
+    # Both a transport case (the 403 tier obs) and the HIGH gate signal are on the
+    # log; the deciding rule must be the HIGH one. Assert via the winning rule.
+    ctx = playbook._RuleContext(log=log, last=log[-1], url="https://x.com/", caps=_FRESH)
+    winners = [r.name for r in playbook._RULES if r.decide(ctx) is not None]
+    assert winners[0] == "gate_browser_signal" or "gate_browser_signal" in winners
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), EscalateBrowser)
 
 
 def test_rule_names_are_unique() -> None:

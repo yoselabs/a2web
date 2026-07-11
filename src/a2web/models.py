@@ -32,9 +32,11 @@ class Verdict(StrEnum):
     paywall = "paywall"
     block_page_detected = "block_page_detected"
     anti_bot = "anti_bot"
+    blank_page = "blank_page"
     length_floor = "length_floor"
     content_type_mismatch = "content_type_mismatch"
     connection_error = "connection_error"
+    dns_error = "dns_error"
     timeout = "timeout"
     not_found = "not_found"
     rate_limited = "rate_limited"
@@ -118,14 +120,19 @@ class OperatorHint(BaseModel):
 
     @model_serializer(mode="wrap")
     def _omit_default_severity(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
-        """Drop `severity` from the wire when it is the default `info`.
+        """Drop `severity` from the wire when it is the default `info`, and
+        drop `fix` when it carries no actual guidance (`None` or `""`).
 
         Keeps existing operator-hint snapshots stable — only a `critical`
-        hint (e.g. `try_user_browser`) surfaces the new key.
+        hint (e.g. `try_user_browser`) surfaces the new `severity` key, and a
+        hint with no remediation step (e.g. `content_guidance`, which is pure
+        informational context) omits `fix` rather than emitting a dead `""`.
         """
         data = handler(self)
         if data.get("severity") == "info":
             data.pop("severity", None)
+        if not data.get("fix"):
+            data.pop("fix", None)
         return data
 
 
@@ -309,28 +316,31 @@ Shape = Literal[
     "discussion",
     "mixed",
 ]
-Genre = Literal[
-    "news",
-    "encyclopedia",
-    "spec",
-    "paper",
-    "personal",
-    "official",
-    "community",
-]
 Obstacle = Literal["paywalled", "blocked", "empty", "error"]
 
 
 class NextUrl(BaseModel):
     """One curated drilldown URL emitted in the router-shape payload.
 
-    `url` MUST appear verbatim in the page content sent to the model;
-    enforcement is best-effort at the seam (model misbehavior shouldn't fail
-    the whole fetch). `reason` is the model's question-conditioned justification.
+    `url` is rehydrated server-side from a `{{n}}` link-digest handle the model
+    emitted (closed-set — a handle the digest doesn't know is dropped, never
+    guessed). `reason` is the model's question-conditioned justification.
+    `off_domain` marks a target on a different registrable domain than the
+    fetched page: its anchor text is attacker-controllable, so the caller treats
+    it with caution (design D11). Omitted from the wire when False.
     """
 
     url: str
     reason: str
+    off_domain: bool = False
+
+    @model_serializer
+    def _wire(self) -> dict[str, object]:
+        """Omit `off_domain` when False — absence carries "same-domain"."""
+        out: dict[str, object] = {"url": self.url, "reason": self.reason}
+        if self.off_domain:
+            out["off_domain"] = True
+        return out
 
 
 class ListingOption(BaseModel):
@@ -367,9 +377,13 @@ class RouterPayload(BaseModel):
     """Router-shape payload emitted by the `extract_router_v1` template.
 
     Three required fields (`answer`, `structural_form`, `shape`) describe what
-    the page IS. Four conditional fields (`genre`, `obstacle`, `ask_here`,
-    `try_url`) describe what it's ABOUT plus drilldown hints; the serializer
-    on `AskResponse` omits the conditionals from the wire when empty.
+    the page IS. Three conditional fields (`obstacle`, `ask_here`,
+    `try_url`) describe drilldown hints. This is the internal LLM-parse
+    boundary type — `structural_form`/`shape` are consumed internally
+    (`content_guidance.kind_guidance()`, the `refinement_axes` gate) but are
+    NOT projected onto the `AskResponse` wire (`drop-structural-form-shape-
+    wire`); only `answer` plus the three conditionals reach the wire, and the
+    serializer on `AskResponse` omits those conditionals when empty.
     `refinement_axes` carries content-aware refinement guidance for a partial
     listing (dimensional only); it too is omit-empty at the wire.
     """
@@ -377,7 +391,6 @@ class RouterPayload(BaseModel):
     answer: str
     structural_form: StructuralForm
     shape: Shape
-    genre: Genre | None = None
     obstacle: Obstacle | None = None
     ask_here: list[str] = Field(default_factory=list)
     try_url: list[NextUrl] = Field(default_factory=list)
@@ -698,13 +711,19 @@ class AskResponse(BaseModel):
     cache: CacheState | None = None
     diagnostics: list[Diagnostic] = Field(default_factory=list)
 
-    # v0.21 router-shape fields. Required when extraction succeeded;
-    # `_envelope_discipline` (the model_serializer below) omits the conditionals
-    # (genre / obstacle / ask_here / try_url) when None / empty. All seven fields
-    # are absent on the wire when extraction was skipped or the parser failed.
-    structural_form: StructuralForm | None = None
-    shape: Shape | None = None
-    genre: Genre | None = None
+    # v0.21 router-shape fields, narrowed to four (`answer` above + these
+    # three) by `drop-structural-form-shape-wire`. `_envelope_discipline` (the
+    # model_serializer below) omits the conditionals (obstacle / ask_here /
+    # try_url) when None / empty. All four fields are absent on the wire when
+    # extraction was skipped or the parser failed. `genre` was removed earlier
+    # (no downstream consumer — see ask-extraction-token-tuning).
+    # `structural_form`/`shape` are NOT projected onto this wire model —
+    # `RouterPayload` (the internal LLM-parse boundary) still requires both,
+    # and internal consumers (`content_guidance.kind_guidance()`, the
+    # `refinement_axes` gate) read `routing.structural_form` directly; `shape`
+    # had no internal consumer at all, and `structural_form`'s only two
+    # consumers already surface their own derived output on the wire, making
+    # the raw enum redundant. See `drop-structural-form-shape-wire` design.md.
     obstacle: Obstacle | None = None
     ask_here: list[str] = Field(default_factory=list)
     try_url: list[NextUrl] = Field(default_factory=list)
@@ -719,8 +738,8 @@ class AskResponse(BaseModel):
 
     @model_serializer(mode="wrap")
     def _envelope_discipline(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
-        # Omit-empty for the 4 conditional router-shape fields lives inside
-        # `_prune_wire`'s generic empty-drop path: `genre` / `obstacle` are
+        # Omit-empty for the 3 conditional router-shape fields lives inside
+        # `_prune_wire`'s generic empty-drop path: `obstacle` is
         # None when not applicable; `ask_here` / `try_url` are `[]`. The shared
         # helper drops them automatically; the only AskResponse-specific bit is
         # not adding them to `required` so they pass through the empty filter.

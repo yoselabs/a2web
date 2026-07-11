@@ -1,9 +1,18 @@
 """Playbook — the pure planner that maps the decision log to a follow-up action.
 
-`decide_next` is the single escalation-policy function: given the append-only
-observation log, the request URL, and the per-fetch caps, it returns exactly
-one `Action`. The orchestrator is a pure executor of that action — it holds no
-escalation policy of its own. (Phase 2 of `cascade-decision-log`.)
+`decide_next` is the single policy function for the planner-driven **cascade**
+escalation: given the append-only observation log, the request URL, and the
+per-fetch caps, it returns exactly one `Action`, dispatched by the one unified
+executor `fetcher._dispatch_action` (unify-escalation-executor). For the cascade
+(tier-walk + post-gate), the orchestrator holds no escalation policy of its own.
+(Phase 2 of `cascade-decision-log`.)
+
+NOTE: the post-extraction *completeness* escalations — the obstacle-driven
+render, the listing scroll render, and the handler `escalate_to_render` ladder —
+are NOT yet planner rules; their policy still lives in dedicated fetcher phases.
+Folding them into `decide_next` (Finding 2) is a documented follow-up change
+(`single-source-escalation-policy`), which also designs the `EscalatePaid(scroll=…)`
+Action variant those renders need.
 
 Imports nothing from `a2web.fetcher` — no I/O, no circular deps.
 
@@ -215,10 +224,123 @@ def _decide_gate_paywall_or_block_archive(ctx: _RuleContext) -> Action | None:
     return None
 
 
-# Wall verdicts a paid last-resort tier can plausibly pass. Mirrors
-# fetcher._WALL_VERDICTS (kept separate to preserve the no-import-from-fetcher
-# invariant of the playbook module).
-_PAID_WALL_VERDICTS = (Verdict.paywall, Verdict.block_page_detected, Verdict.anti_bot)
+# --- Transport / status escalation (the catch-all floor) ------------------
+#
+# A bare transport/status tier failure (403, 5xx, other-4xx, timeout, a network
+# drop, an uncorroborated 404, an exhausted 429) is AMBIGUOUS: a WAF forges any
+# of these to shed anonymous scrapers, so a status code alone must never end the
+# cascade. These rules route every ambiguous class into `EscalateBrowser` — the
+# free self-hosted rung — so no URL falls off the tree without the browser (and,
+# via `paid_last_resort`, paid) having been attempted (ADR-0009).
+#
+# They sit at LOW priority, declared AFTER the specific archive heuristics and
+# BEFORE `paid_last_resort`, so a more-specific content/gate/archive signal
+# always wins and browser is always tried before paid egress. Each reads only the
+# `(verdict, status_code)` already on the last tier observation — no new tier
+# verdicts. Three failures are deliberately NOT here (they stay terminal): a
+# genuine `dns_error` (a distinct verdict — a real browser can't resolve a dead
+# domain), an authoritative `not_found` (a site handler modelling real "gone"
+# semantics), and `proxy_unavailable` (local proxy-pool exhaustion, handled at
+# the proxy layer, not a site wall) — each is simply not `connection_error`, so
+# no rule below matches it.
+
+
+def _last_tier_failure(ctx: _RuleContext) -> Observation | None:
+    """The last observation iff it is a tier failure with browser budget to spend.
+
+    The shared guard for every transport rule: the discriminator is a
+    `tier_outcome` observation, and the browser cap (`< 2`) makes the rules
+    unable to re-fire past the fast→robust browser ladder.
+    """
+    last = ctx.last
+    if last is None or last.kind is not ObservationKind.tier_outcome:
+        return None
+    if ctx.caps.browser_dispatches >= 2:
+        return None
+    return last
+
+
+def _decide_forbidden_403_escalate(ctx: _RuleContext) -> Action | None:
+    """A 403 is anti-bot by default (near-certain) → browser."""
+    last = _last_tier_failure(ctx)
+    if last is not None and last.verdict is Verdict.connection_error and last.status_code == 403:
+        return EscalateBrowser()
+    return None
+
+
+def _decide_server_5xx_escalate(ctx: _RuleContext) -> Action | None:
+    """A 5xx is ambiguous (a fake outage is a real WAF tactic) → browser."""
+    last = _last_tier_failure(ctx)
+    if last is not None and last.verdict is Verdict.connection_error and last.status_code >= 500:
+        return EscalateBrowser()
+    return None
+
+
+def _decide_other_4xx_escalate(ctx: _RuleContext) -> Action | None:
+    """Any other 4xx (excl. 403; 404/429 are their own verdicts) → browser.
+
+    401/451 are NOT carved out: a WAF issues them too, and the capped browser
+    attempt costs little; a genuine auth wall still ends in the loud terminal.
+    """
+    last = _last_tier_failure(ctx)
+    if last is not None and last.verdict is Verdict.connection_error and 400 <= last.status_code < 500 and last.status_code != 403:
+        return EscalateBrowser()
+    return None
+
+
+def _decide_timeout_escalate(ctx: _RuleContext) -> Action | None:
+    """A timeout is ambiguous (tarpitting) → browser."""
+    last = _last_tier_failure(ctx)
+    if last is not None and last.verdict is Verdict.timeout:
+        return EscalateBrowser()
+    return None
+
+
+def _decide_network_drop_escalate(ctx: _RuleContext) -> Action | None:
+    """A status-0 connection/TLS drop that is NOT DNS → browser.
+
+    `dns_error` is a distinct verdict (terminal) and `proxy_unavailable` is its
+    own verdict too, so both are excluded by the `connection_error` check — only
+    a genuine network-layer block (reset / TLS handshake drop, a JA3/JA4 shed)
+    reaches here, and a real browser may pass it.
+    """
+    last = _last_tier_failure(ctx)
+    if last is not None and last.verdict is Verdict.connection_error and last.status_code == 0:
+        return EscalateBrowser()
+    return None
+
+
+def _decide_uncorroborated_404_escalate(ctx: _RuleContext) -> Action | None:
+    """A non-authoritative 404 (soft-404 anti-scraping) → browser.
+
+    An AUTHORITATIVE `not_found` (a site handler modelling the site's real "gone"
+    semantics) is excluded and stays terminal. Declared below the MEDIUM
+    Reddit-comment archive rule, so a genuinely-gone Reddit thread still routes to
+    archive rather than a wasted browser render.
+    """
+    last = _last_tier_failure(ctx)
+    if last is not None and last.verdict is Verdict.not_found and not last.authoritative:
+        return EscalateBrowser()
+    return None
+
+
+def _decide_exhausted_429_escalate(ctx: _RuleContext) -> Action | None:
+    """A rate_limited verdict (the tier already spent its retry/backoff) → browser.
+
+    Generalizes the prior search/listing-only 429 render escalation to every URL
+    shape. A Cloudflare 429 is handled by the earlier-declared archive rule (more
+    specific); this is the catch-all for a bare 429 from any tier.
+    """
+    last = _last_tier_failure(ctx)
+    if last is not None and last.verdict is Verdict.rate_limited:
+        return EscalateBrowser()
+    return None
+
+
+# Content-wall verdicts a paid last-resort tier can plausibly pass. Kept as its
+# own tuple to preserve the no-import-from-fetcher invariant of the playbook
+# module (fetcher's never-silently-miss floor is a separate, broader concern).
+_PAID_WALL_VERDICTS = (Verdict.paywall, Verdict.block_page_detected, Verdict.anti_bot, Verdict.blank_page)
 
 
 def _is_paid_worthy_wall(obs: Observation) -> bool:
@@ -278,6 +400,16 @@ _RULES: tuple[PlannerRule, ...] = (
         priority=RulePriority.LOW,
         decide=_decide_gate_paywall_or_block_archive,
     ),
+    # Transport/status catch-all floor (LOW): declared AFTER the specific archive
+    # heuristics so a Cloudflare 403/429 still routes to archive, and BEFORE
+    # `paid_last_resort` so the free browser is always tried before paid egress.
+    PlannerRule(name="forbidden_403_escalate", priority=RulePriority.LOW, decide=_decide_forbidden_403_escalate),
+    PlannerRule(name="server_5xx_escalate", priority=RulePriority.LOW, decide=_decide_server_5xx_escalate),
+    PlannerRule(name="other_4xx_escalate", priority=RulePriority.LOW, decide=_decide_other_4xx_escalate),
+    PlannerRule(name="timeout_escalate", priority=RulePriority.LOW, decide=_decide_timeout_escalate),
+    PlannerRule(name="network_drop_escalate", priority=RulePriority.LOW, decide=_decide_network_drop_escalate),
+    PlannerRule(name="uncorroborated_404_escalate", priority=RulePriority.LOW, decide=_decide_uncorroborated_404_escalate),
+    PlannerRule(name="exhausted_429_escalate", priority=RulePriority.LOW, decide=_decide_exhausted_429_escalate),
     # Declared LAST: the paid last resort only fires when every rule above
     # returns None (free/proxied ladder + browser + archive all exhausted).
     PlannerRule(

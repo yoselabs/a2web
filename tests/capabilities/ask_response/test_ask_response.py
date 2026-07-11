@@ -346,3 +346,64 @@ async def test_ask_url_carried_when_host_rewritten(monkeypatch: pytest.MonkeyPat
         question="q?",
     )
     assert data["url"].startswith("https://duckduckgo.com/html/")
+
+
+# --------------------------------------------------------------------- #
+# meta allowlist (ask-extraction-token-tuning)
+# --------------------------------------------------------------------- #
+
+# A page carrying both allowlisted (og:description) and non-allowlisted
+# (og:title, og:site_name, og:image, og:image:width, twitter:card,
+# twitter:label1) metadata — og:title duplicates the promoted `title` field
+# and og:site_name duplicates the domain already visible in the requested URL.
+_RICH_META_HTML = (
+    b"<html><head>"
+    b'<meta property="og:title" content="Rich Meta Post">'
+    b'<meta property="og:description" content="A post with curated-worthy metadata.">'
+    b'<meta property="og:site_name" content="Example Site">'
+    b'<meta property="og:image" content="https://example.org/cover.jpg">'
+    b'<meta property="og:image:width" content="1200">'
+    b'<meta name="twitter:card" content="summary_large_image">'
+    b'<meta name="twitter:label1" content="Written by">'
+    b"</head><body><main>" + b"<p>Adaptive web fetching keeps the calling agent's context small.</p>" * 30 + b"</main></body></html>"
+)
+
+
+async def _fetch_raw_wire(monkeypatch: pytest.MonkeyPatch, *, body: bytes, **kwargs: object) -> dict:
+    monkeypatch.setitem(REGISTRY, "raw", _RawStub(body))
+    app = build_app()
+    async with make_client(app) as client:
+        wire = await client.call_wire("fetch_raw", **kwargs)
+    return json.loads(wire)
+
+
+@pytest.mark.asyncio
+async def test_ask_meta_curates_to_allowlist(monkeypatch: pytest.MonkeyPatch) -> None:
+    data = await _ask_wire(monkeypatch, body=_RICH_META_HTML, url="https://example.org/post", question="q?")
+    assert data["meta"] == {
+        "og.description": "A post with curated-worthy metadata.",
+    }
+    assert "og.title" not in data["meta"]  # duplicates the promoted `title` field
+    assert "og.site_name" not in data["meta"]  # duplicates the domain in the URL
+    assert "og.image" not in data["meta"]
+    assert "og.image:width" not in data["meta"]
+    assert "twitter.card" not in data["meta"]
+    assert "twitter.label1" not in data["meta"]
+
+
+@pytest.mark.asyncio
+async def test_ask_meta_omitted_when_curation_leaves_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
+    # blog.html carries only non-allowlisted keys (og.type/title/image/url,
+    # twitter.card/site) — curation leaves an empty dict, which is omitted.
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    assert "meta" not in data
+
+
+@pytest.mark.asyncio
+async def test_fetch_raw_meta_keeps_full_uncurated_dict(monkeypatch: pytest.MonkeyPatch) -> None:
+    data = await _fetch_raw_wire(monkeypatch, body=_RICH_META_HTML, url="https://example.org/post")
+    assert data["meta"]["og.title"] == "Rich Meta Post"
+    assert data["meta"]["og.description"] == "A post with curated-worthy metadata."
+    assert data["meta"]["og.site_name"] == "Example Site"
+    assert data["meta"]["og.image"] == "https://example.org/cover.jpg"
+    assert data["meta"]["twitter.card"] == "summary_large_image"

@@ -36,13 +36,15 @@ def _has_wobble(records: list[dict], boundary: str) -> bool:
     return any(r.get("event") == "llm_wobble" and r.get("boundary") == boundary for r in records)
 
 
-def test_extractor_routing_emits_wobble_on_missing_genre() -> None:
+def test_extractor_routing_emits_wobble_on_missing_optionals() -> None:
     raw = json.dumps(
         {
             "answer": "rust borrow checker",
             "structural_form": "reference",
             "shape": "prose",
-            # genre / obstacle / ask_here / try_url all missing → DEFAULT recovery
+            # obstacle / ask_here / try_url all missing → DEFAULT recovery.
+            # (`genre` was removed entirely — no wobble policy entry, no field
+            # to recover — see ask-extraction-token-tuning.)
         }
     )
     with capture_a2kit_logs() as records:
@@ -53,9 +55,10 @@ def test_extractor_routing_emits_wobble_on_missing_genre() -> None:
     assert hasattr(wobbled, "value")
     assert hasattr(wobbled, "recovered_fields")
     assert answer == "rust borrow checker"
-    # all four optional fields wobbled
+    # all three optional fields wobbled
     fields = {r.get("field") for r in records if r.get("event") == "llm_wobble"}
-    assert {"genre", "obstacle", "ask_here", "try_url"} <= fields
+    assert {"obstacle", "ask_here", "try_url"} <= fields
+    assert "genre" not in fields
 
 
 def test_extractor_next_links_emits_wobble_on_dropped_entries() -> None:

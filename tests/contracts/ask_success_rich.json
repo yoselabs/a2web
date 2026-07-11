@@ -2,19 +2,6 @@
   "answer": "The page is about adaptive web fetching.",
   "byline": "Jane Doe",
   "confidence": "high",
-  "meta": {
-    "jsonld[0].@context": "https://schema.org",
-    "jsonld[0].@type": "Article",
-    "jsonld[0].articleSection": "Engineering",
-    "jsonld[0].datePublished": "2026-04-01T09:00:00Z",
-    "jsonld[0].headline": "How adaptive web fetching saves agent tokens",
-    "og.image": "https://example.org/cover.jpg",
-    "og.title": "How adaptive web fetching saves agent tokens",
-    "og.type": "article",
-    "og.url": "https://example.org/post/adaptive-fetching",
-    "twitter.card": "summary_large_image",
-    "twitter.site": "@example"
-  },
   "next_links": "anchor\turl\treason\tkind\nRelated\thttps://example.org/related\trelated read\trelated\n",
   "published": "2026-04-01",
   "title": "How adaptive web fetching saves agent tokens"

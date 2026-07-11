@@ -135,10 +135,10 @@ class WebRouter(a2kit.Router):
             pydantic.Field(
                 description=(
                     "Include the router-shape fields on the response. Default True. "
-                    "Router-shape adds seven fields (`structural_form`, `shape`, "
-                    "`genre`, `obstacle`, `ask_here`, `try_url`, plus `answer`) "
-                    "describing what the page IS and ABOUT, plus same-URL follow-up "
-                    "questions and different-URL drilldowns. Same extraction call. "
+                    "Router-shape adds three conditional fields (`obstacle`, "
+                    "`ask_here`, `try_url`, plus the always-present `answer`) "
+                    "describing same-URL follow-up questions and different-URL "
+                    "drilldowns. Same extraction call. "
                     "Opt out for the lean v0.14 envelope or high-volume cost-sensitive "
                     "flows."
                 ),

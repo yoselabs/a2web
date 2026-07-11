@@ -24,6 +24,32 @@ from .escalation import EscalationSignal
 
 LENGTH_FLOOR = 500
 
+# A raw body whose VISIBLE text (script/style/tags stripped, whitespace
+# collapsed) is below this is "blank" — an essentially empty document, not
+# merely a short page. Near-zero on purpose: `<html></html>` / an empty shell
+# matches, but a ~480-char stub carrying a real sentence ("JavaScript is
+# disabled…", >32 visible chars) does not. Distinct from `LENGTH_FLOOR`, which
+# gates the EXTRACTED `content_md`; this gates the RAW body's own emptiness.
+BLANK_HTML_THRESHOLD = 32
+
+_SCRIPT_STYLE_BLOCK_RE = re.compile(r"<(script|style)\b[^>]*>.*?</\1>", re.IGNORECASE | re.DOTALL)
+_TAG_RE = re.compile(r"<[^>]+>")
+_WS_RE = re.compile(r"\s+")
+# A page carrying JSON-LD structured data is NOT blank — its answer lives in the
+# markup even when visible text is near-zero (a bare LocalBusiness/Product card).
+# Such pages fall to `length_floor` and the structured-answer exemption, never
+# `blank_page`, so a machine-readable answer is not mistaken for an empty shell.
+_LD_JSON_RE = re.compile(r"""type\s*=\s*["']application/ld\+json""", re.IGNORECASE)
+
+
+def _visible_text_len(raw_html: str) -> int:
+    """Length of the raw body's visible text: drop <script>/<style> blocks and
+    all tags, collapse whitespace. Used to detect an essentially-empty document
+    (a silent-block empty shell) independently of trafilatura extraction."""
+    stripped = _SCRIPT_STYLE_BLOCK_RE.sub(" ", raw_html)
+    stripped = _TAG_RE.sub(" ", stripped)
+    return len(_WS_RE.sub(" ", stripped).strip())
+
 
 class BlockVerdict(StrEnum):
     """Subset of verdicts this detector itself produces.
@@ -37,6 +63,7 @@ class BlockVerdict(StrEnum):
     ok = "ok"
     block_page_detected = "block_page_detected"
     anti_bot = "anti_bot"
+    blank_page = "blank_page"
     length_floor = "length_floor"
     content_type_mismatch = "content_type_mismatch"
 
@@ -232,6 +259,19 @@ def evaluate(
             BlockVerdict.length_floor,
             subsystem="js_required",
             escalation=EscalationSignal(next_tier="browser", reason="js_required"),
+        )
+
+    # Blank page: the raw body itself carries near-zero visible text (an empty
+    # shell, a WAF serving nothing to non-browser clients) — a distinct, higher-
+    # precision signal than extracted-thin `length_floor`. Checked AFTER every
+    # marker/JS-shell branch so a fingerprinted shell keeps its specific verdict;
+    # this is the marker-less near-empty fallthrough. Escalates to browser (a
+    # JS-rendered page can fill an empty shell); the orchestrator carries a still-
+    # blank result to the paid scraper, then the loud blank_page terminal.
+    if len(content_md) < LENGTH_FLOOR and _visible_text_len(raw_html) < BLANK_HTML_THRESHOLD and not _LD_JSON_RE.search(raw_html):
+        return BlockResult(
+            BlockVerdict.blank_page,
+            escalation=EscalationSignal(next_tier="browser", reason="blank_page"),
         )
 
     if len(content_md) < LENGTH_FLOOR:

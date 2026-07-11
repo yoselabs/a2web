@@ -27,8 +27,19 @@ def test_block_page_detected_on_cloudflare_fixture() -> None:
     assert result.verdict == Verdict.block_page_detected
 
 
-def test_length_floor_on_short_extraction() -> None:
+def test_empty_page_is_blank_not_length_floor() -> None:
+    # A genuinely empty document (`<html></html>`, near-zero visible text) is now
+    # a blank_page that escalates — NOT a bare length_floor (escalate-on-thin-page-walls).
     result = evaluate(content_md="hi", raw_html="<html></html>", content_type="text/html")
+    assert result.verdict == Verdict.blank_page
+
+
+def test_thin_but_present_page_stays_length_floor() -> None:
+    # Above the blank visible-text threshold but below the extraction floor → the
+    # thin-but-present page stays a plain length_floor with no escalation.
+    text = "This stub has a little real visible text but is under the floor."
+    html = f"<html><body><p>{text}</p></body></html>"
+    result = evaluate(content_md=text, raw_html=html, content_type="text/html")
     assert result.verdict == Verdict.length_floor
 
 
@@ -159,13 +170,14 @@ def test_substantive_spa_page_is_NOT_escalated() -> None:
     assert result.escalation is None
 
 
-def test_thin_plain_html_no_js_markers_stays_plain_length_floor() -> None:
-    """Truly empty page without JS markers: length_floor with NO browser hint."""
+def test_truly_empty_page_escalates_as_blank() -> None:
+    """A truly empty page (near-zero visible text, no markers) now escalates as a
+    blank_page (escalate-on-thin-page-walls) — the prior 'don't waste a browser on
+    empty pages' stance is reversed: a blank body is a silent-block signal."""
     html = "<html><body><p>tiny</p></body></html>"
     result = evaluate(content_md="hi", raw_html=html, content_type="text/html")
-    assert result.verdict == Verdict.length_floor
-    assert result.subsystem is None  # don't waste a browser dispatch on truly empty pages
-    assert result.escalation is None
+    assert result.verdict == Verdict.blank_page
+    assert result.escalation is not None and result.escalation.next_tier == "browser"
 
 
 def test_thin_with_noscript_alone_suggests_browser() -> None:

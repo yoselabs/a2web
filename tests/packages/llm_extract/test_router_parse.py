@@ -60,13 +60,17 @@ def _obstacle_envelope() -> str:
 
 
 def test_healthy_payload_parses_full_shape() -> None:
+    """The `genre` key in `_healthy_envelope()` is a stray key from a
+    non-conforming/stale-prompt response — it's silently ignored (no `genre`
+    field exists on `RouterPayload` to receive it), the rest of the envelope
+    parses normally."""
     answer, payload = _routing(_healthy_envelope())
     assert answer.startswith("Rust's borrow checker")
     assert payload is not None
     assert payload.answer == answer
     assert payload.structural_form == "reference"
     assert payload.shape == "prose"
-    assert payload.genre == "encyclopedia"
+    assert not hasattr(payload, "genre")
     assert payload.obstacle is None
     assert len(payload.ask_here) == 3
     assert payload.try_url == ()
@@ -82,7 +86,6 @@ def test_minimal_payload_omits_optionals() -> None:
     )
     _, payload = _routing(text)
     assert payload is not None
-    assert payload.genre is None
     assert payload.obstacle is None
     assert payload.ask_here == ()
     assert payload.try_url == ()
@@ -197,6 +200,47 @@ def test_try_url_with_bad_entry_drops_only_that_entry() -> None:
     assert payload is not None
     assert len(payload.try_url) == 1
     assert payload.try_url[0].url == "https://good.example/"
+
+
+def test_try_url_handle_parses_to_boundary_with_empty_url() -> None:
+    """The digest path: `{handle, reason}` → boundary carrying the handle,
+    url empty (the domain seam rehydrates it from the closed digest set)."""
+    text = json.dumps(
+        {
+            "answer": "Reviews are on a separate page.",
+            "structural_form": "product",
+            "shape": "key-value",
+            "try_url": [
+                {"handle": 3, "reason": "customer reviews live here"},
+            ],
+        }
+    )
+    _, payload = _routing(text)
+    assert payload is not None
+    assert len(payload.try_url) == 1
+    entry = payload.try_url[0]
+    assert entry.handle == 3
+    assert entry.url == ""
+    assert entry.reason == "customer reviews live here"
+
+
+def test_try_url_handle_wins_over_url_and_rejects_bool_handle() -> None:
+    text = json.dumps(
+        {
+            "answer": "OK.",
+            "structural_form": "product",
+            "shape": "key-value",
+            "try_url": [
+                {"handle": 2, "url": "https://ignored.example/", "reason": "prefer handle"},
+                {"handle": True, "reason": "bool is not a handle — falls through, no url, drops"},
+            ],
+        }
+    )
+    _, payload = _routing(text)
+    assert payload is not None
+    assert len(payload.try_url) == 1
+    assert payload.try_url[0].handle == 2
+    assert payload.try_url[0].url == ""
 
 
 def test_ask_here_drops_non_strings_and_empties() -> None:

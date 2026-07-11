@@ -80,9 +80,11 @@ def test_cloudflare_just_a_moment_still_detected() -> None:
 
 
 def test_length_floor_without_block_markers() -> None:
-    """Short content without any block markers → length_floor, not block_page."""
-    body = "<html><body><p>tiny</p></body></html>"
-    result = _eval(body, content_md="tiny")
+    """Short content without any block markers → length_floor, not block_page.
+    Thin-but-present (above the blank visible-text threshold) so this stays a
+    length_floor about block-pattern absence, not a near-empty blank_page."""
+    body = "<html><body><p>A short paragraph of real text, thin but present.</p></body></html>"
+    result = _eval(body, content_md="A short paragraph of real text, thin but present.")
     assert result.verdict == BlockVerdict.length_floor
     assert result.subsystem is None
 
@@ -126,10 +128,13 @@ def test_generic_custom_element_marker_triggers_browser_escalation() -> None:
 def test_hyphenated_attributes_alone_do_not_trigger() -> None:
     """Static HTML with `data-foo="x-y-z"` / `class="my-cmp"` but NO
     hyphenated tag names AND no challenge form must not be misclassified."""
-    body = '<html><body><div data-foo="x-y-z" class="my-cmp">tiny</div><script>noop()</script></body></html>'
-    result = _eval(body, content_md="tiny")
+    text = "A thin but present body with real visible words here."
+    body = f'<html><body><div data-foo="x-y-z" class="my-cmp">{text}</div><script>noop()</script></body></html>'
+    result = _eval(body, content_md=text)
     # length_floor still fires (body IS thin), but no js_required signal —
     # so no `suggested_tier` and the planner does not escalate to browser.
+    # Thin-but-present (above the blank threshold) so this isolates the marker
+    # false-positive check from blank-page detection.
     assert result.verdict == BlockVerdict.length_floor
     assert result.subsystem is None
     assert result.escalation is None
@@ -155,8 +160,9 @@ def test_generic_solution_field_alone_does_not_trigger() -> None:
     must NOT trigger js_required on its own. We deliberately scoped the
     Reddit markers tightly (`js_challenge` / `jsc_orig_r`) to avoid this
     false positive."""
-    body = '<html><body><form><label>Answer:</label><input name="solution" /></form><script>noop()</script></body></html>'
-    result = _eval(body, content_md="tiny")
+    text = "Answer this short but real quiz question below:"
+    body = f'<html><body><form><label>{text}</label><input name="solution" /></form><script>noop()</script></body></html>'
+    result = _eval(body, content_md=text)
     assert result.verdict == BlockVerdict.length_floor
     assert result.subsystem is None
     assert result.escalation is None

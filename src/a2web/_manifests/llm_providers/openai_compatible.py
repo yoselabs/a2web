@@ -101,11 +101,7 @@ def _build(settings: AppSettings) -> Provider | Unavailable:
     )
     if not adapter.available():
         return Unavailable(
-            str(
-                LLMNotAvailable(
-                    f"No OpenAI-compatible API key found. Set the {settings.llm_openai_api_key_env} environment variable."
-                )
-            )
+            str(LLMNotAvailable(f"No OpenAI-compatible API key found. Set the {settings.llm_openai_api_key_env} environment variable."))
         )
     log_info(
         "openai_compatible.active",

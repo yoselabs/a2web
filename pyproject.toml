@@ -50,10 +50,13 @@ dependencies = [
     "browser-cookies>=0.1,<1",
     # content-extract: page -> structured content (body md via convert-md's convert_html,
     # + title/byline/date + headings/links). Promoted to the shelf, adopted back (was
-    # packages/content_extract). Pulls convert-md v0.3.0 BASE (trafilatura + html2text
-    # only) — the heavy document engines (docling/pandoc/office) stay behind convert-md's
-    # [documents] extra, which a2web does NOT install, so cold-start stays slim and
-    # docling's typer<0.13 pin never collides with a2kit's Typer CLI.
+    # packages/content_extract). v0.2.0 (link-affordances EVOLVE): extract_markdown gained
+    # an `include_links=` passthrough (in-body anchors as markdown, off by default — a2web
+    # flip gated on bench) and now retains label-less mailto:/tel: with an href-derived
+    # label (live). Pulls convert-md v0.8.0 BASE (trafilatura + html2text only, + its
+    # include_links param) — the heavy document engines (docling/pandoc/office) stay behind
+    # convert-md's [documents] extra, which a2web does NOT install, so cold-start stays slim
+    # and docling's typer<0.13 pin never collides with a2kit's Typer CLI.
     "content-extract>=0.1,<1",
     # anyllm: the LLM-provider contract (LLMProvider Protocol + Completion + PromptParts)
     # and its adapters (Anthropic Messages API, Claude Code SDK OS-session, OpenAI-compatible)
@@ -178,14 +181,14 @@ a2web-serve = "a2web.server:serve_http_main"
 
 [tool.uv.sources]
 a2kit = { git = "https://github.com/yoselabs/a2kit.git", tag = "v0.49.2" }
-http-fetch = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-fetch", tag = "http-fetch-v0.1.0" }
+http-fetch = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-fetch", tag = "http-fetch-v0.2.0" }
 sqlite-resource = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/sqlite-resource", tag = "sqlite-resource-v0.1.0" }
 http-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-cache", tag = "http-cache-v0.1.0" }
 json-in-html = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/json-in-html", tag = "json-in-html-v0.1.0" }
 html-fragment = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/html-fragment", tag = "html-fragment-v0.1.0" }
 record-mine = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/record-mine", tag = "record-mine-v0.1.0" }
 browser-cookies = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/browser-cookies", tag = "browser-cookies-v0.1.0" }
-content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/content-extract", tag = "content-extract-v0.1.1" }
+content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/content-extract", tag = "content-extract-v0.2.0" }
 anyllm = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/anyllm", tag = "anyllm-v0.2.0" }
 timefmt = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/timefmt", tag = "timefmt-v0.1.0" }
 settings-base = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/settings-base", tag = "settings-base-v0.1.0" }

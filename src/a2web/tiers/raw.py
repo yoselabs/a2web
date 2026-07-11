@@ -60,6 +60,10 @@ _TRANSPORT_TO_DOMAIN: dict[FetchVerdict, Verdict] = {
     FetchVerdict.not_found: Verdict.not_found,
     FetchVerdict.rate_limited: Verdict.rate_limited,
     FetchVerdict.connection_error: Verdict.connection_error,
+    # A genuine DNS-resolution failure (no proxy) surfaces as a distinct terminal
+    # domain verdict — the planner leaves it alone (a real browser cannot resolve a
+    # nonexistent domain), unlike an ambiguous status-0 connection drop which escalates.
+    FetchVerdict.dns_error: Verdict.dns_error,
     FetchVerdict.timeout: Verdict.timeout,
     FetchVerdict.proxy_unavailable: Verdict.proxy_unavailable,
 }

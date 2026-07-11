@@ -12,7 +12,6 @@ eval; findings in `eval/findings_2026-05-25-router-shape-pre-impl.md`):
 - answer: required, the model's concise answer to the question.
 - structural_form: required, one of 9 closed values — what the page IS.
 - shape: required, one of 7 closed values — the data shape of the content.
-- genre: optional, what the page is ABOUT (7 values); omitted when none applies.
 - obstacle: optional, page-level failure mode (4 values); omitted on healthy pages.
 - ask_here: optional, same-URL follow-up questions; empty tuple omitted at the wire.
 - try_url: optional, different-URL drilldowns; empty tuple omitted at the wire.
@@ -30,14 +29,21 @@ from dataclasses import dataclass, field
 class NextUrlBoundary:
     """One curated drilldown URL (boundary side).
 
-    `url` MUST appear verbatim in the page content sent to the model; this
-    invariant is enforced by validation at the domain seam, not here.
-    `reason` is the model's question-conditioned justification (≤120 chars
-    per prompt instruction; the pydantic mirror does not truncate).
+    Two provenance shapes:
+    - `handle` set (the digest path) — the model referenced a `{{n}}` link
+      handle; `url` is empty here and the domain seam rehydrates it from the
+      closed link-digest set (dropping the entry if the handle is unknown).
+    - `url` set (legacy) — the model emitted a URL it read in the content.
+    `reason` is the model's question-conditioned justification (≤120 chars per
+    prompt instruction; the pydantic mirror does not truncate). `off_domain` is
+    filled by the domain seam after rehydration (the boundary layer has no
+    page-URL context).
     """
 
     url: str
     reason: str
+    handle: int | None = None
+    off_domain: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,14 +67,13 @@ class RouterPayload:
 
     Required fields (`answer`, `structural_form`, `shape`) MUST be populated;
     the parser returns None for the whole payload when any is missing.
-    Optional fields (`genre`, `obstacle`, `ask_here`, `try_url`) default to
+    Optional fields (`obstacle`, `ask_here`, `try_url`) default to
     None / empty tuple; the domain-side serializer omits them from the wire.
     """
 
     answer: str
     structural_form: str
     shape: str
-    genre: str | None = None
     obstacle: str | None = None
     ask_here: tuple[str, ...] = field(default_factory=tuple)
     try_url: tuple[NextUrlBoundary, ...] = field(default_factory=tuple)

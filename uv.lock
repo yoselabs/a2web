@@ -114,14 +114,14 @@ requires-dist = [
     { name = "browser-cookie3", marker = "extra == 'cookies'", specifier = ">=0.20,<1" },
     { name = "browser-cookies", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fbrowser-cookies&tag=browser-cookies-v0.1.0" },
     { name = "claude-agent-sdk", marker = "extra == 'claude-code'", specifier = ">=0.1.80,<1" },
-    { name = "content-extract", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fcontent-extract&tag=content-extract-v0.1.1" },
+    { name = "content-extract", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fcontent-extract&tag=content-extract-v0.2.0" },
     { name = "cryptography", specifier = ">=43,<46" },
     { name = "curl-cffi", specifier = ">=0.7,<1" },
     { name = "firecrawl-py", marker = "extra == 'paid'", specifier = ">=1,<2" },
     { name = "gidgethub", specifier = ">=5.4,<6" },
     { name = "html-fragment", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhtml-fragment&tag=html-fragment-v0.1.0" },
     { name = "http-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-cache&tag=http-cache-v0.1.0" },
-    { name = "http-fetch", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.1.0" },
+    { name = "http-fetch", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.2.0" },
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "json-in-html", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.1.0" },
     { name = "markdownify", specifier = ">=0.13,<2" },
@@ -675,8 +675,8 @@ wheels = [
 
 [[package]]
 name = "content-extract"
-version = "0.1.1"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fcontent-extract&tag=content-extract-v0.1.1#45bd274c4f223c6f69409ba9144ed660f1a5d239" }
+version = "0.2.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fcontent-extract&tag=content-extract-v0.2.0#873f55749c9b9ef8f8524eafb6e401ffb7efa42a" }
 dependencies = [
     { name = "convert-md" },
     { name = "selectolax" },
@@ -685,8 +685,8 @@ dependencies = [
 
 [[package]]
 name = "convert-md"
-version = "0.3.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fconvert-md&tag=content-extract-v0.1.1#45bd274c4f223c6f69409ba9144ed660f1a5d239" }
+version = "0.8.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fconvert-md&tag=content-extract-v0.2.0#873f55749c9b9ef8f8524eafb6e401ffb7efa42a" }
 dependencies = [
     { name = "html2text" },
     { name = "trafilatura" },
@@ -1267,8 +1267,8 @@ dependencies = [
 
 [[package]]
 name = "http-fetch"
-version = "0.1.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.1.0#42bca98028602d5c4fe44b00aac751a8033fc904" }
+version = "0.2.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.2.0#28ed06738ea3a5cdc21ab295d95c9fe026264c3a" }
 dependencies = [
     { name = "curl-cffi" },
 ]

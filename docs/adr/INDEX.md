@@ -15,3 +15,6 @@ Architecture Decision Records for a2web. Each records a decision with context, r
 | [0009](0009-never-silently-miss-a-url.md) | Never silently miss a URL (product tenet) | Accepted |
 | [0010](0010-reddit-reachability-access-paths.md) | Reddit reachability: access-path decisions & rejection memory | Accepted |
 | [0011](0011-reddit-access-strategy.md) | Reddit access strategy: RSS-primary, never `.json`, paid-HTML backstop | Accepted |
+| [0012](0012-shape-and-relay-never-manufacture-a-selection.md) | a2web shapes & relays content; never manufactures a selection | Accepted |
+| [0013](0013-link-affordances-closed-set-handle-digest.md) | Link affordances: feed the extractor real links via closed-set `{{n}}` handles | Accepted |
+| [0014](0014-grounded-urls-only-off-domain-flagged.md) | Every surfaced URL must be on-the-page; off-domain flagged | Accepted |

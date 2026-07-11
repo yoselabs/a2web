@@ -249,6 +249,9 @@ _ENTITY_NOISE_KEYS = frozenset({"image", "thumbnail", "thumbnailurl", "logo", "m
 # Cap a single field's rendered value so a full `articleBody` (or similar) isn't
 # dumped into a key-value line; the prose candidate already carries long text.
 _ENTITY_VALUE_CAP = 500
+# Defensive cap on rendered array-of-dict entries (e.g. multiple `ContactPoint`s)
+# so a pathological page's oversized array can't bloat the extraction prompt.
+_ENTITY_ARRAY_CAP = 10
 
 
 def _scalar_kv(k: object, v: object) -> bool:
@@ -291,7 +294,10 @@ def _single_entity_md(entry: dict, *, kind: str) -> str:
     every answer-bearing scalar / shallow field in the entity's own order,
     dropping only JSON-LD machinery (`@`-keys), media/self-reference keys, and
     oversized values. No fixed `interesting_keys` allowlist — an unanticipated
-    answer-bearing field (a `gtin`, a `material`) is no longer silently lost."""
+    answer-bearing field (a `gtin`, a `material`) is no longer silently lost.
+    A list-of-dicts field (e.g. `Organization.contactPoint` holding multiple
+    `ContactPoint` entries) renders each entry as its own sub-line rather than
+    silently vanishing, capped at `_ENTITY_ARRAY_CAP` entries."""
     name = entry.get("name") or entry.get("headline") or "unnamed"
     lines = [f"## {kind}: {name}"]
     for key, val in entry.items():
@@ -302,10 +308,18 @@ def _single_entity_md(entry: dict, *, kind: str) -> str:
             if inner:
                 lines.append(f"- **{key}:** {inner}")
         elif isinstance(val, list):
-            scalars = [str(v) for v in val if isinstance(v, (str, int, float)) and str(v)]
-            joined = ", ".join(scalars)
-            if joined and len(joined) <= _ENTITY_VALUE_CAP:
-                lines.append(f"- **{key}:** {joined}")
+            dict_entries = [v for v in val if isinstance(v, dict)]
+            if dict_entries:
+                lines.append(f"- **{key}:**")
+                for sub in dict_entries[:_ENTITY_ARRAY_CAP]:
+                    sub_inner = ", ".join(f"{k}={v}" for k, v in sub.items() if _scalar_kv(k, v))
+                    if sub_inner:
+                        lines.append(f"  - {sub_inner}")
+            else:
+                scalars = [str(v) for v in val if isinstance(v, (str, int, float)) and str(v)]
+                joined = ", ".join(scalars)
+                if joined and len(joined) <= _ENTITY_VALUE_CAP:
+                    lines.append(f"- **{key}:** {joined}")
         elif isinstance(val, (str, int, float)):
             s = str(val)
             if s and len(s) <= _ENTITY_VALUE_CAP:

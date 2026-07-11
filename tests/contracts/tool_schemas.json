@@ -367,8 +367,13 @@
           "type": "object"
         },
         "NextUrl": {
-          "description": "One curated drilldown URL emitted in the router-shape payload.\n\n`url` MUST appear verbatim in the page content sent to the model;\nenforcement is best-effort at the seam (model misbehavior shouldn't fail\nthe whole fetch). `reason` is the model's question-conditioned justification.",
+          "description": "One curated drilldown URL emitted in the router-shape payload.\n\n`url` is rehydrated server-side from a `{{n}}` link-digest handle the model\nemitted (closed-set \u2014 a handle the digest doesn't know is dropped, never\nguessed). `reason` is the model's question-conditioned justification.\n`off_domain` marks a target on a different registrable domain than the\nfetched page: its anchor text is attacker-controllable, so the caller treats\nit with caution (design D11). Omitted from the wire when False.",
           "properties": {
+            "off_domain": {
+              "default": false,
+              "title": "Off Domain",
+              "type": "boolean"
+            },
             "reason": {
               "title": "Reason",
               "type": "string"
@@ -450,9 +455,11 @@
             "paywall",
             "block_page_detected",
             "anti_bot",
+            "blank_page",
             "length_floor",
             "content_type_mismatch",
             "connection_error",
+            "dns_error",
             "timeout",
             "not_found",
             "rate_limited",
@@ -552,27 +559,6 @@
             }
           ],
           "default": null
-        },
-        "genre": {
-          "anyOf": [
-            {
-              "enum": [
-                "news",
-                "encyclopedia",
-                "spec",
-                "paper",
-                "personal",
-                "official",
-                "community"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Genre"
         },
         "headings": {
           "items": {
@@ -681,54 +667,9 @@
           "title": "Retrieval Incomplete",
           "type": "boolean"
         },
-        "shape": {
-          "anyOf": [
-            {
-              "enum": [
-                "prose",
-                "records",
-                "key-value",
-                "code",
-                "table",
-                "discussion",
-                "mixed"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Shape"
-        },
         "started_at": "<volatile>",
         "status": {
           "$ref": "#/$defs/FetchStatus"
-        },
-        "structural_form": {
-          "anyOf": [
-            {
-              "enum": [
-                "article",
-                "thread",
-                "listing",
-                "reference",
-                "tutorial",
-                "changelog",
-                "code",
-                "product",
-                "media",
-                "other"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Structural Form"
         },
         "tier": {
           "title": "Tier",
@@ -1079,8 +1020,13 @@
           "type": "object"
         },
         "NextUrl": {
-          "description": "One curated drilldown URL emitted in the router-shape payload.\n\n`url` MUST appear verbatim in the page content sent to the model;\nenforcement is best-effort at the seam (model misbehavior shouldn't fail\nthe whole fetch). `reason` is the model's question-conditioned justification.",
+          "description": "One curated drilldown URL emitted in the router-shape payload.\n\n`url` is rehydrated server-side from a `{{n}}` link-digest handle the model\nemitted (closed-set \u2014 a handle the digest doesn't know is dropped, never\nguessed). `reason` is the model's question-conditioned justification.\n`off_domain` marks a target on a different registrable domain than the\nfetched page: its anchor text is attacker-controllable, so the caller treats\nit with caution (design D11). Omitted from the wire when False.",
           "properties": {
+            "off_domain": {
+              "default": false,
+              "title": "Off Domain",
+              "type": "boolean"
+            },
             "reason": {
               "title": "Reason",
               "type": "string"
@@ -1157,7 +1103,7 @@
           "type": "object"
         },
         "RouterPayload": {
-          "description": "Router-shape payload emitted by the `extract_router_v1` template.\n\nThree required fields (`answer`, `structural_form`, `shape`) describe what\nthe page IS. Four conditional fields (`genre`, `obstacle`, `ask_here`,\n`try_url`) describe what it's ABOUT plus drilldown hints; the serializer\non `AskResponse` omits the conditionals from the wire when empty.\n`refinement_axes` carries content-aware refinement guidance for a partial\nlisting (dimensional only); it too is omit-empty at the wire.",
+          "description": "Router-shape payload emitted by the `extract_router_v1` template.\n\nThree required fields (`answer`, `structural_form`, `shape`) describe what\nthe page IS. Three conditional fields (`obstacle`, `ask_here`,\n`try_url`) describe drilldown hints. This is the internal LLM-parse\nboundary type \u2014 `structural_form`/`shape` are consumed internally\n(`content_guidance.kind_guidance()`, the `refinement_axes` gate) but are\nNOT projected onto the `AskResponse` wire (`drop-structural-form-shape-\nwire`); only `answer` plus the three conditionals reach the wire, and the\nserializer on `AskResponse` omits those conditionals when empty.\n`refinement_axes` carries content-aware refinement guidance for a partial\nlisting (dimensional only); it too is omit-empty at the wire.",
           "properties": {
             "answer": {
               "title": "Answer",
@@ -1169,27 +1115,6 @@
               },
               "title": "Ask Here",
               "type": "array"
-            },
-            "genre": {
-              "anyOf": [
-                {
-                  "enum": [
-                    "news",
-                    "encyclopedia",
-                    "spec",
-                    "paper",
-                    "personal",
-                    "official",
-                    "community"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Genre"
             },
             "item_total_seen": {
               "anyOf": [
@@ -1292,9 +1217,11 @@
             "paywall",
             "block_page_detected",
             "anti_bot",
+            "blank_page",
             "length_floor",
             "content_type_mismatch",
             "connection_error",
+            "dns_error",
             "timeout",
             "not_found",
             "rate_limited",
