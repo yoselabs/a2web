@@ -59,4 +59,58 @@ that deployers should pin the latest published tag/digest, not assume `main` is 
 - **Slim default image (~390MB, browserless)**: browser + claude-code are build-arg opt-ins,
   so the default backend footprint is small. Good default.
 
-<!-- Runtime/operation lessons appended after deploy + verify below. -->
+## Runtime / operation (from deploy + live verify)
+
+### 5. `example.com` trips `length_floor` → `status: failed` (bad first smoke test)
+
+The instinctive first smoke-test URL, `https://example.com`, returns `status: "failed",
+verdict: "length_floor"` for BOTH `fetch_raw` and `ask` (the page is below the content
+length floor), and `ask` returns `answer: null` because extraction never runs. During
+verification this looks like a broken deployment when it is not: the content is actually
+present in `content_md`. A real page (Wikipedia) immediately returned `confidence: high`
+with a correct extracted answer.
+
+- Suggestion: either document a known-good smoke-test URL in the README, or when the tier
+  fetched content but only the length floor "failed", surface that as a distinct low-signal
+  status rather than a bare `failed` (it reads as an error to a first-time operator).
+
+### 6. Tool descriptions hardcode "Haiku 4.5" even when `OPENAI_MODEL` overrides it
+
+`a2web web ask --help` (and the MCP tool description) states "the server-side Haiku
+extractor" and "The extraction model is small and cheap (Haiku 4.5)." We configured
+`OPENAI_MODEL=openrouter/deepseek/deepseek-v4-flash`, so the advertised model is wrong at
+runtime. This compounds footgun #1: the docs assume Anthropic Haiku throughout. An operator
+reading the tool description would not know which model is actually answering.
+
+- Suggestion: template the configured model name into the description, or make it generic
+  ("a small, cheap extraction model, configurable via OPENAI_MODEL").
+
+### 7. `ask` and `fetch_raw` return different top-level envelopes
+
+`ask` returns `{tier, confidence, answer, title, ...}` (or `{status, answer, narrative,
+diagnostics_summary}` on failure); `fetch_raw` returns `{url, status, content_md, headings,
+narrative, diagnostics_summary}` on the short-page path but a `{tier, confidence, content_md,
+...}` shape on the success path. Scripting both uniformly means guarding for keys that appear
+in one but not the other (e.g. `status`/`diagnostics_summary` were present for one call and
+absent for another).
+
+- Suggestion: a stable top-level envelope across both tools (always include `tier`, `status`,
+  `confidence`, `diagnostics_summary`) would make programmatic use and monitoring simpler.
+
+## What worked well (runtime)
+
+- **The CLI is excellent for operability.** `a2web web ask/fetch_raw`, `a2web health`,
+  `a2web list-tools`, `a2web schema` let an operator smoke-test every tier from `docker exec`
+  with zero MCP plumbing. This made deploy verification trivial and is a genuinely great
+  feature. Keep it.
+- **`diagnostics_summary` + `narrative` + `operator_hints` are best-in-class.** Every result
+  says exactly which tier served it, the verdict, and elapsed ms (e.g. `tier=zyte
+  verdict=not_found total_ms=8297`), and failures carry actionable hints (`reddit_forbidden_
+  try_archive`). This made "is Zyte actually engaging?" answerable in one call.
+- **Tier cascade + Zyte escalation works as documented.** A normal page served from `raw`/
+  `site_handler`; a hard Reddit page escalated all the way to `tier=zyte` and fetched a real
+  listing at `confidence: high`. The paid rung is reached only when the cheaper tiers fail.
+- **`ask` degradation is honest.** The help text and behavior match: when the LLM is
+  unavailable the fetch still succeeds and `extracted_answer` is null with a hint, rather than
+  a hard failure.
+
