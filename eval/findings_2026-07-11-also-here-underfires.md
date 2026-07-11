@@ -1,14 +1,13 @@
-# Finding — `also_here` under-fires on narrow-ask × rich-page (2026-07-11)
+# Finding — `also_here` on narrow asks: two distinct causes (2026-07-11)
 
 ## Trigger
 
-Thin post-v2 sanity checks (`wikipedia-rust` bench cell + a live koçtaş probe).
-User flagged: a Koçtaş product query returned **no suggested URLs and no
-same-page index** — suspicious for an e-commerce page.
+Thin post-v2 sanity checks + a user-flagged Koçtaş product query returning **no
+suggested URLs and no same-page index** — suspicious for an e-commerce page.
 
 ```
 uv run a2web web query \
-  --url=".../einhell-te-cd-18-48-li-i-darbeli-matkap-125-ah-starter-kit/p/5001125801" \
+  --url=".../einhell-te-cd-18-48-li-i-darbeli-matkap-.../p/5001125801" \
   --query="What is the price of this product, its currency, and is it in stock?"
 → answer: "Price: 4,221.97 TRY ... In stock."   (also_here / other_pages absent)
 ```
@@ -16,49 +15,59 @@ uv run a2web web query \
 ## Instrumented probe (provider=claude-code, guarded — $0 metered)
 
 ```
-tier:               site_handler? no → raw/json path
-structural_form:    product          (classified correctly)
-content candidates: trafilatura, json_synth, json_synth, json_synth
-digest gate fires:  TRUE             (json_synth present)
-links:              55               (non-empty → digest built)
-routing.also_here:    []   ← the gap
-routing.other_pages:  []
-routing.refinement_axes: []
+structural_form:    product
+content candidates:  trafilatura(1343), json_synth(1067), json_synth(622), json_synth(195)
+content_md total:    1604 chars   ← THIN
+digest gate fires:   TRUE   (json_synth present) ; links: 55
+routing.also_here:   []
+routing.other_pages: []
 ```
 
-## Diagnosis
+**What the extractor actually saw** (all ~1.6k chars): the product JSON-LD
+(name / manufacturer / price / stock / sku), OpenGraph meta, breadcrumbs, and a
+"question-posting criteria" FAQ blob. **No spec table, no description body, no
+reviews.** Koçtaş renders all of that client-side (heavy SPA); the raw +
+json_synth tiers only ever saw price/stock.
 
-**Not a cost spike. Not a plumbing bug.** The link digest was built and offered
-to the model (55 links, product-classified, json_synth candidates present), so
-`also_here` / `other_pages` were fully *possible*. The model emitted nothing.
+## Two distinct causes — do not conflate
 
-- **`other_pages: []` is defensible.** The 55 links are category / breadcrumb
-  navigation, not question-relevant drilldowns. Koçtaş loads reviews via JS, so
-  no reviews link is in the fetched HTML — surfacing one would violate ADR-0014
-  (never invent a URL). Empty is honest here.
-- **`also_here: []` is the real gap.** A product page carries specs, a
-  description, and kit contents that a *price/stock* answer never surfaced. The
-  withheld-body index (ADR-0015) should list them. The model is treating
-  "answered the asked question" as "covered the page" — the prompt's
-  "if your answer already covered the page, emit nothing" clause is winning over
-  the "index what you withheld" intent on a narrow ask.
+1. **Koçtaş: an SPA UNDER-FETCH, not an under-index.** `also_here: []` is
+   *correct* — a2web indexed nothing because it fetched nothing beyond
+   price/stock. `other_pages: []` is *correct* — the 55 links are category nav,
+   and the reviews link is JS-rendered (surfacing a guessed one violates
+   ADR-0014). The narrow answer succeeded, so the gate never escalated to a
+   browser render. **Open lever (un-decided):** should a2web browser-render a
+   thin SPA product page for completeness even when the narrow answer already
+   succeeded? Cost vs completeness — a separate change, not this one.
+   Corpus: `koctas-product-spa-thin-fetch` (class `spa`).
 
-## Regression?
+2. **A real prompt gap on RICH pages, now fixed.** On a page whose body *does*
+   carry the unsurfaced sections, the model was treating "answered the asked
+   question" as "covered the page" and emitting `also_here: []`. Fixed by
+   strengthening the clause: **"covered" = relayed everything the page holds,
+   NOT merely answered the question**; a narrow ask on product/article/
+   reference/thread almost never covers the page → index the unsurfaced sections.
+   (`EXTRACT_ROUTER_V1` v6 → v7, change `also-here-indexes-rich-pages`.)
 
-No — the pre-v2 `ask_here` instruction carried the *same* tension ("coverage
-inventory of what you left on the table" + "if answer covered the page, emit
-nothing"). v2 made the entries terser (query grammar) but did not change this
-behavior. It is a pre-existing weakness the narrow-ask case exposes.
+## Validation (the fix works — on a page that actually has the content)
 
-## Proposed fix (needs a spike, not a hasty edit)
+Wikipedia (`Rust_(programming_language)`, 41,918 chars, server-rendered), narrow
+ask "who created Rust and when":
 
-Strengthen the `also_here` clause in `EXTRACT_ROUTER_V1` to separate
-**covered the QUESTION** from **covered the PAGE**: on `structural_form` in
-{product, article, reference, thread}, a narrow factual ask almost never covers
-the page — index the unsurfaced sections. Keep the listing-orthogonality carve-out
-(defer to options/refinement_axes) intact. Validate with a Spike-A-style run on
-the cheap provider (the `koctas-product-narrow-ask-index` corpus case now locks it).
+```
+also_here: ['stable release version', 'developer / core team composition',
+            'Rust Foundation founding date + members',
+            'language paradigms + influences',
+            'memory safety mechanism (borrow checker)',
+            'ecosystem tools (Cargo, Clippy, Rustfmt, rust-analyzer)',
+            'adoption timeline: Mozilla 2009, 1.0 release May 2015, Foundation Feb 2021']
+```
 
-## Captured
+7 terse query-grammar entries indexing the unsurfaced sections — the
+withheld-body index working as designed. Corpus: `wikipedia-narrow-ask-indexes`.
 
-- `eval/corpus.yaml` → `koctas-product-narrow-ask-index` (standing "never lose a case" rule).
+## Not a cost spike
+
+Both the thin bench cell and every probe ran on the `claude-code` subscription
+with the cost guard active — **$0 metered**. The primary "nothing spikes"
+concern is clean.

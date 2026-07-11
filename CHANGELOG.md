@@ -8,6 +8,23 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.44.0] — 2026-07-11
+
+> Make the withheld-body index fire on rich pages under a narrow ask.
+
+### Changed
+
+- **`EXTRACT_ROUTER_V1` → version 7**: strengthened the `also_here` clause so
+  **"covered"** means *relayed everything the page holds on the topic* — NOT
+  merely *answered the asked question*. A narrow factual ask (one price, one
+  date, one status) on a `product` / `article` / `reference` / `thread` almost
+  never covers the page, so the model indexes the unsurfaced sections instead of
+  emitting an empty `also_here`. The `listing` carve-out (defer to `options` /
+  `refinement_axes`) and the genuinely-thin-page escape are unchanged. Validated
+  live on a rich Wikipedia article (narrow ask → 7 query-grammar index entries
+  where it was previously empty). Surfaced by a Koçtaş probe that turned out to
+  be a separate SPA under-fetch (`eval/findings_2026-07-11-also-here-underfires.md`).
+
 ## [0.43.0] — 2026-07-11
 
 > Cache economy: relocate the router-shape schema into the cacheable bucket.
@@ -15,8 +32,8 @@ All notable changes to **a2web** are recorded here. The format follows
 ### Changed
 
 - **`EXTRACT_ROUTER_V1` → version 6**: the ~5.8k-char static router-shape schema
-  + 4 worked examples move OUT of `tail_template` (resent on every `query` call)
-  INTO the cacheable `system` bucket (`_ROUTER_SCHEMA_DOC`). `tail_template` is
+  and its 4 worked examples move OUT of `tail_template` (resent on every `query`
+  call) INTO the cacheable `system` bucket (`_ROUTER_SCHEMA_DOC`). `tail_template` is
   now only the per-call `"\nQuestion: {ask}\n"`. Pure relocation — zero wording
   change; the rendered aggregate prompt is byte-equivalent, only the
   `system`/`tail` split moved. Because `system` is emitted verbatim (never

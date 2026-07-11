@@ -211,20 +211,38 @@ urls:
       - "If the full reviews live behind a separate link, surfaces that link as a drilldown"
       - "Honest about retrieval completeness — flags when the reviews were not fully on this page"
 
-  - slug: koctas-product-narrow-ask-index
-    # ADR-0015 withheld-body index: a NARROW factual ask (price/stock) on a RICH
-    # product page must still populate `also_here` with the sections the answer
-    # did not surface. Observed 2026-07-11: digest fired (json_synth x3, 55 links,
-    # classified `product`) yet the model emitted also_here=[] — it treated
-    # "answered the asked question" as "covered the page". The index must fire.
+  - slug: koctas-product-spa-thin-fetch
+    # SPA under-fetch (NOT an under-index). Koçtaş renders specs / description /
+    # reviews client-side; the raw + json_synth tiers see only ~1.6k chars
+    # (price/stock JSON-LD, OpenGraph, breadcrumbs). Observed 2026-07-11
+    # (eval/findings_2026-07-11-also-here-underfires.md): also_here=[] is CORRECT
+    # there — nothing else was fetched to index. The open question is whether
+    # a2web should browser-render the SPA for completeness when the narrow answer
+    # already succeeded (cost vs completeness — a separate, un-decided lever).
     url: https://www.koctas.com.tr/einhell-te-cd-18-48-li-i-darbeli-matkap-125-ah-starter-kit/p/5001125801
-    class: affordance
+    class: spa
     task: "What is the price of this product, its currency, and is it in stock?"
-    needs: [content+links]
+    needs: [content]
     criteria:
-      - "Answer states the price, its currency, and the stock status"
-      - "also_here is NON-EMPTY — a narrow price/stock ask does not 'cover' a rich product page; also_here indexes the unsurfaced sections (specs / description / kit contents) as terse query-grammar strings, NOT full questions"
-      - "Any surfaced URL is a real on-page link (ADR-0014), never a guessed reviews URL; other_pages MAY be empty if no drilldown link is present in the fetched HTML"
+      - "Answer states the price, its currency, and the stock status (from the server-rendered product JSON-LD)"
+      - "Does NOT fabricate specs, features, or review content that is not in the fetched HTML (Koçtaş renders those client-side)"
+      - "also_here / other_pages reflect only what was actually fetched — empty is honest here, never a guessed spec/review URL (ADR-0014)"
+
+  - slug: wikipedia-narrow-ask-indexes
+    # ADR-0015 withheld-body index: a NARROW ask on a RICH server-rendered page
+    # MUST populate also_here with the unsurfaced sections. Validated 2026-07-11
+    # (also-here-indexes-rich-pages): a "who created Rust and when" ask over the
+    # 42k-char article yields 7 query-grammar entries (borrow checker, ecosystem
+    # tools, adoption timeline, ...). Regression guard for the covered-the-PAGE
+    # (not the QUESTION) prompt clause.
+    url: https://en.wikipedia.org/wiki/Rust_(programming_language)
+    class: clean
+    task: "Who created Rust and in what year did it first appear?"
+    needs: [content]
+    criteria:
+      - "Answer names the creator (Graydon Hoare) and the first-appeared year (2012)"
+      - "also_here is NON-EMPTY — the narrow ask did not 'cover' the rich article; also_here indexes unsurfaced sections (memory-safety model, ecosystem/tooling, adoption timeline) as terse query-grammar strings, NOT full questions"
+      - "also_here entries drop the verb frame and the page entity (e.g. `memory safety mechanism`, not `What is Rust's memory safety mechanism?`)"
 
   - slug: trendyol-listing-which-best
     url: https://www.trendyol.com/sr?q=bluetooth+kulaklik

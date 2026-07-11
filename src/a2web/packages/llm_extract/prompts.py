@@ -177,6 +177,14 @@ EXTRACT_CACHEABLE_V1 = PromptTemplate(
 # aggregate content is unchanged; only the system/tail bucket split moved.
 # `cache_prefix_template` untouched (v0.19 invariant holds).
 #
+# v0.25 (also-here-indexes-rich-pages) — bumped to version=7 in place (same `name`).
+# Strengthened the `also_here` clause: "covered" now means relayed EVERYTHING the
+# page holds, not merely answered the asked question. A narrow ask on a rich
+# product/article/reference/thread almost never covers the page → index the
+# unsurfaced sections instead of emitting `also_here=[]` (the koçtaş under-fire,
+# eval/findings_2026-07-11-also-here-underfires.md). Listing carve-out + thin-page
+# escape unchanged. `cache_prefix_template` untouched (v0.19 invariant holds).
+#
 # The "answer" field in the response IS the answer to the user's question —
 # same as `EXTRACT_CACHEABLE_V1`'s output, just wrapped in a JSON envelope
 # alongside the router-shape block. The extractor parses out `answer` and
@@ -253,11 +261,16 @@ _ROUTER_SCHEMA_DOC = """Return a single JSON object with these fields:
   item takes none. SPLIT an `and`-joined item into two. e.g. `return policy`,
   `battery vs mains life`, `setup steps ONLY in working reviews`. ORTHOGONALITY: on
   structural_form=listing DEFER to options / refinement_axes and stay sparse; NEVER
-  restate a heading, an option row, or a refinement axis. If your answer already
-  covered the page, emit nothing. Context decides count: 3 good, 5 great, more if
-  rich. When shape=discussion, lean higher (5+ acceptable) — thread pages hold
-  positions, dissent, consensus, top voices the answer rarely exhausts. OMIT the key
-  entirely when the answer left no page content unreturned.
+  restate a heading, an option row, or a refinement axis. COVERED means you relayed
+  EVERYTHING the page holds on the topic — NOT merely that you answered the asked
+  question. A NARROW ask (one price, one date, one status) on a RICH page (product,
+  article, reference, thread) almost NEVER covers the page: the specs, the
+  description, the other sections are all still withheld — INDEX them. Emit nothing
+  ONLY when the page is genuinely thin / single-purpose with nothing left unreturned.
+  Context decides count: 3 good, 5 great, more if rich. When shape=discussion, lean
+  higher (5+ acceptable) — thread pages hold positions, dissent, consensus, top
+  voices the answer rarely exhausts. OMIT the key entirely only on a genuinely thin
+  page that left no page content unreturned.
 
   other_pages (optional, list of {handle, reason, kind}) — pointers to content
   ELSEWHERE (a DIFFERENT URL). Each costs the caller a NEW fetch, so be sparse — one
@@ -352,7 +365,7 @@ Example (truncated, price-sorted product listing):
 
 EXTRACT_ROUTER_V1 = PromptTemplate(
     name="extract_router_v1",
-    version=6,
+    version=7,
     system=(
         "Provide a concise response based only on the page content the user "
         "shares. In your response:\n"
