@@ -27,6 +27,7 @@ from pathlib import Path
 from .._manifests.eval_systems import EvalSystemContext
 from .._plugin import load_surface
 from ..llm_resource import _PROVIDER_ORDER, select_provider
+from ..packages.llm_cost_guard import with_cost_guard
 from ..packages.llm_extract import Judge, LLMNotAvailable, ModelSpec, Provider
 from ..settings import AppSettings
 from ..state import bootstrap_state
@@ -103,6 +104,21 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         default=None,
         help="run only corpus cases of this class (e.g. 'listing') — a crucial subset to save quota",
     )
+    p.add_argument(
+        "--slug",
+        action="append",
+        default=None,
+        metavar="SLUG",
+        help="run only these corpus item(s) by slug (repeatable) — the finest isolation, one URL at a time",
+    )
+    p.add_argument(
+        "--axis",
+        action="append",
+        default=None,
+        choices=("quality", "clarity", "next_links"),
+        help="run only these LLM-judged axes (repeatable); default all. The deterministic "
+        "token + contract axes always run (they are free). Restricting axes cuts LLM-call count for spikes.",
+    )
     return p.parse_args(argv)
 
 
@@ -125,6 +141,17 @@ async def _amain(argv: list[str]) -> int:
             return 2
         corpus = Corpus(entries=matching, source_path=corpus.source_path)
 
+    # --slug <id> [...]: single-item isolation (finer than --only <class>). Empty
+    # match fails loud so a 0-cell run is never mistaken for a pass.
+    if args.slug:
+        wanted = set(args.slug)
+        matching = [e for e in corpus.entries if e.slug in wanted]
+        if not matching:
+            known = ", ".join(sorted(e.slug for e in corpus.entries))
+            print(f"0 cases match slug(s) {sorted(wanted)} (known: {known})", file=sys.stderr)
+            return 2
+        corpus = Corpus(entries=matching, source_path=corpus.source_path)
+
     # Bench uses a stand-in AppSettings; provider selection only reads
     # llm_api_key_env (default "ANTHROPIC_API_KEY") so AppSettings() suffices.
     settings = AppSettings()
@@ -133,6 +160,14 @@ async def _amain(argv: list[str]) -> int:
     except LLMNotAvailable as exc:
         print(f"LLM provider unavailable: {exc}", file=sys.stderr)
         return 3
+
+    # Cost guard (ADR-0016): wrap the provider so every `complete()` asserts the
+    # (provider_id, model) pair BEFORE the network call. Wrapping here — the one
+    # place the provider is acquired — means the runner, the judges, and the
+    # extraction resource all receive the guarded provider; no un-guarded
+    # completion path exists. A denied pair (e.g. anthropic:sonnet, the $20 case)
+    # raises CostViolation before spending, never silently bills.
+    provider = with_cost_guard(provider_id, provider)
 
     # Single source of truth: bootstrap_state constructs both AppState and the
     # Resources bundle (browser_pool + llm_extractor + cookie_jar). The chosen
@@ -172,6 +207,8 @@ async def _amain(argv: list[str]) -> int:
         concurrency=args.concurrency,
         output_dir=output_dir,
         handlers=(live_sink,),
+        provider=provider_id,
+        axes=frozenset(args.axis) if args.axis else None,
     )
 
     print(f"Running benchmark: {len(corpus)} URLs x {len(systems)} systems (provider={provider_id}) → {output_dir}")

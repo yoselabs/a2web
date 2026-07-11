@@ -1,5 +1,27 @@
 # Design — bench cost, isolation & the cost guard
 
+## D0. ADR-0016 (draft — promote to `docs/adr/0016-*.md` on apply)
+
+> # ADR-0016 — Never bill the metered API in the dev/eval loop (dev-loop tenet)
+>
+> **Status:** Proposed (drafted 2026-07-11) · **Date:** 2026-07-11 · **Supersedes:** —
+> **Related:** ADR-0009 (fail-loud / never silently substitute a worse path — direct prior art for the fail-loud posture here). NOTE: "provenance" in this ADR means *provider+model stamping in run artifacts* — it is UNRELATED to ADR-0014's URL provenance; do not read this as re-opening 0014.
+>
+> ## Context
+> A full `make bench` billed ~$20 on a real metered Anthropic account because provider selection silently fell through `claude-code → anthropic → openai_compatible` when the subscription session was undetected, and `eval/_prod_env.py` supplied a metered key. The dev/eval loop is developer-paid; metered spend there is pure waste when subscription/cheap routing is already available.
+>
+> ## Decision
+> In the dev/eval/bench loop, LLM calls MUST NOT touch the metered Anthropic API by accident. Enforced structurally (ADR-0001 style — prevention, not vigilance): a cost guard on the resolved `(provider, model)` pair runs before every completion, and the bench acquires its provider only pre-wrapped in that guard. Expensive models are allowed only via subscription (`claude-code`); metered `anthropic` is allowed only for cheap models and only under explicit opt-in; the bench fails loud (`LLMNotAvailable`) rather than silently falling through. Acceptable providers: Claude Code (CLI/SDK) subscription, opencode, codex, or a genuinely cheap model.
+>
+> ## Placement
+> `docs/adr/0016-*.md` + `docs/adr/INDEX.md` row + a "Never" line in `CLAUDE.md`. NOT `CONSTITUTION.md`.
+>
+> ## Consequences
+> `llm-cost-guard` primitive (shelf-bound); provider+model provenance stamped in artifacts; metered API becomes explicit opt-in.
+>
+> ## Re-evaluation triggers
+> If the model→cost policy grows past an allowlist (adopt a price-table ceiling); if an opencode/codex provider lands.
+
 ## D1. Root cause (grounded, this session)
 
 `make bench` billed ~$20 because provider selection **silently fell through** the auto-order `claude-code → anthropic → openai_compatible` (`llm_resource.py:47`): the Claude Code OS session was undetected in the non-interactive shell, and `eval/_prod_env.py:29-46` had merged an `ANTHROPIC_API_KEY` from `~/.claude.json`, so the metered fallback had a key. The **Judge is Sonnet** (`__main__.py:96-100`); a full run is ~80 Sonnet judge calls across 36 cells. On subscription those calls are free; on metered API they were the $20.

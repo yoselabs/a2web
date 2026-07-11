@@ -469,3 +469,97 @@ async def test_suite_run_persists_axis_traces(tmp_path: Path) -> None:
     assert nl_trace.exists()
     payload = json.loads(nl_trace.read_text())
     assert payload["score"] == 3
+
+
+# --------------------------------------------------------------------- #
+# ADR-0016 — cost guard, provenance stamping, per-axis/-item isolation
+# --------------------------------------------------------------------- #
+
+
+def test_default_judge_model_denied_on_metered_anthropic() -> None:
+    """The bench's default judge model is Sonnet; on metered anthropic it must
+    be refused (the $20 regression), yet allowed via the claude-code subscription."""
+    from a2web.packages.llm_cost_guard import DEFAULT_POLICY
+
+    assert DEFAULT_POLICY.permits("anthropic", "claude-sonnet-4-6") is False
+    assert DEFAULT_POLICY.permits("claude-code", "claude-sonnet-4-6") is True
+
+
+@pytest.mark.asyncio
+async def test_provider_stamped_in_report_and_artifacts(tmp_path: Path) -> None:
+    corpus = load_corpus(_corpus(tmp_path))
+    system = _StubSystem(name="a2web", answer="body")
+    suite = EvalSuite(
+        corpus=corpus,
+        systems=[system],
+        judge=_MockJudge(),
+        bench_judge=_MockBenchJudge(),
+        output_dir=tmp_path / "out",
+        provider="claude-code",
+    )
+    report = await suite.run()
+    write_all(report)
+
+    assert report.provider == "claude-code"
+    assert report.rows and all(r.provider == "claude-code" for r in report.rows)
+
+    manifest = json.loads((report.output_dir / "manifest.json").read_text())
+    assert manifest["provider"] == "claude-code"
+    results = json.loads((report.output_dir / "results.json").read_text())
+    assert all(row["provider"] == "claude-code" for row in results["rows"])
+
+
+@pytest.mark.asyncio
+async def test_axis_isolation_runs_only_selected_axis(tmp_path: Path) -> None:
+    """`axes={'quality'}` scores quality and skips the clarity + next_links LLM
+    calls entirely — the per-axis isolation that keeps a spike cheap."""
+    corpus = load_corpus(_corpus(tmp_path))
+    system = _StubSystem(
+        name="a2web",
+        answer="body",
+        next_links_block="anchor\turl\treason\nA\thttps://x\twhy",
+    )
+
+    class _CountingJudge(_MockJudge):
+        def __init__(self) -> None:
+            super().__init__()
+            self.calls = 0
+
+        async def score(self, *, task: str, criteria: list[str], answer: str) -> JudgeVerdict:
+            self.calls += 1
+            return await super().score(task=task, criteria=criteria, answer=answer)
+
+    class _CountingBench(_MockBenchJudge):
+        def __init__(self) -> None:
+            super().__init__()
+            self.clarity_calls = 0
+            self.next_links_calls = 0
+
+        async def score_clarity(self, *, task: str, answer: str) -> ClarityVerdict:
+            self.clarity_calls += 1
+            return await super().score_clarity(task=task, answer=answer)
+
+        async def score_next_links(self, *, task: str, next_links: str) -> NextLinksVerdict:
+            self.next_links_calls += 1
+            return await super().score_next_links(task=task, next_links=next_links)
+
+    judge = _CountingJudge()
+    bench = _CountingBench()
+    suite = EvalSuite(
+        corpus=corpus,
+        systems=[system],
+        judge=judge,
+        bench_judge=bench,
+        output_dir=tmp_path / "out",
+        axes=frozenset({"quality"}),
+    )
+    report = await suite.run()
+
+    # Quality ran once per cell; clarity + next_links skipped entirely.
+    assert judge.calls == len(corpus.entries)
+    assert bench.clarity_calls == 0
+    assert bench.next_links_calls == 0
+    for row in report.rows:
+        assert row.judge_overall == 4  # quality scored
+        assert row.clarity_score is None  # clarity skipped
+        assert row.next_links_score is None  # next_links skipped

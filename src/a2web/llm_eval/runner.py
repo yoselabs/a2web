@@ -115,6 +115,8 @@ class EvalRow:
     next_links_score: int | None = None
     next_links_reasoning: str | None = None
     next_links_error: str | None = None
+    # Provenance (ADR-0016) — which provider actually served this cell's calls.
+    provider: str = "unknown"
 
 
 @dataclass(slots=True)
@@ -128,6 +130,10 @@ class EvalReport:
     systems: list[str]
     judge_model: str
     bench_judge_model: str | None = None
+    # Provenance (ADR-0016) — the provider id that served this run's LLM calls
+    # (e.g. `claude-code` subscription vs metered `anthropic`). A run that hit
+    # the metered API is identifiable from its own artifact.
+    provider: str = "unknown"
     rows: list[EvalRow] = field(default_factory=list)
 
     @property
@@ -151,6 +157,8 @@ class EvalSuite:
         concurrency: int = 4,
         output_dir: Path | str | None = None,
         handlers: tuple[logging.Handler, ...] = (),
+        provider: str = "unknown",
+        axes: frozenset[str] | None = None,
     ) -> None:
         if not systems:
             raise ValueError("EvalSuite requires at least one system")
@@ -160,9 +168,18 @@ class EvalSuite:
         self._bench_judge = bench_judge
         self._concurrency = max(1, concurrency)
         self._handlers = handlers
+        self._provider = provider
+        # Which LLM-judged axes to score. `None` = all. Restricting to a subset
+        # (e.g. {"quality"}) skips the other LLM axes' calls — the per-axis
+        # isolation that keeps a spike a handful of calls, not the full matrix.
+        # The deterministic token + contract axes are free and always run.
+        self._axes = axes
         if output_dir is None:
             output_dir = Path("eval/runs") / datetime.now(UTC).strftime("%Y-%m-%d_%H%M%S")
         self._output_dir = Path(output_dir)
+
+    def _axis_on(self, name: str) -> bool:
+        return self._axes is None or name in self._axes
 
     @property
     def output_dir(self) -> Path:
@@ -180,7 +197,9 @@ class EvalSuite:
 
         async def _process_cell(entry: CorpusEntry, system: EvalSystem) -> EvalRow:
             async with sem:
-                return await self._run_one(entry, system, traces_root)
+                row = await self._run_one(entry, system, traces_root)
+                row.provider = self._provider  # provenance stamp (ADR-0016)
+                return row
 
         # Attach bench handlers (LiveSink) to the `a2kit` logger for the whole
         # matrix run — every cell's CellStarted/CellEnded and the orchestrator's
@@ -204,6 +223,7 @@ class EvalSuite:
             systems=[s.name for s in self._systems],
             judge_model=self._judge.model.model,
             bench_judge_model=self._bench_judge.model.model if self._bench_judge else None,
+            provider=self._provider,
             rows=list(rows),
         )
 
@@ -284,46 +304,50 @@ class EvalSuite:
             return row
 
         # 4) Clarity + next_links axes — LLM-judged, run when a bench judge is
-        # configured. Independent of the quality judge so one failing axis
-        # does not sink the others.
-        await self._score_clarity(row, entry, fetch_result)
-        await self._score_next_links(row, entry, fetch_result, cell_dir)
+        # configured AND the axis is selected. Independent of the quality judge
+        # so one failing axis does not sink the others. Per-axis isolation skips
+        # the unselected LLM axes (their fields stay None).
+        if self._axis_on("clarity"):
+            await self._score_clarity(row, entry, fetch_result)
+        if self._axis_on("next_links"):
+            await self._score_next_links(row, entry, fetch_result, cell_dir)
 
-        # 5) Answer-quality axis.
-        try:
-            verdict: JudgeVerdict = await self._judge.score(
-                task=entry.task,
-                criteria=entry.criteria,
-                answer=fetch_result.answer,
-            )
-        except JudgeParseError as exc:
-            (cell_dir / "judge_raw.txt").write_text(exc.raw_text)
-            row.judge_error = f"parse_error: {exc}"
-            (cell_dir / "row.json").write_text(_row_to_json(row))
-            await self._emit_cell_ended(entry, system, row, "judge_failed")
-            return row
+        # 5) Answer-quality axis — skipped when not selected.
+        if self._axis_on("quality"):
+            try:
+                verdict: JudgeVerdict = await self._judge.score(
+                    task=entry.task,
+                    criteria=entry.criteria,
+                    answer=fetch_result.answer,
+                )
+            except JudgeParseError as exc:
+                (cell_dir / "judge_raw.txt").write_text(exc.raw_text)
+                row.judge_error = f"parse_error: {exc}"
+                (cell_dir / "row.json").write_text(_row_to_json(row))
+                await self._emit_cell_ended(entry, system, row, "judge_failed")
+                return row
 
-        row.judge_scores = verdict.scores
-        row.judge_overall = verdict.overall
-        row.judge_reached = verdict.reached
-        row.judge_reasoning = verdict.reasoning
-        row.judge_cost_usd = verdict.cost_usd
-        row.judge_latency_ms = verdict.latency_ms
-        (cell_dir / "judge.json").write_text(
-            json.dumps(
-                {
-                    "scores": verdict.scores,
-                    "overall": verdict.overall,
-                    "reached": verdict.reached,
-                    "reasoning": verdict.reasoning,
-                    "model": verdict.model,
-                    "cost_usd": verdict.cost_usd,
-                    "latency_ms": verdict.latency_ms,
-                },
-                indent=2,
-                default=str,
+            row.judge_scores = verdict.scores
+            row.judge_overall = verdict.overall
+            row.judge_reached = verdict.reached
+            row.judge_reasoning = verdict.reasoning
+            row.judge_cost_usd = verdict.cost_usd
+            row.judge_latency_ms = verdict.latency_ms
+            (cell_dir / "judge.json").write_text(
+                json.dumps(
+                    {
+                        "scores": verdict.scores,
+                        "overall": verdict.overall,
+                        "reached": verdict.reached,
+                        "reasoning": verdict.reasoning,
+                        "model": verdict.model,
+                        "cost_usd": verdict.cost_usd,
+                        "latency_ms": verdict.latency_ms,
+                    },
+                    indent=2,
+                    default=str,
+                )
             )
-        )
         (cell_dir / "row.json").write_text(_row_to_json(row))
         await self._emit_cell_ended(entry, system, row, None)
         return row

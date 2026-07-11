@@ -84,6 +84,15 @@ install-global:
 # env (A2WEB_ZYTE_KEY etc.) from ~/.claude.json — production parity, so
 # Zyte-served hosts (Reddit) aren't falsely flagged blocked. Keyless still works
 # (the shim is a no-op when no config/keys are present); your own env wins.
+#
+# Cost floor (ADR-0016): default the bench provider to the Claude Code OS
+# subscription so a run never bills the metered Anthropic API by accident. Your
+# env still wins (`?=`), so `A2WEB_BENCH_PROVIDER=anthropic make bench` opts into
+# the metered path (cheap models only — the cost guard still refuses Sonnet/Opus).
+# If the subscription session is absent, the bench fails loud (LLMNotAvailable)
+# rather than silently falling through to metered billing.
+A2WEB_BENCH_PROVIDER ?= claude-code
+export A2WEB_BENCH_PROVIDER
 bench:
 	uv run python eval/_prod_env.py python -m a2web.llm_eval $(ARGS)
 

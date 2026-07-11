@@ -18,3 +18,4 @@ Architecture Decision Records for a2web. Each records a decision with context, r
 | [0012](0012-shape-and-relay-never-manufacture-a-selection.md) | a2web shapes & relays content; never manufactures a selection | Accepted |
 | [0013](0013-link-affordances-closed-set-handle-digest.md) | Link affordances: feed the extractor real links via closed-set `{{n}}` handles | Accepted |
 | [0014](0014-grounded-urls-only-off-domain-flagged.md) | Every surfaced URL must be on-the-page; off-domain flagged | Accepted |
+| [0016](0016-never-metered-api-in-dev-loop.md) | Never bill the metered API in the dev/eval loop (dev-loop tenet) | Accepted |

@@ -85,6 +85,7 @@ def _write_results_json(report: EvalReport) -> None:
             "class": r.url_class,
             "system": r.system,
             "task": r.task,
+            "provider": r.provider,
             "quality": r.judge_overall,
             "reached": r.judge_reached,
             "clarity": r.clarity_score,
@@ -151,6 +152,7 @@ def _write_manifest(report: EvalReport) -> None:
             {
                 "corpus_path": report.corpus_path,
                 "systems": report.systems,
+                "provider": report.provider,
                 "judge_model": report.judge_model,
                 "bench_judge_model": report.bench_judge_model,
                 "started_at": report.started_at.isoformat(),
