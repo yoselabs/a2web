@@ -8,6 +8,24 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.44.1] — 2026-07-11
+
+> Stop the site footer from leaking onto the `query` wire as null-url options.
+
+### Fixed
+
+- **`options` is now gated on `structural_form == "listing"`** (mirroring the
+  existing `refinement_axes` gate). The DOM record-miner is a pure structural
+  heuristic that fires on **any** repeated DOM — including a product/article
+  page's site-wide footer megamenu — so on a narrow price/stock ask against a
+  `product` page it was mining ~10 footer categories ("Kurumsal", "Bizi Takip
+  Edin", …) and leaking them onto the wire as `options` with `url: null`. The
+  shelf is now trusted only when the LLM agrees the page is a listing;
+  `_prune_wire` drops the empty list otherwise. Surfaced by a live hepsiburada
+  product query. Regression coverage:
+  `test_product_page_footer_records_do_not_leak_as_options` (identical body, two
+  classifications) + corpus `hepsiburada-product-no-footer-options`.
+
 ## [0.44.0] — 2026-07-11
 
 > Make the withheld-body index fire on rich pages under a narrow ask.

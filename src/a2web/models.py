@@ -751,8 +751,11 @@ class AskResponse(BaseModel):
     # dropped from the wire by `_prune_wire` (like `also_here` / `other_pages`).
     refinement_axes: list[RefinementAxis] = Field(default_factory=list)
     # rank-don't-skip: the parsed listing options in page order (neutral shelf).
-    # Present only on a listing (record set parsed); dropped from the wire when
-    # empty by `_prune_wire`. Any ranking lives in `answer`, not this order.
+    # Present only when the LLM classified the page as `structural_form=="listing"`
+    # (gated in `build_ask_response` — the DOM record-miner alone fires on any
+    # repeated DOM, incl. a product page's footer megamenu, so options are trusted
+    # only when the model agrees it is a listing). Dropped from the wire when empty
+    # by `_prune_wire`. Any ranking lives in `answer`, not this order.
     options: list[ListingOption] = Field(default_factory=list)
 
     @model_serializer(mode="wrap")

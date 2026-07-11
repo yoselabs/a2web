@@ -207,6 +207,23 @@ urls:
       - "Never guesses a reviews URL that is not present on the page (ADR-0014) — surfaces a reviews drilldown ONLY if one is genuinely in the fetched HTML"
       - "Never asserts the product has no reviews at all; distinguishes 'not on this page' from 'do not exist'"
 
+  - slug: hepsiburada-product-no-footer-options
+    # Output-hygiene regression (2026-07-11): the DOM record-miner fires on the
+    # site-wide FOOTER megamenu (present on every hepsiburada page), parsing 10
+    # null-url category rows. On a narrow price/stock ask the LLM classifies the
+    # page `product` (not `listing`), so `options` MUST be suppressed — the shelf
+    # is trusted only when the model agrees it is a listing. Previously these 10
+    # footer entries leaked as null-url `options`. Fixed by gating `options` on
+    # structural_form=="listing" (mirrors the refinement_axes gate).
+    url: https://www.hepsiburada.com/wilkinson-sword-wilkinson-swrod-hydro-5-ultimate-erkek-tiras-bicagi-sap-baslik-pm-HBC0000FWLZQH
+    class: clean
+    task: "What is the price of this product, its currency, and is it in stock?"
+    needs: [content+links]
+    criteria:
+      - "Answer states the price, its currency, and the in-stock status"
+      - "Does NOT emit an `options` list of site navigation / footer categories — this is a product page, not a listing"
+      - "Emits no option/menu entries with a null or missing URL (page chrome is never surfaced as a selectable option)"
+
   - slug: amazon-product-reviews-elsewhere
     url: https://www.amazon.com/dp/B0CHX1W1XY
     class: affordance

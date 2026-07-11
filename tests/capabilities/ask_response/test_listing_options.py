@@ -7,11 +7,19 @@ on non-listings, and never on the `fetch_raw` wire.
 
 from __future__ import annotations
 
+import json
+
 import pytest
+from a2kit.testing import client as make_client
+from a2kit.testing import lazy
 from record_mine import Record, RecordSet
 
 from a2web.fetcher_response import _records_to_options
-from tests.capabilities.ask_response.test_ask_response import _MINIMAL_HTML, _ask_wire
+from a2web.llm_resource import LlmExtractorResource
+from a2web.server import build_app
+from a2web.state import AppState
+from a2web.tiers import REGISTRY
+from tests.capabilities.ask_response.test_router_wire import _JsonEnvelopeProvider, _RawStub
 from tests.capabilities.fetch_response.test_fetch_response import _fetch_raw_wire
 from tests.capabilities.listing_completeness.test_listing_completeness import _listing_html
 
@@ -83,12 +91,31 @@ def test_projection_normalizes_detail_whitespace() -> None:
 # Wire — through the MCP transport
 # --------------------------------------------------------------------- #
 
+# `options` is gated on the LLM's page classification, so the wire tests drive a
+# real router envelope (structural_form) — the plain-text `_StubProvider` leaves
+# routing None, which now (correctly) suppresses the DOM-mined shelf.
+_LISTING_ENVELOPE = {"answer": "Cortex leads by rating.", "structural_form": "listing", "shape": "records"}
+_PRODUCT_ENVELOPE = {"answer": "Price: 42.00 TRY. In stock.", "structural_form": "product", "shape": "key-value"}
+
+
+async def _ask_wire_classified(monkeypatch: pytest.MonkeyPatch, *, body: bytes, envelope: dict, **ask_kwargs: object) -> dict:
+    """Drive `query` with a chosen body AND a chosen router classification."""
+    monkeypatch.setitem(REGISTRY, "raw", _RawStub(body))
+    app = build_app()
+    state = await app.container().get(AppState)
+    fake = LlmExtractorResource(state.settings, state.sqlite, lazy(_JsonEnvelopeProvider(envelope)))
+    app.provide(LlmExtractorResource, lambda: fake)
+    async with make_client(app) as client:
+        wire = await client.call_wire("query", **ask_kwargs)
+    return json.loads(wire)
+
 
 @pytest.mark.asyncio
 async def test_listing_ask_carries_options(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(
+    data = await _ask_wire_classified(
         monkeypatch,
         body=_listing_html(6),
+        envelope=_LISTING_ENVELOPE,
         url="https://shop.example/ara?q=crimp&siralama=artanFiyat",
         query="which crimping tool is best?",
     )
@@ -99,8 +126,35 @@ async def test_listing_ask_carries_options(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 @pytest.mark.asyncio
+async def test_product_page_footer_records_do_not_leak_as_options(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Regression (hepsiburada/koçtaş): the DOM record-miner fires on ANY repeated
+    # DOM — a product page's site-wide footer megamenu parses into a full
+    # record_set — but the LLM classifies the page as `product`. IDENTICAL body to
+    # the listing case above (record_set populated), yet `options` MUST NOT ride
+    # the wire, because the option shelf is trusted only when the model agrees the
+    # page is a listing. Without the gate this leaked 10 null-url footer entries.
+    data = await _ask_wire_classified(
+        monkeypatch,
+        body=_listing_html(6),  # same body → _options IS populated internally
+        envelope=_PRODUCT_ENVELOPE,  # …but classified product → shelf suppressed
+        url="https://shop.example/wilkinson-razor-p-123",
+        query="what is the price and is it in stock?",
+    )
+    assert data["answer"] == "Price: 42.00 TRY. In stock."
+    assert "options" not in data  # footer chrome never reaches the wire
+    assert "refinement_axes" not in data  # sibling gate, same classification
+
+
+@pytest.mark.asyncio
 async def test_non_listing_ask_omits_options(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, body=_MINIMAL_HTML, url="https://example.org/post", query="q?")
+    # A page with no minable records AND a non-listing classification: doubly empty.
+    data = await _ask_wire_classified(
+        monkeypatch,
+        body=b"<html><body><main><p>" + b"A plain article body. " * 40 + b"</p></main></body></html>",
+        envelope={"answer": "A.", "structural_form": "article", "shape": "prose"},
+        url="https://example.org/post",
+        query="q?",
+    )
     assert "options" not in data
 
 

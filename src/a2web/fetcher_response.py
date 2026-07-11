@@ -504,13 +504,23 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
                 OperatorHint(code="content_guidance", message=guidance),
             )
 
+    # The DOM record-miner (`_records_to_options`) is a pure structural heuristic
+    # that fires on ANY repeated DOM — a listing's product grid (wanted) OR a
+    # product/article page's site-wide footer megamenu (junk: null-url chrome).
+    # `options` and `refinement_axes` are siblings of the option shelf; gate BOTH
+    # on the LLM's page classification so the DOM-mined shelf is trusted only when
+    # the model agrees the page IS a listing. Without this, a product page leaks
+    # the footer nav as null-url `options` (hepsiburada/koçtaş — the megamenu is on
+    # every page). `_prune_wire` drops the empty list from the wire.
+    is_listing = routing is not None and routing.structural_form == "listing"
+
     # Dimensional refinement axes are the CRITERIA of the option set — needed by
     # any listing selection question, complete or partial (criteria and
     # completeness are orthogonal). Gate on the listing kind, not on partialness;
     # the model omits axes on non-selection listings and `_prune_wire` drops the
     # empty list. Axes are dimensional-only by prompt contract (never values off a
     # possibly-biased sample).
-    refinement_axes = list(routing.refinement_axes) if routing is not None and routing.structural_form == "listing" else []
+    refinement_axes = list(routing.refinement_axes) if is_listing else []
 
     # Confabulation guard (search-retrieval-and-confabulation-guard P2): the
     # extractor's own `obstacle` signal reconciles confidence + completeness.
@@ -577,7 +587,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         also_here=list(routing.also_here) if routing is not None else [],
         other_pages=_compose_other_pages(fr, routing),
         refinement_axes=refinement_axes,
-        options=list(fr._options),
+        options=list(fr._options) if is_listing else [],
     )
 
 
