@@ -6,6 +6,38 @@ a deployer hit, with a concrete suggestion. Grouped by severity.
 
 ## Footguns (worth fixing)
 
+### 0. CRITICAL: `query` returns empty answers — the 1024-token extraction cap truncates the contract-v2 JSON
+
+On a homelab deploy (0.44.0 and 0.44.1), `query` returned `extraction_empty` (answer `""`,
+`also_here`/`other_pages`/`structural_form` all `None`) on ordinary content pages
+(en.wikipedia.org/wiki/Home_Assistant, /wiki/Nginx), while `fetch_raw` and plain LLM
+completions worked fine. Reproduced across THREE models — `deepseek-v4-flash`,
+`deepseek-chat`, `gpt-4.1-mini` — and BOTH image versions, so it is neither model- nor
+version-specific.
+
+Root cause (traced to source): `Extractor` hardcodes `max_tokens=1024`
+(`packages/llm_extract/extractor.py:105`) and is constructed in `llm_resource.py:137`
+WITHOUT any settings/env override — `settings.py` has no extraction-token field. The
+router-shape JSON output (answer + `also_here` + `other_pages`, enlarged by the 0.41
+contract-v2) overflows 1024 on link-rich pages, so the model's JSON truncates, the wobble
+parser (`_first_json_object`) finds no complete object, and everything comes back empty.
+This is EXACTLY the failure the 2026-07-05 bench already documented ("hit
+`completion_tokens=1024` ... truncating before the answer ... Real fix = raise extraction
+`max_tokens`") — but it shipped unraised, and contract-v2 made the output bigger, so it now
+bites ordinary pages, not just verbose models.
+
+Impact: `query` (the primary tool, "~95% of web reads") is effectively broken on real pages
+for a self-hoster. There is NO operator workaround: the cap is not exposed via any `A2WEB_*`
+env, so a deployer cannot raise it, swap prompt, or disable the index from outside.
+
+- Suggestion (owner-side, high priority): (a) raise the extraction `max_tokens` default
+  substantially (the bench's own prescription), AND/OR (b) expose it as `A2WEB_EXTRACT_MAX_TOKENS`
+  so operators can tune it, AND/OR (c) emit the `answer` field FIRST so a truncated response
+  still carries the answer, AND/OR (d) gate `also_here`/`other_pages` off by default on
+  non-listing pages (the 0.44.1 "gate options on listing" change moved this direction but did
+  not fix the answer-truncation). Any one of these unblocks `query`.
+
+
 ### 1. Default model is metered Anthropic
 
 `src/a2web/settings.py` ships `llm_model = "claude-haiku-4-5-20251001"` as the default.
