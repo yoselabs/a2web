@@ -17,6 +17,27 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-11 — SSRF egress denylist for internal/private targets (M)
+
+Source: homelab deploy exploration (`iorlas/homelab` change `add-a2web-backend`).
+When a2web runs as a networked MCP server it fetches any URL a caller supplies,
+from inside the server's network. With no egress guard a caller can pivot a2web
+into private targets it could not reach itself: docker service names on shared
+bridges (`http://litellm:4000`, `http://ha-mcp:8087`), other tailnet IPs, and
+cloud metadata (`http://169.254.169.254/`). Auth gates WHO can call; once in,
+any caller inherits an internal fetch primitive.
+
+- **Scope (M).** Add an egress denylist that rejects (loud diagnostic, never a
+  silent fetch) targets resolving into private/link-local ranges: `10/8`,
+  `172.16/12`, `192.168/16`, `169.254/16`, `127/8`, `::1`, `fc00::/7`. Apply on
+  the RESOLVED IP (guard DNS-rebind), on redirects too, across every tier (raw /
+  jina / zyte / browser). A settings allowlist escape hatch for deliberate
+  internal fetches (default empty).
+- **Why deferred.** The first homelab deployment gates callers to a solo GCP
+  test-user allowlist (~just the operator), so practical exposure is low; the
+  priority was shipping `ask` + `fetch_raw`. Revisit before any multi-user or
+  shared-URL exposure of an a2web-backed gateway.
+
 ## 2026-07-11 — surface-page-links-to-extractor: eval gates (bench-deferred)
 
 Source: openspec change `surface-page-links-to-extractor`, tasks 9.1/9.2 + the
