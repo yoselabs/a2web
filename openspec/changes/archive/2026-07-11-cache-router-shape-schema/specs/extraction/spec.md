@@ -11,9 +11,9 @@ The `EXTRACT_ROUTER_V1` template SHALL share `cache_prefix_template` byte-equali
 The router-shape system prompt SHALL:
 - Declare the closed-enum vocabulary for `structural_form` (9 values), `shape` (7 values), and `obstacle` (4 values, optional).
 - Instruct the model to omit `obstacle` on healthy pages.
-- Instruct the model to emit `ask_here` and `try_url` only when populated — empty arrays acceptable but soft-discouraged via a "context decides count, 3 good 5 great" rule.
-- Instruct the model that `ask_here` MUST emit only questions whose answer requires reading the body (no obvious-from-title questions).
-- Instruct the model that `try_url[*].reason` MUST be question-conditioned (WHY this URL likely has what's missing) and ≤120 chars.
+- Instruct the model to emit `also_here` and `other_pages` only when populated — empty arrays acceptable but soft-discouraged via a "context decides count, 3 good 5 great" rule.
+- Instruct the model that `also_here` MUST index only on-page content the answer left unreturned, emitted as terse query-grammar strings (ADR-0015).
+- Instruct the model that an `other_pages` `drilldown` `reason` MUST be question-conditioned (WHY this URL likely has what's missing) and ≤120 chars.
 
 #### Scenario: request_routing=False preserves existing extraction shape
 
@@ -23,7 +23,7 @@ The router-shape system prompt SHALL:
 #### Scenario: request_routing=True populates the routing field
 
 - **WHEN** `Extractor.extract(content=..., ask=..., request_routing=True)` is awaited against a content page and the model returns a well-formed JSON router-shape addendum
-- **THEN** `ExtractionResult.routing` is a `RouterPayload` instance with `answer`, `structural_form`, `shape` populated, plus any of `obstacle` / `ask_here` / `try_url` that the model included
+- **THEN** `ExtractionResult.routing` is a `RouterPayload` instance with `answer`, `structural_form`, `shape` populated, plus any of `obstacle` / `also_here` / `other_pages` that the model included
 
 #### Scenario: Cache-prefix integrity survives the new template
 

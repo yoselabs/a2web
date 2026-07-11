@@ -140,15 +140,20 @@ def test_router_template_prefix_is_byte_stable_across_asks() -> None:
     assert parts2.tail != parts3.tail
 
 
-def test_router_template_schema_lives_in_tail_not_prefix() -> None:
-    """The router-shape schema enums + envelope example MUST live in the tail;
-    if any of it leaked into cache_prefix the prefix would still be stable but
-    bloated, hurting the cache-window math."""
+def test_router_template_schema_lives_in_system_not_prefix_or_tail() -> None:
+    """v0.24 (cache-router-shape-schema): the router-shape schema enums + worked
+    examples MUST live in the cacheable `system` bucket — never in `cache_prefix`
+    (would bloat the prefix) and no longer in `tail` (the per-call suffix). Only
+    the question line rides `tail` now, so the ~5.8k-char schema is paid once per
+    cache window instead of every call."""
     parts = EXTRACT_ROUTER_V1.render(content=_PAGE, ask="Q?")
     assert "structural_form" not in parts.cache_prefix
-    assert "structural_form" in parts.tail
+    assert "structural_form" not in parts.tail
+    assert "structural_form" in parts.system
     assert "discussion" not in parts.cache_prefix
-    assert "discussion" in parts.tail
+    assert "discussion" in parts.system
+    # tail is now only the per-call question line.
+    assert parts.tail == "\nQuestion: Q?\n"
 
 
 # v0.22 (ask-extraction-token-tuning) — token-efficiency + partial-signal
@@ -170,15 +175,16 @@ def test_router_template_carries_partial_signal_honesty_instruction_in_system() 
 
 
 def test_router_handle_markers_render_double_brace() -> None:
-    """The `{{n}}` handle markers in the router prompt must survive `.format()`
-    as literal `{{n}}` (matching the digest + rehydration regex), NOT collapse
-    to `{n}`. Regression guard: a bare `{{n}}` in source renders `{n}` and the
-    model's inline answer handles then never rehydrate (leak)."""
-    tail = EXTRACT_ROUTER_V1.render(content="X", ask="Y").tail
-    assert "{{n}}" in tail  # the marker the model is told to emit
+    """The `{{n}}` handle markers in the router prompt must reach the model as
+    literal `{{n}}` (matching the digest + rehydration regex), NOT collapse to
+    `{n}`. v0.24: the schema now lives in `system` (emitted verbatim, never
+    `.format()`d), so the markers are authored as literal `{{n}}` in
+    `_ROUTER_SCHEMA_DOC` — the inverse of the old `{{{{n}}}}` tail-escaping."""
+    system = EXTRACT_ROUTER_V1.render(content="X", ask="Y").system
+    assert "{{n}}" in system  # the marker the model is told to emit
     # a single-brace `{n}` marker must NOT appear (that is the collapsed bug form)
     import re
 
-    assert not re.search(r"(?<!\{)\{n\}(?!\})", tail)
+    assert not re.search(r"(?<!\{)\{n\}(?!\})", system)
     # JSON examples stay single-brace (they are literal JSON, not markers)
-    assert '{"handle": 3' in tail
+    assert '{"handle": 3' in system

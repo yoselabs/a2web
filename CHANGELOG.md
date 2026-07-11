@@ -8,6 +8,24 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.43.0] — 2026-07-11
+
+> Cache economy: relocate the router-shape schema into the cacheable bucket.
+
+### Changed
+
+- **`EXTRACT_ROUTER_V1` → version 6**: the ~5.8k-char static router-shape schema
+  + 4 worked examples move OUT of `tail_template` (resent on every `query` call)
+  INTO the cacheable `system` bucket (`_ROUTER_SCHEMA_DOC`). `tail_template` is
+  now only the per-call `"\nQuestion: {ask}\n"`. Pure relocation — zero wording
+  change; the rendered aggregate prompt is byte-equivalent, only the
+  `system`/`tail` split moved. Because `system` is emitted verbatim (never
+  `.format()`d), the schema is single-braced there and `{{n}}` handle markers
+  stay double-braced (the inverse of the old `{{{{n}}}}` tail-escaping).
+  `cache_prefix_template` is untouched — the v0.19 cache-prefix invariant
+  (byte-identity with `EXTRACT_CACHEABLE_V1`) holds. Saves the schema block on
+  every repeat `query` within the provider's cache window.
+
 ## [0.42.0] — 2026-07-11
 
 > **BREAKING (MCP + parsers).** The `ask` response contract v2 lands ADR-0015
