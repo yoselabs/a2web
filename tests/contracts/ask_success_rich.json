@@ -2,7 +2,7 @@
   "answer": "The page is about adaptive web fetching.",
   "byline": "Jane Doe",
   "confidence": "high",
-  "next_links": "anchor\turl\treason\tkind\nRelated\thttps://example.org/related\trelated read\trelated\n",
+  "other_pages": "url\treason\tkind\nhttps://example.org/related\trelated read\tstructural\n",
   "published": "2026-04-01",
   "title": "How adaptive web fetching saves agent tokens"
 }

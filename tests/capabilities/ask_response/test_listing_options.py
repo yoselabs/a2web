@@ -90,7 +90,7 @@ async def test_listing_ask_carries_options(monkeypatch: pytest.MonkeyPatch) -> N
         monkeypatch,
         body=_listing_html(6),
         url="https://shop.example/ara?q=crimp&siralama=artanFiyat",
-        question="which crimping tool is best?",
+        query="which crimping tool is best?",
     )
     assert isinstance(data["options"], list)
     assert len(data["options"]) == 6  # every parsed record retained, none skipped
@@ -100,7 +100,7 @@ async def test_listing_ask_carries_options(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.asyncio
 async def test_non_listing_ask_omits_options(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, body=_MINIMAL_HTML, url="https://example.org/post", question="q?")
+    data = await _ask_wire(monkeypatch, body=_MINIMAL_HTML, url="https://example.org/post", query="q?")
     assert "options" not in data
 
 

@@ -380,7 +380,7 @@ def _sanitize_link_text(text: str) -> str:
 def _rows_to_md_records(rows: list[dict], *, title: str) -> str:
     """Render commerce rows as linked markdown records — one per item:
     `- [name](url) — 3690 TRY ⭐ 4.7`. The url is never length-capped (unlike
-    the table's per-cell cap), so it stays verbatim for try_url drilldowns.
+    the table's per-cell cap), so it stays verbatim for other_pages drilldowns.
     Absent fields are omitted; `image` is intentionally not rendered."""
     lines: list[str] = []
     for row in rows[:50]:  # cap synthetic output, matching _find_product_or_item_list

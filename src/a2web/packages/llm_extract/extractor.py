@@ -18,7 +18,7 @@ from anyllm import AnyLLMError, Completion
 from anyllm import LLMProvider as Provider
 
 from .prompts import EXTRACT_ROUTER_V1, WEBFETCH_DEFAULT_V1, PromptTemplate
-from .router_payload import NextUrlBoundary, RefinementAxisBoundary, RouterPayload
+from .router_payload import OtherPageBoundary, RefinementAxisBoundary, RouterPayload
 from .wobble import (
     EXTRACTOR_ROUTING_POLICY,
     ParseError,
@@ -333,7 +333,7 @@ def _next_links_suffix(handler_candidates: list[LlmNextLink] | None) -> str:
 
 
 def _link_digest_suffix(link_digest: str) -> str:
-    """Append the page's real links so `try_url` can reference them by handle.
+    """Append the page's real links so `other_pages` can reference them by handle.
 
     The digest is a closed list of `{{n}} <label> · <path>` lines. The model
     references a link by its handle (`{"handle": 3, ...}`); the server supplies
@@ -421,27 +421,32 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
     obstacle_raw = parsed.get("obstacle")
     obstacle = obstacle_raw if isinstance(obstacle_raw, str) and obstacle_raw else None
 
-    ask_here_raw = parsed.get("ask_here", ())
-    ask_here: tuple[str, ...] = tuple(q for q in ask_here_raw if isinstance(q, str) and q) if isinstance(ask_here_raw, list) else ()
+    also_here_raw = parsed.get("also_here", ())
+    also_here: tuple[str, ...] = tuple(q for q in also_here_raw if isinstance(q, str) and q) if isinstance(also_here_raw, list) else ()
 
-    try_urls: list[NextUrlBoundary] = []
-    try_url_raw = parsed.get("try_url", ())
-    if isinstance(try_url_raw, list):
-        for item in try_url_raw:
+    other_pages: list[OtherPageBoundary] = []
+    other_pages_raw = parsed.get("other_pages", ())
+    if isinstance(other_pages_raw, list):
+        for item in other_pages_raw:
             if not isinstance(item, dict):
                 continue
             reason_raw = item.get("reason", "")
             reason = reason_raw if isinstance(reason_raw, str) else ""
+            # `kind` defaults to drilldown (the question-conditioned case); a
+            # value outside the closed set falls back to drilldown here and is
+            # re-validated by the pydantic mirror at the domain seam.
+            kind_raw = item.get("kind")
+            kind = kind_raw if isinstance(kind_raw, str) and kind_raw in ("structural", "drilldown") else "drilldown"
             # Preferred (digest path): a `{{n}}` handle the domain seam
             # rehydrates from the closed link set. Fall back to a raw `url`
             # (legacy / no-digest pages).
             handle_val = item.get("handle")
             if isinstance(handle_val, int) and not isinstance(handle_val, bool):
-                try_urls.append(NextUrlBoundary(url="", reason=reason, handle=handle_val))
+                other_pages.append(OtherPageBoundary(url="", reason=reason, kind=kind, handle=handle_val))
                 continue
             url_val = item.get("url")
             if isinstance(url_val, str) and url_val:
-                try_urls.append(NextUrlBoundary(url=url_val, reason=reason))
+                other_pages.append(OtherPageBoundary(url=url_val, reason=reason, kind=kind))
 
     axes: list[RefinementAxisBoundary] = []
     axes_raw = parsed.get("refinement_axes", ())
@@ -463,8 +468,8 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
         structural_form=structural_form,
         shape=shape,
         obstacle=obstacle,
-        ask_here=ask_here,
-        try_url=tuple(try_urls),
+        also_here=also_here,
+        other_pages=tuple(other_pages),
         refinement_axes=tuple(axes),
         item_total_seen=item_total_seen,
     )

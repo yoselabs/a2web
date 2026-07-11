@@ -42,7 +42,7 @@ def test_extractor_routing_emits_wobble_on_missing_optionals() -> None:
             "answer": "rust borrow checker",
             "structural_form": "reference",
             "shape": "prose",
-            # obstacle / ask_here / try_url all missing → DEFAULT recovery.
+            # obstacle / also_here / other_pages all missing → DEFAULT recovery.
             # (`genre` was removed entirely — no wobble policy entry, no field
             # to recover — see ask-extraction-token-tuning.)
         }
@@ -57,7 +57,7 @@ def test_extractor_routing_emits_wobble_on_missing_optionals() -> None:
     assert answer == "rust borrow checker"
     # all three optional fields wobbled
     fields = {r.get("field") for r in records if r.get("event") == "llm_wobble"}
-    assert {"obstacle", "ask_here", "try_url"} <= fields
+    assert {"obstacle", "also_here", "other_pages"} <= fields
     assert "genre" not in fields
 
 

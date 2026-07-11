@@ -6,7 +6,7 @@ caching the result. Zero `a2web.<domain>` imports.
 
 Boundary types are package-owned: `Provider` Protocol, `ModelSpec`,
 `ExtractionResult`, `ExtractionCache`, `PromptTemplate`, `Judge`,
-`JudgeVerdict`, `RouterPayload`, `NextUrlBoundary`. Domain wiring
+`JudgeVerdict`, `RouterPayload`, `OtherPageBoundary`. Domain wiring
 (AppSettings provider selection, SqliteResource cache plumbing) lives at
 the a2web seam in `a2web.llm.resource`.
 """
@@ -33,7 +33,7 @@ from .prompts import (
     PromptParts,
     PromptTemplate,
 )
-from .router_payload import NextUrlBoundary, RouterPayload
+from .router_payload import OtherPageBoundary, RouterPayload
 from .wobble import (
     ParseError,
     Wobbled,
@@ -62,7 +62,7 @@ __all__ = [
     "LLMNotAvailable",
     "LlmNextLink",
     "ModelSpec",
-    "NextUrlBoundary",
+    "OtherPageBoundary",
     "ParseError",
     "PromptParts",
     "PromptTemplate",

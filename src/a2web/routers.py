@@ -1,7 +1,7 @@
-"""a2web routers — `WebRouter` exposes `ask` + `fetch_raw`; `CookiesRouter` exposes `refresh`.
+"""a2web routers — `WebRouter` exposes `query` + `fetch_raw`; `CookiesRouter` exposes `refresh`.
 
 v0.7 split: the single `fetch` tool became two tools so the agent surface
-itself enforces the cost-discipline preference. `ask` requires a question
+itself enforces the cost-discipline preference. `query` requires a query
 and always runs the server-side LLM extractor (Haiku 4.5 by default) —
 this is the primary tool, intended for ~95%% of web reads. `fetch_raw`
 returns content with no LLM step and is documented as a fallback.
@@ -10,7 +10,7 @@ Both tools delegate to the same orchestrator (`fetcher.fetch`); the only
 difference is whether `ask=` is passed through.
 
 To expose only a subset of tools at runtime, use a2kit's native selector:
-`A2KIT_TOOLS=ask a2web serve` or `a2web serve --tools=ask`.
+`A2KIT_TOOLS=query a2web serve` or `a2web serve --tools=query`.
 """
 
 from __future__ import annotations
@@ -38,24 +38,26 @@ class WebRouter(a2kit.Router):
 
     @a2kit.read(
         open_world=True,
-        title="Ask a Question About a Web Page",
-        canonical_name_override="ask",
+        title="Query a Web Page",
+        canonical_name_override="query",
     )
-    async def ask(
+    async def query(
         self,
         *,
         url: Annotated[str, pydantic.Field(description="Absolute http(s) URL to fetch.")],
-        question: Annotated[
+        query: Annotated[
             str,
             pydantic.Field(
                 min_length=1,
                 description=(
-                    "What you want to know from this page. The page is fetched, "
-                    "then a small fast model (Claude Haiku 4.5 by default) extracts "
-                    "a focused answer server-side — keeping your context tiny. "
-                    "Phrase it the way you would ask a colleague who just read the "
-                    "page: 'What does this article say about X?', 'List the bags "
-                    "reviewed with each verdict.', 'Top 3 recommendations and why.'"
+                    "What you want from this page, as a terse QUERY — not a full "
+                    "sentence. Drop the verb frame and the page's own name; keep the "
+                    "target plus one operator: `,` (list) · `vs` (contrast) · `/` "
+                    "(alternatives); CAPS the one word that decides; keep a `?` only "
+                    "when you want a judgement. e.g. `return policy`, `battery vs "
+                    "mains life`, `RTX 4090 price, stock`. A small fast model (Claude "
+                    "Haiku 4.5 by default) reads the whole page and answers "
+                    "server-side, keeping your context tiny."
                 ),
             ),
         ],
@@ -106,14 +108,13 @@ class WebRouter(a2kit.Router):
                 description=("Wrap content_md with HTML-comment markers carrying source URL + 'untrusted content' warning. Default True."),
             ),
         ] = True,
-        next_links: Annotated[
+        other_pages: Annotated[
             bool,
             pydantic.Field(
                 description=(
-                    "Return up to 10 curated 'what to fetch next' links in "
-                    "`next_links`. Drilldown / related / source candidates "
-                    "from the site handler and/or LLM extraction. Default True; "
-                    "pass False on terminal fetches where you won't drill down "
+                    "Return up to 10 curated off-page pointers in `other_pages` "
+                    "(kind-tagged: `structural` continuation / `drilldown`). Default "
+                    "True; pass False on terminal fetches where you won't drill down "
                     "to save a few hundred output tokens."
                 ),
             ),
@@ -135,12 +136,11 @@ class WebRouter(a2kit.Router):
             pydantic.Field(
                 description=(
                     "Include the router-shape fields on the response. Default True. "
-                    "Router-shape adds three conditional fields (`obstacle`, "
-                    "`ask_here`, `try_url`, plus the always-present `answer`) "
-                    "describing same-URL follow-up questions and different-URL "
-                    "drilldowns. Same extraction call. "
-                    "Opt out for the lean v0.14 envelope or high-volume cost-sensitive "
-                    "flows."
+                    "Router-shape adds conditional fields (`obstacle`, `also_here`, "
+                    "`other_pages`, plus the always-present `answer`): `also_here` "
+                    "indexes on-page content the answer skipped, `other_pages` points "
+                    "elsewhere. Same extraction call. Opt out for the lean envelope or "
+                    "high-volume cost-sensitive flows."
                 ),
             ),
         ] = True,
@@ -155,18 +155,23 @@ class WebRouter(a2kit.Router):
         Fetches the URL via the adaptive tier cascade (site handlers → raw
         HTTP with TLS impersonation → Jina reader → archive fallback →
         Camoufox browser as last resort), then runs the server-side LLM
-        extractor over the content to answer your `question`. Returns the
-        focused answer in `extracted_answer`. Pass `include_content=True` to
-        also get the page markdown in `content_md` for grounding.
+        extractor over the content to answer your `query`. Returns the
+        focused answer in `answer`. Pass `include_content=True` to also get
+        the page markdown in `content_md` for grounding.
 
         Prefer this over `fetch_raw` for ~95%% of web reads. The
         extraction model is small and cheap (Haiku 4.5), so server-side
         answers cost a fraction of streaming raw HTML into a larger model.
 
+        Cost asymmetry (ADR-0015): `also_here` indexes on-page content the
+        answer skipped — recovering it is a CHEAP re-query of the same URL
+        (served from cache). `other_pages` points ELSEWHERE; each one costs a
+        NEW fetch. Spend on the scarce resource — the fetch — accordingly.
+
         When the LLM is unavailable (no API key and no Claude Code OAuth
-        session), the fetch still succeeds, `extracted_answer` is None,
-        and an operator hint records the reason — callers can fall back
-        to reading `content_md` directly.
+        session), the fetch still succeeds, `answer` is None, and an operator
+        hint records the reason — callers can fall back to reading
+        `content_md` directly.
 
         Emits typed events on a2kit's logging channel during the fetch.
         """
@@ -182,8 +187,8 @@ class WebRouter(a2kit.Router):
             link_roles=roles_filter,
             wrap_content=wrap_content,
             debug=debug,
-            ask=question,
-            next_links=next_links,
+            ask=query,
+            next_links=other_pages,
             max_content_chars=max_content_chars,
             include_routing=include_routing,
         )
@@ -240,20 +245,20 @@ class WebRouter(a2kit.Router):
         browser_robust_backend: Lazy[RobustBrowserBackend],
         cookie_jar: Lazy[CookieJarResource],
     ) -> FetchResponse:
-        """**Fallback only — prefer `ask` for ~95%% of web reads.**
+        """**Fallback only — prefer `query` for ~95%% of web reads.**
 
         Returns the page's markdown content with no server-side LLM
         extraction. Use only when:
 
         1. You need the full structural content (link graphs, repeated
            rows for scraping, tables to transform).
-        2. A previous `ask` call returned `extracted_answer: null` with
-           an `llm_unavailable` operator hint and you need the page text
+        2. A previous `query` call returned `answer: null` with an
+           `llm_unavailable` operator hint and you need the page text
            to answer your own question.
-        3. `ask`'s answer is suspect and you need to verify against
+        3. `query`'s answer is suspect and you need to verify against
            source.
 
-        Do not default to this tool — `ask` is cheaper end-to-end because
+        Do not default to this tool — `query` is cheaper end-to-end because
         the server-side Haiku extractor is much smaller than the model
         calling this tool. Same tier cascade, same diagnostics, just
         without the extraction phase.

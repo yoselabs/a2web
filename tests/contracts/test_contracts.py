@@ -101,7 +101,7 @@ async def _ask_wire(
     fake = _extractor(state, unavailable=unavailable)
     app.provide(LlmExtractorResource, lambda: fake)
     async with make_client(app) as client:
-        return json.loads(await client.call_wire("ask", **kwargs))
+        return json.loads(await client.call_wire("query", **kwargs))
 
 
 async def _fetch_raw_wire(monkeypatch: pytest.MonkeyPatch, *, body: bytes, **kwargs: object) -> dict:
@@ -122,7 +122,7 @@ async def test_contract_ask_success_minimal(monkeypatch: pytest.MonkeyPatch) -> 
         monkeypatch,
         body=_MINIMAL_HTML,
         url="https://example.org/minimal",
-        question="what is this about?",
+        query="what is this about?",
     )
     _check("ask_success_minimal", data)
 
@@ -135,7 +135,7 @@ async def test_contract_ask_success_rich(monkeypatch: pytest.MonkeyPatch) -> Non
         body=(_FIX / "blog.html").read_bytes(),
         raw_next_links=links,
         url="https://example.org/rich",
-        question="summarize the article",
+        query="summarize the article",
     )
     _check("ask_success_rich", data)
 
@@ -146,7 +146,7 @@ async def test_contract_ask_failure(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch,
         body=(_FIX / "cloudflare_block.html").read_bytes(),
         url="https://blocked.example/page",
-        question="q",
+        query="q",
     )
     _check("ask_failure", data)
 
@@ -157,7 +157,7 @@ async def test_contract_ask_include_content(monkeypatch: pytest.MonkeyPatch) -> 
         monkeypatch,
         body=_MINIMAL_HTML,
         url="https://example.org/grounded",
-        question="q",
+        query="q",
         include_content=True,
         wrap_content=False,
     )
@@ -170,7 +170,7 @@ async def test_contract_ask_debug(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch,
         body=_MINIMAL_HTML,
         url="https://example.org/debugged",
-        question="q",
+        query="q",
         debug=True,
     )
     _check("ask_debug", data)
@@ -199,8 +199,8 @@ def test_contract_tool_schemas() -> None:
     container = app.container()
     by_name = {d.name: d for d in app.tools()}
     snapshot = {
-        "ask": {
-            "inputSchema": compute_schema(by_name["ask"].fn, container)["inputSchema"],
+        "query": {
+            "inputSchema": compute_schema(by_name["query"].fn, container)["inputSchema"],
             "outputModel": AskResponse.model_json_schema(),
         },
         "fetch_raw": {

@@ -109,7 +109,7 @@ async def _ask_wire(
     fake = _extractor(state, unavailable=unavailable)
     app.provide(LlmExtractorResource, lambda: fake)
     async with make_client(app) as client:
-        wire = await client.call_wire("ask", **ask_kwargs)
+        wire = await client.call_wire("query", **ask_kwargs)
     return json.loads(wire)
 
 
@@ -123,14 +123,14 @@ _REQUIRED = {"confidence", "answer"}
 
 @pytest.mark.asyncio
 async def test_ask_success_carries_required_fields(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="what is this about?")
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="what is this about?")
     assert _REQUIRED <= set(data)
     assert data["answer"] == "The page is about adaptive web fetching."
 
 
 @pytest.mark.asyncio
 async def test_ask_omits_fit_md_tokens_is_user_authored(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?")
     assert "fit_md" not in data
     assert "tokens" not in data
     assert "is_user_authored" not in data
@@ -143,14 +143,14 @@ async def test_ask_omits_fit_md_tokens_is_user_authored(monkeypatch: pytest.Monk
 
 @pytest.mark.asyncio
 async def test_ask_default_omits_content_and_headings(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?")
     assert "content_md" not in data
     assert "headings" not in data
 
 
 @pytest.mark.asyncio
 async def test_ask_include_content_returns_content_and_headings(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?", include_content=True)
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?", include_content=True)
     assert data["content_md"]
     assert isinstance(data["headings"], list)
     # headings render as [level, text] tuples
@@ -170,10 +170,10 @@ async def test_ask_omits_empty_optionals(monkeypatch: pytest.MonkeyPatch) -> Non
         monkeypatch,
         body=_MINIMAL_HTML,
         url="https://example.org/post",
-        question="q?",
-        next_links=False,
+        query="q?",
+        other_pages=False,
     )
-    for key in ("byline", "published", "operator_hints", "next_links", "original_url", "meta"):
+    for key in ("byline", "published", "operator_hints", "other_pages", "next_links", "original_url", "meta"):
         assert key not in data, f"empty optional {key!r} leaked onto the wire"
 
 
@@ -183,61 +183,57 @@ async def test_ask_includes_populated_optionals(monkeypatch: pytest.MonkeyPatch)
 
     handler_links = [NextLink(anchor="Related post", url="https://example.org/related", reason="related", kind="related")]
     # An unavailable LLM fails the ask hard (no answer delivered), but the
-    # handler-derived next_links + the critical hint still surface on the wire.
+    # handler-derived continuation links still surface on the wire — now folded
+    # into `other_pages` as kind=structural (ADR-0015).
     data = await _ask_wire(
         monkeypatch,
         raw_next_links=handler_links,
         unavailable="No Anthropic API key found.",
         url="https://example.org/post",
-        question="q?",
+        query="q?",
     )
     assert data["status"] == "failed"  # ask delivered no answer → loud failure
     assert "operator_hints" in data
     assert any(h["code"] == "llm_unavailable" for h in data["operator_hints"])
-    # next_links is a TSV string, not a JSON array
-    assert isinstance(data["next_links"], str)
-    assert "https://example.org/related" in data["next_links"]
+    # other_pages is a TSV string, not a JSON array; handler links are structural
+    assert isinstance(data["other_pages"], str)
+    assert "https://example.org/related" in data["other_pages"]
+    assert "structural" in data["other_pages"]
 
 
 # --------------------------------------------------------------------- #
-# 2.1 / 2.5 — status failure-only; next_links TSV
+# 2.1 / 2.5 — status failure-only; other_pages TSV
 # --------------------------------------------------------------------- #
 
 
 @pytest.mark.asyncio
 async def test_ask_status_is_failure_only(monkeypatch: pytest.MonkeyPatch) -> None:
-    ok = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    ok = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?")
     assert "status" not in ok
     body = (_FIX / "cloudflare_block.html").read_bytes()
-    failed = await _ask_wire(monkeypatch, body=body, url="https://blocked.example/page", question="q?")
+    failed = await _ask_wire(monkeypatch, body=body, url="https://blocked.example/page", query="q?")
     assert failed["status"] == "failed"
 
 
 @pytest.mark.asyncio
-async def test_ask_next_links_tsv_drops_kind_when_all_drilldown(monkeypatch: pytest.MonkeyPatch) -> None:
-    from a2web.models import NextLink
-
-    links = [
-        NextLink(anchor="One", url="https://example.org/1", reason="r1", kind="drilldown"),
-        NextLink(anchor="Two", url="https://example.org/2", reason="r2", kind="drilldown"),
-    ]
-    data = await _ask_wire(monkeypatch, raw_next_links=links, url="https://example.org/post", question="q?")
-    tsv = data["next_links"]
-    assert isinstance(tsv, str)
-    assert tsv.splitlines()[0] == "anchor\turl\treason"  # no kind column
-    assert len(tsv.splitlines()) == 3  # header + 2 rows
-
-
-@pytest.mark.asyncio
-async def test_ask_next_links_tsv_keeps_kind_when_mixed(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_ask_other_pages_tsv_from_handler_links_are_structural(monkeypatch: pytest.MonkeyPatch) -> None:
+    # ADR-0015: handler continuation links fold into `other_pages` as
+    # kind=structural (the former next_links anchor is dropped; columns are
+    # url / reason / kind).
     from a2web.models import NextLink
 
     links = [
         NextLink(anchor="One", url="https://example.org/1", reason="r1", kind="drilldown"),
         NextLink(anchor="Two", url="https://example.org/2", reason="r2", kind="related"),
     ]
-    data = await _ask_wire(monkeypatch, raw_next_links=links, url="https://example.org/post", question="q?")
-    assert data["next_links"].splitlines()[0] == "anchor\turl\treason\tkind"
+    data = await _ask_wire(monkeypatch, raw_next_links=links, url="https://example.org/post", query="q?")
+    tsv = data["other_pages"]
+    assert isinstance(tsv, str)
+    lines = tsv.splitlines()
+    assert lines[0] == "url\treason\tkind"
+    assert len(lines) == 3  # header + 2 rows
+    assert all(row.endswith("\tstructural") for row in lines[1:])
+    assert "\tOne\t" not in tsv and "\tTwo\t" not in tsv  # anchor dropped
 
 
 # --------------------------------------------------------------------- #
@@ -247,7 +243,7 @@ async def test_ask_next_links_tsv_keeps_kind_when_mixed(monkeypatch: pytest.Monk
 
 @pytest.mark.asyncio
 async def test_ask_success_omits_narrative(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?")
     assert "status" not in data
     assert "narrative" not in data
     assert "diagnostics_summary" not in data
@@ -256,7 +252,7 @@ async def test_ask_success_omits_narrative(monkeypatch: pytest.MonkeyPatch) -> N
 @pytest.mark.asyncio
 async def test_ask_failure_carries_narrative(monkeypatch: pytest.MonkeyPatch) -> None:
     body = (_FIX / "cloudflare_block.html").read_bytes()
-    data = await _ask_wire(monkeypatch, body=body, url="https://blocked.example/page", question="q?")
+    data = await _ask_wire(monkeypatch, body=body, url="https://blocked.example/page", query="q?")
     assert data["status"] == "failed"
     assert data["narrative"]
     assert data["diagnostics_summary"]
@@ -269,7 +265,7 @@ async def test_ask_failure_carries_narrative(monkeypatch: pytest.MonkeyPatch) ->
 
 @pytest.mark.asyncio
 async def test_ask_default_omits_timing(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?")
     assert "debug" not in data
     for key in ("started_at", "total_ms", "cache", "diagnostics"):
         assert key not in data
@@ -277,7 +273,7 @@ async def test_ask_default_omits_timing(monkeypatch: pytest.MonkeyPatch) -> None
 
 @pytest.mark.asyncio
 async def test_ask_debug_includes_timing(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?", debug=True)
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?", debug=True)
     debug = data["debug"]
     for key in ("started_at", "total_ms", "cache"):
         assert key in debug
@@ -290,7 +286,7 @@ async def test_ask_debug_includes_timing(monkeypatch: pytest.MonkeyPatch) -> Non
 
 @pytest.mark.asyncio
 async def test_ask_omits_extraction_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?")
     assert "extraction" not in data
 
 
@@ -301,7 +297,7 @@ async def test_ask_truncation_surfaces_operator_hint(monkeypatch: pytest.MonkeyP
         monkeypatch,
         body=_MINIMAL_HTML,
         url="https://example.org/post",
-        question="q?",
+        query="q?",
         max_content_chars=200,
     )
     assert "extraction" not in data
@@ -310,7 +306,7 @@ async def test_ask_truncation_surfaces_operator_hint(monkeypatch: pytest.MonkeyP
 
 @pytest.mark.asyncio
 async def test_ask_extraction_full_under_debug(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?", debug=True)
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?", debug=True)
     extraction = data["debug"]["extraction"]
     assert "truncated" in extraction
     # Model id reflects the configured model (the resource builds the Extractor).
@@ -326,13 +322,13 @@ async def test_ask_extraction_full_under_debug(monkeypatch: pytest.MonkeyPatch) 
 
 @pytest.mark.asyncio
 async def test_ask_tier_omitted_for_raw(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?")
     assert "tier" not in data
 
 
 @pytest.mark.asyncio
 async def test_ask_url_omitted_when_no_redirect(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?")
     assert "url" not in data
 
 
@@ -343,7 +339,7 @@ async def test_ask_url_carried_when_host_rewritten(monkeypatch: pytest.MonkeyPat
         monkeypatch,
         body=_MINIMAL_HTML,
         url="https://www.google.com/search?q=adaptive+web+fetching",
-        question="q?",
+        query="q?",
     )
     assert data["url"].startswith("https://duckduckgo.com/html/")
 
@@ -379,7 +375,7 @@ async def _fetch_raw_wire(monkeypatch: pytest.MonkeyPatch, *, body: bytes, **kwa
 
 @pytest.mark.asyncio
 async def test_ask_meta_curates_to_allowlist(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = await _ask_wire(monkeypatch, body=_RICH_META_HTML, url="https://example.org/post", question="q?")
+    data = await _ask_wire(monkeypatch, body=_RICH_META_HTML, url="https://example.org/post", query="q?")
     assert data["meta"] == {
         "og.description": "A post with curated-worthy metadata.",
     }
@@ -395,7 +391,7 @@ async def test_ask_meta_curates_to_allowlist(monkeypatch: pytest.MonkeyPatch) ->
 async def test_ask_meta_omitted_when_curation_leaves_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
     # blog.html carries only non-allowlisted keys (og.type/title/image/url,
     # twitter.card/site) — curation leaves an empty dict, which is omitted.
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", question="q?")
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?")
     assert "meta" not in data
 
 

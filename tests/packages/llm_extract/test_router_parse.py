@@ -4,7 +4,7 @@ Guards the `_split_answer_and_routing` helper in the Extractor:
 
   - Well-formed healthy payload parses into a full RouterPayload
   - Healthy payload with no conditionals omits optional fields cleanly
-  - Obstacle payload populates `obstacle` and typically `try_url`
+  - Obstacle payload populates `obstacle` and typically `other_pages`
   - Malformed JSON returns (text-as-given, None) — graceful degrade
   - ```json fences are tolerated
   - Missing required fields (answer / structural_form / shape) returns None
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 
-from a2web.packages.llm_extract import NextUrlBoundary, RouterPayload
+from a2web.packages.llm_extract import OtherPageBoundary, RouterPayload
 from a2web.packages.llm_extract.extractor import _RoutingResult, _split_answer_and_routing
 from a2web.packages.llm_extract.wobble import unwrap
 
@@ -36,7 +36,7 @@ def _healthy_envelope() -> str:
             "structural_form": "reference",
             "shape": "prose",
             "genre": "encyclopedia",
-            "ask_here": [
+            "also_here": [
                 "Which lifetime annotations require explicit syntax?",
                 "How does &mut interact with NLL?",
                 "When did the 2018 edition land borrow checker changes?",
@@ -52,7 +52,7 @@ def _obstacle_envelope() -> str:
             "structural_form": "article",
             "shape": "prose",
             "obstacle": "paywalled",
-            "try_url": [
+            "other_pages": [
                 {"url": "https://archive.org/wayback/foo", "reason": "wayback snapshot before paywall"},
             ],
         }
@@ -72,8 +72,8 @@ def test_healthy_payload_parses_full_shape() -> None:
     assert payload.shape == "prose"
     assert not hasattr(payload, "genre")
     assert payload.obstacle is None
-    assert len(payload.ask_here) == 3
-    assert payload.try_url == ()
+    assert len(payload.also_here) == 3
+    assert payload.other_pages == ()
 
 
 def test_minimal_payload_omits_optionals() -> None:
@@ -87,33 +87,33 @@ def test_minimal_payload_omits_optionals() -> None:
     _, payload = _routing(text)
     assert payload is not None
     assert payload.obstacle is None
-    assert payload.ask_here == ()
-    assert payload.try_url == ()
+    assert payload.also_here == ()
+    assert payload.other_pages == ()
 
 
-def test_ask_here_only_payload() -> None:
+def test_also_here_only_payload() -> None:
     text = json.dumps(
         {
             "answer": "Discussion thread on Rust async.",
             "structural_form": "thread",
             "shape": "discussion",
-            "ask_here": ["Top critique?", "What did the OP reply to?"],
+            "also_here": ["Top critique?", "What did the OP reply to?"],
         }
     )
     _, payload = _routing(text)
     assert payload is not None
     assert payload.shape == "discussion"
-    assert len(payload.ask_here) == 2
-    assert payload.try_url == ()
+    assert len(payload.also_here) == 2
+    assert payload.other_pages == ()
 
 
-def test_obstacle_payload_populates_obstacle_and_try_url() -> None:
+def test_obstacle_payload_populates_obstacle_and_other_pages() -> None:
     answer, payload = _routing(_obstacle_envelope())
     assert payload is not None
     assert payload.obstacle == "paywalled"
-    assert len(payload.try_url) == 1
-    assert isinstance(payload.try_url[0], NextUrlBoundary)
-    assert payload.try_url[0].url == "https://archive.org/wayback/foo"
+    assert len(payload.other_pages) == 1
+    assert isinstance(payload.other_pages[0], OtherPageBoundary)
+    assert payload.other_pages[0].url == "https://archive.org/wayback/foo"
     assert answer.startswith("The article")
 
 
@@ -182,13 +182,13 @@ def test_unknown_enum_values_pass_through_at_boundary() -> None:
     assert payload.shape == "diagram"
 
 
-def test_try_url_with_bad_entry_drops_only_that_entry() -> None:
+def test_other_pages_with_bad_entry_drops_only_that_entry() -> None:
     text = json.dumps(
         {
             "answer": "OK.",
             "structural_form": "article",
             "shape": "prose",
-            "try_url": [
+            "other_pages": [
                 {"url": "https://good.example/", "reason": "good"},
                 {"url": "", "reason": "empty url drops"},
                 {"reason": "no url drops"},
@@ -198,11 +198,11 @@ def test_try_url_with_bad_entry_drops_only_that_entry() -> None:
     )
     _, payload = _routing(text)
     assert payload is not None
-    assert len(payload.try_url) == 1
-    assert payload.try_url[0].url == "https://good.example/"
+    assert len(payload.other_pages) == 1
+    assert payload.other_pages[0].url == "https://good.example/"
 
 
-def test_try_url_handle_parses_to_boundary_with_empty_url() -> None:
+def test_other_pages_handle_parses_to_boundary_with_empty_url() -> None:
     """The digest path: `{handle, reason}` → boundary carrying the handle,
     url empty (the domain seam rehydrates it from the closed digest set)."""
     text = json.dumps(
@@ -210,27 +210,27 @@ def test_try_url_handle_parses_to_boundary_with_empty_url() -> None:
             "answer": "Reviews are on a separate page.",
             "structural_form": "product",
             "shape": "key-value",
-            "try_url": [
+            "other_pages": [
                 {"handle": 3, "reason": "customer reviews live here"},
             ],
         }
     )
     _, payload = _routing(text)
     assert payload is not None
-    assert len(payload.try_url) == 1
-    entry = payload.try_url[0]
+    assert len(payload.other_pages) == 1
+    entry = payload.other_pages[0]
     assert entry.handle == 3
     assert entry.url == ""
     assert entry.reason == "customer reviews live here"
 
 
-def test_try_url_handle_wins_over_url_and_rejects_bool_handle() -> None:
+def test_other_pages_handle_wins_over_url_and_rejects_bool_handle() -> None:
     text = json.dumps(
         {
             "answer": "OK.",
             "structural_form": "product",
             "shape": "key-value",
-            "try_url": [
+            "other_pages": [
                 {"handle": 2, "url": "https://ignored.example/", "reason": "prefer handle"},
                 {"handle": True, "reason": "bool is not a handle — falls through, no url, drops"},
             ],
@@ -238,23 +238,23 @@ def test_try_url_handle_wins_over_url_and_rejects_bool_handle() -> None:
     )
     _, payload = _routing(text)
     assert payload is not None
-    assert len(payload.try_url) == 1
-    assert payload.try_url[0].handle == 2
-    assert payload.try_url[0].url == ""
+    assert len(payload.other_pages) == 1
+    assert payload.other_pages[0].handle == 2
+    assert payload.other_pages[0].url == ""
 
 
-def test_ask_here_drops_non_strings_and_empties() -> None:
+def test_also_here_drops_non_strings_and_empties() -> None:
     text = json.dumps(
         {
             "answer": "OK.",
             "structural_form": "article",
             "shape": "prose",
-            "ask_here": ["good question", "", 99, None],
+            "also_here": ["good question", "", 99, None],
         }
     )
     _, payload = _routing(text)
     assert payload is not None
-    assert payload.ask_here == ("good question",)
+    assert payload.also_here == ("good question",)
 
 
 def test_router_payload_is_frozen_dataclass() -> None:
@@ -267,12 +267,12 @@ def test_router_payload_is_frozen_dataclass() -> None:
 
 
 def test_next_url_boundary_is_frozen_dataclass() -> None:
-    n = NextUrlBoundary(url="https://example.com", reason="r")
+    n = OtherPageBoundary(url="https://example.com", reason="r")
     try:
         n.url = "tampered"  # type: ignore[misc]
     except Exception:
         return
-    raise AssertionError("NextUrlBoundary must be frozen")
+    raise AssertionError("OtherPageBoundary must be frozen")
 
 
 # --------------------------------------------------------------------- #

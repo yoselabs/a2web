@@ -30,7 +30,7 @@ async def _ask_listing_wire(monkeypatch: pytest.MonkeyPatch, *, body: bytes, ans
     fake = _extractor(state, answer=answer)
     app.provide(LlmExtractorResource, lambda: fake)
     async with make_client(app) as client:
-        wire = await client.call_wire("ask", **ask_kwargs)
+        wire = await client.call_wire("query", **ask_kwargs)
     return json.loads(wire)
 
 
@@ -61,7 +61,7 @@ async def test_partial_listing_wire_carries_axes_and_guidance(monkeypatch: pytes
         body=_listing_html(6),
         answer=_router_answer(total_seen=1123, axes=_AXES),
         url="https://shop.example/ara?q=crimp&siralama=artanFiyat",
-        question="which crimping tool is best?",
+        query="which crimping tool is best?",
     )
     assert data["refinement_axes"] == _AXES
     assert data["items_total"] == 1123
@@ -82,7 +82,7 @@ async def test_complete_listing_keeps_criteria_drops_partial_signal(monkeypatch:
         body=_listing_html(6),
         answer=_router_answer(total_seen=6, axes=_AXES),
         url="https://shop.example/ara?q=crimp",
-        question="which crimping tool is best?",
+        query="which crimping tool is best?",
     )
     assert data["refinement_axes"] == _AXES
     assert "items_total" not in data

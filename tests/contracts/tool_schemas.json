@@ -1,715 +1,4 @@
 {
-  "ask": {
-    "inputSchema": {
-      "properties": {
-        "debug": {
-          "default": false,
-          "title": "Debug",
-          "type": "boolean"
-        },
-        "include_content": {
-          "default": false,
-          "title": "Include Content",
-          "type": "boolean"
-        },
-        "include_links": {
-          "default": false,
-          "title": "Include Links",
-          "type": "boolean"
-        },
-        "include_routing": {
-          "default": true,
-          "title": "Include Routing",
-          "type": "boolean"
-        },
-        "link_roles": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Link Roles"
-        },
-        "max_content_chars": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Max Content Chars"
-        },
-        "next_links": {
-          "default": true,
-          "title": "Next Links",
-          "type": "boolean"
-        },
-        "question": {
-          "title": "Question",
-          "type": "string"
-        },
-        "url": {
-          "title": "Url",
-          "type": "string"
-        },
-        "wrap_content": {
-          "default": true,
-          "title": "Wrap Content",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "url",
-        "question"
-      ],
-      "title": "ask_in",
-      "type": "object"
-    },
-    "outputModel": {
-      "$defs": {
-        "AskExtraction": {
-          "description": "Slim per-ask extraction metadata for the wire.\n\n`truncated` is the one field an agent branches on (the answer may be\nincomplete) and is always present. The observability fields (`model`,\ntoken counts, cost, latency, cache) are populated only when `ask` was\ncalled with `debug=True`; otherwise they are None and omitted from the\nwire. The full metadata always reaches log events regardless of debug.\n\n`PruneEmpty` (a2kit v0.40.1) installs a `model_serializer` that drops\n`None` / `\"\"` / `[]` / `{}` fields; pydantic cascades it through the\nparent `AskResponse._envelope_discipline`. `truncated: bool` is required\nand `False` is not \"empty\" \u2014 so it survives regardless.",
-          "properties": {
-            "cache_hit": {
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Cache Hit"
-            },
-            "completion_tokens": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Completion Tokens"
-            },
-            "cost_usd": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Cost Usd"
-            },
-            "latency_ms": "<volatile>",
-            "model": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Model"
-            },
-            "prompt_tokens": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Prompt Tokens"
-            },
-            "template_name": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Template Name"
-            },
-            "truncated": {
-              "title": "Truncated",
-              "type": "boolean"
-            }
-          },
-          "required": [
-            "truncated"
-          ],
-          "title": "AskExtraction",
-          "type": "object"
-        },
-        "CacheState": {
-          "enum": [
-            "hit",
-            "miss",
-            "bypass"
-          ],
-          "title": "CacheState",
-          "type": "string"
-        },
-        "Confidence": {
-          "enum": [
-            "high",
-            "medium",
-            "low"
-          ],
-          "title": "Confidence",
-          "type": "string"
-        },
-        "Diagnostic": {
-          "description": "One row of the diagnostics table \u2014 a tier or stage step.\n\n`subsystem` carries the anti-bot family identifier (cloudflare, datadome,\nanubis\u2026) when `verdict == anti_bot`; None otherwise.",
-          "properties": {
-            "dur_ms": "<volatile>",
-            "engine": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Engine"
-            },
-            "extra": {
-              "additionalProperties": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "number"
-                  }
-                ]
-              },
-              "title": "Extra",
-              "type": "object"
-            },
-            "host": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Host"
-            },
-            "proxy": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Proxy"
-            },
-            "step": {
-              "title": "Step",
-              "type": "string"
-            },
-            "subsystem": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Subsystem"
-            },
-            "t_ms": "<volatile>",
-            "verdict": {
-              "$ref": "#/$defs/Verdict"
-            }
-          },
-          "required": [
-            "t_ms",
-            "step",
-            "verdict",
-            "dur_ms"
-          ],
-          "title": "Diagnostic",
-          "type": "object"
-        },
-        "FetchStatus": {
-          "enum": [
-            "ok",
-            "failed",
-            "partial"
-          ],
-          "title": "FetchStatus",
-          "type": "string"
-        },
-        "Heading": {
-          "properties": {
-            "level": {
-              "maximum": 6,
-              "minimum": 1,
-              "title": "Level",
-              "type": "integer"
-            },
-            "text": {
-              "title": "Text",
-              "type": "string"
-            }
-          },
-          "required": [
-            "level",
-            "text"
-          ],
-          "title": "Heading",
-          "type": "object"
-        },
-        "ListingOption": {
-          "description": "One retained option from a listing `ask` (rank-don't-skip).\n\nA neutral, page-order entry for a parsed listing record \u2014 the shelf the\nranked `answer` was drawn from, kept so a lower-ranked or unrated item (a\npremium/niche option) stays visible rather than deleted. `title` is the\nrecord's heading (or a text lead); `url` its identifying link (absent on a\ntext-led row); `detail` its own text carrying price / rating as extracted.\na2web does NOT reorder these \u2014 any ranking lives only in `answer`.",
-          "properties": {
-            "detail": {
-              "default": "",
-              "title": "Detail",
-              "type": "string"
-            },
-            "title": {
-              "title": "Title",
-              "type": "string"
-            },
-            "url": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Url"
-            }
-          },
-          "required": [
-            "title"
-          ],
-          "title": "ListingOption",
-          "type": "object"
-        },
-        "NextLink": {
-          "description": "One curated \"what to fetch next\" candidate.\n\nReturned on `FetchResponse.next_links`. `anchor` and `reason` are\ntruncated (not rejected) when over-cap so a misbehaving handler or\nprovider can never fail the whole fetch.",
-          "properties": {
-            "anchor": {
-              "maxLength": 120,
-              "title": "Anchor",
-              "type": "string"
-            },
-            "kind": {
-              "enum": [
-                "drilldown",
-                "related",
-                "source",
-                "discussion"
-              ],
-              "title": "Kind",
-              "type": "string"
-            },
-            "reason": {
-              "maxLength": 80,
-              "title": "Reason",
-              "type": "string"
-            },
-            "url": {
-              "title": "Url",
-              "type": "string"
-            }
-          },
-          "required": [
-            "anchor",
-            "url",
-            "reason",
-            "kind"
-          ],
-          "title": "NextLink",
-          "type": "object"
-        },
-        "NextUrl": {
-          "description": "One curated drilldown URL emitted in the router-shape payload.\n\n`url` is rehydrated server-side from a `{{n}}` link-digest handle the model\nemitted (closed-set \u2014 a handle the digest doesn't know is dropped, never\nguessed). `reason` is the model's question-conditioned justification.\n`off_domain` marks a target on a different registrable domain than the\nfetched page: its anchor text is attacker-controllable, so the caller treats\nit with caution (design D11). Omitted from the wire when False.",
-          "properties": {
-            "off_domain": {
-              "default": false,
-              "title": "Off Domain",
-              "type": "boolean"
-            },
-            "reason": {
-              "title": "Reason",
-              "type": "string"
-            },
-            "url": {
-              "title": "Url",
-              "type": "string"
-            }
-          },
-          "required": [
-            "url",
-            "reason"
-          ],
-          "title": "NextUrl",
-          "type": "object"
-        },
-        "OperatorHint": {
-          "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `browser_internal_error`, `captcha_redirect`,\n`cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
-          "properties": {
-            "code": {
-              "title": "Code",
-              "type": "string"
-            },
-            "fix": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Fix"
-            },
-            "message": {
-              "title": "Message",
-              "type": "string"
-            },
-            "severity": {
-              "default": "info",
-              "enum": [
-                "info",
-                "critical"
-              ],
-              "title": "Severity",
-              "type": "string"
-            }
-          },
-          "required": [
-            "code",
-            "message"
-          ],
-          "title": "OperatorHint",
-          "type": "object"
-        },
-        "RefinementAxis": {
-          "description": "One dimensional refinement axis for a partial listing.\n\nA *dimension* the agent can re-query on to narrow a truncated / sorted\nlisting (e.g. \"price floor\", \"sort order\", \"brand\") \u2014 never a specific value\ndrawn from the retrieved (possibly biased) sample. `how` is a one-line\nguidance on applying that dimension. The dimensional-not-value discipline is\nenforced upstream in the extraction prompt; the model here just carries it.",
-          "properties": {
-            "dimension": {
-              "title": "Dimension",
-              "type": "string"
-            },
-            "how": {
-              "title": "How",
-              "type": "string"
-            }
-          },
-          "required": [
-            "dimension",
-            "how"
-          ],
-          "title": "RefinementAxis",
-          "type": "object"
-        },
-        "Verdict": {
-          "enum": [
-            "ok",
-            "paywall",
-            "block_page_detected",
-            "anti_bot",
-            "blank_page",
-            "length_floor",
-            "content_type_mismatch",
-            "connection_error",
-            "dns_error",
-            "timeout",
-            "not_found",
-            "rate_limited",
-            "proxy_unavailable",
-            "paid_auth_error",
-            "other"
-          ],
-          "title": "Verdict",
-          "type": "string"
-        }
-      },
-      "description": "Lean response envelope for the `ask` tool.\n\nDistinct from `FetchResponse` (returned by `fetch_raw`). The `ask` wire\npayload carries the extracted answer, not the page. Field tiers:\n\n- Always present: `confidence`, `answer`.\n- Deviation-only: `status` (dropped when `ok`), `tier` (dropped when\n  `raw`), `url` (dropped when it equals the requested URL).\n- Optional: omitted from the wire when empty/null (`title`, `byline`,\n  `published`, `operator_hints`, `next_links`, `meta`).\n- Opt-in grounding: `content_md` + `headings` appear only when the caller\n  passed `include_content=True`.\n- Failure-only: `narrative` + `diagnostics_summary` appear only when\n  `status != ok`.\n- Debug-only: `started_at`, `total_ms`, `cache`, `diagnostics`,\n  `extraction` regroup into a nested `debug` object, present only when the\n  caller passed `debug=True`.\n\nThe builder (`build_ask_response`) decides which fields to populate; the\nserializer below drops empties, applies the deviation rules, and regroups\nthe debug tier. Required fields are never dropped.",
-      "properties": {
-        "answer": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Answer"
-        },
-        "ask_here": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Ask Here",
-          "type": "array"
-        },
-        "byline": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Byline"
-        },
-        "cache": "<volatile>",
-        "comments_loaded": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Comments Loaded"
-        },
-        "comments_total": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Comments Total"
-        },
-        "confidence": {
-          "$ref": "#/$defs/Confidence"
-        },
-        "content_md": {
-          "default": "",
-          "title": "Content Md",
-          "type": "string"
-        },
-        "diagnostics": {
-          "items": {
-            "$ref": "#/$defs/Diagnostic"
-          },
-          "title": "Diagnostics",
-          "type": "array"
-        },
-        "diagnostics_summary": {
-          "default": "",
-          "title": "Diagnostics Summary",
-          "type": "string"
-        },
-        "extraction": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/AskExtraction"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "headings": {
-          "items": {
-            "$ref": "#/$defs/Heading"
-          },
-          "title": "Headings",
-          "type": "array"
-        },
-        "items_loaded": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Items Loaded"
-        },
-        "items_total": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Items Total"
-        },
-        "meta": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "title": "Meta",
-          "type": "object"
-        },
-        "narrative": {
-          "default": "",
-          "title": "Narrative",
-          "type": "string"
-        },
-        "next_links": {
-          "items": {
-            "$ref": "#/$defs/NextLink"
-          },
-          "title": "Next Links",
-          "type": "array"
-        },
-        "obstacle": {
-          "anyOf": [
-            {
-              "enum": [
-                "paywalled",
-                "blocked",
-                "empty",
-                "error"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Obstacle"
-        },
-        "operator_hints": {
-          "items": {
-            "$ref": "#/$defs/OperatorHint"
-          },
-          "title": "Operator Hints",
-          "type": "array"
-        },
-        "options": {
-          "items": {
-            "$ref": "#/$defs/ListingOption"
-          },
-          "title": "Options",
-          "type": "array"
-        },
-        "published": {
-          "anyOf": [
-            {
-              "format": "date",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Published"
-        },
-        "refinement_axes": {
-          "items": {
-            "$ref": "#/$defs/RefinementAxis"
-          },
-          "title": "Refinement Axes",
-          "type": "array"
-        },
-        "retrieval_incomplete": {
-          "default": false,
-          "title": "Retrieval Incomplete",
-          "type": "boolean"
-        },
-        "started_at": "<volatile>",
-        "status": {
-          "$ref": "#/$defs/FetchStatus"
-        },
-        "tier": {
-          "title": "Tier",
-          "type": "string"
-        },
-        "title": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Title"
-        },
-        "total_ms": "<volatile>",
-        "try_url": {
-          "items": {
-            "$ref": "#/$defs/NextUrl"
-          },
-          "title": "Try Url",
-          "type": "array"
-        },
-        "url": {
-          "title": "Url",
-          "type": "string"
-        }
-      },
-      "required": [
-        "url",
-        "status",
-        "tier",
-        "confidence"
-      ],
-      "title": "AskResponse",
-      "type": "object"
-    }
-  },
   "fetch_raw": {
     "inputSchema": {
       "properties": {
@@ -1019,30 +308,6 @@
           "title": "NextLink",
           "type": "object"
         },
-        "NextUrl": {
-          "description": "One curated drilldown URL emitted in the router-shape payload.\n\n`url` is rehydrated server-side from a `{{n}}` link-digest handle the model\nemitted (closed-set \u2014 a handle the digest doesn't know is dropped, never\nguessed). `reason` is the model's question-conditioned justification.\n`off_domain` marks a target on a different registrable domain than the\nfetched page: its anchor text is attacker-controllable, so the caller treats\nit with caution (design D11). Omitted from the wire when False.",
-          "properties": {
-            "off_domain": {
-              "default": false,
-              "title": "Off Domain",
-              "type": "boolean"
-            },
-            "reason": {
-              "title": "Reason",
-              "type": "string"
-            },
-            "url": {
-              "title": "Url",
-              "type": "string"
-            }
-          },
-          "required": [
-            "url",
-            "reason"
-          ],
-          "title": "NextUrl",
-          "type": "object"
-        },
         "OperatorHint": {
           "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `browser_internal_error`, `captcha_redirect`,\n`cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
           "properties": {
@@ -1083,6 +348,39 @@
           "title": "OperatorHint",
           "type": "object"
         },
+        "OtherPage": {
+          "description": "One off-page pointer emitted on `AskResponse.other_pages` (ADR-0015).\n\nUnifies the former `try_url` drilldowns and `next_links` continuations into\none kind-tagged field. `kind` is `\"drilldown\"` (selection depends on the\nquestion) or `\"structural\"` (deterministic continuation \u2014 pagination,\npage-order). `url` is rehydrated server-side from a `{{n}}` link-digest\nhandle the model emitted (closed-set \u2014 a handle the digest doesn't know is\ndropped, never guessed) or a URL literally on the page (ADR-0014). `reason`\nis the model's justification (question-conditioned for a drilldown).\n`off_domain` marks a target on a different registrable domain than the\nfetched page: its anchor text is attacker-controllable, so the caller treats\nit with caution (design D11). Omitted from the wire when False.",
+          "properties": {
+            "kind": {
+              "default": "drilldown",
+              "enum": [
+                "structural",
+                "drilldown"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "off_domain": {
+              "default": false,
+              "title": "Off Domain",
+              "type": "boolean"
+            },
+            "reason": {
+              "title": "Reason",
+              "type": "string"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "reason"
+          ],
+          "title": "OtherPage",
+          "type": "object"
+        },
         "RefinementAxis": {
           "description": "One dimensional refinement axis for a partial listing.\n\nA *dimension* the agent can re-query on to narrow a truncated / sorted\nlisting (e.g. \"price floor\", \"sort order\", \"brand\") \u2014 never a specific value\ndrawn from the retrieved (possibly biased) sample. `how` is a one-line\nguidance on applying that dimension. The dimensional-not-value discipline is\nenforced upstream in the extraction prompt; the model here just carries it.",
           "properties": {
@@ -1103,18 +401,18 @@
           "type": "object"
         },
         "RouterPayload": {
-          "description": "Router-shape payload emitted by the `extract_router_v1` template.\n\nThree required fields (`answer`, `structural_form`, `shape`) describe what\nthe page IS. Three conditional fields (`obstacle`, `ask_here`,\n`try_url`) describe drilldown hints. This is the internal LLM-parse\nboundary type \u2014 `structural_form`/`shape` are consumed internally\n(`content_guidance.kind_guidance()`, the `refinement_axes` gate) but are\nNOT projected onto the `AskResponse` wire (`drop-structural-form-shape-\nwire`); only `answer` plus the three conditionals reach the wire, and the\nserializer on `AskResponse` omits those conditionals when empty.\n`refinement_axes` carries content-aware refinement guidance for a partial\nlisting (dimensional only); it too is omit-empty at the wire.",
+          "description": "Router-shape payload emitted by the `extract_router_v1` template.\n\nThree required fields (`answer`, `structural_form`, `shape`) describe what\nthe page IS. Three conditional fields (`obstacle`, `also_here`,\n`other_pages`) describe the withheld-body index (ADR-0015). This is the internal LLM-parse\nboundary type \u2014 `structural_form`/`shape` are consumed internally\n(`content_guidance.kind_guidance()`, the `refinement_axes` gate) but are\nNOT projected onto the `AskResponse` wire (`drop-structural-form-shape-\nwire`); only `answer` plus the three conditionals reach the wire, and the\nserializer on `AskResponse` omits those conditionals when empty.\n`refinement_axes` carries content-aware refinement guidance for a partial\nlisting (dimensional only); it too is omit-empty at the wire.",
           "properties": {
-            "answer": {
-              "title": "Answer",
-              "type": "string"
-            },
-            "ask_here": {
+            "also_here": {
               "items": {
                 "type": "string"
               },
-              "title": "Ask Here",
+              "title": "Also Here",
               "type": "array"
+            },
+            "answer": {
+              "title": "Answer",
+              "type": "string"
             },
             "item_total_seen": {
               "anyOf": [
@@ -1145,6 +443,13 @@
               ],
               "default": null,
               "title": "Obstacle"
+            },
+            "other_pages": {
+              "items": {
+                "$ref": "#/$defs/OtherPage"
+              },
+              "title": "Other Pages",
+              "type": "array"
             },
             "refinement_axes": {
               "items": {
@@ -1181,13 +486,6 @@
               ],
               "title": "Structural Form",
               "type": "string"
-            },
-            "try_url": {
-              "items": {
-                "$ref": "#/$defs/NextUrl"
-              },
-              "title": "Try Url",
-              "type": "array"
             }
           },
           "required": [
@@ -1464,6 +762,682 @@
         "confidence"
       ],
       "title": "FetchResponse",
+      "type": "object"
+    }
+  },
+  "query": {
+    "inputSchema": {
+      "properties": {
+        "debug": {
+          "default": false,
+          "title": "Debug",
+          "type": "boolean"
+        },
+        "include_content": {
+          "default": false,
+          "title": "Include Content",
+          "type": "boolean"
+        },
+        "include_links": {
+          "default": false,
+          "title": "Include Links",
+          "type": "boolean"
+        },
+        "include_routing": {
+          "default": true,
+          "title": "Include Routing",
+          "type": "boolean"
+        },
+        "link_roles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Link Roles"
+        },
+        "max_content_chars": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Content Chars"
+        },
+        "other_pages": {
+          "default": true,
+          "title": "Other Pages",
+          "type": "boolean"
+        },
+        "query": {
+          "title": "Query",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "wrap_content": {
+          "default": true,
+          "title": "Wrap Content",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "url",
+        "query"
+      ],
+      "title": "query_in",
+      "type": "object"
+    },
+    "outputModel": {
+      "$defs": {
+        "AskExtraction": {
+          "description": "Slim per-ask extraction metadata for the wire.\n\n`truncated` is the one field an agent branches on (the answer may be\nincomplete) and is always present. The observability fields (`model`,\ntoken counts, cost, latency, cache) are populated only when `ask` was\ncalled with `debug=True`; otherwise they are None and omitted from the\nwire. The full metadata always reaches log events regardless of debug.\n\n`PruneEmpty` (a2kit v0.40.1) installs a `model_serializer` that drops\n`None` / `\"\"` / `[]` / `{}` fields; pydantic cascades it through the\nparent `AskResponse._envelope_discipline`. `truncated: bool` is required\nand `False` is not \"empty\" \u2014 so it survives regardless.",
+          "properties": {
+            "cache_hit": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cache Hit"
+            },
+            "completion_tokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Completion Tokens"
+            },
+            "cost_usd": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cost Usd"
+            },
+            "latency_ms": "<volatile>",
+            "model": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Model"
+            },
+            "prompt_tokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Prompt Tokens"
+            },
+            "template_name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Template Name"
+            },
+            "truncated": {
+              "title": "Truncated",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "truncated"
+          ],
+          "title": "AskExtraction",
+          "type": "object"
+        },
+        "CacheState": {
+          "enum": [
+            "hit",
+            "miss",
+            "bypass"
+          ],
+          "title": "CacheState",
+          "type": "string"
+        },
+        "Confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "Diagnostic": {
+          "description": "One row of the diagnostics table \u2014 a tier or stage step.\n\n`subsystem` carries the anti-bot family identifier (cloudflare, datadome,\nanubis\u2026) when `verdict == anti_bot`; None otherwise.",
+          "properties": {
+            "dur_ms": "<volatile>",
+            "engine": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Engine"
+            },
+            "extra": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "title": "Extra",
+              "type": "object"
+            },
+            "host": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Host"
+            },
+            "proxy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Proxy"
+            },
+            "step": {
+              "title": "Step",
+              "type": "string"
+            },
+            "subsystem": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Subsystem"
+            },
+            "t_ms": "<volatile>",
+            "verdict": {
+              "$ref": "#/$defs/Verdict"
+            }
+          },
+          "required": [
+            "t_ms",
+            "step",
+            "verdict",
+            "dur_ms"
+          ],
+          "title": "Diagnostic",
+          "type": "object"
+        },
+        "FetchStatus": {
+          "enum": [
+            "ok",
+            "failed",
+            "partial"
+          ],
+          "title": "FetchStatus",
+          "type": "string"
+        },
+        "Heading": {
+          "properties": {
+            "level": {
+              "maximum": 6,
+              "minimum": 1,
+              "title": "Level",
+              "type": "integer"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "level",
+            "text"
+          ],
+          "title": "Heading",
+          "type": "object"
+        },
+        "ListingOption": {
+          "description": "One retained option from a listing `ask` (rank-don't-skip).\n\nA neutral, page-order entry for a parsed listing record \u2014 the shelf the\nranked `answer` was drawn from, kept so a lower-ranked or unrated item (a\npremium/niche option) stays visible rather than deleted. `title` is the\nrecord's heading (or a text lead); `url` its identifying link (absent on a\ntext-led row); `detail` its own text carrying price / rating as extracted.\na2web does NOT reorder these \u2014 any ranking lives only in `answer`.",
+          "properties": {
+            "detail": {
+              "default": "",
+              "title": "Detail",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Url"
+            }
+          },
+          "required": [
+            "title"
+          ],
+          "title": "ListingOption",
+          "type": "object"
+        },
+        "OperatorHint": {
+          "description": "Structured hint about how the fetch could be improved.\n\n`code` is a stable agent-readable identifier (e.g. `llm_unavailable`,\n`browser_unavailable`, `browser_internal_error`, `captcha_redirect`,\n`cookies_stale`). Agents may\nbranch on `code` to take a next action; humans read `message` and `fix`\nfor context and remediation. Both audiences are first-class \u2014 the field\nlanded under the \"operator\" name historically, not because agents\nshouldn't read it.",
+          "properties": {
+            "code": {
+              "title": "Code",
+              "type": "string"
+            },
+            "fix": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fix"
+            },
+            "message": {
+              "title": "Message",
+              "type": "string"
+            },
+            "severity": {
+              "default": "info",
+              "enum": [
+                "info",
+                "critical"
+              ],
+              "title": "Severity",
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "title": "OperatorHint",
+          "type": "object"
+        },
+        "OtherPage": {
+          "description": "One off-page pointer emitted on `AskResponse.other_pages` (ADR-0015).\n\nUnifies the former `try_url` drilldowns and `next_links` continuations into\none kind-tagged field. `kind` is `\"drilldown\"` (selection depends on the\nquestion) or `\"structural\"` (deterministic continuation \u2014 pagination,\npage-order). `url` is rehydrated server-side from a `{{n}}` link-digest\nhandle the model emitted (closed-set \u2014 a handle the digest doesn't know is\ndropped, never guessed) or a URL literally on the page (ADR-0014). `reason`\nis the model's justification (question-conditioned for a drilldown).\n`off_domain` marks a target on a different registrable domain than the\nfetched page: its anchor text is attacker-controllable, so the caller treats\nit with caution (design D11). Omitted from the wire when False.",
+          "properties": {
+            "kind": {
+              "default": "drilldown",
+              "enum": [
+                "structural",
+                "drilldown"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "off_domain": {
+              "default": false,
+              "title": "Off Domain",
+              "type": "boolean"
+            },
+            "reason": {
+              "title": "Reason",
+              "type": "string"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "reason"
+          ],
+          "title": "OtherPage",
+          "type": "object"
+        },
+        "RefinementAxis": {
+          "description": "One dimensional refinement axis for a partial listing.\n\nA *dimension* the agent can re-query on to narrow a truncated / sorted\nlisting (e.g. \"price floor\", \"sort order\", \"brand\") \u2014 never a specific value\ndrawn from the retrieved (possibly biased) sample. `how` is a one-line\nguidance on applying that dimension. The dimensional-not-value discipline is\nenforced upstream in the extraction prompt; the model here just carries it.",
+          "properties": {
+            "dimension": {
+              "title": "Dimension",
+              "type": "string"
+            },
+            "how": {
+              "title": "How",
+              "type": "string"
+            }
+          },
+          "required": [
+            "dimension",
+            "how"
+          ],
+          "title": "RefinementAxis",
+          "type": "object"
+        },
+        "Verdict": {
+          "enum": [
+            "ok",
+            "paywall",
+            "block_page_detected",
+            "anti_bot",
+            "blank_page",
+            "length_floor",
+            "content_type_mismatch",
+            "connection_error",
+            "dns_error",
+            "timeout",
+            "not_found",
+            "rate_limited",
+            "proxy_unavailable",
+            "paid_auth_error",
+            "other"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "description": "Lean response envelope for the `ask` tool.\n\nDistinct from `FetchResponse` (returned by `fetch_raw`). The `ask` wire\npayload carries the extracted answer, not the page. Field tiers:\n\n- Always present: `confidence`, `answer`.\n- Deviation-only: `status` (dropped when `ok`), `tier` (dropped when\n  `raw`), `url` (dropped when it equals the requested URL).\n- Optional: omitted from the wire when empty/null (`title`, `byline`,\n  `published`, `operator_hints`, `other_pages`, `meta`).\n- Opt-in grounding: `content_md` + `headings` appear only when the caller\n  passed `include_content=True`.\n- Failure-only: `narrative` + `diagnostics_summary` appear only when\n  `status != ok`.\n- Debug-only: `started_at`, `total_ms`, `cache`, `diagnostics`,\n  `extraction` regroup into a nested `debug` object, present only when the\n  caller passed `debug=True`.\n\nThe builder (`build_ask_response`) decides which fields to populate; the\nserializer below drops empties, applies the deviation rules, and regroups\nthe debug tier. Required fields are never dropped.",
+      "properties": {
+        "also_here": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Also Here",
+          "type": "array"
+        },
+        "answer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer"
+        },
+        "byline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Byline"
+        },
+        "cache": "<volatile>",
+        "comments_loaded": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comments Loaded"
+        },
+        "comments_total": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comments Total"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Confidence"
+        },
+        "content_md": {
+          "default": "",
+          "title": "Content Md",
+          "type": "string"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "diagnostics_summary": {
+          "default": "",
+          "title": "Diagnostics Summary",
+          "type": "string"
+        },
+        "extraction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AskExtraction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "headings": {
+          "items": {
+            "$ref": "#/$defs/Heading"
+          },
+          "title": "Headings",
+          "type": "array"
+        },
+        "items_loaded": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Items Loaded"
+        },
+        "items_total": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Items Total"
+        },
+        "meta": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Meta",
+          "type": "object"
+        },
+        "narrative": {
+          "default": "",
+          "title": "Narrative",
+          "type": "string"
+        },
+        "obstacle": {
+          "anyOf": [
+            {
+              "enum": [
+                "paywalled",
+                "blocked",
+                "empty",
+                "error"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Obstacle"
+        },
+        "operator_hints": {
+          "items": {
+            "$ref": "#/$defs/OperatorHint"
+          },
+          "title": "Operator Hints",
+          "type": "array"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/ListingOption"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "other_pages": {
+          "items": {
+            "$ref": "#/$defs/OtherPage"
+          },
+          "title": "Other Pages",
+          "type": "array"
+        },
+        "published": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published"
+        },
+        "refinement_axes": {
+          "items": {
+            "$ref": "#/$defs/RefinementAxis"
+          },
+          "title": "Refinement Axes",
+          "type": "array"
+        },
+        "retrieval_incomplete": {
+          "default": false,
+          "title": "Retrieval Incomplete",
+          "type": "boolean"
+        },
+        "started_at": "<volatile>",
+        "status": {
+          "$ref": "#/$defs/FetchStatus"
+        },
+        "tier": {
+          "title": "Tier",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "total_ms": "<volatile>",
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "status",
+        "tier",
+        "confidence"
+      ],
+      "title": "AskResponse",
       "type": "object"
     }
   }

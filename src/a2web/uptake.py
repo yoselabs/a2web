@@ -1,6 +1,6 @@
-"""Suggestion-uptake telemetry — do callers follow a2web's `try_url` drilldowns?
+"""Suggestion-uptake telemetry — do callers follow a2web's `other_pages` drilldowns?
 
-Every `ask` that emits `try_url` targets records them here; every `ask` records
+Every `query` that emits `other_pages` targets records them here; every `query` records
 whether its OWN url was a target a prior `ask` suggested. Correlating the two
 measures follow-through (openspec `surface-page-links-to-extractor` D12 / task
 8.2) — turning "are suggestions useful?" from taste into measurement. The
@@ -63,7 +63,7 @@ async def record_suggestions(
     question: str | None,
     targets: Iterable[tuple[str, bool]],
 ) -> int:
-    """Persist the `try_url` targets one ask emitted.
+    """Persist the `other_pages` targets one query emitted.
 
     `targets` is an iterable of `(target_url, off_domain)`; empty urls are
     dropped. Returns the number of rows stored (0 = nothing to record).

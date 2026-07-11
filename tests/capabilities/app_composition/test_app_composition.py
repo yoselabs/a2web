@@ -13,13 +13,14 @@ from a2web.settings import AppSettings
 from a2web.state import AppState
 
 
-def test_web_router_registers_ask_and_fetch_raw_tools() -> None:
-    """v0.7 split: `ask` (primary) + `fetch_raw` (fallback) are the user-facing web tools."""
+def test_web_router_registers_query_and_fetch_raw_tools() -> None:
+    """v0.7 split: `query` (primary, renamed from `ask` in v0.23) + `fetch_raw` (fallback)."""
     # v0.36+: app.tools() returns list[ToolDescriptor]; tool fn is `descriptor.fn`.
     names = {desc.name for desc in app.tools()}
     # _meta.health is auto-installed by the @app.health_check decorator.
-    assert "ask" in names
+    assert "query" in names
     assert "fetch_raw" in names
+    assert "ask" not in names  # renamed to `query` in v0.23
     assert "fetch" not in names  # renamed in v0.7
 
 
@@ -31,10 +32,10 @@ def test_canonical_tool_names_pinned_under_flat_naming() -> None:
     naming` (a2kit-v043-migration). `app.tools()` exposes the descriptors whose
     `.name` is the canonical identity used on the MCP wire.
     """
-    # The default (server-safe) app: ask/fetch_raw pinned to bare names.
+    # The default (server-safe) app: query/fetch_raw pinned to bare names.
     names = {desc.name for desc in app.tools()}
-    assert {"ask", "fetch_raw"} <= names
-    assert names.isdisjoint({"web_ask", "web_fetch_raw"})
+    assert {"query", "fetch_raw"} <= names
+    assert names.isdisjoint({"web_query", "web_fetch_raw"})
     # The cookies-enabled app pins `refresh` (not `cookies_refresh`).
     cookie_names = {desc.name for desc in A2Web().tools()}
     assert "refresh" in cookie_names

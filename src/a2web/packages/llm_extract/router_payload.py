@@ -13,8 +13,10 @@ eval; findings in `eval/findings_2026-05-25-router-shape-pre-impl.md`):
 - structural_form: required, one of 9 closed values — what the page IS.
 - shape: required, one of 7 closed values — the data shape of the content.
 - obstacle: optional, page-level failure mode (4 values); omitted on healthy pages.
-- ask_here: optional, same-URL follow-up questions; empty tuple omitted at the wire.
-- try_url: optional, different-URL drilldowns; empty tuple omitted at the wire.
+- also_here: optional, the same-page index — query-grammar strings pointing at
+  on-page content the answer did not surface; empty tuple omitted at the wire.
+- other_pages: optional, off-page pointers (kind-tagged structural|drilldown);
+  empty tuple omitted at the wire.
 
 Closed-enum violations are rejected by the pydantic mirror at the seam; the
 boundary type stays loose to keep the package independent of the typing layer.
@@ -26,22 +28,26 @@ from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True, slots=True)
-class NextUrlBoundary:
-    """One curated drilldown URL (boundary side).
+class OtherPageBoundary:
+    """One off-page pointer (boundary side).
 
     Two provenance shapes:
     - `handle` set (the digest path) — the model referenced a `{{n}}` link
       handle; `url` is empty here and the domain seam rehydrates it from the
       closed link-digest set (dropping the entry if the handle is unknown).
     - `url` set (legacy) — the model emitted a URL it read in the content.
-    `reason` is the model's question-conditioned justification (≤120 chars per
-    prompt instruction; the pydantic mirror does not truncate). `off_domain` is
-    filled by the domain seam after rehydration (the boundary layer has no
-    page-URL context).
+    `reason` is the model's justification (question-conditioned for a
+    `drilldown`; ≤120 chars per prompt instruction; the pydantic mirror does not
+    truncate). `kind` is `"drilldown"` (selection depends on the question) or
+    `"structural"` (deterministic continuation — pagination, page-order); the
+    boundary stays loose (any string) and the pydantic mirror validates the
+    closed set. `off_domain` is filled by the domain seam after rehydration (the
+    boundary layer has no page-URL context).
     """
 
     url: str
     reason: str
+    kind: str = "drilldown"
     handle: int | None = None
     off_domain: bool = False
 
@@ -67,7 +73,7 @@ class RouterPayload:
 
     Required fields (`answer`, `structural_form`, `shape`) MUST be populated;
     the parser returns None for the whole payload when any is missing.
-    Optional fields (`obstacle`, `ask_here`, `try_url`) default to
+    Optional fields (`obstacle`, `also_here`, `other_pages`) default to
     None / empty tuple; the domain-side serializer omits them from the wire.
     """
 
@@ -75,8 +81,8 @@ class RouterPayload:
     structural_form: str
     shape: str
     obstacle: str | None = None
-    ask_here: tuple[str, ...] = field(default_factory=tuple)
-    try_url: tuple[NextUrlBoundary, ...] = field(default_factory=tuple)
+    also_here: tuple[str, ...] = field(default_factory=tuple)
+    other_pages: tuple[OtherPageBoundary, ...] = field(default_factory=tuple)
     # Dimensional refinement axes for a partial listing (content-aware
     # refinement guidance). Empty tuple omitted at the wire; the domain layer
     # additionally drops them unless the listing is confirmed partial.
@@ -88,4 +94,4 @@ class RouterPayload:
     item_total_seen: int | None = None
 
 
-__all__ = ["NextUrlBoundary", "RefinementAxisBoundary", "RouterPayload"]
+__all__ = ["OtherPageBoundary", "RefinementAxisBoundary", "RouterPayload"]

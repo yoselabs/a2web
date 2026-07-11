@@ -22,8 +22,8 @@ EXTRACTOR_ROUTING_POLICY: dict[str, WobblePolicy] = {
     "structural_form": WobblePolicy(WobbleTolerance.DEFAULT, default=None),
     "shape": WobblePolicy(WobbleTolerance.DEFAULT, default=None),
     "obstacle": WobblePolicy(WobbleTolerance.DEFAULT, default=None),
-    "ask_here": WobblePolicy(WobbleTolerance.DEFAULT, default=()),
-    "try_url": WobblePolicy(WobbleTolerance.DEFAULT, default=()),
+    "also_here": WobblePolicy(WobbleTolerance.DEFAULT, default=()),
+    "other_pages": WobblePolicy(WobbleTolerance.DEFAULT, default=()),
     # Content-aware refinement guidance — both optional; the model omits them on
     # non-partial / non-listing pages, so DEFAULT-recover to empty / None.
     "refinement_axes": WobblePolicy(WobbleTolerance.DEFAULT, default=()),

@@ -77,7 +77,7 @@ from .packages.block_detector import LENGTH_FLOOR, looks_like_unrendered_spa
 from .packages.block_detector import evaluate as _package_evaluate
 from .packages.browser_backends import BrowserBackend
 from .packages.escalation import EscalationSignal
-from .packages.llm_extract import LlmNextLink, NextUrlBoundary, RouterPayload
+from .packages.llm_extract import LlmNextLink, OtherPageBoundary, RouterPayload
 from .settings import AppSettings
 from .state import AppState, ResourceUnavailable, RobustBrowserBackend, unavailable_lazy
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
@@ -2160,18 +2160,18 @@ def _build_link_digest(fc: FetchContext) -> LinkDigest | None:
 
 
 def _rehydrate_routing_handles(routing: RouterPayload | None, digest: LinkDigest | None) -> RouterPayload | None:
-    """Resolve `try_url` `{{n}}` handles to real hrefs against the closed set.
+    """Resolve `other_pages` `{{n}}` handles to real hrefs against the closed set.
 
     Each boundary entry carrying a handle is looked up in the digest: a hit
     becomes a rehydrated entry (real `url`, `off_domain` from the affordance, no
     handle); a miss is dropped — a handle the digest doesn't know is never
     guessed into a URL. Legacy entries that already carry a `url` pass through.
     """
-    if routing is None or not routing.try_url:
+    if routing is None or not routing.other_pages:
         return routing
     by_handle = {e.handle: e for e in digest.entries} if digest else {}
-    resolved: list[NextUrlBoundary] = []
-    for entry in routing.try_url:
+    resolved: list[OtherPageBoundary] = []
+    for entry in routing.other_pages:
         if entry.handle is not None:
             aff = by_handle.get(entry.handle)
             if aff is None:
@@ -2181,7 +2181,7 @@ def _rehydrate_routing_handles(routing: RouterPayload | None, digest: LinkDigest
                 # the other LLM-contract boundaries. The fetch still succeeds.
                 log_warning(
                     "llm_wobble",
-                    boundary="try_url_handle",
+                    boundary="other_pages_handle",
                     field="handle",
                     tolerance="skip",
                     handle=entry.handle,
@@ -2190,7 +2190,7 @@ def _rehydrate_routing_handles(routing: RouterPayload | None, digest: LinkDigest
             resolved.append(replace(entry, url=aff.href, off_domain=aff.off_domain, handle=None))
         elif entry.url:
             resolved.append(entry)
-    return replace(routing, try_url=tuple(resolved))
+    return replace(routing, other_pages=tuple(resolved))
 
 
 async def _record_uptake(fc: FetchContext, state: AppState) -> None:
@@ -2198,7 +2198,7 @@ async def _record_uptake(fc: FetchContext, state: AppState) -> None:
 
     Two correlated writes on the shared sqlite connection: (1) `note_visit` marks
     any earlier suggestion of THIS ask's requested url as followed — a non-zero
-    return means the caller acted on a prior `try_url`; (2) `record_suggestions`
+    return means the caller acted on a prior `other_pages` pointer; (2) `record_suggestions`
     logs the (rehydrated) targets this ask now emits, for a future ask to close.
     Uses `requested_url` (the caller's actual input, pre-rewrite) as the join key.
 
@@ -2208,11 +2208,11 @@ async def _record_uptake(fc: FetchContext, state: AppState) -> None:
         conn = await state.sqlite.ensure()
         followed = await note_visit(conn, fc.requested_url)
         if followed:
-            await a2kit.log.info("try_url_followed", url=fc.requested_url, fulfilled=followed)
-        targets = [(e.url, e.off_domain) for e in (fc.routing.try_url if fc.routing else ()) if e.url]
+            await a2kit.log.info("other_pages_followed", url=fc.requested_url, fulfilled=followed)
+        targets = [(e.url, e.off_domain) for e in (fc.routing.other_pages if fc.routing else ()) if e.url]
         stored = await record_suggestions(conn, source_url=fc.requested_url, question=fc.ask, targets=targets)
         if stored:
-            await a2kit.log.info("try_url_suggested", url=fc.requested_url, count=stored)
+            await a2kit.log.info("other_pages_suggested", url=fc.requested_url, count=stored)
     except (aiosqlite.Error, OSError) as exc:  # telemetry is best-effort — never break the fetch
         log_warning("uptake_write_failed", error=str(exc))
 
@@ -2250,7 +2250,7 @@ async def _phase_extract_answer(
     # `content_candidates` empty — fall back to `content_md` there.
     menu = assemble_menu(fc.content_candidates) or fc.content_md
 
-    # v1 link-affordances: feed the extractor the page's real links so `try_url`
+    # v1 link-affordances: feed the extractor the page's real links so `other_pages`
     # references a `{{n}}` handle instead of guessing a URL. Gated on a pre-LLM
     # product/listing proxy (structural_form is post-hoc) — the presence of a
     # json_synth (product schema) or record_synth (listing) candidate. Article
@@ -2298,7 +2298,7 @@ async def _phase_extract_answer(
         )
         return
     # Defensive rehydration of the answer text: if the model referenced a link
-    # by its `{{n}}` handle inside its prose (not just in `try_url`), turn that
+    # by its `{{n}}` handle inside its prose (not just in `other_pages`), turn that
     # handle into the real URL rather than leaking `{{n}}` to the caller. Known
     # handle -> href (an actionable inline link); unknown handle -> removed.
     # No-op when no digest was fed. Also the seam a future "links in the answer"

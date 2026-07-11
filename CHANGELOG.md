@@ -8,6 +8,43 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.42.0] — 2026-07-11
+
+> **BREAKING (MCP + parsers).** The `ask` response contract v2 lands ADR-0015
+> (the withheld-body index): when `query` withholds the page body for token
+> economy, it MUST leave a faithful cheap index of what it withheld, so the
+> caller — itself an agent that never sees the body — is never blind to
+> recoverable on-page content. Applied after `unify-escalation-executor`.
+
+### Changed — tool + envelope rename (BREAKING)
+
+- **Tool `ask` → `query`**, parameter `question` → `query`
+  (`canonical_name_override="query"`; CLI `a2web web query --url=... --query=...`).
+  The `query` param teaches a terse **query grammar** (deletion rule: drop the
+  verb frame + known page entity; keep the target noun + one operator —
+  `,` list · `vs` contrast · `/` alternatives; CAPS the decider; `?` only to
+  DECIDE). Installed MCP clients + `~/.claude.json` must update the tool name.
+- **`ask_here` → `also_here`** on `AskResponse` — the same-page index, now
+  emitted as query-grammar strings (not full questions). On a `listing` it
+  defers to `options` + `refinement_axes` and never restates a heading / option
+  / axis (ADR-0015 orthogonality).
+- **`next_links` + `try_url` → `other_pages`** on `AskResponse` — one
+  kind-tagged list (`structural` continuation | `drilldown` question-conditioned),
+  rendered as a single TSV block (`url` / `reason` / `kind`). `NextUrl` →
+  `OtherPage`; the package boundary `NextUrlBoundary` → `OtherPageBoundary`
+  (with a `kind` field). ADR-0014 grounding is preserved in full (`{{n}}`
+  closed-set rehydration, `off_domain` flag, question-conditioned drilldown
+  reasons). `fetch_raw`'s own `FetchResponse.next_links` is unchanged — the
+  fold is scoped to the `query` envelope.
+- **`EXTRACT_ROUTER_V1` bumped to version 5**: emits `also_here` in query
+  grammar + a unified `other_pages` shape (per-item `kind`), preserving the
+  "LINKS · HARD RULE" clause and `{{{{n}}}}` marker discipline.
+
+### Added
+
+- **ADR-0015** (the withheld-body index) — product tenet, sibling to
+  ADR-0009 / ADR-0012 / ADR-0014; mirrored as a "Never" line in `CLAUDE.md`.
+
 ## [0.41.0] — 2026-07-08
 
 > Externalize substrate to **the shelf**. Ten in-tree `packages/` modules that

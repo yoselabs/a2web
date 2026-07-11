@@ -32,6 +32,7 @@ from .models import (
     ListingOption,
     NextLink,
     OperatorHint,
+    OtherPage,
     RouterPayload,
     TokenCounts,
     Verdict,
@@ -69,10 +70,10 @@ def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
                 "structural_form": boundary.structural_form,
                 "shape": boundary.shape,
                 "obstacle": boundary.obstacle,
-                "ask_here": list(boundary.ask_here),
-                "try_url": [
-                    {"url": u.url, "reason": u.reason, "off_domain": u.off_domain}
-                    for u in boundary.try_url
+                "also_here": list(boundary.also_here),
+                "other_pages": [
+                    {"url": u.url, "reason": u.reason, "kind": u.kind, "off_domain": u.off_domain}
+                    for u in boundary.other_pages
                     if u.url  # rehydrated entries only; an unresolved handle is dropped
                 ],
                 "refinement_axes": [{"dimension": a.dimension, "how": a.how} for a in boundary.refinement_axes],
@@ -272,6 +273,23 @@ def _compose_next_links(fc: FetchContext) -> list[NextLink]:
     else:
         return []
     return list(composed[:_NEXT_LINKS_CAP])
+
+
+def _compose_other_pages(fr: FetchResponse, routing: RouterPayload | None) -> list[OtherPage]:
+    """Merge handler continuation + LLM drilldowns into the unified `other_pages`.
+
+    ADR-0015 / link-discovery: the former `next_links` (handler/LLM
+    continuation) fold in as `kind="structural"`; the former `try_url`
+    (question-conditioned) ride `routing.other_pages`, already kind-tagged.
+    Structural entries lead in page-order; drilldowns follow in priority order.
+    Capped consistently with the pre-merge `next_links` cap.
+    """
+    structural: list[OtherPage] = [OtherPage(url=nl.url, reason=nl.reason, kind="structural") for nl in fr.next_links]
+    llm = list(routing.other_pages) if routing is not None else []
+    llm_structural = [p for p in llm if p.kind == "structural"]
+    llm_drill = [p for p in llm if p.kind == "drilldown"]
+    merged = structural + llm_structural + llm_drill
+    return merged[:_NEXT_LINKS_CAP]
 
 
 # --------------------------------------------------------------------- #
@@ -545,7 +563,6 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         comments_total=fr.comments_total,
         items_loaded=fr.items_loaded,
         items_total=fr.items_total,
-        next_links=list(fr.next_links),
         meta=_curate_ask_meta(fr.meta),
         extraction=_debug_extraction(fr.extraction, debug=debug),
         content_md=fr.content_md if include_content else "",
@@ -557,8 +574,8 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         cache=fr.cache if debug else None,
         diagnostics=list(fr.diagnostics) if debug else [],
         obstacle=routing.obstacle if routing is not None else None,
-        ask_here=list(routing.ask_here) if routing is not None else [],
-        try_url=list(routing.try_url) if routing is not None else [],
+        also_here=list(routing.also_here) if routing is not None else [],
+        other_pages=_compose_other_pages(fr, routing),
         refinement_axes=refinement_axes,
         options=list(fr._options),
     )

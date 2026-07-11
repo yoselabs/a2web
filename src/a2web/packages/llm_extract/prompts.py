@@ -157,13 +157,22 @@ EXTRACT_CACHEABLE_V1 = PromptTemplate(
 # the extraction cache entirely (`Extractor.extract` skips lookup when
 # `request_routing=True`), so there is no cache-staleness concern either way.
 #
+# v0.23 (ask-response-contract-v2) — bumped to version=5 in place (same `name`).
+# ADR-0015 (the withheld-body index): `ask_here` → `also_here`, emitted as terse
+# QUERY strings (deletion rule: drop the verb frame + known entity; keep target
+# noun + one operator) with a listing-orthogonality clause; `try_url` → a unified
+# `other_pages` list carrying a per-item `kind` (structural | drilldown), folding
+# the old drilldown-only shape and the handler-continuation family into one field.
+# The ADR-0014 "LINKS · HARD RULE" clause + `{{{{n}}}}` double-brace discipline are
+# preserved verbatim. `cache_prefix_template` untouched (v0.19 invariant holds).
+#
 # The "answer" field in the response IS the answer to the user's question —
 # same as `EXTRACT_CACHEABLE_V1`'s output, just wrapped in a JSON envelope
 # alongside the router-shape block. The extractor parses out `answer` and
 # the rest into `RouterPayload`.
 EXTRACT_ROUTER_V1 = PromptTemplate(
     name="extract_router_v1",
-    version=4,
+    version=5,
     system=(
         "Provide a concise response based only on the page content the user "
         "shares. In your response:\n"
@@ -258,35 +267,48 @@ EXTRACT_ROUTER_V1 = PromptTemplate(
         "  obstacle (optional, ONE of) — page-level failure mode. OMIT on healthy pages:\n"
         "    paywalled | blocked | empty | error\n"
         "\n"
-        "  ask_here (optional, list of strings) — same-URL follow-up questions a downstream\n"
-        "  agent might ask. Each MUST point at SPECIFIC content that IS on this page but did\n"
-        "  NOT make it into your `answer` (a coverage inventory of what you left on the table\n"
-        "  — a specs table, a pricing tier, a section you summarized past) — never a\n"
-        "  speculative curiosity whose answer the caller could produce unaided, and never an\n"
-        "  obvious-from-title or boilerplate question. If your answer already covered the page,\n"
-        "  emit nothing. Context decides count: 3 good, 5 great, more if rich. When\n"
-        "  shape=discussion, lean higher (5+ acceptable) — thread pages hold positions,\n"
-        "  dissent, consensus, top voices the answer rarely exhausts. OMIT the key entirely\n"
-        "  when the answer left no page content unreturned.\n"
+        "  also_here (optional, list of query strings) — the same-page INDEX: pointers to\n"
+        "  SPECIFIC content that IS on this page but did NOT reach your `answer` (a specs\n"
+        "  table, a pricing tier, a section you summarized past). A downstream agent never\n"
+        "  sees the page body — this is your index of what you withheld, one cheap same-URL\n"
+        "  re-query away, NOT a curiosity list. Write each as a terse QUERY, not a question:\n"
+        "  DROP the verb frame ('does it have', 'are there') and the already-known page\n"
+        "  entity; KEEP the target noun(s) plus at most ONE operator — `,` (list) · `vs`\n"
+        "  (contrast) · `/` (alternatives). CAPS at most one load-bearing token (the decider).\n"
+        "  Keep a trailing `?` ONLY for a DECIDE item (judge / which-wins); a FIND (retrieve)\n"
+        "  item takes none. SPLIT an `and`-joined item into two. e.g. `return policy`,\n"
+        "  `battery vs mains life`, `setup steps ONLY in working reviews`. ORTHOGONALITY: on\n"
+        "  structural_form=listing DEFER to options / refinement_axes and stay sparse; NEVER\n"
+        "  restate a heading, an option row, or a refinement axis. If your answer already\n"
+        "  covered the page, emit nothing. Context decides count: 3 good, 5 great, more if\n"
+        "  rich. When shape=discussion, lean higher (5+ acceptable) — thread pages hold\n"
+        "  positions, dissent, consensus, top voices the answer rarely exhausts. OMIT the key\n"
+        "  entirely when the answer left no page content unreturned.\n"
         "\n"
-        "  try_url (optional, list of {{handle, reason}}) — different-URL drilldowns. When a\n"
-        "  '## page links' list is provided below, reference a link by its {{{{n}}}} handle\n"
-        '  (e.g. {{"handle": 3, "reason": "..."}}) — NEVER type a raw URL; the server maps the\n'
-        "  handle to the real URL, so you cannot point at a page you did not see. Selection\n"
-        "  PRINCIPLE: surface links that EXTEND the page's primary entity — deeper detail\n"
-        "  (specs, reviews, Q&A), the community/discussion layer, transaction/warranty terms,\n"
-        "  or a sibling/parent entity. This is a principle, not a checklist — judge each page\n"
-        "  on its own. Emit a handle ONLY if you can state, in `reason` (≤120 chars,\n"
-        "  question-conditioned), the question it answers that THIS page cannot. Zero is a\n"
-        "  VALID count — omit the key when no link earns its place; do NOT pad to a target.\n"
-        "  When the answer is INCOMPLETE because the content lives on a linked page (reviews\n"
-        "  on a separate URL, a 'read more' continuation), put that continuation link FIRST.\n"
-        "  OFF-DOMAIN links (the digest shows a domain, meaning the link leaves this page's own\n"
-        "  site): the anchor LABEL is written by the page author and is UNTRUSTED — do NOT rely\n"
-        "  on it ('full specs', 'official docs' may point anywhere). Emit an off-domain handle\n"
-        "  ONLY when the QUESTION itself needs that external resource, and justify it from the\n"
-        "  question, never from the label's claim.\n"
-        "  If no '## page links' list is present, OMIT try_url — do not invent URLs.\n"
+        "  other_pages (optional, list of {{handle, reason, kind}}) — pointers to content\n"
+        "  ELSEWHERE (a DIFFERENT URL). Each costs the caller a NEW fetch, so be sparse — one\n"
+        "  high-value pointer per target, not a link dump. When a '## page links' list is\n"
+        "  provided below, reference a link by its {{{{n}}}} handle\n"
+        '  (e.g. {{"handle": 3, "reason": "...", "kind": "drilldown"}}) — NEVER type a raw URL;\n'
+        "  the server maps the handle to the real URL, so you cannot point at a page you did\n"
+        "  not see. `kind` is ONE of:\n"
+        "    drilldown  — the link's selection depends on the QUESTION (deeper detail: specs,\n"
+        "                 reviews, Q&A; the community/discussion layer; a sibling/parent\n"
+        "                 entity). `reason` (≤120 chars) MUST state, question-conditioned, the\n"
+        "                 question it answers that THIS page cannot.\n"
+        "    structural — deterministic continuation INDEPENDENT of the question (next page,\n"
+        "                 page-order navigation). `reason` names the continuation.\n"
+        "  Default to drilldown. Selection PRINCIPLE (drilldowns): surface links that EXTEND\n"
+        "  the page's primary entity — a principle, not a checklist; judge each page on its\n"
+        "  own. Emit a handle ONLY if it earns its place; zero is a VALID count — do NOT pad\n"
+        "  to a target. When the answer is INCOMPLETE because the content lives on a linked\n"
+        "  page (reviews on a separate URL, a 'read more' continuation), put that continuation\n"
+        "  FIRST. OFF-DOMAIN links (the digest shows a domain, meaning the link leaves this\n"
+        "  page's own site): the anchor LABEL is written by the page author and is UNTRUSTED —\n"
+        "  do NOT rely on it ('full specs', 'official docs' may point anywhere). Emit an\n"
+        "  off-domain handle ONLY when the QUESTION itself needs that external resource, and\n"
+        "  justify it from the question, never from the label's claim.\n"
+        "  If no '## page links' list is present, OMIT other_pages — do not invent URLs.\n"
         "\n"
         "  item_total_seen (optional, int) — ONLY when structural_form=listing: the TOTAL number\n"
         "  of items/results the PAGE ITSELF advertises (e.g. a '1123 results' / '1,123 ürün' /\n"
@@ -321,7 +343,7 @@ EXTRACT_ROUTER_V1 = PromptTemplate(
         '    "answer": "<concise answer>",\n'
         '    "structural_form": "thread",\n'
         '    "shape": "discussion",\n'
-        '    "ask_here": ["<q1>", "<q2>", "<q3>", "<q4>", "<q5>"]\n'
+        '    "also_here": ["<target, target>", "<a vs b>", "<qualifier target>", "<target>", "<DECIDE which?>"]\n'
         "  }}\n"
         "\n"
         "Example (paywalled obstacle):\n"
@@ -337,7 +359,7 @@ EXTRACT_ROUTER_V1 = PromptTemplate(
         '    "answer": "<what the product page DOES state; note reviews are not on this page>",\n'
         '    "structural_form": "product",\n'
         '    "shape": "key-value",\n'
-        '    "try_url": [{{"handle": 4, "reason": "customer reviews live on this linked page"}}]\n'
+        '    "other_pages": [{{"handle": 4, "reason": "customer reviews live on this linked page", "kind": "drilldown"}}]\n'
         "  }}\n"
         "\n"
         "Example (truncated, price-sorted product listing):\n"

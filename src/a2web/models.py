@@ -319,12 +319,19 @@ Shape = Literal[
 Obstacle = Literal["paywalled", "blocked", "empty", "error"]
 
 
-class NextUrl(BaseModel):
-    """One curated drilldown URL emitted in the router-shape payload.
+OtherPageKind = Literal["structural", "drilldown"]
 
-    `url` is rehydrated server-side from a `{{n}}` link-digest handle the model
-    emitted (closed-set — a handle the digest doesn't know is dropped, never
-    guessed). `reason` is the model's question-conditioned justification.
+
+class OtherPage(BaseModel):
+    """One off-page pointer emitted on `AskResponse.other_pages` (ADR-0015).
+
+    Unifies the former `try_url` drilldowns and `next_links` continuations into
+    one kind-tagged field. `kind` is `"drilldown"` (selection depends on the
+    question) or `"structural"` (deterministic continuation — pagination,
+    page-order). `url` is rehydrated server-side from a `{{n}}` link-digest
+    handle the model emitted (closed-set — a handle the digest doesn't know is
+    dropped, never guessed) or a URL literally on the page (ADR-0014). `reason`
+    is the model's justification (question-conditioned for a drilldown).
     `off_domain` marks a target on a different registrable domain than the
     fetched page: its anchor text is attacker-controllable, so the caller treats
     it with caution (design D11). Omitted from the wire when False.
@@ -332,12 +339,13 @@ class NextUrl(BaseModel):
 
     url: str
     reason: str
+    kind: OtherPageKind = "drilldown"
     off_domain: bool = False
 
     @model_serializer
     def _wire(self) -> dict[str, object]:
         """Omit `off_domain` when False — absence carries "same-domain"."""
-        out: dict[str, object] = {"url": self.url, "reason": self.reason}
+        out: dict[str, object] = {"url": self.url, "reason": self.reason, "kind": self.kind}
         if self.off_domain:
             out["off_domain"] = True
         return out
@@ -377,8 +385,8 @@ class RouterPayload(BaseModel):
     """Router-shape payload emitted by the `extract_router_v1` template.
 
     Three required fields (`answer`, `structural_form`, `shape`) describe what
-    the page IS. Three conditional fields (`obstacle`, `ask_here`,
-    `try_url`) describe drilldown hints. This is the internal LLM-parse
+    the page IS. Three conditional fields (`obstacle`, `also_here`,
+    `other_pages`) describe the withheld-body index (ADR-0015). This is the internal LLM-parse
     boundary type — `structural_form`/`shape` are consumed internally
     (`content_guidance.kind_guidance()`, the `refinement_axes` gate) but are
     NOT projected onto the `AskResponse` wire (`drop-structural-form-shape-
@@ -392,8 +400,8 @@ class RouterPayload(BaseModel):
     structural_form: StructuralForm
     shape: Shape
     obstacle: Obstacle | None = None
-    ask_here: list[str] = Field(default_factory=list)
-    try_url: list[NextUrl] = Field(default_factory=list)
+    also_here: list[str] = Field(default_factory=list)
+    other_pages: list[OtherPage] = Field(default_factory=list)
     refinement_axes: list[RefinementAxis] = Field(default_factory=list)
     # The item total the model READ off the page (language-agnostic); used as an
     # oracle fallback for LLM-side partialness detection at the fetcher seam.
@@ -585,6 +593,19 @@ def _next_links_tsv(links: list[NextLink]) -> str:
     return encode_tsv(links, columns=columns)
 
 
+def _other_pages_tsv(pages: list[OtherPage]) -> str:
+    """Render the unified off-page pointers as one compact TSV block (ADR-0015).
+
+    Columns are `url` / `reason` / `kind`; an `off_domain` column is appended
+    only when at least one entry is off-domain (ADR-0014 — the flag rides the
+    wire when set, stays absent otherwise).
+    """
+    columns = ["url", "reason", "kind"]
+    if any(p.off_domain for p in pages):
+        columns.append("off_domain")
+    return encode_tsv(pages, columns=columns)
+
+
 def _links_tsv(links: list[Link]) -> str:
     """Render the extracted-link list as a compact TSV block.
 
@@ -656,7 +677,7 @@ class AskResponse(BaseModel):
     - Deviation-only: `status` (dropped when `ok`), `tier` (dropped when
       `raw`), `url` (dropped when it equals the requested URL).
     - Optional: omitted from the wire when empty/null (`title`, `byline`,
-      `published`, `operator_hints`, `next_links`, `meta`).
+      `published`, `operator_hints`, `other_pages`, `meta`).
     - Opt-in grounding: `content_md` + `headings` appear only when the caller
       passed `include_content=True`.
     - Failure-only: `narrative` + `diagnostics_summary` appear only when
@@ -680,7 +701,6 @@ class AskResponse(BaseModel):
     byline: str | None = None
     published: date | None = None
     operator_hints: list[OperatorHint] = Field(default_factory=list)
-    next_links: list[NextLink] = Field(default_factory=list)
     meta: dict[str, str] = Field(default_factory=dict)
     extraction: AskExtraction | None = None
 
@@ -711,25 +731,24 @@ class AskResponse(BaseModel):
     cache: CacheState | None = None
     diagnostics: list[Diagnostic] = Field(default_factory=list)
 
-    # v0.21 router-shape fields, narrowed to four (`answer` above + these
-    # three) by `drop-structural-form-shape-wire`. `_envelope_discipline` (the
-    # model_serializer below) omits the conditionals (obstacle / ask_here /
-    # try_url) when None / empty. All four fields are absent on the wire when
-    # extraction was skipped or the parser failed. `genre` was removed earlier
-    # (no downstream consumer — see ask-extraction-token-tuning).
-    # `structural_form`/`shape` are NOT projected onto this wire model —
-    # `RouterPayload` (the internal LLM-parse boundary) still requires both,
-    # and internal consumers (`content_guidance.kind_guidance()`, the
-    # `refinement_axes` gate) read `routing.structural_form` directly; `shape`
-    # had no internal consumer at all, and `structural_form`'s only two
-    # consumers already surface their own derived output on the wire, making
-    # the raw enum redundant. See `drop-structural-form-shape-wire` design.md.
+    # v0.23 router-shape fields (ADR-0015, the withheld-body index).
+    # `_envelope_discipline` (the model_serializer below) omits the conditionals
+    # (obstacle / also_here / other_pages) when None / empty. `also_here` is the
+    # same-page index — query-grammar strings pointing at on-page content the
+    # answer did not surface (cheap: a same-URL re-query is cache-served).
+    # `other_pages` unifies the former `next_links` + `try_url` into one
+    # kind-tagged list (structural | drilldown); each entry costs a NEW proxy
+    # fetch. All fields are absent on the wire when extraction was skipped or the
+    # parser failed. `structural_form`/`shape` are NOT projected onto this wire
+    # model — `RouterPayload` (the internal LLM-parse boundary) still requires
+    # both, and internal consumers (`content_guidance.kind_guidance()`, the
+    # `refinement_axes` gate) read `routing.structural_form` directly.
     obstacle: Obstacle | None = None
-    ask_here: list[str] = Field(default_factory=list)
-    try_url: list[NextUrl] = Field(default_factory=list)
+    also_here: list[str] = Field(default_factory=list)
+    other_pages: list[OtherPage] = Field(default_factory=list)
     # Content-aware refinement guidance: dimensional axes to re-query on, present
     # only on a partial listing (gated in `build_ask_response`). Empty list is
-    # dropped from the wire by `_prune_wire` (like `ask_here` / `try_url`).
+    # dropped from the wire by `_prune_wire` (like `also_here` / `other_pages`).
     refinement_axes: list[RefinementAxis] = Field(default_factory=list)
     # rank-don't-skip: the parsed listing options in page order (neutral shelf).
     # Present only on a listing (record set parsed); dropped from the wire when
@@ -740,12 +759,13 @@ class AskResponse(BaseModel):
     def _envelope_discipline(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
         # Omit-empty for the 3 conditional router-shape fields lives inside
         # `_prune_wire`'s generic empty-drop path: `obstacle` is
-        # None when not applicable; `ask_here` / `try_url` are `[]`. The shared
-        # helper drops them automatically; the only AskResponse-specific bit is
-        # not adding them to `required` so they pass through the empty filter.
+        # None when not applicable; `also_here` / `other_pages` are `[]`. The
+        # shared helper drops them automatically; the only AskResponse-specific
+        # bit is not adding them to `required` so they pass the empty filter.
+        # `other_pages` renders as one TSV block (url / reason / kind).
         tsv: dict[str, str] = {}
-        if self.next_links:
-            tsv["next_links"] = _next_links_tsv(self.next_links)
+        if self.other_pages:
+            tsv["other_pages"] = _other_pages_tsv(self.other_pages)
         return _prune_wire(
             handler(self),
             required=_ASK_REQUIRED_FIELDS,

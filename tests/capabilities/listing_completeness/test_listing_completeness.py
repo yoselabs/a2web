@@ -145,7 +145,7 @@ async def test_ask_partial_listing_surfaces_signal(monkeypatch: pytest.MonkeyPat
         monkeypatch,
         body=body,
         url="https://shop.example/search?q=aerator",
-        question="List the water-saving aerators.",
+        query="List the water-saving aerators.",
     )
     assert data["items_loaded"] == 31
     assert data["items_total"] == 40
@@ -236,7 +236,7 @@ async def test_ask_uncounted_listing_with_more_control_surfaces_signal(monkeypat
         monkeypatch,
         body=body,
         url="https://shop.example/search?q=aerator",
-        question="List the water-saving aerators.",
+        query="List the water-saving aerators.",
     )
     assert data["items_loaded"] == 31
     assert "items_total" not in data

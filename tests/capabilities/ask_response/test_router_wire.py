@@ -76,7 +76,7 @@ async def _ask_wire(monkeypatch: pytest.MonkeyPatch, *, envelope: dict, **ask_kw
     fake = _build_extractor(state, envelope)
     app.provide(LlmExtractorResource, lambda: fake)
     async with make_client(app) as client:
-        wire = await client.call_wire("ask", **ask_kwargs)
+        wire = await client.call_wire("query", **ask_kwargs)
     return json.loads(wire)
 
 
@@ -89,7 +89,7 @@ _HEALTHY_ENVELOPE = {
     "answer": "Adaptive fetching keeps context small.",
     "structural_form": "article",
     "shape": "prose",
-    "ask_here": [
+    "also_here": [
         "Why does context size matter for agents?",
         "What is the cost of streaming raw HTML to a large model?",
     ],
@@ -115,7 +115,7 @@ _OBSTACLE_ENVELOPE = {
     "structural_form": "article",
     "shape": "prose",
     "obstacle": "error",
-    "try_url": [
+    "other_pages": [
         {"url": "https://example.org/missing", "reason": "wayback snapshot may have the article"},
     ],
 }
@@ -134,15 +134,15 @@ async def test_default_ask_includes_required_router_fields(monkeypatch: pytest.M
         monkeypatch,
         envelope=_HEALTHY_ENVELOPE,
         url="https://example.org/post",
-        question="What is this page about?",
+        query="What is this page about?",
     )
     assert data["answer"] == "Adaptive fetching keeps context small."
-    assert "ask_here" in data
-    assert len(data["ask_here"]) == 2
-    # No obstacle / try_url emitted → omitted from wire. genre never exists.
+    assert "also_here" in data
+    assert len(data["also_here"]) == 2
+    # No obstacle / other_pages emitted → omitted from wire. genre never exists.
     # structural_form / shape are never projected onto the wire at all.
     assert "obstacle" not in data
-    assert "try_url" not in data
+    assert "other_pages" not in data
     assert "genre" not in data
     assert "structural_form" not in data
     assert "shape" not in data
@@ -150,18 +150,18 @@ async def test_default_ask_includes_required_router_fields(monkeypatch: pytest.M
 
 @pytest.mark.asyncio
 async def test_healthy_page_omits_all_three_conditionals(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A minimal healthy payload (no obstacle / ask_here / try_url) drops them all."""
+    """A minimal healthy payload (no obstacle / also_here / other_pages) drops them all."""
     data = await _ask_wire(
         monkeypatch,
         envelope=_HEALTHY_MINIMAL_ENVELOPE,
         url="https://example.org/post",
-        question="What is this?",
+        query="What is this?",
     )
     assert data["answer"] == "Adaptive fetching keeps context small."
     assert "genre" not in data
     assert "obstacle" not in data
-    assert "ask_here" not in data
-    assert "try_url" not in data
+    assert "also_here" not in data
+    assert "other_pages" not in data
     assert "structural_form" not in data
     assert "shape" not in data
 
@@ -175,7 +175,7 @@ async def test_structural_form_consumed_internally_but_absent_from_wire(monkeypa
         monkeypatch,
         envelope=_PRODUCT_ENVELOPE,
         url="https://example.org/product",
-        question="What is the price?",
+        query="What is the price?",
     )
     assert data["answer"] == "Price: 42.00 USD. In stock."
     codes = [h["code"] for h in data.get("operator_hints", [])]
@@ -194,27 +194,34 @@ async def test_stray_genre_key_is_ignored(monkeypatch: pytest.MonkeyPatch) -> No
         monkeypatch,
         envelope=envelope,
         url="https://example.org/post",
-        question="What is this?",
+        query="What is this?",
     )
     assert data["answer"] == "Adaptive fetching keeps context small."
     assert "genre" not in data
 
 
 @pytest.mark.asyncio
-async def test_obstacle_page_populates_obstacle_and_try_url(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_obstacle_page_populates_obstacle_and_other_pages(monkeypatch: pytest.MonkeyPatch) -> None:
     data = await _ask_wire(
         monkeypatch,
         envelope=_OBSTACLE_ENVELOPE,
         url="https://example.org/missing",
-        question="What is this page?",
+        query="What is this page?",
     )
     assert data["obstacle"] == "error"
-    assert "try_url" in data
-    assert len(data["try_url"]) == 1
-    assert data["try_url"][0]["url"] == "https://example.org/missing"
-    # ask_here not emitted → omitted. genre never exists.
+    # other_pages renders as a TSV block (url / reason / kind); the legacy raw-url
+    # drilldown survives and carries kind=drilldown.
+    assert "other_pages" in data
+    tsv = data["other_pages"]
+    assert isinstance(tsv, str)
+    lines = tsv.splitlines()
+    assert lines[0] == "url\treason\tkind"
+    assert len(lines) == 2  # header + 1 row
+    assert "https://example.org/missing" in tsv
+    assert lines[1].endswith("\tdrilldown")
+    # also_here not emitted → omitted. genre never exists.
     assert "genre" not in data
-    assert "ask_here" not in data
+    assert "also_here" not in data
 
 
 @pytest.mark.asyncio
@@ -226,13 +233,13 @@ async def test_opt_out_via_include_routing_false(monkeypatch: pytest.MonkeyPatch
         monkeypatch,
         envelope=_HEALTHY_ENVELOPE,
         url="https://example.org/post",
-        question="What is this page about?",
+        query="What is this page about?",
         include_routing=False,
     )
     assert "genre" not in data
     assert "obstacle" not in data
-    assert "ask_here" not in data
-    assert "try_url" not in data
+    assert "also_here" not in data
+    assert "other_pages" not in data
     assert "structural_form" not in data
     assert "shape" not in data
 
@@ -270,14 +277,14 @@ async def test_malformed_envelope_drops_routing_keeps_answer(
     app.provide(LlmExtractorResource, lambda: res)
     async with make_client(app) as client:
         wire = await client.call_wire(
-            "ask",
+            "query",
             url="https://example.org/post",
-            question="What is this?",
+            query="What is this?",
         )
     data = json.loads(wire)
     assert data["answer"] == "Just plain text, no JSON."
     # All router-shape fields absent — parse failure degraded gracefully.
-    for field in ("obstacle", "ask_here", "try_url", "structural_form", "shape"):
+    for field in ("obstacle", "also_here", "other_pages", "structural_form", "shape"):
         assert field not in data
     assert "genre" not in data
 
@@ -298,9 +305,9 @@ async def test_unknown_enum_value_drops_router_keeps_answer(
         monkeypatch,
         envelope=envelope,
         url="https://example.org/post",
-        question="What is this?",
+        query="What is this?",
     )
     assert data["answer"] == "Some answer."
-    for field in ("obstacle", "ask_here", "try_url", "structural_form", "shape"):
+    for field in ("obstacle", "also_here", "other_pages", "structural_form", "shape"):
         assert field not in data
     assert "genre" not in data
