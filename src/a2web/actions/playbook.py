@@ -337,6 +337,40 @@ def _decide_exhausted_429_escalate(ctx: _RuleContext) -> Action | None:
     return None
 
 
+def _decide_gate_thin_escalate(ctx: _RuleContext) -> Action | None:
+    """A bare thin/other gate verdict → the free browser, before conceding.
+
+    The gate-side twin of the transport catch-all floor. A `length_floor` /
+    `other` gate outcome carrying NO escalation fingerprint would otherwise end
+    the cascade with only the caller-facing `try_user_browser` hint — a2web
+    prescribing the caller's browser without ever trying its own. This is exactly
+    the jina-reader hole: r.jina.ai returns STRIPPED MARKDOWN, so the block
+    detector's browser-triggering HTML fingerprints (`js_required` needs
+    `<script>`+root markers, `blank_page` needs near-empty visible text) cannot
+    match, and a thinly-rendered SPA falls to the fingerprint-less `length_floor`
+    bucket (`escalation=None`, `subsystem=None`). Route it to the free browser
+    rung (cap `< 2`, fast→robust) so no passable wall is conceded unattempted
+    (ADR-0009: "a wall is an unfinished job").
+
+    Declared at LOW priority BEFORE `paid_last_resort`, so a more specific gate /
+    archive / transport signal always wins and the free browser is always tried
+    before paid egress. A bare `length_floor` stays NOT paid-worthy
+    (`_is_paid_worthy_wall`), so once the browser budget is spent the cascade
+    falls through to the honest terminal hint — the browser is the only new
+    attempt this rule adds, never paid spend on a genuinely-short page.
+    """
+    last = ctx.last
+    if last is None:
+        return None
+    if (
+        last.kind is ObservationKind.gate_outcome
+        and last.verdict in (Verdict.length_floor, Verdict.other)
+        and ctx.caps.browser_dispatches < 2
+    ):
+        return EscalateBrowser()
+    return None
+
+
 # Content-wall verdicts a paid last-resort tier can plausibly pass. Kept as its
 # own tuple to preserve the no-import-from-fetcher invariant of the playbook
 # module (fetcher's never-silently-miss floor is a separate, broader concern).
@@ -410,6 +444,12 @@ _RULES: tuple[PlannerRule, ...] = (
     PlannerRule(name="network_drop_escalate", priority=RulePriority.LOW, decide=_decide_network_drop_escalate),
     PlannerRule(name="uncorroborated_404_escalate", priority=RulePriority.LOW, decide=_decide_uncorroborated_404_escalate),
     PlannerRule(name="exhausted_429_escalate", priority=RulePriority.LOW, decide=_decide_exhausted_429_escalate),
+    # Gate-side catch-all floor (LOW): a bare thin/other gate verdict with no
+    # escalation fingerprint (the jina-stripped-markdown hole) → free browser.
+    # Declared AFTER the transport rules and BEFORE `paid_last_resort` so the
+    # free browser is always tried before paid egress, and a bare length_floor
+    # never reaches paid (it stays not paid-worthy).
+    PlannerRule(name="gate_thin_escalate", priority=RulePriority.LOW, decide=_decide_gate_thin_escalate),
     # Declared LAST: the paid last resort only fires when every rule above
     # returns None (free/proxied ladder + browser + archive all exhausted).
     PlannerRule(

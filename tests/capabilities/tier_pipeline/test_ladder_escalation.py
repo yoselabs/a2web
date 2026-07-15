@@ -183,6 +183,68 @@ async def test_escalate_to_render_without_paid_or_browser_fails_loud(monkeypatch
     assert any(d.step == "browser" for d in result.diagnostics)
 
 
+class _ThinJinaTier:
+    """A jina rung that WON (200 ok) but returned STRIPPED, sub-floor markdown.
+
+    ~120 chars: above BLANK_HTML_THRESHOLD (not blank_page) and — crucially —
+    with no `<script>`/root HTML markers (jina strips them), so the gate cannot
+    fingerprint it as js_required. It falls to the bare `length_floor` bucket.
+    """
+
+    name = "jina"
+
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
+        del state, kwargs
+        md = "No results shown here. " * 5  # sub-500, marker-less
+        return TierResult(
+            body=md.encode("utf-8"),
+            content_type="text/markdown",
+            status_code=200,
+            final_url=url,
+            pre_rendered=Rendered(content_md=md, title="Thin"),
+            verdict=Verdict.ok,
+        )
+
+
+@pytest.mark.asyncio
+async def test_bare_length_floor_jina_recovers_via_own_browser(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The incehesap hole: jina wins with sub-floor stripped markdown → a BARE
+    `length_floor` with no fingerprint. a2web must try its OWN browser before
+    conceding, not merely prescribe the caller's. The browser render recovers the
+    page to `ok` (ADR-0009: a wall is an unfinished job)."""
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("jina",))
+    monkeypatch.setitem(REGISTRY, "jina", _ThinJinaTier())
+    monkeypatch.setitem(REGISTRY, "browser", _OkBrowserTier())
+
+    result = await fetch(
+        "https://www.incehesap.com/arama/?kelime=deepcool+ch160+plus",
+        state=make_default_state(),
+        debug=True,
+    )
+
+    assert result.status == FetchStatus.ok
+    assert result.tier == "browser"
+    assert result.title == "Rendered by browser"
+    # The browser was rendered on the TARGET url, never a r.jina.ai wrapper.
+    assert "r.jina.ai" not in (result.url or "")
+
+
+@pytest.mark.asyncio
+async def test_bare_length_floor_jina_no_browser_fails_loud(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When the own-browser can't run, the bare-length_floor jina terminal is
+    still a LOUD miss — the browser was attempted, then the caller is told."""
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("jina",))
+    monkeypatch.setitem(REGISTRY, "jina", _ThinJinaTier())
+    monkeypatch.setitem(REGISTRY, "browser", _UnavailableBrowserTier())
+
+    result = await fetch("https://www.incehesap.com/arama/?kelime=x", state=make_default_state(), debug=True)
+
+    assert result.status == FetchStatus.failed
+    assert result.retrieval_incomplete is True
+    assert any(d.step == "browser" for d in result.diagnostics)  # own-browser tried first
+    assert any(h.code == "try_user_browser" for h in result.operator_hints)
+
+
 @pytest.mark.asyncio
 async def test_escalate_to_render_browser_walled_still_hints(monkeypatch: pytest.MonkeyPatch) -> None:
     """The browser rung renders, but the SITE walls the page (Reddit login gate).

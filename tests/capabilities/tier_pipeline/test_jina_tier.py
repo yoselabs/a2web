@@ -36,6 +36,25 @@ async def test_free_tier_omits_auth(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_final_url_is_target_not_jina_wrapper(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`final_url` must be the requested TARGET, never the r.jina.ai proxy wrapper.
+
+    Regression guard: leaking `https://r.jina.ai/<url>` as final_url both surfaced
+    the wrapper on the response `url` and misdirected browser escalation onto
+    r.jina.ai instead of the real page.
+    """
+    transport = httpx.MockTransport(lambda req: httpx.Response(200, text="thin"))
+    real_cls = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+
+    target = "https://www.incehesap.com/arama/?kelime=deepcool"
+    result = await JinaTier().fetch(target, state=_state())
+
+    assert result.final_url == target
+    assert "r.jina.ai" not in result.final_url
+
+
+@pytest.mark.asyncio
 async def test_authorized_tier_sends_bearer(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, dict[str, str]] = {}
 

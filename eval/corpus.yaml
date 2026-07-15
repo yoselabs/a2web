@@ -320,4 +320,29 @@ urls:
     criteria:
       - "Returns the actual contact channels present on the page (mailing lists, IRC/Discord, etc.)"
       - "If a mailto:/tel: link is present, reports its literal value (address / number), not just the label"
+
+  - slug: incehesap-search-thin-jina-terminal
+    # Retrieval-completeness hole (2026-07-15): the free ladder ended at jina with
+    # a BARE `length_floor` gate verdict and a2web STOPPED — emitting only the
+    # try_user_browser hint, never firing its OWN browser tier. Root cause: jina
+    # (r.jina.ai) returns stripped MARKDOWN, so the block detector's browser-
+    # triggering fingerprints (js_required needs `<script>`+root markers;
+    # blank_page needs near-zero visible text) can't match — the thin result falls
+    # to the catch-all `length_floor` bucket which carried `escalation=None`. No
+    # planner rule escalates a bare length_floor (browser needs escalation.next_tier
+    # =="browser"; paid needs subsystem=="js_required"), so the cascade conceded a
+    # passable wall. This is the ADR-0009 floor: "a wall is an unfinished job" —
+    # if a2web is confident enough to prescribe the CALLER's browser, it must try
+    # its OWN (free Camoufox) first. incehesap is a JS-heavy Turkish storefront;
+    # the search page renders results client-side. Structural fact: the page has a
+    # real product grid that a rendered browser surfaces and jina's thin markdown
+    # does not — so `status: failed` with an empty answer is WRONG here.
+    url: https://www.incehesap.com/arama/?kelime=deepcool+ch160+plus
+    class: gated
+    task: "DeepCool CH160 PLUS case price and stock status."
+    needs: [content+links]
+    criteria:
+      - "Does NOT terminate as `status: failed` with a null answer while only emitting a try_user_browser hint — a2web must attempt its own browser render before conceding (ADR-0009)"
+      - "Either returns substantive retrieved content (product name / price / stock) OR, if genuinely walled after the browser render, states the wall honestly with retrieval_incomplete — never a silent thin miss"
+      - "Does not fabricate a price or stock status not present in the retrieved page"
       - "Does not fabricate a contact address not on the page"

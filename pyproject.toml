@@ -223,6 +223,7 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]  # asserts + literal test secrets allowed in tests
+"tests/conftest.py" = ["S101", "S105", "S106", "E402"]  # E402: A2WEB_* env scrub MUST run before the a2web imports (hermetic REGISTRY)
 "src/a2web/llm_eval/__main__.py" = ["T201"]  # CLI entry — print() is the output mechanism
 "src/a2web/llm_eval/extraction_cli.py" = ["T201"]  # CLI entry — print() is the output mechanism
 "src/a2web/llm_eval/browser_bakeoff.py" = ["T201"]  # CLI entry — print() is the output mechanism

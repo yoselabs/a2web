@@ -20,6 +20,19 @@ import aiosqlite.core
 import pytest
 from a2kit.testing import ambient_for_tests_autouse  # noqa: F401 — autouse fixture by import (v0.39.3+)
 
+# --- Hermetic settings: scrub ambient A2WEB_* BEFORE any a2web import -------- #
+# The a2web imports below build the tier REGISTRY from `AppSettings()`, which
+# reads `A2WEB_*` env vars and `~/.a2web/config.yaml`. A developer's real keys
+# (`A2WEB_ZYTE_KEY`, `A2WEB_FIRECRAWL_KEY`, `A2WEB_JINA_KEY`, ...) would
+# otherwise register paid tiers at import and let block-page tests reach the live
+# network — so the suite passes in key-free CI but fails on a keyed dev machine
+# (the `make check` local-vs-CI divergence). Pop every `A2WEB_*` var and point
+# `A2WEB_CONFIG` at a path that cannot exist so the home config is never
+# consulted. Tests that WANT a key present set it via `monkeypatch` after this.
+for _leaked_key in [_k for _k in os.environ if _k.startswith("A2WEB_")]:
+    del os.environ[_leaked_key]
+os.environ["A2WEB_CONFIG"] = "/nonexistent/a2web-hermetic-test-config.yaml"
+
 from a2web.cache import SqliteResource
 from a2web.cookie_jar import build_cookie_jar
 from a2web.models import OperatorHint, Verdict

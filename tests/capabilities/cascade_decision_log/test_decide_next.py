@@ -331,6 +331,47 @@ def test_js_required_paid_suppressed_when_paid_cap_spent() -> None:
 
 
 # --------------------------------------------------------------------- #
+# Gate-side thin/other catch-all → free browser (jina-stripped-markdown hole).
+# A bare length_floor with NO fingerprint (jina returns markdown, so the
+# js_required / blank_page HTML markers never match) must still try a2web's OWN
+# browser before conceding — not merely prescribe the caller's (ADR-0009).
+# --------------------------------------------------------------------- #
+
+
+def test_bare_length_floor_escalates_to_browser() -> None:
+    """A fingerprint-less `length_floor` gate outcome → free browser, not concede."""
+    log = [_tier(Verdict.ok), _gate(Verdict.length_floor)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), EscalateBrowser)
+
+
+def test_bare_other_gate_escalates_to_browser() -> None:
+    """A bare `other` gate outcome is likewise routed to the free browser."""
+    log = [_tier(Verdict.ok), _gate(Verdict.other)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), EscalateBrowser)
+
+
+def test_bare_length_floor_browser_ladders_fast_then_robust_then_stops() -> None:
+    """The free-browser escalation ladders fast→robust (cap 2), then concedes."""
+    log = [_tier(Verdict.ok), _gate(Verdict.length_floor)]
+
+    def _at(browser_dispatches: int) -> object:
+        caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=browser_dispatches, paid_dispatches=0)
+        return decide_next(log, url="https://x.com/", caps=caps)
+
+    assert isinstance(_at(0), EscalateBrowser)  # fast rung
+    assert isinstance(_at(1), EscalateBrowser)  # robust rung
+    # Browser budget spent and a bare length_floor is not paid-worthy → concede.
+    assert isinstance(_at(2), Continue)
+
+
+def test_bare_length_floor_never_reaches_paid() -> None:
+    """Even with browser spent, a BARE length_floor stays off the paid path."""
+    caps = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=2, paid_dispatches=0)
+    log = [_tier(Verdict.ok), _gate(Verdict.length_floor)]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=caps), Continue)
+
+
+# --------------------------------------------------------------------- #
 # Transport / status escalation (escalate-on-status-derived-walls)
 # Each rule gets a test pair: the ambiguous failure escalates to browser, and
 # each guard (browser cap / terminal carve-out) returns no escalation.

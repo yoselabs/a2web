@@ -118,11 +118,18 @@ class JinaTier:
         from . import Rendered  # local — avoid circular
 
         pre_rendered = Rendered(content_md=markdown) if (verdict == Verdict.ok and markdown) else None
+        # `final_url` is the TARGET we were asked to read, never the r.jina.ai
+        # proxy wrapper. `resp.url` is always `https://r.jina.ai/<url>` (jina
+        # serves markdown at its own URL and never redirects to the origin), so
+        # surfacing it would (a) leak the wrapper as the response `url` deviation
+        # and (b) misdirect any downstream browser escalation onto r.jina.ai
+        # instead of the real page. The origin's own redirects are invisible to
+        # us through jina, so the requested `url` is the truthful final URL.
         return TierResult(
             body=markdown.encode("utf-8"),
             content_type="text/markdown",
             status_code=resp.status_code,
-            final_url=str(resp.url) or url,
+            final_url=url,
             headers={k.lower(): v for k, v in resp.headers.items()},
             pre_rendered=pre_rendered,
             verdict=verdict,
