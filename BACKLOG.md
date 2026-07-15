@@ -43,6 +43,22 @@ never runs on it). That leaves TWO gaps this single track closes:
   per empty search (cheap). Land it behind its own change with the ladder tests
   green. Until then, browser-corroboration + attached `thin_content` is the honest
   floor and the residual is narrow.
+- **The general principle (why this matters beyond empties).** This is a
+  CORRELATED-WITNESS problem: corroboration is only as strong as the INDEPENDENCE
+  of the witnesses, and our two default witnesses share an egress. raw (datacenter
+  proxy IPs) and our own browser are both roughly "egress A"; jina (r.jina.ai) is
+  the only "egress B" we have. A wall keyed on IP REPUTATION fake-empties both
+  egress-A witnesses identically — they "agree" from the same blind spot. jina's
+  different IP would DISAGREE (retrieve the real content) if it exists, which is
+  what makes it an independent witness. The lesson generalizes: `classify_terminal`'s
+  `_CORROBORATION_THRESHOLD = 2` (used for the 404 `gone_confirmed` upgrade too)
+  counts OBSERVATIONS, not INDEPENDENT EGRESSES — two raw+browser 404s are weaker
+  corroboration than raw+jina. NOT proposing a full egress-diversity-weighted-
+  corroboration refactor (raw and browser are not perfectly correlated — different
+  TLS fingerprints, the browser passes walls raw can't, often a different IP pool),
+  but any future corroboration tightening should weight witness independence, not
+  just count. This is the architectural (not intrinsic) half of the "asymmetry"
+  discussion — the empty-vs-wall COST asymmetry is intrinsic and correctly kept.
 
 ## 2026-07-16 — empty-result-as-`ok`-answer (thin-not-wall endgame) — SHIPPED
 
