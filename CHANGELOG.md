@@ -8,6 +8,56 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.45.0] — 2026-07-16
+
+> The honest terminal-story arc: a fetch that does not fully retrieve a URL now
+> tells the truth about WHY — dead vs walled vs thin vs empty — with confidence
+> encoded in hint severity, and a genuinely-empty search is a first-class answer.
+> Bundles three changes (`fetch-failure-semantics`, `thin-not-wall`,
+> `empty-vs-wall-discrimination`).
+
+### Added
+
+- **`classify_terminal(observations, resolved_verdict)`** — a single pure, total
+  terminal-story classifier over the decision log, replacing the inverse
+  `_is_genuine_gone` / `_prescribe_browser_on_wall` predicate pair. Closed
+  `TerminalOutcome` enum: `wall`, `gone_confirmed`, `gone_unverified`,
+  `thin_unverified`, `empty_unverified`, `operator_error`, `unreachable`. Reads
+  the OBSERVATIONS (whole-log scan), so corroborating evidence survives a mis-won
+  resolved verdict.
+- **Browser subresource-block evidence** — the browser backend counts page
+  XHR/fetch responses challenged (401/403/429) during render
+  (`RenderedPage.subresource_blocks` → `TierResult` → `Observation`). Classifies
+  the walled-API fake-empty (a benign "0 results" shell whose data API was 403'd)
+  as a `wall` — the case no body-text reader can catch.
+- **`content_thin` / `content_empty` operator hints + `thin_content` envelope
+  field** — a retrieved thin body rides the wire (wire-only, never cached) so the
+  blind caller can resolve empty-vs-wall itself (ADR-0015).
+- **Empty-result gate marker + bespoke-wall fingerprints** — a conservative
+  `_EMPTY_RESULT_PATTERNS` annotation (`subsystem="empty_result"`, never an
+  authority) and PerimeterX / Incapsula additions to `_BLOCK_PATTERNS`.
+
+### Changed
+
+- **A genuinely-empty search is promoted to `ok` "no results"** (⚠ BREAKING wire
+  change: a class of URL that returned `status: failed` now returns `status: ok`).
+  Promotion is guarded by the pure `is_confirmed_empty` conjunction — an
+  independent browser render also read empty + an HTTP tier returned a body + no
+  4xx/challenge/subresource-block/hard-wall evidence anywhere + a search-shaped
+  URL. The synthetic answer asserts only the absence (never fabricated items),
+  `confidence: low`, body attached, and is never cached.
+- **Terminal confidence is corroboration-keyed, encoded in hint severity**
+  (`info` = verified dead/empty, `warning` = unverified/ambiguous residual,
+  `critical` = a wall). A `404` and a thin `200` are NEVER `critical`. A thin 200
+  with no wall evidence is `thin_unverified` (agnostic — does not assert "empty").
+
+### Fixed
+
+- **Tier truthfulness** — a reader-wrapper tier (jina) that masks an upstream
+  error surfaces the real status itself; the gate no longer launders a wrapped
+  404 into `ok`, and the `try_user_browser` anti-bot klaxon no longer fires on a
+  dead URL or an empty search result.
+
 ## [0.44.1] — 2026-07-11
 
 > Stop the site footer from leaking onto the `query` wire as null-url options.
