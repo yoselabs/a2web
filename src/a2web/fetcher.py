@@ -43,6 +43,7 @@ from record_mine import Record, RecordSet, extract_records
 
 from . import content_expectations
 from .actions import Action, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
+from .actions.terminal import TerminalOutcome, classify_terminal
 from .cache import CacheRow, SqliteResource
 from .cookie_jar import Cookie, CookieJarResource
 from .decision_log import Observation, ObservationKind, resolve_verdict
@@ -52,6 +53,7 @@ from .domain import (
     json_response_fallback,
     json_to_markdown_rows,
     rewrite_captcha_host,
+    strip_reader_prefix,
 )
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .events.types import CookiesAttached, CookiesStale
@@ -71,6 +73,7 @@ from .models import (
     NextLinkKind,
     OperatorHint,
     Verdict,
+    content_not_found_hint,
     try_user_browser_hint,
 )
 from .packages.block_detector import LENGTH_FLOOR, looks_like_unrendered_spa
@@ -99,8 +102,6 @@ class _GateResult:
     promoted_structured: bool = False
 
 
-_JINA_PAYWALL_STUB_RE = re.compile(r"Target URL returned error 40[13]")
-_JINA_STUB_MAX_BODY: int = 2_048
 _THIN_BROWSER_MAX_BODY: int = 1_024
 
 # Hosts known to be JS-heavy CSR apps. When the browser tier returns a thin
@@ -138,21 +139,14 @@ def evaluate(
 ) -> _GateResult:
     """Run the package's block detector, map BlockVerdict → Verdict.
 
-    Post-process: when `tier == "jina"` and the body carries jina's
-    paywall stub markers ("Target URL returned error 401/403"), promote
-    the verdict to `Verdict.paywall` so the orchestrator's archive
-    escalation fires (see openspec/changes/harsh-test-session-fixes/
-    specs/quality-gate/spec.md).
+    Reader-wrapper decoding (a jina 200 masking an upstream error) is NOT done
+    here anymore — it is tier work (`tiers/jina.py` surfaces the real upstream
+    status), so the gate no longer branches on `tier == "jina"`.
     """
     result = _package_evaluate(content_md=content_md, raw_html=raw_html, content_type=content_type)
     verdict = Verdict(result.verdict.value)
     subsystem = result.subsystem
     escalation = result.escalation
-
-    if tier == "jina" and len(content_md) < _JINA_STUB_MAX_BODY and _JINA_PAYWALL_STUB_RE.search(content_md):
-        verdict = Verdict.paywall
-        subsystem = "jina_stub"
-        escalation = None  # archive playbook handles next step
 
     if tier == "browser" and len(content_md) < _THIN_BROWSER_MAX_BODY and host and verdict in (Verdict.ok, Verdict.length_floor):
         norm_host = host.lower()
@@ -551,7 +545,15 @@ async def fetch(
     """
     start_perf = time.perf_counter()
     started_at = datetime.now(UTC)
-    requested_url = url  # the caller's input, before any rewrite
+
+    # Reader-prefix normalization: if the caller pre-wrapped the URL in a reader
+    # service (`https://r.jina.ai/<real>`), unwrap it FIRST so `requested_url` and
+    # the whole ladder operate on the true target. A pre-wrapped URL otherwise
+    # pins a2web to the jina tier alone with no fallback (domain.strip_reader_prefix).
+    unwrapped = strip_reader_prefix(url)
+    if unwrapped is not None:
+        url = unwrapped
+    requested_url = url  # the caller's real target, before any rewrite
 
     # v0.7: captcha-host pre-routing — Google/Bing search URLs serve captcha
     # pages that pass the length floor. Rewrite to DDG before tier dispatch
@@ -1820,46 +1822,44 @@ def _has_browser_hint(fc: FetchContext) -> bool:
     return any(h.code == "try_user_browser" for h in fc.operator_hints)
 
 
-def _is_genuine_gone(fc: FetchContext) -> bool:
-    """The ONLY failed terminals that must NOT prescribe the caller's browser.
+def _has_hint(fc: FetchContext, code: str) -> bool:
+    return any(h.code == code for h in fc.operator_hints)
 
-    A real browser genuinely cannot do better on these, so the systematic floor
-    (`_prescribe_browser_on_wall`) skips them; everything else that ends non-ok is
-    treated as a passable wall (ADR-0009). See the `retrieval-completeness` spec.
 
-    - `dns_error` — the domain does not resolve; a browser resolves it identically.
-    - authoritative `not_found` — a site handler modelling the site's real "gone"
-      semantics (a deleted item); a browser won't un-delete it.
-    - `content_type_mismatch` — a non-HTML resource WAS retrieved (a PDF/image);
-      a browser won't extract it better.
-    - `paid_auth_error` — an operator error (a bad paid key) that carries its OWN
-      dedicated hint, not `try_user_browser` (it IS still `retrieval_incomplete`).
+def _apply_terminal(fc: FetchContext) -> None:
+    """The single systematic terminal floor (ADR-0009), driven by `classify_terminal`.
+
+    Once per fetch, at the end of the pipeline: classify the decision log into a
+    `TerminalOutcome` and attach the matching hint. This is the one chokepoint —
+    it runs regardless of which phase terminated the cascade, and dedups against a
+    handler's eager emission. The classifier reads the OBSERVATIONS (not the
+    resolved-verdict projection), so a corroborated dead URL is seen as gone, not
+    dressed as a wall.
+
+    - `wall` → the critical `try_user_browser` prescription (content/transport/thin).
+    - `gone_confirmed` → an authoritative handler "gone" stays SILENT (definitive);
+      an HTTP-404 corroborated by >=2 tiers gets the INFO `content_not_found`
+      (a dead URL is not a wall — no browser command).
+    - `gone_unverified` → the WARNING `content_not_found` with the soft-404 caveat
+      + browser escape hatch.
+    - `operator_error` / `unreachable` → no hint here (paid_auth_error carries its
+      own; dns/content_type_mismatch are honestly terminal).
     """
-    verdict = fc.resolved_verdict()
-    if verdict in (Verdict.dns_error, Verdict.content_type_mismatch, Verdict.paid_auth_error):
-        return True
-    if verdict is Verdict.not_found:
-        return any(o.authoritative and o.verdict is Verdict.not_found for o in fc.observations)
-    return False
-
-
-def _prescribe_browser_on_wall(fc: FetchContext) -> None:
-    """The single systematic never-silently-miss floor (ADR-0009).
-
-    Any fetch that ends non-ok and is NOT a genuine-gone terminal prescribes the
-    caller's own real browser — one rule, not a per-verdict whitelist. This covers
-    every content wall (`block_page_detected` / `anti_bot` / `paywall` /
-    `blank_page`), every transport wall (`connection_error` / `timeout` /
-    `rate_limited` / uncorroborated `not_found`), AND the verdicts that fell
-    through the retired whitelists (`length_floor` / `proxy_unavailable` /
-    `other`) — including a `length_floor` that arises downstream of a 403, by
-    construction. Emitted once at the end of the pipeline so it fires regardless
-    of which phase terminated the cascade (the bodyless transport early-return AND
-    the body-bearing wall alike); the `_has_browser_hint` dedup guarantees no
-    double-emit when a handler (e.g. Reddit) already attached the hint eagerly.
-    """
-    if fc.resolved_verdict() is not Verdict.ok and not _is_genuine_gone(fc) and not _has_browser_hint(fc):
-        fc.operator_hints.append(try_user_browser_hint(fc.final_url))
+    if fc.resolved_verdict() is Verdict.ok:
+        return
+    outcome = classify_terminal(fc.observations, fc.resolved_verdict())
+    if outcome is TerminalOutcome.wall:
+        if not _has_browser_hint(fc):
+            fc.operator_hints.append(try_user_browser_hint(fc.final_url))
+    elif outcome is TerminalOutcome.gone_confirmed:
+        # An authoritative handler "gone" is definitive and stays silent; a
+        # corroborated HTTP 404 surfaces an honest info-level not-found.
+        authoritative_gone = any(o.authoritative and o.verdict is Verdict.not_found for o in fc.observations)
+        if not authoritative_gone and not _has_hint(fc, "content_not_found"):
+            fc.operator_hints.append(content_not_found_hint(fc.final_url, verified=True))
+    elif outcome is TerminalOutcome.gone_unverified:
+        if not _has_hint(fc, "content_not_found"):
+            fc.operator_hints.append(content_not_found_hint(fc.final_url, verified=False))
 
 
 def _regate_after_escalation(fc: FetchContext) -> None:
@@ -1957,8 +1957,21 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
         if rendered_html:
             await _run_extraction_escalation(fc, raw_html=rendered_html)
         _regate_after_escalation(fc)
-    elif browser_result.operator_hint is not None:
-        fc.operator_hints.append(browser_result.operator_hint)
+    else:
+        # The browser produced no usable content. If it rendered a real UPSTREAM
+        # error page (a 404/paywall status surfaced by the tier), record it as an
+        # observation so `classify_terminal` can corroborate a genuinely-gone URL.
+        # A browser that merely failed to RUN (unavailable/timeout/internal error)
+        # is not evidence about the target — it only surfaces its hint, no observation.
+        if browser_result.verdict in (Verdict.not_found, Verdict.paywall):
+            fc.observe(
+                kind=ObservationKind.tier_outcome,
+                source=rung,
+                verdict=browser_result.verdict,
+                status_code=browser_result.status_code,
+            )
+        if browser_result.operator_hint is not None:
+            fc.operator_hints.append(browser_result.operator_hint)
 
 
 # Paid tiers tried, in order, by `_escalate_paid`. Only names present in
@@ -2131,7 +2144,7 @@ async def _run_pipeline(
     # (so an obstacle/listing render that recovered the page to `ok` already
     # counts), prescribe the caller's own browser on any non-ok terminal that is
     # not genuinely gone. Single systematic emission — no per-verdict whitelist.
-    _prescribe_browser_on_wall(fc)
+    _apply_terminal(fc)
     return build_response(fc)
 
 

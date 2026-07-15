@@ -321,28 +321,41 @@ urls:
       - "Returns the actual contact channels present on the page (mailing lists, IRC/Discord, etc.)"
       - "If a mailto:/tel: link is present, reports its literal value (address / number), not just the label"
 
-  - slug: incehesap-search-thin-jina-terminal
-    # Retrieval-completeness hole (2026-07-15): the free ladder ended at jina with
-    # a BARE `length_floor` gate verdict and a2web STOPPED — emitting only the
-    # try_user_browser hint, never firing its OWN browser tier. Root cause: jina
-    # (r.jina.ai) returns stripped MARKDOWN, so the block detector's browser-
-    # triggering fingerprints (js_required needs `<script>`+root markers;
-    # blank_page needs near-zero visible text) can't match — the thin result falls
-    # to the catch-all `length_floor` bucket which carried `escalation=None`. No
-    # planner rule escalates a bare length_floor (browser needs escalation.next_tier
-    # =="browser"; paid needs subsystem=="js_required"), so the cascade conceded a
-    # passable wall. This is the ADR-0009 floor: "a wall is an unfinished job" —
-    # if a2web is confident enough to prescribe the CALLER's browser, it must try
-    # its OWN (free Camoufox) first. incehesap is a JS-heavy Turkish storefront;
-    # the search page renders results client-side. Structural fact: the page has a
-    # real product grid that a rendered browser surfaces and jina's thin markdown
-    # does not — so `status: failed` with an empty answer is WRONG here.
+  - slug: incehesap-404-dead-search-url
+    # Fetch-failure-semantics (2026-07-16): live debugging of the original
+    # "thin-jina" report revealed the URL is a GENUINE HTTP 404 — incehesap serves
+    # a styled "Aradığın sayfayı bulamadık" (page not found) at 404 for this search
+    # path. raw→404, our browser→404, and jina wraps the upstream 404 as its own
+    # HTTP 200 ("Target URL returned error 404"). The OLD pipeline masked all this
+    # into `length_floor` + a CRITICAL `try_user_browser` klaxon — commanding the
+    # calling agent to open a browser on a page that does not exist. Corrected: a
+    # corroborated 404 is `gone_confirmed` — honest "content not found, likely a
+    # dead/wrong URL", NO anti-bot klaxon. Structural fact (survives rotation): the
+    # origin returns HTTP 404 for this path, so the ONLY correct outcome is an
+    # honest not-found, never an anti-bot wall.
     url: https://www.incehesap.com/arama/?kelime=deepcool+ch160+plus
     class: gated
     task: "DeepCool CH160 PLUS case price and stock status."
     needs: [content+links]
     criteria:
-      - "Does NOT terminate as `status: failed` with a null answer while only emitting a try_user_browser hint — a2web must attempt its own browser render before conceding (ADR-0009)"
-      - "Either returns substantive retrieved content (product name / price / stock) OR, if genuinely walled after the browser render, states the wall honestly with retrieval_incomplete — never a silent thin miss"
-      - "Does not fabricate a price or stock status not present in the retrieved page"
-      - "Does not fabricate a contact address not on the page"
+      - "Reports the content as NOT FOUND / a likely dead-or-wrong URL — the origin returns HTTP 404 for this path"
+      - "Does NOT emit the critical `try_user_browser` anti-bot-wall hint (a 404 is not an anti-bot wall; commanding a browser on a nonexistent page is wrong)"
+      - "Does NOT fabricate a price, stock status, or product detail — nothing was retrieved"
+
+  - slug: trendyol-200-soft-404-empty-results
+    # 200-soft-404 sibling (Fable, 2026-07-16): the adjacent, still-UNFIXED case —
+    # many storefronts return HTTP 200 with a styled "no results / page not found"
+    # body for a dead search, so there is ZERO status-code evidence and the page
+    # gates to `length_floor`. The fetch-failure-semantics change does NOT solve
+    # this (it needs a content-level "empty result set" signal, not a transport
+    # one); captured here so the narrative at least HEDGES honestly and never fires
+    # the anti-bot klaxon on what is really an empty/absent result. Structural fact:
+    # a nonsense query yields a page with no product records.
+    url: https://www.trendyol.com/sr?q=zzzqqxnonexistentproduct12345
+    class: gated
+    task: "List the products matching this search and their prices."
+    needs: [content+links]
+    criteria:
+      - "Does NOT fabricate products or prices — the search returns no real product records"
+      - "If it reports a wall/failure, the narrative HEDGES honestly (a thin page could be an empty result set), and does NOT assert with confidence that content is being blocked by anti-bot when the evidence is only thinness"
+      - "Never presents an empty result as a confident, complete answer"

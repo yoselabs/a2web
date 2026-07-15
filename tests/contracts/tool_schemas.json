@@ -335,6 +335,7 @@
               "default": "info",
               "enum": [
                 "info",
+                "warning",
                 "critical"
               ],
               "title": "Severity",
@@ -1122,6 +1123,7 @@
               "default": "info",
               "enum": [
                 "info",
+                "warning",
                 "critical"
               ],
               "title": "Severity",

@@ -354,6 +354,13 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # stay complete-looking failures, not "behind a wall" misses.
     if status == FetchStatus.failed and any(h.code == "try_user_browser" for h in fc.operator_hints):
         retrieval_incomplete = True
+    # An UNVERIFIED not-found (`content_not_found` at `severity: warning` — a 404
+    # whose soft-404 check could not complete) is also a retrieval miss: the caller
+    # may still recover it in its own browser. A VERIFIED not-found (`severity:
+    # info` — a browser-corroborated or authoritative dead URL) is NOT incomplete;
+    # it is a confident fact, so it is deliberately excluded here.
+    if status == FetchStatus.failed and any(h.code == "content_not_found" and h.severity == "warning" for h in fc.operator_hints):
+        retrieval_incomplete = True
     gate_outcome = fc.last_gate_outcome()
     gate_subsystem = gate_outcome.subsystem if gate_outcome else None
 

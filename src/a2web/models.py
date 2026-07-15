@@ -116,7 +116,7 @@ class OperatorHint(BaseModel):
     code: str
     message: str
     fix: str | None = None
-    severity: Literal["info", "critical"] = "info"
+    severity: Literal["info", "warning", "critical"] = "info"
 
     @model_serializer(mode="wrap")
     def _omit_default_severity(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
@@ -154,6 +154,45 @@ def try_user_browser_hint(url: str) -> OperatorHint:
         ),
         fix="Open the URL in a real-browser tool and read the page, or report the gap to the user.",
         severity="critical",
+    )
+
+
+def content_not_found_hint(url: str, *, verified: bool) -> OperatorHint:
+    """The not-found signal for an HTTP 404 — honest, and severity-scaled by confidence.
+
+    `verified=True` (a browser render corroborated the 404, or a handler is
+    authoritative): the content is not there, reported as a plain fact at
+    `severity: info` — NO soft-404 caveat, NO browser prescription (a dead URL is
+    not a wall; commanding the caller to open it would waste a browser session on
+    a page that does not exist).
+
+    `verified=False` (the soft-404 check could not complete — browser budget
+    spent, pool unavailable, or the browser saw something else): most likely a
+    dead URL, at `severity: warning`, disclosing the SMALL residual chance a
+    bot-defense served a soft-404 masking real content, with the caller's own
+    browser as the residual test. Never `critical` — a 404 is not an anti-bot wall.
+    """
+    if verified:
+        return OperatorHint(
+            code="content_not_found",
+            message=(
+                f"This URL returned HTTP 404 — the content was not found ({url}). "
+                "A rendered browser confirmed it; this is most likely a dead or wrong URL."
+            ),
+            fix="Verify the URL is correct; the page does not appear to exist.",
+            severity="info",
+        )
+    return OperatorHint(
+        code="content_not_found",
+        message=(
+            f"This URL returned HTTP 404 — the content was not found ({url}). Most likely a dead or wrong URL. "
+            "Small residual chance a bot-defense served a soft-404 masking real content."
+        ),
+        fix=(
+            "Verify the URL. If you are confident the content exists, open it in your own "
+            "real-browser tool — a logged-in browser can pass a soft-404 wall."
+        ),
+        severity="warning",
     )
 
 

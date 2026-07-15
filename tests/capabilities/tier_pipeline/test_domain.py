@@ -9,7 +9,36 @@ from __future__ import annotations
 
 import pytest
 
-from a2web.domain import rewrite_captcha_host
+from a2web.domain import rewrite_captcha_host, strip_reader_prefix
+
+# --------------------------------------------------------------------- #
+# Reader-prefix normalization
+# --------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    ("wrapped", "target"),
+    [
+        ("https://r.jina.ai/https://example.com/x", "https://example.com/x"),
+        ("http://r.jina.ai/https://example.com/x", "https://example.com/x"),
+        ("r.jina.ai/https://example.com/x", "https://example.com/x"),
+        ("https://r.jina.ai/http://plain.example/p", "http://plain.example/p"),
+    ],
+)
+def test_strip_reader_prefix_unwraps_target(wrapped: str, target: str) -> None:
+    assert strip_reader_prefix(wrapped) == target
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://example.com/x",  # not wrapped
+        "https://r.jina.ai/",  # bare reader host, no inner URL
+        "https://r.jina.ai/not-a-url",  # reader path that is not a wrapped http(s) URL
+    ],
+)
+def test_strip_reader_prefix_leaves_non_wrapped_untouched(url: str) -> None:
+    assert strip_reader_prefix(url) is None
 
 # --------------------------------------------------------------------- #
 # Captcha-host pre-routing

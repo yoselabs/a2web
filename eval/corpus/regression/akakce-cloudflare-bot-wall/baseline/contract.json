@@ -1,6 +1,8 @@
 {
-  "answer_present": false,
-  "has_content": true,
+  "has_content": false,
+  "operator_hints": [
+    "try_user_browser"
+  ],
   "status": "failed",
-  "tier": "jina"
+  "tier": "none"
 }

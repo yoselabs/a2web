@@ -11,6 +11,7 @@ opt out.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -25,6 +26,28 @@ if TYPE_CHECKING:
 
 _BASE_URL = "https://r.jina.ai/"
 _TIMEOUT_S = 15.0
+
+# jina wraps an upstream error as its OWN HTTP 200 with a body stub of the shape
+# `Target URL returned error <status>: <reason>`. Decode the real upstream status
+# generically (any 3-digit code — enumerate-by-status is what let a fixed 40[13]
+# miss 404 once), behind a body-length ceiling so a long article that merely
+# QUOTES the stub string is never misread as a wrapper. Tier-truthfulness
+# contract: a retrieved error page surfaces its real upstream status, never `ok`.
+_UPSTREAM_ERROR_RE = re.compile(r"Target URL returned error (\d{3})")
+_STUB_MAX_BODY: int = 2_048
+
+
+def _unwrapped_verdict(upstream_status: int) -> Verdict:
+    """Map a jina-decoded UPSTREAM status to a domain Verdict.
+
+    401/403 → `paywall` (preserves the archive-on-paywall escalation routing that
+    the gate special-case used to provide); everything else routes through the
+    tier's own `_verdict_for_status`. A wrapped 404 therefore surfaces as
+    `not_found`, no longer masked as a length_floor wall.
+    """
+    if upstream_status in (401, 403):
+        return Verdict.paywall
+    return _verdict_for_status(upstream_status)
 
 
 def _is_denied(url: str, deny_hosts: list[str]) -> bool:
@@ -115,7 +138,20 @@ class JinaTier:
 
         verdict = _verdict_for_status(resp.status_code)
         markdown = resp.text if verdict == Verdict.ok else ""
+        status_code = resp.status_code
         from . import Rendered  # local — avoid circular
+
+        # Tier-truthfulness: a jina 200 whose body is a wrapper stub is an
+        # UPSTREAM error, not real content. Decode the real status, surface it,
+        # and drop the stub body so the tier never falsely wins the loop. Guarded
+        # by the body-length ceiling (a long article quoting the stub is safe).
+        if verdict == Verdict.ok and len(markdown) < _STUB_MAX_BODY:
+            stub = _UPSTREAM_ERROR_RE.search(markdown)
+            if stub is not None:
+                upstream_status = int(stub.group(1))
+                verdict = _unwrapped_verdict(upstream_status)
+                status_code = upstream_status
+                markdown = ""
 
         pre_rendered = Rendered(content_md=markdown) if (verdict == Verdict.ok and markdown) else None
         # `final_url` is the TARGET we were asked to read, never the r.jina.ai
@@ -128,7 +164,7 @@ class JinaTier:
         return TierResult(
             body=markdown.encode("utf-8"),
             content_type="text/markdown",
-            status_code=resp.status_code,
+            status_code=status_code,
             final_url=url,
             headers={k.lower(): v for k, v in resp.headers.items()},
             pre_rendered=pre_rendered,

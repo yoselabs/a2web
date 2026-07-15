@@ -20,3 +20,4 @@ Architecture Decision Records for a2web. Each records a decision with context, r
 | [0014](0014-grounded-urls-only-off-domain-flagged.md) | Every surfaced URL must be on-the-page; off-domain flagged | Accepted |
 | [0015](0015-the-withheld-body-index.md) | The withheld-body index (`also_here` / `other_pages`) | Accepted |
 | [0016](0016-never-metered-api-in-dev-loop.md) | Never bill the metered API in the dev/eval loop (dev-loop tenet) | Accepted |
+| [0017](0017-effort-and-confidence-proportional-to-evidence.md) | Effort ∝ existence prior; confidence ∝ corroboration; severity encodes confidence | Accepted |

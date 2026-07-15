@@ -29,7 +29,11 @@ from a2kit.testing import ambient_for_tests_autouse  # noqa: F401 — autouse fi
 # (the `make check` local-vs-CI divergence). Pop every `A2WEB_*` var and point
 # `A2WEB_CONFIG` at a path that cannot exist so the home config is never
 # consulted. Tests that WANT a key present set it via `monkeypatch` after this.
-for _leaked_key in [_k for _k in os.environ if _k.startswith("A2WEB_")]:
+#
+# `A2WEB_BLESS_EVAL` is a TEST-HARNESS control (regression-replay re-blessing),
+# not a settings key — it must survive the scrub.
+_HARNESS_CONTROL_ENV = {"A2WEB_BLESS_EVAL", "A2WEB_BLESS_CONTRACTS"}
+for _leaked_key in [_k for _k in os.environ if _k.startswith("A2WEB_") and _k not in _HARNESS_CONTROL_ENV]:
     del os.environ[_leaked_key]
 os.environ["A2WEB_CONFIG"] = "/nonexistent/a2web-hermetic-test-config.yaml"
 

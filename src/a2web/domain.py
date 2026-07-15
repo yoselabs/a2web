@@ -132,6 +132,36 @@ def rewrite_captcha_host(url: str) -> str | None:
     return f"https://duckduckgo.com/html/?q={quote(q)}"
 
 
+# Reader-service prefixes an agent may have wrapped a URL in, unaware that
+# a2web runs the reader itself as an internal fallback tier. Left in place, the
+# prefix pins a2web to that single tier (it treats the reader host as the origin)
+# with no raw/browser/paid fallback — the opposite of resilience.
+_READER_PREFIXES: tuple[str, ...] = (
+    "https://r.jina.ai/",
+    "http://r.jina.ai/",
+    "r.jina.ai/",
+)
+
+
+def strip_reader_prefix(url: str) -> str | None:
+    """Unwrap an incoming reader-wrapped URL to its real target.
+
+    When a caller passes `https://r.jina.ai/<real-url>`, return `<real-url>` so
+    a2web fetches the true target with its full tier ladder and owns its own
+    reader fallback. Returns None when `url` carries no reader prefix, or when the
+    prefix has no inner URL (a bare `r.jina.ai/` is left untouched). Pure — no I/O.
+    """
+    for prefix in _READER_PREFIXES:
+        if url.startswith(prefix):
+            inner = url[len(prefix) :]
+            # Only unwrap when the remainder is itself an http(s) URL — a bare
+            # reader host, or a reader path that is not a wrapped URL, is left alone.
+            if inner.startswith(("http://", "https://")):
+                return inner
+            return None
+    return None
+
+
 # --------------------------------------------------------------------- #
 # JSON synthesis (v0.10 — harsh-test-session-fixes)
 # --------------------------------------------------------------------- #

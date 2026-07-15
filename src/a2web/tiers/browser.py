@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 import trafilatura
 
 from ..models import OperatorHint, Verdict
+from ..packages.block_detector import LENGTH_FLOOR
 from ..packages.browser_backends import BackendCookie, RenderOutcome
 
 if TYPE_CHECKING:
@@ -57,6 +58,20 @@ def _cookie_to_backend(cookie: Cookie) -> BackendCookie:
 def _to_markdown(html: str, url: str) -> str:
     md = trafilatura.extract(html, url=url, output_format="markdown", include_comments=False, include_tables=True)
     return md or ""
+
+
+def _upstream_error_verdict(status: int) -> Verdict:
+    """Map a rendered UPSTREAM error status to a domain Verdict (tier-truthfulness).
+
+    404 → `not_found` so a browser-confirmed dead URL corroborates the raw tier;
+    401/403 → `paywall` (mirrors the jina unwrap so a walled surface keeps its
+    archive routing); everything else → `connection_error`.
+    """
+    if status == 404:
+        return Verdict.not_found
+    if status in (401, 403):
+        return Verdict.paywall
+    return Verdict.connection_error
 
 
 def _host_is_js_heavy(url: str, state: AppState | None) -> bool:
@@ -164,7 +179,16 @@ class BrowserTier:
 
         # outcome == ok — run trafilatura over the rendered HTML.
         markdown = await asyncio.to_thread(_to_markdown, page.html, page.final_url)
-        verdict = Verdict.ok if markdown else Verdict.length_floor
+        # Tier-truthfulness: a rendered UPSTREAM error page (4xx/5xx) with only a
+        # thin body is a real error, not content — surface the status so a
+        # browser-confirmed 404 is an observation in the decision log, not a
+        # buried diagnostic. Substantial content on an error status is treated as
+        # soft-404-defeated (real content behind a scraper-shedding status) and
+        # returned as `ok`. The floor is the same thin/real discriminator the gate uses.
+        if page.status_code >= 400 and len(markdown) < LENGTH_FLOOR:
+            verdict = _upstream_error_verdict(page.status_code)
+        else:
+            verdict = Verdict.ok if markdown else Verdict.length_floor
         return TierResult(
             body=page.html.encode("utf-8"),
             content_type="text/html",

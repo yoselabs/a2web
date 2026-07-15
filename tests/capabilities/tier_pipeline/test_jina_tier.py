@@ -54,6 +54,57 @@ async def test_final_url_is_target_not_jina_wrapper(monkeypatch: pytest.MonkeyPa
     assert "r.jina.ai" not in result.final_url
 
 
+def _mock_jina(monkeypatch: pytest.MonkeyPatch, *, text: str, status: int = 200) -> None:
+    transport = httpx.MockTransport(lambda req: httpx.Response(status, text=text))
+    real_cls = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+
+
+# --- Reader-wrapper unwrap: jina 200 masking an upstream error (moved from the gate) ---
+
+
+@pytest.mark.asyncio
+async def test_wrapped_404_surfaces_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A jina 200 whose body is an upstream-404 stub → tier reports not_found/404,
+    does NOT win the loop (no pre_rendered)."""
+    body = "Title: x\n\nURL Source: https://x.com/gone\n\nWarning: Target URL returned error 404: Not Found\n\nMarkdown Content:\n# x\n"
+    _mock_jina(monkeypatch, text=body)
+    result = await JinaTier().fetch("https://x.com/gone", state=_state())
+    assert result.verdict == Verdict.not_found
+    assert result.status_code == 404
+    assert result.pre_rendered is None
+
+
+@pytest.mark.asyncio
+async def test_wrapped_403_maps_to_paywall(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Wrapped 401/403 → paywall, preserving the archive-on-paywall routing."""
+    body = "Title: nyt\n\nWarning: Target URL returned error 403: Forbidden\n\nMarkdown Content:\n# nyt\n"
+    _mock_jina(monkeypatch, text=body)
+    result = await JinaTier().fetch("https://nytimes.com/x", state=_state())
+    assert result.verdict == Verdict.paywall
+    assert result.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_wrapped_401_maps_to_paywall(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = "Title: wsj\n\nWarning: Target URL returned error 401: Unauthorized\n\nMarkdown Content:\n# wsj\n"
+    _mock_jina(monkeypatch, text=body)
+    result = await JinaTier().fetch("https://wsj.com/x", state=_state())
+    assert result.verdict == Verdict.paywall
+    assert result.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_long_body_quoting_error_string_is_not_unwrapped(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A long article that merely QUOTES the stub string is not misread as a
+    wrapper (the body-length guard)."""
+    body = "Markdown Content:\n" + ("Lorem ipsum dolor sit amet. " * 200) + "\nThe paper cited `Target URL returned error 403`.\n"
+    _mock_jina(monkeypatch, text=body)
+    result = await JinaTier().fetch("https://blog.example/post", state=_state())
+    assert result.verdict == Verdict.ok
+    assert result.pre_rendered is not None
+
+
 @pytest.mark.asyncio
 async def test_authorized_tier_sends_bearer(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, dict[str, str]] = {}
