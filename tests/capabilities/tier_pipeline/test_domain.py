@@ -40,6 +40,7 @@ def test_strip_reader_prefix_unwraps_target(wrapped: str, target: str) -> None:
 def test_strip_reader_prefix_leaves_non_wrapped_untouched(url: str) -> None:
     assert strip_reader_prefix(url) is None
 
+
 # --------------------------------------------------------------------- #
 # Captcha-host pre-routing
 # --------------------------------------------------------------------- #

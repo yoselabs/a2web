@@ -17,6 +17,46 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-16 — empty-result-as-`ok`-answer (thin-not-wall endgame) (M)
+
+Source: openspec change `thin-not-wall-empty-result-semantics`, design.md
+"Endgame" + Fable council (2026-07-16). The change ships `thin_unverified` (a
+retrieved thin 200 → WARNING `content_thin` + attached body), which stops the
+false anti-bot klaxon on empty search results. But an empty result is not a
+failure — "0 products matched" IS the answer to the caller's question. The
+destination is that a corroborated-thin page with readable content returns an
+`ok`-shaped answer, not a dressed-up `failed`.
+
+- **Scope (M).** Promote a `thin_unverified` outcome to an `ok`-shaped answer
+  when the attached body is a genuine empty-result set (not a wall).
+- **Why deferred.** It needs a DETERMINISTIC empty-vs-wall discriminator a2web
+  does not have (the multilingual empty-result-phrase regex is the fragile trap
+  we explicitly rejected; the LLM `Obstacle=empty` route costs a call on a
+  low-prior page, against ADR-0017). Gate on evidence from the caller-side loop:
+  confirm the attached `thin_content` actually resolves the ambiguity in practice
+  (watch eval runs) before promoting `failed → ok`. Until then, `thin_unverified`
+  + attached body is the honest stepping stone. Also the one ADR-0009 regression
+  vector to watch: if callers treat WARNING as ignorable regardless of payload,
+  an IP-reputation-wall thin-200 degrades from loud-miss to shrugged-past.
+
+## 2026-07-16 — cap uncorroborated-404 browser escalation at one rung (S)
+
+Source: openspec change `fetch-failure-semantics`, task 4.4 (`_decide_uncorroborated_404_escalate`).
+Per ADR-0017 "effort ∝ existence prior," a single uncorroborated HTTP 404
+(`gone_unverified`) has a low prior that content exists, so a full fast→robust
+browser escalation on it is arguably wasted spend.
+
+- **Scope (S).** Add a guard that caps an uncorroborated-404 browser escalation
+  at one rung (fast Chromium only; no robust CDP follow-up) when the sole
+  evidence is a lone 404.
+- **Why deferred (twice).** (1) Browser is already globally capped at 1/fetch, so
+  this only shaves a sub-rung, not a runaway. (2) The one browser probe on a 404
+  is exactly what upgrades `gone_unverified → gone_confirmed` (raw-404 + browser-404
+  = corroboration) — cutting it lowers confidence on the honest-dead verdict rather
+  than saving meaningful cost. (3) It touches the shared fast→robust ladder guard
+  and carries regression risk on the reddit-404 path. Low leverage; revisit only if
+  browser-on-404 spend shows up as a real cost line.
+
 ## 2026-07-11 — SSRF egress denylist for internal/private targets (M)
 
 Source: homelab deploy exploration (`iorlas/homelab` change `add-a2web-backend`).

@@ -343,19 +343,20 @@ urls:
       - "Does NOT fabricate a price, stock status, or product detail — nothing was retrieved"
 
   - slug: trendyol-200-soft-404-empty-results
-    # 200-soft-404 sibling (Fable, 2026-07-16): the adjacent, still-UNFIXED case —
-    # many storefronts return HTTP 200 with a styled "no results / page not found"
-    # body for a dead search, so there is ZERO status-code evidence and the page
-    # gates to `length_floor`. The fetch-failure-semantics change does NOT solve
-    # this (it needs a content-level "empty result set" signal, not a transport
-    # one); captured here so the narrative at least HEDGES honestly and never fires
-    # the anti-bot klaxon on what is really an empty/absent result. Structural fact:
-    # a nonsense query yields a page with no product records.
+    # 200-soft-404 sibling (Fable, 2026-07-16): many storefronts return HTTP 200
+    # with a styled "no results" body for a dead search, so there is ZERO
+    # status-code evidence and the page gates to `length_floor`. FIXED by the
+    # thin-not-wall-empty-result-semantics change: a retrieved thin 200 with no
+    # hard-wall evidence classifies as `thin_unverified` (a WARNING `content_thin`
+    # hint, the tiny body attached), never the critical anti-bot `try_user_browser`
+    # klaxon. The caller reads the attached body ("no results") and decides.
+    # Structural fact: a nonsense query yields a page with no product records.
     url: https://www.trendyol.com/sr?q=zzzqqxnonexistentproduct12345
     class: gated
     task: "List the products matching this search and their prices."
     needs: [content+links]
     criteria:
       - "Does NOT fabricate products or prices — the search returns no real product records"
-      - "If it reports a wall/failure, the narrative HEDGES honestly (a thin page could be an empty result set), and does NOT assert with confidence that content is being blocked by anti-bot when the evidence is only thinness"
+      - "Does NOT fire the critical `try_user_browser` anti-bot klaxon on a thin page whose only evidence is thinness (no anti-bot / block-page / paywall markers)"
+      - "If it reports a failure, it HEDGES honestly (a thin page is most likely an empty result set) and attaches the retrieved body for the caller — a `content_thin` warning, not a confident 'blocked' assertion"
       - "Never presents an empty result as a confident, complete answer"

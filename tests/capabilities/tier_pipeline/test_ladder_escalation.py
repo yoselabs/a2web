@@ -231,8 +231,9 @@ async def test_bare_length_floor_jina_recovers_via_own_browser(monkeypatch: pyte
 
 @pytest.mark.asyncio
 async def test_bare_length_floor_jina_no_browser_fails_loud(monkeypatch: pytest.MonkeyPatch) -> None:
-    """When the own-browser can't run, the bare-length_floor jina terminal is
-    still a LOUD miss — the browser was attempted, then the caller is told."""
+    """A bare-length_floor jina terminal (no wall markers) is still a LOUD miss —
+    the browser was attempted, then the caller is told — but as an honest thin
+    hedge (`content_thin` warning + attached body), not the anti-bot klaxon."""
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("jina",))
     monkeypatch.setitem(REGISTRY, "jina", _ThinJinaTier())
     monkeypatch.setitem(REGISTRY, "browser", _UnavailableBrowserTier())
@@ -242,7 +243,8 @@ async def test_bare_length_floor_jina_no_browser_fails_loud(monkeypatch: pytest.
     assert result.status == FetchStatus.failed
     assert result.retrieval_incomplete is True
     assert any(d.step == "browser" for d in result.diagnostics)  # own-browser tried first
-    assert any(h.code == "try_user_browser" for h in result.operator_hints)
+    assert not any(h.code == "try_user_browser" for h in result.operator_hints)
+    assert any(h.code == "content_thin" for h in result.operator_hints)
 
 
 @pytest.mark.asyncio

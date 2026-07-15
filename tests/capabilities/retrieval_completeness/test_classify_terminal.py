@@ -69,3 +69,31 @@ def test_dns_and_content_type_mismatch_are_unreachable() -> None:
 def test_bare_transport_failure_is_wall() -> None:
     log = [_tier(Verdict.timeout)]
     assert classify_terminal(log, Verdict.timeout) is TerminalOutcome.wall
+
+
+def test_thin_200_with_clean_log_is_thin_unverified() -> None:
+    # A retrieved 200 that rendered thin with NO hard-wall evidence anywhere and
+    # no 404: an empty result set / minimal page — an honest hedge, not a wall.
+    log = [_tier(Verdict.ok, status_code=200), _gate(Verdict.length_floor)]
+    assert classify_terminal(log, Verdict.length_floor) is TerminalOutcome.thin_unverified
+
+
+def test_thin_downstream_of_hard_wall_stays_wall_whole_log_scan() -> None:
+    # Early Turnstile wall, then a browser regate that landed marker-less thin.
+    # The LAST gate is length_floor, but the whole-log scan finds the hard wall →
+    # wall. Keying on the last gate alone would launder a real wall.
+    log = [_gate(Verdict.anti_bot), _gate(Verdict.length_floor)]
+    assert classify_terminal(log, Verdict.length_floor) is TerminalOutcome.wall
+
+
+def test_thin_with_a_lone_404_prefers_gone_unverified() -> None:
+    # A 404 observation outranks bare thinness — the 404 path is more specific.
+    log = [_tier(Verdict.not_found, status_code=404), _gate(Verdict.length_floor)]
+    assert classify_terminal(log, Verdict.length_floor) is TerminalOutcome.gone_unverified
+
+
+def test_length_floor_no_gate_obs_is_not_thin() -> None:
+    # Defensive: length_floor resolved but the gate never recorded an observation
+    # (last_gate is None) → falls to the default wall, not thin_unverified.
+    log = [_tier(Verdict.length_floor)]
+    assert classify_terminal(log, Verdict.length_floor) is TerminalOutcome.wall

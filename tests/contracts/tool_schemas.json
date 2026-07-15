@@ -1411,6 +1411,18 @@
         "status": {
           "$ref": "#/$defs/FetchStatus"
         },
+        "thin_content": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thin Content"
+        },
         "tier": {
           "title": "Tier",
           "type": "string"

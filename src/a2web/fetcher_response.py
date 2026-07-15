@@ -361,6 +361,13 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # it is a confident fact, so it is deliberately excluded here.
     if status == FetchStatus.failed and any(h.code == "content_not_found" and h.severity == "warning" for h in fc.operator_hints):
         retrieval_incomplete = True
+    # A thin-but-retrieved 200 (`content_thin` — an empty result set or minimal
+    # page with no wall evidence) is a retrieval miss for completeness purposes:
+    # we did not get a substantive body, so the caller must not read it as a
+    # complete answer. The tiny retrieved body rides `thin_content` for the caller
+    # to judge (never `critical` — this is not a wall).
+    if status == FetchStatus.failed and any(h.code == "content_thin" for h in fc.operator_hints):
+        retrieval_incomplete = True
     gate_outcome = fc.last_gate_outcome()
     gate_subsystem = gate_outcome.subsystem if gate_outcome else None
 
@@ -565,6 +572,13 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
             ),
         )
 
+    # thin_unverified attach (thin-not-wall / ADR-0015): a retrieved thin 200 with
+    # no wall evidence carries a `content_thin` hint. Hand the tiny retrieved body
+    # to the blind caller so it can resolve empty-vs-wall itself, regardless of
+    # `include_content`. `fr.content_md` is already the (wrapped) sub-floor body;
+    # wire-only, never cached.
+    thin_content = fr.content_md if any(h.code == "content_thin" for h in op_hints) else None
+
     return AskResponse(
         url=fr.url,
         status=fr.status,
@@ -584,6 +598,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         extraction=_debug_extraction(fr.extraction, debug=debug),
         content_md=fr.content_md if include_content else "",
         headings=list(fr.headings) if include_content else [],
+        thin_content=thin_content,
         narrative="" if is_ok else fr.narrative,
         diagnostics_summary="" if is_ok else fr.diagnostics_summary,
         started_at=fr.started_at if debug else None,

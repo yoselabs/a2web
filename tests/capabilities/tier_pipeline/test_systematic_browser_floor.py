@@ -63,24 +63,31 @@ def _verdict_tier(name: str, *, verdict: Verdict, status_code: int) -> object:
 
 
 @pytest.mark.asyncio
-async def test_length_floor_prescribes_browser(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A thin page that ends `length_floor` — on NO prior wall whitelist — now
-    carries the loud floor: status=failed + retrieval_incomplete + try_user_browser."""
+async def test_bare_length_floor_is_thin_unverified_not_walled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A thin page that ends `length_floor` with NO wall evidence anywhere is an
+    honest thin miss (thin-not-wall), not the anti-bot klaxon: status=failed +
+    retrieval_incomplete + a WARNING `content_thin`, NEVER critical `try_user_browser`."""
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _thin_pre_rendered_tier("raw"))
 
     result = await fetch("https://thin.example/x", state=make_default_state(), debug=True)
 
     assert result.status == FetchStatus.failed
-    assert result.retrieval_incomplete is True
-    assert any(h.code == "try_user_browser" for h in result.operator_hints)
+    assert result.retrieval_incomplete is True  # still a loud miss, not silent
+    assert not any(h.code == "try_user_browser" for h in result.operator_hints)
+    hints = {h.code: h for h in result.operator_hints}
+    assert "content_thin" in hints and hints["content_thin"].severity == "warning"
 
 
 @pytest.mark.asyncio
-async def test_length_floor_after_403_prescribes_browser(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The g2 motivating case: raw 403 → a later tier returns a thin body the gate
-    calls `length_floor`. The floor keys on the FINAL state, so the miss is loud
-    even though the earlier 403 was discarded from the projection."""
+async def test_length_floor_after_bare_403_is_thin_unverified(monkeypatch: pytest.MonkeyPatch) -> None:
+    """raw 403 (bodyless, no wall MARKERS) → a later tier returns a thin body.
+
+    A bare status 403 is NOT reliable wall evidence — an empty result behind a
+    CDN produces the same raw-403-then-thin shape. So with no hard-wall gate
+    marker anywhere, this is `thin_unverified` (a loud thin miss with the body
+    attached), not the critical klaxon. The reliable wall signal is gate markers
+    (see `test_thin_downstream_of_wall_stays_walled`), not a status code."""
     monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw", "jina"))
     monkeypatch.setitem(REGISTRY, "raw", _verdict_tier("raw", verdict=Verdict.connection_error, status_code=403))
     monkeypatch.setitem(REGISTRY, "jina", _thin_pre_rendered_tier("jina"))
@@ -88,8 +95,9 @@ async def test_length_floor_after_403_prescribes_browser(monkeypatch: pytest.Mon
     result = await fetch("https://g2.example/categories/crm", state=make_default_state(), debug=True)
 
     assert result.status == FetchStatus.failed
-    assert result.retrieval_incomplete is True
-    assert any(h.code == "try_user_browser" for h in result.operator_hints)
+    assert result.retrieval_incomplete is True  # loud miss preserved
+    assert not any(h.code == "try_user_browser" for h in result.operator_hints)
+    assert any(h.code == "content_thin" for h in result.operator_hints)
 
 
 @pytest.mark.parametrize("verdict", [Verdict.proxy_unavailable, Verdict.other])

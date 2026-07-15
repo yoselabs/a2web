@@ -89,6 +89,14 @@ _BLOCK_PATTERNS = (
     re.compile(r"\bpx-captcha\b"),
     re.compile(r"\bYou've been blocked\b", re.IGNORECASE),
     re.compile(r"\bnetwork security\b", re.IGNORECASE),
+    # Reddit's rate-limit / block interstitial ("whoa there, pardner!"). A real
+    # wall with content behind it — catalogued so a thin rendered block body is
+    # `block_page_detected` (a hard wall, loud `try_user_browser`), NOT laundered
+    # into a bare `length_floor` that the thin-not-wall terminal would hedge as an
+    # empty result. Companion to thin-not-wall: strengthen wall detection so only
+    # genuinely evidence-free thinness downgrades.
+    re.compile(r"whoa there,? pardner", re.IGNORECASE),
+    re.compile(r"attempting to access a blocked page", re.IGNORECASE),
 )
 
 _ANUBIS_MARKER = re.compile(r"anubis", re.IGNORECASE)

@@ -74,6 +74,7 @@ from .models import (
     OperatorHint,
     Verdict,
     content_not_found_hint,
+    content_thin_hint,
     try_user_browser_hint,
 )
 from .packages.block_detector import LENGTH_FLOOR, looks_like_unrendered_spa
@@ -1842,6 +1843,9 @@ def _apply_terminal(fc: FetchContext) -> None:
       (a dead URL is not a wall — no browser command).
     - `gone_unverified` → the WARNING `content_not_found` with the soft-404 caveat
       + browser escape hatch.
+    - `thin_unverified` → the WARNING `content_thin` (a retrieved thin 200 with no
+      wall evidence — an empty result set or minimal page); the retrieved body is
+      attached to the envelope by the response builder. NEVER `try_user_browser`.
     - `operator_error` / `unreachable` → no hint here (paid_auth_error carries its
       own; dns/content_type_mismatch are honestly terminal).
     """
@@ -1860,6 +1864,9 @@ def _apply_terminal(fc: FetchContext) -> None:
     elif outcome is TerminalOutcome.gone_unverified:
         if not _has_hint(fc, "content_not_found"):
             fc.operator_hints.append(content_not_found_hint(fc.final_url, verified=False))
+    elif outcome is TerminalOutcome.thin_unverified:
+        if not _has_hint(fc, "content_thin"):
+            fc.operator_hints.append(content_thin_hint(fc.final_url))
 
 
 def _regate_after_escalation(fc: FetchContext) -> None:

@@ -196,6 +196,36 @@ def content_not_found_hint(url: str, *, verified: bool) -> OperatorHint:
     )
 
 
+def content_thin_hint(url: str) -> OperatorHint:
+    """The thin-but-retrieved signal for a corroborated-thin HTTP 200 — honest, WARNING.
+
+    a2web fetched an HTTP 200 that rendered under the extraction length floor even
+    after a real headless browser rendered it, and found NO hard-wall evidence.
+    That profile is most often an empty result set or a genuinely minimal page —
+    NOT an anti-bot wall, so it MUST NOT carry the critical `try_user_browser`
+    klaxon (that would cry wolf on every empty storefront search). The retrieved
+    body is tiny and rides the envelope (`thin_content`); the caller can read it
+    and decide. A small residual chance remains it is an IP-reputation wall the
+    same-egress browser could not rule out — hence the browser escape hatch, at
+    `warning`, never `critical`.
+    """
+    return OperatorHint(
+        code="content_thin",
+        message=(
+            f"This URL was retrieved (HTTP 200) but rendered thin ({url}) — even a headless browser "
+            "returned very little content. This is most likely an empty result set (e.g. a search "
+            "with no matches) or a minimal page, NOT an anti-bot wall. The retrieved body is attached "
+            "as `thin_content` — read it to decide. Small residual chance an IP-keyed wall is masking "
+            "content, which your own browser might bypass."
+        ),
+        fix=(
+            "Read the attached `thin_content` — it is often the answer (e.g. 'no results'). "
+            "If you need more and suspect a wall, open the URL in your own real-browser tool."
+        ),
+        severity="warning",
+    )
+
+
 def comments_partial_hint(*, loaded: int, total: int) -> OperatorHint:
     """Honest partial-comments signal (reddit-via-zyte content-expectations).
 
@@ -761,6 +791,14 @@ class AskResponse(BaseModel):
 
     content_md: str = ""
     headings: list[Heading] = Field(default_factory=list)
+
+    # thin-but-retrieved index (thin-not-wall / ADR-0015): the retrieved sub-floor
+    # body of a `thin_unverified` failure (an empty result set or minimal page).
+    # Populated ONLY on that outcome and INDEPENDENT of `include_content` — the
+    # body is tiny and load-bearing, so the blind caller can resolve
+    # empty-vs-wall itself. Absent (None → dropped by `_prune_wire`) otherwise.
+    # Wire-only; a thin/block page never enters the cache.
+    thin_content: str | None = None
 
     narrative: str = ""
     diagnostics_summary: str = ""
