@@ -69,10 +69,30 @@ The outcomes that do NOT prescribe the browser are:
 - **WHEN** a fetch ends on a corroborated HTTP 404 (outcome `gone_confirmed`)
 - **THEN** the response is `status: failed` with a `content_not_found` info hint, NO `try_user_browser`, and NOT `retrieval_incomplete`
 
-#### Scenario: A thin terminal downstream of a wall still prescribes the browser
+#### Scenario: A thin terminal downstream of a wall prescribes the browser
 
 - **WHEN** a fetch is refused by an upstream tier (e.g. a 403) and a later tier returns a thin body the gate resolves to `length_floor`, with no gone/unreachable evidence (outcome `wall`)
 - **THEN** the response carries `retrieval_incomplete: true` and the critical `try_user_browser` hint
+
+#### Scenario: Proxy exhaustion prescribes the browser
+
+- **WHEN** a fetch ends `failed` on `proxy_unavailable` with no gone/unreachable evidence (outcome `wall`)
+- **THEN** the response carries `retrieval_incomplete: true` and the `try_user_browser` hint (the caller's own browser bypasses a2web's proxy entirely)
+
+#### Scenario: A genuinely-gone URL is not dressed as a wall
+
+- **WHEN** a fetch ends on `dns_error` (outcome `unreachable`) or an authoritative `not_found` (outcome `gone_confirmed`)
+- **THEN** the response is `status: failed` but carries NO `try_user_browser` hint and is NOT `retrieval_incomplete` — it honestly reports the domain/resource as gone, not "behind a wall"
+
+#### Scenario: A retrieved non-HTML resource is not a wall
+
+- **WHEN** a fetch ends on `content_type_mismatch` (outcome `unreachable` — a non-HTML resource was retrieved)
+- **THEN** the response does NOT carry the `try_user_browser` hint (a browser will not extract it better)
+
+#### Scenario: A bad paid key keeps its own hint
+
+- **WHEN** a fetch ends on `paid_auth_error` (outcome `operator_error`)
+- **THEN** the response carries the dedicated `paid_auth_error` hint (NOT `try_user_browser`) and is `retrieval_incomplete: true`
 
 #### Scenario: The hint is emitted once, at a single chokepoint
 
@@ -83,7 +103,7 @@ The outcomes that do NOT prescribe the browser are:
 
 On a terminal `wall` outcome, the response SHALL include `OperatorHint(code="try_user_browser")` at `severity: critical` with imperative, capability-generic wording. The hint SHALL NOT name a specific browser product, and SHALL NOT be emitted on any `not_found` (`gone_confirmed` / `gone_unverified`), `unreachable`, or `operator_error` outcome.
 
-#### Scenario: Critical hint on wall only
+#### Scenario: Critical hint on wall
 
 - **WHEN** a fetch terminates on `anti_bot` (outcome `wall`)
 - **THEN** a `try_user_browser` critical hint is present

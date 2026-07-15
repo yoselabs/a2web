@@ -3,31 +3,6 @@
 ## Purpose
 TBD - created by archiving change pr7c-browser-tier. Update Purpose after archive.
 ## Requirements
-### Requirement: Jina stub recognized as paywall
-
-The quality gate SHALL recognize jina-tier responses carrying upstream-error stubs as `Verdict.paywall` (not `Verdict.length_floor`), so the existing archive escalator can fire. The rule SHALL match responses where ALL of the following hold:
-
-1. The fetch tier is `jina` (recorded on the gate input, not inferred from the body).
-2. The body length is below 2,048 characters.
-3. The body matches the regex `Target URL returned error 40[13]` (covers both `401 Unauthorized` and `403 Forbidden` — the two jina-stub status codes that indicate paywall / auth).
-
-When the rule matches, the gate SHALL set `verdict = Verdict.paywall` and `subsystem = "jina_stub"`. `suggested_tier` SHALL be left `None` — the orchestrator's existing archive-on-paywall playbook handles the next step.
-
-#### Scenario: NYT-shape jina stub triggers paywall verdict
-
-- **WHEN** the gate evaluates a jina-tier response whose body is `Warning: Target URL returned error 403: Forbidden\n...` and total length is ~500 chars
-- **THEN** `verdict == Verdict.paywall`, `subsystem == "jina_stub"`
-
-#### Scenario: 401 Unauthorized stub also triggers paywall
-
-- **WHEN** the gate sees a jina response with `Target URL returned error 401: Unauthorized`
-- **THEN** the same paywall verdict fires
-
-#### Scenario: Long jina response is not misclassified
-
-- **WHEN** a jina response succeeds normally (10KB+ markdown body that happens to contain the substring `error 403` in quoted text)
-- **THEN** the rule does not fire (body length floor enforces this); verdict follows the normal classifier path
-
 ### Requirement: Thin browser response on JS-heavy host downgrades to length_floor
 
 When the fetch tier is `browser` AND the response is HTTP 200 AND the rendered body is <1,024 chars AND the host matches the `JS_HEAVY_HOSTS` set, the gate SHALL emit `verdict = Verdict.length_floor` so the orchestrator continues escalation (typically to archive). The `JS_HEAVY_HOSTS` seed set lives in `src/a2web/packages/quality_gate/` (or wherever the gate lives) and initially contains: `x.com`, `twitter.com`, `instagram.com`, `tiktok.com`, `trendyol.com`, `aliexpress.com`. The set SHALL be exposed for extension via a settings-backed override (`A2WEB_JS_HEAVY_HOSTS` env, comma-separated).
@@ -299,7 +274,6 @@ This exemption SHALL NOT extend to `anubis`, `alibaba_punish`, `cf_iuam`, `searc
 - **WHEN** the gate evaluates `anubis`, `alibaba_punish`, `cf_iuam`, or generic `block_page_detected` markers, with or without `structured_answer`
 - **THEN** verdict and escalation behavior are identical to before this change — the new exemption applies only to `akamai_bmp` and `turnstile`
 
-
 ### Requirement: Near-empty raw HTML is detected as a blank_page and escalated
 
 The content gate SHALL detect a response whose **raw body carries near-zero visible text** as a distinct `BlockVerdict.blank_page`, separate from the extracted-thin `length_floor` verdict. Visible text SHALL be computed from `raw_html` by stripping tags and collapsing whitespace; the branch SHALL fire when that visible text length is below a small `BLANK_HTML_THRESHOLD` (near-zero — sized so a bare/empty document matches but a short-but-present stub page, e.g. a ~480-char "JavaScript is disabled" notice, does not) AND the extracted `content_md` is below `LENGTH_FLOOR`.
@@ -329,3 +303,4 @@ This detection keys on the **raw HTML** being empty, NOT on a fully-rendered pag
 
 - **WHEN** the gate evaluates a near-empty body that ALSO matches a JS-shell marker (`js_required`) or an anti-bot fingerprint
 - **THEN** the specific marker branch wins (`length_floor`+`js_required` or the `anti_bot` fingerprint), NOT `blank_page`
+
