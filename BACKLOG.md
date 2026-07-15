@@ -17,27 +17,25 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
-## 2026-07-16 — empty-result-as-`ok`-answer (thin-not-wall endgame) (M)
+## 2026-07-16 — empty-result-as-`ok`-answer (thin-not-wall endgame) — SHIPPED
 
-Source: openspec change `thin-not-wall-empty-result-semantics`, design.md
-"Endgame" + Fable council (2026-07-16). The change ships `thin_unverified` (a
-retrieved thin 200 → WARNING `content_thin` + attached body), which stops the
-false anti-bot klaxon on empty search results. But an empty result is not a
-failure — "0 products matched" IS the answer to the caller's question. The
-destination is that a corroborated-thin page with readable content returns an
-`ok`-shaped answer, not a dressed-up `failed`.
+Shipped by openspec change `empty-vs-wall-discrimination` (2026-07-16). A
+corroborated empty is now promoted to an `ok` "no results" answer via the pure
+`is_confirmed_empty` conjunction: an empty-result marker + an independent BROWSER
+render that also read empty (the browser is the second retrieval a thin 200 gets —
+it wins the tier loop so jina never runs) + no 4xx/challenge/subresource-block/
+hard-wall evidence anywhere + a search-shaped URL. The walled-API fake-empty is
+caught by the new browser `subresource_blocks` observation (a blocked data XHR →
+`wall`, the case no text reader can catch). Anything short of the conjunction stays
+a loud thin miss (`empty_unverified` / `thin_unverified`, body attached). The
+promoted empty is wire-only and never cached.
 
-- **Scope (M).** Promote a `thin_unverified` outcome to an `ok`-shaped answer
-  when the attached body is a genuine empty-result set (not a wall).
-- **Why deferred.** It needs a DETERMINISTIC empty-vs-wall discriminator a2web
-  does not have (the multilingual empty-result-phrase regex is the fragile trap
-  we explicitly rejected; the LLM `Obstacle=empty` route costs a call on a
-  low-prior page, against ADR-0017). Gate on evidence from the caller-side loop:
-  confirm the attached `thin_content` actually resolves the ambiguity in practice
-  (watch eval runs) before promoting `failed → ok`. Until then, `thin_unverified`
-  + attached body is the honest stepping stone. Also the one ADR-0009 regression
-  vector to watch: if callers treat WARNING as ignorable regardless of payload,
-  an IP-reputation-wall thin-200 degrades from loud-miss to shrugged-past.
+- **Residual (watch, do not chase).** An IP-reputation wall that fake-empties our
+  HTTP AND browser egress identically is not ruled out (foreign-egress jina would,
+  but the pipeline can't run it on a thin 200). Narrow; the attached `thin_content`
+  is the mitigation. Also: consent/GDPR interstitials render thin with benign text
+  matching neither catalogue and stay `thin_unverified` (correct — content behind
+  consent). Watch bench runs for either becoming a real cost/accuracy line.
 
 ## 2026-07-16 — cap uncorroborated-404 browser escalation at one rung (S)
 

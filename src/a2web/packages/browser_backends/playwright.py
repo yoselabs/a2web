@@ -90,6 +90,22 @@ def _cookie_to_playwright(cookie: BackendCookie) -> dict[str, Any]:
     return out
 
 
+_CHALLENGE_STATUSES = (401, 403, 429)
+
+
+def _is_challenged_subresource(response: Any) -> bool:
+    """True if a page subresource (XHR/fetch) returned a bot-challenge status.
+
+    The walled-API fake-empty detector: a shell can 200 and render an authentic
+    "0 results" while its data API is 403'd. Best-effort — any driver quirk while
+    reading the response returns False so the render can never be failed by it.
+    """
+    try:
+        return response.request.resource_type in ("xhr", "fetch") and response.status in _CHALLENGE_STATUSES
+    except Exception:  # best-effort telemetry — never fail the render on a driver quirk
+        return False
+
+
 def _summarize_exc(exc: BaseException) -> str:
     """One-line `Type: first-message-line` summary — never a multi-line dump.
 
@@ -278,8 +294,20 @@ class PlaywrightBackend:
             return RenderedPage(outcome=RenderOutcome.unavailable, final_url=url, detail=f"browser launch failed: {exc}")
 
         wall_start = time.perf_counter()
+        # Count page subresources (XHR/fetch) challenged during render — the
+        # walled-API fake-empty signal. Best-effort: the listener swallows every
+        # error (via the module-level predicate) so a driver quirk can never fail
+        # the render.
+        blocked: list[int] = []
+
+        def _on_response(response: Any) -> None:
+            if _is_challenged_subresource(response):
+                blocked.append(1)
+
         try:
             async with self.acquire(url) as page:
+                with suppress(Exception):
+                    page.on("response", _on_response)
                 if cookies:
                     # Seed cookies on the BrowserContext BEFORE navigation so
                     # the request goes out logged-in. add_cookies upserts by
@@ -295,7 +323,13 @@ class PlaywrightBackend:
                     remaining = max(1.0, budget_s - (time.perf_counter() - wall_start))
                     html = await asyncio.wait_for(page.content(), timeout=remaining)
                 except TimeoutError:
-                    return RenderedPage(outcome=RenderOutcome.timeout, final_url=url, js_executed=True, wall_ms=_ms(wall_start))
+                    return RenderedPage(
+                        outcome=RenderOutcome.timeout,
+                        final_url=url,
+                        js_executed=True,
+                        wall_ms=_ms(wall_start),
+                        subresource_blocks=len(blocked),
+                    )
                 # Scroll-on-thin: sub-floor first snapshot on a JS-heavy host →
                 # scroll + 2s networkidle, keep the larger snapshot (Trendyol).
                 if len(html) < _THIN_FLOOR and js_heavy:
@@ -310,6 +344,7 @@ class PlaywrightBackend:
                 js_executed=True,
                 wall_ms=_ms(wall_start),
                 detail=_summarize_exc(exc),
+                subresource_blocks=len(blocked),
             )
 
         return RenderedPage(
@@ -320,6 +355,7 @@ class PlaywrightBackend:
             js_executed=True,
             wall_ms=_ms(wall_start),
             bytes_transferred=len(html),
+            subresource_blocks=len(blocked),
         )
 
     async def _ensure(self) -> None:

@@ -97,7 +97,42 @@ _BLOCK_PATTERNS = (
     # genuinely evidence-free thinness downgrades.
     re.compile(r"whoa there,? pardner", re.IGNORECASE),
     re.compile(r"attempting to access a blocked page", re.IGNORECASE),
+    # Bounded bespoke walls that otherwise fall through to a bare `length_floor`
+    # and would be hedged as thin/empty. The wall space converges on a small set
+    # of mitigation vendors (unlike the open-ended empty-result phrasing space),
+    # so cataloguing these is maintainable and high-precision:
+    #   - PerimeterX / HUMAN "Pardon the interruption" interstitial;
+    #   - Incapsula/Imperva "Request unsuccessful. Incapsula incident ID" block.
+    re.compile(r"pardon the interruption", re.IGNORECASE),
+    re.compile(r"Request unsuccessful\.\s*Incapsula", re.IGNORECASE),
 )
+
+# Empty-result phrases — a CONSERVATIVE, high-precision multilingual set. This is
+# a HINT, never an authority: a match only annotates a bare `length_floor` with
+# `subsystem="empty_result"`, which (a) sharpens the terminal wording to
+# `empty_unverified` and (b) is ONE necessary term in the promotion conjunction
+# (`is_confirmed_empty`). It NEVER promotes to `ok` alone and NEVER suppresses a
+# wall verdict (the branch runs AFTER every wall/JS-shell/blank branch). The empty
+# space does not converge (millions of sites, every language), so this is NOT
+# grown into a wall-style authority — the conjunction is what makes it safe.
+_EMPTY_RESULT_PATTERNS = (
+    re.compile(r"\bno results?\b", re.IGNORECASE),
+    re.compile(r"\bno matches?\b", re.IGNORECASE),
+    re.compile(r"\b0 results?\b", re.IGNORECASE),
+    re.compile(r"\bno products?\s+(found|matched|available)\b", re.IGNORECASE),
+    re.compile(r"\bnothing found\b", re.IGNORECASE),
+    re.compile(r"\bdid not match any\b", re.IGNORECASE),
+    re.compile(r"\byour search\b.{0,60}\b(returned no|found no|did not|matched no)\b", re.IGNORECASE | re.DOTALL),
+    re.compile("bulunamadı", re.IGNORECASE),  # noqa: RUF001 — Turkish "was not found" (dotless-i), covers "sonuc bulunamad..."
+)
+
+
+def _matches_empty_result(content_md: str, raw_html: str) -> bool:
+    """True when the visible body reads as an empty result set. Scans the extracted
+    `content_md` first (the text the agent would read), then `raw_html` as a
+    fallback for phrases trafilatura may have stripped."""
+    return any(p.search(content_md) or p.search(raw_html) for p in _EMPTY_RESULT_PATTERNS)
+
 
 _ANUBIS_MARKER = re.compile(r"anubis", re.IGNORECASE)
 _TURNSTILE_MARKER = re.compile(r"cf-turnstile|turnstile-callback|challenges\.cloudflare\.com/turnstile", re.IGNORECASE)
@@ -283,6 +318,12 @@ def evaluate(
         )
 
     if len(content_md) < LENGTH_FLOOR:
+        # Empty-result annotation — LAST, after every wall/JS-shell/blank branch, so
+        # a walled body that merely contains "no results" text keeps its wall
+        # verdict. The marker only tags the bare fallthrough; it carries no
+        # escalation and no `ok` promotion (that is the orchestrator's conjunction).
+        if _matches_empty_result(content_md, raw_html):
+            return BlockResult(BlockVerdict.length_floor, subsystem="empty_result")
         return BlockResult(BlockVerdict.length_floor)
 
     return BlockResult(BlockVerdict.ok)

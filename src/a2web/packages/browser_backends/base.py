@@ -63,6 +63,12 @@ class RenderedPage:
     wall_ms: int = 0
     bytes_transferred: int = 0
     detail: str = ""
+    # Count of page subresources (XHR/fetch) that returned a challenge status
+    # (401/403/429) during render — the walled-API fake-empty signal. The shell
+    # can 200 and render an authentic "0 results" while its data API is blocked;
+    # this non-text evidence is the only thing that separates that from a true
+    # empty. Domain-free (a plain int); the tier maps it to Verdict/hint context.
+    subresource_blocks: int = 0
 
 
 @runtime_checkable

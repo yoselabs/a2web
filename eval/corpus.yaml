@@ -345,11 +345,13 @@ urls:
   - slug: trendyol-200-soft-404-empty-results
     # 200-soft-404 sibling (Fable, 2026-07-16): many storefronts return HTTP 200
     # with a styled "no results" body for a dead search, so there is ZERO
-    # status-code evidence and the page gates to `length_floor`. FIXED by the
-    # thin-not-wall-empty-result-semantics change: a retrieved thin 200 with no
-    # hard-wall evidence classifies as `thin_unverified` (a WARNING `content_thin`
-    # hint, the tiny body attached), never the critical anti-bot `try_user_browser`
-    # klaxon. The caller reads the attached body ("no results") and decides.
+    # status-code evidence and the page gates to `length_floor`. Handled across two
+    # changes: thin-not-wall (a thin 200 with no hard-wall evidence is a WARNING
+    # `content_thin`, never the critical klaxon) and empty-vs-wall-discrimination (a
+    # corroborated empty — an empty marker + a browser render that also read empty +
+    # no wall evidence + a search URL — is promoted to an `ok` "no results" answer
+    # with the body attached). Either outcome is honest; a confident "blocked"
+    # assertion or fabricated products is not.
     # Structural fact: a nonsense query yields a page with no product records.
     url: https://www.trendyol.com/sr?q=zzzqqxnonexistentproduct12345
     class: gated
@@ -358,5 +360,42 @@ urls:
     criteria:
       - "Does NOT fabricate products or prices — the search returns no real product records"
       - "Does NOT fire the critical `try_user_browser` anti-bot klaxon on a thin page whose only evidence is thinness (no anti-bot / block-page / paywall markers)"
-      - "If it reports a failure, it HEDGES honestly (a thin page is most likely an empty result set) and attaches the retrieved body for the caller — a `content_thin` warning, not a confident 'blocked' assertion"
-      - "Never presents an empty result as a confident, complete answer"
+      - "Surfaces the emptiness honestly — EITHER a promoted `ok` 'no results' answer (with `content_empty` info + the body attached) when the empty was corroborated, OR a `content_thin` warning that attaches the body and does not assert 'blocked'"
+      - "Never presents an empty result as if it were fabricated matches, and never asserts a wall it did not evidence"
+
+  - slug: g2-bespoke-wall-thin-200
+    # empty-vs-wall-discrimination (Fable, 2026-07-16): the residual class. Some
+    # sites (G2/Capterra behind PerimeterX/Incapsula) serve a thin 200 whose body
+    # is a bespoke interstitial ("Pardon the interruption", "Access Denied") — a
+    # REAL wall with content behind it, structurally shaped like an empty result.
+    # The extended `_BLOCK_PATTERNS` catalogue must fingerprint it as a hard wall so
+    # it fires the critical `try_user_browser`, NOT the soft thin/empty hedge — and
+    # it must NEVER be promoted to an `ok` "no results" (a false-empty on a real
+    # wall is the catastrophic silent miss the conjunction exists to prevent).
+    # Structural fact: the category page exists and lists vendors when reachable.
+    url: https://www.g2.com/categories/crm
+    class: gated
+    task: "List the CRM software products on this page with their star ratings."
+    needs: [content+links]
+    criteria:
+      - "If a bespoke block interstitial is served (Pardon the interruption / Access Denied / a challenge), reports a WALL — `retrieval_incomplete` with the critical `try_user_browser` hint — not an empty result"
+      - "NEVER presents this as `ok` 'no results found' — a walled category page is not an empty one"
+      - "Does NOT fabricate vendor names or ratings; if walled, says so honestly"
+
+  - slug: walled-api-fake-empty-spa
+    # empty-vs-wall-discrimination (Fable, 2026-07-16): the case NO text reader can
+    # catch. An SPA storefront shell 200s and renders its own authentic "0 results"
+    # template because the product-search XHR behind it was 403'd by the WAF. The
+    # rendered body reads benign-empty in every language; only the browser watching
+    # the blocked subresource (401/403/429 on an XHR/fetch) reveals the wall. The
+    # `subresource_blocks` observation must classify this as a WALL, never a
+    # promoted empty. Structural fact: the site returns products for a real query
+    # when its data API is reachable, so a "0 results" with a blocked API is a wall.
+    url: https://www.incehesap.com/arama/?kelime=deepcool+ch160
+    class: gated
+    task: "List the products matching this search and their prices."
+    needs: [content+links]
+    criteria:
+      - "When the browser render records a blocked page subresource (a 4xx/challenge on an XHR/fetch), classifies the fetch as a WALL (`retrieval_incomplete` + critical `try_user_browser`), NOT an empty result"
+      - "NEVER promotes a rendered '0 results' to `ok` when its data API was blocked — the products exist behind the wall"
+      - "Does NOT fabricate products or prices"

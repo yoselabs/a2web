@@ -38,13 +38,18 @@ class TerminalOutcome(StrEnum):
       URL, but the soft-404 check could not complete, so a small residual chance
       remains that a bot-defense is masking real content.
     - `thin_unverified`: a retrieved HTTP 200 that rendered thin (`length_floor`)
-      with NO hard-wall evidence anywhere in the log — most likely an empty
-      result set or a minimal page. By this terminal the planner has already
-      escalated the thin body to a real browser (fast + robust) and it stayed
-      thin, so the "needs a browser" hypothesis was tested, not assumed. A small
-      residual chance remains it is an IP-reputation wall the same-egress browser
-      could not rule out. Honest WARNING with the retrieved body attached; NOT
-      the CRITICAL wall klaxon.
+      with NO hard-wall evidence AND no empty-result marker anywhere in the log —
+      genuinely AMBIGUOUS between an empty result set / minimal page and a bespoke
+      or IP-reputation wall a2web could not fingerprint. By this terminal the
+      planner has already escalated the thin body to a real browser (fast +
+      robust) and it stayed thin, so the "needs a browser" hypothesis was tested,
+      not assumed — but the empty-vs-wall discriminator is not reliably in the
+      body text, so a2web asserts neither. Honest WARNING (worded agnostically)
+      with the retrieved body attached; NOT the CRITICAL wall klaxon.
+    - `empty_unverified`: like `thin_unverified` but an empty-result marker DID
+      match (`subsystem="empty_result"`) — leans empty, yet the promotion
+      conjunction (`is_confirmed_empty`) did not hold, so it stays a WARNING with
+      the body attached, never promoted to `ok` on the marker alone.
     - `operator_error`: a keyed paid tier failed auth/billing — a2web
       misconfiguration, not a site wall (carries its own dedicated hint).
     - `unreachable`: `dns_error` (domain does not resolve) or
@@ -56,6 +61,7 @@ class TerminalOutcome(StrEnum):
     gone_confirmed = "gone_confirmed"
     gone_unverified = "gone_unverified"
     thin_unverified = "thin_unverified"
+    empty_unverified = "empty_unverified"
     operator_error = "operator_error"
     unreachable = "unreachable"
 
@@ -84,9 +90,25 @@ _HARD_WALL_GATE_VERDICTS = frozenset(
 )
 
 
-def _has_hard_wall_evidence(observations: Sequence[Observation]) -> bool:
+def has_hard_wall_evidence(observations: Sequence[Observation]) -> bool:
     """True if ANY gate observation in the whole log is a hard-wall verdict."""
     return any(o.kind is ObservationKind.gate_outcome and o.verdict in _HARD_WALL_GATE_VERDICTS for o in observations)
+
+
+def has_subresource_block_evidence(observations: Sequence[Observation]) -> bool:
+    """True if ANY observation recorded a challenged page subresource during render.
+
+    Positive `subresource_blocks` means a browser watched a page XHR/fetch get
+    challenged (401/403/429) — the walled-API fake-empty: the shell can 200 and
+    render an authentic "0 results" while its data API is blocked. Non-text,
+    adversary-hard evidence; the only signal that separates that from a true empty.
+    """
+    return any(o.subresource_blocks > 0 for o in observations)
+
+
+def has_empty_marker(observations: Sequence[Observation]) -> bool:
+    """True if the gate annotated a thin body as an empty result (`subsystem`)."""
+    return any(o.kind is ObservationKind.gate_outcome and o.subsystem == "empty_result" for o in observations)
 
 
 def _last_gate_verdict(observations: Sequence[Observation]) -> Verdict | None:
@@ -101,10 +123,11 @@ def classify_terminal(observations: Sequence[Observation], resolved_verdict: Ver
     """Map the decision log of a FAILED fetch to a `TerminalOutcome`.
 
     Pure and total. Called only when the fetch did not end `ok`. Precedence:
-    operator error → unreachable → authoritative gone → hard-wall-anywhere →
-    corroborated not-found (read from the observations so it survives a mis-won
-    resolved verdict) → lone not-found → thin_unverified (a retrieved thin 200
-    with no wall evidence) → wall (the default passable-obstacle floor).
+    operator error → unreachable → authoritative gone → subresource-block-anywhere
+    → hard-wall-anywhere → corroborated not-found (read from the observations so it
+    survives a mis-won resolved verdict) → lone not-found → empty_unverified (thin
+    with an empty-result marker) → thin_unverified (thin, no marker) → wall (the
+    default passable-obstacle floor).
     """
     if resolved_verdict is Verdict.paid_auth_error:
         return TerminalOutcome.operator_error
@@ -115,11 +138,18 @@ def classify_terminal(observations: Sequence[Observation], resolved_verdict: Ver
     if any(o.authoritative and o.verdict is Verdict.not_found for o in observations):
         return TerminalOutcome.gone_confirmed
 
+    # A browser that watched a page subresource get challenged (walled-API
+    # fake-empty) is POSITIVE, non-text wall evidence — it outranks a benign
+    # rendered "0 results" body AND a stray 404 shell (the data API is blocked, so
+    # content exists behind a wall). The only signal a text reader cannot fake.
+    if has_subresource_block_evidence(observations):
+        return TerminalOutcome.wall
+
     # POSITIVE wall evidence ANYWHERE in the log (whole-log scan) outranks a stray
     # uncorroborated not_found AND a marker-less thin regate downstream of it — a
     # browser that failed a challenge and landed on a bespoke thin stub is still a
     # wall. The page WAS reached and is walled; prescribe the browser.
-    if _has_hard_wall_evidence(observations):
+    if has_hard_wall_evidence(observations):
         return TerminalOutcome.wall
 
     # not_found is keyed on what the cascade OBSERVED, not the projection: >=2
@@ -132,15 +162,27 @@ def classify_terminal(observations: Sequence[Observation], resolved_verdict: Ver
         return TerminalOutcome.gone_unverified
 
     # A retrieved page that rendered thin (`length_floor` last gate) with no
-    # hard-wall evidence and no 404: an empty result set or a minimal page. The
-    # planner already escalated it to a real browser and it stayed thin, so this
-    # is corroborated thin, not an untested ambiguity — an honest WARNING, not the
-    # wall klaxon. Bodyless transport failures (timeout/connection_error/proxy)
-    # and `Verdict.other` have no thin body to hand over and fall to `wall`.
+    # hard-wall/subresource evidence and no 404: an empty result set or a minimal
+    # page. The planner already escalated it to a real browser and it stayed thin,
+    # so this is corroborated thin, not an untested ambiguity — an honest WARNING,
+    # not the wall klaxon. When an empty-result marker matched, lean empty
+    # (`empty_unverified`); otherwise stay agnostic (`thin_unverified`). Neither is
+    # promoted to `ok` here — that is the orchestrator's `is_confirmed_empty`
+    # conjunction, decided BEFORE this failure-only classifier. Bodyless transport
+    # failures (timeout/connection_error/proxy) and `Verdict.other` have no thin
+    # body to hand over and fall to `wall`.
     if _last_gate_verdict(observations) is Verdict.length_floor:
+        if has_empty_marker(observations):
+            return TerminalOutcome.empty_unverified
         return TerminalOutcome.thin_unverified
 
     return TerminalOutcome.wall
 
 
-__all__ = ["TerminalOutcome", "classify_terminal"]
+__all__ = [
+    "TerminalOutcome",
+    "classify_terminal",
+    "has_empty_marker",
+    "has_hard_wall_evidence",
+    "has_subresource_block_evidence",
+]

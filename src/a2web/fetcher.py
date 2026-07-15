@@ -43,6 +43,7 @@ from record_mine import Record, RecordSet, extract_records
 
 from . import content_expectations
 from .actions import Action, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
+from .actions.empty import is_confirmed_empty
 from .actions.terminal import TerminalOutcome, classify_terminal
 from .cache import CacheRow, SqliteResource
 from .cookie_jar import Cookie, CookieJarResource
@@ -73,6 +74,7 @@ from .models import (
     NextLinkKind,
     OperatorHint,
     Verdict,
+    content_empty_hint,
     content_not_found_hint,
     content_thin_hint,
     try_user_browser_hint,
@@ -369,6 +371,12 @@ class FetchContext:
     # structured data only. Suppresses the false `obstacle: empty`
     # retrieval-incomplete flag at the ask projection.
     structured_grounded: bool = False
+    # True when `_phase_empty_promotion` confirmed a corroborated empty result
+    # (`is_confirmed_empty`): the thin `length_floor` page is promoted to an `ok`
+    # "no results" answer. The verdict is NOT flipped (so cache_write still declines
+    # it — a promoted empty must never be cached); this flag is the single signal
+    # the response builders read to override status → ok and synthesize the answer.
+    empty_confirmed: bool = False
 
     # Extraction outputs
     content_md: str = ""
@@ -458,6 +466,7 @@ class FetchContext:
         cloudflare: bool = False,
         escalation: EscalationSignal | None = None,
         subsystem: str | None = None,
+        subresource_blocks: int = 0,
     ) -> None:
         """Append one immutable observation to the decision log."""
         t_ms = int((time.perf_counter() - self.start_perf) * 1000)
@@ -472,6 +481,7 @@ class FetchContext:
                 cloudflare=cloudflare,
                 escalation=escalation,
                 subsystem=subsystem,
+                subresource_blocks=subresource_blocks,
             ),
         )
 
@@ -1183,6 +1193,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 authoritative=authoritative,
                 status_code=tier_result.status_code,
                 cloudflare=_tier_is_cloudflare(tier_result),
+                subresource_blocks=tier_result.subresource_blocks,
             )
             # Propagate a handler-set operator hint into fc so it reaches the
             # response. Previously only the browser escalation consumed
@@ -1827,6 +1838,26 @@ def _has_hint(fc: FetchContext, code: str) -> bool:
     return any(h.code == code for h in fc.operator_hints)
 
 
+def _phase_empty_promotion(fc: FetchContext) -> None:
+    """Promote a corroborated empty result to `ok` — BEFORE the failure classifier.
+
+    `classify_terminal` is a failure taxonomy, so an `ok` empty is decided here,
+    upstream, by the pure `is_confirmed_empty` conjunction. On promotion, set the
+    `empty_confirmed` flag (the response builders read it to override status → ok
+    and synthesize the "no results" answer) and attach the INFO `content_empty`
+    hint. The verdict is deliberately left `length_floor` so `_phase_cache_write`
+    still declines it — a wrongly-promoted empty must never be served from cache.
+    Runs after every escalation phase so browser/subresource evidence is in the log.
+    """
+    if fc.resolved_verdict() is Verdict.ok:
+        return
+    if not is_confirmed_empty(fc.observations, fc.requested_url):
+        return
+    fc.empty_confirmed = True
+    if not _has_hint(fc, "content_empty"):
+        fc.operator_hints.append(content_empty_hint(fc.final_url))
+
+
 def _apply_terminal(fc: FetchContext) -> None:
     """The single systematic terminal floor (ADR-0009), driven by `classify_terminal`.
 
@@ -1843,13 +1874,19 @@ def _apply_terminal(fc: FetchContext) -> None:
       (a dead URL is not a wall — no browser command).
     - `gone_unverified` → the WARNING `content_not_found` with the soft-404 caveat
       + browser escape hatch.
-    - `thin_unverified` → the WARNING `content_thin` (a retrieved thin 200 with no
-      wall evidence — an empty result set or minimal page); the retrieved body is
-      attached to the envelope by the response builder. NEVER `try_user_browser`.
+    - `thin_unverified` / `empty_unverified` → the WARNING `content_thin` (a
+      retrieved thin 200 with no wall evidence — an ambiguous thin page, or one an
+      empty-result marker leaned empty on but the promotion conjunction did not
+      hold); the retrieved body is attached to the envelope by the response
+      builder. NEVER `try_user_browser`.
     - `operator_error` / `unreachable` → no hint here (paid_auth_error carries its
       own; dns/content_type_mismatch are honestly terminal).
     """
     if fc.resolved_verdict() is Verdict.ok:
+        return
+    # A corroborated empty was promoted to `ok` upstream (`_phase_empty_promotion`)
+    # — it owns its own INFO `content_empty` hint; the failure floor stands down.
+    if fc.empty_confirmed:
         return
     outcome = classify_terminal(fc.observations, fc.resolved_verdict())
     if outcome is TerminalOutcome.wall:
@@ -1864,7 +1901,7 @@ def _apply_terminal(fc: FetchContext) -> None:
     elif outcome is TerminalOutcome.gone_unverified:
         if not _has_hint(fc, "content_not_found"):
             fc.operator_hints.append(content_not_found_hint(fc.final_url, verified=False))
-    elif outcome is TerminalOutcome.thin_unverified:
+    elif outcome in (TerminalOutcome.thin_unverified, TerminalOutcome.empty_unverified):
         if not _has_hint(fc, "content_thin"):
             fc.operator_hints.append(content_thin_hint(fc.final_url))
 
@@ -1943,6 +1980,19 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
             extra={"status_code": browser_result.status_code},
         )
     )
+    # Record subresource-block evidence (a page XHR/fetch challenged during render)
+    # ONLY when positive — the walled-API fake-empty signal. Recorded on a browser
+    # tier_outcome so `classify_terminal` reads it as hard-wall evidence even when
+    # the rendered shell body is a benign "0 results". Gated on `> 0` so a normal
+    # render appends nothing new (zero perturbation to verdict resolution).
+    if browser_result.subresource_blocks > 0:
+        fc.observe(
+            kind=ObservationKind.tier_outcome,
+            source=rung,
+            verdict=browser_result.verdict,
+            status_code=browser_result.status_code,
+            subresource_blocks=browser_result.subresource_blocks,
+        )
     browser_pre = browser_result.pre_rendered
     if browser_result.verdict == Verdict.ok and browser_pre is not None:
         fc.content_md = browser_pre.content_md
@@ -2145,6 +2195,11 @@ async def _run_pipeline(
     # Runs BEFORE cache_write so the completed body is the one cached.
     await _phase_listing_render(fc, state=state)
     await _phase_cache_write(fc, state=state)
+    # empty-vs-wall-discrimination: promote a corroborated empty result to `ok`
+    # BEFORE the failure floor. Runs after cache_write (which declines it — the
+    # verdict stays length_floor) and before `_apply_terminal` (which stands down
+    # on the `empty_confirmed` flag). A pure conjunction guards the promotion.
+    _phase_empty_promotion(fc)
     # v0.8: emit cookies_stale hint once per fetch when mirror is stale.
     await _phase_cookies_staleness(fc, state=state)
     # never-silently-miss floor (ADR-0009): after EVERY escalation phase has run

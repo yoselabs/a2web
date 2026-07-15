@@ -7,7 +7,7 @@ from a2web.decision_log import Observation, ObservationKind
 from a2web.models import Verdict
 
 
-def _tier(verdict: Verdict, *, authoritative: bool = False, status_code: int = 0) -> Observation:
+def _tier(verdict: Verdict, *, authoritative: bool = False, status_code: int = 0, subresource_blocks: int = 0) -> Observation:
     return Observation(
         kind=ObservationKind.tier_outcome,
         source="raw",
@@ -15,11 +15,14 @@ def _tier(verdict: Verdict, *, authoritative: bool = False, status_code: int = 0
         authoritative=authoritative,
         t_ms=1,
         status_code=status_code,
+        subresource_blocks=subresource_blocks,
     )
 
 
-def _gate(verdict: Verdict) -> Observation:
-    return Observation(kind=ObservationKind.gate_outcome, source="gate", verdict=verdict, authoritative=False, t_ms=2)
+def _gate(verdict: Verdict, *, subsystem: str | None = None) -> Observation:
+    return Observation(
+        kind=ObservationKind.gate_outcome, source="gate", verdict=verdict, authoritative=False, t_ms=2, subsystem=subsystem
+    )
 
 
 def test_two_independent_404s_are_gone_confirmed() -> None:
@@ -97,3 +100,35 @@ def test_length_floor_no_gate_obs_is_not_thin() -> None:
     # (last_gate is None) → falls to the default wall, not thin_unverified.
     log = [_tier(Verdict.length_floor)]
     assert classify_terminal(log, Verdict.length_floor) is TerminalOutcome.wall
+
+
+def test_thin_with_empty_marker_is_empty_unverified() -> None:
+    # A thin 200 the gate annotated `empty_result` (an empty search) but that the
+    # promotion conjunction did not clear → leans empty, still a WARNING (failed).
+    log = [_tier(Verdict.ok, status_code=200), _gate(Verdict.length_floor, subsystem="empty_result")]
+    assert classify_terminal(log, Verdict.length_floor) is TerminalOutcome.empty_unverified
+
+
+def test_subresource_blocks_are_a_wall_even_with_empty_marker() -> None:
+    # The walled-API fake-empty: a browser rendered a benign "0 results" body
+    # (empty marker matched) BUT watched a page XHR get 403'd (subresource block).
+    # Positive non-text wall evidence wins → wall, never empty.
+    log = [
+        _tier(Verdict.ok, status_code=200, subresource_blocks=1),
+        _gate(Verdict.length_floor, subsystem="empty_result"),
+    ]
+    assert classify_terminal(log, Verdict.length_floor) is TerminalOutcome.wall
+
+
+def test_subresource_blocks_outrank_a_stray_404() -> None:
+    # A blocked data API means content EXISTS behind a wall — it outranks a lone
+    # 404 shell that co-occurred.
+    log = [_tier(Verdict.not_found, status_code=404, subresource_blocks=2), _gate(Verdict.length_floor)]
+    assert classify_terminal(log, Verdict.not_found) is TerminalOutcome.wall
+
+
+def test_empty_marker_without_thin_last_gate_is_not_empty_unverified() -> None:
+    # Defensive: an empty marker on an earlier gate but the LAST gate is not
+    # length_floor (a later wall) → the wall wins, not empty_unverified.
+    log = [_gate(Verdict.length_floor, subsystem="empty_result"), _gate(Verdict.blank_page)]
+    assert classify_terminal(log, Verdict.blank_page) is TerminalOutcome.wall

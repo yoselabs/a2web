@@ -28,7 +28,8 @@ _COHERENCE: dict[TerminalOutcome, frozenset[str | None]] = {
     TerminalOutcome.wall: frozenset({"try_user_browser"}),
     TerminalOutcome.gone_confirmed: frozenset({"content_not_found", None}),  # HTTP-corroborated info, or authoritative-silent
     TerminalOutcome.gone_unverified: frozenset({"content_not_found"}),
-    TerminalOutcome.thin_unverified: frozenset({"content_thin"}),  # retrieved thin 200, no wall evidence
+    TerminalOutcome.thin_unverified: frozenset({"content_thin"}),  # retrieved thin 200, no wall evidence, no marker
+    TerminalOutcome.empty_unverified: frozenset({"content_thin"}),  # thin 200 with an empty marker, uncorroborated
     TerminalOutcome.operator_error: frozenset({None}),  # paid_auth_error hint emitted at the paid tier
     TerminalOutcome.unreachable: frozenset({None}),
 }
@@ -65,9 +66,10 @@ def test_gone_signal_never_on_a_wall() -> None:
             assert _GONE_HINT not in codes, f"{outcome} must not emit content_not_found"
 
 
-def test_thin_signal_only_on_thin_unverified() -> None:
-    """`content_thin` is legal ONLY for `thin_unverified` — a retrieved thin 200,
-    never a wall (no klaxon) and never a dead URL (`content_not_found`)."""
+def test_thin_signal_only_on_thin_or_empty_unverified() -> None:
+    """`content_thin` is legal ONLY for the two retrieved-thin-200 outcomes
+    (`thin_unverified` / `empty_unverified`) — never a wall (no klaxon) and never
+    a dead URL (`content_not_found`)."""
     for outcome, codes in _COHERENCE.items():
-        if outcome is not TerminalOutcome.thin_unverified:
+        if outcome not in (TerminalOutcome.thin_unverified, TerminalOutcome.empty_unverified):
             assert _THIN_HINT not in codes, f"{outcome} must not emit content_thin"

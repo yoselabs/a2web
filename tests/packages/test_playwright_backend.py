@@ -19,21 +19,52 @@ class _Resp:
     status = 200
 
 
+class _FakeReq:
+    def __init__(self, resource_type: str) -> None:
+        self.resource_type = resource_type
+
+
+class _FakeSubresource:
+    """A page subresource response the fake page fires at "response" listeners."""
+
+    def __init__(self, status: int, resource_type: str = "xhr") -> None:
+        self.status = status
+        self.request = _FakeReq(resource_type)
+
+
 class _FakePage:
-    def __init__(self, html: str, *, goto_exc: Exception | None = None, goto_sleep: float = 0.0, content_sleep: float = 0.0) -> None:
+    def __init__(
+        self,
+        html: str,
+        *,
+        goto_exc: Exception | None = None,
+        goto_sleep: float = 0.0,
+        content_sleep: float = 0.0,
+        subresources: list[_FakeSubresource] | None = None,
+    ) -> None:
         self.closed = False
         self._html = html
         self._goto_exc = goto_exc
         self._goto_sleep = goto_sleep
         self._content_sleep = content_sleep
+        self._subresources = subresources or []
+        self._listeners: dict[str, list[Any]] = {}
         self.url = "https://example.com/final"
         self.context: Any = None
+
+    def on(self, event: str, cb: Any) -> None:
+        self._listeners.setdefault(event, []).append(cb)
 
     async def goto(self, url: str, **kwargs: Any) -> _Resp:
         if self._goto_sleep:
             await asyncio.sleep(self._goto_sleep)
         if self._goto_exc is not None:
             raise self._goto_exc
+        # Fire queued subresource responses at any "response" listener — the seam
+        # the backend uses to count challenged XHR/fetch during render.
+        for resp in self._subresources:
+            for cb in self._listeners.get("response", []):
+                cb(resp)
         return _Resp()
 
     async def content(self) -> str:
@@ -390,3 +421,46 @@ async def test_no_sink_disables_capture() -> None:
     backend._restore_stderr(saved)
     backend._begin_stderr_drain()
     await backend.close()
+
+
+# --- subresource-block evidence (walled-API fake-empty) ----------------------
+
+
+def test_is_challenged_subresource_predicate() -> None:
+    """The counting predicate: XHR/fetch with a challenge status is blocked; a
+    document/image or a 200 XHR is not; a malformed response is False, not a raise."""
+    from a2web.packages.browser_backends.playwright import _is_challenged_subresource
+
+    assert _is_challenged_subresource(_FakeSubresource(403, "xhr")) is True
+    assert _is_challenged_subresource(_FakeSubresource(429, "fetch")) is True
+    assert _is_challenged_subresource(_FakeSubresource(401, "xhr")) is True
+    assert _is_challenged_subresource(_FakeSubresource(200, "xhr")) is False
+    assert _is_challenged_subresource(_FakeSubresource(403, "document")) is False
+    assert _is_challenged_subresource(_FakeSubresource(403, "image")) is False
+    assert _is_challenged_subresource(object()) is False  # no .request → False, never raises
+
+
+@pytest.mark.asyncio
+async def test_render_counts_blocked_subresources() -> None:
+    """A render whose page fires a 403 XHR reports subresource_blocks — the
+    walled-API fake-empty signal — while a benign 200 XHR does not count."""
+    backend, _, _ = _make_backend(
+        html="<html><body>0 results</body></html>",
+        subresources=[_FakeSubresource(403, "xhr"), _FakeSubresource(200, "xhr"), _FakeSubresource(429, "fetch")],
+    )
+    try:
+        page = await backend.render("https://shop.example/search?q=x", cookies=[], budget_s=5.0, js_heavy=False)
+        assert page.outcome is RenderOutcome.ok
+        assert page.subresource_blocks == 2  # the 403 + 429; the 200 does not count
+    finally:
+        await backend.close()
+
+
+@pytest.mark.asyncio
+async def test_render_clean_page_counts_zero_subresources() -> None:
+    backend, _, _ = _make_backend(html="<html><body>" + ("ok " * 100) + "</body></html>")
+    try:
+        page = await backend.render("https://example.com/", cookies=[], budget_s=5.0, js_heavy=False)
+        assert page.subresource_blocks == 0
+    finally:
+        await backend.close()

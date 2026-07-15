@@ -46,6 +46,11 @@ class Observation:
     # Evidence the planner (`decide_next`) reads to choose escalation.
     status_code: int = 0
     cloudflare: bool = False  # tier response came through Cloudflare
+    # Count of page subresources (XHR/fetch) challenged (401/403/429) during a
+    # browser render. Positive on a browser `tier_outcome` observation means the
+    # page's data API was blocked even if the shell rendered a benign body — the
+    # walled-API fake-empty. `classify_terminal` reads it as hard-wall evidence.
+    subresource_blocks: int = 0
     # Typed escalation hint (Phase 4) — `escalation.next_tier` is a closed
     # Literal so the planner switches on values that type-check at compile
     # time. `escalation.reason` is a short diagnostic aligned with subsystem.

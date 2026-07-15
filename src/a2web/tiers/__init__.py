@@ -63,6 +63,10 @@ class TierResult:
     js_executed: bool = False
     browser_wall_ms: int | None = None
     browser_bytes: int | None = None
+    # Count of page subresources (XHR/fetch) challenged (401/403/429) during a
+    # browser render — the walled-API fake-empty signal. Set only by the browser
+    # tier; threaded onto the browser `tier_outcome` observation for the classifier.
+    subresource_blocks: int = 0
     operator_hint: OperatorHint | None = None
     no_match: bool = False
     skipped: bool = False

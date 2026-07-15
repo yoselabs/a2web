@@ -201,28 +201,53 @@ def content_thin_hint(url: str) -> OperatorHint:
 
     a2web fetched an HTTP 200 that rendered under the extraction length floor even
     after a real headless browser rendered it, and found NO hard-wall evidence.
-    That profile is most often an empty result set or a genuinely minimal page —
-    NOT an anti-bot wall, so it MUST NOT carry the critical `try_user_browser`
-    klaxon (that would cry wolf on every empty storefront search). The retrieved
-    body is tiny and rides the envelope (`thin_content`); the caller can read it
-    and decide. A small residual chance remains it is an IP-reputation wall the
-    same-egress browser could not rule out — hence the browser escape hatch, at
-    `warning`, never `critical`.
+    That profile is genuinely AMBIGUOUS: it may be an empty result set / a minimal
+    page, OR a bespoke wall whose interstitial text a2web could not fingerprint (or
+    an IP-reputation wall the same-egress browser could not rule out). a2web does
+    NOT assert which — the discriminator is not reliably in the body text. So this
+    carries neither the critical `try_user_browser` klaxon (crying wolf on every
+    empty storefront search) nor a false "this is empty" verdict. The retrieved
+    body is tiny and rides the envelope (`thin_content`); the caller — which can
+    read it — decides. `warning`, never `critical`.
     """
     return OperatorHint(
         code="content_thin",
         message=(
             f"This URL was retrieved (HTTP 200) but rendered thin ({url}) — even a headless browser "
-            "returned very little content. This is most likely an empty result set (e.g. a search "
-            "with no matches) or a minimal page, NOT an anti-bot wall. The retrieved body is attached "
-            "as `thin_content` — read it to decide. Small residual chance an IP-keyed wall is masking "
-            "content, which your own browser might bypass."
+            "returned very little content. This is AMBIGUOUS: it could be an empty result set (e.g. a "
+            "search with no matches) or a minimal page, OR content behind a wall a2web could not "
+            "fingerprint. The retrieved body is attached as `thin_content` — read it to decide which."
         ),
         fix=(
-            "Read the attached `thin_content` — it is often the answer (e.g. 'no results'). "
-            "If you need more and suspect a wall, open the URL in your own real-browser tool."
+            "Read the attached `thin_content` — it often settles it (e.g. a visible 'no results', "
+            "or a visible block/challenge notice). If it reads walled or empty-but-you-need-more, "
+            "open the URL in your own real-browser tool."
         ),
         severity="warning",
+    )
+
+
+def content_empty_hint(url: str) -> OperatorHint:
+    """The corroborated-empty signal — a search that genuinely returned no results, INFO.
+
+    Distinct from `content_thin` (the ambiguous case): here the empty reading is
+    CORROBORATED — an empty-result marker matched, the page was retrieved across
+    independent egress paths (incl. a foreign-egress tier), and NO wall evidence
+    (hard-wall gate OR a challenged subresource OR a 4xx anywhere) is in the log.
+    So "no results" IS the complete, correct answer, not a miss — `info`, and the
+    fetch is `ok`, never `retrieval_incomplete`. The thin body still rides
+    `thin_content` so the caller can confirm the emptiness itself.
+    """
+    return OperatorHint(
+        code="content_empty",
+        message=(
+            f"This URL was retrieved and reports NO results ({url}) — corroborated across "
+            "independent fetch paths with no wall evidence, so this is a genuine empty result set, "
+            "not a block. 'No results' is the complete answer; the retrieved body is attached as "
+            "`thin_content` to confirm."
+        ),
+        fix="Treat this as an authoritative empty result. If you expected matches, re-check the query or the source URL.",
+        severity="info",
     )
 
 

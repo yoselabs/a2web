@@ -198,6 +198,7 @@ class BrowserTier:
             js_executed=page.js_executed,
             browser_wall_ms=page.wall_ms,
             browser_bytes=page.bytes_transferred,
+            subresource_blocks=page.subresource_blocks,
             pre_rendered=Rendered(content_md=markdown),
             verdict=verdict,
         )

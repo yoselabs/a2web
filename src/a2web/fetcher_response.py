@@ -135,6 +135,11 @@ _CONFIDENCE_CAPPING_OBSTACLES = frozenset({"paywalled", "blocked", "empty", "err
 _INCOMPLETE_OBSTACLES = frozenset({"empty", "blocked"})
 
 
+# The synthetic answer for a corroborated empty result — asserts ONLY the absence
+# (never fabricated items/counts). The attached `thin_content` lets the caller verify.
+_EMPTY_RESULT_ANSWER = "The page reports no results for this request. The retrieved body is attached as thin_content to confirm."
+
+
 def _confidence_for(verdict: Verdict, content_md: str) -> Confidence:
     if verdict != Verdict.ok:
         return Confidence.low
@@ -304,6 +309,13 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # log, never a stored field. See `decision_log.resolve_verdict`.
     final_verdict = resolve_verdict(fc.observations)
     status = FetchStatus.ok if final_verdict == Verdict.ok else FetchStatus.failed
+    # empty-vs-wall-discrimination: a corroborated empty result was promoted to ok
+    # upstream (`fetcher._phase_empty_promotion`). The verdict stays `length_floor`
+    # (so cache_write declined it and confidence stays `low`), but the caller-facing
+    # status is `ok`: "no results" is the complete answer. Overriding here — before
+    # the failed-only incompleteness guards below — keeps them from firing.
+    if fc.empty_confirmed:
+        status = FetchStatus.ok
     # never-silently-miss: `retrieval_incomplete` is derived from the systematic
     # floor, not a parallel wall-verdict whitelist. Every wall now carries the
     # critical `try_user_browser` hint (emitted by `_prescribe_browser_on_wall`),
@@ -572,19 +584,27 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
             ),
         )
 
-    # thin_unverified attach (thin-not-wall / ADR-0015): a retrieved thin 200 with
-    # no wall evidence carries a `content_thin` hint. Hand the tiny retrieved body
-    # to the blind caller so it can resolve empty-vs-wall itself, regardless of
-    # `include_content`. `fr.content_md` is already the (wrapped) sub-floor body;
-    # wire-only, never cached.
-    thin_content = fr.content_md if any(h.code == "content_thin" for h in op_hints) else None
+    # thin/empty attach (thin-not-wall + empty-vs-wall / ADR-0015): a retrieved thin
+    # 200 carries a `content_thin` (ambiguous) or `content_empty` (corroborated
+    # empty, promoted to ok) hint. Hand the tiny retrieved body to the blind caller
+    # so it can confirm empty-vs-wall itself, regardless of `include_content`.
+    # `fr.content_md` is already the (wrapped) sub-floor body; wire-only, never cached.
+    is_confirmed_empty = any(h.code == "content_empty" for h in op_hints)
+    thin_content = fr.content_md if (is_confirmed_empty or any(h.code == "content_thin" for h in op_hints)) else None
+
+    # A promoted empty ran NO LLM extraction (the thin body was never distilled —
+    # ADR-0017), so synthesize an honest "no results" answer that only asserts the
+    # absence — never fabricated items (the attached body lets the caller verify).
+    answer = fr.extracted_answer
+    if is_confirmed_empty and not (answer or "").strip():
+        answer = _EMPTY_RESULT_ANSWER
 
     return AskResponse(
         url=fr.url,
         status=fr.status,
         tier=fr.tier,
         confidence=confidence,
-        answer=fr.extracted_answer,
+        answer=answer,
         title=fr.title,
         byline=fr.byline,
         published=fr.published,

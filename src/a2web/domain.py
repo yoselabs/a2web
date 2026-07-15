@@ -24,11 +24,33 @@ if TYPE_CHECKING:
 __all__ = (
     "compute_profile_hash",
     "is_live_only",
+    "is_search_shaped",
     "json_response_fallback",
     "json_to_markdown_rows",
     "parse_query_params",
     "rewrite_captcha_host",
 )
+
+# Path segments that mark a search / listing surface — where an "empty result"
+# reading is credible. An empty reading of a NON-search route (an article, a
+# product page) is itself suspicious, so the empty-confirmation conjunction
+# (`actions.empty.is_confirmed_empty`) requires one of these OR a query string.
+_SEARCH_PATH_SEGMENTS = frozenset({"search", "arama", "ara", "results", "sr", "find", "query"})
+
+
+def is_search_shaped(url: str) -> bool:
+    """True when a URL looks like a search/listing query — it carries a `?…`
+    query string OR a search-shaped path segment. Pure and total: a malformed URL
+    yields False, never raises. Used to gate the empty→ok promotion (an empty
+    reading is only credible on a query surface)."""
+    try:
+        parsed = urlparse(url)
+    except (ValueError, TypeError):
+        return False
+    if parsed.query:
+        return True
+    segments = (parsed.path or "").lower().split("/")
+    return any(seg in _SEARCH_PATH_SEGMENTS for seg in segments)
 
 # Cap the never-lose JSON text fallback so an unbounded API dump can't blow the
 # response envelope (mirrors the synthetic-output caps elsewhere in this module).
