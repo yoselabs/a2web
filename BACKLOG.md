@@ -17,6 +17,33 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-16 — jina foreign-egress corroboration on empty-marked thin (M)
+
+Source: openspec change `empty-vs-wall-discrimination`, design.md "implementation-
+revealed correction" + Fable council (2026-07-16). The empty→ok promotion
+corroborates via the BROWSER (a thin 200 wins the tier loop, so the free jina rung
+never runs on it). That leaves TWO gaps this single track closes:
+
+- **The IP-reputation residual.** A wall that fake-empties our HTTP AND browser
+  egress identically (both our IPs) cannot be ruled out — only a foreign egress
+  (jina) can. Today's conjunction can't see it.
+- **No-browser deploys never promote.** Without a browser backend there is no
+  corroborating render, so a genuine empty always looks `failed` (empty_unverified).
+
+- **Scope (M).** Make an empty-marked `length_floor` NOT win the tier loop —
+  continue the free ladder to jina before/instead of the browser escalation. Then
+  jina either (a) retrieves REAL content on its different IP → the fetch succeeds
+  with content (strictly better than "empty"), or (b) also reads empty → a
+  FOREIGN-egress corroboration term for `is_confirmed_empty` (add jina-source body
+  tier as an accepted corroborator alongside the browser regate). A jina 403/thin-
+  wall blocks promotion (conservative, correct).
+- **Why deferred.** It changes tier-loop WIN semantics for the empty-marked case
+  (a 200 that currently ends the walk would continue), which touches the hot path
+  and carries regression surface across the free ladder. Costs one extra jina fetch
+  per empty search (cheap). Land it behind its own change with the ladder tests
+  green. Until then, browser-corroboration + attached `thin_content` is the honest
+  floor and the residual is narrow.
+
 ## 2026-07-16 — empty-result-as-`ok`-answer (thin-not-wall endgame) — SHIPPED
 
 Shipped by openspec change `empty-vs-wall-discrimination` (2026-07-16). A
