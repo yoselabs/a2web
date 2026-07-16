@@ -1,9 +1,11 @@
 """Browser tier — JS-capable rendered fetch, engine-agnostic.
 
-Delegates rendering to the selected `BrowserBackend` (Camoufox today, a
-Chromium engine later) and owns only the engine-agnostic tail: trafilatura →
-markdown, the `RenderOutcome` → `Verdict`/`OperatorHint` mapping, and
-`TierResult` assembly. No Playwright type or `BrowserPool` appears here.
+Delegates rendering to the selected `BrowserBackend` (`patchright` fast rung,
+`zendriver` robust rung — Camoufox is gated off, see
+`_manifests/browser_backends/camoufox.py`) and owns only the engine-agnostic
+tail: trafilatura → markdown, the `RenderOutcome` → `Verdict`/`OperatorHint`
+mapping, and `TierResult` assembly. No Playwright type or `BrowserPool`
+appears here.
 
 Out-of-band tier: registered but NOT in `TIER_ORDER`. The orchestrator
 dispatches it only when the gate sets `suggested_tier == "browser"`.
@@ -29,7 +31,10 @@ if TYPE_CHECKING:
 
 
 # Re-enable hint for an unavailable engine (missing extra / launch failure).
-_FIX_HINT = "python -m playwright install firefox && python -m camoufox fetch"
+_FIX_HINT = (
+    "uv sync --extra browser && patchright install chromium "
+    "(container: docker build --build-arg INSTALL_BROWSER=true)"
+)
 
 # Actionable next step for an internal driver/navigation failure. The driver
 # (Playwright/Firefox) is upstream — a2web cannot patch it — so the operator's

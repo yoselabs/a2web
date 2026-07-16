@@ -160,9 +160,11 @@ export A2WEB_STEALTH=true
 
 ## Deployment (container)
 
-a2web publishes a slim, public image to GHCR that any homelab instance can pull
-and run as a networked MCP service. It serves MCP under `/mcp` (HTTP transport,
-MCP-only) plus a transport-native liveness route at `/health`.
+a2web publishes a public image to GHCR that any homelab instance can pull and
+run as a networked MCP service. It serves MCP under `/mcp` (HTTP transport,
+MCP-only) plus a transport-native liveness route at `/health`. The published
+image includes the browser rendering tier (patchright + zendriver + baked
+Chromium) so browser escalation works out of the box — allow ~1.5-2 GB RAM.
 
 ```bash
 docker pull ghcr.io/yoselabs/a2web:latest
@@ -257,29 +259,34 @@ silent empty answer.
 **Liveness** is wired as a Docker `HEALTHCHECK` (`curl -f /health`) against the
 live serve process.
 
-**The published image is slim (~390 MB) and browserless.** The browser rendering
-tier (Chromium + its desktop system-lib tree) and the Claude Code OS-session
-backend (`claude-agent-sdk`) are both **build-arg opt-ins**, because each is
-large and neither is on the common path:
+**The published image bakes in the browser rendering tier** (patchright +
+zendriver + Chromium + its desktop system-lib tree, `INSTALL_BROWSER=true`),
+so browser escalation works without any extra setup — image size ~1.9 GB.
+The Claude Code OS-session backend (`claude-agent-sdk`) stays a **build-arg
+opt-in** (not published), since the container's default LLM backend is
+OpenAI-compatible:
 
 | Build arg | Adds | When you need it |
 |---|---|---|
-| `--build-arg INSTALL_BROWSER=true` | patchright + zendriver + baked Chromium (~1.35 GB) | JS-heavy / hard anti-bot sites *without* a Zyte key. Image grows to ~1.9 GB; allow ~1.5–2 GB RAM for the browser rung. |
 | `--build-arg INSTALL_CLAUDE_CODE=true` | `claude-agent-sdk` (~210 MB) | the Claude Code OS-session LLM backend (OAuth piggyback). |
 
+A slimmer, browserless image (~390 MB) can still be built locally by omitting
+`INSTALL_BROWSER` — useful when you lean entirely on `A2WEB_ZYTE_KEY` for hard
+sites and want to skip the ~1.35 GB Chromium layer:
+
 ```bash
-docker build --build-arg INSTALL_BROWSER=true -t a2web-browser .
+docker build -t a2web-slim .
 ```
 
-The slim default covers raw / jina / paid (Zyte, Firecrawl) / all site handlers.
-On a browser-only site, a browserless container degrades **loudly** — it returns
-a critical `try_user_browser` operator hint, never a silent empty result — so
-lean on a `A2WEB_ZYTE_KEY` for hard sites, or build the browser image.
+On a browserless container, a browser-only site degrades **loudly** — it
+returns a critical `try_user_browser` operator hint, never a silent empty
+result.
 
 **Publishing** is automated: pushing a `v*` tag runs the quality gate, then
-builds and pushes `ghcr.io/yoselabs/a2web:{version,latest}`
-(`.github/workflows/release.yml`). One-time after the first publish: set the
-GHCR package visibility to **Public** so `docker pull` needs no auth.
+builds and pushes `ghcr.io/yoselabs/a2web:{version,latest}` with the browser
+tier baked in (`.github/workflows/release.yml`). One-time after the first
+publish: set the GHCR package visibility to **Public** so `docker pull` needs
+no auth.
 
 ## Cookies (opt-in, local-only)
 

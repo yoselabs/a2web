@@ -154,7 +154,7 @@ class WebRouter(a2kit.Router):
 
         Fetches the URL via the adaptive tier cascade (site handlers → raw
         HTTP with TLS impersonation → Jina reader → archive fallback →
-        Camoufox browser as last resort), then runs the server-side LLM
+        headless browser as last resort), then runs the server-side LLM
         extractor over the content to answer your `query`. Returns the
         focused answer in `answer`. Pass `include_content=True` to also get
         the page markdown in `content_md` for grounding.

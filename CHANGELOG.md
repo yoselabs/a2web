@@ -8,6 +8,27 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.46.0] — 2026-07-16
+
+### Changed
+
+- **Published container image bakes in the browser tier by default** —
+  `release.yml` now builds with `INSTALL_BROWSER=true`, so
+  `ghcr.io/yoselabs/a2web:{version,latest}` includes patchright + zendriver +
+  Chromium out of the box (image ~1.9 GB, allow ~1.5-2 GB RAM). A slimmer
+  browserless image (~390 MB) is still buildable locally by omitting the
+  build arg. README/Dockerfile updated to describe the published shape.
+
+### Fixed
+
+- Stale Camoufox references in operator-facing and current-state text: the
+  `browser_unavailable` fix hint (`tiers/browser.py`) told operators to
+  install Camoufox/Firefox, which is gated off — it now points at the actual
+  remedy (`patchright` via `[browser]` extra / `INSTALL_BROWSER=true`).
+  Docstrings in `tiers/browser.py` / `routers.py` and the architecture summary
+  in `CLAUDE.md` corrected to name the live backends (`patchright`,
+  `zendriver`).
+
 ## [0.45.0] — 2026-07-16
 
 > The honest terminal-story arc: a fetch that does not fully retrieve a URL now

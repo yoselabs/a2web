@@ -1,4 +1,4 @@
-# a2web — slim networked MCP server image (deployable-container-ci).
+# a2web — networked MCP server image (deployable-container-ci).
 #
 # Runs `a2web serve --transport=http --select surface=mcp`: MCP under /mcp, plus
 # a transport-native GET /health liveness route (a2kit ships it at the parent
@@ -6,17 +6,19 @@
 # runtime layer copies only the venv + source — no git, no uv, no build caches.
 # Runs as a non-root user; keeps the sqlite HTTP cache on a volume-backable /data.
 #
-# Two heavy things are OUT of the slim image, each behind a build arg:
-#   - the browser rung (patchright + zendriver + baked Chromium + its desktop
-#     system-lib tree, ~1.35GB) — INSTALL_BROWSER=true. The tier is
-#     escalation-only; when absent, browser sites degrade to a loud
-#     `try_user_browser` hint (Zyte/Firecrawl still cover hard sites via API).
-#   - the Claude Code OS-session backend (claude-agent-sdk, ~210MB) —
-#     INSTALL_CLAUDE_CODE=true. The container's default LLM path is
-#     OpenAI-compatible (DeepSeek).
+# The published image (release.yml) bakes in the browser rung (patchright +
+# zendriver + Chromium + its desktop system-lib tree, ~1.35GB) via
+# INSTALL_BROWSER=true, so browser escalation works out of the box. A slimmer
+# browserless build is still available locally by omitting the build arg — the
+# tier is escalation-only, so browser sites degrade to a loud `try_user_browser`
+# hint when it's absent (Zyte/Firecrawl still cover hard sites via API).
 #
-#   docker build -t a2web .                                            # slim
-#   docker build --build-arg INSTALL_BROWSER=true -t a2web-browser .   # +browser
+# The Claude Code OS-session backend (claude-agent-sdk, ~210MB) stays a
+# separate opt-in — INSTALL_CLAUDE_CODE=true. The container's default LLM path
+# is OpenAI-compatible (DeepSeek).
+#
+#   docker build --build-arg INSTALL_BROWSER=true -t a2web .    # published shape
+#   docker build -t a2web-slim .                                # browserless, smaller
 #   docker run --rm -p 8000:8000 -v a2web-cache:/data \
 #     -e OPENAI_API_KEY=... -e OPENAI_BASE_URL=... -e OPENAI_MODEL=... a2web
 #   # MCP:    http://localhost:8000/mcp   liveness: http://localhost:8000/health
