@@ -241,7 +241,7 @@ ones:
 | `A2WEB_LLM_OPENAI_API_KEY_ENV` | Rename the key env var a2web reads for the OpenAI-compatible backend (default `OPENAI_API_KEY`; set to `OPENROUTER_API_KEY` etc.). `A2WEB_LLM_API_KEY_ENV` does the same for the Anthropic key. |
 | `A2WEB_LLM_MODEL` | Override the extraction model. Note `OPENAI_MODEL` wins for the openai-compatible backend, so a Claude id is never sent to an OpenAI endpoint. |
 | `A2WEB_LLM_PROVIDER` | Pin the backend instead of auto-selecting: `auto` (default), `openai_compatible`, `anthropic`, `claude-code`. Pin it when you want a deterministic backend and no fallback — a pinned provider that is unavailable fails loudly instead of silently selecting another. |
-| `CLAUDE_CODE_CLI_PATH` | Only for the `claude-code` backend, and only if the `claude` CLI is not on `PATH`. That backend needs both the `claude-agent-sdk` package **and** the CLI it spawns; without the CLI it reports unavailable and auto-selection moves on. |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Only for the `claude-code` backend. That backend needs a logged-in Claude Code **session**, not just the installed package — the `claude-agent-sdk` extra bundles its own CLI, so a container has the binary but no session. Without a session (token, `~/.claude/.credentials.json`, or a macOS Keychain entry) it reports unavailable and auto-selection moves on. |
 | **Paid + token tiers** (all optional) | |
 | `A2WEB_ZYTE_KEY` | Paid Zyte tier (Reddit thread depth + hard walls). |
 | `A2WEB_FIRECRAWL_KEY` | Paid Firecrawl tier (needs the `[paid]` extra). |

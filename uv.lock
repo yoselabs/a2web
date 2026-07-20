@@ -110,7 +110,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20,<1" },
     { name = "anthropic", specifier = ">=0.40,<1" },
     { name = "anyio", specifier = ">=4,<5" },
-    { name = "anyllm", extras = ["anthropic", "openai", "claude-code-sdk"], git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fanyllm&tag=anyllm-v0.2.0" },
+    { name = "anyllm", extras = ["anthropic", "openai", "claude-code-sdk"], git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fanyllm&tag=anyllm-v0.4.0" },
     { name = "browser-cookie3", marker = "extra == 'cookies'", specifier = ">=0.20,<1" },
     { name = "browser-cookies", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fbrowser-cookies&tag=browser-cookies-v0.1.0" },
     { name = "claude-agent-sdk", marker = "extra == 'claude-code'", specifier = ">=0.1.80,<1" },
@@ -240,8 +240,8 @@ wheels = [
 
 [[package]]
 name = "anyllm"
-version = "0.2.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fanyllm&tag=anyllm-v0.2.0#b7d1b81cf3ff7f6fdc3c162fd8415fbf910e5635" }
+version = "0.4.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fanyllm&tag=anyllm-v0.4.0#3890f65da06993aa9b97a588c44edbdd77395239" }
 
 [package.optional-dependencies]
 anthropic = [

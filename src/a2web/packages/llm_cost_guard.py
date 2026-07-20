@@ -22,10 +22,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from fnmatch import fnmatch
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
-    from anyllm import Completion, LLMProvider, PromptParts
+    from anyllm import Completion, LLMProvider, PromptParts, ProviderName
 
 
 class CostViolation(RuntimeError):
@@ -90,7 +90,13 @@ class _GuardedProvider:
         self._provider_id = provider_id
         self._inner = inner
         self._policy = policy
-        self.name = getattr(inner, "name", provider_id)
+        # anyllm v0.3.0 narrowed `LLMProvider.name` from `str` to the `ProviderName`
+        # enum. Mirror the wrapped provider's own value so the wrapper still
+        # satisfies the protocol; `provider_id` (a plain manifest string) is only
+        # the fallback for a provider that exposes no name at all, and it is
+        # cast because ProviderName is str-valued — comparisons against the old
+        # literals still hold.
+        self.name: ProviderName = getattr(inner, "name", None) or cast("ProviderName", provider_id)
 
     async def complete(
         self,
