@@ -8,11 +8,17 @@ cheap and decouple provider selection from import time.
 As of a2web v0.7, `anthropic` + `claude-agent-sdk` are baseline deps —
 the prior `[llm]` extra was removed. `--ask` works out of the box.
 
-Provider selection follows `settings.llm_provider`:
-- ``auto``         — try ClaudeCode (OS session via `claude-agent-sdk`)
-                     first; fall back to Anthropic API.
-- ``anthropic``    — direct Anthropic Messages API; requires API key.
-- ``claude-code``  — Claude Code OS session only.
+Provider selection follows `settings.llm_provider` (`A2WEB_LLM_PROVIDER`):
+- ``auto``               — ClaudeCode (OS session via `claude-agent-sdk`) first,
+                           then Anthropic API, then the OpenAI-compatible
+                           gateway. When `OPENAI_API_KEY` *and* `OPENAI_BASE_URL`
+                           are both set, that gateway leads instead — an explicit
+                           operator configuration is never shadowed by a
+                           session-based backend.
+- ``anthropic``          — direct Anthropic Messages API; requires API key.
+- ``claude-code``        — Claude Code OS session only; requires both the
+                           `claude-agent-sdk` package and the `claude` CLI.
+- ``openai_compatible``  — any OpenAI-compatible gateway (`OPENAI_BASE_URL`).
 
 The `_ensure()` contract returns `None` on permanent unavailability
 (missing API key AND no Claude Code OAuth session). Transient SDK
@@ -39,12 +45,41 @@ if TYPE_CHECKING:
 # API provider is the credential-bearing fallback; `openai_compatible` is the
 # LAST-resort derived fallback, gated on `OPENAI_API_KEY` presence by its
 # manifest. Placing it last means a configured OpenAI key can never SHADOW a
-# working Claude/Anthropic path (it only activates when neither is available) —
-# so `openai_compatible` derives from config with no explicit pin needed, which
-# is exactly the headless-container case. Single source of truth for both the
-# production `ask` path and the bench harness.
+# working Claude/Anthropic path (it only activates when neither is available).
+#
+# "Only when neither is available" is load-bearing, and it depended on the
+# claude-code rung reporting itself unavailable in a headless container. It did
+# not: the manifest gated on SDK *importability*, and 0.46.0 bakes the SDK into
+# the published image — so claude-code won `auto` on every containerized deploy,
+# returned empty answers forever, and the operator's configured gateway was
+# never called (see LESSONS_LEARNED #0). Two independent guards now hold the
+# invariant: the claude-code manifest additionally probes for the `claude` CLI,
+# and an explicitly configured gateway leads the order via `auto_order`.
+# Single source of truth for both the production `ask` path and the bench harness.
 _PROVIDER_SURFACE = "a2web._manifests.llm_providers"
 _PROVIDER_ORDER = ("claude-code", "anthropic", "openai_compatible")
+# When the operator has explicitly pointed a2web at an OpenAI-compatible
+# gateway, that is a deliberate configuration act — not an ambient fallback —
+# so it leads the `auto` order instead of trailing it. `OPENAI_BASE_URL` is the
+# intent signal (a bare `OPENAI_API_KEY` may just be ambient in a shell), which
+# is why both must be present to reorder.
+_GATEWAY_FIRST_ORDER = ("openai_compatible", "claude-code", "anthropic")
+
+
+def _explicit_gateway_configured(settings: AppSettings) -> bool:
+    """True when OPENAI_API_KEY *and* OPENAI_BASE_URL are both explicitly set."""
+    import os
+
+    return bool(os.environ.get(settings.llm_openai_api_key_env, "").strip() and os.environ.get("OPENAI_BASE_URL", "").strip())
+
+
+def auto_order(settings: AppSettings) -> tuple[str, ...]:
+    """The `auto` preference order for these settings/env.
+
+    Single source of truth for auto-mode precedence (the architecture test pins
+    that no other module hardcodes an order).
+    """
+    return _GATEWAY_FIRST_ORDER if _explicit_gateway_configured(settings) else _PROVIDER_ORDER
 
 
 def select_provider(settings: AppSettings, *, override: str | None = None) -> tuple[str, Provider] | None:
@@ -54,8 +89,9 @@ def select_provider(settings: AppSettings, *, override: str | None = None) -> tu
     built* — unconfigured backends drop out as `Unavailable`. This function
     layers the *selection policy* on top: a pinned provider (`override`, or a
     concrete `settings.llm_provider`) is tried alone; `auto` walks
-    `_PROVIDER_ORDER` (claude-code first, anthropic fallback) and takes the
-    first present entry.
+    `auto_order(settings)` — normally claude-code first, but an explicitly
+    configured OpenAI-compatible gateway (key + base URL) leads instead — and
+    takes the first present entry.
 
     Returns `(provider_id, provider)` where `provider_id` is the winning
     manifest name (the same string `settings.llm_provider` accepts), or
@@ -67,7 +103,7 @@ def select_provider(settings: AppSettings, *, override: str | None = None) -> tu
 
     registry = load_surface(_PROVIDER_SURFACE, Provider, settings)
     pin = override or settings.llm_provider
-    order = _PROVIDER_ORDER if pin == "auto" else (pin,)
+    order = auto_order(settings) if pin == "auto" else (pin,)
     for name in order:
         if name in registry:
             return name, registry[name]
