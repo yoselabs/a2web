@@ -226,13 +226,22 @@ the Google principal.
 `__`) — the full list lives in `src/a2web/settings.py`. The deployment-relevant
 ones:
 
+> **Two namespaces, on purpose.** a2web's *own* configuration is `A2WEB_`-prefixed.
+> LLM backend credentials use the **unprefixed industry-standard names** —
+> `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, `ANTHROPIC_API_KEY` — so the
+> same env that works for every other SDK works here, with no translation layer. If
+> you need a different variable name (e.g. `OPENROUTER_API_KEY`), redirect it with
+> `A2WEB_LLM_OPENAI_API_KEY_ENV` rather than copying the secret.
+
 | Variable | Purpose |
 |---|---|
 | **LLM backend** | |
-| `OPENAI_API_KEY` + `OPENAI_BASE_URL` + `OPENAI_MODEL` | OpenAI-compatible LLM backend — the container default. Point at DeepSeek / OpenAI / Gemini / OpenRouter / a local endpoint. Unset base URL → OpenAI proper. |
-| `ANTHROPIC_API_KEY` | Alternative LLM backend (Anthropic Messages API). Auto-selected over openai-compatible when set. |
+| `OPENAI_API_KEY` + `OPENAI_BASE_URL` + `OPENAI_MODEL` | OpenAI-compatible LLM backend — the container default. Point at DeepSeek / OpenAI / Gemini / OpenRouter / a local endpoint. Unset base URL → OpenAI proper. Setting **both** key and base URL marks this an *explicit* gateway: it then leads `auto` selection and cannot be shadowed by another backend. |
+| `ANTHROPIC_API_KEY` | Alternative LLM backend (Anthropic Messages API). Preferred over an openai-compatible backend that was configured by key alone; an explicit gateway (key + base URL) still wins. |
 | `A2WEB_LLM_OPENAI_API_KEY_ENV` | Rename the key env var a2web reads for the OpenAI-compatible backend (default `OPENAI_API_KEY`; set to `OPENROUTER_API_KEY` etc.). `A2WEB_LLM_API_KEY_ENV` does the same for the Anthropic key. |
-| `A2WEB_LLM_MODEL` / `A2WEB_LLM_PROVIDER` | Override the extraction model / pin the backend (`auto` default). |
+| `A2WEB_LLM_MODEL` | Override the extraction model. Note `OPENAI_MODEL` wins for the openai-compatible backend, so a Claude id is never sent to an OpenAI endpoint. |
+| `A2WEB_LLM_PROVIDER` | Pin the backend instead of auto-selecting: `auto` (default), `openai_compatible`, `anthropic`, `claude-code`. Pin it when you want a deterministic backend and no fallback — a pinned provider that is unavailable fails loudly instead of silently selecting another. |
+| `CLAUDE_CODE_CLI_PATH` | Only for the `claude-code` backend, and only if the `claude` CLI is not on `PATH`. That backend needs both the `claude-agent-sdk` package **and** the CLI it spawns; without the CLI it reports unavailable and auto-selection moves on. |
 | **Paid + token tiers** (all optional) | |
 | `A2WEB_ZYTE_KEY` | Paid Zyte tier (Reddit thread depth + hard walls). |
 | `A2WEB_FIRECRAWL_KEY` | Paid Firecrawl tier (needs the `[paid]` extra). |

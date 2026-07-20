@@ -6,36 +6,79 @@ a deployer hit, with a concrete suggestion. Grouped by severity.
 
 ## Footguns (worth fixing)
 
-### 0. CRITICAL: `query` returns empty answers — the 1024-token extraction cap truncates the contract-v2 JSON
+### 0. CRITICAL: `query` returns empty answers — `auto` selects a session-less Claude Code provider
 
-On a homelab deploy (0.44.0 and 0.44.1), `query` returned `extraction_empty` (answer `""`,
-`also_here`/`other_pages`/`structural_form` all `None`) on ordinary content pages
+**Status: root cause identified 2026-07-20 and fixed. An earlier version of this entry
+blamed the 1024-token extraction cap; that was a misdiagnosis — see the note at the end,
+which is kept deliberately because the wrong turn is instructive.**
+
+On a homelab deploy, `query` returned `extraction_empty` (answer `""`, `also_here` /
+`other_pages` / `structural_form` all `None`) on ordinary content pages
 (en.wikipedia.org/wiki/Home_Assistant, /wiki/Nginx), while `fetch_raw` and plain LLM
 completions worked fine. Reproduced across THREE models — `deepseek-v4-flash`,
-`deepseek-chat`, `gpt-4.1-mini` — and BOTH image versions, so it is neither model- nor
-version-specific.
+`deepseek-chat`, `gpt-4.1-mini` — and BOTH image versions.
 
-Root cause (traced to source): `Extractor` hardcodes `max_tokens=1024`
-(`packages/llm_extract/extractor.py:105`) and is constructed in `llm_resource.py:137`
-WITHOUT any settings/env override — `settings.py` has no extraction-token field. The
-router-shape JSON output (answer + `also_here` + `other_pages`, enlarged by the 0.41
-contract-v2) overflows 1024 on link-rich pages, so the model's JSON truncates, the wobble
-parser (`_first_json_object`) finds no complete object, and everything comes back empty.
-This is EXACTLY the failure the 2026-07-05 bench already documented ("hit
-`completion_tokens=1024` ... truncating before the answer ... Real fix = raise extraction
-`max_tokens`") — but it shipped unraised, and contract-v2 made the output bigger, so it now
-bites ordinary pages, not just verbose models.
+Root cause: **the configured model was never called at all.** `settings.llm_provider`
+defaults to `auto`, and the `auto` order put `claude-code` first. The `claude-code`
+manifest gated on SDK *importability* (`find_spec("claude_agent_sdk")`), and 0.46.0 bakes
+that SDK into the published image — so in a container the rung reported
+`available() == True` while there was no Claude Code OAuth session behind it. It won the
+order, returned empty text on every call, and the operator's configured `OPENAI_*` gateway
+was never consulted.
 
-Impact: `query` (the primary tool, "~95% of web reads") is effectively broken on real pages
-for a self-hoster. There is NO operator workaround: the cap is not exposed via any `A2WEB_*`
-env, so a deployer cannot raise it, swap prompt, or disable the index from outside.
+Verified in-process inside the running container (0.46.0, digest `sha256:752ab7b7…042d9`):
 
-- Suggestion (owner-side, high priority): (a) raise the extraction `max_tokens` default
-  substantially (the bench's own prescription), AND/OR (b) expose it as `A2WEB_EXTRACT_MAX_TOKENS`
-  so operators can tune it, AND/OR (c) emit the `answer` field FIRST so a truncated response
-  still carries the answer, AND/OR (d) gate `also_here`/`other_pages` off by default on
-  non-listing pages (the 0.44.1 "gate options on listing" change moved this direction but did
-  not fix the answer-truncation). Any one of these unblocks `query`.
+```
+select_provider(AppSettings())                        -> ("claude-code", "claude-haiku-4-5-…")
+Extractor(...).extract(...)                           -> answer == ''
+select_provider(s, override="openai_compatible")      -> gpt-4.1-mini
+                                                      -> correct answer + full RouterPayload
+```
+
+The "reproduced across THREE models and BOTH image versions" evidence was pointing at this
+all along: model-independence is the signature of a code path that never reaches *any*
+model. It was read as "therefore not model-specific, so it must be the shared cap" when it
+should have been read as "therefore no model is involved."
+
+Impact: `query` (the primary tool, "~95% of web reads") was fully broken on any
+containerized deploy that had the claude-code extra baked in, with a diagnostic
+(`extraction_empty`: "retry, use `fetch_raw`, or rephrase the question") that misdirected
+diagnosis toward page content and prompt shape.
+
+- **Fixed (owner-side):** the `claude-code` manifest now additionally probes for the
+  `claude` CLI — SDK-importable is no longer treated as available, since the SDK is a thin
+  wrapper that must spawn that CLI. Independently, an explicitly configured gateway
+  (`OPENAI_API_KEY` + `OPENAI_BASE_URL`) now leads the `auto` order rather than trailing
+  it: a deliberate operator configuration is never shadowed by a session-based backend.
+  Two guards, either sufficient. Regression test:
+  `tests/packages/llm_extract/test_claude_code_optional.py`.
+- **Operator workaround (pre-fix):** pin `A2WEB_LLM_PROVIDER=openai_compatible`.
+
+#### Note: how the wrong conclusion was reached (kept deliberately)
+
+The original entry blamed the hardcoded `max_tokens=1024` in
+`packages/llm_extract/extractor.py`, reasoning that the contract-v2 router JSON overflowed
+the cap, truncated, and left `_first_json_object` with no complete object. The theory was
+coherent, matched a real prior bench finding from 2026-07-05, and pointed at real code —
+but it was never measured against the failing page. When it finally was, on
+en.wikipedia.org/wiki/Home_Assistant (16k chars, `EXTRACT_ROUTER_V1`, via the gateway):
+
+```
+max_tokens=1024  -> finish_reason=stop, completion_tokens=62,  valid JSON
+max_tokens=4096  -> finish_reason=stop, completion_tokens=143, valid JSON
+```
+
+62 tokens is 6% of the cap. Raising it changes nothing.
+
+Two transferable lessons. First, a plausible mechanism that explains the symptom is not
+evidence; the cheap measurement (count the actual completion tokens) was available the
+whole time and would have killed the theory in one call. Second, the disconfirming
+evidence was already *inside* the entry — "reproduced across three models" — but got
+absorbed as support for the theory rather than tested against it. A symptom invariant
+across every model is evidence about the *call path*, not about any model's output.
+
+The 1024 cap remains unexposed and is still worth addressing on its own merits (see
+footgun #8) — it was simply not this bug.
 
 
 ### 1. Default model is metered Anthropic
@@ -61,6 +104,25 @@ requires reading `settings.py` source, because it is only in code comments.
 
 - Suggestion: accept `A2WEB_MODEL` / `A2WEB_OPENAI_*` aliases, and/or publish one
   copy-pasteable deploy-time env matrix in the README (var, required?, default, meaning).
+
+### 8. Extraction `max_tokens` is hardcoded at 1024 and unexposed
+
+`Extractor` hardcodes `max_tokens=1024` (`packages/llm_extract/extractor.py`) and is
+constructed without any settings/env override, so an operator cannot tune it from outside
+the image.
+
+This is **not** the cause of footgun #0 — measured on the page that motivated that entry,
+the model returns 62 completion tokens with `finish_reason=stop`, 6% of the cap. But the
+cap is real and unreachable, and a genuinely link-rich page with a verbose model can still
+approach it. Filed on its own merits, explicitly decoupled from the empty-answer story.
+
+- Suggestion: (a) expose `A2WEB_EXTRACT_MAX_TOKENS` so operators can raise it, AND/OR
+  (b) emit the `answer` field FIRST in the router contract so a truncated response still
+  carries the answer (degrades the index, preserves the primary output). Worth pairing
+  with a `finish_reason == "length"` signal surfaced as a distinct operator hint, so a
+  real truncation is never again mistaken for an empty answer — the two are currently
+  indistinguishable on the wire, which is exactly what made #0 diagnosable only from
+  inside the container.
 
 ## Minor friction
 
