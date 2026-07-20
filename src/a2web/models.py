@@ -336,6 +336,36 @@ def extraction_empty_hint(*, content_chars: int) -> OperatorHint:
     )
 
 
+def llm_error_hint(*, message: str, retryable: bool) -> OperatorHint:
+    """The extraction LLM backend itself failed (auth, rate limit, overload,
+    dead session) — distinct from a genuine empty answer.
+
+    Sibling of `extraction_empty_hint`, and the reason it must exist: both
+    produce `answer == ""` over real content, but the honest fix differs
+    completely. `extraction_empty`'s advice — retry, or rephrase the question —
+    is actively wrong for a broken backend, and sends the operator to inspect
+    page content for what is a credentials or availability problem (ADR-0009
+    honesty, applied to the diagnosis rather than the retrieval).
+    """
+    return OperatorHint(
+        code="llm_error",
+        message=(
+            f"Content was fetched, but the extraction LLM backend failed, so no answer could be produced. "
+            f"Provider error: {message}. This is NOT a claim about the page — the content is present and unextracted."
+        ),
+        fix=(
+            "Check the LLM backend (API key, base URL, quota, and that the configured provider is reachable); "
+            "`fetch_raw` returns the content meanwhile. "
+            + (
+                "The provider reported this as transient — retrying may succeed."
+                if retryable
+                else "Retrying will not help until the backend is fixed."
+            )
+        ),
+        severity="critical",
+    )
+
+
 NextLinkKind = Literal["drilldown", "related", "source", "discussion"]
 
 

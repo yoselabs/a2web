@@ -333,6 +333,11 @@ class FetchContext:
     ask: str | None = None
     extracted_answer: str | None = None
     extraction_meta: ExtractionMeta | None = None
+    # Set when the extraction provider call itself failed. Distinguishes a dead
+    # backend from a genuine empty answer — both leave `extracted_answer` empty,
+    # but the caller needs opposite advice for each.
+    extraction_provider_error: str | None = None
+    extraction_provider_error_retryable: bool = False
     # v0.21 router-shape payload — populated when `include_routing=True` and
     # the extractor returned a parseable router-shape envelope. Boundary type
     # from packages/llm_extract; projected into pydantic at the seam in
@@ -2379,6 +2384,10 @@ async def _phase_extract_answer(
     # No-op when no digest was fed. Also the seam a future "links in the answer"
     # eval builds on (findings 2026-07-11-answer-inline-links).
     fc.extracted_answer = fc.link_digest.rehydrate_text(result.answer) if fc.link_digest else result.answer
+    # Carry the provider failure (if any) to the response builder so the
+    # unanswered-ask hint can name the real cause instead of blaming the page.
+    fc.extraction_provider_error = result.provider_error
+    fc.extraction_provider_error_retryable = result.provider_error_retryable
 
     # v0.7 link-discovery: validate LLM-supplied URLs against the markdown
     # the LLM was given. URLs not present in the content are dropped with a

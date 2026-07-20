@@ -13,6 +13,8 @@ passed directly to `fetch()`. No real API calls are made. Verifies:
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 from a2kit.testing import lazy
 
@@ -268,3 +270,115 @@ async def test_ask_without_llm_available_fails_hard_with_critical_hint(
     hint = next(h for h in result.operator_hints if h.code == "llm_unavailable")
     assert hint.severity == "critical"
     assert "API key" in hint.message
+
+
+# --------------------------------------------------------------------- #
+# Provider failure vs. genuine empty answer
+#
+# Both leave `answer == ""` over real content, so before this split they were
+# indistinguishable on the wire and BOTH got `extraction_empty`'s advice —
+# "retry, use fetch_raw, or rephrase the question". That advice is actively
+# wrong for a broken backend: it sends the operator to inspect page content and
+# reword prompts for what is a credentials/availability problem.
+# --------------------------------------------------------------------- #
+
+
+class _ErroringProvider:
+    """Provider whose `complete()` raises, as anyllm backends do on failure."""
+
+    name = "stub"
+
+    def __init__(self, *, message: str, retryable: bool = False) -> None:
+        self.message = message
+        self.retryable = retryable
+        self.calls: list[dict] = []
+
+    async def complete(self, *, system, user, model, **_):
+        self.calls.append({"model": model})
+        from anyllm import AnyLLMError
+
+        raise AnyLLMError(self.message, retryable=self.retryable)
+
+
+def _make_erroring_extractor(state: AppState, *, message: str, retryable: bool = False) -> LlmExtractorResource:
+    provider = _ErroringProvider(message=message, retryable=retryable)
+    return LlmExtractorResource(state.settings, state.sqlite, lazy(provider))
+
+
+@pytest.mark.asyncio
+async def test_provider_error_surfaces_llm_error_not_extraction_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failed provider call must name the backend, never blame the page."""
+    _swap_raw(monkeypatch, (_FIX / "blog.html").read_bytes())
+    state = _make_state()
+
+    result = await fetch(
+        "https://example.org/post",
+        state=state,
+        ask="What is this article about?",
+        llm_extractor=lazy(_make_erroring_extractor(state, message="401 invalid api key")),
+    )
+
+    assert result.status == FetchStatus.failed
+    assert result.retrieval_incomplete is True
+    codes = [h.code for h in result.operator_hints]
+    assert "llm_error" in codes
+    assert "extraction_empty" not in codes  # exactly one story, never both
+    hint = next(h for h in result.operator_hints if h.code == "llm_error")
+    assert hint.severity == "critical"
+    assert "401 invalid api key" in hint.message  # the cause survives to the caller
+    assert "Retrying will not help" in hint.fix  # non-retryable → honest advice
+    assert "extraction provider errored" in result.narrative
+
+
+@pytest.mark.asyncio
+async def test_retryable_provider_error_says_retry_may_help(monkeypatch: pytest.MonkeyPatch) -> None:
+    """anyllm classifies transience; the hint must not flatten that away."""
+    _swap_raw(monkeypatch, (_FIX / "blog.html").read_bytes())
+    state = _make_state()
+
+    result = await fetch(
+        "https://example.org/post",
+        state=state,
+        ask="What is this article about?",
+        llm_extractor=lazy(_make_erroring_extractor(state, message="529 overloaded", retryable=True)),
+    )
+
+    hint = next(h for h in result.operator_hints if h.code == "llm_error")
+    assert "transient" in hint.fix
+    assert "Retrying will not help" not in hint.fix
+
+
+@pytest.mark.asyncio
+async def test_genuine_empty_answer_still_gets_extraction_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The mirror: no provider error → the original story is unchanged."""
+    _swap_raw(monkeypatch, (_FIX / "blog.html").read_bytes())
+    state = _make_state()
+    extractor_res, _ = _make_extractor_resource(state, answer="")
+
+    result = await fetch(
+        "https://example.org/post",
+        state=state,
+        ask="What is this article about?",
+        llm_extractor=lazy(extractor_res),
+    )
+
+    codes = [h.code for h in result.operator_hints]
+    assert "extraction_empty" in codes
+    assert "llm_error" not in codes
+
+
+@pytest.mark.asyncio
+async def test_provider_error_is_logged(monkeypatch: pytest.MonkeyPatch, caplog) -> None:
+    """A live extraction outage must leave a trace — it previously left none."""
+    _swap_raw(monkeypatch, (_FIX / "blog.html").read_bytes())
+    state = _make_state()
+
+    with caplog.at_level(logging.WARNING, logger="a2kit"):
+        await fetch(
+            "https://example.org/post",
+            state=state,
+            ask="What is this article about?",
+            llm_extractor=lazy(_make_erroring_extractor(state, message="401 invalid api key")),
+        )
+
+    assert any(r.getMessage() == "llm_provider_error" for r in caplog.records)

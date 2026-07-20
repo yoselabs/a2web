@@ -118,6 +118,27 @@ urls:
       - "Reports at least two distinct commenter viewpoints"
       - "Does not fabricate specific vote counts it cannot see"
 
+  - slug: reddit-iem-compare
+    # A comparison thread (Aria 2 vs Starfield 2) whose two on-topic comments
+    # trivially answer the "which/how do they differ" question. Guards the
+    # diagnostic-honesty regression seen 2026-07-18: a clean fetch (both comments
+    # present) returned answer:"" with the misleading `extraction_empty` hint —
+    # a swallowed provider AnyLLMError laundered into a "parse failure, retry/
+    # rephrase" story (see change surface-extraction-provider-errors). The floor
+    # correctly hard-failed, but the STATED cause+fix were false. This case's
+    # value: on a page this answerable, a real answer MUST be produced; an empty
+    # answer here means either a genuine extraction gap OR a laundered provider
+    # error — both are regressions worth catching. Content-structural, not text-
+    # brittle: the two comments frame a warm/bright tonal contrast that survives.
+    url: https://www.reddit.com/r/inearfidelity/comments/1egsngc/confused_between_moondrop_starfield_2_and_the/
+    class: comments
+    task: "How do the Aria 2 and Starfield 2 compare per this thread, and what do commenters recommend?"
+    needs: [content_only]
+    criteria:
+      - "Produces a non-empty comparison of the two IEMs"
+      - "Relays at least one commenter's stated tonal distinction (e.g. warmer vs brighter/shouty)"
+      - "Does not fabricate a verdict the thread never states (ADR-0012 neutrality)"
+
   - slug: hn-item
     # id=9224 is the 2007 Dropbox launch thread — a permanently-stable HN
     # item (HN never deletes items) with a famously skeptical top comment.

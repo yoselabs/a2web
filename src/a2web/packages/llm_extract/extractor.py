@@ -10,6 +10,7 @@ Tied to a `Provider` + `PromptTemplate` at construction time. The cache
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -30,6 +31,15 @@ from .wobble import (
 
 if TYPE_CHECKING:
     from .cache import ExtractionCache
+
+# Log on a2kit's logger directly (governed by a2kit's LogConfig) rather than
+# importing the domain `a2web.log` helper — `packages/` may not import from
+# `a2web.<domain>`. Mirrors `wobble/_internal.py`.
+_LOG = logging.getLogger("a2kit")
+
+# Cap the provider-error text on the log event; the full string still rides
+# `ExtractionResult.provider_error` to the operator hint.
+_PROVIDER_ERROR_MAX = 500
 
 
 @dataclass(slots=True)
@@ -78,6 +88,15 @@ class ExtractionResult:
     raw: dict[str, Any] | None = field(default=None)
     next_links: list[LlmNextLink] = field(default_factory=list)
     routing: RouterPayload | None = None
+    # Set ONLY when the provider call itself failed (`AnyLLMError`). An empty
+    # `answer` is ambiguous on its own — a genuine on-contract empty, a parse
+    # failure, and a dead backend all look identical — so this field is what
+    # lets the orchestrator tell the caller a truthful story. `None` on every
+    # success AND on a genuine empty answer.
+    provider_error: str | None = None
+    # Whether the failed provider call is worth retrying (anyllm classifies it).
+    # Meaningless unless `provider_error` is set.
+    provider_error_retryable: bool = False
 
 
 class Extractor:
@@ -218,6 +237,8 @@ class Extractor:
         # hint" path took over. Preserve that seam: catch `AnyLLMError` and rebuild
         # the same empty-answer Completion the old providers produced, so nothing
         # downstream (that never previously saw an exception) starts seeing one.
+        provider_error: str | None = None
+        provider_error_retryable = False
         try:
             response = await self._provider.complete(
                 system=active_template.system,
@@ -228,7 +249,26 @@ class Extractor:
                 parts=parts,
             )
         except AnyLLMError as exc:
-            response = Completion(text="", model=self._model.model, raw={"error": str(exc)})
+            # Keep the degrade seam (callers downstream never saw an exception
+            # here and must not start), but no longer let the cause evaporate:
+            # log it, and carry it out on `ExtractionResult.provider_error` so
+            # the operator hint can name the real failure instead of blaming the
+            # page or the question.
+            provider_error = str(exc)
+            provider_error_retryable = bool(getattr(exc, "retryable", False))
+            _LOG.warning(
+                "llm_provider_error",
+                extra={
+                    "a2kit_fields": {
+                        "model": self._model.model,
+                        "template": active_template.name,
+                        "error": provider_error[:_PROVIDER_ERROR_MAX],
+                        "retryable": provider_error_retryable,
+                        "hint": str(getattr(exc, "hint", "") or ""),
+                    }
+                },
+            )
+            response = Completion(text="", model=self._model.model, raw={"error": provider_error})
 
         routing_payload: RouterPayload | None = None
         if request_routing:
@@ -273,6 +313,8 @@ class Extractor:
             raw=raw_extras,
             next_links=parsed_next_links,
             routing=routing_payload,
+            provider_error=provider_error,
+            provider_error_retryable=provider_error_retryable,
         )
 
 

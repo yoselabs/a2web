@@ -39,6 +39,7 @@ from .models import (
     extraction_empty_hint,
     listing_more_hint,
     listing_partial_hint,
+    llm_error_hint,
 )
 
 if TYPE_CHECKING:
@@ -345,6 +346,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
         fc.extraction_meta is not None and not (fc.extracted_answer or "").strip() and (len(fc.content_md) > 500 or fc.structured_grounded)
     )
     llm_unavailable = any(h.code == "llm_unavailable" for h in fc.operator_hints)
+    provider_errored = bool(fc.extraction_provider_error)
     ask_unanswered = final_verdict == Verdict.ok and bool(fc.ask) and (extraction_empty or llm_unavailable)
     if ask_unanswered:
         status = FetchStatus.failed
@@ -395,7 +397,19 @@ def build_response(fc: FetchContext) -> FetchResponse:
     tokens = TokenCounts(full=len(wrapped_md)) if fc.debug and final_verdict == Verdict.ok and fc.content_md else None
     op_hints: list[OperatorHint] = list(fc.operator_hints)
     if extraction_empty:
-        op_hints.append(extraction_empty_hint(content_chars=len(fc.content_md)))
+        # Exactly one story per unanswered ask. A provider failure and a genuine
+        # parse-empty both land here with `answer == ""`, but their honest fixes
+        # are opposite — "rephrase the question" is actively misleading when the
+        # backend is down — so the cause decides which hint fires, never both.
+        if provider_errored:
+            op_hints.append(
+                llm_error_hint(
+                    message=fc.extraction_provider_error or "",
+                    retryable=fc.extraction_provider_error_retryable,
+                )
+            )
+        else:
+            op_hints.append(extraction_empty_hint(content_chars=len(fc.content_md)))
     # listing-completeness: a partial listing (items fields set, and not cleared
     # by a Slice 2 scroll-to-complete) carries the honest `listing_partial` info
     # signal alongside the structured counts. When only a structural "more
@@ -415,7 +429,12 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # The fetch verdict is `ok` (content retrieved) but `ask` got no answer, so
     # give the failed envelope a coherent narrative instead of the "→ ok" line.
     if ask_unanswered:
-        reason = "no LLM backend configured" if (llm_unavailable and not extraction_empty) else "extraction returned an empty answer"
+        if llm_unavailable and not extraction_empty:
+            reason = "no LLM backend configured"
+        elif provider_errored:
+            reason = f"extraction provider errored: {fc.extraction_provider_error}"
+        else:
+            reason = "extraction returned an empty answer"
         narrative = f"{fc.tier_used} → fetched ok but {reason} ({fmt_dur(total_ms)})."
         diagnostics_summary = f"ask_unanswered ({reason}): {len(fc.content_md)} chars fetched, no answer"
 
