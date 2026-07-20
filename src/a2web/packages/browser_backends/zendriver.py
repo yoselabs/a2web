@@ -22,14 +22,56 @@ engines and the bake-off compares engines, not helper drift.
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from contextlib import suppress
+from pathlib import Path
 from typing import Any
 
 from .base import BackendCookie, RenderedPage, RenderOutcome
 from .playwright import _SCROLL_STABLE_MAX_PASSES, _THIN_FLOOR, _ms, _summarize_exc
 
 _SAMESITE = {"strict": "STRICT", "lax": "LAX", "none": "NONE"}
+
+# Explicit override for the Chromium binary zendriver should drive.
+_EXECUTABLE_ENV = "A2WEB_BROWSER_EXECUTABLE_PATH"
+# Where the published image parks its baked Chromium (Dockerfile sets this).
+_PLAYWRIGHT_PATH_ENV = "PLAYWRIGHT_BROWSERS_PATH"
+
+# Flags a containerized Chromium needs. Without them the process dies during
+# startup and the CDP socket never opens, which surfaces only as zendriver's
+# generic "Failed to connect to browser" — the symptom that made this rung look
+# like a connection bug rather than a launch bug.
+_CONTAINER_ARGS = ("--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu")
+
+
+def _resolve_executable() -> str | None:
+    """Locate a Chromium binary for zendriver, or None to let it auto-discover.
+
+    zendriver's default is to search for a SYSTEM Chrome install. The published
+    image has no system Chrome — its only Chromium lives under
+    `PLAYWRIGHT_BROWSERS_PATH`, installed for patchright — so auto-discovery
+    finds nothing and the robust rung is dead on arrival in every container.
+    Resolution order: explicit override → the Playwright-managed Chromium →
+    None (auto-discover, the developer-machine path).
+    """
+    explicit = os.environ.get(_EXECUTABLE_ENV, "").strip()
+    if explicit:
+        return explicit
+    root = os.environ.get(_PLAYWRIGHT_PATH_ENV, "").strip()
+    if not root:
+        return None
+    base = Path(root)
+    if not base.is_dir():
+        return None
+    # Layout: <root>/chromium-<build>/chrome-linux64/chrome (and the -headless-
+    # shell variant). Take the highest build number so an image carrying two
+    # installs uses the newer one.
+    candidates = sorted(
+        (p for p in base.glob("chromium*/chrome-linux*/chrome") if p.is_file() and os.access(p, os.X_OK)),
+        key=lambda p: p.parts,
+    )
+    return str(candidates[-1]) if candidates else None
 
 
 def _cookie_to_cdp(cookie: BackendCookie, cdp: Any) -> Any:
@@ -89,6 +131,51 @@ async def _scroll_to_stable_cdp(tab: Any, original_html: str, *, max_passes: int
     return best
 
 
+def _stat_binary(path: str) -> tuple[bool, bool]:
+    """`(exists, executable)` for `path`. Sync — call via `asyncio.to_thread`."""
+    return os.path.isfile(path), os.access(path, os.X_OK)
+
+
+async def _launch_diagnostics(executable: str | None) -> str:
+    """Probe the resolved Chromium and return a short ` (…)` suffix, or "".
+
+    zendriver swallows the child's stderr, so a Chromium that dies on startup
+    (missing shared library, unwritable HOME, sandbox denied) is indistinguishable
+    from a slow CDP handshake. Re-run the binary with `--version` and surface
+    what it says. Best-effort and strictly bounded: any failure here degrades to
+    a plain empty suffix rather than masking the original launch error.
+    """
+    if not executable:
+        return " (no Chromium resolved: set A2WEB_BROWSER_EXECUTABLE_PATH, or PLAYWRIGHT_BROWSERS_PATH to a Playwright-managed install)"
+    exists, runnable = await asyncio.to_thread(_stat_binary, executable)
+    if not exists:
+        return f" (resolved binary does not exist: {executable})"
+    if not runnable:
+        return f" (resolved binary is not executable: {executable})"
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            executable,
+            "--version",
+            *_CONTAINER_ARGS,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        try:
+            out, _ = await asyncio.wait_for(proc.communicate(), timeout=10.0)
+        except TimeoutError:
+            with suppress(ProcessLookupError):
+                proc.kill()
+            return f" (probe timed out running {executable} --version)"
+    except Exception as exc:  # probing must never mask the real launch failure
+        return f" (probe failed: {_summarize_exc(exc)})"
+    text = (out or b"").decode("utf-8", "replace").strip()
+    if proc.returncode == 0:
+        # Binary is fine on its own — the failure is in the CDP handshake or the
+        # runtime environment (HOME/user-data-dir writability, seccomp, IPC).
+        return f" (binary OK: {text or executable}; failure is in the CDP handshake, not the binary)"
+    return f" (binary exited {proc.returncode}: {text[:400] or '<no output>'})"
+
+
 class ZendriverBackend:
     """CDP rendering engine. Per-render launch (v1). Satisfies `BrowserBackend`."""
 
@@ -113,6 +200,7 @@ class ZendriverBackend:
         wall_start = time.perf_counter()
         browser: Any | None = None
         try:
+            executable = _resolve_executable()
             try:
                 # zendriver's default connection handshake (0.25s x 10 tries
                 # ~2.5s) gives up before Chromium's CDP socket is ready on a
@@ -120,11 +208,24 @@ class ZendriverBackend:
                 # races it. Widen the window (1s x 15 ~15s headroom); it returns
                 # as soon as the socket answers, so the common path stays fast.
                 config = zd.Config(headless=True)
+                if executable:
+                    config.browser_executable_path = executable
+                for arg in _CONTAINER_ARGS:
+                    config.add_argument(arg)
                 config.browser_connection_timeout = 1.0
                 config.browser_connection_max_tries = 15
                 browser = await zd.start(config=config)
             except Exception as exc:  # launch failed (no binary, sandbox, etc.)
-                return RenderedPage(outcome=RenderOutcome.unavailable, final_url=url, detail=f"browser launch failed: {exc}")
+                # zendriver reports every startup failure as the same opaque
+                # "Failed to connect to browser", which conflates "no binary",
+                # "binary died on startup", and "socket never opened". Attach
+                # what we resolved plus Chromium's own stderr so the operator
+                # sees the real cause instead of a connect-timeout story.
+                return RenderedPage(
+                    outcome=RenderOutcome.unavailable,
+                    final_url=url,
+                    detail=f"browser launch failed: {exc}{await _launch_diagnostics(executable)}",
+                )
 
             if cookies:
                 # Seed cookies on the browser jar BEFORE navigation so the

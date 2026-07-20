@@ -31,9 +31,16 @@ if TYPE_CHECKING:
 
 
 # Re-enable hint for an unavailable engine (missing extra / launch failure).
+# The published image has carried a baked Chromium since 0.46.0, so "build with
+# INSTALL_BROWSER=true" is no longer the container remedy — a container that
+# still reports this is either running a pre-0.46 image or failing to LAUNCH the
+# binary it already has. Name both, since the two need opposite actions.
 _FIX_HINT = (
-    "uv sync --extra browser && patchright install chromium "
-    "(container: docker build --build-arg INSTALL_BROWSER=true)"
+    "local: uv sync --extra browser && patchright install chromium. "
+    "container: the published image bakes Chromium in from 0.46.0 — pull a current tag "
+    "(pre-0.46 images have none). If already on 0.46+, the binary is present but failed to "
+    "launch: check the `detail` for the resolved path and the binary's own output, and "
+    "override with A2WEB_BROWSER_EXECUTABLE_PATH if it lives outside PLAYWRIGHT_BROWSERS_PATH."
 )
 
 # Actionable next step for an internal driver/navigation failure. The driver
