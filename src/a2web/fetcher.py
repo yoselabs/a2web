@@ -43,7 +43,7 @@ from record_mine import Record, RecordSet, extract_records
 
 from . import content_expectations
 from .actions import Action, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
-from .actions.empty import is_confirmed_empty
+from .actions.empty import is_complete_small_page, is_confirmed_empty
 from .actions.terminal import TerminalOutcome, classify_terminal
 from .cache import CacheRow, SqliteResource
 from .cookie_jar import Cookie, CookieJarResource
@@ -79,7 +79,7 @@ from .models import (
     content_thin_hint,
     try_user_browser_hint,
 )
-from .packages.block_detector import LENGTH_FLOOR, looks_like_unrendered_spa
+from .packages.block_detector import LENGTH_FLOOR, THIN_FALLTHROUGH, looks_like_unrendered_spa
 from .packages.block_detector import evaluate as _package_evaluate
 from .packages.browser_backends import BrowserBackend
 from .packages.escalation import EscalationSignal
@@ -179,7 +179,7 @@ def evaluate(
     # payload, so no wall is masked. The `structured_answer` flag is set by the
     # caller from `ContentCandidate.answer_bearing` (strong payloads only).
     promoted_structured = False
-    if structured_answer and verdict is Verdict.length_floor and subsystem is None:
+    if structured_answer and verdict is Verdict.length_floor and subsystem in (None, THIN_FALLTHROUGH):
         verdict = Verdict.ok
         subsystem = None
         promoted_structured = True
@@ -382,6 +382,14 @@ class FetchContext:
     # it — a promoted empty must never be cached); this flag is the single signal
     # the response builders read to override status → ok and synthesize the answer.
     empty_confirmed: bool = False
+    # empty-vs-wall-discrimination sibling: True when `_phase_complete_small_page_promotion`
+    # confirmed a corroborated COMPLETE small page (`is_complete_small_page`) — a thin
+    # `length_floor` page whose independent browser render agreed it is small, not
+    # walled. Unlike the empty flag, this ENABLES extraction (the extractor runs on the
+    # real body) rather than synthesizing an answer. The verdict is left `length_floor`
+    # (so cache_write declines it — never cache a wire-only promotion — and confidence
+    # stays `low`); the response builder promotes status → `ok` via `small_page_promoted()`.
+    small_page_confirmed: bool = False
 
     # Extraction outputs
     content_md: str = ""
@@ -493,6 +501,24 @@ class FetchContext:
     def resolved_verdict(self) -> Verdict:
         """Project the current observation log to a verdict (pure, order-independent)."""
         return resolve_verdict(self.observations)
+
+    def small_page_promoted(self) -> bool:
+        """True when a corroborated complete-small-page is safe to serve as `ok`.
+
+        The flag (`small_page_confirmed`) only marks the page ELIGIBLE — it enables
+        extraction. The promotion to an `ok` status is granted here, read by both
+        `_apply_terminal` (stand down — no `content_thin` failure hint) and
+        `build_response` (status → ok). On the `query`/ask path the `ok` is granted
+        only when extraction actually produced a non-empty answer; if it came back
+        empty the page falls back to the honest `content_thin` failure (no silent
+        miss, ADR-0009). On `fetch_raw` (no `ask`) the small body itself is the
+        deliverable, so eligibility alone promotes.
+        """
+        if not self.small_page_confirmed:
+            return False
+        if self.ask is None:
+            return True
+        return bool((self.extracted_answer or "").strip())
 
     def last_gate_outcome(self) -> GateOutcomeProjection | None:
         """Return the most recent gate observation as a frozen projection.
@@ -1863,6 +1889,28 @@ def _phase_empty_promotion(fc: FetchContext) -> None:
         fc.operator_hints.append(content_empty_hint(fc.final_url))
 
 
+def _phase_complete_small_page_promotion(fc: FetchContext) -> None:
+    """Promote a corroborated COMPLETE small page to an extractable `ok`.
+
+    The non-empty sibling of `_phase_empty_promotion` (empty-vs-wall-discrimination).
+    Runs AFTER `_phase_gate_and_escalate` (so the corroborating browser render + its
+    thin regate are in the log) and BEFORE `_phase_extract_answer` (so the flag can
+    unlock extraction on the real body). Sets `small_page_confirmed` when the pure
+    `is_complete_small_page` conjunction holds — a thin page whose independent browser
+    render agreed it is small, with no wall evidence anywhere.
+
+    The verdict is deliberately left `length_floor`: cache_write declines it (a
+    wire-only promotion is never cached — design decision 1) and `_confidence_for`
+    keeps it `low` (design decision 2). The final `ok` status is granted downstream
+    by `small_page_promoted()` only when extraction produced a non-empty answer.
+    """
+    if fc.resolved_verdict() is Verdict.ok:
+        return
+    if not is_complete_small_page(fc.observations, fc.requested_url):
+        return
+    fc.small_page_confirmed = True
+
+
 def _apply_terminal(fc: FetchContext) -> None:
     """The single systematic terminal floor (ADR-0009), driven by `classify_terminal`.
 
@@ -1892,6 +1940,12 @@ def _apply_terminal(fc: FetchContext) -> None:
     # A corroborated empty was promoted to `ok` upstream (`_phase_empty_promotion`)
     # — it owns its own INFO `content_empty` hint; the failure floor stands down.
     if fc.empty_confirmed:
+        return
+    # A corroborated complete-small-page that produced an answer is a success, not a
+    # thin failure — stand down so no `content_thin` klaxon is attached. If it did NOT
+    # produce an answer (`small_page_promoted()` False), the floor proceeds and the
+    # honest `content_thin` failure is attached below (no silent miss).
+    if fc.small_page_promoted():
         return
     outcome = classify_terminal(fc.observations, fc.resolved_verdict())
     if outcome is TerminalOutcome.wall:
@@ -2185,8 +2239,15 @@ async def _run_pipeline(
     # the agent-facing fields (title, content_md, etc.) are produced by extraction.
     await _phase_extract(fc)
     await _phase_gate_and_escalate(fc, state=state)
+    # empty-vs-wall-discrimination: a thin page whose independent browser render
+    # agreed it is small (not walled) is promoted to an EXTRACTABLE ok — set the
+    # flag here, AFTER the browser corroboration is in the log and BEFORE extraction,
+    # so the extractor runs on the real body. Verdict stays length_floor (cache
+    # declines it, confidence stays low); status → ok is granted downstream.
+    _phase_complete_small_page_promotion(fc)
     # v0.4: optional LLM extraction. Runs only when ask= is set and the fetch
-    # succeeded. Graceful when no API key + no Claude Code OAuth available.
+    # succeeded (or a complete-small-page was promoted). Graceful when no API key +
+    # no Claude Code OAuth available.
     await _phase_extract_answer(fc, state=state)
     # Obstacle-driven render: when the extractor flagged an empty/blocked
     # obstacle (a fat SPA shell that passed the gate), attempt one paid render +
@@ -2309,7 +2370,12 @@ async def _phase_extract_answer(
     """
     if fc.ask is None:
         return
-    if fc.resolved_verdict() is not Verdict.ok or not fc.content_md:
+    # A corroborated complete-small-page (`small_page_confirmed`) is thin — its
+    # verdict is left `length_floor` (so cache declines it) — but it IS extractable:
+    # the whole point of the promotion is that the extractor runs on the real body.
+    # So the ok-verdict gate is relaxed for it; every other non-ok verdict still
+    # skips extraction (no content, or a genuine wall).
+    if (fc.resolved_verdict() is not Verdict.ok and not fc.small_page_confirmed) or not fc.content_md:
         # Failed fetches don't get extraction — no content to extract from.
         # The agent will see status=failed + diagnostics_summary explaining why.
         return

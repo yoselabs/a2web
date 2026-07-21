@@ -714,6 +714,11 @@
           ],
           "default": null
         },
+        "small_page_confirmed": {
+          "default": false,
+          "title": "Small Page Confirmed",
+          "type": "boolean"
+        },
         "started_at": "<volatile>",
         "status": {
           "$ref": "#/$defs/FetchStatus"

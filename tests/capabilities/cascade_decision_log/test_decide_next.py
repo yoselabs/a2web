@@ -119,6 +119,27 @@ def test_blank_page_gate_escalates_to_browser() -> None:
     assert isinstance(action, EscalateBrowser)
 
 
+def test_bare_thin_fallthrough_escalates_once_then_stops() -> None:
+    """empty-vs-wall-discrimination (design decision 4): a bare thin fallthrough
+    (`length_floor` + `thin_fallthrough`) gets exactly ONE browser render — the
+    corroborating witness for is_complete_small_page — never a wasted second."""
+    log = [_tier(Verdict.ok), _gate(Verdict.length_floor, subsystem="thin_fallthrough")]
+    # Zeroth render: the witness is dispatched.
+    assert isinstance(decide_next(log, url="https://tiny.example/p", caps=_FRESH), EscalateBrowser)
+    # After one render, the bare thin page stops (cap 1) — no second render.
+    caps_one = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=1, paid_dispatches=0)
+    action = decide_next(log, url="https://tiny.example/p", caps=caps_one)
+    assert not isinstance(action, EscalateBrowser)
+
+
+def test_non_bare_length_floor_keeps_two_render_budget() -> None:
+    """A floor violation that is NOT the bare thin fallthrough (here an empty-result
+    marker) keeps the existing fast→robust budget — only the bare case is capped."""
+    log = [_tier(Verdict.ok), _gate(Verdict.length_floor, subsystem="empty_result")]
+    caps_one = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=1, paid_dispatches=0)
+    assert isinstance(decide_next(log, url="https://shop.example/search?q=x", caps=caps_one), EscalateBrowser)
+
+
 def test_blank_page_reaches_paid_after_browser_spent() -> None:
     """A blank_page still walled after the browser cap is spent → paid last resort."""
     log = [_tier(Verdict.ok), _gate(Verdict.blank_page, suggested_tier="browser")]

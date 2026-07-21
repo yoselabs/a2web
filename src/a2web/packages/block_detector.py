@@ -115,6 +115,14 @@ _BLOCK_PATTERNS = (
 # wall verdict (the branch runs AFTER every wall/JS-shell/blank branch). The empty
 # space does not converge (millions of sites, every language), so this is NOT
 # grown into a wall-style authority — the conjunction is what makes it safe.
+# Positive marker for the no-evidence thin fallthrough (a short 200 with no
+# anti-bot fingerprint, no JS shell, no blank body, no empty-result phrase). Named
+# and exported so the planner can cap its escalation at one render and
+# `is_complete_small_page` can key its corroboration term on it — distinguishing a
+# genuinely-small page from a wall-suspicious floor violation without a new
+# on-the-wire verdict string (empty-vs-wall-discrimination sibling).
+THIN_FALLTHROUGH = "thin_fallthrough"
+
 _EMPTY_RESULT_PATTERNS = (
     re.compile(r"\bno results?\b", re.IGNORECASE),
     re.compile(r"\bno matches?\b", re.IGNORECASE),
@@ -324,6 +332,9 @@ def evaluate(
         # escalation and no `ok` promotion (that is the orchestrator's conjunction).
         if _matches_empty_result(content_md, raw_html):
             return BlockResult(BlockVerdict.length_floor, subsystem="empty_result")
-        return BlockResult(BlockVerdict.length_floor)
+        # The no-evidence fallthrough: positively marked so the planner caps its
+        # browser escalation at one witness render and the complete-small-page
+        # promotion can corroborate on it (vs a wall-suspicious floor violation).
+        return BlockResult(BlockVerdict.length_floor, subsystem=THIN_FALLTHROUGH)
 
     return BlockResult(BlockVerdict.ok)

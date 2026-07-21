@@ -33,6 +33,7 @@ from enum import IntEnum
 
 from ..decision_log import Observation, ObservationKind
 from ..models import Verdict
+from ..packages.block_detector import THIN_FALLTHROUGH
 
 
 @dataclass(slots=True, frozen=True)
@@ -362,11 +363,17 @@ def _decide_gate_thin_escalate(ctx: _RuleContext) -> Action | None:
     last = ctx.last
     if last is None:
         return None
-    if (
-        last.kind is ObservationKind.gate_outcome
-        and last.verdict in (Verdict.length_floor, Verdict.other)
-        and ctx.caps.browser_dispatches < 2
-    ):
+    if last.kind is not ObservationKind.gate_outcome or last.verdict not in (Verdict.length_floor, Verdict.other):
+        return None
+    # empty-vs-wall-discrimination (design decision 4): a bare thin fallthrough
+    # (a short, marker-free page) gets EXACTLY ONE browser render — the corroborating
+    # witness `is_complete_small_page` needs; a second only re-confirms the page is
+    # small (wasted proxy render). A floor violation carrying wall/empty suspicion
+    # (`other`, or a `length_floor` NOT marked `THIN_FALLTHROUGH`) keeps the full
+    # fast→robust budget.
+    is_bare_thin = last.verdict is Verdict.length_floor and last.subsystem == THIN_FALLTHROUGH
+    cap = 1 if is_bare_thin else 2
+    if ctx.caps.browser_dispatches < cap:
         return EscalateBrowser()
     return None
 

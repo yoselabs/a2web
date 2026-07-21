@@ -168,6 +168,16 @@ with a correct extracted answer.
   fetched content but only the length floor "failed", surface that as a distinct low-signal
   status rather than a bare `failed` (it reads as an error to a first-time operator).
 
+- **RESOLVED (2026-07-21, `honest-tiny-page-length-floor`).** The suggestion's second
+  half shipped as the real fix: `length_floor` conflated "walled/empty" with "too little
+  to extract". `is_complete_small_page` (a strict sibling of `is_confirmed_empty`) now
+  promotes a thin page to `status: ok` — extraction runs on the real body — when an
+  independent browser render corroborates that it is small-not-walled (no wall/
+  subresource/challenge evidence anywhere). `example.com` now answers at `confidence:
+  low` instead of failing. The promotion is wire-only (never cached) and errs toward the
+  wall on any ambiguity (the empty-vs-wall false-positive asymmetry). Regression-guarded
+  by the `tiny-complete-page` corpus entry + `test_complete_small_page_promotion.py`.
+
 ### 6. Tool descriptions hardcode "Haiku 4.5" even when `OPENAI_MODEL` overrides it
 
 `a2web web ask --help` (and the MCP tool description) states "the server-side Haiku

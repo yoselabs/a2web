@@ -168,7 +168,7 @@ def test_bare_length_floor_stays_failed_without_structured_answer() -> None:
         structured_answer=False,
     )
     assert r.verdict == Verdict.length_floor
-    assert r.subsystem is None
+    assert r.subsystem == "thin_fallthrough"  # bare no-evidence fallthrough, positively marked
 
 
 def test_js_required_shell_not_masked_by_structured_answer() -> None:

@@ -317,6 +317,15 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # the failed-only incompleteness guards below — keeps them from firing.
     if fc.empty_confirmed:
         status = FetchStatus.ok
+    # empty-vs-wall-discrimination sibling: a corroborated COMPLETE small page whose
+    # extractor produced an answer (`small_page_promoted()`) is a success — an honest
+    # answer from a genuinely-small unwalled body. The verdict stays `length_floor`
+    # (cache declined it; confidence stays `low`), but the caller-facing status is
+    # `ok`. Unlike the empty promotion this carries a real extracted `answer`, not a
+    # synthetic "no results". A promotion that produced NO answer stays `failed` and
+    # falls through to the `content_thin` incompleteness guard below.
+    if fc.small_page_promoted():
+        status = FetchStatus.ok
     # never-silently-miss: `retrieval_incomplete` is derived from the systematic
     # floor, not a parallel wall-verdict whitelist. Every wall now carries the
     # critical `try_user_browser` hint (emitted by `_prescribe_browser_on_wall`),
@@ -469,6 +478,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
         operator_hints=op_hints,
         retrieval_incomplete=retrieval_incomplete,
         structured_grounded=fc.structured_grounded,
+        small_page_confirmed=fc.small_page_confirmed,
         comments_loaded=fc.comments_loaded,
         comments_total=fc.comments_total,
         items_loaded=fc.items_loaded,
@@ -588,7 +598,13 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     # incomplete (the `confidence = low` cap above is retained as the honest
     # hedge). `blocked`, an empty answer, and non-grounded pages are unaffected.
     structured_grounded_empty = obstacle == "empty" and bool((fr.extracted_answer or "").strip()) and fr.structured_grounded
-    if obstacle in _INCOMPLETE_OBSTACLES and not structured_grounded_empty:
+    # empty-vs-wall-discrimination: same carve-out for a corroborated complete small
+    # page that produced an answer — its browser render already confirmed the page is
+    # small-not-walled, so the LLM's `obstacle: empty` on a genuinely-tiny body is a
+    # false positive. `blocked` is NOT carved out (an LLM wall-sighting is a witness
+    # we respect — the false-positive asymmetry errs toward the wall).
+    small_page_answered = obstacle == "empty" and bool((fr.extracted_answer or "").strip()) and fr.small_page_confirmed
+    if obstacle in _INCOMPLETE_OBSTACLES and not structured_grounded_empty and not small_page_answered:
         retrieval_incomplete = True
         op_hints.append(
             OperatorHint(

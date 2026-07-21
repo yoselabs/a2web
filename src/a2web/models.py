@@ -604,6 +604,13 @@ class FetchResponse(BaseModel):
     # false `obstacle: empty` incompleteness flag (structured-grounded-completeness).
     structured_grounded: bool = Field(default=False, exclude=True)
 
+    # Internal signal (never on the wire — `exclude=True`): a corroborated complete
+    # small page (`is_complete_small_page`) was promoted to ok. `build_ask_response`
+    # reads it — as with `structured_grounded` — to suppress a false `obstacle: empty`
+    # incompleteness flag on a genuinely-tiny page the LLM under-read as empty
+    # (empty-vs-wall-discrimination).
+    small_page_confirmed: bool = Field(default=False, exclude=True)
+
     # reddit-via-zyte content-expectations: loaded vs authoritative-oracle
     # comment counts for a comment-bearing page. Both None (omitted from the
     # wire) unless a handler measured them. When `comments_total` exceeds

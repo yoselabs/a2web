@@ -30,6 +30,7 @@ from collections.abc import Sequence
 from ..decision_log import Observation, ObservationKind
 from ..domain import is_search_shaped
 from ..models import Verdict
+from ..packages.block_detector import THIN_FALLTHROUGH
 from .terminal import has_hard_wall_evidence, has_subresource_block_evidence
 
 # Statuses that betray a wall anywhere in the log — an empty reading is not
@@ -70,4 +71,50 @@ def is_confirmed_empty(observations: Sequence[Observation], url: str) -> bool:
     return is_search_shaped(url)
 
 
-__all__ = ["is_confirmed_empty"]
+def is_complete_small_page(observations: Sequence[Observation], url: str) -> bool:
+    """True when a thin retrieved page is a corroborated COMPLETE small page —
+    safe to promote to `ok` and run extraction on the real body.
+
+    A strict sibling of `is_confirmed_empty`, sharing every evidence primitive but
+    for two deliberate differences (design decision 3, empty-vs-wall-discrimination):
+
+    - **No URL-shape term.** A small complete page can live at any route, not only
+      a search URL. `url` is kept in the signature for call-site symmetry with
+      `is_confirmed_empty` (both promotion phases call `(observations, requested_url)`).
+    - **Corroboration is agreement on thinness-without-a-wall, not on emptiness.**
+      Instead of the browser reading an empty-result marker, the browser regate must
+      itself be a bare thin fallthrough (`length_floor` + `THIN_FALLTHROUGH`): both
+      the HTTP read and the independent browser render returned a non-empty body
+      under the length floor with no wall. A `blank_page` browser read is a hard-wall
+      verdict (excluded by term 1), so a `length_floor` regate means non-empty-thin.
+
+    The false-positive asymmetry is preserved: any hard-wall or subresource-block
+    evidence anywhere forbids the promotion, so a walled 200-shell that fake-empties
+    both egress paths stays a `failed` `content_thin`, never a confident answer.
+
+    Every conjunction term must hold:
+
+    1. NO hard-wall gate evidence and NO subresource-block evidence anywhere;
+    2. NO challenge status (401/403/429) on any observation;
+    3. an HTTP tier independently returned a body (the raw retrieval won);
+    4. an independent BROWSER render corroborated the thinness — a regate gate
+       outcome that is itself a bare thin fallthrough (`length_floor` +
+       `THIN_FALLTHROUGH`, i.e. non-empty, under-floor, no empty-result marker).
+    """
+    del url  # no URL-shape term (design decision 3); kept for call-site symmetry
+    if has_hard_wall_evidence(observations) or has_subresource_block_evidence(observations):
+        return False
+    if any(o.status_code in _CHALLENGE_STATUSES for o in observations):
+        return False
+    if not any(o.kind is ObservationKind.tier_outcome and o.verdict is Verdict.ok for o in observations):
+        return False
+    return any(
+        o.kind is ObservationKind.gate_outcome
+        and o.source == _REGATE_SOURCE
+        and o.verdict is Verdict.length_floor
+        and o.subsystem == THIN_FALLTHROUGH
+        for o in observations
+    )
+
+
+__all__ = ["is_complete_small_page", "is_confirmed_empty"]

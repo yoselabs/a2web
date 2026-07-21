@@ -420,3 +420,22 @@ urls:
       - "When the browser render records a blocked page subresource (a 4xx/challenge on an XHR/fetch), classifies the fetch as a WALL (`retrieval_incomplete` + critical `try_user_browser`), NOT an empty result"
       - "NEVER promotes a rendered '0 results' to `ok` when its data API was blocked — the products exist behind the wall"
       - "Does NOT fabricate products or prices"
+
+  - slug: tiny-complete-page
+    # honest-tiny-page-length-floor (2026-07-21): the inverse of the walled-thin
+    # cases above. example.com is a genuinely TINY but COMPLETE, unwalled, non-search
+    # page (~230 chars). `length_floor` conflates "too thin to be a real answer" with
+    # "walled/empty", so a naive fetcher fails it as `content_thin`. a2web must
+    # promote it: an independent browser render agrees the page is small (not walled),
+    # so the extractor runs on the real body and the caller gets an honest answer at
+    # `status: ok` (confidence `low` — it IS thin), never `retrieval_incomplete`.
+    # Structural fact: example.com is a stable, tiny, complete, unwalled page whose
+    # body plainly states it is a reserved documentation-example domain.
+    url: https://example.com/
+    class: clean
+    task: "What is this page about?"
+    needs: [content_only]
+    criteria:
+      - "Answers that this is a reserved / example domain for use in documentation, from the page's own body"
+      - "Returns `status: ok` with a populated answer — NOT `failed` / `retrieval_incomplete` / a `content_thin` wall hedge (a tiny complete page is not a miss)"
+      - "Does NOT claim the page is blocked, walled, or empty; does NOT fabricate content beyond the small body"

@@ -52,6 +52,19 @@ exactly the walled-API fake-empty case the invariant was built around, and the
 same browser-as-second-retrieval defense applies. If any wall evidence appears,
 the page stays a `failed` `content_thin` — never promoted.
 
+## Decisions — CONFIRMED 2026-07-21 (Phase-A gate cleared)
+
+All four confirmed as recommended. Implementation notes discovered while wiring:
+the flag-based promotion (mirror of `empty_confirmed`) leaves the verdict at
+`length_floor`, which makes BOTH the never-cache decision (1b) and the `low`
+confidence decision (2) fall out **for free** — `_phase_cache_write` gates on
+`verdict is ok` and `_confidence_for` returns `low` for any non-`ok` verdict. The
+promotion is a flag the response builder reads (status → `ok`), not a verdict
+flip. Extraction is unlocked by extending the `_phase_extract_answer` guard to
+also run under the flag; the `ok` status is granted only when extraction actually
+produced a non-empty answer (else the page falls back to the honest `content_thin`
+failure — no silent miss).
+
 ## Open decisions for confirmation
 
 1. **Cacheability.** The empty promotion is never cached because a wrongly-cached

@@ -86,7 +86,25 @@ def test_length_floor_without_block_markers() -> None:
     body = "<html><body><p>A short paragraph of real text, thin but present.</p></body></html>"
     result = _eval(body, content_md="A short paragraph of real text, thin but present.")
     assert result.verdict == BlockVerdict.length_floor
-    assert result.subsystem is None
+    assert result.subsystem == "thin_fallthrough"  # bare no-evidence fallthrough, positively marked
+
+
+def test_bare_thin_fallthrough_is_positively_marked_and_wall_markers_are_not() -> None:
+    """The no-evidence fallthrough (short, no anti-bot/JS-shell/blank/empty marker)
+    is positively tagged `thin_fallthrough` so the planner can cap its escalation at
+    one witness render and `is_complete_small_page` can corroborate on it. A short
+    page carrying a wall/empty fingerprint keeps its OWN subsystem — never
+    `thin_fallthrough` — so a wall-suspicious floor violation stays distinguishable."""
+    small = "A small but whole page of real prose, thin yet clearly present and readable."
+    bare = _eval(f"<html><body><p>{small}</p></body></html>", content_md=small)
+    assert bare.verdict == BlockVerdict.length_floor
+    assert bare.subsystem == "thin_fallthrough"
+
+    # A short JS-shell keeps js_required (a wall-suspicious floor violation), NOT the
+    # bare marker — proving the two shapes are distinguishable.
+    shell = _eval('<html><body><div id="root"></div><script>app()</script></body></html>', content_md="")
+    assert shell.verdict == BlockVerdict.length_floor
+    assert shell.subsystem == "js_required"
 
 
 # --------------------------------------------------------------------- #
@@ -136,7 +154,7 @@ def test_hyphenated_attributes_alone_do_not_trigger() -> None:
     # Thin-but-present (above the blank threshold) so this isolates the marker
     # false-positive check from blank-page detection.
     assert result.verdict == BlockVerdict.length_floor
-    assert result.subsystem is None
+    assert result.subsystem == "thin_fallthrough"  # bare no-evidence fallthrough, positively marked
     assert result.escalation is None
 
 
@@ -164,7 +182,7 @@ def test_generic_solution_field_alone_does_not_trigger() -> None:
     body = f'<html><body><form><label>{text}</label><input name="solution" /></form><script>noop()</script></body></html>'
     result = _eval(body, content_md=text)
     assert result.verdict == BlockVerdict.length_floor
-    assert result.subsystem is None
+    assert result.subsystem == "thin_fallthrough"  # bare no-evidence fallthrough, positively marked
     assert result.escalation is None
 
 
@@ -226,7 +244,7 @@ def test_prose_mentioning_captcha_is_not_a_false_positive() -> None:
     md = "This short quiz uses a captcha to check that real people are answering."
     result = _eval(body, content_md=md)
     assert result.verdict == BlockVerdict.length_floor
-    assert result.subsystem is None
+    assert result.subsystem == "thin_fallthrough"  # bare no-evidence fallthrough, positively marked
     assert result.escalation is None
 
 
