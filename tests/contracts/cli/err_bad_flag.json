@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "web",
+    "fetch_raw",
+    "--url",
+    "https://example.org/x",
+    "--nope"
+  ],
+  "exit_code": 2,
+  "stdout": "",
+  "stderr": "Usage: a2web web fetch_raw [OPTIONS]\nTry 'a2web web fetch_raw --help' for help.\n\nError: No such option: --nope Did you mean --no-debug?\n"
+}

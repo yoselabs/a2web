@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "web",
+    "query",
+    "--url",
+    "https://example.org/x",
+    "--query",
+    "topic",
+    "--debug"
+  ],
+  "exit_code": 0,
+  "stdout": "{\"confidence\":\"medium\",\"answer\":\"Frozen capture answer: adaptive fetching keeps the caller's context small.\",\"title\":\"Section One\",\"debug\":{\"extraction\":{\"truncated\":false,\"model\":\"stub-model\",\"template_name\":\"stub-template\",\"prompt_tokens\":100,\"completion_tokens\":20,\"cost_usd\":0.0,\"latency_ms\":<scrubbed>,\"cache_hit\":false},\"started_at\":<scrubbed>,\"total_ms\":<scrubbed>,\"cache\":\"miss\",\"diagnostics\":[{\"t_ms\":<scrubbed>,\"step\":\"raw\",\"engine\":\"curl_cffi\",\"host\":\"example.org\",\"proxy\":\"direct\",\"verdict\":\"ok\",\"subsystem\":null,\"dur_ms\":<scrubbed>,\"extra\":{\"status_code\":200}},{\"t_ms\":<scrubbed>,\"step\":\"extract\",\"engine\":\"trafilatura\",\"host\":null,\"proxy\":null,\"verdict\":\"ok\",\"subsystem\":null,\"dur_ms\":<scrubbed>,\"extra\":{\"chars\":1165}},{\"t_ms\":<scrubbed>,\"step\":\"gate\",\"engine\":\"block_detector\",\"host\":null,\"proxy\":null,\"verdict\":\"ok\",\"subsystem\":null,\"dur_ms\":<scrubbed>,\"extra\":{}}]}}\n",
+  "stderr": ""
+}

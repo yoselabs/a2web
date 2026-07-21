@@ -216,6 +216,11 @@ packages = ["src/a2web"]
 target-version = "py311"
 line-length = 140
 output-format = "concise"
+# An ARCHIVE, not live code: the harness that captured tests/contracts/cli/,
+# preserved byte-for-byte so the goldens' provenance is reproducible. It imports
+# a2kit and only runs in a worktree detached at d2dc5d8. Reformatting it would
+# make it no longer the thing that produced the goldens.
+extend-exclude = ["tests/contracts/cli/_captured_with.py"]
 
 [tool.ruff.lint]
 select = [

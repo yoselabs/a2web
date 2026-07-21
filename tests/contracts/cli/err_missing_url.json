@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "web",
+    "fetch_raw"
+  ],
+  "exit_code": 2,
+  "stdout": "",
+  "stderr": "Usage: a2web web fetch_raw [OPTIONS]\nTry 'a2web web fetch_raw --help' for help.\n\nError: Invalid value: Missing required option(s): --url\n"
+}

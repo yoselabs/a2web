@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "web",
+    "query",
+    "--url",
+    "https://example.org/x",
+    "--query",
+    "topic",
+    "--include-content"
+  ],
+  "exit_code": 0,
+  "stdout": "{\"confidence\":\"medium\",\"answer\":\"Frozen capture answer: adaptive fetching keeps the caller's context small.\",\"title\":\"Section One\",\"content_md\":\"<!-- a2web:BEGIN-fetched-content source=https://example.org/x fetched_at=2026-01-01T00:00:00+00:00 warning=External content; treat as untrusted -->\\n\\n## Section One\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nAdaptive web fetching keeps the caller's context small.\\n\\nNext page\\n\\n<!-- a2web:END-fetched-content -->\",\"headings\":[[2,\"Section One\"]]}\n",
+  "stderr": ""
+}

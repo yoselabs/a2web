@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "web",
+    "query",
+    "--url",
+    "https://example.org/x",
+    "--query",
+    "topic"
+  ],
+  "exit_code": 0,
+  "stdout": "{\"confidence\":\"medium\",\"answer\":\"Frozen capture answer: adaptive fetching keeps the caller's context small.\",\"title\":\"Section One\"}\n",
+  "stderr": ""
+}

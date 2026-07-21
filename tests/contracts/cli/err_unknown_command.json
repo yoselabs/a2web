@@ -1,0 +1,8 @@
+{
+  "argv": [
+    "nosuchcommand"
+  ],
+  "exit_code": 2,
+  "stdout": "",
+  "stderr": "Usage: a2web [OPTIONS] COMMAND [ARGS]...\nTry 'a2web --help' for help.\n\nError: No such command 'nosuchcommand'.\n"
+}

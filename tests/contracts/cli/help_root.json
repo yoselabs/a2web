@@ -1,0 +1,8 @@
+{
+  "argv": [
+    "--help"
+  ],
+  "exit_code": 0,
+  "stdout": "Usage: a2web [OPTIONS] COMMAND [ARGS]...\n\n  a2web — agent toolkit CLI.\n\n  Routers:   web  (run `a2web web --help` for tools)   _meta  (run `a2web\n  _meta --help` for tools)\n\nOptions:\n  --help  Show this message and exit.\n\nCommands:\n  schema      Print tool schemas.\n  list-tools  List every registered tool with its declared errors.\n  serve       Run the a2kit server.\n  code        Run Python in the code-execution sandbox.\n  health      Run aggregated health probe; exits non-zero on degraded.\n  web         Tools in router 'web'.\n  _meta       Tools in router '_meta'.\n",
+  "stderr": ""
+}

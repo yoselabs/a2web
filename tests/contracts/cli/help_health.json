@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "health",
+    "--help"
+  ],
+  "exit_code": 0,
+  "stdout": "Usage: a2web health [OPTIONS]\n\n  Run aggregated health probe; exits non-zero on degraded.\n\nOptions:\n  --help  Show this message and exit.\n",
+  "stderr": ""
+}

@@ -1,0 +1,9 @@
+{
+  "argv": [
+    "web",
+    "--help"
+  ],
+  "exit_code": 0,
+  "stdout": "Usage: a2web web [OPTIONS] COMMAND [ARGS]...\n\n  Tools in router 'web'.\n\nOptions:\n  --help  Show this message and exit.\n\nCommands:\n  query      **Primary web-fetch tool. Use this for any question about a web\n             page.**\n  fetch_raw  **Fallback only — prefer `query` for ~95%% of web reads.**\n",
+  "stderr": ""
+}

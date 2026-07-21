@@ -30,7 +30,10 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
+from . import __version__
 from . import log as a2web_log
 from ._manifests.sinks import Sink
 from ._plugin import load_surface
@@ -99,6 +102,7 @@ def build_mcp_server(
 
     mcp.add_middleware(TypedErrorEnvelopeMiddleware())
     mcp.add_middleware(EnvelopeContentMiddleware())
+    _register_health_route(mcp, parts)
     return mcp
 
 
@@ -114,6 +118,34 @@ async def check_sqlite(sqlite: SqliteResource) -> bool:
     assertion here.
     """
     return sqlite is not None
+
+
+def _register_health_route(mcp: FastMCP, parts: Components) -> None:
+    """Serve `GET /health` — the route the Dockerfile HEALTHCHECK curls.
+
+    a2kit's multiplex parent served this for free, so the sunset's Phase 4
+    silently 404'd it: the container kept serving MCP correctly while every
+    30s probe failed, which after `--retries=3` marks the container unhealthy
+    and invites an orchestrator restart-loop on a perfectly healthy process.
+    Nothing in the test suite noticed, because the probe lived in the
+    Dockerfile rather than in Python. It is restored here, next to the check
+    it calls, so the two cannot drift apart again.
+
+    Deliberately dumb, matching the old behaviour: it reports that the
+    substrate opened, not that the service is useful. `check_sqlite` owns the
+    scope reasoning — read it before adding an assertion here.
+    """
+
+    @mcp.custom_route("/health", methods=["GET"], include_in_schema=False)
+    async def _health(_request: Request) -> JSONResponse:
+        try:
+            sqlite = await parts.sqlite()
+            ok = await check_sqlite(sqlite)
+        except Exception as exc:
+            return JSONResponse({"status": "error", "detail": str(exc)}, status_code=503)
+        if not ok:
+            return JSONResponse({"status": "degraded"}, status_code=503)
+        return JSONResponse({"status": "ok", "version": __version__})
 
 
 def main() -> None:
