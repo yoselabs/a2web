@@ -192,6 +192,29 @@ async def test_no_browser_corroboration_is_not_promoted(monkeypatch: pytest.Monk
     assert "try_user_browser" not in {h.code for h in fr.operator_hints}  # thin, not a wall
 
 
+# A JS-SPA shell: has <script> + a root marker → the gate fingerprints it as
+# `js_required` (a WALL fingerprint, not a bare thin page). Under the extraction floor.
+_SPA_SHELL_HTML = b'<html><body><div id="root"></div><script>window.__app=1</script></body></html>'
+
+
+@pytest.mark.asyncio
+async def test_js_required_spa_underrendered_is_not_promoted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A `js_required` SPA whose fast browser only under-renders a thin body must NOT
+    be promoted as a 'complete small page' — a JS shell that failed to render is a
+    wall-shaped miss, not a genuinely tiny page. The gate fingerprint (`js_required`)
+    disqualifies it even though the browser regate is thin."""
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw", body=_SPA_SHELL_HTML))
+    _install_small_browser(monkeypatch)  # browser renders the same tiny body (under-render)
+    state = make_default_state()
+    extractor_res, provider = _extractor(state, answer="should not be surfaced as complete")
+
+    fr = await fetch("https://spa.example/app", state=state, ask="what is this", llm_extractor=lazy(extractor_res), debug=True)
+
+    assert fr.status == FetchStatus.failed  # a js-shell under-render is not a complete small page
+    assert provider.calls == 0  # never promoted → extraction never ran on the shell
+
+
 @pytest.mark.asyncio
 async def test_promoted_small_page_is_never_cached(monkeypatch: pytest.MonkeyPatch) -> None:
     """A promoted small page keeps verdict `length_floor` (only the caller-facing

@@ -34,6 +34,7 @@ from enum import IntEnum
 from ..decision_log import Observation, ObservationKind
 from ..models import Verdict
 from ..packages.block_detector import THIN_FALLTHROUGH
+from .terminal import has_hard_wall_evidence, has_shell_fingerprint
 
 
 @dataclass(slots=True, frozen=True)
@@ -366,12 +367,20 @@ def _decide_gate_thin_escalate(ctx: _RuleContext) -> Action | None:
     if last.kind is not ObservationKind.gate_outcome or last.verdict not in (Verdict.length_floor, Verdict.other):
         return None
     # empty-vs-wall-discrimination (design decision 4): a bare thin fallthrough
-    # (a short, marker-free page) gets EXACTLY ONE browser render — the corroborating
-    # witness `is_complete_small_page` needs; a second only re-confirms the page is
-    # small (wasted proxy render). A floor violation carrying wall/empty suspicion
-    # (`other`, or a `length_floor` NOT marked `THIN_FALLTHROUGH`) keeps the full
-    # fast→robust budget.
-    is_bare_thin = last.verdict is Verdict.length_floor and last.subsystem == THIN_FALLTHROUGH
+    # (a short, marker-free page with NO shell/wall fingerprint anywhere in the log)
+    # gets EXACTLY ONE browser render — the corroborating witness `is_complete_small_page`
+    # needs; a second only re-confirms the page is small (wasted proxy render). A floor
+    # violation carrying wall/empty/shell suspicion (`other`, a `length_floor` NOT
+    # marked `THIN_FALLTHROUGH`, or a fetch whose log holds a `js_required`/shell
+    # fingerprint — e.g. an under-rendered SPA whose markdown regate lost the
+    # fingerprint) keeps the full fast→robust budget so the distinct robust engine
+    # still gets its attempt.
+    is_bare_thin = (
+        last.verdict is Verdict.length_floor
+        and last.subsystem == THIN_FALLTHROUGH
+        and not has_shell_fingerprint(ctx.log)
+        and not has_hard_wall_evidence(ctx.log)
+    )
     cap = 1 if is_bare_thin else 2
     if ctx.caps.browser_dispatches < cap:
         return EscalateBrowser()

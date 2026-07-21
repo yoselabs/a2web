@@ -96,3 +96,25 @@ def test_no_http_body_does_not_promote() -> None:
     """Only a browser regate, no winning HTTP tier → not corroborated by two paths."""
     log = [_tier(Verdict.connection_error, status_code=0), _regate_thin()]
     assert is_complete_small_page(log, _URL) is False
+
+
+def test_js_required_shell_fingerprint_forbids_promotion() -> None:
+    """An under-rendered SPA — a `js_required` gate fingerprint plus a thin browser
+    regate — is a wall-shaped miss, NOT a complete small page. The fingerprint
+    disqualifies it even though the browser regate looks like a bare thin page."""
+    log = [
+        _tier(Verdict.ok, status_code=200),
+        _gate(Verdict.length_floor, subsystem="js_required"),
+        _regate_thin(),
+    ]
+    assert is_complete_small_page(log, _URL) is False
+
+
+def test_thin_browser_response_fingerprint_forbids_promotion() -> None:
+    """A known JS-heavy host's thin browser response is a shell fingerprint too."""
+    log = [
+        _tier(Verdict.ok, status_code=200),
+        _gate(Verdict.length_floor, subsystem="thin_browser_response"),
+        _regate_thin(),
+    ]
+    assert is_complete_small_page(log, _URL) is False

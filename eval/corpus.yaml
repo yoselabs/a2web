@@ -439,3 +439,22 @@ urls:
       - "Answers that this is a reserved / example domain for use in documentation, from the page's own body"
       - "Returns `status: ok` with a populated answer — NOT `failed` / `retrieval_incomplete` / a `content_thin` wall hedge (a tiny complete page is not a miss)"
       - "Does NOT claim the page is blocked, walled, or empty; does NOT fabricate content beyond the small body"
+
+  - slug: hard-anti-bot-robust-escalation
+    # fix-zendriver-robust-rung §3.2 (2026-07-21): a hard anti-bot page (DataDome /
+    # a strong Cloudflare managed challenge) that the FAST browser rung
+    # (patchright) does not reliably pass, so the DISTINCT robust rung is the second,
+    # independent witness that gets through. This entry keeps the escalation path
+    # scored: if `browser_robust` silently degrades to the SAME engine as the fast
+    # rung (the homelab workaround while zendriver is dead), the second render is a
+    # correlated retry, not independence — and this case regresses from
+    # answered→walled rather than failing silently. Structural fact: the product
+    # page carries pricing + specs a distinct evasion engine can retrieve.
+    url: https://www.nike.com/t/air-force-1-07-mens-shoes-jBrhbr/CW2288-111
+    class: gated
+    task: "What is this product and its price?"
+    needs: [content+links]
+    criteria:
+      - "Either retrieves the product (name + price from the page) via browser escalation, OR reports an honest WALL (`retrieval_incomplete` + critical `try_user_browser`) — never a fabricated answer"
+      - "Does NOT silently present an empty or partial shell as complete when the render was blocked"
+      - "A degraded run (same-engine robust rung) should score WORSE (walled) here, not pass silently — the escalation path must stay observable"

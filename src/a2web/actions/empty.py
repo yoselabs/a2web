@@ -31,7 +31,7 @@ from ..decision_log import Observation, ObservationKind
 from ..domain import is_search_shaped
 from ..models import Verdict
 from ..packages.block_detector import THIN_FALLTHROUGH
-from .terminal import has_hard_wall_evidence, has_subresource_block_evidence
+from .terminal import has_hard_wall_evidence, has_shell_fingerprint, has_subresource_block_evidence
 
 # Statuses that betray a wall anywhere in the log — an empty reading is not
 # credible if any tier was refused or challenged.
@@ -94,7 +94,11 @@ def is_complete_small_page(observations: Sequence[Observation], url: str) -> boo
 
     Every conjunction term must hold:
 
-    1. NO hard-wall gate evidence and NO subresource-block evidence anywhere;
+    1. NO hard-wall gate evidence, NO subresource-block evidence, and NO shell
+       fingerprint (`js_required` / `thin_browser_response` / `empty_result`)
+       anywhere — a thin page carrying any of these is a wall-shaped miss or an
+       empty result, not a genuinely small complete page (an under-rendered SPA
+       shell must never be promoted as a tiny page);
     2. NO challenge status (401/403/429) on any observation;
     3. an HTTP tier independently returned a body (the raw retrieval won);
     4. an independent BROWSER render corroborated the thinness — a regate gate
@@ -103,6 +107,8 @@ def is_complete_small_page(observations: Sequence[Observation], url: str) -> boo
     """
     del url  # no URL-shape term (design decision 3); kept for call-site symmetry
     if has_hard_wall_evidence(observations) or has_subresource_block_evidence(observations):
+        return False
+    if has_shell_fingerprint(observations):
         return False
     if any(o.status_code in _CHALLENGE_STATUSES for o in observations):
         return False

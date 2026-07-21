@@ -107,4 +107,40 @@ class CookiesStale:
     threshold_hours: int
 
 
-Event = TierStarted | TierEnded | StageStarted | StageEnded | TierHeartbeat | CookiesAttached | CookiesStale | BrowserSubprocessStderr
+@dataclass(slots=True)
+class CorrelatedWitnessRung:
+    """Emitted when the robust browser rung dispatches with the SAME engine as
+    the fast rung — a correlated-witness degradation.
+
+    `browser_robust` is supposed to be a distinct, independent evasion engine so
+    that a second escalation is a genuine second witness. Independence is
+    load-bearing: `classify_terminal` grants `gone_confirmed` only on >=2 tier
+    agreement and `is_confirmed_empty` requires an independent browser render. When
+    `browser_backend_robust == browser_backend` (e.g. the homelab workaround that
+    points the robust rung at patchright while zendriver is dead), the second
+    render is a same-engine retry, not an independent witness — and that tilts the
+    empty-vs-wall false-positive asymmetry without announcing it.
+
+    This event makes the degradation OBSERVABLE: it is the detectable revert
+    trigger for the workaround, so the decision to restore a distinct engine rides
+    on a log/operator signal instead of institutional memory. Zero events on a
+    correctly-configured deployment (distinct robust engine) or when the robust
+    rung never fires. Emitted at WARNING level.
+    """
+
+    t_ms: int
+    engine: str  # the engine both rungs resolved to
+    host: str | None = None
+
+
+Event = (
+    TierStarted
+    | TierEnded
+    | StageStarted
+    | StageEnded
+    | TierHeartbeat
+    | CookiesAttached
+    | CookiesStale
+    | BrowserSubprocessStderr
+    | CorrelatedWitnessRung
+)

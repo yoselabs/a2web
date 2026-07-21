@@ -140,6 +140,20 @@ def test_non_bare_length_floor_keeps_two_render_budget() -> None:
     assert isinstance(decide_next(log, url="https://shop.example/search?q=x", caps=caps_one), EscalateBrowser)
 
 
+def test_shell_fingerprinted_thin_regate_keeps_two_render_budget() -> None:
+    """An under-rendered SPA: a `js_required` gate fingerprint EARLIER in the log +
+    a bare thin_fallthrough regate NOW (its markdown lost the fingerprint). The
+    distinct robust engine still gets its attempt — the one-render cap applies only
+    to a genuinely bare thin fetch with no fingerprint anywhere."""
+    log = [
+        _tier(Verdict.ok),
+        _gate(Verdict.length_floor, subsystem="js_required"),
+        _gate(Verdict.length_floor, subsystem="thin_fallthrough"),
+    ]
+    caps_one = PlannerCaps(url_rewrites=0, archive_dispatches=0, browser_dispatches=1, paid_dispatches=0)
+    assert isinstance(decide_next(log, url="https://spa.example/app", caps=caps_one), EscalateBrowser)
+
+
 def test_blank_page_reaches_paid_after_browser_spent() -> None:
     """A blank_page still walled after the browser cap is spent → paid last resort."""
     log = [_tier(Verdict.ok), _gate(Verdict.blank_page, suggested_tier="browser")]

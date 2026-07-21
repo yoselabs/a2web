@@ -57,7 +57,7 @@ from .domain import (
     strip_reader_prefix,
 )
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
-from .events.types import CookiesAttached, CookiesStale
+from .events.types import CookiesAttached, CookiesStale, CorrelatedWitnessRung
 from .fetcher_response import _INCOMPLETE_OBSTACLES, build_response
 from .link_digest import LinkDigest, build_digest
 from .listing_oracle import listing_has_more, listing_oracle
@@ -2010,6 +2010,22 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
     is_robust = fc.browser_dispatches >= 1
     rung = "browser_robust" if is_robust else "browser"
     engine = state.settings.browser_backend_robust if is_robust else state.settings.browser_backend
+    # Correlated-witness detection (fix-zendriver-robust-rung §3): the robust rung
+    # is supposed to be a DISTINCT engine from the fast rung so a second escalation
+    # is an independent second witness (load-bearing for classify_terminal's >=2
+    # agreement + is_confirmed_empty). When it resolves to the same engine (the
+    # homelab workaround pointing browser_robust at patchright while zendriver is
+    # dead), the render is a same-engine retry, not independence — emit a WARNING so
+    # the degradation is a detectable revert trigger, not institutional memory.
+    correlated_witness = is_robust and state.settings.browser_backend_robust == state.settings.browser_backend
+    if correlated_witness:
+        await a2kit.log.warning(
+            CorrelatedWitnessRung(
+                t_ms=int((time.perf_counter() - fc.start_perf) * 1000),
+                engine=engine,
+                host=_host(fc.final_url),
+            ),
+        )
     backend: BrowserBackend | None
     try:
         backend = await (fc.browser_robust_backend() if is_robust else fc.browser_backend())
@@ -2036,7 +2052,11 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
             proxy=None,
             verdict=browser_result.verdict,
             dur_ms=br_dur_ms,
-            extra={"status_code": browser_result.status_code},
+            extra=(
+                {"status_code": browser_result.status_code, "correlated_witness": engine}
+                if correlated_witness
+                else {"status_code": browser_result.status_code}
+            ),
         )
     )
     # Record subresource-block evidence (a page XHR/fetch challenged during render)

@@ -90,9 +90,28 @@ _HARD_WALL_GATE_VERDICTS = frozenset(
 )
 
 
+# Gate subsystems that fingerprint a thin page as a SHELL / non-bare miss, not a
+# genuinely small complete page: a JS-required SPA shell, a known JS-heavy host's
+# thin browser response, or an empty-result marker. `length_floor` carrying any of
+# these is NOT a bare thin fallthrough — the complete-small-page promotion must
+# exclude it (an under-rendered SPA is a wall-shaped miss, not a tiny page), and the
+# planner keeps the full robust-render budget for it (a distinct engine is a legit
+# second attempt on a shell).
+_SHELL_FINGERPRINT_SUBSYSTEMS = frozenset({"js_required", "thin_browser_response", "empty_result"})
+
+
 def has_hard_wall_evidence(observations: Sequence[Observation]) -> bool:
     """True if ANY gate observation in the whole log is a hard-wall verdict."""
     return any(o.kind is ObservationKind.gate_outcome and o.verdict in _HARD_WALL_GATE_VERDICTS for o in observations)
+
+
+def has_shell_fingerprint(observations: Sequence[Observation]) -> bool:
+    """True if ANY gate observation fingerprinted a thin page as a shell/non-bare
+    miss (`js_required` / `thin_browser_response` / `empty_result`). Distinct from
+    `has_hard_wall_evidence`: these ride on a `length_floor` verdict (a soft thin
+    signal) rather than a hard-wall verdict, but they still mean the thin page is
+    NOT a genuinely small complete one."""
+    return any(o.kind is ObservationKind.gate_outcome and o.subsystem in _SHELL_FINGERPRINT_SUBSYSTEMS for o in observations)
 
 
 def has_subresource_block_evidence(observations: Sequence[Observation]) -> bool:
@@ -184,5 +203,6 @@ __all__ = [
     "classify_terminal",
     "has_empty_marker",
     "has_hard_wall_evidence",
+    "has_shell_fingerprint",
     "has_subresource_block_evidence",
 ]

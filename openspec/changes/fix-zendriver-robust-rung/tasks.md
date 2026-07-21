@@ -27,18 +27,34 @@
       profile of a working backend, or a reinstated Camoufox rung). Ensure it is
       genuinely a different engine/fingerprint than the fast `browser` rung.
 
-## 3. Correlated-witness detection (independent of the branch)
+## 3. Correlated-witness detection (independent of the branch) — DONE 2026-07-21
 
-- [ ] 3.1 Emit a signal (log event + a `TierResult`/decision-log field) when the
-      resolved `browser_robust` engine equals the resolved `browser` engine, so a
-      same-engine fallback is observable. This is the detectable revert-trigger
-      for the homelab workaround.
-- [ ] 3.2 Add a corpus entry (`eval/corpus.yaml`) for the hard-anti-bot
-      escalation path so a same-engine robust rung shows up as degraded scoring
-      rather than silence (the `affordance`/escalation class).
+- [x] 3.1 `CorrelatedWitnessRung` typed event (`events/types.py`) emitted at WARNING
+      from `_escalate_browser` when the robust rung fires with
+      `browser_backend_robust == browser_backend`, plus a `correlated_witness` stamp
+      on the `browser_robust` diagnostic (the decision-log/debug-surfaced field). The
+      detectable revert-trigger for the homelab workaround — a log/operator signal,
+      not institutional memory. Tests: `test_correlated_witness.py` (signal fires on
+      same-engine, silent on distinct engines).
+- [x] 3.2 Corpus entry `hard-anti-bot-robust-escalation` (a DataDome/Cloudflare-hard
+      product page) — a same-engine robust rung scores worse (walled) rather than
+      passing silently, keeping the escalation path observable.
+
+  Side-fix discovered while tracing the ladder for §3: the released v0.47.0
+  `is_complete_small_page` promotion could FALSE-POSITIVE on an under-rendered
+  `js_required` SPA (js_required is not hard-wall evidence, so a thin browser regate
+  looked like a bare small page). Added `has_shell_fingerprint` (js_required /
+  thin_browser_response / empty_result) as a disqualifier for the promotion AND made
+  the one-render escalation cap fingerprint-aware so a fingerprinted SPA keeps its
+  full fast→robust budget (the distinct robust engine still gets its attempt).
 
 ## 4. Gate
 
-- [ ] 4.1 `make check` green.
-- [ ] 4.2 If the robust rung changed engines or launch behavior, run `make bench`
-      (live-network) to confirm anti-bot escalation quality did not regress.
+- [x] 4.1 `make check` green (§3 + the length_floor side-fix).
+- [ ] 4.2 (DEFERRED with §1-2) `make bench` — run once the robust rung's engine/launch
+      is actually changed by the blocked fix; §3 alone did not change render behavior.
+
+## Blocked (needs the container — unchanged)
+
+- Section 1 (diagnose the CDP handshake) and Section 2 (fix-or-drop) remain blocked
+  on a diagnostic run inside the published image; cannot be done from a macOS host.
