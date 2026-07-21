@@ -8,6 +8,22 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.47.2] — 2026-07-21
+
+> CI-gate fix — the first successfully-published image of the 0.47 line. No
+> runtime change over 0.47.1 (the 0.47.0/0.47.1 gate builds failed before the
+> image step, so neither published).
+
+### Fixed
+
+- **Provider-selection tests no longer depend on a Claude Code session.** The
+  provider fix in 0.47.0 made `claude-code`'s `available()` a real
+  session-credential probe, so the two `_pick_provider` tests raised
+  `LLMNotAvailable` on a session-less CI runner (they passed on dev machines,
+  which have a session — the exact environment divergence the fix was about).
+  They now pin availability via `monkeypatch`, asserting selection order rather
+  than the environment probe. CI-only; no runtime behavior change.
+
 ## [0.47.1] — 2026-07-21
 
 > Correctness + observability follow-up to 0.47.0.
