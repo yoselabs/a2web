@@ -15,10 +15,10 @@ def _make_record(name: str, payload: dict[str, Any]) -> logging.LogRecord:
     """Build a LogRecord shaped like a2kit's typed-event emission.
 
     `getMessage()` returns the event-type name; the payload rides on
-    `record.a2kit_fields` (a2kit attaches it via `extra={"a2kit_fields": ...}`).
+    `record.fields` (a2kit attaches it via `extra={"fields": ...}`).
     """
     record = logging.LogRecord("a2kit", logging.INFO, __file__, 0, name, None, None)
-    record.a2kit_fields = payload  # type: ignore[attr-defined]
+    record.fields = payload  # type: ignore[attr-defined]
     return record
 
 

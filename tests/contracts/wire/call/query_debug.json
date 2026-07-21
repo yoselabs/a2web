@@ -1,0 +1,67 @@
+{
+  "content": [
+    {
+      "text": "{\"confidence\":\"medium\",\"answer\":\"The page is about adaptive web fetching.\",\"debug\":{\"extraction\":{\"truncated\":false,\"model\":\"claude-haiku-4-5-20251001\",\"template_name\":\"extract_router_v1\",\"prompt_tokens\":120,\"completion_tokens\":14,\"cost_usd\":0.0003,\"latency_ms\":88,\"cache_hit\":false},\"started_at\":\"2026-01-01T00:00:00Z\",\"total_ms\":0,\"cache\":\"miss\",\"diagnostics\":[{\"t_ms\":0,\"step\":\"raw\",\"engine\":\"curl_cffi\",\"host\":\"example.org\",\"proxy\":\"direct\",\"verdict\":\"ok\",\"subsystem\":null,\"dur_ms\":0,\"extra\":{\"status_code\":200}},{\"t_ms\":0,\"step\":\"extract\",\"engine\":\"trafilatura\",\"host\":null,\"proxy\":null,\"verdict\":\"ok\",\"subsystem\":null,\"dur_ms\":0,\"extra\":{\"chars\":1919}},{\"t_ms\":0,\"step\":\"gate\",\"engine\":\"block_detector\",\"host\":null,\"proxy\":null,\"verdict\":\"ok\",\"subsystem\":null,\"dur_ms\":0,\"extra\":{}}]},\"operator_hints\":\"\\n\",\"_operator_hints_format\":\"tsv\",\"headings\":\"\\n\",\"_headings_format\":\"tsv\",\"other_pages\":\"\\n\",\"_other_pages_format\":\"tsv\",\"refinement_axes\":\"\\n\",\"_refinement_axes_format\":\"tsv\",\"options\":\"\\n\",\"_options_format\":\"tsv\"}",
+      "type": "text"
+    }
+  ],
+  "is_error": false,
+  "structured_content": {
+    "answer": "The page is about adaptive web fetching.",
+    "confidence": "medium",
+    "debug": {
+      "cache": "miss",
+      "diagnostics": [
+        {
+          "dur_ms": 0,
+          "engine": "curl_cffi",
+          "extra": {
+            "status_code": 200
+          },
+          "host": "example.org",
+          "proxy": "direct",
+          "step": "raw",
+          "subsystem": null,
+          "t_ms": 0,
+          "verdict": "ok"
+        },
+        {
+          "dur_ms": 0,
+          "engine": "trafilatura",
+          "extra": {
+            "chars": 1919
+          },
+          "host": null,
+          "proxy": null,
+          "step": "extract",
+          "subsystem": null,
+          "t_ms": 0,
+          "verdict": "ok"
+        },
+        {
+          "dur_ms": 0,
+          "engine": "block_detector",
+          "extra": {},
+          "host": null,
+          "proxy": null,
+          "step": "gate",
+          "subsystem": null,
+          "t_ms": 0,
+          "verdict": "ok"
+        }
+      ],
+      "extraction": {
+        "cache_hit": false,
+        "completion_tokens": 14,
+        "cost_usd": 0.0003,
+        "latency_ms": 88,
+        "model": "claude-haiku-4-5-20251001",
+        "prompt_tokens": 120,
+        "template_name": "extract_router_v1",
+        "truncated": false
+      },
+      "started_at": "2026-01-01T00:00:00Z",
+      "total_ms": 0
+    }
+  }
+}

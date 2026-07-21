@@ -34,9 +34,8 @@ from typing import TYPE_CHECKING
 from .settings import AppSettings
 
 if TYPE_CHECKING:
-    from a2kit.packages.di import Lazy
-
     from .cache import SqliteResource
+    from .lazy import Lazy
     from .packages.llm_extract import ExtractionResult, Extractor, LlmNextLink, Provider
 
 

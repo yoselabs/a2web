@@ -6,7 +6,7 @@ and later Patchright / rebrowser). Absorbs the former `BrowserPool` (per-host
 LRU context reuse, idle eviction, driver-stderr capture) plus the page-driving
 render mechanics that used to live in the browser tier.
 
-Domain-free: emits diagnostics via stdlib logging on the `a2kit` logger
+Domain-free: emits diagnostics via stdlib logging on the `a2web` logger
 (scroll-retry) or an injected async `stderr_sink` (driver stderr); the domain
 wires the typed-event side. Returns the engine-neutral `RenderedPage`.
 """
@@ -28,7 +28,7 @@ from .base import BackendCookie, RenderedPage, RenderOutcome
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Coroutine
 
-_A2KIT_LOG = logging.getLogger("a2kit")
+_LOG = logging.getLogger("a2web")
 
 # First-snapshot length below which a JS-heavy host triggers scroll-on-thin.
 _THIN_FLOOR = 4_096
@@ -122,12 +122,12 @@ async def _scroll_and_retry(page: Any, original_html: str) -> str:
     """Scroll-to-bottom + 2s networkidle wait + re-snapshot.
 
     Returns whichever capture (original or post-scroll) is longer. Never
-    raises. Emits `browser_scroll_retry` diagnostics on the `a2kit` logger
-    (typed-record shape: message = event name, payload on `a2kit_fields`) so
+    raises. Emits `browser_scroll_retry` diagnostics on the `a2web` logger
+    (typed-record shape: message = event name, payload on `fields`) so
     operators measure firing rate without coupling this package to the domain
     event types.
     """
-    _A2KIT_LOG.info("StageStarted", extra={"a2kit_fields": {"t_ms": 0, "step": "browser_scroll_retry"}})
+    _LOG.info("StageStarted", extra={"fields": {"t_ms": 0, "step": "browser_scroll_retry"}})
     start = time.perf_counter()
     larger = original_html
     outcome = "smaller"
@@ -146,7 +146,7 @@ async def _scroll_and_retry(page: Any, original_html: str) -> str:
         outcome = "timeout"
     dur_ms = int((time.perf_counter() - start) * 1000)
     fields = {"t_ms": 0, "step": "browser_scroll_retry", "verdict": "ok", "dur_ms": dur_ms, "extra": {"outcome": outcome}}
-    _A2KIT_LOG.info("StageEnded", extra={"a2kit_fields": fields})
+    _LOG.info("StageEnded", extra={"fields": fields})
     return larger
 
 
@@ -159,9 +159,9 @@ async def _scroll_to_stable(page: Any, original_html: str, *, max_passes: int = 
     materialised) OR `max_passes` is reached (the safety bound for an
     ever-growing / virtualised page). Never raises — a page error ends the loop
     and returns the best capture so far. Emits `browser_scroll_stable` diagnostics
-    on the `a2kit` logger (typed-record shape) so operators measure firing rate.
+    on the `a2web` logger (typed-record shape) so operators measure firing rate.
     """
-    _A2KIT_LOG.info("StageStarted", extra={"a2kit_fields": {"t_ms": 0, "step": "browser_scroll_stable"}})
+    _LOG.info("StageStarted", extra={"fields": {"t_ms": 0, "step": "browser_scroll_stable"}})
     start = time.perf_counter()
     best = original_html
     passes = 0
@@ -181,7 +181,7 @@ async def _scroll_to_stable(page: Any, original_html: str, *, max_passes: int = 
         best = html
     dur_ms = int((time.perf_counter() - start) * 1000)
     fields = {"t_ms": 0, "step": "browser_scroll_stable", "verdict": "ok", "dur_ms": dur_ms, "extra": {"passes": passes}}
-    _A2KIT_LOG.info("StageEnded", extra={"a2kit_fields": fields})
+    _LOG.info("StageEnded", extra={"fields": fields})
     return best
 
 

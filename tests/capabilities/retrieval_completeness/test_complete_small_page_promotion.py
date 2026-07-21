@@ -16,10 +16,10 @@ hard-wall marker) forbids the promotion, so a walled 230-char shell stays a loud
 from __future__ import annotations
 
 import pytest
-from a2kit.testing import lazy
 
 from a2web.fetcher import fetch
 from a2web.fetcher_response import build_ask_response
+from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
 from a2web.models import CacheState, Confidence, FetchStatus, Verdict
 from a2web.packages.llm_extract import ProviderResponse

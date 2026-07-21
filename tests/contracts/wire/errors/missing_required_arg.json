@@ -1,0 +1,10 @@
+{
+  "content": [
+    {
+      "text": "2 validation errors for call[query]\nurl\n  Missing required keyword only argument [type=missing_keyword_only_argument, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing_keyword_only_argument\nquery\n  Missing required keyword only argument [type=missing_keyword_only_argument, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing_keyword_only_argument",
+      "type": "text"
+    }
+  ],
+  "is_error": true,
+  "structured_content": null
+}

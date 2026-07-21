@@ -35,7 +35,7 @@ class _CapturingHandler(logging.Handler):
     """Test handler that records every LogRecord for invariant assertions.
 
     Mirrors how a sink reads a2kit's typed-event records: `record.getMessage()`
-    is the event-type name, `record.a2kit_fields` the payload dict.
+    is the event-type name, `record.fields` the payload dict.
     """
 
     def __init__(self) -> None:
@@ -98,8 +98,8 @@ async def test_every_cell_emits_one_start_and_one_end(tmp_path: Path) -> None:
     assert len(started) == 4, started
     assert len(ended) == 4, ended
 
-    pairs = {(r.a2kit_fields["slug"], r.a2kit_fields["system_name"]) for r in started}
-    end_pairs = {(r.a2kit_fields["slug"], r.a2kit_fields["system_name"]) for r in ended}
+    pairs = {(r.fields["slug"], r.fields["system_name"]) for r in started}
+    end_pairs = {(r.fields["slug"], r.fields["system_name"]) for r in ended}
     assert pairs == end_pairs == {("a", "stubOk"), ("b", "stubOk")}
 
 
@@ -120,8 +120,8 @@ async def test_failing_cell_still_emits_cell_ended_with_fail(tmp_path: Path) -> 
     ended = [r for r in capture.records if r.getMessage() == "CellEnded"]
     assert len(ended) == 2  # 2 corpus x 1 system
     for r in ended:
-        assert r.a2kit_fields["verdict"] == "fail"
-        assert r.a2kit_fields["failure_reason"] == "system_raised"
+        assert r.fields["verdict"] == "fail"
+        assert r.fields["failure_reason"] == "system_raised"
 
 
 @pytest.mark.asyncio

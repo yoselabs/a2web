@@ -19,10 +19,11 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Generic, NewType, TypeVar
 
-# Package-pure: emit directly on the stdlib `a2kit` logger (governed by
-# a2kit's LogConfig) rather than importing the domain `a2web.log` helper —
-# `packages/` may not import from `a2web.<domain>`.
-_LOG = logging.getLogger("a2kit")
+# Package-pure: emit on the `a2web` logger by NAME rather than importing
+# `a2web.log` — `packages/` may not import from `a2web.<domain>` (tach.toml).
+# Record shape is identical (message + `fields` payload), so the same sinks
+# drain it; only the import is avoided.
+_LOG = logging.getLogger("a2web")
 
 _RAW_EXCERPT_MAX = 200
 
@@ -143,7 +144,7 @@ def emit_wobble(
     _LOG.warning(
         "llm_wobble",
         extra={
-            "a2kit_fields": {
+            "fields": {
                 "boundary": boundary,
                 "field": field,
                 "tolerance": tolerance.value,

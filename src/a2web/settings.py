@@ -101,6 +101,16 @@ class AppSettings(BaseSettings):
     diagnostics_default: Literal["off", "brief", "full"] = "off"
     live_only_hosts: list[str] = Field(default_factory=lambda: ["reddit.com", "news.ycombinator.com"])
 
+    # Logging. Two knobs replace a2kit's nine-field `LogConfig`: a2web attaches
+    # exactly one sink (OTel, itself gated on the SDK being installed) and never
+    # writes to a stream of its own, so the stderr/live/call-log/dir/threshold
+    # fields had nothing to configure here. `log_wire_level` is separate from
+    # `log_level` because the MCP notification stream is the one channel that is
+    # not a stdlib handler and cannot self-filter.
+    log_enabled: bool = True
+    log_level: Literal["debug", "info", "warning", "error"] = "info"
+    log_wire_level: Literal["debug", "info", "warning", "error"] = "info"
+
     jina_key: str = ""
     jina_deny_hosts: list[str] = Field(default_factory=list)
 

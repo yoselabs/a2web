@@ -13,18 +13,17 @@ passed directly to `fetch()`. No real API calls are made. Verifies:
 
 from __future__ import annotations
 
-import logging
-
 import pytest
-from a2kit.testing import lazy
 
 from a2web.fetcher import fetch
+from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
 from a2web.models import FetchStatus
 from a2web.packages.llm_extract import Provider
 from a2web.settings import AppSettings
 from a2web.state import AppState, unavailable_lazy
 from a2web.tiers import REGISTRY, TierResult
+from tests._helpers.log_capture import capture_log_records
 from tests.conftest import make_default_state
 from tests.fixtures import FIXTURES_DIR
 
@@ -368,12 +367,12 @@ async def test_genuine_empty_answer_still_gets_extraction_empty(monkeypatch: pyt
 
 
 @pytest.mark.asyncio
-async def test_provider_error_is_logged(monkeypatch: pytest.MonkeyPatch, caplog) -> None:
+async def test_provider_error_is_logged(monkeypatch: pytest.MonkeyPatch) -> None:
     """A live extraction outage must leave a trace — it previously left none."""
     _swap_raw(monkeypatch, (_FIX / "blog.html").read_bytes())
     state = _make_state()
 
-    with caplog.at_level(logging.WARNING, logger="a2kit"):
+    with capture_log_records() as records:
         await fetch(
             "https://example.org/post",
             state=state,
@@ -381,4 +380,4 @@ async def test_provider_error_is_logged(monkeypatch: pytest.MonkeyPatch, caplog)
             llm_extractor=lazy(_make_erroring_extractor(state, message="401 invalid api key")),
         )
 
-    assert any(r.getMessage() == "llm_provider_error" for r in caplog.records)
+    assert any(r.getMessage() == "llm_provider_error" for r in records)

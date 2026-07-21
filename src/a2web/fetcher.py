@@ -21,10 +21,7 @@ from enum import Enum
 from typing import Literal, cast
 from urllib.parse import urlparse
 
-import a2kit
-import a2kit.log
 import aiosqlite
-from a2kit import Lazy
 from content_extract import (
     extract_markdown as _package_extract_markdown,
 )
@@ -42,6 +39,7 @@ from json_in_html import (
 from record_mine import Record, RecordSet, extract_records
 
 from . import content_expectations
+from . import log as a2web_log
 from .actions import Action, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
 from .actions.empty import is_complete_small_page, is_confirmed_empty
 from .actions.terminal import TerminalOutcome, classify_terminal
@@ -59,6 +57,7 @@ from .domain import (
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .events.types import CookiesAttached, CookiesStale, CorrelatedWitnessRung
 from .fetcher_response import _INCOMPLETE_OBSTACLES, build_response
+from .lazy import Lazy
 from .link_digest import LinkDigest, build_digest
 from .listing_oracle import listing_has_more, listing_oracle
 from .llm_resource import LlmExtractorResource
@@ -570,7 +569,7 @@ async def fetch(
 ) -> FetchResponse:
     """Run the v0.1 cascade for one URL.
 
-    Emits typed phase-boundary events via `await a2kit.log.info(EventInstance(...))`
+    Emits typed phase-boundary events via `await a2web_log.info(EventInstance(...))`
     (stdlib logging). The synchronous log to the `a2kit`
     logger always fires; the optional MCP-wire forward only happens under a tool
     dispatch. Outside a dispatch (eval/systems direct call) the emit still logs —
@@ -704,9 +703,9 @@ async def fetch(
 # --------------------------------------------------------------------- #
 
 
-# Note: typed events emit directly via `await a2kit.log.info(event)`.
+# Note: typed events emit directly via `await a2web_log.info(event)`.
 # a2kit resolves a dataclass/pydantic instance to a `LogRecord` whose message
-# is the type name and whose payload dict rides on `record.a2kit_fields`
+# is the type name and whose payload dict rides on `record.fields`
 # (`dataclasses.asdict` + Enum.value coercion). No flattener needed at this seam.
 
 
@@ -723,7 +722,7 @@ async def _emit_tier_started(
 ) -> int:
     """Emit `TierStarted` at the current perf-clock tick; return the relative ms."""
     start_ms = int((time.perf_counter() - start_perf) * 1000)
-    await a2kit.log.info(TierStarted(t_ms=start_ms, step=step, host=host))
+    await a2web_log.info(TierStarted(t_ms=start_ms, step=step, host=host))
     return start_ms
 
 
@@ -738,7 +737,7 @@ async def _emit_tier_ended(
 ) -> int:
     """Emit `TierEnded` and return the elapsed `dur_ms` (relative to `start_ms`)."""
     dur_ms = int((time.perf_counter() - start_perf) * 1000) - start_ms
-    await a2kit.log.info(
+    await a2web_log.info(
         TierEnded(
             t_ms=start_ms,
             step=step,
@@ -788,7 +787,7 @@ async def _phase_resolve_cookies(fc: FetchContext, *, state: AppState) -> None:
 
     if cookies_full:
         t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-        await a2kit.log.info(
+        await a2web_log.info(
             CookiesAttached(
                 t_ms=t_ms,
                 host=host,
@@ -836,7 +835,7 @@ async def _phase_cookies_staleness(fc: FetchContext, *, state: AppState) -> None
         ),
     )
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.log.info(
+    await a2web_log.info(
         CookiesStale(
             t_ms=t_ms,
             profile=state.settings.cookie_profile,
@@ -1123,7 +1122,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.proxy_unavailable)
                 continue
 
-            await a2kit.log.info(TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
+            await a2web_log.info(TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
 
             tier_result = await tier.fetch(
                 fc.url,
@@ -1306,7 +1305,7 @@ async def _phase_extract(fc: FetchContext) -> None:
     if not (fc.body and fc.resolved_verdict() is Verdict.ok):
         return
 
-    await a2kit.log.info(StageStarted(t_ms=extract_dur_start, step="extract"))
+    await a2web_log.info(StageStarted(t_ms=extract_dur_start, step="extract"))
     extract_result = await extract_markdown(raw_html, fc.final_url)
     fc.content_md = extract_result.content_md
     fc.title = extract_result.title
@@ -1330,7 +1329,7 @@ async def _phase_extract(fc: FetchContext) -> None:
             extra={"chars": len(fc.content_md)},
         )
     )
-    await a2kit.log.info(
+    await a2web_log.info(
         StageEnded(
             t_ms=extract_dur_start,
             step="extract",
@@ -1622,7 +1621,7 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[Content
     telemetry, does NOT mutate `fc.content_md`.
     """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.log.info(StageStarted(t_ms=t_ms, step="json_synth"))
+    await a2web_log.info(StageStarted(t_ms=t_ms, step="json_synth"))
     payloads = extract_json_payloads(raw_html)
     candidates: list[ContentCandidate] = []
     seen: set[str] = set()
@@ -1640,7 +1639,7 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[Content
             )
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
     outcome = "no_payloads" if not payloads else ("no_synth" if not candidates else "collected")
-    await a2kit.log.info(
+    await a2web_log.info(
         StageEnded(
             t_ms=t_ms,
             step="json_synth",
@@ -1660,7 +1659,7 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCa
     Pure function — no mutation of `fc.content_md` / `fc.next_links_handler`.
     """
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.log.info(StageStarted(t_ms=t_ms, step="record_synth"))
+    await a2web_log.info(StageStarted(t_ms=t_ms, step="record_synth"))
     record_set = extract_records(raw_html, base_url=fc.final_url or "")
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
     if record_set is not None:
@@ -1672,7 +1671,7 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCa
             fc.record_count = len(record_set.records)
             fc.record_set = record_set
             next_links = _records_to_next_links(record_set, page_url=fc.final_url or "")
-            await a2kit.log.info(
+            await a2web_log.info(
                 StageEnded(
                     t_ms=t_ms,
                     step="record_synth",
@@ -1687,7 +1686,7 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCa
             )
             return ContentCandidate(source="record_synth", content_md=synthetic, next_links=next_links, is_threaded=record_set.is_threaded)
     outcome = "no_records" if record_set is None else "no_synth"
-    await a2kit.log.info(StageEnded(t_ms=t_ms, step="record_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
+    await a2web_log.info(StageEnded(t_ms=t_ms, step="record_synth", verdict=Verdict.ok, dur_ms=dur_ms, extra={"outcome": outcome}))
     return None
 
 
@@ -1784,7 +1783,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
         return
 
     gate_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.log.info(StageStarted(t_ms=gate_dur_start, step="gate"))
+    await a2web_log.info(StageStarted(t_ms=gate_dur_start, step="gate"))
 
     # Pre-rendered handler results carry application/json bodies; skip the
     # html/content-type guard for them — block-page regexes still run on the
@@ -1821,7 +1820,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
             extra={},
         )
     )
-    await a2kit.log.info(
+    await a2web_log.info(
         StageEnded(t_ms=gate_dur_start, step="gate", verdict=gate_result.verdict, dur_ms=gate_dur_ms),
     )
     fc.observe(
@@ -2019,7 +2018,7 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
     # the degradation is a detectable revert trigger, not institutional memory.
     correlated_witness = is_robust and state.settings.browser_backend_robust == state.settings.browser_backend
     if correlated_witness:
-        await a2kit.log.warning(
+        await a2web_log.warning(
             CorrelatedWitnessRung(
                 t_ms=int((time.perf_counter() - fc.start_perf) * 1000),
                 engine=engine,
@@ -2225,7 +2224,7 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
     assert fc.sqlite is not None  # noqa: S101 — narrowed by should_cache
 
     cache_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.log.info(StageStarted(t_ms=cache_dur_start, step="cache_write"))
+    await a2web_log.info(StageStarted(t_ms=cache_dur_start, step="cache_write"))
     await fc.sqlite.put(
         fc.url,
         fc.profile_hash,
@@ -2237,7 +2236,7 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
         ttl_s=_ttl_for(fc.content_type, state.settings),
     )
     cache_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - cache_dur_start
-    await a2kit.log.info(
+    await a2web_log.info(
         StageEnded(t_ms=cache_dur_start, step="cache_write", verdict=Verdict.ok, dur_ms=cache_dur_ms),
     )
 
@@ -2369,11 +2368,11 @@ async def _record_uptake(fc: FetchContext, state: AppState) -> None:
         conn = await state.sqlite.ensure()
         followed = await note_visit(conn, fc.requested_url)
         if followed:
-            await a2kit.log.info("other_pages_followed", url=fc.requested_url, fulfilled=followed)
+            await a2web_log.info("other_pages_followed", url=fc.requested_url, fulfilled=followed)
         targets = [(e.url, e.off_domain) for e in (fc.routing.other_pages if fc.routing else ()) if e.url]
         stored = await record_suggestions(conn, source_url=fc.requested_url, question=fc.ask, targets=targets)
         if stored:
-            await a2kit.log.info("other_pages_suggested", url=fc.requested_url, count=stored)
+            await a2web_log.info("other_pages_suggested", url=fc.requested_url, count=stored)
     except (aiosqlite.Error, OSError) as exc:  # telemetry is best-effort — never break the fetch
         log_warning("uptake_write_failed", error=str(exc))
 
@@ -2400,7 +2399,7 @@ async def _phase_extract_answer(
         # The agent will see status=failed + diagnostics_summary explaining why.
         return
     phase_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
-    await a2kit.log.info(StageStarted(t_ms=phase_start_ms, step="extract_answer"))
+    await a2web_log.info(StageStarted(t_ms=phase_start_ms, step="extract_answer"))
 
     # v0.7 link-discovery: request next-links from the LLM in the same call.
     # Skip the extension when the off-switch is engaged.
@@ -2453,7 +2452,7 @@ async def _phase_extract_answer(
             )
         )
         dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
-        await a2kit.log.info(
+        await a2web_log.info(
             StageEnded(
                 t_ms=phase_start_ms,
                 step="extract_answer",
@@ -2517,7 +2516,7 @@ async def _phase_extract_answer(
     # model's `item_total_seen` is available — closes the noun-list language gap.
     _apply_llm_listing_oracle(fc)
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
-    await a2kit.log.info(
+    await a2web_log.info(
         StageEnded(
             t_ms=phase_start_ms,
             step="extract_answer",

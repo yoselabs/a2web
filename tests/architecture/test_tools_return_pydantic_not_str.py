@@ -14,6 +14,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from ._walk import walked_files
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SRC_ROOT = _REPO_ROOT / "src" / "a2web"
 
@@ -43,7 +45,7 @@ def _returns_str(annotation: ast.expr | None) -> bool:
 
 def test_no_tool_returns_str() -> None:
     violations: list[str] = []
-    for path in _SRC_ROOT.rglob("*.py"):
+    for path in walked_files(_SRC_ROOT, minimum=80):
         rel = str(path.relative_to(_SRC_ROOT))
         source = path.read_text()
         try:

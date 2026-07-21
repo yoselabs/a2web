@@ -13,6 +13,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from ._walk import walked_files
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SRC_ROOT = _REPO_ROOT / "src" / "a2web"
 
@@ -36,7 +38,7 @@ def _str_tuple(node: ast.AST) -> tuple[str, ...] | None:
 def _scan() -> tuple[list[str], list[str]]:
     surface_hits: list[str] = []
     order_hits: list[str] = []
-    for path in _SRC_ROOT.rglob("*.py"):
+    for path in walked_files(_SRC_ROOT, minimum=80):
         rel = str(path.relative_to(_SRC_ROOT))
         try:
             tree = ast.parse(path.read_text(), filename=str(path))

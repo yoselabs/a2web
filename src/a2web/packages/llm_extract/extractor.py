@@ -32,10 +32,12 @@ from .wobble import (
 if TYPE_CHECKING:
     from .cache import ExtractionCache
 
-# Log on a2kit's logger directly (governed by a2kit's LogConfig) rather than
-# importing the domain `a2web.log` helper — `packages/` may not import from
-# `a2web.<domain>`. Mirrors `wobble/_internal.py`.
-_LOG = logging.getLogger("a2kit")
+# Emit on the `a2web` logger by NAME rather than importing `a2web.log` —
+# `packages/` may not import from `a2web.<domain>` (tach.toml). The record
+# shape is identical to what `a2web.log` produces (message + `fields` payload),
+# so the same sinks drain it; only the import is avoided. A bare logger name is
+# the smallest possible coupling to the host app. Mirrors `wobble/_internal.py`.
+_LOG = logging.getLogger("a2web")
 
 # Cap the provider-error text on the log event; the full string still rides
 # `ExtractionResult.provider_error` to the operator hint.
@@ -259,7 +261,7 @@ class Extractor:
             _LOG.warning(
                 "llm_provider_error",
                 extra={
-                    "a2kit_fields": {
+                    "fields": {
                         "model": self._model.model,
                         "template": active_template.name,
                         "error": provider_error[:_PROVIDER_ERROR_MAX],

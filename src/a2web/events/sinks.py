@@ -1,18 +1,30 @@
-"""OTel handler — registered via `app.log.add_handler(OtelHandler())` in server.py.
+"""OTel handler — attached to the `a2web` logger in `server.py`.
 
-Receives a `logging.LogRecord` from a2kit's stdlib-logging emission chain.
-Emits one OTel span per `*Ended` event when the SDK is available; degrades
-to a silent drain when OTel is absent.
+Receives a `logging.LogRecord` from `a2web.log`'s emission chain: the
+event-type name is `record.getMessage()`, the typed payload rides on
+`record.fields`. Emits one OTel span per `*Ended` event when the SDK is
+available; degrades to a silent drain when OTel is absent.
 
-a2kit owns the MCP/CLI bridge — we don't write a ctx-forwarding sink anymore.
-The typed payload arrives as `record.a2kit_fields` (the dict a2kit attaches
-via `extra={"a2kit_fields": ...}`); the event-type name is `record.getMessage()`.
+The MCP wire forward is deliberately NOT a handler — it stays an inline
+`await ctx.log(...)` inside `a2web.log._emit` so a long fetch streams live,
+mid-call, rather than being deferred behind a sync handler.
+
+**On the former double emission.** a2kit ships its own generic `OtelHandler`
+and attaches it at boot whenever `LogConfig.otel_sink="auto"` (the default),
+so every `*Ended` event used to produce two spans: a2kit's, named after the
+event with `a2kit.*` attributes, and this one, named `a2web.<step>` with
+`a2web.*` attributes. Moving a2web's records onto their own logger dissolved
+the duplication structurally — a2kit's handler sits on the `a2kit` logger and
+no longer sees them. Nothing had to be disabled, which is the better kind of
+fix: there is no configuration left to get wrong.
 """
 
 from __future__ import annotations
 
 import logging
 from typing import Any
+
+from ..log import IsolatingHandler
 
 
 def _load_tracer() -> Any | None:
@@ -27,23 +39,27 @@ def _load_tracer() -> Any | None:
 _TRACER = _load_tracer()
 
 
-class OtelHandler(logging.Handler):
+class OtelHandler(IsolatingHandler):
     """Forward end-of-phase events to OTel as one span per phase.
 
     Drains every record regardless of OTel availability so the producer
-    never blocks. When OTel is missing, `emit` is effectively a no-op.
+    never blocks. When OTel is missing, emission is effectively a no-op.
     Only `*Ended` events become spans; `*Started` and `TierHeartbeat` events
     are consumed silently (they're for live observability, not historical
     trace data).
+
+    Isolated by its base class: an exporter that raises mid-fetch (a dead
+    collector, a serialization fault on an odd attribute) must not take the
+    fetch down with it. Telemetry observes the pipeline; it does not gate it.
     """
 
-    def emit(self, record: logging.LogRecord) -> None:
+    def _safe_emit(self, record: logging.LogRecord) -> None:
         if _TRACER is None:
             return
         name = record.getMessage()
         if not name.endswith("Ended"):
             return
-        payload: dict[str, Any] = getattr(record, "a2kit_fields", {}) or {}
+        payload: dict[str, Any] = getattr(record, "fields", {}) or {}
         step = payload.get("step", "unknown")
         span = _TRACER.start_span(f"a2web.{step}")
         try:

@@ -1,10 +1,10 @@
 """Phase-boundary events emitted by the fetch orchestrator.
 
-These typed payloads are passed directly to `await a2kit.log.info(...)`
-(no pre-registration step). a2kit resolves each
-instance to a `logging.LogRecord`: message = the type name, payload dict on
-`record.a2kit_fields`. Handlers (OTel + the wire bridge that a2kit owns)
-read them off the record.
+These typed payloads are passed directly to `await a2web_log.info(...)` (no
+pre-registration step). `a2web.log` resolves each instance to a
+`logging.LogRecord`: message = the type name, payload dict on `record.fields`.
+The OTel handler reads them off the record; the MCP wire forward reads the same
+resolved payload.
 """
 
 from __future__ import annotations

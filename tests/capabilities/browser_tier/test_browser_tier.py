@@ -162,7 +162,7 @@ async def test_emit_browser_stderr_logs_typed_event() -> None:
         def emit(self, record: logging.LogRecord) -> None:
             records.append(record)
 
-    logger = logging.getLogger("a2kit")
+    logger = logging.getLogger("a2web")
     handler = _Rec()
     prior_level = logger.level
     logger.setLevel(logging.INFO)
@@ -175,7 +175,7 @@ async def test_emit_browser_stderr_logs_typed_event() -> None:
 
     matched = [r for r in records if r.getMessage() == "BrowserSubprocessStderr"]
     assert len(matched) == 1
-    assert getattr(matched[0], "a2kit_fields", {}).get("line") == "TypeError: boom"
+    assert getattr(matched[0], "fields", {}).get("line") == "TypeError: boom"
 
 
 def test_browser_rungs_in_registry_not_in_tier_order() -> None:

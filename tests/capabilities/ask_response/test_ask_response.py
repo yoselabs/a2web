@@ -12,8 +12,8 @@ import json
 
 import pytest
 from a2kit.testing import client as make_client
-from a2kit.testing import lazy
 
+from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.llm_extract import Provider, ProviderResponse
 from a2web.server import build_app

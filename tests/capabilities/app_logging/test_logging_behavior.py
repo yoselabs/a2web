@@ -29,7 +29,7 @@ def _capture_records(level: int = logging.DEBUG) -> Iterator[list[logging.LogRec
         def emit(self, record: logging.LogRecord) -> None:
             records.append(record)
 
-    logger = logging.getLogger("a2kit")
+    logger = logging.getLogger("a2web")
     handler = _Capture()
     handler.setLevel(logging.DEBUG)
     prev = logger.level
@@ -66,7 +66,7 @@ def test_provider_fallback_miss_is_debug_only(monkeypatch: pytest.MonkeyPatch) -
         load_surface("a2web._manifests.llm_providers", Provider, AppSettings())
 
     unavailable = [r for r in records if r.getMessage() == "plugin_unavailable"]
-    anthropic = [r for r in unavailable if getattr(r, "a2kit_fields", {}).get("name") == "anthropic"]
+    anthropic = [r for r in unavailable if getattr(r, "fields", {}).get("name") == "anthropic"]
     assert anthropic, "expected a plugin_unavailable record for anthropic without an API key"
     assert all(r.levelno == logging.DEBUG for r in anthropic), "fallback miss must be DEBUG, not INFO+"
 

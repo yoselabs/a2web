@@ -22,6 +22,19 @@ dependencies = [
     # `A2KIT_MCP__CODE_MODE=true` and the `a2web code` subcommand both need it.
     # Drop the extra only if that optionality is deliberately abandoned.
     "a2kit[code-mode]>=0.46,<1",
+    # TEMPORARY CO-PIN — remove when a2kit cuts a tag containing 8df0337
+    # ("fix(mcp): require fastmcp>=3.4 for the error-envelope is_error API",
+    # on a2kit main since 2026-07-08; the newest tag v0.49.2 predates it).
+    # a2kit's TypedErrorEnvelopeMiddleware constructs ToolResult(is_error=True),
+    # an API that only exists in fastmcp >= 3.4. On 3.2/3.3 the keyword is
+    # rejected, FastMCP masks the TypeError, and EVERY typed error reaches the
+    # caller as `ToolResult.__init__() got an unexpected keyword argument
+    # 'is_error'` with structured_content=None — the real message, the
+    # ErrorEnvelope, diagnostics, narrative and operator hints all destroyed.
+    # That is the ADR-0009 harm class structurally: a wall becomes
+    # indistinguishable from an a2web bug. a2kit's own floor moves the same
+    # direction, so this co-pin is a floor-raise, never a conflict.
+    "fastmcp>=3.4,<4",
     # http + extraction
     # http-fetch: the shared HTTP GET primitive (browser TLS impersonation,
     # conditional GET, injected proxy + breaker, closed-verdict mapping) —

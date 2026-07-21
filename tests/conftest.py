@@ -5,9 +5,11 @@ block_page gate verdicts don't accidentally hit the live network when
 the playbook escalation runs. Tests that exercise archive recovery
 explicitly opt in by re-monkeypatching `REGISTRY["archive"]`.
 
-Imports `a2kit.testing.ambient_for_tests_autouse` (v0.39.3+) so direct
-`fetch()` calls (bypassing TestClient) don't trip `AmbientContextMissing`.
-The fixture is autouse by virtue of being imported into conftest.
+a2web emits through its own `a2web.log`, which needs no ambient call scope —
+the MCP forward resolves the in-flight FastMCP Context directly and simply
+skips when there is none. So the former `a2kit.testing.ambient_for_tests_autouse`
+import is gone: it existed only to stop direct `fetch()` calls (bypassing the
+test client) from tripping a2kit's `AmbientContextMissing`.
 """
 
 from __future__ import annotations
@@ -18,7 +20,6 @@ from typing import TYPE_CHECKING
 
 import aiosqlite.core
 import pytest
-from a2kit.testing import ambient_for_tests_autouse  # noqa: F401 — autouse fixture by import (v0.39.3+)
 
 # --- Hermetic settings: scrub ambient A2WEB_* BEFORE any a2web import -------- #
 # The a2web imports below build the tier REGISTRY from `AppSettings()`, which
@@ -31,8 +32,10 @@ from a2kit.testing import ambient_for_tests_autouse  # noqa: F401 — autouse fi
 # consulted. Tests that WANT a key present set it via `monkeypatch` after this.
 #
 # `A2WEB_BLESS_EVAL` is a TEST-HARNESS control (regression-replay re-blessing),
-# not a settings key — it must survive the scrub.
-_HARNESS_CONTROL_ENV = {"A2WEB_BLESS_EVAL", "A2WEB_BLESS_CONTRACTS"}
+# not a settings key — it must survive the scrub. Same for
+# `A2WEB_ACCEPT_WIRE_DELTA`, the reason-slug that accepts a wire-contract
+# change (tests/contracts/wire_harness.py).
+_HARNESS_CONTROL_ENV = {"A2WEB_BLESS_EVAL", "A2WEB_BLESS_CONTRACTS", "A2WEB_ACCEPT_WIRE_DELTA"}
 for _leaked_key in [_k for _k in os.environ if _k.startswith("A2WEB_") and _k not in _HARNESS_CONTROL_ENV]:
     del os.environ[_leaked_key]
 os.environ["A2WEB_CONFIG"] = "/nonexistent/a2web-hermetic-test-config.yaml"

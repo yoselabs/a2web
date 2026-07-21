@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"other_pages\":\"\\n\",\"operator_hints\":\"\\n\",\"_operator_hints_format\":\"tsv\",\"headings\":\"\\n\",\"_headings_format\":\"tsv\",\"_other_pages_format\":\"tsv\",\"refinement_axes\":\"\\n\",\"_refinement_axes_format\":\"tsv\",\"options\":\"\\n\",\"_options_format\":\"tsv\"}",
+      "type": "text"
+    }
+  ],
+  "is_error": false,
+  "structured_content": {
+    "answer": "The page is about adaptive web fetching.",
+    "byline": "Jane Doe",
+    "confidence": "high",
+    "other_pages": "url\treason\tkind\nhttps://example.org/p/hd600\t\"the page calls this one \"\"the reference\"\" for the price band\"\tstructural\nhttps://example.org/p/driver\tsee C:\\drivers\\readme.txt on the vendor page\tstructural\nhttps://example.org/p/spec\t\"row 1:\tmax SPL\nrow 2:\timpedance\"\tstructural\n",
+    "published": "2026-04-01",
+    "title": "How adaptive web fetching saves agent tokens"
+  }
+}

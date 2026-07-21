@@ -32,8 +32,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import a2kit.log
-
+from .. import log as a2web_log
 from ..packages.llm_extract import Judge, JudgeParseError, JudgeVerdict
 from .bench_judge import BenchJudge
 from .contract import check_envelope_contract
@@ -44,13 +43,13 @@ from .systems import EvalSystem, SystemResult
 
 @contextmanager
 def _log_ambient(handlers: tuple[logging.Handler, ...] = ()) -> Iterator[None]:
-    """Attach bench handlers to the `a2kit` logger for the matrix run.
+    """Attach bench handlers to the `a2web` logger for the matrix run.
 
-    `await a2kit.log.info(...)` logs unconditionally to
-    `logging.getLogger("a2kit")` — no ambient ctx or call scope is required.
+    `await a2web_log.info(...)` logs unconditionally to
+    `logging.getLogger("a2web")` — no ambient ctx or call scope is required.
     To surface bench-cell signals (`CellStarted` / `CellEnded`) on a
     `LiveSink`, attach it as a handler for the run duration; this is exactly
-    what `app.log.add_handler` does (`logging.getLogger("a2kit").addHandler`).
+    what `app.log.add_handler` does (`logging.getLogger("a2web").addHandler`).
 
     The a2web orchestrator's `StageStarted`/`StageEnded` events flow to the
     same handlers, but the bench handlers filter by event name and ignore
@@ -61,17 +60,17 @@ def _log_ambient(handlers: tuple[logging.Handler, ...] = ()) -> Iterator[None]:
     root's WARNING and gate our INFO events. We set it to INFO for the run
     duration and restore the prior level on exit.
     """
-    a2kit_logger = logging.getLogger("a2kit")
-    prior_level = a2kit_logger.level
-    a2kit_logger.setLevel(logging.INFO)
+    a2web_logger = logging.getLogger("a2web")
+    prior_level = a2web_logger.level
+    a2web_logger.setLevel(logging.INFO)
     for handler in handlers:
-        a2kit_logger.addHandler(handler)
+        a2web_logger.addHandler(handler)
     try:
         yield
     finally:
         for handler in handlers:
-            a2kit_logger.removeHandler(handler)
-        a2kit_logger.setLevel(prior_level)
+            a2web_logger.removeHandler(handler)
+        a2web_logger.setLevel(prior_level)
 
 
 @dataclass(slots=True)
@@ -201,7 +200,7 @@ class EvalSuite:
                 row.provider = self._provider  # provenance stamp (ADR-0016)
                 return row
 
-        # Attach bench handlers (LiveSink) to the `a2kit` logger for the whole
+        # Attach bench handlers (LiveSink) to the `a2web` logger for the whole
         # matrix run — every cell's CellStarted/CellEnded and the orchestrator's
         # stage events route to them while attached.
         with _log_ambient(handlers=self._handlers):
@@ -240,7 +239,7 @@ class EvalSuite:
         # Bench-cell envelope: every codepath out of this function emits
         # exactly one CellStarted at the top and one CellEnded at exit.
         t0 = time.perf_counter()
-        await a2kit.log.info(
+        await a2web_log.info(
             CellStarted(
                 slug=slug,
                 system_name=system.name,
@@ -255,7 +254,7 @@ class EvalSuite:
         try:
             fetch_result: SystemResult = await system.fetch(url=entry.url, ask=entry.task)
         except Exception as exc:
-            await a2kit.log.warning("eval_system_failed", slug=slug, system=system.name, error=str(exc))
+            await a2web_log.warning("eval_system_failed", slug=slug, system=system.name, error=str(exc))
             fetch_latency_ms = int((time.perf_counter() - t0) * 1000)
             row = _base_row(entry, system.name, answer="")
             row.fetch_latency_ms = fetch_latency_ms
@@ -367,7 +366,7 @@ class EvalSuite:
         cache_hit = bool(meta.get("cache_hit", False))
         tier_value = meta.get("tier") or meta.get("winning_tier")
         tier_str = str(tier_value) if tier_value else None
-        await a2kit.log.info(
+        await a2web_log.info(
             CellEnded(
                 slug=entry.slug,
                 system_name=system.name,
@@ -389,7 +388,7 @@ class EvalSuite:
         try:
             verdict = await self._bench_judge.score_clarity(task=entry.task, answer=fetch_result.answer)
         except JudgeParseError as exc:
-            await a2kit.log.warning("clarity_judge_failed", slug=entry.slug, system=row.system, error=str(exc))
+            await a2web_log.warning("clarity_judge_failed", slug=entry.slug, system=row.system, error=str(exc))
             row.clarity_error = f"parse_error: {exc}"
             return
         row.clarity_score = verdict.score
@@ -413,7 +412,7 @@ class EvalSuite:
         try:
             verdict = await self._bench_judge.score_next_links(task=entry.task, next_links=block)
         except JudgeParseError as exc:
-            await a2kit.log.warning("next_links_judge_failed", slug=entry.slug, system=row.system, error=str(exc))
+            await a2web_log.warning("next_links_judge_failed", slug=entry.slug, system=row.system, error=str(exc))
             row.next_links_error = f"parse_error: {exc}"
             return
         row.next_links_score = verdict.score

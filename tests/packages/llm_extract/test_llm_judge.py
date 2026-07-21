@@ -225,13 +225,13 @@ async def test_judge_missing_reasoning_now_defaults_to_empty() -> None:
 async def test_judge_reached_warning_log_emitted() -> None:
     """When `reached` is derived, a structured `llm_wobble` warning fires so
     operators can grep one key across all LLM-contract boundaries."""
-    from tests._helpers.log_capture import capture_a2kit_logs
+    from tests._helpers.log_capture import capture_logs
 
     provider = _MockJudgeProvider(
         text=json.dumps({"scores": [5, 3, 5], "overall": 4, "reasoning": "ok"}),
     )
     judge = Judge(provider=provider, model=ModelSpec("test-model"))
-    with capture_a2kit_logs() as logs:
+    with capture_logs() as logs:
         await judge.score(task="?", criteria=["c"], answer="x")
     warnings = [r for r in logs if r.get("event") == "llm_wobble" and r.get("field") == "reached"]
     assert len(warnings) == 1

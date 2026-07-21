@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import pytest
-from a2kit.testing import lazy
 from browser_cookies.models import CookieRow
 
 from a2web.cache import SqliteResource
 from a2web.cookie_jar import CookieJarResource, CookiesRefreshResult, build_cookie_jar
+from a2web.lazy import lazy
 from a2web.routers import CookiesRouter
 from a2web.server import A2Web, app
 from a2web.settings import AppSettings

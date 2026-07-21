@@ -11,10 +11,10 @@ import json
 
 import pytest
 from a2kit.testing import client as make_client
-from a2kit.testing import lazy
 from record_mine import Record, RecordSet
 
 from a2web.fetcher_response import _records_to_options
+from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
 from a2web.server import build_app
 from a2web.state import AppState

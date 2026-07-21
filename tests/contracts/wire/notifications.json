@@ -1,0 +1,195 @@
+[
+  {
+    "data": {
+      "extra": {
+        "engine": null,
+        "host": "example.org",
+        "proxy": null,
+        "step": "site_handler",
+        "t_ms": 0
+      },
+      "msg": "TierStarted"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "engine": null,
+        "host": "example.org",
+        "proxy": null,
+        "step": "raw",
+        "t_ms": 0
+      },
+      "msg": "TierStarted"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "dur_ms": 0,
+        "engine": "curl_cffi",
+        "extra": {
+          "route.matched_rule": "none",
+          "route.proxy_id": "direct",
+          "status_code": 200
+        },
+        "step": "raw",
+        "t_ms": 0,
+        "verdict": "ok"
+      },
+      "msg": "TierEnded"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "step": "extract",
+        "t_ms": 0
+      },
+      "msg": "StageStarted"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "step": "json_synth",
+        "t_ms": 0
+      },
+      "msg": "StageStarted"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "dur_ms": 0,
+        "extra": {
+          "outcome": "no_payloads",
+          "payloads": 0
+        },
+        "step": "json_synth",
+        "t_ms": 0,
+        "verdict": "ok"
+      },
+      "msg": "StageEnded"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "step": "record_synth",
+        "t_ms": 0
+      },
+      "msg": "StageStarted"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "dur_ms": 0,
+        "extra": {
+          "outcome": "no_records"
+        },
+        "step": "record_synth",
+        "t_ms": 0,
+        "verdict": "ok"
+      },
+      "msg": "StageEnded"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "dur_ms": 0,
+        "extra": {
+          "chars": 1919
+        },
+        "step": "extract",
+        "t_ms": 0,
+        "verdict": "ok"
+      },
+      "msg": "StageEnded"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "step": "gate",
+        "t_ms": 0
+      },
+      "msg": "StageStarted"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "dur_ms": 0,
+        "extra": {},
+        "step": "gate",
+        "t_ms": 0,
+        "verdict": "ok"
+      },
+      "msg": "StageEnded"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "step": "extract_answer",
+        "t_ms": 0
+      },
+      "msg": "StageStarted"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "dur_ms": 0,
+        "extra": {
+          "completion_tokens": 14,
+          "model": "claude-haiku-4-5-20251001",
+          "prompt_tokens": 120
+        },
+        "step": "extract_answer",
+        "t_ms": 0,
+        "verdict": "ok"
+      },
+      "msg": "StageEnded"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "step": "cache_write",
+        "t_ms": 0
+      },
+      "msg": "StageStarted"
+    },
+    "level": "info"
+  },
+  {
+    "data": {
+      "extra": {
+        "dur_ms": 0,
+        "extra": {},
+        "step": "cache_write",
+        "t_ms": 0,
+        "verdict": "ok"
+      },
+      "msg": "StageEnded"
+    },
+    "level": "info"
+  }
+]

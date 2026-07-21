@@ -24,6 +24,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from ._walk import walked_files
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _LLM_EXTRACT_ROOT = _REPO_ROOT / "src" / "a2web" / "packages" / "llm_extract"
 _WOBBLE_DIR = _LLM_EXTRACT_ROOT / "wobble"
@@ -61,7 +63,7 @@ def _is_json_loads(node: ast.Call, module_aliases: set[str], loads_aliases: set[
 
 def test_no_json_loads_outside_wobble() -> None:
     violations: list[str] = []
-    for path in _LLM_EXTRACT_ROOT.rglob("*.py"):
+    for path in walked_files(_LLM_EXTRACT_ROOT, minimum=6):
         # The funnel itself owns json.loads — skip wobble/.
         try:
             path.relative_to(_WOBBLE_DIR)

@@ -1,0 +1,25 @@
+{
+  "content": [
+    {
+      "text": "Internal error (UnexpectedDefect): orchestrator failed during the tier loop",
+      "type": "text"
+    }
+  ],
+  "is_error": true,
+  "structured_content": {
+    "error": {
+      "base_kind": "bug",
+      "cause": {
+        "message": "orchestrator failed during the tier loop",
+        "trace_id": "<volatile>",
+        "type": "RuntimeError"
+      },
+      "details": {},
+      "envelope_version": "1",
+      "hint": null,
+      "kind": "bug",
+      "retryable": false,
+      "type": "UnexpectedDefect"
+    }
+  }
+}

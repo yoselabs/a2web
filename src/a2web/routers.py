@@ -19,12 +19,12 @@ from typing import Annotated
 
 import a2kit
 import pydantic
-from a2kit import Lazy
 from browser_cookies.models import ChromeCookieAccessError
 
 from .cookie_jar import CookieJarResource, CookiesRefreshResult
 from .fetcher import fetch as orchestrate
 from .fetcher_response import build_ask_response
+from .lazy import Lazy
 from .llm_resource import LlmExtractorResource
 from .models import AskResponse, FetchResponse
 from .packages.browser_backends import BrowserBackend

@@ -1,0 +1,242 @@
+[
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Fetch Raw Web Content (Fallback)"
+    },
+    "description": "**Fallback only — prefer `query` for ~95%% of web reads.**\n\nReturns the page's markdown content with no server-side LLM\nextraction. Use only when:\n\n1. You need the full structural content (link graphs, repeated\n   rows for scraping, tables to transform).\n2. A previous `query` call returned `answer: null` with an\n   `llm_unavailable` operator hint and you need the page text\n   to answer your own question.\n3. `query`'s answer is suspect and you need to verify against\n   source.\n\nDo not default to this tool — `query` is cheaper end-to-end because\nthe server-side Haiku extractor is much smaller than the model\ncalling this tool. Same tier cascade, same diagnostics, just\nwithout the extraction phase.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "debug": {
+          "default": false,
+          "description": "Return the full `diagnostics` trace. Default False.",
+          "type": "boolean"
+        },
+        "include_links": {
+          "default": false,
+          "description": "Include the extracted `links` array in the response. Default False — links are a large share of payload bytes on aggregator pages.",
+          "type": "boolean"
+        },
+        "link_roles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When include_links=True, filter to these DOM roles: 'primary' (default), 'nav', 'meta', 'footer'."
+        },
+        "next_links": {
+          "default": true,
+          "description": "Return up to 10 curated 'what to fetch next' links in `next_links` (drilldown / related / source / discussion). Tier-1 site handler candidates work without ask=; default True.",
+          "type": "boolean"
+        },
+        "url": {
+          "description": "Absolute http(s) URL to fetch.",
+          "type": "string"
+        },
+        "wrap_content": {
+          "default": true,
+          "description": "Wrap content_md with HTML-comment markers carrying source URL + 'untrusted content' warning. Default True.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "type": "object"
+    },
+    "meta": {
+      "a2kit": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true,
+          "title": "Fetch Raw Web Content (Fallback)"
+        },
+        "context_param_name": null,
+        "extras": {
+          "authorize": null,
+          "canonical_name_override": "fetch_raw",
+          "expose": [
+            "mcp",
+            "api",
+            "cli"
+          ],
+          "list_view": null,
+          "report_schema": null,
+          "router_slug": "web",
+          "surfaces": {
+            "api": "listed",
+            "cli": "listed",
+            "mcp": "listed"
+          },
+          "timeout_seconds": null
+        },
+        "tags": [
+          "read"
+        ],
+        "tool_name": "fetch_raw",
+        "verb": "read"
+      },
+      "fastmcp": {
+        "tags": [
+          "read"
+        ]
+      }
+    },
+    "name": "fetch_raw",
+    "outputSchema": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "title": "Fetch Raw Web Content (Fallback)"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Query a Web Page"
+    },
+    "description": "**Primary web-fetch tool. Use this for any question about a web page.**\n\nFetches the URL via the adaptive tier cascade (site handlers → raw\nHTTP with TLS impersonation → Jina reader → archive fallback →\nheadless browser as last resort), then runs the server-side LLM\nextractor over the content to answer your `query`. Returns the\nfocused answer in `answer`. Pass `include_content=True` to also get\nthe page markdown in `content_md` for grounding.\n\nPrefer this over `fetch_raw` for ~95%% of web reads. The\nextraction model is small and cheap (Haiku 4.5), so server-side\nanswers cost a fraction of streaming raw HTML into a larger model.\n\nCost asymmetry (ADR-0015): `also_here` indexes on-page content the\nanswer skipped — recovering it is a CHEAP re-query of the same URL\n(served from cache). `other_pages` points ELSEWHERE; each one costs a\nNEW fetch. Spend on the scarce resource — the fetch — accordingly.\n\nWhen the LLM is unavailable (no API key and no Claude Code OAuth\nsession), the fetch still succeeds, `answer` is None, and an operator\nhint records the reason — callers can fall back to reading\n`content_md` directly.\n\nEmits typed events on a2kit's logging channel during the fetch.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "debug": {
+          "default": false,
+          "description": "Return the full `diagnostics` trace plus timing/cache metadata. Default False — `diagnostics_summary` is populated on failures regardless.",
+          "type": "boolean"
+        },
+        "include_content": {
+          "default": false,
+          "description": "Also return the full page markdown in `content_md` (plus the `headings` index) for grounding. Default False — `ask` returns the extracted answer, not the page; the small server-side model already read the page for you. Pass True only when you need to verify the answer against source.",
+          "type": "boolean"
+        },
+        "include_links": {
+          "default": false,
+          "description": "Include the extracted `links` array in the response. Default False — links are a large share of payload bytes on aggregator pages and most ask-shaped tasks don't need them.",
+          "type": "boolean"
+        },
+        "include_routing": {
+          "default": true,
+          "description": "Include the router-shape fields on the response. Default True. Router-shape adds conditional fields (`obstacle`, `also_here`, `other_pages`, plus the always-present `answer`): `also_here` indexes on-page content the answer skipped, `other_pages` points elsewhere. Same extraction call. Opt out for the lean envelope or high-volume cost-sensitive flows.",
+          "type": "boolean"
+        },
+        "link_roles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "When include_links=True, filter to these DOM roles. Choices: 'primary' (default), 'nav', 'meta', 'footer'. Pass None for everything."
+        },
+        "max_content_chars": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cap on content chars sent to the extractor LLM. Default None (uses extractor default of 100000). Lower values cut cost on pages dumping JSON state you won't read, but trade quality for cost — don't go below ~20000 unless you know the answer is in the first viewport."
+        },
+        "other_pages": {
+          "default": true,
+          "description": "Return up to 10 curated off-page pointers in `other_pages` (kind-tagged: `structural` continuation / `drilldown`). Default True; pass False on terminal fetches where you won't drill down to save a few hundred output tokens.",
+          "type": "boolean"
+        },
+        "query": {
+          "description": "What you want from this page, as a terse QUERY — not a full sentence. Drop the verb frame and the page's own name; keep the target plus one operator: `,` (list) · `vs` (contrast) · `/` (alternatives); CAPS the one word that decides; keep a `?` only when you want a judgement. e.g. `return policy`, `battery vs mains life`, `RTX 4090 price, stock`. A small fast model (Claude Haiku 4.5 by default) reads the whole page and answers server-side, keeping your context tiny.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "url": {
+          "description": "Absolute http(s) URL to fetch.",
+          "type": "string"
+        },
+        "wrap_content": {
+          "default": true,
+          "description": "Wrap content_md with HTML-comment markers carrying source URL + 'untrusted content' warning. Default True.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "url",
+        "query"
+      ],
+      "type": "object"
+    },
+    "meta": {
+      "a2kit": {
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true,
+          "title": "Query a Web Page"
+        },
+        "context_param_name": null,
+        "extras": {
+          "authorize": null,
+          "canonical_name_override": "query",
+          "expose": [
+            "mcp",
+            "api",
+            "cli"
+          ],
+          "list_view": null,
+          "report_schema": null,
+          "router_slug": "web",
+          "surfaces": {
+            "api": "listed",
+            "cli": "listed",
+            "mcp": "listed"
+          },
+          "timeout_seconds": null
+        },
+        "tags": [
+          "read"
+        ],
+        "tool_name": "query",
+        "verb": "read"
+      },
+      "fastmcp": {
+        "tags": [
+          "read"
+        ]
+      }
+    },
+    "name": "query",
+    "outputSchema": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "title": "Query a Web Page"
+  }
+]

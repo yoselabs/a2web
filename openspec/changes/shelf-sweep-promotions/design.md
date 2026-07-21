@@ -1,0 +1,195 @@
+# Design — a2web shelf sweep (Phases B–D complete, E–F pending)
+
+The full read-only substrate inventory and per-candidate verdict, produced per
+`shelf/docs/runbooks/onboard-a-consumer.md`. Phases B (inventory), C (classify
+against the CATALOG, never against another consumer) and D (the four directions)
+are **done**; this document is their output and the input to Phase E.
+
+Verdict vocabulary: **PROMOTE** (generic, catalog lacks it — valid at n=1) ·
+**ADOPT** (shelf has it, passes DEEP·STABLE·WINS) · **EVOLVE** (a shelf piece
+almost fits; grow its contract) · **KEEP** (product moat, or evolving would
+distort the piece).
+
+## The verdict table
+
+| # | Candidate | Capability | Stop-caring | Catalog gap? | Direction |
+|---|---|---|---|---|---|
+| 1 | `_plugin.py:1-179` | Declarative plugin discovery + graceful "not configured" degradation | **Yes** — 5 unrelated surfaces already share it | Nothing for extension-point discovery | **PROMOTE** |
+| 2 | `packages/llm_extract/wobble/` | Tolerant-but-auditable LLM JSON parsing, per-field policy, opaque parsed token | **Yes** | `anyllm` returns `Completion.text` and stops | **PROMOTE** |
+| 3 | `packages/llm_cost_guard.py` | Refuse an expensive `(provider, model)` before the call | **Yes** | `anyllm` already owns the price table + the `LLMProvider` Protocol this wraps | **EVOLVE `anyllm`** |
+| 4 | `packages/browser_backends/` | Render a URL with a real JS engine, engine-agnostic | **Yes** (seam) | No browser piece at all | **PROMOTE** seam+drivers / **KEEP** stealth policy |
+| 5 | `packages/llm_extract/cache.py` | Memoize a completion on `(content, prompt, model, template)` with TTL | **Yes** | `http-cache` is the HTTP analogue; nothing caches completions | **PROMOTE** |
+| 6 | `packages/llm_extract/prompts.py:33-80` (`PromptTemplate` only) | Render a versioned prompt into cache-breakpoint-aware parts | **Yes** | `anyllm` **already owns `PromptParts`** | **EVOLVE `anyllm`** |
+| 7 | `domain.py:192-550` (`json_to_markdown_rows` + helpers) | Render an extracted structured-data payload to markdown | **Yes** | `json-in-html` extracts and stops | **PROMOTE (medium confidence)** |
+| 8 | `packages/block_detector.py` | Bot-wall / challenge fingerprinting | **No** | — | **KEEP** — named moat; the pattern catalogue *is* the value |
+| 9 | `packages/proxy_routing.py` | Host/tier route table + per-proxy quarantine | **No** (doctrine) | — | **KEEP** — but see open Q4 |
+| 10 | `packages/escalation.py` | Typed escalation signal | **No** | — | **KEEP** — the `Literal` *is* a2web's tier vocabulary |
+| 11 | `llm_extract/{extractor,judge,router_payload,errors}.py` | Answer extraction, router payload, LLM-as-judge | **No** | — | **KEEP** — prompts + payload schema are the product |
+| 12 | `_manifests/**` | The plugins themselves | **No** | — | **KEEP** — only the framework (#1) is substrate |
+| 13 | `cache.py` | a2web's cache-dir + schema-migration policy | **No** | Already an adopted seam | **KEEP** — this is what a post-adoption seam should look like |
+| 14 | `actions/{playbook,terminal,empty}.py` | Escalation planning, terminal classification, empty promotion | **No** | — | **KEEP** — ADR-0009/0012/0015 *are* the product |
+| 15 | `state.py:218-243` (`ResourceUnavailable`, `unavailable_lazy`) | Uniform "optional resource not provisioned" failure | Weak yes | — | **KEEP (sighting)** — ~25 lines, and `sunset-a2kit-dependency` is reshaping its substrate |
+| 16 | `handlers/_common.py` | `FetchVerdict → Verdict` mapping | **No** | — | **KEEP** |
+| 17 | `domain.py` remainder (`compute_profile_hash`, `is_live_only`, `rewrite_captcha_host`, `strip_reader_prefix`, `is_search_shaped`) | Captcha pre-routing, reader-prefix stripping | **No** | — | **KEEP** — DuckDuckGo rewriting and jina-prefix stripping are the fetch product |
+
+## Proposed package boundaries
+
+### 1. `plugin-surface` (T1 primitive)
+
+Name per resolution 0008 — `_plugin`/`PluginManifest` says nothing to a reader who
+has never seen a2web; "plugin surface" names the deliverable.
+
+> **Capability:** Stop caring how an app discovers its own extension points —
+> declare one `MANIFEST` per plugin file, get back a ready-to-use registry, with
+> "not configured" plugins dropped before they reach it.
+
+```python
+class Unavailable(NamedTuple): reason: str          # a VALUE, not an exception
+@dataclass(frozen=True, slots=True)
+class PluginManifest(Generic[T]):
+    name: str; protocol: type[T]; factory: Callable[..., T | Unavailable]
+    requires: tuple[str, ...] = (); priority: int = 0
+def load_surface(surface_path: str, protocol: type[T], context: object) -> dict[str, T]
+def load_surface_sorted(surface_path: str, protocol: type[T], context: object) -> list[tuple[str, T]]
+```
+
+**Extraction note:** drop `settings_prefix` — `_plugin.py:70-73` documents it as
+"no-op today", i.e. an invented field. The promote gate is *extracted, never
+invented*.
+
+### 2. `llm-wobble` (T1 primitive; stdlib only)
+
+> **Capability:** Stop caring that an LLM's JSON envelope arrives fenced,
+> prose-wrapped, or missing fields — one funnel decodes it, applies a per-field
+> recovery policy, logs every recovery, and hands back a token no hand-rolled
+> parse can forge.
+
+```python
+class WobbleTolerance(StrEnum): STRICT | DERIVE | DEFAULT | SKIP
+@dataclass(frozen=True, slots=True)
+class WobblePolicy: tolerance: WobbleTolerance; default: Any = None; derive: Callable | None = None
+Wobbled = NewType("Wobbled", _Parsed[Any])          # opaque; the funnel is the ONLY constructor
+def parse_with_policy(raw, *, policies, into, boundary, model) -> Wobbled
+def parse_list_with_policy(raw, *, item, boundary, model, strip_fences=True) -> Wobbled
+def unwrap(w) -> Any
+def recovered_fields(w) -> tuple[str, ...]
+```
+
+**Two extraction decisions:** (a) `apply_policy` (`_internal.py:186`) is
+self-declared "back-compat shim" — **do not carry it across**; (b) `emit_wobble`
+hardcodes `logging.getLogger("a2kit")` — parameterize the logger name.
+`_policies.py`'s tables are a2web product and stay home.
+
+### 3. `anyllm` evolution (one tag, monotonic — adds, removes nothing)
+
+> **Capability delta:** Stop caring whether the model you are about to call is one
+> you can afford; and stop caring how a versioned prompt becomes
+> cache-breakpoint-aware `PromptParts`.
+
+```python
+# anyllm.cost
+class CostViolation(RuntimeError): ...
+@dataclass(frozen=True, slots=True)
+class CostPolicy:
+    allow: tuple[tuple[str, tuple[str, ...]], ...]
+    def permits(self, provider_id: str, model: str) -> bool
+def assert_within_budget(provider_id, model, policy=DEFAULT_POLICY) -> None
+def with_cost_guard(provider_id, provider: LLMProvider, policy=DEFAULT_POLICY) -> LLMProvider
+
+# anyllm.prompt
+@dataclass(frozen=True, slots=True)
+class PromptTemplate:
+    name: str; version: int; system: tuple[str, ...] = ()
+    user_template: str = ""; cache_prefix_template: str = ""; tail_template: str = ""
+    def render(self, *, content: str, ask: str) -> PromptParts
+```
+
+**One re-key required.** a2web's `DEFAULT_POLICY` (`llm_cost_guard.py:61-67`) is
+keyed on a2web's *manifest* names (`"claude-code"`, `"anthropic"`,
+`"openai_compatible"`) — the exact vocabulary drift `ProviderName`
+(`anyllm/base.py:29-45`) was added to end. Inside anyllm the policy keys on
+`ProviderName`; a2web then closes the shelf backlog's open "adopt
+`anyllm.ProviderName`" item as a side effect.
+
+### 4. `any-browser` (T1 any-lib)
+
+> **Capability:** Stop caring which JS engine renders a page — one `render()`
+> across the Playwright-API family and raw CDP, returning a rich `RenderedPage`
+> (html + final URL + status + wall time + bytes + JS-executed +
+> challenged-subresource count), never raising for routine failure.
+
+```python
+class RenderOutcome(StrEnum): ok | timeout | error | unavailable
+@dataclass(frozen=True, slots=True) class BackendCookie: ...
+@dataclass(frozen=True, slots=True)
+class RenderedPage:
+    outcome: RenderOutcome; html=""; final_url=""; status_code=0; js_executed=False
+    wall_ms=0; bytes_transferred=0; detail=""; subresource_blocks=0
+@runtime_checkable
+class BrowserBackend(Protocol):
+    name: str
+    async def render(url, *, cookies, budget_s, js_heavy, scroll_to_stable=False) -> RenderedPage
+    async def __aenter__/__aexit__
+class PlaywrightBackend: ...   # launch_fn-parameterized; host-LRU context pool, idle reaper, stderr capture
+class ZendriverBackend: ...    # CDP family
+def chromium_launch(async_playwright_fn); def patchright_launcher(); def camoufox_launcher()
+```
+
+**Stays in a2web (the moat):** `select_backend*` (`state.py:116-150`), the
+`_manifests/browser_backends/*` gating, the fast/robust rung split, the
+`RenderOutcome → Verdict/OperatorHint` mapping, and every escalation decision.
+The seam is not the moat. See open Q1 (bakeoff timing) and Q2
+(`subresource_blocks`).
+
+### 5. `llm-cache` (T1 primitive, on `sqlite-resource` + `anyllm`)
+
+> **Capability:** Stop caring how to memoize an LLM completion — a TTL'd sqlite
+> table keyed on `(content, prompt, model, template)` that shares the caller's
+> connection and preserves the call's token/cost/latency accounting.
+
+```python
+def hash_text(text: str) -> str
+class LlmCache:
+    def __init__(self, conn: aiosqlite.Connection, *, ttl_s: int = 900)
+    async def ensure_schema() -> None
+    async def get(content_hash, ask_hash, model_id, template_name) -> Completion | None
+    async def put(...) -> None
+    async def evict_expired() -> int
+    async def size() -> int
+```
+
+**Shape change at extraction** (generic-first, resolution 0010): return an
+`anyllm.Completion` rather than a bespoke `ExtractionCacheRow` — the row's fields
+already *are* `Completion`'s.
+
+### 6. `structured-data-md` (T2 composite on `json-in-html`) — see open Q3
+
+```python
+def render_markdown(payload: JsonPayload) -> str
+def json_fallback(data: dict | list, *, cap: int = 20_000) -> str
+```
+
+## What the shelf gains
+
+- **A plugin/extension-point primitive it has none of** — the highest
+  future-leverage item here. Every future app with providers, backends, handlers
+  or sinks gets discovery + graceful degradation instead of re-inventing `pkgutil`
+  walking and a "not configured" convention.
+- **The missing half of the LLM stack** (see `proposal.md` Why).
+- **A browser tier the catalog completely lacks** — the natural sibling of
+  `http-fetch`, plugging into `browser-cookies` (which already produces the cookie
+  rows) and `content-extract` (which consumes the html).
+- **Closure of the `json-in-html` half-story** — extraction without rendering
+  leaves every consumer writing the same schema.org walker.
+
+## Method notes
+
+- Compared against the **CATALOG**, never against another consumer, per the
+  runbook. Cross-consumer overlap is optional confirmation, not a gate.
+- Where a2web's version is a **richer superset** of an existing package, the
+  arrow reverses and the superset is promoted (resolution 0007 monotonicity) —
+  that is why `llm_cost_guard` and `PromptTemplate` are EVOLVE, not PROMOTE.
+- The shelf catalog on `main` is currently **stale**: four packages
+  (`lean-wire`, `page-tsv`, `mcp-result-wire`, `a2effect`) are tagged but stranded
+  on the unmerged branch `work/a2kay`. None overlap the candidates above, but
+  Phase E must re-check against `main` after that branch merges.

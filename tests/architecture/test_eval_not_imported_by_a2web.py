@@ -21,6 +21,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from ._walk import walked_files
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _A2WEB_SRC = _REPO_ROOT / "src" / "a2web"
 
@@ -43,7 +45,7 @@ def _imports_eval(tree: ast.AST) -> list[int]:
 
 def test_a2web_does_not_import_eval_harness() -> None:
     offenders: list[str] = []
-    for path in _A2WEB_SRC.rglob("*.py"):
+    for path in walked_files(_A2WEB_SRC, minimum=80):
         tree = ast.parse(path.read_text(), filename=str(path))
         for lineno in _imports_eval(tree):
             offenders.append(f"{path.relative_to(_REPO_ROOT)}:{lineno}")

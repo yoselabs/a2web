@@ -23,11 +23,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, TypeVar, cast, runtime_checkable
 
-from a2kit import Lazy
 from purgatory import AsyncCircuitBreakerFactory
 
 from .cache import SqliteResource
 from .cookie_jar import CookieJarResource, build_cookie_jar
+from .lazy import Lazy
 from .llm_resource import _PROVIDER_ORDER, LlmExtractorResource, select_provider
 from .packages.browser_backends import BrowserBackend
 from .packages.llm_extract import Provider  # runtime: a2kit introspects factory annotations (Lazy[Provider]) via get_type_hints
@@ -100,14 +100,13 @@ async def _emit_browser_stderr(line: str) -> None:
     """Domain sink for captured browser-driver stderr lines.
 
     Injected into the (domain-free) `PlaywrightBackend`; emits one typed log
-    event per line so raw Node.js driver traces surface in the a2kit logging
+    event per line so raw Node.js driver traces surface in the logging
     substrate instead of on the operator's terminal.
     """
-    import a2kit.log
-
+    from . import log as a2web_log
     from .events import BrowserSubprocessStderr
 
-    await a2kit.log.info(BrowserSubprocessStderr(line=line))
+    await a2web_log.info(BrowserSubprocessStderr(line=line))
 
 
 _BACKEND_SURFACE = "a2web._manifests.browser_backends"

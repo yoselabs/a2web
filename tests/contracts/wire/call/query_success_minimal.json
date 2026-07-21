@@ -1,0 +1,13 @@
+{
+  "content": [
+    {
+      "text": "{\"confidence\":\"medium\",\"answer\":\"The page is about adaptive web fetching.\",\"operator_hints\":\"\\n\",\"_operator_hints_format\":\"tsv\",\"headings\":\"\\n\",\"_headings_format\":\"tsv\",\"other_pages\":\"\\n\",\"_other_pages_format\":\"tsv\",\"refinement_axes\":\"\\n\",\"_refinement_axes_format\":\"tsv\",\"options\":\"\\n\",\"_options_format\":\"tsv\"}",
+      "type": "text"
+    }
+  ],
+  "is_error": false,
+  "structured_content": {
+    "answer": "The page is about adaptive web fetching.",
+    "confidence": "medium"
+  }
+}

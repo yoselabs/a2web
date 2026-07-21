@@ -12,6 +12,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from ._walk import walked_files
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _MANIFESTS_ROOT = _REPO_ROOT / "src" / "a2web" / "_manifests"
 
@@ -59,7 +61,7 @@ def _is_typing_only_if(stmt: ast.If) -> bool:
 
 def test_plugin_modules_only_declare_manifest() -> None:
     violations: list[str] = []
-    for path in _MANIFESTS_ROOT.rglob("*.py"):
+    for path in walked_files(_MANIFESTS_ROOT, minimum=20):
         # Skip __init__.py — those legitimately carry surface-level glue
         # (Sink protocol alias, EvalSystemContext dataclass).
         if path.name == "__init__.py":

@@ -25,6 +25,7 @@ from __future__ import annotations
 import a2kit
 from a2kit.config import A2kitConfig, McpConfig
 
+from . import log as a2web_log
 from ._manifests.sinks import Sink
 from ._plugin import load_surface
 from .cache import SqliteResource
@@ -111,12 +112,21 @@ def build_app() -> A2Web:
     app.provide(build_cookie_jar)  # CookieJarResource — needs settings + sqlite (Lazy at tool seam)
     app.provide(build_state)  # AppState — bundles the four always-on resources
 
-    # Log sinks come from the plugin manifest registry as `logging.Handler`s.
-    # Handlers whose factories return Unavailable (e.g. OTel without the SDK
-    # installed) are dropped before reaching the logger. They attach to the
-    # `a2kit` logger and drain the typed-event LogRecords best-effort.
-    for _handler in load_surface("a2web._manifests.sinks", Sink, get_settings()).values():
-        app.log.add_handler(_handler)
+    # Logging is a2web's own (`a2web.log`): the `a2web` logger, `propagate=False`,
+    # a NullHandler floor. The propagate/Null part is load-bearing, not tidiness —
+    # MCP is served over stdio, so a record escaping to the root logger's default
+    # stderr writer can interleave with the protocol stream.
+    _settings = get_settings()
+    a2web_log.configure(
+        level=_settings.log_level,
+        enabled=_settings.log_enabled,
+        wire_level=_settings.log_wire_level,
+    )
+    # Sinks come from the plugin manifest registry as `logging.Handler`s.
+    # Factories returning Unavailable (e.g. OTel with no SDK) are dropped before
+    # reaching the logger.
+    for _handler in load_surface("a2web._manifests.sinks", Sink, _settings).values():
+        a2web_log.add_handler(_handler)
 
     app.health_check(_check_sqlite)
     return app

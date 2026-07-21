@@ -15,6 +15,8 @@ import logging
 import sys
 from typing import TYPE_CHECKING, TextIO
 
+from ..log import IsolatingHandler
+
 if TYPE_CHECKING:
     from types import TracebackType
 
@@ -33,11 +35,11 @@ _COLOR_RED = "\x1b[31m"
 _COLOR_DIM = "\x1b[2m"
 
 
-class LiveSink(logging.Handler):
+class LiveSink(IsolatingHandler):
     """`logging.Handler` rendering bench-cell events to stdout.
 
     Construct once per suite run; attach via `app.log.add_handler(sink)` (or,
-    in the bench, `logging.getLogger("a2kit").addHandler(sink)`). The handler
+    in the bench, `logging.getLogger("a2web").addHandler(sink)`). The handler
     owns the counter, cost accumulator, and the heartbeat task lifecycle.
     Counter state is guarded by the inherited `self.lock` — logging acquires
     it around every `emit`, and the heartbeat reads under the same lock.
@@ -74,14 +76,15 @@ class LiveSink(logging.Handler):
             except asyncio.CancelledError:
                 pass
 
-    def emit(self, record: logging.LogRecord) -> None:
+    def _safe_emit(self, record: logging.LogRecord) -> None:
         """Handler entrypoint — logging calls this under `self.lock`.
 
         The event-type name is `record.getMessage()`; the typed payload rides
-        on `record.a2kit_fields` (a2kit's `extra={"a2kit_fields": ...}`).
+        on `record.fields`. Wrapped by `IsolatingHandler.emit`: a broken console
+        renderer must not abort the bench run that is feeding it.
         """
         name = record.getMessage()
-        fields: dict[str, object] = getattr(record, "a2kit_fields", {}) or {}
+        fields: dict[str, object] = getattr(record, "fields", {}) or {}
         if name == "CellStarted":
             self._on_started(fields)
         elif name == "CellEnded":

@@ -14,6 +14,10 @@
           "reason": "every Resource class follows the lazy-init pattern: sync __init__, internal _lock, idempotent _ensure(), close(). Convergent name is the codebase convention (cookie_jar, llm_resource, browser_pool, http_cache). Renaming would obscure the pattern."
         },
         {
+          "names": ["_safe_emit"],
+          "reason": "the override hook of `a2web.log.IsolatingHandler`. Every sink implements it; the base class calls it inside the try/except that stops a failing handler from killing the fetch feeding it. Convergence IS the contract — a per-sink name would mean each handler had its own isolation protocol, which is the bug the base class exists to prevent."
+        },
+        {
           "names": ["_build"],
           "reason": "factory-helper convention; convergent name signals 'internal factory used by the module's public builder'."
         },
