@@ -42,6 +42,11 @@ from a2web.packages.llm_extract import (
 
 def test_pick_provider_defaults_to_claude_code(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("A2WEB_BENCH_PROVIDER", raising=False)
+    # Simulate a Claude Code session being present — otherwise `available()`
+    # (session-credential probe) returns False in a session-less CI runner and
+    # `auto` correctly skips the rung. This test asserts the SELECTION order, not
+    # the environment probe, so pin availability deterministically.
+    monkeypatch.setattr(ClaudeCodeSdkAdapter, "available", lambda _self: True)
     from a2web.settings import AppSettings
 
     provider, provider_id = _pick_provider(AppSettings())
@@ -51,6 +56,8 @@ def test_pick_provider_defaults_to_claude_code(monkeypatch: pytest.MonkeyPatch) 
 
 def test_pick_provider_honours_claude_code_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("A2WEB_BENCH_PROVIDER", "claude-code")
+    # Same session-present pin as the default-selection test (CI has no session).
+    monkeypatch.setattr(ClaudeCodeSdkAdapter, "available", lambda _self: True)
     from a2web.settings import AppSettings
 
     provider, provider_id = _pick_provider(AppSettings())
