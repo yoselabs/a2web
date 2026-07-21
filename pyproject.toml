@@ -27,6 +27,13 @@ dependencies = [
     # narrative and operator hints all destroyed. That is the ADR-0009 harm class
     # structurally: a wall becomes indistinguishable from an a2web bug.
     "fastmcp>=3.4,<4",
+    # typer: the CLI. NOT a new dependency in substance — a2kit's generated CLI
+    # was built on Typer and pulled it transitively; the sunset made a2web the
+    # one declaring it. Floor is 0.13 because `Annotated[T, typer.Option(...)]`
+    # parameter rendering is what `cli.field_to_typer_annotation` produces.
+    # Note the neighbouring content-extract comment: docling pins typer<0.13,
+    # which is why the heavy [documents] extra stays uninstalled.
+    "typer>=0.13,<1",
     # a2effect: the typed error taxonomy + `ErrorEnvelope` behind the wire's
     # `{"error": {...}}` channel. Previously reached transitively through a2kit;
     # now a direct dependency because `error_wire.py` imports it by name. Pinned
@@ -185,7 +192,7 @@ dev = [
 ]
 
 [project.scripts]
-a2web = "a2web.server:main"
+a2web = "a2web.cli:main"
 # Container/HTTP serve entrypoint with config-gated Google OAuth (the a2kit
 # MCP-auth recipe's programmatic path — a provider object can't be a CLI flag).
 # The published image's CMD uses this; `a2web serve` (open) stays for local dev.

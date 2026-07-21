@@ -175,7 +175,7 @@ def register_web_tools(mcp: FastMCP, components: Components) -> None:
         focused answer in `answer`. Pass `include_content=True` to also get
         the page markdown in `content_md` for grounding.
 
-        Prefer this over `fetch_raw` for ~95%% of web reads. The
+        Prefer this over `fetch_raw` for ~95% of web reads. The
         extraction model is small and cheap (Haiku 4.5), so server-side
         answers cost a fraction of streaming raw HTML into a larger model.
 
@@ -257,7 +257,7 @@ def register_web_tools(mcp: FastMCP, components: Components) -> None:
             ),
         ] = True,
     ) -> FetchResponse:
-        """**Fallback only — prefer `query` for ~95%% of web reads.**
+        """**Fallback only — prefer `query` for ~95% of web reads.**
 
         Returns the page's markdown content with no server-side LLM
         extraction. Use only when:

@@ -302,31 +302,37 @@
 > Hand-writing the Typer app first would make Phase 5 an unverifiable rewrite of
 > a surface the user drives daily.
 
-- [ ] 5.0 **CLI golden gate, BEFORE any CLI code moves.** Mirror
+- [x] 5.0 **CLI golden gate, BEFORE any CLI code moves.** Mirror
       `tests/contracts/wire/`: drive the real CLI (`CliRunner` or subprocess)
       with stubbed tiers + frozen clocks, and freeze stdout / stderr / exit code
       per command. Cover `web query`, `web fetch_raw` (incl. `--include-content`
       to reach the truncation path), `health`, `--help` at every level, and at
       least one bad-flag error. Reuse `check_wire`'s two-phase accept protocol.
-- [ ] 5.1 Vendor a2kit's `packages/cli/_field_to_typer.py` (54 lines) —
+- [x] 5.1 Vendor a2kit's `packages/cli/_field_to_typer.py` (54 lines) —
       `Annotated[T, pydantic.FieldInfo]` → `Annotated[T, typer.Option(help=…)]`.
       a2web's tool params are already written that way, so the MCP schema's
       descriptions become `--help` text for free.
-- [ ] 5.2 Generate each Typer command from the D1 FastMCP tool function's
+- [x] 5.2 Generate each Typer command from the D1 FastMCP tool function's
       `inspect.signature` (~40 lines). Safe precisely because D1 removed the
       wire/injected partition guess — the signature is now wire-only by
       construction, so the derivation is total and unambiguous.
-- [ ] 5.3 Command tree: keep `serve`, `health`, `web query`, `web fetch_raw`,
+- [x] 5.3 Command tree: keep `serve`, `health`, `web query`, `web fetch_raw`,
       `cookies refresh`. **Drop `schema`, `list-tools`, `code`, `_meta`** —
       framework introspection, not product (`code` dies with code-mode in 4.8).
-- [ ] 5.4 Decide the 50k `truncate` cap + `"... (truncated)"` marker explicitly
+- [x] 5.4 Decide the 50k `truncate` cap + `"... (truncated)"` marker explicitly
       rather than inheriting it — after 5.0 has recorded today's behaviour.
+      **DECIDED: dropped.** a2kit exported `truncate()` / `DEFAULT_MAX_CHARS`
+      but never called it, so the cap never fired and nothing observed depends
+      on it. The recommendation to keep it was wrong on inspection: these
+      commands emit ONE JSON document, so slicing the encoded string yields
+      unparseable JSON — a caller's `json.loads` crashes on output that looks
+      fine in a terminal.
       Recommend keeping it; the point is that the choice becomes visible.
-- [ ] 5.5 Keep the per-command lifecycle (enter/exit the whole runtime per
+- [x] 5.5 Keep the per-command lifecycle (enter/exit the whole runtime per
       invocation, closing sqlite each time). For a one-shot process that is
       correct, not wasteful. Confirm teardown still runs.
-- [ ] 5.6 Update the `Makefile` targets and `make install-global`.
-- [ ] 5.7 CLI goldens: zero deltas against 5.0, or a slugged, reasoned delta.
+- [x] 5.6 Update the `Makefile` targets and `make install-global`.
+- [x] 5.7 CLI goldens: zero deltas against 5.0, or a slugged, reasoned delta.
 
 ## 6. Test surface
 

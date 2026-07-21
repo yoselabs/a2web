@@ -484,3 +484,43 @@ both scenarios, which were `xfail(strict=True)` until this landed. The strict
 marker is what forced the fix to be noticed rather than quietly skipped the
 moment the constraint lifted.
 
+
+## `percent-escape-typo` — `list_tools`
+
+`~95%%` → `~95%` in both web tool descriptions.
+
+A stray doubled percent, introduced in `797772f` (v0.10) and shipped in the
+agent-facing tool description ever since. `%%` is the escape for a literal `%`
+under `%`-formatting, but nothing in the path ever ran `%`-formatting over these
+docstrings — so the escape had no consumer and the literal `%%` is simply what
+every agent has read when deciding whether to call `query` or `fetch_raw`.
+
+Found by the sunset's Phase 5 CLI capture: it rendered into `--help` as `95%%`,
+which prompted checking the MCP wire, where it had been sitting unnoticed
+through seventeen rounds of wire review. Worth recording as a lesson about what
+goldens do and do not buy — `list_tools.json` contained this string the whole
+time and froze it perfectly. A golden proves a surface has not *changed*; it
+says nothing about whether the surface was right when captured.
+
+```diff
+--- list_tools.json (before)
++++ list_tools.json (after)
+@@ -7,7 +7,7 @@
+       "readOnlyHint": true,
+       "title": "Fetch Raw Web Content (Fallback)"
+     },
+-    "description": "**Fallback only — prefer `query` for ~95%% of web reads.**\n\nReturns the page's markdown content with no server-side LLM\nextraction. Use only when:\n\n1. You need the full structural content (link graphs, repeated\n   rows for scraping, tables to transform).\n2. A previous `query` call returned `answer: null` with an\n   `llm_unavailable` operator hint and you need the page text\n   to answer your own question.\n3. `query`'s answer is suspect and you need to verify against\n   source.\n\nDo not default to this tool — `query` is cheaper end-to-end because\nthe server-side Haiku extractor is much smaller than the model\ncalling this tool. Same tier cascade, same diagnostics, just\nwithout the extraction phase.",
++    "description": "**Fallback only — prefer `query` for ~95% of web reads.**\n\nReturns the page's markdown content with no server-side LLM\nextraction. Use only when:\n\n1. You need the full structural content (link graphs, repeated\n   rows for scraping, tables to transform).\n2. A previous `query` call returned `answer: null` with an\n   `llm_unavailable` operator hint and you need the page text\n   to answer your own question.\n3. `query`'s answer is suspect and you need to verify against\n   source.\n\nDo not default to this tool — `query` is cheaper end-to-end because\nthe server-side Haiku extractor is much smaller than the model\ncalling this tool. Same tier cascade, same diagnostics, just\nwithout the extraction phase.",
+     "execution": null,
+     "icons": null,
+     "inputSchema": {
+@@ -80,7 +80,7 @@
+       "readOnlyHint": true,
+       "title": "Query a Web Page"
+     },
+-    "description": "**Primary web-fetch tool. Use this for any question about a web page.**\n\nFetches the URL via the adaptive tier cascade (site handlers → raw\nHTTP with TLS impersonation → Jina reader → archive fallback →\nheadless browser as last resort), then runs the server-side LLM\nextractor over the content to answer your `query`. Returns the\nfocused answer in `answer`. Pass `include_content=True` to also get\nthe page markdown in `content_md` for grounding.\n\nPrefer this over `fetch_raw` for ~95%% of web reads. The\nextraction model is small and cheap (Haiku 4.5), so server-side\nanswers cost a fraction of streaming raw HTML into a larger model.\n\nCost asymmetry (ADR-0015): `also_here` indexes on-page content the\nanswer skipped — recovering it is a CHEAP re-query of the same URL\n(served from cache). `other_pages` points ELSEWHERE; each one costs a\nNEW fetch. Spend on the scarce resource — the fetch — accordingly.\n\nWhen the LLM is unavailable (no API key and no Claude Code OAuth\nsession), the fetch still succeeds, `answer` is None, and an operator\nhint records the reason — callers can fall back to reading\n`content_md` directly.\n\nEmits typed events on a2web's logging channel during the fetch.",
++    "description": "**Primary web-fetch tool. Use this for any question about a web page.**\n\nFetches the URL via the adaptive tier cascade (site handlers → raw\nHTTP with TLS impersonation → Jina reader → archive fallback →\nheadless browser as last resort), then runs the server-side LLM\nextractor over the content to answer your `query`. Returns the\nfocused answer in `answer`. Pass `include_content=True` to also get\nthe page markdown in `content_md` for grounding.\n\nPrefer this over `fetch_raw` for ~95% of web reads. The\nextraction model is small and cheap (Haiku 4.5), so server-side\nanswers cost a fraction of streaming raw HTML into a larger model.\n\nCost asymmetry (ADR-0015): `also_here` indexes on-page content the\nanswer skipped — recovering it is a CHEAP re-query of the same URL\n(served from cache). `other_pages` points ELSEWHERE; each one costs a\nNEW fetch. Spend on the scarce resource — the fetch — accordingly.\n\nWhen the LLM is unavailable (no API key and no Claude Code OAuth\nsession), the fetch still succeeds, `answer` is None, and an operator\nhint records the reason — callers can fall back to reading\n`content_md` directly.\n\nEmits typed events on a2web's logging channel during the fetch.",
+     "execution": null,
+     "icons": null,
+     "inputSchema": {
+```

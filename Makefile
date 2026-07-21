@@ -60,10 +60,8 @@ bootstrap:
 build:
 	uv build
 
-# NOTE: the Typer CLI (`a2web serve`, `a2web web query`) is restored in sunset
-# Phase 5. Until then `a2web` is the bare stdio MCP entrypoint and takes no args.
 dev:
-	uv run a2web
+	uv run a2web serve
 
 # Refresh the globally-installed `a2web` tool from this working tree.
 # Use after shipping a new version when Claude Code's MCP entry points at
