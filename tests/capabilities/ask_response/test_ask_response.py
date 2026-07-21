@@ -8,17 +8,18 @@ payload an agent receives, not on `.model_dump()`.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
-from a2kit.testing import client as make_client
 
+from a2web.components import build_components
 from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.llm_extract import Provider, ProviderResponse
-from a2web.server import build_app
 from a2web.state import AppState, unavailable_lazy
 from a2web.tiers import REGISTRY, TierResult
+from tests._helpers.mcp import call_wire, mcp_client
 from tests.fixtures import FIXTURES_DIR
 
 _FIX = FIXTURES_DIR
@@ -104,12 +105,11 @@ async def _ask_wire(
     """Invoke `ask` through the MCP transport; return the decoded wire dict."""
     raw_body = body if body is not None else (_FIX / "blog.html").read_bytes()
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(raw_body, raw_next_links))
-    app = build_app()
-    state = await app.container().get(AppState)
-    fake = _extractor(state, unavailable=unavailable)
-    app.provide(LlmExtractorResource, lambda: fake)
-    async with make_client(app) as client:
-        wire = await client.call_wire("query", **ask_kwargs)
+    parts = build_components()
+    state = await parts.state()
+    parts = dataclasses.replace(parts, llm_extractor=lazy(_extractor(state, unavailable=unavailable)))
+    async with mcp_client(components=parts) as client:
+        wire = await call_wire(client, "query", **ask_kwargs)
     return json.loads(wire)
 
 
@@ -367,9 +367,8 @@ _RICH_META_HTML = (
 
 async def _fetch_raw_wire(monkeypatch: pytest.MonkeyPatch, *, body: bytes, **kwargs: object) -> dict:
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(body))
-    app = build_app()
-    async with make_client(app) as client:
-        wire = await client.call_wire("fetch_raw", **kwargs)
+    async with mcp_client() as client:
+        wire = await call_wire(client, "fetch_raw", **kwargs)
     return json.loads(wire)
 
 

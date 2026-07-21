@@ -17,6 +17,28 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-22 — re-home the Rego policy lint dropped with a2kit (S)
+
+`make lint` used to end with `uv run a2kit lint rego src/ pyproject.toml` — a
+Rego policy bundle (duplicate-body detection, private-name collision, import
+hygiene) gated by the allowlist in `policies/data.json`. The sunset removed
+a2kit and with it the only engine that ran those policies.
+
+- **This is a real loss, not dead ceremony.** It fired twice in Phase 1 alone,
+  catching the `_resolve` / `link_digest._resolve` collision and the three-way
+  `_safe_emit` collision. Nothing else in `make check` looks for either.
+- **`policies/data.json` is deliberately KEPT** — the allowlist entries carry
+  written rationales that are still true, and re-deriving them would be the
+  expensive part of restoring the check.
+- **Two routes.** (a) A shelf package, if the Rego bundle is generic enough to
+  serve more than one consumer — plausible, since none of the rules are
+  a2web-specific. (b) A local AST check under `tests/architecture/`, which is
+  where a2web's other structural rules already live and needs no Rego engine.
+  (b) is smaller; (a) is the one that pays for the other consumers.
+- **Why deferred.** It gates nothing today that other guards do not, and the
+  sunset's remaining phases are the critical path. The risk is purely that it
+  is forgotten, which the `Makefile` comment and this entry exist to prevent.
+
 ## 2026-07-16 — jina foreign-egress corroboration on empty-marked thin (M)
 
 Source: openspec change `empty-vs-wall-discrimination`, design.md "implementation-

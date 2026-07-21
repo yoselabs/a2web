@@ -1,7 +1,7 @@
 """Eval system manifests.
 
 The eval harness needs richer construction context than just `AppSettings`
-(provider instance + bench state + Resources bundle). Each factory here
+(provider instance + bench state + the `Components` bundle). Each factory here
 accepts the `EvalSystemContext` struct defined below; `load_surface` treats
 it opaquely.
 """
@@ -12,8 +12,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from ...components import Components
     from ...packages.llm_extract import Provider
-    from ...state import AppState, Resources
+    from ...state import AppState
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,4 +23,4 @@ class EvalSystemContext:
 
     provider: Provider
     state: AppState
-    resources: Resources
+    resources: Components

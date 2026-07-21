@@ -181,39 +181,117 @@
 - [x] 3.4 Gate: `make check` green — **1223 passed, 3 xfailed, coverage 90.44%**
       (was 1205 / 90.40%). Wire goldens zero deltas across both phases.
 
-## 4. THE SPINE — atomic, cannot be split
+## 4. THE SPINE — atomic, cannot be split — **DONE 2026-07-22**
 
-- [ ] 4.1 Write `ResourceScope` (LIFO teardown; record ONLY after a successful
+- [x] 4.1 Write `ResourceScope` (LIFO teardown; record ONLY after a successful
       `__aenter__`) + `Lazy` (memoized async thunk under a construction lock).
       ~27 lines. Port the spike's assertions as unit tests.
-- [ ] 4.2 One composition root: absorb `bootstrap_state` into
+- [x] 4.2 One composition root: absorb `bootstrap_state` into
       `build_components(*, <factory overrides>)` returning the router with its
       thunks. Deletes `RobustBrowserBackend` (D5).
-- [ ] 4.3 D1 — explicit tool signatures: thin FastMCP functions whose parameter
+- [x] 4.3 D1 — explicit tool signatures: thin FastMCP functions whose parameter
       lists ARE the wire contract, closing over the router bundle. Two tools
       (`query`, `fetch_raw`); `refresh` only if Q1/`expose_cookies_tool` says so.
-- [ ] 4.4 Register on `fastmcp.FastMCP`; teardown via FastMCP `lifespan=`.
-- [ ] 4.5 Reproduce the two-piece error mechanism: per-tool wrapper raising
+- [x] 4.4 Register on `fastmcp.FastMCP`; teardown via FastMCP `lifespan=`.
+- [x] 4.5 Reproduce the two-piece error mechanism: per-tool wrapper raising
       `ToolError(prose) from exc` + outer middleware recovering the envelope from
       `__cause__`. **A single catch-all middleware does not work** — FastMCP masks
       plain exceptions before middleware sees them.
-- [ ] 4.6 Health check → `await components.sqlite()`. Retire the
+- [x] 4.6 Health check → `await components.sqlite()`. Retire the
       `Never call _ensure() in a health_check body` rule from `CLAUDE.md`.
-- [ ] 4.7 Port `serve_http_main` to `mcp.run(transport="http", auth=provider)`.
+- [x] 4.7 Port `serve_http_main` to `mcp.run(transport="http", auth=provider)`.
       The Google OAuth provider path already bypasses a2kit — low risk.
-- [ ] 4.8 Delete `A2kitConfig`/`McpConfig`, the `code_mode` toggle, and the
+- [x] 4.8 Delete `A2kitConfig`/`McpConfig`, the `code_mode` toggle, and the
       `a2kit[code-mode]` extra.
-- [ ] 4.9 Remove a2kit from `pyproject.toml`; add `fastmcp>=3.4` directly;
+- [x] 4.9 Remove a2kit from `pyproject.toml`; add `fastmcp>=3.4` directly;
       `uv lock`.
-- [ ] 4.10 Wire goldens: **zero deltas** on `list_tools` and all call scenarios.
+- [x] 4.10 Wire goldens: **zero deltas** on `list_tools` and all call scenarios.
       `_meta.a2kit` disappearing from `list_tools` is the one expected delta —
       accept it under slug `a2kit-meta-removed`.
-- [ ] 4.11 Un-`xfail` `tests/capabilities/ask_response/test_envelope_dispatch_encoder.py`
+- [x] 4.11 Un-`xfail` `tests/capabilities/ask_response/test_envelope_dispatch_encoder.py`
       (both scenarios) — the middleware is gone, so they must now pass. Close
       `envelope-wire-hygiene` task 3.1 as superseded-by-deletion.
-- [ ] 4.12 The non-golden invariant from `wire-contract-golden-gate` §6 must flip
+- [x] 4.12 The non-golden invariant from `wire-contract-golden-gate` §6 must flip
       from xfail to passing: a populated `other_pages` survives into
       `content[0].text`.
+
+  ### What the phase actually cost, versus the estimate
+
+  The proposal's "irreducible substrate: 60–90 lines" covered the DI spine
+  only, and was roughly right about it (`scope.py` + `components.py` ≈ 250
+  lines including docs, ~90 of code). **What the estimate missed is that
+  a2kit also owned the WIRE**, and the wire is the product's contract:
+
+  | Concern | New home | Why it could not be skipped |
+  |---|---|---|
+  | Envelope encoding + TSV blocks | `wire.py` | it IS `content[0].text` |
+  | Typed error envelope + prose | `error_wire.py` | it IS the failure wire |
+  | `PruneEmpty` | `wire.py` (pulled fwd from Phase 6) | omit-empty discipline |
+
+  The `EncodingPlan` **inference** was not ported. a2kit derived TSV fields
+  from the model's field types at import; `wire._TSV_FIELDS` states them as a
+  literal table, transcribed from what inference produced. Same reasoning as
+  D1: a2web has two response models, and which fields render as TSV is a
+  contract, not something to re-derive. Adding a field to `AskResponse` can no
+  longer silently change the wire.
+
+  ### Three wire deltas, all documented in `DELTAS.md` — and two are FIXES
+
+  1. `a2kit-spine-removed` — `_meta.a2kit` gone (a projection of framework
+     internals, no consumer), plus one tool-description line that said "a2kit's
+     logging channel" and had been false since Phase 1.
+  2. `other-pages-tsv-no-longer-destroyed` — **a2kit's encoder was silently
+     emptying a populated `other_pages` on the text channel.** `_prune_wire`
+     hands it over as an already-encoded TSV *string*; a2kit tested only
+     `isinstance(rows, (list, tuple))` and fell through to `[]`. The machine
+     channel was right the whole time, so only the agent saw the lie — an
+     ADR-0015 violation.
+  3. `envelope-presence-guard` — **a2web's own round-17 bug report, fixed by
+     owning the code.** `docs/history/A2KIT_FEEDBACK_v0.49-envelope-leak.md`
+     was filed as *"OPEN — no a2web workaround exists"* because a2web had no
+     formatter seam. a2kit re-inserted every pruned conditional as `"\n"` plus
+     a `_<name>_format` sidecar, so five omitted fields became ten dead keys.
+     The minimal success payload went **11 keys → 2**.
+
+  Both fixes were guarded by `xfail(strict=True)` tripwires written when the
+  defects were found and deliberately kept OUT of the goldens — a golden
+  captured against a broken encoder would have frozen the defect, and a
+  faithful port would then have passed the gate. The strict marker is what
+  turned "the constraint lifted" into a hard failure that could not be skipped.
+  All three tripwires are now un-xfailed and passing.
+
+- [x] 4.13 **Beyond plan — `bootstrap_state` and `Resources` DELETED, not just
+      superseded.** Task 4.2 said "absorb"; leaving them would have left the
+      exact second composition root 7.2 exists to forbid. The eval CLI and the
+      test fixtures now go through `build_components`, and `systems.py` got
+      *smaller* — it had been hand-wrapping concrete resources back into
+      `Lazy[T]` thunks, which `Components` already provides.
+
+- [x] 4.14 **Beyond plan — `test_framework_matches_the_resolved_mcp_substrate`
+      RE-AIMED at `src/a2web` rather than retired.** Its own docstring offered
+      both options. Retiring was wrong: a2web now constructs
+      `ToolResult(is_error=True)` itself in `error_wire.py`, so the drift risk
+      did not leave with a2kit — it moved into this repo. Renamed
+      `test_a2web_matches_the_resolved_mcp_substrate`, with a measured floor
+      (`checked >= 2`) instead of `> 0`.
+
+- [x] 4.15 **Beyond plan — the Rego policy lint is a recorded LOSS, not a
+      silent drop.** `make lint` ended with `uv run a2kit lint rego src/`,
+      which fired twice in Phase 1 alone (the `_resolve` and `_safe_emit`
+      collisions). Nothing else in `make check` looks for those.
+      `policies/data.json` is KEPT (its allowlist rationales are still true and
+      are the expensive part to re-derive), the `Makefile` carries the reason
+      inline, and re-homing it is `BACKLOG.md` 2026-07-22.
+
+  **Gate: `make check` GREEN — 1212 passed, coverage 90.40%, 36 architecture
+  tests.** `grep -rn "import a2kit" src/ tests/` → nothing. `uv.lock` → no
+  a2kit. `import a2kit` → `ModuleNotFoundError`.
+
+  **Known regression, deliberate and scoped:** `main()` is a bare stdio MCP
+  entrypoint; the Typer CLI (`a2web web query`, `a2web serve`, `a2web health`)
+  is gone until Phase 5. **Do NOT run `make install-global` until Phase 5
+  lands** — it would replace the binary Claude Code drives with one that has
+  no CLI. `make dev` carries the same note.
 
 ## 5. The Typer CLI — **Q1 = KEEP** (design: D6)
 
@@ -252,15 +330,15 @@
 
 ## 6. Test surface
 
-- [ ] 6.1 Rework the six wire-test files (`test_contracts`, `test_ask_response`,
+- [x] 6.1 Rework the six wire-test files (`test_contracts`, `test_ask_response`,
       `test_router_wire`, `test_fetch_response`, `test_listing_options`,
       `test_ask_wire_end_to_end`) — contact is six ~8-line module helpers; the
       ~1350 assertion lines do not move. Fakes are injected via
       `build_components(llm_factory=…)`, not a container override.
-- [ ] 6.2 Replace `make_client(app)` with `fastmcp.Client(mcp)` (11 sites).
-- [ ] 6.3 DELETE `tests/architecture/test_no_lambdas_in_app_provide.py`.
-- [ ] 6.4 DELETE `tests/architecture/test_no_ldd_terminology.py`.
-- [ ] 6.5 DELETE the four DI-container assertions in `test_app_state.py`; keep the
+- [x] 6.2 Replace `make_client(app)` with `fastmcp.Client(mcp)` (11 sites).
+- [x] 6.3 DELETE `tests/architecture/test_no_lambdas_in_app_provide.py`.
+- [x] 6.4 DELETE `tests/architecture/test_no_ldd_terminology.py`.
+- [x] 6.5 DELETE the four DI-container assertions in `test_app_state.py`; keep the
       genuine `AppState` slots/fields assertions.
 - [ ] 6.6 **HARDEN** `test_tools_return_pydantic_not_str.py` — retarget the
       decorator matcher AND add `assert len(inspected) >= 2`, or it goes vacuously
@@ -290,16 +368,16 @@
       (the floor is now in place); 6.6's decorator retarget stays Phase 4 work.
 - [ ] 6.8 Rationale-rewrite (no logic change): `test_aiosqlite_daemon.py`,
       `test_response_models_at_module_scope.py`, `test_no_rogue_structlog.py`.
-- [ ] 6.9 Port `test_google_oauth.py`'s monkeypatch seam from
+- [x] 6.9 Port `test_google_oauth.py`'s monkeypatch seam from
       `a2kit.runtime.build`/`serve_process` to the FastMCP equivalent.
 
 ## 7. Lock the discipline that the framework used to enforce
 
-- [ ] 7.1 **Cold-start architecture test** (the mitigation for the honest risk):
+- [x] 7.1 **Cold-start architecture test** (the mitigation for the honest risk):
       a `query` served from cache or the raw tier must leave the browser and LLM
       thunks **unresolved**. This is the spike's R1 assertion promoted into
       `tests/architecture/`.
-- [ ] 7.2 **One-composition-root architecture test**, mirroring a2kay.
+- [x] 7.2 **One-composition-root architecture test**, mirroring a2kay.
 - [ ] 7.3 Update the `Never` rules in `CLAUDE.md`: drop the a2kit-specific ones
       (`app.singleton`, `a2kit.Param`, `idempotent=`, `lifespan=`,
       `canonical_name_override`, `_ensure()` in health checks), add the two new

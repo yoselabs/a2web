@@ -26,11 +26,11 @@ from pathlib import Path
 
 from .._manifests.eval_systems import EvalSystemContext
 from .._plugin import load_surface
+from ..components import build_components
 from ..llm_resource import _PROVIDER_ORDER, select_provider
 from ..packages.llm_cost_guard import with_cost_guard
 from ..packages.llm_extract import Judge, LLMNotAvailable, ModelSpec, Provider
 from ..settings import AppSettings
-from ..state import bootstrap_state
 from .bench_judge import BenchJudge
 from .corpus import Corpus, CorpusError, load_corpus
 from .live_sink import LiveSink
@@ -169,12 +169,16 @@ async def _amain(argv: list[str]) -> int:
     # raises CostViolation before spending, never silently bills.
     provider = with_cost_guard(provider_id, provider)
 
-    # Single source of truth: bootstrap_state constructs both AppState and the
-    # Resources bundle (browser_pool + llm_extractor + cookie_jar). The chosen
-    # provider is injected straight into the extraction resource, so the
-    # A2WebExtract reader path uses the same backend as the judges — no
-    # `settings.llm_provider` round-trip.
-    state, resources = await bootstrap_state(settings, provider=provider)
+    # Single source of truth (sunset Phase 4): `build_components` is the ONE
+    # composition root — the bench builds the same graph production does, so a
+    # resource added there cannot miss the bench. The chosen provider is
+    # injected as the provider factory, so the A2WebExtract reader path uses
+    # the same backend as the judges — no `settings.llm_provider` round-trip.
+    def _bench_provider(_settings: AppSettings) -> Provider:
+        return provider
+
+    resources = build_components(settings=settings, provider_factory=_bench_provider)
+    state = await resources.state()
 
     # Eval systems load via the plugin manifest registry.
     # Mode controls which manifests we keep — the registry is built once;
@@ -212,10 +216,14 @@ async def _amain(argv: list[str]) -> int:
     )
 
     print(f"Running benchmark: {len(corpus)} URLs x {len(systems)} systems (provider={provider_id}) → {output_dir}")
-    # Lifecycle the browser backend around the run — the engine launches lazily
-    # on first render, but `__aexit__` is what cleanly closes the browser process.
-    async with resources.browser_backend, live_sink:
-        report = await suite.run()
+    # The engine launches lazily on first render; `ResourceScope.aclose()` is
+    # what cleanly closes the browser process (and everything else the run
+    # entered), LIFO, whether or not the run raised.
+    try:
+        async with live_sink:
+            report = await suite.run()
+    finally:
+        await resources.aclose()
     write_all(report)
     print(json.dumps(stats_dict(report), indent=2, default=str))
     print(f"\nReport written to: {output_dir}")

@@ -1,32 +1,30 @@
-"""Per-App shared state — always-on bundle + Lazy-eligible resource bundle.
+"""Always-on shared state, plus the per-resource construction factories.
 
 `AppState` carries the four resources every fetch needs: settings, breakers,
-proxy_pool, sqlite. `Resources` carries the three Lazy-eligible resources
-(browser_backend, llm_extractor, cookie_jar) that are surfaced at the tool seam
-via `Lazy[T]` so cold-start cost is paid only when the path needs them.
+proxy_pool, sqlite. The heavy, conditional ones (browser, llm_extractor,
+cookie_jar) are not here — they reach the tool seam as `Lazy[T]` thunks off
+`Components`.
 
-`bootstrap_state(settings)` is the single source of truth for constructing
-both bundles. Production (`server.py`), the eval harness
-(`llm_eval/__main__.py`), and test fixtures (`tests/conftest.py`) all
-delegate to this factory so a new resource added to either bundle reaches
-every construction path automatically (closes the v0.22 bench-harness gap).
+**This module owns HOW each resource is constructed; `components.py` owns
+WHEN.** The split matters: the factories below are called from exactly one
+place, so a new resource is wired once and reaches production, the eval CLI
+and the tests together. `bootstrap_state` and the `Resources` bundle used to
+be a second assembly point here; the sunset absorbed them into
+`build_components`, and `tests/architecture/test_one_composition_root.py`
+keeps a third from appearing.
 
-Lifecycle is owned by a2kit v0.36+: each resource registered via
-`app.provide(...)` enters on first resolution (lazy first-use) and exits in
-LIFO order on app shutdown. `bootstrap_state` does NOT call `__aenter__` on
-any resource — it returns cheap unstarted instances. Callers that bypass DI
-(eval CLI, direct-call tests) own the lifecycle via `async with` blocks.
+Nothing here enters a resource — every factory returns a cheap, unstarted
+instance. Entry and LIFO teardown belong to `scope.ResourceScope`.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol, TypeVar, cast, runtime_checkable
+from typing import TypeVar, cast
 
 from purgatory import AsyncCircuitBreakerFactory
 
 from .cache import SqliteResource
-from .cookie_jar import CookieJarResource, build_cookie_jar
 from .lazy import Lazy
 from .llm_resource import _PROVIDER_ORDER, LlmExtractorResource, select_provider
 from .packages.browser_backends import BrowserBackend
@@ -39,8 +37,8 @@ from .settings import AppSettings
 class AppState:
     """Always-on resources for the fetch pipeline. Per-App singleton.
 
-    `browser_backend` / `llm_extractor` / `cookie_jar` are NOT here — they live
-    on `Resources` and reach the tool seam as `Lazy[T]`.
+    `browser_backend` / `llm_extractor` / `cookie_jar` are NOT here — they are
+    `Lazy[T]` thunks on `Components` and reach the tool seam unresolved.
     """
 
     settings: AppSettings
@@ -49,37 +47,9 @@ class AppState:
     sqlite: SqliteResource
 
 
-@runtime_checkable
-class RobustBrowserBackend(BrowserBackend, Protocol):
-    """Marker sub-protocol for the *robust* browser rung (the CDP engine).
-
-    Structurally identical to `BrowserBackend` — it adds nothing. It exists
-    solely so a SECOND browser-engine provider can be registered with the DI
-    container under a distinct type key (a2kit resolves providers by type; two
-    `BrowserBackend` providers would collide). The fast rung is `BrowserBackend`;
-    the robust rung is `RobustBrowserBackend`. Both are satisfied by any
-    `BrowserBackend` instance, so the same engine classes back both seams.
-    """
-
-
-@dataclass(frozen=True, slots=True)
-class Resources:
-    """Heavy/conditional resources surfaced at the tool seam via `Lazy[T]`.
-
-    Frozen because the bundle itself is a value (no in-place mutation); the
-    resources it holds carry their own internal mutable state.
-    """
-
-    browser_backend: BrowserBackend
-    browser_robust_backend: RobustBrowserBackend
-    llm_extractor: LlmExtractorResource
-    cookie_jar: CookieJarResource
-
-
 # --------------------------------------------------------------------- #
 # Per-resource factories — single source of truth for construction.
-# Production providers in `server.py` call these; `bootstrap_state` calls
-# these; tests / eval call `bootstrap_state`. No duplication.
+# `components.build_components()` is their only caller.
 # --------------------------------------------------------------------- #
 
 
@@ -141,11 +111,12 @@ def build_browser_backend(settings: AppSettings) -> BrowserBackend:
     return select_backend(settings)
 
 
-def build_browser_robust_backend(settings: AppSettings) -> RobustBrowserBackend:
-    """DI factory for the robust browser rung (`settings.browser_backend_robust`,
-    a CDP engine). Distinct return type (`RobustBrowserBackend`) so it registers
-    under a separate DI key from the fast `BrowserBackend` provider; only enters
-    when the robust escalation actually fires (lazy first-use at the tool seam)."""
+def build_browser_robust_backend(settings: AppSettings) -> BrowserBackend:
+    """Factory for the robust browser rung (`settings.browser_backend_robust`, a
+    CDP engine). Until the sunset this needed a distinct `RobustBrowserBackend`
+    return type purely so a2kit's type-keyed container could tell the two
+    browser providers apart; hand-wired, they are simply two named thunks and
+    the marker protocol is deleted (design D5)."""
     return select_backend_named(settings, settings.browser_backend_robust)
 
 
@@ -171,24 +142,6 @@ def build_llm_extractor(settings: AppSettings, sqlite: SqliteResource, provider:
     via `build_selected_provider`); Extractor construction stays deferred to
     first use."""
     return LlmExtractorResource(settings, sqlite, provider)
-
-
-def _provider_lazy(provider: Provider | None, settings: AppSettings) -> Lazy[Provider]:
-    """Wrap a pre-resolved provider as a `Lazy[Provider]` thunk, or defer to
-    `build_selected_provider(settings)` when none was supplied. Used by
-    `bootstrap_state` (bench/tests), which don't run inside the DI container."""
-    if provider is not None:
-        given = provider
-
-        async def _given() -> Provider:
-            return given
-
-        return _given
-
-    async def _selected() -> Provider:
-        return build_selected_provider(settings)
-
-    return _selected
 
 
 def build_state(
@@ -240,33 +193,3 @@ def unavailable_lazy(resource_cls: type[_T], *, reason: str) -> Lazy[_T]:
         raise ResourceUnavailable(reason)
 
     return _raise
-
-
-async def bootstrap_state(settings: AppSettings, *, provider: Provider | None = None) -> tuple[AppState, Resources]:
-    """Construct the full resource bundle from `settings` — single source of truth.
-
-    Production (`server.py`) uses the DI `app.provide(...)` chain; eval
-    (`llm_eval/__main__.py`) and tests (`tests/conftest.py`) reach the same
-    instances through this factory. `provider` injects a pre-resolved LLM
-    provider into the extraction resource (the bench passes the one it picked
-    for its judges); when omitted the resource defers to `select_provider`.
-
-    Async by contract (Phase 1 of fetcher-orchestrator-refactor-v1) — body is
-    sync today because all resource construction is cheap and `__aenter__` is
-    deferred; the async signature is the seam future resources can lean on
-    without changing every caller.
-    """
-    sqlite = SqliteResource()
-    state = build_state(
-        settings=settings,
-        breakers=build_breakers(),
-        proxy_pool=build_proxy_pool(settings),
-        sqlite=sqlite,
-    )
-    resources = Resources(
-        browser_backend=build_browser_backend(settings),
-        browser_robust_backend=build_browser_robust_backend(settings),
-        llm_extractor=build_llm_extractor(settings, sqlite, _provider_lazy(provider, settings)),
-        cookie_jar=build_cookie_jar(settings, sqlite),
-    )
-    return state, resources

@@ -1,4 +1,4 @@
-.PHONY: lint fix test test-browser test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail eval-capture eval-replay eval-refresh bless-contracts handler-probe install-global
+.PHONY: lint fix test test-browser test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail eval-capture eval-replay eval-refresh bless-wire handler-probe install-global
 
 check: lint ty test-cov arch
 
@@ -13,7 +13,14 @@ arch:
 lint:
 	@uv run ruff check src/ tests/
 	@uv run pymarkdown --config .pymarkdown.json scan README.md CHANGELOG.md CLAUDE.md
-	@uv run a2kit lint rego src/ pyproject.toml
+# DROPPED with a2kit (sunset Phase 4): `a2kit lint rego src/ pyproject.toml`.
+# It ran a Rego policy bundle (duplicate-body detection, private-name collision,
+# import hygiene) against src/, gated by the allowlist in `policies/data.json`.
+# That is a REAL capability loss, not dead ceremony — it caught the `_resolve`
+# and `_safe_emit` collisions during Phase 1 — so `policies/data.json` is kept
+# rather than deleted, and re-homing the linter (shelf candidate, or a
+# standalone `conftest`-level AST check) is tracked in BACKLOG.md. Restoring it
+# is cheap; silently forgetting it is what this comment exists to prevent.
 
 fix:
 	@uv run ruff check --fix src/ tests/
@@ -38,10 +45,13 @@ test-cov:
 coverage-diff:
 	@uv run diff-cover coverage.xml --compare-branch=origin/main --fail-under=95
 
-# Re-bless the golden API-contract files after an intentional envelope change.
-# Review the resulting diff under tests/contracts/ before committing.
-bless-contracts:
-	@A2WEB_BLESS_CONTRACTS=1 uv run pytest tests/contracts/test_contracts.py -q -p no:cacheprovider
+# Accept an intentional MCP wire change. Unlike the old blanket bless this
+# REQUIRES a reason slug: the diff is appended to tests/contracts/DELTAS.md
+# under that slug, so no wire change lands unexplained.
+#   make bless-wire SLUG=my-reason
+bless-wire:
+	@test -n "$(SLUG)" || (echo "SLUG=<reason-slug> is required"; exit 1)
+	@A2WEB_ACCEPT_WIRE_DELTA=$(SLUG) uv run pytest tests/contracts/test_wire_contract.py -q -p no:cacheprovider
 
 bootstrap:
 	uv sync --all-extras
@@ -50,8 +60,10 @@ bootstrap:
 build:
 	uv build
 
+# NOTE: the Typer CLI (`a2web serve`, `a2web web query`) is restored in sunset
+# Phase 5. Until then `a2web` is the bare stdio MCP entrypoint and takes no args.
 dev:
-	uv run a2web serve --transport=stdio
+	uv run a2web
 
 # Refresh the globally-installed `a2web` tool from this working tree.
 # Use after shipping a new version when Claude Code's MCP entry points at

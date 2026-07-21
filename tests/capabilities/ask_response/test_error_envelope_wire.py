@@ -28,10 +28,9 @@ from __future__ import annotations
 import inspect
 
 import pytest
-from a2kit.testing import client as make_client
 from fastmcp.tools.tool import ToolResult
 
-from a2web.server import build_app
+from tests._helpers.mcp import mcp_client
 
 _REAL_CAUSE = "sqlite connection exploded mid-fetch"
 
@@ -52,15 +51,13 @@ def test_resolved_fastmcp_supports_the_error_flag() -> None:
 async def test_tool_fault_surfaces_real_cause_on_both_channels(monkeypatch: pytest.MonkeyPatch) -> None:
     """A tool-body exception must reach the caller with its real message on the
     text channel AND a populated envelope on the structured channel."""
-    app = build_app()
-
     async def _boom(*_args: object, **_kwargs: object) -> object:
         raise RuntimeError(_REAL_CAUSE)
 
     monkeypatch.setattr("a2web.routers.orchestrate", _boom)
 
-    async with make_client(app) as client:
-        result = await client._client.call_tool(
+    async with mcp_client() as client:
+        result = await client.call_tool(
             "query",
             {"url": "https://example.com", "query": "anything"},
             raise_on_error=False,

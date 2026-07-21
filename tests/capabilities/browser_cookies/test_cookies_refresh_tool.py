@@ -1,4 +1,11 @@
-"""Tests for the `cookies_refresh` tool + CookiesRouter wiring."""
+"""Tests for the `refresh` cookies tool.
+
+Post-sunset the tool is a closure registered on the FastMCP server, not a
+method on a `CookiesRouter` class, so these drive it through a real client
+instead of calling the bound method. That is the more honest test anyway: the
+old form asserted on a Python call the agent never makes, and could not have
+caught the tool failing to register at all.
+"""
 
 from __future__ import annotations
 
@@ -6,48 +13,30 @@ import pytest
 from browser_cookies.models import CookieRow
 
 from a2web.cache import SqliteResource
-from a2web.cookie_jar import CookieJarResource, CookiesRefreshResult, build_cookie_jar
+from a2web.components import build_components
+from a2web.cookie_jar import CookiesRefreshResult, build_cookie_jar
 from a2web.lazy import lazy
-from a2web.routers import CookiesRouter
-from a2web.server import A2Web, app
 from a2web.settings import AppSettings
-from tests.conftest import make_default_state
+from tests._helpers.mcp import mcp_client
 
 
-def test_cookies_router_registered() -> None:
-    """The `refresh` tool is exposed on the cookies-enabled app (CLI:
-    `a2web cookies refresh`). It is toggle-gated (`expose_cookies_tool`): the
-    default server `app` omits it, the `A2Web` class includes it."""
-    assert "refresh" not in {desc.name for desc in app.tools()}  # server-safe default
-    names = {desc.name for desc in A2Web().tools()}
-    # a2kit derives MCP tool name from the function name. CLI grouping by
-    # router slug ("cookies") gives the user-facing `a2web cookies refresh`.
-    assert "refresh" in names
+async def _refresh(settings: AppSettings, jar: object) -> CookiesRefreshResult:
+    """Drive the real `refresh` tool with a pre-built cookie jar."""
+    import dataclasses
 
-
-def test_cookies_router_slug() -> None:
-    """CLI surface: `a2web cookies refresh`."""
-    assert CookiesRouter.slug == "cookies"
-    # v0.42 ADR-0028: no `tools` ClassVar — the verb auto-collects from its
-    # `@a2kit.write` marker. The method is present on the router class.
-    assert callable(getattr(CookiesRouter, "refresh", None))
-
-
-def test_cookie_jar_provider_registered() -> None:
-    """The app exposes a provider for CookieJarResource."""
-    assert app.has_provider(CookieJarResource) is True
+    parts = dataclasses.replace(build_components(settings=settings), cookie_jar=lazy(jar))
+    async with mcp_client(settings=settings, components=parts) as client:
+        result = await client.call_tool("refresh", {})
+    return CookiesRefreshResult.model_validate(result.structured_content)
 
 
 async def test_refresh_with_source_none_returns_zero_count(tmp_path) -> None:
     """`cookie_source=none` → no DB / Keychain access, returns zero + note."""
-    s = AppSettings(cookie_source="none", cookie_profile="Default")
-    state = make_default_state(s)
+    s = AppSettings(expose_cookies_tool=True, cookie_source="none", cookie_profile="Default")
     sqlite = SqliteResource(db_path=tmp_path / "cache.sqlite")
-    state.sqlite = sqlite
     jar = build_cookie_jar(s, sqlite)
     try:
-        router = CookiesRouter()
-        result = await router.refresh(state=state, cookie_jar=lazy(jar))
+        result = await _refresh(s, jar)
         assert isinstance(result, CookiesRefreshResult)
         assert result.refreshed_count == 0
         assert "none" in result.notes.lower() or "disabled" in result.notes.lower()
@@ -77,14 +66,11 @@ async def test_refresh_with_chrome_source_returns_count(
 
     monkeypatch.setattr(cj, "_read_cookies", lambda b, p: rows)
 
-    s = AppSettings(cookie_source="chrome", cookie_profile="Work")
-    state = make_default_state(s)
+    s = AppSettings(expose_cookies_tool=True, cookie_source="chrome", cookie_profile="Work")
     sqlite = SqliteResource(db_path=tmp_path / "cache.sqlite")
-    state.sqlite = sqlite
     jar = build_cookie_jar(s, sqlite)
     try:
-        router = CookiesRouter()
-        result = await router.refresh(state=state, cookie_jar=lazy(jar))
+        result = await _refresh(s, jar)
         assert result.refreshed_count == 42
         assert result.profile == "Work"
         assert result.browser == "chrome"
@@ -117,14 +103,11 @@ async def test_refresh_handles_chrome_access_error_gracefully(
 
     monkeypatch.setattr(cj, "_read_cookies", _boom)
 
-    s = AppSettings(cookie_source="chrome", cookie_profile="Default")
-    state = make_default_state(s)
+    s = AppSettings(expose_cookies_tool=True, cookie_source="chrome", cookie_profile="Default")
     sqlite = SqliteResource(db_path=tmp_path / "cache.sqlite")
-    state.sqlite = sqlite
     jar = build_cookie_jar(s, sqlite)
     try:
-        router = CookiesRouter()
-        result = await router.refresh(state=state, cookie_jar=lazy(jar))
+        result = await _refresh(s, jar)
         assert result.refreshed_count == 0
         assert "keychain access denied" in result.notes
     finally:

@@ -9,15 +9,15 @@ including `_apply_llm_listing_oracle` (the LLM-side oracle fallback).
 
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
-from a2kit.testing import client as make_client
 
-from a2web.llm_resource import LlmExtractorResource
-from a2web.server import build_app
-from a2web.state import AppState
+from a2web.components import build_components
+from a2web.lazy import lazy
 from a2web.tiers import REGISTRY
+from tests._helpers.mcp import call_wire, mcp_client
 from tests.capabilities.ask_response.test_ask_response import _extractor, _RawStub
 from tests.capabilities.listing_completeness.test_listing_completeness import _listing_html
 
@@ -25,12 +25,12 @@ from tests.capabilities.listing_completeness.test_listing_completeness import _l
 async def _ask_listing_wire(monkeypatch: pytest.MonkeyPatch, *, body: bytes, answer: str, **ask_kwargs: object) -> dict:
     """Drive `ask` over `body` with the LLM stub returning `answer`; decode the wire."""
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(body))
-    app = build_app()
-    state = await app.container().get(AppState)
+    parts = build_components()
+    state = await parts.state()
     fake = _extractor(state, answer=answer)
-    app.provide(LlmExtractorResource, lambda: fake)
-    async with make_client(app) as client:
-        wire = await client.call_wire("query", **ask_kwargs)
+    parts = dataclasses.replace(parts, llm_extractor=lazy(fake))
+    async with mcp_client(components=parts) as client:
+        wire = await call_wire(client, "query", **ask_kwargs)
     return json.loads(wire)
 
 

@@ -24,14 +24,15 @@ the content it was built to produce.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
 
-from a2web.llm_resource import LlmExtractorResource
+from a2web.components import build_components
+from a2web.lazy import lazy
 from a2web.models import NextLink
-from a2web.server import build_app
-from a2web.state import AppState
+from a2web.server import build_mcp_server
 from a2web.tiers import REGISTRY
 from tests.capabilities.ask_response.test_ask_response import _MINIMAL_HTML, _extractor, _RawStub
 from tests.contracts.wire_harness import WIRE_DIR, capture, check_wire, freeze_clocks, normalize, wire_client
@@ -89,11 +90,10 @@ async def _query_wire(
 ) -> dict:
     freeze_clocks(monkeypatch)
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(body, raw_next_links))
-    app = build_app()
-    state = await app.container().get(AppState)
-    fake = _extractor(state, unavailable=unavailable)
-    app.provide(LlmExtractorResource, lambda: fake)
-    async with wire_client(app) as client:
+    parts = build_components()
+    state = await parts.state()
+    parts = dataclasses.replace(parts, llm_extractor=lazy(_extractor(state, unavailable=unavailable)))
+    async with wire_client(build_mcp_server(components=parts)) as client:
         result = await client.call_tool("query", dict(kwargs), raise_on_error=False)
     return capture(result)
 
@@ -101,8 +101,7 @@ async def _query_wire(
 async def _fetch_raw_wire(monkeypatch: pytest.MonkeyPatch, *, body: bytes, **kwargs: object) -> dict:
     freeze_clocks(monkeypatch)
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(body))
-    app = build_app()
-    async with wire_client(app) as client:
+    async with wire_client() as client:
         result = await client.call_tool("fetch_raw", dict(kwargs), raise_on_error=False)
     return capture(result)
 
@@ -124,8 +123,7 @@ async def test_wire_list_tools() -> None:
     so the sunset removing it becomes a *reviewed* delta rather than a silent
     disappearance.
     """
-    app = build_app()
-    async with wire_client(app) as client:
+    async with wire_client() as client:
         tools = await client.list_tools()
 
     names = sorted(t.name for t in tools)
@@ -292,8 +290,7 @@ async def test_wire_fetch_raw_include_links(monkeypatch: pytest.MonkeyPatch) -> 
 @pytest.mark.asyncio
 async def test_wire_error_missing_required_arg() -> None:
     """FastMCP-owned validation. Frozen so the sunset cannot quietly move it."""
-    app = build_app()
-    async with wire_client(app) as client:
+    async with wire_client() as client:
         result = await client.call_tool("query", {}, raise_on_error=False)
     payload = capture(result)
     assert payload["is_error"] is True
@@ -310,7 +307,7 @@ async def test_wire_error_tool_body_exception(monkeypatch: pytest.MonkeyPatch) -
     baseline — a defect enshrined as the contract.
     """
     freeze_clocks(monkeypatch)
-    app = build_app()
+    app = build_mcp_server()
 
     async def _boom(*_a: object, **_k: object) -> object:
         raise RuntimeError("orchestrator failed during the tier loop")
@@ -350,9 +347,10 @@ async def test_wire_notifications(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     freeze_clocks(monkeypatch)
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(_MINIMAL_HTML))
-    app = build_app()
-    state = await app.container().get(AppState)
-    app.provide(LlmExtractorResource, lambda: _extractor(state))
+    parts = build_components()
+    state = await parts.state()
+    parts = dataclasses.replace(parts, llm_extractor=lazy(_extractor(state)))
+    app = build_mcp_server(components=parts)
 
     seen: list[dict] = []
 
@@ -422,8 +420,8 @@ def test_url_deviation_is_dropped_when_it_matches_the_request() -> None:
 # --------------------------------------------------------------------- #
 
 
-def test_framework_matches_the_resolved_mcp_substrate() -> None:
-    """No framework call site may pass a keyword the resolved signature rejects.
+def test_a2web_matches_the_resolved_mcp_substrate() -> None:
+    """No a2web call site may pass a keyword the resolved signature rejects.
 
     This is the by-construction form of the defect `hotfix-fastmcp-error-envelope`
     fixed: a2kit called `ToolResult(..., is_error=True)` against a resolved
@@ -432,17 +430,20 @@ def test_framework_matches_the_resolved_mcp_substrate() -> None:
     error reached callers as a meaningless string. It was found by reading
     code, which is not a repeatable process.
 
-    Retire this when the sunset removes a2kit, or re-aim it at a2web's own
-    FastMCP call sites — which is exactly where the drift risk moves.
+    **RE-AIMED at `src/a2web` by the sunset** — as this test's own docstring
+    predicted it should be. a2web now constructs `ToolResult(is_error=True)`
+    itself in `error_wire.py`, so the drift risk did not disappear with a2kit;
+    it moved into this repo. Retiring the test instead of re-aiming it would
+    have retired the coverage exactly as a2web inherited the exposure.
     """
     import ast
     import importlib
     import inspect
     from pathlib import Path as _Path
 
-    import a2kit
+    import a2web
 
-    root = _Path(inspect.getfile(a2kit)).parent
+    root = _Path(inspect.getfile(a2web)).parent
     findings: list[str] = []
     checked = 0
 
@@ -491,8 +492,14 @@ def test_framework_matches_the_resolved_mcp_substrate() -> None:
                     f"(accepts: {list(signature.parameters)})"
                 )
 
-    # Anti-vacuity: a walk that inspected nothing would pass silently.
-    assert checked > 0, "the substrate walk found no checkable call sites — it is not testing anything"
+    # Anti-vacuity with a measured floor, not just `> 0`. Two keyword-bearing
+    # call sites against non-`**kwargs` signatures on 2026-07-22 — the
+    # `ToolResult(...)` constructions in `error_wire.py` and `wire.py`, which
+    # are exactly the ones that carry `is_error`. (`TextContent` and
+    # `ToolAnnotations` are pydantic models and are skipped: their generated
+    # `__init__` is `**data`, so no keyword can be "rejected" at the signature
+    # level.) A walk that finds fewer has broken, not been simplified.
+    assert checked >= 2, f"the substrate walk checked only {checked} call site(s) — it is not testing anything"
     assert not findings, "framework/substrate API drift:\n  " + "\n  ".join(findings)
 
 
@@ -501,16 +508,15 @@ def test_framework_matches_the_resolved_mcp_substrate() -> None:
 # --------------------------------------------------------------------- #
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "encode_envelope destroys a populated other_pages on the text channel "
-        "(envelope-wire-hygiene). This is deliberately NOT a golden: a golden "
-        "captured against the defective encoder would freeze the defect, and a "
-        "faithful port of that encoder would then pass the gate. It self-heals "
-        "into a hard failure the moment the sunset deletes the middleware."
-    ),
-)
+# HEALED 2026-07-22 (sunset Phase 4). This was `xfail(strict=True)` while
+# a2kit owned the encoder: a2kit's `encode_envelope` tested only for
+# list/tuple and fell through to `[]`, so a populated `other_pages` — already
+# rendered to TSV by `AskResponse._prune_wire` one layer down — was
+# overwritten with the empty marker on the text channel. It was deliberately
+# NOT made a golden, because a golden captured against the defective encoder
+# would have frozen the defect and a faithful port would then have passed the
+# gate. Owning the encoder (`a2web.wire.encode_envelope`) is what let the fix
+# land; the strict xfail is what forced the fix to be noticed.
 @pytest.mark.asyncio
 async def test_populated_other_pages_survives_to_text_channel(monkeypatch: pytest.MonkeyPatch) -> None:
     payload = await _query_wire(

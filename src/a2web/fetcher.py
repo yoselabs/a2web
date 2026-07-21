@@ -84,7 +84,7 @@ from .packages.browser_backends import BrowserBackend
 from .packages.escalation import EscalationSignal
 from .packages.llm_extract import LlmNextLink, OtherPageBoundary, RouterPayload
 from .settings import AppSettings
-from .state import AppState, ResourceUnavailable, RobustBrowserBackend, unavailable_lazy
+from .state import AppState, ResourceUnavailable, unavailable_lazy
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
 from .uptake import note_visit, record_suggestions
 
@@ -308,8 +308,8 @@ class FetchContext:
     # Robust browser rung (CDP) — resolved only on the SECOND browser dispatch
     # (fast rung came back thin/blocked). Separate Lazy seam so it enters only
     # when the robust escalation actually fires.
-    browser_robust_backend: Lazy[RobustBrowserBackend] = field(
-        default_factory=lambda: unavailable_lazy(RobustBrowserBackend, reason="browser_robust_backend not provisioned"),
+    browser_robust_backend: Lazy[BrowserBackend] = field(
+        default_factory=lambda: unavailable_lazy(BrowserBackend, reason="browser_robust_backend not provisioned"),
     )
     llm_extractor: Lazy[LlmExtractorResource] = field(
         default_factory=lambda: unavailable_lazy(LlmExtractorResource, reason="llm_extractor not provisioned"),
@@ -555,7 +555,7 @@ async def fetch(
     *,
     state: AppState,
     browser_backend: Lazy[BrowserBackend] | None = None,
-    browser_robust_backend: Lazy[RobustBrowserBackend] | None = None,
+    browser_robust_backend: Lazy[BrowserBackend] | None = None,
     llm_extractor: Lazy[LlmExtractorResource] | None = None,
     cookie_jar: Lazy[CookieJarResource] | None = None,
     include_links: bool = False,
@@ -628,7 +628,7 @@ async def fetch(
         browser_robust_backend
         if browser_robust_backend is not None
         else unavailable_lazy(
-            RobustBrowserBackend,
+            BrowserBackend,
             reason="browser_robust_backend not provisioned by caller",
         )
     )

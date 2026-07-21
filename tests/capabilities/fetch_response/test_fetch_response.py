@@ -12,11 +12,10 @@ from __future__ import annotations
 import json
 
 import pytest
-from a2kit.testing import client as make_client
 
 from a2web.models import NextLink
-from a2web.server import app
 from a2web.tiers import REGISTRY
+from tests._helpers.mcp import call_wire, mcp_client
 from tests.capabilities.ask_response.test_ask_response import _MINIMAL_HTML, _RawStub
 from tests.fixtures import FIXTURES_DIR
 
@@ -32,8 +31,8 @@ async def _fetch_raw_wire(
 ) -> dict:
     """Invoke `fetch_raw` through the MCP transport; return the decoded wire dict."""
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(body, raw_next_links))
-    async with make_client(app) as client:
-        wire = await client.call_wire("fetch_raw", **kwargs)
+    async with mcp_client() as client:
+        wire = await call_wire(client, "fetch_raw", **kwargs)
     return json.loads(wire)
 
 
@@ -112,8 +111,8 @@ async def test_fetch_raw_tier_carried_for_site_handler(monkeypatch: pytest.Monke
     # A tier-0 site handler wins — its identifier deviates from `raw`.
     handler = _RawStub(_MINIMAL_HTML, name="site_handler:stub", handler_name="site_handler:stub")
     monkeypatch.setitem(REGISTRY, "site_handler", handler)
-    async with make_client(app) as client:
-        data = json.loads(await client.call_wire("fetch_raw", url="https://example.org/raw"))
+    async with mcp_client() as client:
+        data = json.loads(await call_wire(client, "fetch_raw", url="https://example.org/raw"))
     assert data.get("tier") == "site_handler:stub"
 
 

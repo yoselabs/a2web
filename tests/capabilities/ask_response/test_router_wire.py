@@ -8,17 +8,18 @@ receives, not on `.model_dump()`.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
-from a2kit.testing import client as make_client
 
+from a2web.components import build_components
 from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.llm_extract import ProviderResponse
-from a2web.server import build_app
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TierResult
+from tests._helpers.mcp import call_wire, mcp_client
 
 _MINIMAL_HTML = (
     b"<html><body><main>" + b"<p>Adaptive web fetching keeps the calling agent's context small.</p>" * 30 + b"</main></body></html>"
@@ -71,12 +72,12 @@ def _build_extractor(state: AppState, envelope: dict) -> LlmExtractorResource:
 
 async def _ask_wire(monkeypatch: pytest.MonkeyPatch, *, envelope: dict, **ask_kwargs: object) -> dict:
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(_MINIMAL_HTML))
-    app = build_app()
-    state = await app.container().get(AppState)
+    parts = build_components()
+    state = await parts.state()
     fake = _build_extractor(state, envelope)
-    app.provide(LlmExtractorResource, lambda: fake)
-    async with make_client(app) as client:
-        wire = await client.call_wire("query", **ask_kwargs)
+    parts = dataclasses.replace(parts, llm_extractor=lazy(fake))
+    async with mcp_client(components=parts) as client:
+        wire = await call_wire(client, "query", **ask_kwargs)
     return json.loads(wire)
 
 
@@ -271,12 +272,12 @@ async def test_malformed_envelope_drops_routing_keeps_answer(
             )
 
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(_MINIMAL_HTML))
-    app = build_app()
-    state = await app.container().get(AppState)
+    parts = build_components()
+    state = await parts.state()
     res = LlmExtractorResource(state.settings, state.sqlite, lazy(_PlainTextProvider()))
-    app.provide(LlmExtractorResource, lambda: res)
-    async with make_client(app) as client:
-        wire = await client.call_wire(
+    parts = dataclasses.replace(parts, llm_extractor=lazy(res))
+    async with mcp_client(components=parts) as client:
+        wire = await call_wire(client,
             "query",
             url="https://example.org/post",
             query="What is this?",

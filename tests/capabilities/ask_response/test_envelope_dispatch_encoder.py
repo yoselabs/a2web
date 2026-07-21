@@ -1,35 +1,32 @@
-"""Wire-contract test over the REAL MCP dispatch encoder (envelope-wire-hygiene).
+"""Wire-contract tests over the REAL envelope encoder (envelope-wire-hygiene).
 
-The other wire tests here use `client.call_wire`, which routes through
-`format_response` → `_plan_for_hint` and can only ever yield the
-`tsv`/`page-tsv`/`json` plans — NEVER the `envelope` plan the `query` tool
-actually uses over MCP. So `encode_envelope` (invoked by the real
-`FormatRoutingMiddleware` as `render_plain(structured, plan)` for
-`plan.kind == "envelope"`) is exercised by no other a2web test.
+Both scenarios were `xfail(strict=True)` against a2kit `v0.49.2` — see
+`docs/history/A2KIT_FEEDBACK_v0.49-envelope-leak.md`, round 17, whose status
+line read *"OPEN — one-line fix requested; no a2web workaround exists"*
+because a2web had no formatter seam: the encoding plan was inferred at
+registration time from the return type and a2web never touched the formatter.
 
-These tests drive that exact call: `build_encoding_plan(AskResponse)` gives
-the envelope plan the middleware caches per-tool, and `dump_model_for_wire`
-produces the pruned `structured_content` FastMCP hands the middleware. The
-assertion is the ADR-0015-adjacent contract: an empty conditional is ABSENT
-from the wire, not present as an empty TSV `"\n"` — absence is the caller's
-signal that the field has no content.
+The sunset gave a2web the seam. `a2web.wire.encode_envelope` is now the
+encoder, both defects are fixed there, and the markers are off:
 
-The omit-empty scenario is `xfail(strict=True)` because a2kit `v0.49.2`
-leaks (see docs/history/A2KIT_FEEDBACK_v0.49-envelope-leak.md). When a2kit
-ships the presence guard and a2web bumps the pin, this test XPASSes — which
-`strict=True` turns into a hard failure, forcing the marker off. The tripwire
-un-xfails itself.
+1. **Empty conditionals stay pruned.** a2kit looped the static field tuple and
+   re-inserted every absent key as `"\n"` plus a `_<name>_format` sidecar,
+   undoing `_prune_wire` one level up — ten dead keys on every healthy answer.
+2. **Populated conditionals survive.** An already-TSV *string* field failed
+   a2kit's `isinstance(rows, (list, tuple))` test and was overwritten with the
+   empty marker, so a real off-page index reached the caller as "nothing here"
+   (ADR-0015).
+
+`strict=True` is what made this land: the moment the constraint lifted, the
+XPASS became a hard failure and the fix could not be quietly skipped.
 """
 
 from __future__ import annotations
 
 import json
 
-import pytest
-from a2kit.packages.formatter import build_encoding_plan, render_plain
-from a2kit.packages.formatter.render import dump_model_for_wire
-
 from a2web.models import AskResponse, OtherPage
+from a2web.wire import encode_envelope, tsv_fields_for
 
 # The five optional conditional fields that a2web's `_prune_wire` omits when
 # empty. `operator_hints` rides along on failures; the other four are the
@@ -38,24 +35,18 @@ _CONDITIONALS = ("operator_hints", "headings", "other_pages", "refinement_axes",
 
 
 def _encode_over_dispatch(response: AskResponse) -> dict:
-    """Encode `response` exactly as the MCP dispatch middleware would.
+    """Encode `response` exactly as `EnvelopeContentMiddleware` would.
 
-    `FormatRoutingMiddleware.on_call_tool` calls `render_plain(structured, plan)`
-    for `plan.kind == "envelope"` (format_routing.py); `structured` is the
-    pruned dict FastMCP derives from the model. This mirrors both.
+    The middleware sees the pruned dict FastMCP derives from the model, then
+    calls `encode_envelope(structured, tsv_fields_for(tool))`. This mirrors
+    both halves.
     """
-    plan = build_encoding_plan(AskResponse)
-    assert plan.kind == "envelope", "query returns an envelope-planned model"
-    structured = dump_model_for_wire(response)
-    return json.loads(render_plain(structured, plan))
+    fields = tsv_fields_for("query")
+    assert fields, "query renders as an envelope with TSV blocks"
+    structured = response.model_dump(mode="json")
+    return json.loads(encode_envelope(structured, fields))
 
 
-@pytest.mark.xfail(
-    reason="a2kit v0.49.2 encode_envelope re-inserts pruned tsv_fields as empty "
-    "'\\n' + _*_format sidecars (round-17 feedback); un-xfail when the a2kit "
-    "presence guard ships and the pin bumps.",
-    strict=True,
-)
 def test_healthy_answer_omits_empty_conditionals_over_mcp() -> None:
     """A healthy `query` answer with no conditionals emits none of them — and
     no `_<name>_format` sidecar for them — over the real dispatch encoder."""
@@ -75,18 +66,9 @@ def test_healthy_answer_omits_empty_conditionals_over_mcp() -> None:
     assert not sidecars, f"no _*_format sidecars for pruned fields, found: {sidecars}"
 
 
-@pytest.mark.xfail(
-    reason="a2kit v0.49.2 encode_envelope re-encodes a2web's ALREADY-TSV-encoded "
-    "string field as an empty list -> '\\n', DESTROYING populated conditionals on "
-    "the content[] channel (round-17 feedback). Latent for structuredContent-"
-    "forwarding hosts; un-xfail when the str-aware a2kit guard ships.",
-    strict=True,
-)
 def test_populated_conditional_survives_over_mcp() -> None:
     """A populated `other_pages` DOES render as TSV — only the empty case is
-    omitted, never a populated one. On the real dispatch encoder today it is
-    instead DESTROYED (a2web pre-encodes it to a TSV string; a2kit re-encodes
-    the string as an empty list), which this test documents until the fix."""
+    omitted, never a populated one."""
     response = AskResponse(
         url="https://example.org/docs",
         status="ok",

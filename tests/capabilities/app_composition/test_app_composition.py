@@ -1,71 +1,61 @@
-"""App composition tests — router shape and server wiring.
+"""App composition — which tools reach the MCP surface, and under what names.
 
-PR3 replaced the stub fetch with the real orchestrator; behavioural tests
-for fetch live in `test_fetcher.py`. This module only covers the
-composition-level invariants (one tool named `fetch`, AppState provider
-registered, no connections CLI).
+Rewritten for the a2kit sunset. The old assertions read a2kit's descriptor
+registry (`app.tools()`, `app.has_provider(AppState)`, `app.cli_extras()`);
+those objects are gone, and asking a registry what it contains was always a
+weaker question than asking the server what it serves. These go through
+`list_tools()` on the real server instead.
+
+Two of the old tests died with their subject rather than being ported:
+
+- *canonical names pinned under flat naming* — ADR-0028 derived
+  `{slug}_{leaf}` and a2web pinned the bare names back with
+  `canonical_name_override`. There is no derivation now; `name="query"` in
+  `routers.py` is the name. The surviving half (the bare names ARE the wire)
+  is asserted below.
+- *no connections subcommand* — a2kit's CLI-extras surface no longer exists.
 """
 
 from __future__ import annotations
 
-from a2web.server import A2Web, _A2WebServer, _app_class_for, app, main
+import pytest
+
+from a2web.server import build_mcp_server, main
 from a2web.settings import AppSettings
-from a2web.state import AppState
 
 
-def test_web_router_registers_query_and_fetch_raw_tools() -> None:
-    """v0.7 split: `query` (primary, renamed from `ask` in v0.23) + `fetch_raw` (fallback)."""
-    # v0.36+: app.tools() returns list[ToolDescriptor]; tool fn is `descriptor.fn`.
-    names = {desc.name for desc in app.tools()}
-    # _meta.health is auto-installed by the @app.health_check decorator.
-    assert "query" in names
-    assert "fetch_raw" in names
+async def _tool_names(**settings_kwargs: object) -> set[str]:
+    server = build_mcp_server(settings=AppSettings(**settings_kwargs))
+    return {tool.name for tool in await server.list_tools()}
+
+
+@pytest.mark.asyncio
+async def test_web_tools_are_query_and_fetch_raw() -> None:
+    """v0.7 split: `query` (primary, renamed from `ask` in v0.23) + `fetch_raw`."""
+    names = await _tool_names()
+    assert {"query", "fetch_raw"} <= names
     assert "ask" not in names  # renamed to `query` in v0.23
     assert "fetch" not in names  # renamed in v0.7
 
 
-def test_canonical_tool_names_pinned_under_flat_naming() -> None:
-    """ADR-0028 derives canonical names as `{slug}_{leaf}`; we pin the bare
-    names via `canonical_name_override` so the MCP wire contract is unchanged.
-
-    Backs specs/app-composition `Canonical MCP tool names pinned under flat
-    naming` (a2kit-v043-migration). `app.tools()` exposes the descriptors whose
-    `.name` is the canonical identity used on the MCP wire.
-    """
-    # The default (server-safe) app: query/fetch_raw pinned to bare names.
-    names = {desc.name for desc in app.tools()}
-    assert {"query", "fetch_raw"} <= names
-    assert names.isdisjoint({"web_query", "web_fetch_raw"})
-    # The cookies-enabled app pins `refresh` (not `cookies_refresh`).
-    cookie_names = {desc.name for desc in A2Web().tools()}
-    assert "refresh" in cookie_names
-    assert "cookies_refresh" not in cookie_names
+@pytest.mark.asyncio
+async def test_tool_names_are_bare_not_slug_prefixed() -> None:
+    """The installed MCP contract is `query` / `fetch_raw`, never `web_*`."""
+    names = await _tool_names()
+    assert names.isdisjoint({"web_query", "web_fetch_raw", "cookies_refresh"})
 
 
-def test_cookies_tool_gated_off_by_default() -> None:
-    """`expose_cookies_tool` defaults False → the local-only `refresh` tool is NOT
-    on the served surface (a server has no local browser to mirror). The module
-    `app` is built with default settings, so it uses the server-safe class."""
-    assert _app_class_for(AppSettings()) is _A2WebServer
-    assert "refresh" not in {desc.name for desc in app.tools()}
+@pytest.mark.asyncio
+async def test_cookies_tool_gated_off_by_default() -> None:
+    """`expose_cookies_tool` defaults False — a served a2web has no local
+    browser to mirror cookies from, so the tool is absent, not
+    present-and-failing."""
+    assert "refresh" not in await _tool_names()
 
 
-def test_cookies_tool_exposed_when_toggled_on() -> None:
-    """`expose_cookies_tool=True` (local serve) selects the cookies-enabled class,
-    exposing `refresh`."""
-    assert _app_class_for(AppSettings(expose_cookies_tool=True)) is A2Web
-    assert "refresh" in {desc.name for desc in A2Web().tools()}
-
-
-def test_app_has_no_connections_subcommand() -> None:
-    """Option B from PR1 — no connections CLI surface."""
-    extras = list(app.cli_extras())
-    assert all(getattr(extra, "name", "") != "connections" for extra in extras)
-
-
-def test_server_app_has_appstate_provider() -> None:
-    """Server composition registers AppState via `app.provide` (v0.36+)."""
-    assert app.has_provider(AppState) is True
+@pytest.mark.asyncio
+async def test_cookies_tool_exposed_when_toggled_on() -> None:
+    assert "refresh" in await _tool_names(expose_cookies_tool=True)
 
 
 def test_main_entrypoint_exists_and_callable() -> None:

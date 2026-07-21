@@ -1,175 +1,135 @@
-"""a2web server entrypoint — `a2kit.App` composition (v0.43 surface).
+"""a2web server entrypoint — composition on `fastmcp.FastMCP` directly.
 
-ADR-0028 (unified surface): the App is authored by **subclassing** —
-`A2Web` sets `name` + a `routers` ClassVar (a tuple of Router *classes*).
-Each long-lived resource is registered imperatively via `app.provide(...)`
-in `build_app()`; the container resolves them in deps-first order on first
-use (lazy first-use), LIFO unwind on shutdown.
+a2kit is gone. What it used to own and where it went:
 
-No `lifespan=` kwarg, no `@asynccontextmanager` lifespan body — resources
-own their own lifecycle via `__aenter__`/`__aexit__` (thin wrappers around
-each resource's idempotent `_ensure` / `close` methods, kept as the
-internal lazy-call surface).
+| a2kit                          | now                                     |
+|--------------------------------|-----------------------------------------|
+| `App` subclass + `routers`      | `build_mcp_server()` below              |
+| `app.provide(...)` container    | `components.build_components()`         |
+| implicit wire/injected split    | explicit tool signatures (`routers.py`) |
+| `EncodingPlan` inference        | the literal table in `wire.py`          |
+| `McpErrorRenderStage` + mw      | `error_wire.py`                         |
+| resource `__aenter__` on resolve| `scope.ResourceScope`                   |
 
-Heavy/conditional resources (BrowserBackend, LlmExtractorResource) are surfaced
-at the tool seam as `Lazy[T]` (see `routers.py`) so the cold-start cost is
-paid only when the fetch path actually needs them.
+**Lifecycle is FastMCP's `lifespan=`.** Resources still enter lazily on first
+use — `ResourceScope` records them as they are entered — and the lifespan's
+exit unwinds the scope LIFO. Nothing is entered at boot, so cold start stays
+cheap and a keyless deploy still serves `fetch_raw`.
 
-Logging is stdlib logging: typed events emit via
-`await a2kit.log.info(payload)`; sinks are `logging.Handler`s attached via
-`app.log.add_handler(...)`.
+**Middleware order is load-bearing.** `TypedErrorEnvelopeMiddleware` is added
+first, so it is outermost and sees the `ToolError` that `guard_tool` raised;
+`EnvelopeContentMiddleware` sits inside it and only ever touches success
+results. Reversing them would let the envelope middleware try to re-encode an
+error payload.
 """
 
 from __future__ import annotations
 
-import a2kit
-from a2kit.config import A2kitConfig, McpConfig
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING, Any
+
+from fastmcp import FastMCP
 
 from . import log as a2web_log
 from ._manifests.sinks import Sink
 from ._plugin import load_surface
-from .cache import SqliteResource
-from .cookie_jar import build_cookie_jar
-from .packages.llm_extract import Provider
-from .routers import CookiesRouter, WebRouter
+from .components import Components, build_components
+from .error_wire import TypedErrorEnvelopeMiddleware
+from .routers import register_cookies_tools, register_web_tools
 from .settings import AppSettings, get_settings
-from .state import (
-    RobustBrowserBackend,
-    build_breakers,
-    build_browser_backend,
-    build_browser_robust_backend,
-    build_llm_extractor,
-    build_proxy_pool,
-    build_selected_provider,
-    build_state,
-)
+from .wire import EnvelopeContentMiddleware
 
-# ----------------------------------------------------------------------- #
-# App composition — providers registered in dependency order (insertion
-# order, not topological). Each downstream factory depends only on
-# already-registered types.
-# ----------------------------------------------------------------------- #
+if TYPE_CHECKING:
+    from .cache import SqliteResource
+
+__all__ = ["build_google_provider", "build_mcp_server", "main", "serve_http_main"]
 
 
-class A2Web(a2kit.App):
-    """The a2web App (ADR-0028 subclass form).
+def _configure_logging(settings: AppSettings) -> None:
+    """Install a2web's logging surface and the manifest sinks.
 
-    `routers` names Router *classes* (reference-composition); a2kit
-    instantiates them at construction. Verbs auto-collect from the
-    `@a2kit.read`/`@a2kit.write` markers — no `tools` ClassVar.
+    `propagate=False` + a NullHandler floor is load-bearing, not tidiness: MCP
+    is served over stdio, so a record escaping to the root logger's default
+    stderr writer can interleave with the JSON-RPC stream.
     """
-
-    name = "a2web"
-    routers = (WebRouter, CookiesRouter)
-
-    # a2web opts out of a2kit's `code_mode=True` default (shipped as a config
-    # knob in a2kit 0.46 — see docs/history/A2KIT_FEEDBACK_v0.44.md). a2web is a
-    # few-tool, lean-payload server: `ask`/`fetch_raw`/`refresh` already distill
-    # content server-side, so the code-execution sandbox (search/get_schema/
-    # execute) is pure tax on the ~95% single-`ask` path. With it off, the MCP
-    # surface advertises the named tools directly (the bare-name pins in
-    # routers.py go live). Env still wins: `A2KIT_MCP__CODE_MODE=true` re-enables
-    # the sandbox per-deployment (ADR 0022 inverted source order).
-    config = A2kitConfig(mcp=McpConfig(code_mode=False))
-
-
-class _A2WebServer(A2Web):
-    """Server-safe variant: the local-only `cookies_refresh` tool is NOT exposed.
-
-    a2web served as a network MCP server has no local browser to mirror cookies
-    from, so `CookiesRouter` is dropped from the surface. `build_app` selects
-    this class unless `settings.expose_cookies_tool` is set (local serve). Name +
-    config are inherited; only `routers` narrows.
-    """
-
-    routers = (WebRouter,)
-
-
-def _app_class_for(settings: AppSettings) -> type[A2Web]:
-    """Pick the App class from the cookies-exposure toggle. Pure — no I/O — so the
-    router-gating decision is unit-testable without the settings cache."""
-    return A2Web if settings.expose_cookies_tool else _A2WebServer
-
-
-def build_app() -> A2Web:
-    """Build a fresh a2web `A2Web` instance.
-
-    Tests build a fresh app per test and pass fakes via `.provide(T, fake)`
-    last-write-wins, then enter `make_client(build_app_for_test(...))`.
-    """
-    app = _app_class_for(get_settings())()
-
-    # Order matters: deps before dependents.
-    app.provide(get_settings)  # AppSettings (BaseSettings) — explicit per design.md decision 4
-    app.provide(build_breakers)  # AsyncCircuitBreakerFactory — no deps
-    app.provide(build_proxy_pool)  # ProxyPool — needs settings
-    app.provide(SqliteResource)  # class-as-factory — no required ctor args
-    app.provide(build_browser_backend)  # BrowserBackend — fast browser rung (patchright); Lazy at tool seam
-    # robust rung (zendriver) — distinct DI key; Lazy, enters only on the 2nd browser dispatch
-    app.provide(RobustBrowserBackend, build_browser_robust_backend)
-    app.provide(Provider, build_selected_provider)  # best LLM provider (Protocol key); raises ResourceUnavailable when none
-    app.provide(build_llm_extractor)  # LlmExtractorResource — needs settings + sqlite + Lazy[Provider] (Lazy at tool seam)
-    app.provide(build_cookie_jar)  # CookieJarResource — needs settings + sqlite (Lazy at tool seam)
-    app.provide(build_state)  # AppState — bundles the four always-on resources
-
-    # Logging is a2web's own (`a2web.log`): the `a2web` logger, `propagate=False`,
-    # a NullHandler floor. The propagate/Null part is load-bearing, not tidiness —
-    # MCP is served over stdio, so a record escaping to the root logger's default
-    # stderr writer can interleave with the protocol stream.
-    _settings = get_settings()
     a2web_log.configure(
-        level=_settings.log_level,
-        enabled=_settings.log_enabled,
-        wire_level=_settings.log_wire_level,
+        level=settings.log_level,
+        enabled=settings.log_enabled,
+        wire_level=settings.log_wire_level,
     )
-    # Sinks come from the plugin manifest registry as `logging.Handler`s.
-    # Factories returning Unavailable (e.g. OTel with no SDK) are dropped before
-    # reaching the logger.
-    for _handler in load_surface("a2web._manifests.sinks", Sink, _settings).values():
-        a2web_log.add_handler(_handler)
-
-    app.health_check(_check_sqlite)
-    return app
+    # Factories returning `Unavailable` (e.g. OTel with no SDK) are dropped
+    # before reaching the logger. `add_handler` replaces same-type sinks —
+    # the logger is process-wide and this function is not.
+    for handler in load_surface("a2web._manifests.sinks", Sink, settings).values():
+        a2web_log.add_handler(handler)
 
 
-async def _check_sqlite(sqlite: SqliteResource) -> a2kit.HealthResult:
-    """Readiness probe for `_meta.health` / `a2web health`.
+def build_mcp_server(
+    *,
+    settings: AppSettings | None = None,
+    components: Components | None = None,
+    **fastmcp_kwargs: Any,
+) -> FastMCP:
+    """Build the production MCP server.
 
-    Per a2kit `OPERATIONAL_CONTRACTS` Q-HealthChecks: kwarg resolution
-    enters the resource (`__aenter__`) before this body runs. Receiving
-    `sqlite` here means the connection opened. Open-time failures crash the
-    probe loudly during resolution — that's correct for a catastrophic
-    sqlite-open failure, not a "degraded" check.
+    `components` is the test seam that `app.provide(T, fake)` used to be —
+    build one with overrides via `build_components(...)` and hand it in.
     """
-    # Scope decision (deployable-container-ci §6.4): readiness asserts the
-    # SUBSTRATE only, NOT that an LLM backend is configured. `fetch_raw` serves
-    # with zero LLM config, so a keyless deploy is degraded-but-serving, not
-    # broken — and `ask` already surfaces a loud per-request `llm_unavailable`
-    # operator hint (ADR-0009). Gating readiness on LLM config would make an
-    # orchestrator restart-loop a valid fetch-only container. Liveness
-    # (`GET /health`) stays dumber still. Do not add an LLM assertion here.
-    _ = sqlite
-    return a2kit.HealthResult.ok()
+    resolved = settings if settings is not None else get_settings()
+    _configure_logging(resolved)
+    parts = components if components is not None else build_components(settings=resolved)
+
+    @asynccontextmanager
+    async def _lifespan(_server: FastMCP) -> AsyncIterator[None]:
+        try:
+            yield
+        finally:
+            await parts.aclose()
+
+    fastmcp_kwargs.setdefault("lifespan", _lifespan)
+    mcp = FastMCP(name="a2web", **fastmcp_kwargs)
+
+    register_web_tools(mcp, parts)
+    # The local-only cookies tool: a2web served as a network MCP server has no
+    # local browser to mirror cookies from, so the tool is absent rather than
+    # present-and-failing.
+    if resolved.expose_cookies_tool:
+        register_cookies_tools(mcp, parts)
+
+    mcp.add_middleware(TypedErrorEnvelopeMiddleware())
+    mcp.add_middleware(EnvelopeContentMiddleware())
+    return mcp
 
 
-app = build_app()
+async def check_sqlite(sqlite: SqliteResource) -> bool:
+    """Readiness probe. Receiving an entered `sqlite` IS the assertion.
+
+    Scope decision (deployable-container-ci §6.4): readiness asserts the
+    SUBSTRATE only, NOT that an LLM backend is configured. `fetch_raw` serves
+    with zero LLM config, so a keyless deploy is degraded-but-serving, not
+    broken — and `query` already surfaces a loud per-request `llm_unavailable`
+    operator hint (ADR-0009). Gating readiness on LLM config would make an
+    orchestrator restart-loop a valid fetch-only container. Do not add an LLM
+    assertion here.
+    """
+    return sqlite is not None
 
 
 def main() -> None:
-    a2kit.run(app)
+    """stdio entrypoint. The Typer CLI is restored in sunset Phase 5."""
+    build_mcp_server().run()
 
 
 # --------------------------------------------------------------------- #
-# Authenticated HTTP serve entrypoint (a2kit `docs/patterns/mcp-auth.md`)
+# Authenticated HTTP serve entrypoint
 # --------------------------------------------------------------------- #
 
 
 def build_google_provider(settings: AppSettings) -> object | None:
     """Construct the FastMCP Google OAuth provider from env, or None if unset.
 
-    a2kit is auth-agnostic on the MCP surface by design (ADR 0010) — the OAuth
-    provider is a FastMCP object handed to `serve_process(mcp_options={"auth": …})`,
-    not an `a2kit.packages.auth` AuthSpec. Gating:
+    Gating:
 
     - No `GOOGLE_CLIENT_ID` → `None` (endpoint stays open; ship behind Tailscale/LAN).
     - `GOOGLE_CLIENT_ID` set but `GOOGLE_CLIENT_SECRET`/`GOOGLE_BASE_URL` missing →
@@ -227,29 +187,19 @@ def build_google_provider(settings: AppSettings) -> object | None:
 def serve_http_main() -> None:
     """Container entrypoint: serve MCP over HTTP, config-gated Google OAuth.
 
-    This is the programmatic serve path a2kit's MCP-auth recipe prescribes — the
-    bare `a2web serve` CLI cannot express a provider object. Builds the runtime,
-    narrows to the MCP surface, and injects the provider (when configured) via
-    `serve_process(mcp_options={"auth": provider})`. When unconfigured, the
-    endpoint serves open — identical to the pre-auth container. Host/port come
-    from `A2WEB_HTTP_HOST` / `A2WEB_HTTP_PORT` (defaults `0.0.0.0` / `8000`).
+    When unconfigured, the endpoint serves open — identical to the pre-auth
+    container. Host/port come from `A2WEB_HTTP_HOST` / `A2WEB_HTTP_PORT`
+    (defaults `0.0.0.0` / `8000`).
     """
     import os
 
-    from a2kit.packages.serve import serve_process
-    from a2kit.runtime import apply_selection, build
-
     settings = get_settings()
     provider = build_google_provider(settings)
-    runtime = apply_selection(build(app), ["surface=mcp"])
-    mcp_options = {"auth": provider} if provider is not None else None
-    serve_process(
-        runtime,
+    mcp = build_mcp_server(settings=settings, auth=provider)
+    mcp.run(
         transport="http",
         host=os.environ.get("A2WEB_HTTP_HOST", "0.0.0.0"),  # noqa: S104 - container binds all interfaces by design
         port=int(os.environ.get("A2WEB_HTTP_PORT", "8000")),
-        internal_uds=None,
-        mcp_options=mcp_options,
     )
 
 

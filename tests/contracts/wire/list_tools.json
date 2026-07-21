@@ -59,39 +59,6 @@
       "type": "object"
     },
     "meta": {
-      "a2kit": {
-        "annotations": {
-          "destructiveHint": false,
-          "idempotentHint": false,
-          "openWorldHint": true,
-          "readOnlyHint": true,
-          "title": "Fetch Raw Web Content (Fallback)"
-        },
-        "context_param_name": null,
-        "extras": {
-          "authorize": null,
-          "canonical_name_override": "fetch_raw",
-          "expose": [
-            "mcp",
-            "api",
-            "cli"
-          ],
-          "list_view": null,
-          "report_schema": null,
-          "router_slug": "web",
-          "surfaces": {
-            "api": "listed",
-            "cli": "listed",
-            "mcp": "listed"
-          },
-          "timeout_seconds": null
-        },
-        "tags": [
-          "read"
-        ],
-        "tool_name": "fetch_raw",
-        "verb": "read"
-      },
       "fastmcp": {
         "tags": [
           "read"
@@ -113,7 +80,7 @@
       "readOnlyHint": true,
       "title": "Query a Web Page"
     },
-    "description": "**Primary web-fetch tool. Use this for any question about a web page.**\n\nFetches the URL via the adaptive tier cascade (site handlers → raw\nHTTP with TLS impersonation → Jina reader → archive fallback →\nheadless browser as last resort), then runs the server-side LLM\nextractor over the content to answer your `query`. Returns the\nfocused answer in `answer`. Pass `include_content=True` to also get\nthe page markdown in `content_md` for grounding.\n\nPrefer this over `fetch_raw` for ~95%% of web reads. The\nextraction model is small and cheap (Haiku 4.5), so server-side\nanswers cost a fraction of streaming raw HTML into a larger model.\n\nCost asymmetry (ADR-0015): `also_here` indexes on-page content the\nanswer skipped — recovering it is a CHEAP re-query of the same URL\n(served from cache). `other_pages` points ELSEWHERE; each one costs a\nNEW fetch. Spend on the scarce resource — the fetch — accordingly.\n\nWhen the LLM is unavailable (no API key and no Claude Code OAuth\nsession), the fetch still succeeds, `answer` is None, and an operator\nhint records the reason — callers can fall back to reading\n`content_md` directly.\n\nEmits typed events on a2kit's logging channel during the fetch.",
+    "description": "**Primary web-fetch tool. Use this for any question about a web page.**\n\nFetches the URL via the adaptive tier cascade (site handlers → raw\nHTTP with TLS impersonation → Jina reader → archive fallback →\nheadless browser as last resort), then runs the server-side LLM\nextractor over the content to answer your `query`. Returns the\nfocused answer in `answer`. Pass `include_content=True` to also get\nthe page markdown in `content_md` for grounding.\n\nPrefer this over `fetch_raw` for ~95%% of web reads. The\nextraction model is small and cheap (Haiku 4.5), so server-side\nanswers cost a fraction of streaming raw HTML into a larger model.\n\nCost asymmetry (ADR-0015): `also_here` indexes on-page content the\nanswer skipped — recovering it is a CHEAP re-query of the same URL\n(served from cache). `other_pages` points ELSEWHERE; each one costs a\nNEW fetch. Spend on the scarce resource — the fetch — accordingly.\n\nWhen the LLM is unavailable (no API key and no Claude Code OAuth\nsession), the fetch still succeeds, `answer` is None, and an operator\nhint records the reason — callers can fall back to reading\n`content_md` directly.\n\nEmits typed events on a2web's logging channel during the fetch.",
     "execution": null,
     "icons": null,
     "inputSchema": {
@@ -193,39 +160,6 @@
       "type": "object"
     },
     "meta": {
-      "a2kit": {
-        "annotations": {
-          "destructiveHint": false,
-          "idempotentHint": false,
-          "openWorldHint": true,
-          "readOnlyHint": true,
-          "title": "Query a Web Page"
-        },
-        "context_param_name": null,
-        "extras": {
-          "authorize": null,
-          "canonical_name_override": "query",
-          "expose": [
-            "mcp",
-            "api",
-            "cli"
-          ],
-          "list_view": null,
-          "report_schema": null,
-          "router_slug": "web",
-          "surfaces": {
-            "api": "listed",
-            "cli": "listed",
-            "mcp": "listed"
-          },
-          "timeout_seconds": null
-        },
-        "tags": [
-          "read"
-        ],
-        "tool_name": "query",
-        "verb": "read"
-      },
       "fastmcp": {
         "tags": [
           "read"

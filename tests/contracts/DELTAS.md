@@ -254,3 +254,233 @@ Two decisions worth naming, both of which this capture forced:
          "extra": {},
          "step": "cache_write",
 ```
+
+## `a2kit-spine-removed` — `list_tools`
+
+**Two facts in one diff, both deliberate.**
+
+1. **`_meta.a2kit` is gone.** It was a projection of a2kit's internal
+   `A2KitMeta` — `router_slug`, `verb`, `surfaces`, `canonical_name_override`,
+   `timeout_seconds`, `list_view`. Every key described the *framework's* model
+   of the tool, not the tool. With the framework gone there is nothing to
+   project, and no consumer read it: the names an agent calls
+   (`query` / `fetch_raw`) are now the names in the source, so the
+   `canonical_name_override` pins they were mirroring no longer exist either.
+   `_meta.fastmcp.tags` is unchanged — it still carries `["read"]`, because
+   the tools are still registered with `tags={"read"}`.
+
+2. **One line of the `query` description changed**: "Emits typed events on
+   a2kit's logging channel" → "on a2web's logging channel". The tool
+   description is agent-visible wire, so this is a real contract byte and gets
+   recorded rather than waved through. The sentence was simply false after
+   Phase 1 moved emission onto the `a2web` logger.
+
+Everything else in `list_tools` is byte-identical: both tool names, both
+titles, all four annotation hints, every `inputSchema` property with its
+description and default, the `required` list, and the generic
+`{"additionalProperties": true, "type": "object"}` `outputSchema`. That last
+one is worth noting — FastMCP produces it natively for a model carrying a
+custom `model_serializer`, so it needed no reproduction.
+
+
+```diff
+--- list_tools.json (before)
++++ list_tools.json (after)
+@@ -59,39 +59,6 @@
+       "type": "object"
+     },
+     "meta": {
+-      "a2kit": {
+-        "annotations": {
+-          "destructiveHint": false,
+-          "idempotentHint": false,
+-          "openWorldHint": true,
+-          "readOnlyHint": true,
+-          "title": "Fetch Raw Web Content (Fallback)"
+-        },
+-        "context_param_name": null,
+-        "extras": {
+-          "authorize": null,
+-          "canonical_name_override": "fetch_raw",
+-          "expose": [
+-            "mcp",
+-            "api",
+-            "cli"
+-          ],
+-          "list_view": null,
+-          "report_schema": null,
+-          "router_slug": "web",
+-          "surfaces": {
+-            "api": "listed",
+-            "cli": "listed",
+-            "mcp": "listed"
+-          },
+-          "timeout_seconds": null
+-        },
+-        "tags": [
+-          "read"
+-        ],
+-        "tool_name": "fetch_raw",
+-        "verb": "read"
+-      },
+       "fastmcp": {
+         "tags": [
+           "read"
+@@ -113,7 +80,7 @@
+       "readOnlyHint": true,
+       "title": "Query a Web Page"
+     },
+-    "description": "**Primary web-fetch tool. Use this for any question about a web page.**\n\nFetches the URL via the adaptive tier cascade (site handlers → raw\nHTTP with TLS impersonation → Jina reader → archive fallback →\nheadless browser as last resort), then runs the server-side LLM\nextractor over the content to answer your `query`. Returns the\nfocused answer in `answer`. Pass `include_content=True` to also get\nthe page markdown in `content_md` for grounding.\n\nPrefer this over `fetch_raw` for ~95%% of web reads. The\nextraction model is small and cheap (Haiku 4.5), so server-side\nanswers cost a fraction of streaming raw HTML into a larger model.\n\nCost asymmetry (ADR-0015): `also_here` indexes on-page content the\nanswer skipped — recovering it is a CHEAP re-query of the same URL\n(served from cache). `other_pages` points ELSEWHERE; each one costs a\nNEW fetch. Spend on the scarce resource — the fetch — accordingly.\n\nWhen the LLM is unavailable (no API key and no Claude Code OAuth\nsession), the fetch still succeeds, `answer` is None, and an operator\nhint records the reason — callers can fall back to reading\n`content_md` directly.\n\nEmits typed events on a2kit's logging channel during the fetch.",
++    "description": "**Primary web-fetch tool. Use this for any question about a web page.**\n\nFetches the URL via the adaptive tier cascade (site handlers → raw\nHTTP with TLS impersonation → Jina reader → archive fallback →\nheadless browser as last resort), then runs the server-side LLM\nextractor over the content to answer your `query`. Returns the\nfocused answer in `answer`. Pass `include_content=True` to also get\nthe page markdown in `content_md` for grounding.\n\nPrefer this over `fetch_raw` for ~95%% of web reads. The\nextraction model is small and cheap (Haiku 4.5), so server-side\nanswers cost a fraction of streaming raw HTML into a larger model.\n\nCost asymmetry (ADR-0015): `also_here` indexes on-page content the\nanswer skipped — recovering it is a CHEAP re-query of the same URL\n(served from cache). `other_pages` points ELSEWHERE; each one costs a\nNEW fetch. Spend on the scarce resource — the fetch — accordingly.\n\nWhen the LLM is unavailable (no API key and no Claude Code OAuth\nsession), the fetch still succeeds, `answer` is None, and an operator\nhint records the reason — callers can fall back to reading\n`content_md` directly.\n\nEmits typed events on a2web's logging channel during the fetch.",
+     "execution": null,
+     "icons": null,
+     "inputSchema": {
+@@ -193,39 +160,6 @@
+       "type": "object"
+     },
+     "meta": {
+-      "a2kit": {
+-        "annotations": {
+-          "destructiveHint": false,
+-          "idempotentHint": false,
+-          "openWorldHint": true,
+-          "readOnlyHint": true,
+-          "title": "Query a Web Page"
+-        },
+-        "context_param_name": null,
+-        "extras": {
+-          "authorize": null,
+-          "canonical_name_override": "query",
+-          "expose": [
+-            "mcp",
+-            "api",
+-            "cli"
+-          ],
+-          "list_view": null,
+-          "report_schema": null,
+-          "router_slug": "web",
+-          "surfaces": {
+-            "api": "listed",
+-            "cli": "listed",
+-            "mcp": "listed"
+-          },
+-          "timeout_seconds": null
+-        },
+-        "tags": [
+-          "read"
+-        ],
+-        "tool_name": "query",
+-        "verb": "read"
+-      },
+       "fastmcp": {
+         "tags": [
+           "read"
+```
+
+## `other-pages-tsv-no-longer-destroyed` — `call/query_success_rich`
+
+**This is a BUG FIX, not a migration artifact — the golden had frozen a
+defect.**
+
+`AskResponse._prune_wire` renders `other_pages` to a TSV string itself. a2kit's
+`encode_envelope` then tested `isinstance(rows, (list, tuple))`, saw a `str`,
+fell through to `[]`, and overwrote the finished TSV with the empty marker
+`"\n"`. The machine channel (`structured_content`) carried the real rows the
+whole time; only the text channel — the one the *agent* reads — was emptied.
+
+So a caller was told "a2web looked for off-page pointers and found none" when
+a2web had found them and encoded them one layer down. That is an ADR-0015
+violation: withholding the body obliges a2web to leave the index.
+
+`a2web.wire.encode_envelope` now leaves an already-encoded string alone and
+only attaches the `_<field>_format` discriminator.
+
+The defect was known and deliberately kept out of the goldens —
+`test_populated_other_pages_survives_to_text_channel` was `xfail(strict=True)`
+precisely because a golden captured against the broken encoder would have
+frozen it, and a faithful port would then have passed the gate. Owning the
+encoder is what let the fix land; the strict xfail is what forced it to be
+noticed. That test is now un-xfailed and passing.
+
+
+```diff
+--- call/query_success_rich.json (before)
++++ call/query_success_rich.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"other_pages\":\"\\n\",\"operator_hints\":\"\\n\",\"_operator_hints_format\":\"tsv\",\"headings\":\"\\n\",\"_headings_format\":\"tsv\",\"_other_pages_format\":\"tsv\",\"refinement_axes\":\"\\n\",\"_refinement_axes_format\":\"tsv\",\"options\":\"\\n\",\"_options_format\":\"tsv\"}",
++      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"other_pages\":\"url\\treason\\tkind\\nhttps://example.org/related\\trelated read\\tstructural\\n\",\"operator_hints\":\"\\n\",\"_operator_hints_format\":\"tsv\",\"headings\":\"\\n\",\"_headings_format\":\"tsv\",\"_other_pages_format\":\"tsv\",\"refinement_axes\":\"\\n\",\"_refinement_axes_format\":\"tsv\",\"options\":\"\\n\",\"_options_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+```
+
+## `other-pages-tsv-no-longer-destroyed` — `call/query_adversarial_cells`
+
+Same fix as above, on the adversarial-cell scenario: the populated
+`other_pages` TSV (with its quoting-sensitive cells) now survives to the text
+channel instead of being flattened to the empty marker.
+
+
+```diff
+--- call/query_adversarial_cells.json (before)
++++ call/query_adversarial_cells.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"other_pages\":\"\\n\",\"operator_hints\":\"\\n\",\"_operator_hints_format\":\"tsv\",\"headings\":\"\\n\",\"_headings_format\":\"tsv\",\"_other_pages_format\":\"tsv\",\"refinement_axes\":\"\\n\",\"_refinement_axes_format\":\"tsv\",\"options\":\"\\n\",\"_options_format\":\"tsv\"}",
++      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"other_pages\":\"url\\treason\\tkind\\nhttps://example.org/p/hd600\\t\\\"the page calls this one \\\"\\\"the reference\\\"\\\" for the price band\\\"\\tstructural\\nhttps://example.org/p/driver\\tsee C:\\\\drivers\\\\readme.txt on the vendor page\\tstructural\\nhttps://example.org/p/spec\\t\\\"row 1:\\tmax SPL\\nrow 2:\\timpedance\\\"\\tstructural\\n\",\"operator_hints\":\"\\n\",\"_operator_hints_format\":\"tsv\",\"headings\":\"\\n\",\"_headings_format\":\"tsv\",\"_other_pages_format\":\"tsv\",\"refinement_axes\":\"\\n\",\"_refinement_axes_format\":\"tsv\",\"options\":\"\\n\",\"_options_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+```
+
+## `envelope-presence-guard` — every success payload
+
+**a2web's own round-17 bug report, fixed by owning the encoder.**
+
+`docs/history/A2KIT_FEEDBACK_v0.49-envelope-leak.md` filed this against a2kit
+on 2026-07-21 with the status line *"OPEN — one-line fix requested; **no a2web
+workaround exists**"* — because a2web had no formatter seam: the encoding plan
+was inferred at registration time from the return type, and a2web never
+touched the formatter. The sunset gave a2web the seam, so the fix a2web was
+waiting on simply shipped here.
+
+a2kit's `encode_envelope` looped the **static** `tsv_fields` tuple and, for
+every name, did `envelope.get(name)` → `None` → `[]` → `encode_tsv([])` →
+`"\n"`, then re-inserted the key **plus** a `_<name>_format` sidecar. So each
+conditional the model had deliberately pruned came back as *two* dead keys.
+With five conditionals on `AskResponse`, a healthy answer carried ten.
+
+The minimal success payload, before and after:
+
+```
+-  {"confidence":"medium","answer":"…","operator_hints":"\n",
+-   "_operator_hints_format":"tsv","headings":"\n","_headings_format":"tsv",
+-   "other_pages":"\n","_other_pages_format":"tsv","refinement_axes":"\n",
+-   "_refinement_axes_format":"tsv","options":"\n","_options_format":"tsv"}
++  {"confidence":"medium","answer":"…"}
+```
+
+Eleven keys to two. This is the omit-empty discipline `_prune_wire` always
+intended, finally reaching the channel the agent actually reads — the machine
+channel (`structured_content`) was already correct, which is precisely why the
+leak survived so long.
+
+**Absence is the signal.** A caller reading the text channel now learns "no
+off-page pointers" from `other_pages` being absent, exactly as it learns it
+from `structured_content`. The two channels agree for the first time.
+
+Populated conditionals are unaffected — they still render as real TSV with
+their `_<field>_format` discriminator (see the sibling
+`other-pages-tsv-no-longer-destroyed` entry, which fixed the case where they
+were being *destroyed*).
+
+Pinned by `tests/capabilities/ask_response/test_envelope_dispatch_encoder.py`,
+both scenarios, which were `xfail(strict=True)` until this landed. The strict
+marker is what forced the fix to be noticed rather than quietly skipped the
+moment the constraint lifted.
+

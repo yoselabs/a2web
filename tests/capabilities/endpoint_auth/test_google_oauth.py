@@ -78,19 +78,22 @@ def test_google_secrets_excluded_from_yaml() -> None:
 
 
 def _capture_serve(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
-    """Stub the runtime build + serve_process; return the captured kwargs."""
+    """Stub `FastMCP.run`; return the captured server + kwargs.
+
+    Post-sunset there is no `serve_process` to intercept — `serve_http_main`
+    builds the FastMCP server and calls `.run()` on it directly. Stubbing
+    `.run` is what keeps this from binding a real socket and blocking the
+    suite forever, which is exactly what happened the first time it was run
+    against the new entrypoint.
+    """
     captured: dict[str, Any] = {}
-    import a2kit.packages.serve as serve_mod
-    import a2kit.runtime as rt_mod
+    from fastmcp import FastMCP
 
-    monkeypatch.setattr(rt_mod, "build", lambda app: app)
-    monkeypatch.setattr(rt_mod, "apply_selection", lambda runtime, sel: ("runtime", sel))
-
-    def _fake_serve(runtime: Any, **kw: Any) -> None:
-        captured["runtime"] = runtime
+    def _fake_run(self: FastMCP, **kw: Any) -> None:
+        captured["server"] = self
         captured.update(kw)
 
-    monkeypatch.setattr(serve_mod, "serve_process", _fake_serve)
+    monkeypatch.setattr(FastMCP, "run", _fake_run)
     return captured
 
 
@@ -99,8 +102,8 @@ def test_serve_unconfigured_passes_no_auth(monkeypatch: pytest.MonkeyPatch) -> N
     captured = _capture_serve(monkeypatch)
     serve_http_main()
     assert captured["transport"] == "http"
-    assert captured["mcp_options"] is None  # open endpoint, unchanged
-    assert captured["runtime"] == ("runtime", ["surface=mcp"])
+    # Open endpoint, unchanged: no auth provider reached the server.
+    assert captured["server"].auth is None
 
 
 def test_serve_configured_injects_google_provider(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
@@ -109,7 +112,7 @@ def test_serve_configured_injects_google_provider(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(server, "get_settings", lambda: AppSettings(**_FULL, oauth_cache_dir=str(tmp_path)))
     captured = _capture_serve(monkeypatch)
     serve_http_main()
-    assert isinstance(captured["mcp_options"]["auth"], GoogleProvider)
+    assert isinstance(captured["server"].auth, GoogleProvider)
 
 
 def test_serve_host_port_overridable(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,48 +1,69 @@
-"""a2web routers — `WebRouter` exposes `query` + `fetch_raw`; `CookiesRouter` exposes `refresh`.
+"""a2web's MCP tools: `query` + `fetch_raw` on web, `refresh` on cookies.
 
-v0.7 split: the single `fetch` tool became two tools so the agent surface
-itself enforces the cost-discipline preference. `query` requires a query
-and always runs the server-side LLM extractor (Haiku 4.5 by default) —
-this is the primary tool, intended for ~95%% of web reads. `fetch_raw`
-returns content with no LLM step and is documented as a fallback.
+v0.7 split: the single `fetch` tool became two so the agent surface itself
+enforces the cost discipline. `query` requires a query and always runs the
+server-side LLM extractor (Haiku 4.5 by default) — the primary tool, intended
+for ~95% of web reads. `fetch_raw` returns content with no LLM step and is
+documented as a fallback. Both delegate to the same orchestrator
+(`fetcher.fetch`); the only difference is whether `ask=` is passed through.
 
-Both tools delegate to the same orchestrator (`fetcher.fetch`); the only
-difference is whether `ask=` is passed through.
+**D1 — the signature IS the contract.** a2kit decided which parameters were
+agent-facing and which were injected by an *ambient* rule: a parameter
+disappeared from the wire if the DI container happened to have a provider for
+its type. Nothing marked it. `state: AppState` was injected only because
+something, elsewhere, had registered that key — and registering a provider for
+`str` would have silently swallowed every `url` on every tool.
 
-To expose only a subset of tools at runtime, use a2kit's native selector:
-`A2KIT_TOOLS=query a2web serve` or `a2web serve --tools=query`.
+Here each tool is a plain function whose parameter list is exactly the wire
+schema, closing over `Components` for its resources. The MCP `inputSchema` is
+readable in this file rather than emergent from a registry, and no registration
+anywhere can change it.
+
+Resources stay `Lazy[T]` through the closure: `components.browser_backend` is
+not awaited here, it is *passed*, so a cache-served `query` never constructs a
+browser. That is a convention now rather than a framework guarantee — pinned by
+`tests/architecture/test_cold_start_laziness.py`.
 """
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
-import a2kit
 import pydantic
 from browser_cookies.models import ChromeCookieAccessError
+from mcp.types import ToolAnnotations
 
-from .cookie_jar import CookieJarResource, CookiesRefreshResult
+from .cookie_jar import CookiesRefreshResult
+from .error_wire import guard_tool
 from .fetcher import fetch as orchestrate
 from .fetcher_response import build_ask_response
-from .lazy import Lazy
-from .llm_resource import LlmExtractorResource
 from .models import AskResponse, FetchResponse
-from .packages.browser_backends import BrowserBackend
-from .state import AppState, RobustBrowserBackend
+
+if TYPE_CHECKING:
+    from fastmcp import FastMCP
+
+    from .components import Components
+
+__all__ = ["register_cookies_tools", "register_web_tools"]
+
+_READ_ANNOTATIONS = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": False,
+    "openWorldHint": True,
+}
 
 
-class WebRouter(a2kit.Router):
-    """Routes web-fetch tools. CLI surface: `a2web web <tool>`."""
+def register_web_tools(mcp: FastMCP, components: Components) -> None:
+    """Register `query` + `fetch_raw` on `mcp`, bound to `components`."""
 
-    slug = "web"
-
-    @a2kit.read(
-        open_world=True,
-        title="Query a Web Page",
-        canonical_name_override="query",
+    @mcp.tool(
+        name="query",
+        annotations=ToolAnnotations(title="Query a Web Page", **_READ_ANNOTATIONS),
+        tags={"read"},
     )
+    @guard_tool
     async def query(
-        self,
         *,
         url: Annotated[str, pydantic.Field(description="Absolute http(s) URL to fetch.")],
         query: Annotated[
@@ -144,11 +165,6 @@ class WebRouter(a2kit.Router):
                 ),
             ),
         ] = True,
-        state: AppState,
-        browser_backend: Lazy[BrowserBackend],
-        browser_robust_backend: Lazy[RobustBrowserBackend],
-        llm_extractor: Lazy[LlmExtractorResource],
-        cookie_jar: Lazy[CookieJarResource],
     ) -> AskResponse:
         """**Primary web-fetch tool. Use this for any question about a web page.**
 
@@ -173,16 +189,16 @@ class WebRouter(a2kit.Router):
         hint records the reason — callers can fall back to reading
         `content_md` directly.
 
-        Emits typed events on a2kit's logging channel during the fetch.
+        Emits typed events on a2web's logging channel during the fetch.
         """
         roles_filter = frozenset(link_roles) if link_roles is not None else frozenset({"primary"})
         response = await orchestrate(
             url,
-            state=state,
-            browser_backend=browser_backend,
-            browser_robust_backend=browser_robust_backend,
-            llm_extractor=llm_extractor,
-            cookie_jar=cookie_jar,
+            state=await components.state(),
+            browser_backend=components.browser_backend,
+            browser_robust_backend=components.browser_robust_backend,
+            llm_extractor=components.llm_extractor,
+            cookie_jar=components.cookie_jar,
             include_links=include_links,
             link_roles=roles_filter,
             wrap_content=wrap_content,
@@ -194,13 +210,13 @@ class WebRouter(a2kit.Router):
         )
         return build_ask_response(response, include_content=include_content, debug=debug)
 
-    @a2kit.read(
-        open_world=True,
-        title="Fetch Raw Web Content (Fallback)",
-        canonical_name_override="fetch_raw",
+    @mcp.tool(
+        name="fetch_raw",
+        annotations=ToolAnnotations(title="Fetch Raw Web Content (Fallback)", **_READ_ANNOTATIONS),
+        tags={"read"},
     )
+    @guard_tool
     async def fetch_raw(
-        self,
         *,
         url: Annotated[str, pydantic.Field(description="Absolute http(s) URL to fetch.")],
         include_links: Annotated[
@@ -240,10 +256,6 @@ class WebRouter(a2kit.Router):
                 ),
             ),
         ] = True,
-        state: AppState,
-        browser_backend: Lazy[BrowserBackend],
-        browser_robust_backend: Lazy[RobustBrowserBackend],
-        cookie_jar: Lazy[CookieJarResource],
     ) -> FetchResponse:
         """**Fallback only — prefer `query` for ~95%% of web reads.**
 
@@ -266,11 +278,11 @@ class WebRouter(a2kit.Router):
         roles_filter = frozenset(link_roles) if link_roles is not None else frozenset({"primary"})
         return await orchestrate(
             url,
-            state=state,
-            browser_backend=browser_backend,
-            browser_robust_backend=browser_robust_backend,
+            state=await components.state(),
+            browser_backend=components.browser_backend,
+            browser_robust_backend=components.browser_robust_backend,
             llm_extractor=None,
-            cookie_jar=cookie_jar,
+            cookie_jar=components.cookie_jar,
             include_links=include_links,
             link_roles=roles_filter,
             wrap_content=wrap_content,
@@ -280,24 +292,22 @@ class WebRouter(a2kit.Router):
         )
 
 
-class CookiesRouter(a2kit.Router):
-    """Routes cookie-management tools. CLI surface: `a2web cookies <tool>`."""
+def register_cookies_tools(mcp: FastMCP, components: Components) -> None:
+    """Register `refresh` on `mcp`. Local-only — see `expose_cookies_tool`."""
 
-    slug = "cookies"
-
-    @a2kit.write(
-        open_world=False,
-        destructive=False,
-        idempotent=True,
-        title="Refresh Browser Cookies",
-        canonical_name_override="refresh",
+    @mcp.tool(
+        name="refresh",
+        annotations=ToolAnnotations(
+            title="Refresh Browser Cookies",
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+        tags={"write"},
     )
-    async def refresh(
-        self,
-        *,
-        state: AppState,
-        cookie_jar: Lazy[CookieJarResource],
-    ) -> CookiesRefreshResult:
+    @guard_tool
+    async def refresh() -> CookiesRefreshResult:
         """Mirror the configured browser profile's cookies into a2web's sqlite.
 
         Reads the user's local Chrome (macOS) or Firefox profile, decrypts
@@ -311,10 +321,10 @@ class CookiesRouter(a2kit.Router):
         this tool returns zero count and an explanatory note — no DB or
         Keychain access happens.
         """
-        s = state.settings
-        if s.cookie_source == "none":
-            from datetime import UTC, datetime
+        from datetime import UTC, datetime
 
+        s = components.settings
+        if s.cookie_source == "none":
             return CookiesRefreshResult(
                 profile=s.cookie_profile,
                 browser="none",
@@ -325,12 +335,10 @@ class CookiesRouter(a2kit.Router):
                     "firefox) to enable. No DB or Keychain access was performed."
                 ),
             )
-        jar = await cookie_jar()
+        jar = await components.cookie_jar()
         try:
             result = await jar.refresh()
         except ChromeCookieAccessError as exc:
-            from datetime import UTC, datetime
-
             return CookiesRefreshResult(
                 profile=s.cookie_profile,
                 browser=str(s.cookie_source),

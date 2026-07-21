@@ -15,7 +15,6 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
 
-from a2kit.packages.formatter import PruneEmpty  # sunset Phase 6: moves with `lean-wire` (character-identical there)
 from pydantic import (
     BaseModel,
     Field,
@@ -26,6 +25,7 @@ from pydantic import (
 )
 
 from ._tsv_compat import encode_tsv
+from .wire import PruneEmpty
 
 
 class Verdict(StrEnum):

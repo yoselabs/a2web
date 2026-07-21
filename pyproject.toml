@@ -15,26 +15,25 @@ classifiers = [
 ]
 dependencies = [
     # framework — handles MCP server, CLI, ConnectionStore, formatter, DI, schema, testing.
-    # a2web ships code-mode OFF by default (server.py: `config.mcp.code_mode=False`)
-    # — the few-tool/lean-payload surface advertises `ask`/`fetch_raw`/`refresh`
-    # directly. The `code-mode` extra (pulls `pydantic-monty`) is kept so the
-    # sandbox stays *buildable on demand*: the env escape hatch
-    # `A2KIT_MCP__CODE_MODE=true` and the `a2web code` subcommand both need it.
-    # Drop the extra only if that optionality is deliberately abandoned.
-    "a2kit[code-mode]>=0.46,<1",
-    # TEMPORARY CO-PIN — remove when a2kit cuts a tag containing 8df0337
-    # ("fix(mcp): require fastmcp>=3.4 for the error-envelope is_error API",
-    # on a2kit main since 2026-07-08; the newest tag v0.49.2 predates it).
-    # a2kit's TypedErrorEnvelopeMiddleware constructs ToolResult(is_error=True),
-    # an API that only exists in fastmcp >= 3.4. On 3.2/3.3 the keyword is
-    # rejected, FastMCP masks the TypeError, and EVERY typed error reaches the
-    # caller as `ToolResult.__init__() got an unexpected keyword argument
-    # 'is_error'` with structured_content=None — the real message, the
-    # ErrorEnvelope, diagnostics, narrative and operator hints all destroyed.
-    # That is the ADR-0009 harm class structurally: a wall becomes
-    # indistinguishable from an a2web bug. a2kit's own floor moves the same
-    # direction, so this co-pin is a floor-raise, never a conflict.
+    # The MCP substrate, direct. a2kit was retired by the `sunset-a2kit-dependency`
+    # change: its App/Router/DI/formatter spine is replaced by ~300 lines a2web
+    # owns (`components.py`, `scope.py`, `wire.py`, `error_wire.py`, `routers.py`).
+    #
+    # The >=3.4 floor is load-bearing, not hygiene. `ToolResult(is_error=True)`
+    # only exists from 3.4; on 3.2/3.3 the keyword is rejected, FastMCP masks the
+    # TypeError, and EVERY typed error reaches the caller as
+    # `ToolResult.__init__() got an unexpected keyword argument 'is_error'` with
+    # structured_content=None — real message, ErrorEnvelope, diagnostics,
+    # narrative and operator hints all destroyed. That is the ADR-0009 harm class
+    # structurally: a wall becomes indistinguishable from an a2web bug.
     "fastmcp>=3.4,<4",
+    # a2effect: the typed error taxonomy + `ErrorEnvelope` behind the wire's
+    # `{"error": {...}}` channel. Previously reached transitively through a2kit;
+    # now a direct dependency because `error_wire.py` imports it by name. Pinned
+    # to the same artifact that was already resolving, so the envelope bytes do
+    # not move. It is one of the four packages tagged on the shelf's `work/a2kay`
+    # branch — repin to the shelf once that merges to `main`.
+    "a2effect",
     # http + extraction
     # http-fetch: the shared HTTP GET primitive (browser TLS impersonation,
     # conditional GET, injected proxy + breaker, closed-verdict mapping) —
@@ -193,7 +192,7 @@ a2web = "a2web.server:main"
 a2web-serve = "a2web.server:serve_http_main"
 
 [tool.uv.sources]
-a2kit = { git = "https://github.com/yoselabs/a2kit.git", tag = "v0.49.2" }
+a2effect = { git = "https://github.com/yoselabs/a2kit.git", subdirectory = "packages/a2effect", tag = "v0.49.2" }
 http-fetch = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-fetch", tag = "http-fetch-v0.2.0" }
 sqlite-resource = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/sqlite-resource", tag = "sqlite-resource-v0.1.0" }
 http-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-cache", tag = "http-cache-v0.1.0" }

@@ -32,10 +32,9 @@ from ..packages.llm_extract import WEBFETCH_DEFAULT_V1, Provider
 from .tokens import envelope_token_breakdown, estimate_tokens
 
 if TYPE_CHECKING:
-    from ..llm_resource import LlmExtractorResource
+    from ..components import Components
     from ..models import FetchResponse
-    from ..packages.browser_backends import BrowserBackend
-    from ..state import AppState, Resources
+    from ..state import AppState
 
 
 # WebFetch constants extracted from Claude Code's binary (research/123).
@@ -191,27 +190,22 @@ class A2WebDetail:
     extracts the answer in its own context" — i.e. the WebFetch
     counterfactual where the calling LLM does the extraction.
 
-    v0.22+: takes a `Resources` bundle (browser_pool + llm_extractor +
-    cookie_jar) so the gate's `suggested_tier="browser"` escalation can
-    actually fire (e.g. on Reddit's JS-challenge interstitial). Bundle
-    constructed via `state.bootstrap_state()`.
+    v0.22+: takes the resource bundle so the gate's `suggested_tier="browser"`
+    escalation can actually fire (e.g. on Reddit's JS-challenge interstitial).
+    Post-sunset the bundle is `Components`, whose members are already `Lazy[T]`
+    thunks — so the hand-rolled re-wrapping this class used to do is gone.
     """
 
     name: str = "a2web_detail"
 
-    def __init__(self, *, state: AppState, resources: Resources) -> None:
+    def __init__(self, *, state: AppState, resources: Components) -> None:
         self._state = state
         self._resources = resources
 
     async def fetch(self, *, url: str, ask: str) -> SystemResult:
         from ..fetcher import fetch as a2web_fetch
 
-        backend = self._resources.browser_backend
-
-        async def _lazy_browser_backend() -> BrowserBackend:
-            return backend
-
-        browser_lazy = _lazy_browser_backend
+        browser_lazy = self._resources.browser_backend
 
         t0 = time.perf_counter()
         response: FetchResponse = await a2web_fetch(url, state=self._state, browser_backend=browser_lazy, include_links=False, debug=False)
@@ -247,13 +241,13 @@ class A2WebExtract:
     Matches the WebFetch use case — caller gets back only the answer.
 
     v0.36+: `LlmExtractorResource` is no longer on AppState; it lives on
-    the `Resources` bundle. Wrap each Lazy-eligible resource with an async
+    the resource bundle. Each Lazy-eligible resource is already an async
     thunk for the fetch tool's `Lazy[T]` params.
     """
 
     name: str = "a2web_extract"
 
-    def __init__(self, *, state: AppState, resources: Resources) -> None:
+    def __init__(self, *, state: AppState, resources: Components) -> None:
         self._state = state
         self._resources = resources
 
@@ -261,17 +255,9 @@ class A2WebExtract:
         from ..fetcher import fetch as a2web_fetch
         from ..fetcher_response import build_ask_response
 
-        extractor = self._resources.llm_extractor
+        _lazy_extractor = self._resources.llm_extractor
 
-        async def _lazy_extractor() -> LlmExtractorResource:
-            return extractor
-
-        backend = self._resources.browser_backend
-
-        async def _lazy_browser_backend() -> BrowserBackend:
-            return backend
-
-        browser_lazy = _lazy_browser_backend
+        browser_lazy = self._resources.browser_backend
 
         t0 = time.perf_counter()
         response: FetchResponse = await a2web_fetch(

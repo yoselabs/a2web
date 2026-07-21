@@ -9,6 +9,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
+from a2web.components import Components
 from a2web.lazy import lazy
 from a2web.llm_eval import (
     A2WebDetail,
@@ -20,7 +21,7 @@ from a2web.llm_eval import (
 from a2web.llm_eval.systems import WEBFETCH_MARKDOWN_CAP, WEBFETCH_MODEL
 from a2web.packages.llm_extract import Provider, ProviderResponse
 from a2web.settings import AppSettings
-from a2web.state import AppState, Resources, unavailable_lazy
+from a2web.state import AppState, unavailable_lazy
 from a2web.tiers import REGISTRY, TierResult
 
 # --------------------------------------------------------------------- #
@@ -233,17 +234,17 @@ def _make_state() -> AppState:
     return make_default_state(settings=AppSettings())
 
 
-def _make_bundle() -> tuple[AppState, Resources]:
-    from tests.conftest import make_default_bundle
+async def _make_bundle() -> tuple[AppState, Components]:
+    from tests.conftest import make_default_components
 
-    return make_default_bundle(settings=AppSettings())
+    return await make_default_components(settings=AppSettings())
 
 
 @pytest.mark.asyncio
 async def test_a2web_detail_returns_content_md(monkeypatch: pytest.MonkeyPatch) -> None:
     body = b"<!doctype html><html><body><article><h1>Detail</h1>" + b"<p>substantive body. </p>" * 80 + b"</article></body></html>"
     monkeypatch.setitem(REGISTRY, "raw", _MockRawTier(body))
-    state, resources = _make_bundle()
+    state, resources = await _make_bundle()
 
     system = A2WebDetail(state=state, resources=resources)
     result = await system.fetch(url="https://example.com/p", ask="ignored")
@@ -261,17 +262,18 @@ async def test_a2web_extract_runs_extractor_when_available(
 ) -> None:
     body = b"<!doctype html><html><body><article><h1>Extract</h1>" + b"<p>content body. </p>" * 80 + b"</article></body></html>"
     monkeypatch.setitem(REGISTRY, "raw", _MockRawTier(body))
-    state, resources = _make_bundle()
+    state, resources = await _make_bundle()
 
     # Inject a stub extractor: build a fresh LlmExtractorResource and
-    # pre-seed its private `_extractor`. Swap into a fresh Resources bundle.
+    # pre-seed its private `_extractor`. Swap it into the bundle as a thunk —
+    # `Components` members are `Lazy[T]`, so the fake is wrapped, not assigned.
     from dataclasses import replace
 
     from a2web.llm_resource import LlmExtractorResource
 
     provider = _RecordingProvider(answer="Extract speaks.")
     extractor_res = LlmExtractorResource(state.settings, state.sqlite, lazy(provider))
-    resources = replace(resources, llm_extractor=extractor_res)
+    resources = replace(resources, llm_extractor=lazy(extractor_res))
 
     system = A2WebExtract(state=state, resources=resources)
     result = await system.fetch(url="https://example.com/p", ask="What does it say?")
@@ -299,9 +301,9 @@ async def test_a2web_extract_falls_back_to_content_md_when_no_extractor(
 
     from a2web.llm_resource import LlmExtractorResource
 
-    state, resources = _make_bundle()
+    state, resources = await _make_bundle()
     extractor_res = LlmExtractorResource(state.settings, state.sqlite, unavailable_lazy(Provider, reason="No API key in env."))
-    resources = replace(resources, llm_extractor=extractor_res)
+    resources = replace(resources, llm_extractor=lazy(extractor_res))
 
     system = A2WebExtract(state=state, resources=resources)
     result = await system.fetch(url="https://example.com/p", ask="ignored")

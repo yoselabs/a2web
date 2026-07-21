@@ -41,17 +41,12 @@ for _leaked_key in [_k for _k in os.environ if _k.startswith("A2WEB_") and _k no
 os.environ["A2WEB_CONFIG"] = "/nonexistent/a2web-hermetic-test-config.yaml"
 
 from a2web.cache import SqliteResource
-from a2web.cookie_jar import build_cookie_jar
+from a2web.components import Components, build_components
 from a2web.models import OperatorHint, Verdict
 from a2web.settings import AppSettings
 from a2web.state import (
     AppState,
-    Resources,
-    _provider_lazy,
     build_breakers,
-    build_browser_backend,
-    build_browser_robust_backend,
-    build_llm_extractor,
     build_proxy_pool,
     build_state,
 )
@@ -157,42 +152,35 @@ _SKIP_SQLITE_CLOSE = [os.environ.get("A2WEB_PROOF_SKIP_SQLITE_CLOSE") == "1"]
 
 
 def make_default_state(settings: AppSettings | None = None) -> AppState:
-    """Test-only convenience — build an `AppState` via the same per-resource
-    factories `bootstrap_state` composes (single source of truth).
+    """Test-only convenience — an `AppState` for tests that call `fetch()`
+    directly, bypassing the MCP seam entirely.
 
-    Production code resolves AppState via the DI container; tests that
-    bypass DI and exercise `fetch()` directly use this helper. NOT a
-    back-compat shim — calls the same `build_*` factories so a new
-    always-on resource only needs wiring in `state.py`.
+    Deliberately **sync**, so a test needing only always-on state does not have
+    to become a coroutine. It builds the same three factories `components.py`
+    builds, and it is the ONLY place in the tree allowed to — see
+    `tests/architecture/test_one_composition_root.py`; that guard walks `src/`,
+    so this helper is out of its reach and stays a reviewed exception rather
+    than an enforced one.
 
-    Tests that also need the Lazy-eligible resources should call
-    `make_default_bundle(...)` instead.
+    Tests that also need the lazy resources want `make_default_components(...)`.
     """
-    state, _ = make_default_bundle(settings)
-    return state
-
-
-def make_default_bundle(settings: AppSettings | None = None) -> tuple[AppState, Resources]:
-    """Test-only convenience — full (AppState, Resources) bundle from the
-    same per-resource factories as `bootstrap_state`. Sync — does not need
-    a running event loop, matches the cheap-construction contract."""
     s = settings or AppSettings()
-    sqlite = SqliteResource()
-    state = build_state(
+    return build_state(
         settings=s,
         breakers=build_breakers(),
         proxy_pool=build_proxy_pool(s),
-        sqlite=sqlite,
+        sqlite=SqliteResource(),
     )
-    resources = Resources(
-        browser_backend=build_browser_backend(s),
-        browser_robust_backend=build_browser_robust_backend(s),
-        # Mirror bootstrap_state's default: provider deferred to select_provider
-        # (tests that exercise `ask` inject their own provider/extractor).
-        llm_extractor=build_llm_extractor(s, sqlite, _provider_lazy(None, s)),
-        cookie_jar=build_cookie_jar(s, sqlite),
-    )
-    return state, resources
+
+
+async def make_default_components(settings: AppSettings | None = None) -> tuple[AppState, Components]:
+    """Test-only convenience — the full graph through the one composition root.
+
+    Async because resolving `AppState` enters sqlite, which is what production
+    does too. Callers own teardown via `await components.aclose()`.
+    """
+    parts = build_components(settings=settings or AppSettings())
+    return await parts.state(), parts
 
 
 class _NotFoundArchiveTier:

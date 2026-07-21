@@ -46,7 +46,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from a2kit.packages.mcp import build_mcp_server
+
+from a2web.server import build_mcp_server
 
 WIRE_DIR = Path(__file__).parent / "wire"
 DELTAS_PATH = Path(__file__).parent / "DELTAS.md"
@@ -82,11 +83,17 @@ def freeze_clocks(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @contextlib.asynccontextmanager
-async def wire_client(app: Any, **client_kwargs: Any) -> AsyncIterator[Any]:
-    """A real `fastmcp.Client` over the real production server assembly."""
+async def wire_client(server: Any = None, **client_kwargs: Any) -> AsyncIterator[Any]:
+    """A real `fastmcp.Client` over the real production server assembly.
+
+    Takes the FastMCP server itself now — before the sunset it took an
+    `a2kit.App` and built the server here. Passing `None` builds the default
+    production server, which is what every scenario wants.
+    """
     from fastmcp import Client
 
-    server = build_mcp_server(app)
+    if server is None:
+        server = build_mcp_server()
     async with Client(transport=server, **client_kwargs) as client:
         yield client
 

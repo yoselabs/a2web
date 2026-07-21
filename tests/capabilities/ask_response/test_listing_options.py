@@ -7,18 +7,18 @@ on non-listings, and never on the `fetch_raw` wire.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
-from a2kit.testing import client as make_client
 from record_mine import Record, RecordSet
 
+from a2web.components import build_components
 from a2web.fetcher_response import _records_to_options
 from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
-from a2web.server import build_app
-from a2web.state import AppState
 from a2web.tiers import REGISTRY
+from tests._helpers.mcp import call_wire, mcp_client
 from tests.capabilities.ask_response.test_router_wire import _JsonEnvelopeProvider, _RawStub
 from tests.capabilities.fetch_response.test_fetch_response import _fetch_raw_wire
 from tests.capabilities.listing_completeness.test_listing_completeness import _listing_html
@@ -101,12 +101,12 @@ _PRODUCT_ENVELOPE = {"answer": "Price: 42.00 TRY. In stock.", "structural_form":
 async def _ask_wire_classified(monkeypatch: pytest.MonkeyPatch, *, body: bytes, envelope: dict, **ask_kwargs: object) -> dict:
     """Drive `query` with a chosen body AND a chosen router classification."""
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(body))
-    app = build_app()
-    state = await app.container().get(AppState)
+    parts = build_components()
+    state = await parts.state()
     fake = LlmExtractorResource(state.settings, state.sqlite, lazy(_JsonEnvelopeProvider(envelope)))
-    app.provide(LlmExtractorResource, lambda: fake)
-    async with make_client(app) as client:
-        wire = await client.call_wire("query", **ask_kwargs)
+    parts = dataclasses.replace(parts, llm_extractor=lazy(fake))
+    async with mcp_client(components=parts) as client:
+        wire = await call_wire(client, "query", **ask_kwargs)
     return json.loads(wire)
 
 
