@@ -8,6 +8,57 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.47.0] — 2026-07-21
+
+> Container-correctness release: the `auto` LLM provider no longer silently
+> mis-selects a session-less Claude Code backend behind a configured gateway,
+> provider failures stop masquerading as empty answers, and a genuinely tiny
+> complete page finally answers instead of failing the length floor.
+
+### Added
+
+- **Complete-small-page promotion** (`honest-tiny-page-length-floor`) — a thin
+  retrieved page that a corroborating browser render confirms is *small, not
+  walled* is promoted to `status: ok` and the extractor runs on the real body,
+  instead of failing as `content_thin`. `example.com` (a ~230-char complete
+  page) now answers at `confidence: low`. `is_complete_small_page` is a strict
+  sibling of `is_confirmed_empty`: it shares every wall/subresource/challenge
+  guard, drops only the search-shaped-URL term, and keys corroboration on a
+  browser render that agreed the page is a bare thin fallthrough. The promotion
+  is wire-only (never cached) and errs toward the wall on any ambiguity — the
+  empty-vs-wall false-positive asymmetry is preserved.
+
+### Fixed
+
+- **`auto` provider selection no longer picks a session-less Claude Code
+  backend.** In a container with `OPENAI_API_KEY` + `OPENAI_BASE_URL` pointed at
+  a gateway, `auto` mode previously chose the bundled Claude Code CLI (whose
+  205 MB binary is always present) even with no auth session, then failed at
+  call time. Provider gating now delegates to anyllm's `available()` (which
+  checks for a real session credential), and `auto` leads with the configured
+  gateway when both `OPENAI_API_KEY` and `OPENAI_BASE_URL` are set. Adopts
+  **anyllm v0.4.0** and drops a2web's redundant local CLI probe.
+- **Extraction provider failures surface as `llm_error`, not `extraction_empty`.**
+  A provider API error (bad key, gateway 5xx, off-contract model) turned into
+  empty extractor text and was reported as an empty answer — indistinguishable
+  from a genuine parse miss. It now carries a critical `llm_error` operator hint
+  naming the provider failure, with the retryable flag threaded through.
+- **zendriver: baked Chromium is resolved and launch failures are legible.** The
+  robust rung now resolves the container's baked Chromium binary
+  (`A2WEB_BROWSER_EXECUTABLE_PATH` → `PLAYWRIGHT_BROWSERS_PATH`), applies
+  container-safe launch args, and probes the binary to distinguish "binary
+  broken" from "binary healthy, CDP handshake failed". (The robust rung still
+  does not complete its CDP handshake in the published image — diagnosis is
+  tracked in `openspec/changes/fix-zendriver-robust-rung`; the fast `browser`
+  rung is unaffected.)
+
+### Internal
+
+- Filed the a2kit `encode_envelope` empty-field/populated-field wire defect
+  (round-17 feedback) and added a wire-contract tripwire test that exercises the
+  real MCP dispatch encoder — closing a previously-untested path. Latent for
+  `structuredContent`-forwarding hosts (the primary deployment); no wire change.
+
 ## [0.46.0] — 2026-07-16
 
 ### Changed
