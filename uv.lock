@@ -38,7 +38,7 @@ code-mode = [
 
 [[package]]
 name = "a2web"
-version = "0.46.0"
+version = "0.47.1"
 source = { editable = "." }
 dependencies = [
     { name = "a2kit", extra = ["code-mode"] },

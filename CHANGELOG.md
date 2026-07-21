@@ -8,6 +8,35 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.47.1] — 2026-07-21
+
+> Correctness + observability follow-up to 0.47.0.
+
+### Fixed
+
+- **`is_complete_small_page` no longer promotes an under-rendered `js_required`
+  SPA as a "complete small page."** In 0.47.0 the tiny-page promotion keyed only
+  on hard-wall verdicts, but `js_required` rides on a `length_floor` verdict — so
+  an SPA shell whose fast browser under-rendered a thin body looked like a bare
+  small page and was answered as complete (at `confidence: low`). The promotion
+  now excludes any shell fingerprint (`js_required` / `thin_browser_response` /
+  `empty_result`), and the one-render escalation cap is fingerprint-aware, so a
+  fingerprinted SPA keeps its full fast→robust budget (the distinct robust engine
+  still gets its attempt).
+
+### Added
+
+- **Correlated-witness detection** (`fix-zendriver-robust-rung` §3) — when the
+  robust browser rung dispatches with the *same* engine as the fast rung
+  (`browser_backend_robust == browser_backend`, e.g. the workaround that points
+  the robust rung at patchright while zendriver's CDP handshake is dead), the
+  orchestrator emits a `CorrelatedWitnessRung` WARNING event and stamps
+  `correlated_witness` on the `browser_robust` diagnostic. The robust rung is
+  supposed to be an *independent* second witness (load-bearing for
+  `classify_terminal`'s ≥2-tier agreement and `is_confirmed_empty`); a same-engine
+  fallback is now an observable, detectable signal rather than silent degradation.
+  A correctly-configured deployment (distinct robust engine) emits nothing.
+
 ## [0.47.0] — 2026-07-21
 
 > Container-correctness release: the `auto` LLM provider no longer silently
