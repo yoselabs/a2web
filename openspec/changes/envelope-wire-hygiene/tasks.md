@@ -2,23 +2,26 @@
 
 ## 1. a2kit feedback (the leak is upstream — a2web has no formatter hook)
 
-- [ ] 1.1 Write the `encode_envelope` empty-field defect into
-      `docs/history/A2KIT_FEEDBACK_v0.*.md`: the bug (`render.py:94-98`, static
-      `tsv_fields` → `envelope.get(name)` None → `[]` → `"\n"` + `_*_format`
-      sidecar), the one-line fix (skip a `tsv_field` absent from the pruned
-      envelope), and — the load-bearing finding — that `call_wire` never exercises
+- [x] 1.1 Write the `encode_envelope` defect into
+      `docs/history/A2KIT_FEEDBACK_v0.49-envelope-leak.md` (round 17): BOTH faces —
+      the empty-field leak AND the populated-field DESTRUCTION (a2web's pre-encoded
+      TSV string → `[]` → `"\n"`, verified via `render_plain`), the str-aware fix
+      (skip a `tsv_field` absent OR already a `str`), the blast-radius nuance
+      (only `content[]`-reading hosts; latent for structuredContent-forwarding
+      hosts), and — the load-bearing finding — that `call_wire` never exercises
       `encode_envelope`, so the entire MCP dispatch encoder is untested from a2web.
 - [ ] 1.2 (optional, same feedback) request the `_<name>_format` sidecars be
       omittable for AI-facing tools, pending the open-question answer.
 
 ## 2. Close the test gap on a2web's side
 
-- [ ] 2.1 Add a wire-contract test that drives the REAL MCP dispatch encoder (the
-      `format_routing` path, not `call_wire`) and asserts a healthy `query`
-      response omits every empty conditional (`other_pages`, `headings`,
-      `refinement_axes`, `options`) and emits no `_*_format` sidecar for them.
-      This fails today (documents the leak) and passes once the a2kit fix is
-      adopted.
+- [x] 2.1 Added `tests/capabilities/ask_response/test_envelope_dispatch_encoder.py`
+      driving the REAL MCP dispatch encoder (`render_plain(structured, plan)` with
+      the envelope plan, not `call_wire`). Two scenarios, both `xfail(strict=True)`
+      so they document the defect without breaking `make check` and self-heal
+      (XPASS → hard fail forces the marker off) once the a2kit fix is adopted:
+      (a) a healthy answer omits every empty conditional + its `_*_format` sidecar;
+      (b) a populated `other_pages` survives as TSV (currently destroyed → `"\n"`).
 
 ## 3. Adopt the a2kit fix
 

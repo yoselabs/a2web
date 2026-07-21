@@ -3,31 +3,46 @@
 The MCP wire envelope carries avoidable noise that the CLI envelope does not.
 The noise splits by who controls it:
 
-**a2kit-controlled (the acute leak).** `encode_envelope`
-(`a2kit/packages/formatter/render.py:94-98`) iterates a *static* `tsv_fields`
-list and, for each, does `envelope.get(name)` → `None` (a2web's `_prune_wire`
-already dropped the empty field) → coerces to `[]` → `encode_tsv([])` == `"\n"` →
-**re-inserts the key** plus a `_<name>_format = "tsv"` sidecar. So a healthy
-`query` response that should omit its empty conditionals instead carries
-`other_pages:"\n"`, `_other_pages_format:"tsv"`, `headings:"\n"`,
-`_headings_format:"tsv"`, `refinement_axes:"\n"`, `_refinement_axes_format:"tsv"`,
-`options:"\n"`, `_options_format:"tsv"` — eight junk keys, undoing the omit-empty
-pruning a2web already performed. This is MCP-only: the CLI's `json` path never
-reaches `encode_envelope`, which is exactly why it went unseen — and why a2web's
-own tests miss it (`client.call_wire` routes through `format_response`, whose
-`_plan_for_hint` can only yield `tsv`/`page-tsv`/`json`, never the `envelope`
-plan, so `encode_envelope` is executed by NO a2web test).
+**a2kit-controlled (the `encode_envelope` defect — verified, two faces).**
+`encode_envelope` (`a2kit/packages/formatter/render.py:94-98`) iterates a
+*static* `tsv_fields` list and, for each, does `envelope.get(name)` then a
+type-blind `list(x) if isinstance(x,(list,tuple)) else []` coercion. This has
+two faces, both verified on `v0.49.2` via `render_plain(structured, plan)` — the
+exact call `FormatRoutingMiddleware` makes at `format_routing.py:73`:
+
+- *Empty leak.* A pruned (absent) field → `None` → `[]` → `encode_tsv([])` ==
+  `"\n"` → the key is **re-inserted** plus a `_<name>_format="tsv"` sidecar.
+  Ten junk keys undo a2web's omit-empty pruning.
+- *Populated destruction (sharper).* a2web's `@model_serializer` pre-encodes
+  `other_pages`/`headings`/`options`/`refinement_axes` into TSV **strings** (so
+  the CLI/JSON path gets TSV too). `encode_envelope` sees a `str`, `isinstance`
+  is False → `[]` → `"\n"` — a **populated** page pointer is silently
+  **destroyed** on the `content[]` channel, not just an empty one leaked.
+
+**Blast radius (keeps this honest).** Both faces bite ONLY hosts that read
+`content[].text` and ignore `structuredContent`. a2web ships dual-emit
+(`structured_output=False`); on hosts that forward `structuredContent` to the
+model (Anthropic API, Claude Code/Desktop/.ai — a2web's primary deployment) the
+model reads the model's own correct serialization and never sees the damage.
+There it is **latent**. So this is a correctness/portability defect on the
+spec-guaranteed channel, NOT the noise the operator currently feels (see below).
 
 a2web has no seam to post-process this — the encoding plan is inferred by a2kit
 at router-registration time from the return type; a2web never touches the
-formatter. So the fix is upstream (a one-line presence guard: skip a `tsv_field`
-absent from the pruned envelope), delivered as an a2kit feedback round, plus the
-adoption once a2kit ships it.
+formatter. The fix is upstream: a **str-aware guard** (skip a `tsv_field` that is
+absent OR already a `str`), delivered as an a2kit feedback round, plus adoption
+once a2kit ships it. It went unseen because `client.call_wire` re-derives from
+`structured_content` via `format_response` (json path), never executing
+`encode_envelope` — no a2web test exercised the real dispatch encoder.
 
-**a2web-controlled (the schema trim).** Beyond the leak, some always-present or
-low-value fields ride the wire on every call. Which of these are genuinely noise
-to an AI caller is a schema decision (breaking for parsers — Ask First), captured
-here as open questions rather than assumed.
+**a2web-controlled (the schema trim — the ACTUALLY-felt noise).** The operator's
+"too noisy" complaint is about the `structuredContent` shape itself — a2web's own
+`@model_serializer` output, the channel Claude actually reads — NOT the
+`encode_envelope` leak (latent on that host). The original deferral rationale
+("re-feel the envelope once the leak is gone") is therefore **invalidated**: the
+leak is not on the read channel, so the schema breadth is the primary noise lever,
+not a downstream afterthought. Still breaking for parsers (Ask First); the exact
+trim set stays the human's call.
 
 ## What Changes
 
@@ -43,16 +58,19 @@ here as open questions rather than assumed.
   conditionals are ABSENT — closing the test gap on a2web's side so the next
   encoder regression is caught here.
 
-- **Schema trim (DEFERRED — decide after the leak fix lands).** Reduce always-on
-  wire fields that carry little signal for an AI caller. The exact set is the
-  human's call because it is breaking for parsers, and is intentionally deferred:
-  the empty-TSV leak was the dominant noise source, so the envelope should be
-  re-felt once it is gone before deciding whether any field trim is still worth a
-  breaking change. Candidates are enumerated in the open questions.
+- **Schema trim (the actual felt-noise lever — still Ask First).** Reduce
+  always-on `structuredContent` fields that carry little signal for an AI caller.
+  This is the channel Claude reads, so it — not the latent `encode_envelope`
+  leak — is what makes the output feel noisy. The exact set is the human's call
+  because it is breaking for parsers. Candidates are enumerated in the open
+  questions. (Recalibrated 2026-07-21: the earlier "defer until the leak fix
+  lands" rationale is void — the leak is not on the read channel.)
 
 **Decision locked (2026-07-21):** the a2kit-side work is **feedback-only** — no
 request for a post-serialize hook, no new a2web↔a2kit coupling. a2web stays a
-pure consumer and adopts the fix when a2kit ships it.
+pure consumer and adopts the fix when a2kit ships it. The str-aware guard
+supersedes the earlier presence-only guard (it must also fix populated-field
+destruction, not just the empty leak).
 
 ## Open questions (need confirmation before the trim lands)
 
