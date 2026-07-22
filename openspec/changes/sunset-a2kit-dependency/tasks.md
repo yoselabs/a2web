@@ -405,8 +405,19 @@
 ## 8. Ship
 
 - [x] 8.1 `make check` green; coverage ≥85%. **2026-07-22: 1232 passed, 90.32%.**
-- [ ] 8.2 `make bench` — the envelope and extraction paths moved; confirm the
+- [x] 8.2 `make bench` — the envelope and extraction paths moved; confirm the
       clarity and conformance axes held.
+      **2026-07-22:** run `eval/runs/2026-07-22_024912`, 29 cases x 3 systems,
+      provider `claude-code`. **Contract conformance 29/29 on both a2web
+      systems, and non-vacuously** — the check ran on the 9 + 7 UNREACHED rows
+      too, so the ADR-0009 failure envelope that `error_wire.py` and
+      `_prune_wire` were rewritten to produce was exercised against real walls
+      and real 404s, not just the happy path. Clarity 4.20 on `extract` (the
+      shipped `query` path), which also leads every system on quality and
+      reach at 1/6.5 the envelope tokens of `detail`. Absolute means are NOT
+      comparable to the last full run (corpus grew 11 -> 29, all hard cases),
+      which is why the deterministic per-row axis is the one that carries the
+      verdict. Findings: `eval/findings_2026-07-22.md`. No action.
 - [x] 8.3 `make install-global`; verify the live MCP server in a fresh Claude Code
       session still advertises `query` + `fetch_raw` and serves a real fetch.
       **2026-07-22:** installed binary driven over stdio with a real
