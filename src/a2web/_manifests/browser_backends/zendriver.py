@@ -1,9 +1,12 @@
 """Zendriver backend manifest — the CDP candidate (`ZendriverBackend`).
 
-TRANSIENT (browser-backend-bakeoff): bake-off candidate. Surfaces `Unavailable`
-when the `bakeoff` extra is absent so the registry drops it cleanly. Unlike the
-Playwright-family manifests it builds a `ZendriverBackend` (CDP), not a
-`PlaywrightBackend`. Removed if it loses the bake-off.
+The robust rung (`browser_robust` tier), kept permanently by the
+`browser-backend-bakeoff` alongside patchright's fast rung. Surfaces
+`Unavailable` when the `[browser]` extra is absent so the registry drops it
+cleanly — note that is the `[browser]` extra, not the `bakeoff` extra this
+docstring used to name; the bake-off extra was deleted when both survivors
+were promoted out of it. Unlike the Playwright-family manifests it builds a
+`ZendriverBackend` (CDP), not a `PlaywrightBackend`.
 
 No `stderr_sink` — but NOT for the reason previously recorded here. This module
 used to claim zendriver "drives Chromium over CDP in-process ... so there's no

@@ -1,10 +1,14 @@
-"""Patchright launcher — Chromium Playwright drop-in (bake-off candidate).
+"""Patchright launcher — Chromium Playwright drop-in, the FAST rung.
 
-TRANSIENT (browser-backend-bakeoff): one of three candidate engines. Patchright
-is an undetected Playwright fork that vendors its own playwright-core and browser
-binary; only the launch differs from Camoufox, so it reuses `PlaywrightBackend`
-wholesale via a `launch_fn`. Deleted if it loses the bake-off; promoted to a
-baseline dep if it wins.
+**Kept engine, and permanent.** The `browser-backend-bakeoff` (archived
+2026-06-27) kept two engines: patchright drives the `browser` tier and
+zendriver the `browser_robust` escalation. `rebrowser` lost and was deleted.
+
+Patchright is an undetected Playwright fork that vendors its own
+playwright-core and browser binary; only the launch differs from Camoufox, so
+it reuses `PlaywrightBackend` wholesale via a `launch_fn`. Shipped in the
+`[browser]` extra (not baseline — the baked Chromium dominates image size and
+the tier is escalation-only).
 """
 
 from __future__ import annotations

@@ -8,10 +8,11 @@
 
 ## 0. Gate and setup
 
-- [ ] 0.1 Human sign-off on the `design.md` verdict table, and on open questions
-      Q1 (`any-browser` bakeoff timing), Q2 (`subresource_blocks`),
-      Q3 (`structured-data-md` confidence), Q4 (`proxy_routing` / double
-      health-degradation).
+- [ ] 0.1 Human sign-off on the `design.md` verdict table. Of the four open
+      questions only **Q2** (`subresource_blocks`) still needs a decision —
+      Q1, Q3 and Q4 are answered with evidence in `proposal.md` (all three
+      turned out to be stale-prose findings rather than design questions; see
+      `design.md` "Method notes").
 - [x] 0.2 **DONE 2026-07-22** (shelf `8fbed17`, merged not rebased so the four
       published tags stay reachable from `main`; a retroactive `delivery` row
       landed as shelf ledger seq 50, which the promotions had been missing).
@@ -62,13 +63,18 @@
       bespoke `ExtractionCacheRow` (the fields already match).
 - [ ] 4.3 Boundary test; acceptance suite. Tag `llm-cache-v0.1.0`.
 
-## 5. PROMOTE `any-browser` (scope set by Q1)
+## 5. PROMOTE `any-browser` (seam + both drivers — Q1 answered)
 
-- [ ] 5.1 Per Q1: promote seam + drivers now, OR seam only pending the
-      browser-backend bakeoff verdict.
+- [x] 5.1 **DONE 2026-07-22 — scope settled: seam AND drivers.** Q1 assumed an
+      in-flight bakeoff; it closed 2026-06-27 keeping *two complementary*
+      engines (patchright fast rung / zendriver robust rung), and `rebrowser`,
+      the one that lost, was already deleted. The three stale `TRANSIENT`
+      docstrings that implied otherwise are corrected in this commit.
 - [ ] 5.2 Extract `BrowserBackend` Protocol, `RenderedPage`, `BackendCookie`,
-      `RenderOutcome`, and (if Q1 says so) `PlaywrightBackend` / `ZendriverBackend`
-      + the launcher functions.
+      `RenderOutcome`, **and** `PlaywrightBackend` / `ZendriverBackend` + the
+      launcher functions. Both drivers ship: two engines that fail on different
+      real sites (the Chromium drop-ins vs the Trendyol/Hepsiburada SPAs) are
+      the evidence the Protocol spans engine *families*, not one vendor.
 - [ ] 5.3 Per Q2: decide `subresource_blocks` — keep in the promoted type with a
       neutral docstring, or leave a2web-side.
 - [ ] 5.4 Confirm the moat stays home: `select_backend*`, the manifest gating, the

@@ -139,8 +139,14 @@ def chromium_launch(async_playwright_fn); def patchright_launcher(); def camoufo
 **Stays in a2web (the moat):** `select_backend*` (`state.py:116-150`), the
 `_manifests/browser_backends/*` gating, the fast/robust rung split, the
 `RenderOutcome → Verdict/OperatorHint` mapping, and every escalation decision.
-The seam is not the moat. See open Q1 (bakeoff timing) and Q2
-(`subresource_blocks`).
+The seam is not the moat.
+
+**Scope (Q1, answered 2026-07-22): promote the seam AND both engine drivers.**
+There is no open bakeoff — it closed 2026-06-27 keeping *two complementary*
+engines, and the `TRANSIENT` headers that suggested otherwise were stale prose,
+now corrected. The two-engine outcome is itself the evidence that this Protocol
+spans engine families (Playwright API + raw CDP) rather than wrapping one
+vendor. Q2 (`subresource_blocks`) remains open.
 
 ### 5. `llm-cache` (T1 primitive, on `sqlite-resource` + `anyllm`)
 
@@ -196,3 +202,21 @@ def json_fallback(data: dict | list, *, cap: int = 20_000) -> str
   catalog. a2web has since adopted `lean-wire` and repointed `a2effect` off the
   a2kit repo. Re-checked: none overlap the candidates above, so the verdict
   table stands unchanged.
+- **Prose is the one artifact nothing tests, and this sweep leaned on it.**
+  Three of the four open questions turned out to be about docstrings, not
+  design. Q4 asked whether a2web ran two overlapping health mechanisms — it
+  does not; `build_breakers` claimed "per-host / per-proxy / global" and only
+  the first has ever had a call site. Q1 asked when to promote the browser
+  drivers "mid-bakeoff" — the bakeoff closed 2026-06-27 keeping both engines,
+  but three of four headers still said `TRANSIENT … deleted if it loses`, and
+  one named an extra that had been deleted. Q3 cut the other way: the candidate
+  was settled *by* a docstring that told the truth (`json_to_markdown_rows`
+  naming the extractor LLM as its consumer), which is what exposed the
+  rendering half as product.
+
+  The pattern is the same one the sunset kept hitting from the other side:
+  **a golden proves a surface has not changed; a docstring does not even prove
+  that.** An audit that reads module headers as evidence will manufacture
+  questions from finished work. Verify a prose claim against a call site, a
+  setting, or an archived change before letting it gate a decision — every one
+  of these three took a single grep to settle.

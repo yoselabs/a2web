@@ -1,22 +1,28 @@
 """ZendriverBackend — a CDP rendering engine behind the `BrowserBackend` seam.
 
-TRANSIENT (browser-backend-bakeoff): the bake-off's CDP candidate, and the
-proof the interface spans engine *families*, not just the Playwright API.
-zendriver drives Chromium directly over CDP (its own `Browser`/`Tab` objects,
-no Playwright `Page`), so unlike Patchright/rebrowser it can't be a
-`PlaywrightBackend` launch_fn — it implements `render(...)` itself and shapes
-CDP navigation / content / cookies into the same domain-free `RenderedPage`.
+**The robust rung, and permanent.** The `browser-backend-bakeoff` (archived
+2026-06-27) kept TWO engines rather than crowning one: patchright is the fast
+rung (`browser` tier), zendriver the robust rung (`browser_robust`), escalated
+to only when the fast render comes back thin/blocked. They are complementary,
+not ranked — the Chromium Playwright drop-ins fail the Trendyol/Hepsiburada
+SPAs zendriver reads. `rebrowser` was the engine that lost and was deleted.
 
-v1 (design D3 + open question): **per-render browser launch**, no host pool —
-the simplest correct shape, perfect per-render isolation. The speed axis of the
-bake-off decides whether a shared-browser pool is worth adding; if zendriver
-loses only on speed, that's the optimization to try before discarding it.
+This is also the proof the interface spans engine *families*, not just the
+Playwright API. zendriver drives Chromium directly over CDP (its own
+`Browser`/`Tab` objects, no Playwright `Page`), so unlike Patchright it cannot
+be a `PlaywrightBackend` launch_fn — it implements `render(...)` itself and
+shapes CDP navigation / content / cookies into the same domain-free
+`RenderedPage`.
+
+**Per-render browser launch**, no host pool (design D3) — the simplest correct
+shape, perfect per-render isolation, ~4-5x slower than the pooled fast rung
+(~6.7s vs ~1.4s measured in the bake-off). A shared pool is a known, deferred
+optimization (`BACKLOG.md`), low urgency because the cost only bites once the
+fast rung has already failed to read the page.
 
 Domain-free: only `RenderedPage` crosses the boundary — never a `Tab`, CDP
 session, or domain type. Reuses the engine-neutral helpers from `playwright.py`
-(that module survives the bake-off regardless of winner — gated Camoufox keeps
-it), so the one-line summary + thin-floor heuristic stay identical across
-engines and the bake-off compares engines, not helper drift.
+so the one-line summary + thin-floor heuristic stay identical across engines.
 """
 
 from __future__ import annotations

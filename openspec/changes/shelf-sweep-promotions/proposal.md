@@ -85,6 +85,39 @@ should wait. Options: (a) promote both now (over-reach is cheap per doctrine, an
 the drivers are where the 900 lines of hidden complexity live); (b) promote the
 seam now, drivers after the bakeoff verdict.
 
+> **ANSWERED 2026-07-22 — (a), because the premise is false. There is no open
+> bakeoff.** `openspec/changes/archive/2026-06-27-browser-backend-bakeoff/`
+> closed a month ago with every task checked. Its verdict was not "one engine
+> wins" but **keep two**: patchright as the fast rung (`browser` tier),
+> zendriver as the robust rung (`browser_robust`), escalated to only when the
+> fast render comes back thin/blocked. `BACKLOG.md`: *"they're complementary,
+> not strictly ranked; the Chromium drop-ins fail the Trendyol/Hepsiburada SPAs
+> zendriver reads."* The engine that actually lost — `rebrowser` — was deleted
+> then, and camoufox was gated. `settings.py:153-159` wires both rungs as
+> standing architecture; `pyproject.toml:176` ships both in the `[browser]`
+> extra. Nothing is pending.
+>
+> **Why it read as open: three stale docstrings.** `_manifests/.../patchright.py`
+> got the closing edit ("Kept engine after the bake-off"); the other three
+> browser-backend headers did not, and still described a finished experiment in
+> the present tense — *"Deleted if it loses the bake-off"*, *"Removed if it
+> loses"*, *"the bake-off's CDP candidate"*. The zendriver manifest even carried
+> a dead behavioural claim (`Unavailable` when the **`bakeoff`** extra is
+> absent) for an extra that task 6.2 deleted. Q1 was written by reading those
+> three. All four now state the settled two-rung outcome.
+>
+> **The bake-off's finding strengthens the promotion rather than delaying it.**
+> Two engines that fail on *different real sites* is exactly the evidence that
+> `BrowserBackend` spans engine families — Playwright API and raw CDP — rather
+> than wrapping one vendor. That is the ADOPT case for an `any-*` package, and
+> it is now backed by a live comparison instead of a design intuition. Promote
+> the seam **and** both drivers.
+>
+> **Third stale-prose finding in this sweep** (Q4's `build_breakers`
+> "per-proxy/global" claim, Q3's resolved-by-docstring rendering half, now Q1).
+> Prose is the one artifact here that nothing tests, and the sweep has been
+> treating it as evidence. Recorded in "Method notes".
+
 **Q2. `subresource_blocks` on the promoted `RenderedPage`.** The field is generic
 (a count of 401/403/429 subresources); its *meaning* ("walled-API fake-empty
 signal") is a2web moat. This is the one place product leaked into an otherwise
