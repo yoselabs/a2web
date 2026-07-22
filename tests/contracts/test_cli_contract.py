@@ -42,7 +42,8 @@ CLI_DIR = Path(__file__).parent / "cli"
 _BODY = (
     b"<html><head><title>Capture Fixture</title></head><body><main>"
     b"<h2>Section One</h2>"
-    + b"<p>Adaptive web fetching keeps the caller's context small.</p>" * 20
+    + b"<p>Adaptive web fetching keeps the caller's context small.</p>"
+    * 20
     + b'<a href="https://example.org/next">Next page</a>'
     b"</main></body></html>"
 )
@@ -148,11 +149,7 @@ def _invoke(argv: list[str]) -> tuple[int, str, str]:
 
 def _matches(golden: dict[str, Any], observed: tuple[int, str, str]) -> bool:
     exit_code, stdout, stderr = observed
-    return (
-        exit_code == golden["exit_code"]
-        and stdout == _normalize(golden["stdout"])
-        and stderr == _normalize(golden["stderr"])
-    )
+    return exit_code == golden["exit_code"] and stdout == _normalize(golden["stdout"]) and stderr == _normalize(golden["stderr"])
 
 
 @pytest.mark.parametrize("slug", _PAYLOAD_CASES)
@@ -184,8 +181,7 @@ def test_every_accepted_delta_is_real(slug: str) -> None:
     """
     golden = _golden(slug)
     assert not _matches(golden, _invoke(golden["argv"])), (
-        f"{slug} is listed in _ACCEPTED but now matches the a2kit golden exactly. "
-        "Remove the entry — the delta it documents is gone."
+        f"{slug} is listed in _ACCEPTED but now matches the a2kit golden exactly. Remove the entry — the delta it documents is gone."
     )
 
 

@@ -277,7 +277,8 @@ async def test_malformed_envelope_drops_routing_keeps_answer(
     res = LlmExtractorResource(state.settings, state.sqlite, lazy(_PlainTextProvider()))
     parts = dataclasses.replace(parts, llm_extractor=lazy(res))
     async with mcp_client(components=parts) as client:
-        wire = await call_wire(client,
+        wire = await call_wire(
+            client,
             "query",
             url="https://example.org/post",
             query="What is this?",

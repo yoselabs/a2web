@@ -367,8 +367,7 @@ async def test_wire_notifications(monkeypatch: pytest.MonkeyPatch) -> None:
     # stopped riding the wire — indistinguishable from success in a name-only
     # capture, which is the failure this widening exists to prevent.
     assert any(len(f["data"]) > 1 for f in seen if isinstance(f["data"], dict)), (
-        "every notification frame arrived with an empty field payload — the wire "
-        "extras are no longer being forwarded"
+        "every notification frame arrived with an empty field payload — the wire extras are no longer being forwarded"
     )
     check_wire("notifications", seen)
 

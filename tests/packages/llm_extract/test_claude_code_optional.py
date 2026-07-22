@@ -103,8 +103,6 @@ def test_manifest_unavailable_when_sdk_present_but_cli_absent(monkeypatch: pytes
     assert "claude" in result.reason
 
 
-
-
 # --------------------------------------------------------------------- #
 # End-to-end auto-select fallthrough (the packaging-split guarantee)
 # --------------------------------------------------------------------- #

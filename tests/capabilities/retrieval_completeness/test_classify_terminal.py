@@ -20,9 +20,7 @@ def _tier(verdict: Verdict, *, authoritative: bool = False, status_code: int = 0
 
 
 def _gate(verdict: Verdict, *, subsystem: str | None = None) -> Observation:
-    return Observation(
-        kind=ObservationKind.gate_outcome, source="gate", verdict=verdict, authoritative=False, t_ms=2, subsystem=subsystem
-    )
+    return Observation(kind=ObservationKind.gate_outcome, source="gate", verdict=verdict, authoritative=False, t_ms=2, subsystem=subsystem)
 
 
 def test_two_independent_404s_are_gone_confirmed() -> None:

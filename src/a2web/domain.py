@@ -52,6 +52,7 @@ def is_search_shaped(url: str) -> bool:
     segments = (parsed.path or "").lower().split("/")
     return any(seg in _SEARCH_PATH_SEGMENTS for seg in segments)
 
+
 # Cap the never-lose JSON text fallback so an unbounded API dump can't blow the
 # response envelope (mirrors the synthetic-output caps elsewhere in this module).
 _JSON_FALLBACK_CAP = 20_000

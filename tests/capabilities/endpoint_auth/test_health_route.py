@@ -52,6 +52,29 @@ def test_dockerfile_healthcheck_path_is_served() -> None:
     assert response.json()["status"] == "ok"
 
 
+def test_health_reports_the_version_that_actually_shipped() -> None:
+    """`__version__` must track `pyproject.toml`, not a hand-edited constant.
+
+    It did not: the constant sat at `0.1.0.dev0` across 47 releases while
+    nothing read it. The sunset put it on two wires (`GET /health` and
+    `a2web version`), turning a dormant lie into a deployed one — an operator
+    diffing container versions would have seen every release report the same
+    number. It now comes from the installed distribution metadata.
+    """
+    pyproject = (Path(__file__).resolve().parents[3] / "pyproject.toml").read_text()
+    declared = re.search(r'^version = "([^"]+)"', pyproject, re.MULTILINE)
+    assert declared is not None
+
+    with TestClient(build_mcp_server().http_app()) as client:
+        reported = client.get(_healthcheck_path()).json()["version"]
+
+    assert reported == declared.group(1), (
+        f"/health reports {reported!r} but pyproject declares "
+        f"{declared.group(1)!r}. If these can drift, the probe is lying about "
+        "what is deployed."
+    )
+
+
 def test_health_reports_degraded_rather_than_raising(monkeypatch: pytest.MonkeyPatch) -> None:
     """A probe must always answer. A 500 from a crashed handler is
     indistinguishable to Docker from a dead process, but it is a *different*

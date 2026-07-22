@@ -407,8 +407,19 @@
 - [x] 8.1 `make check` green; coverage ≥85%. **2026-07-22: 1232 passed, 90.32%.**
 - [ ] 8.2 `make bench` — the envelope and extraction paths moved; confirm the
       clarity and conformance axes held.
-- [ ] 8.3 `make install-global`; verify the live MCP server in a fresh Claude Code
+- [x] 8.3 `make install-global`; verify the live MCP server in a fresh Claude Code
       session still advertises `query` + `fetch_raw` and serves a real fetch.
+      **2026-07-22:** installed binary driven over stdio with a real
+      `fastmcp.Client` — `TOOLS: ['fetch_raw', 'query']`, a live
+      `https://example.com` fetch returned content, and the typed events
+      (`TierStarted`/`TierEnded`/`StageStarted`/`StageEnded`) forwarded to the
+      MCP client, so the a2kit-free logging path works over the wire too.
+      **Found in the process:** `__version__` was a hardcoded `0.1.0.dev0`,
+      stale by 47 releases. Nothing read it before; the sunset put it on two
+      wires (`a2web version`, `GET /health`), so a deployed container would
+      have reported a version that never shipped. Now derived from installed
+      distribution metadata, pinned against `pyproject.toml` by
+      `test_health_reports_the_version_that_actually_shipped`.
 - [ ] 8.4 Notify a2kit that its last consumer has migrated — a2kit can drop
       maintenance mode and proceed with dissolution.
 

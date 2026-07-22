@@ -61,8 +61,7 @@ def is_confirmed_empty(observations: Sequence[Observation], url: str) -> bool:
     if any(o.status_code in _CHALLENGE_STATUSES for o in observations):
         return False
     browser_read_empty = any(
-        o.kind is ObservationKind.gate_outcome and o.source == _REGATE_SOURCE and o.subsystem == _EMPTY_MARKER
-        for o in observations
+        o.kind is ObservationKind.gate_outcome and o.source == _REGATE_SOURCE and o.subsystem == _EMPTY_MARKER for o in observations
     )
     if not browser_read_empty:
         return False

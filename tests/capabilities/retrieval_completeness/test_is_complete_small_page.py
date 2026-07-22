@@ -30,9 +30,7 @@ def _tier(verdict: Verdict, *, status_code: int = 0, subresource_blocks: int = 0
 
 
 def _gate(verdict: Verdict, *, source: str = "gate", subsystem: str | None = None) -> Observation:
-    return Observation(
-        kind=ObservationKind.gate_outcome, source=source, verdict=verdict, authoritative=False, t_ms=2, subsystem=subsystem
-    )
+    return Observation(kind=ObservationKind.gate_outcome, source=source, verdict=verdict, authoritative=False, t_ms=2, subsystem=subsystem)
 
 
 def _regate_thin() -> Observation:

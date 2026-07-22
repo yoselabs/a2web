@@ -84,8 +84,7 @@ def _inspect_tools() -> tuple[list[str], list[str]]:
             inspected.append(f"{rel}::{node.name}")
             if _returns_str(node.returns):
                 violations.append(
-                    f"{rel}:{node.lineno}: tool `{node.name}` returns `str` — "
-                    "return a dict or pydantic model so MCP clients can introspect"
+                    f"{rel}:{node.lineno}: tool `{node.name}` returns `str` — return a dict or pydantic model so MCP clients can introspect"
                 )
     return inspected, violations
 

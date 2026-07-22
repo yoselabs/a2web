@@ -65,6 +65,5 @@ def test_basemodels_at_module_scope() -> None:
         _find_nested_basemodels(tree, rel, violations)
 
     assert not violations, (
-        "Nested pydantic BaseModel detected — define at module scope so the tool "
-        "has a stable outputSchema:\n  " + "\n  ".join(violations)
+        "Nested pydantic BaseModel detected — define at module scope so the tool has a stable outputSchema:\n  " + "\n  ".join(violations)
     )

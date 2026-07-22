@@ -51,6 +51,7 @@ def test_resolved_fastmcp_supports_the_error_flag() -> None:
 async def test_tool_fault_surfaces_real_cause_on_both_channels(monkeypatch: pytest.MonkeyPatch) -> None:
     """A tool-body exception must reach the caller with its real message on the
     text channel AND a populated envelope on the structured channel."""
+
     async def _boom(*_args: object, **_kwargs: object) -> object:
         raise RuntimeError(_REAL_CAUSE)
 
