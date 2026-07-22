@@ -346,7 +346,7 @@
 - [x] 6.4 DELETE `tests/architecture/test_no_ldd_terminology.py`.
 - [x] 6.5 DELETE the four DI-container assertions in `test_app_state.py`; keep the
       genuine `AppState` slots/fields assertions.
-- [ ] 6.6 **HARDEN** `test_tools_return_pydantic_not_str.py` — retarget the
+- [x] 6.6 **HARDEN** `test_tools_return_pydantic_not_str.py` — retarget the
       decorator matcher AND add `assert len(inspected) >= 2`, or it goes vacuously
       green forever.
 - [x] 6.7 **Audit every other AST-walking architecture test for the same vacuity
@@ -372,7 +372,7 @@
 
       Note this covers 6.6's second half for `test_tools_return_pydantic_not_str`
       (the floor is now in place); 6.6's decorator retarget stays Phase 4 work.
-- [ ] 6.8 Rationale-rewrite (no logic change): `test_aiosqlite_daemon.py`,
+- [x] 6.8 Rationale-rewrite (no logic change): `test_aiosqlite_daemon.py`,
       `test_response_models_at_module_scope.py`, `test_no_rogue_structlog.py`.
 - [x] 6.9 Port `test_google_oauth.py`'s monkeypatch seam from
       `a2kit.runtime.build`/`serve_process` to the FastMCP equivalent.
@@ -384,7 +384,7 @@
       thunks **unresolved**. This is the spike's R1 assertion promoted into
       `tests/architecture/`.
 - [x] 7.2 **One-composition-root architecture test**, mirroring a2kay.
-- [ ] 7.3 Update the `Never` rules in `CLAUDE.md`: drop the a2kit-specific ones
+- [x] 7.3 Update the `Never` rules in `CLAUDE.md`: drop the a2kit-specific ones
       (`app.singleton`, `a2kit.Param`, `idempotent=`, `lifespan=`,
       `canonical_name_override`, `_ensure()` in health checks), add the two new
       structural rules above.

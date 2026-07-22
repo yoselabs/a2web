@@ -1,8 +1,14 @@
 """Architectural invariant: pydantic `BaseModel` subclasses live at module scope.
 
-a2kit antipattern #2 — class definitions inside function bodies confuse
-fastmcp's schema generation. CLAUDE.md: "All return-type pydantic models at
-module scope."
+A model defined inside a function body is a *different class object* on every
+call, so pydantic re-derives its schema each time and FastMCP cannot cache or
+publish a stable `outputSchema` for the tool. CLAUDE.md: "All return-type
+pydantic models at module scope."
+
+(Catalogued as a2kit antipattern #2 when a2kit owned the schema generation. The
+rule outlived it: the schema now comes from FastMCP directly, and the reason is
+unchanged — it is a property of pydantic and of local class objects, not of any
+framework wrapped around them.)
 """
 
 from __future__ import annotations
@@ -58,6 +64,7 @@ def test_basemodels_at_module_scope() -> None:
             continue
         _find_nested_basemodels(tree, rel, violations)
 
-    assert not violations, "Nested pydantic BaseModel detected. a2kit antipattern #2 — define at module scope:\n  " + "\n  ".join(
-        violations
+    assert not violations, (
+        "Nested pydantic BaseModel detected — define at module scope so the tool "
+        "has a stable outputSchema:\n  " + "\n  ".join(violations)
     )
