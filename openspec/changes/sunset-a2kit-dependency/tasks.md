@@ -442,7 +442,21 @@
 
 ## 9. Follow-on (separate change, NOT here)
 
-- [ ] 9.1 Adopt `lean-wire` (`PruneEmpty` + `encode_tsv`), delete
-      `_tsv_compat.py`, re-bless goldens under slug `lean-wire-escaping`, record
-      the wire-format bump in `CHANGELOG.md`. Requires shelf `work/a2kay` merged
-      to `main` (task 0.3).
+- [x] 9.1 Adopt `lean-wire` (`PruneEmpty` + `encode_tsv`), delete
+      `_tsv_compat.py`. **DONE 2026-07-22**, the day the shelf's `work/a2kay`
+      reached `main`. Took `PruneEmpty` + `prune_dict` as well as `encode_tsv`:
+      a2web's copies were line-for-line identical to the shelf's, which is the
+      cheapest possible confirmation the promotion picked the right boundary.
+      **Exactly one golden moved** (`query_adversarial_cells`, blessed as
+      `lean-wire-escaping`) and the diff is the bug itself: a2kit's `csv`
+      QUOTE_MINIMAL wrapped a cell containing a newline in quotes but kept the
+      RAW newline inside the field, so the golden had three records frozen
+      across four physical lines. That scenario's anti-vacuity assertions were
+      rewritten to COUNT LINES rather than spot-check cells — line count is the
+      invariant the codec actually promises, and the old assertions were
+      describing `csv`'s behaviour (quote-doubling), so they would have had to
+      change no matter what.
+      **The adoption did NOT fix the third encoder defect** — `lean-wire`
+      inherited a2kit's `TypeError` verbatim. a2web's shape guard (golden-gate
+      9.1) is what handles it, and would have been required either way.
+      Reported back on the shelf as ledger seq 51.

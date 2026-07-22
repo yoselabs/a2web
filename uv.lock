@@ -36,6 +36,7 @@ dependencies = [
     { name = "http-fetch" },
     { name = "httpx" },
     { name = "json-in-html" },
+    { name = "lean-wire" },
     { name = "markdownify" },
     { name = "openai" },
     { name = "opentelemetry-api" },
@@ -105,6 +106,7 @@ requires-dist = [
     { name = "http-fetch", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.2.0" },
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "json-in-html", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.1.0" },
+    { name = "lean-wire", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.1.0" },
     { name = "markdownify", specifier = ">=0.13,<2" },
     { name = "openai", specifier = ">=1.40,<3" },
     { name = "opentelemetry-api", specifier = ">=1.25,<2" },
@@ -1602,6 +1604,14 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/43/4b/674af6ef2f97d56f0ab5153bf0bfa28ccb6c3ed4d1babf4305449668807b/keyring-25.7.0.tar.gz", hash = "sha256:fe01bd85eb3f8fb3dd0405defdeac9a5b4f6f0439edbb3149577f244a2e8245b", size = 63516, upload-time = "2025-11-16T16:26:09.482Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/db/e655086b7f3a705df045bf0933bdd9c2f79bb3c97bfef1384598bb79a217/keyring-25.7.0-py3-none-any.whl", hash = "sha256:be4a0b195f149690c166e850609a477c532ddbfbaed96a404d4e43f8d5e2689f", size = 39160, upload-time = "2025-11-16T16:26:08.402Z" },
+]
+
+[[package]]
+name = "lean-wire"
+version = "0.1.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.1.0#4d6fdb88afef10ac9451c6bece4517abb73517ae" }
+dependencies = [
+    { name = "pydantic" },
 ]
 
 [[package]]

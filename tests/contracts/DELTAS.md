@@ -540,3 +540,28 @@ says nothing about whether the surface was right when captured.
      }
    ],
 ```
+
+## `lean-wire-escaping` — `call/query_adversarial_cells`
+
+```diff
+--- call/query_adversarial_cells.json (before)
++++ call/query_adversarial_cells.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"other_pages\":\"url\\treason\\tkind\\nhttps://example.org/p/hd600\\t\\\"the page calls this one \\\"\\\"the reference\\\"\\\" for the price band\\\"\\tstructural\\nhttps://example.org/p/driver\\tsee C:\\\\drivers\\\\readme.txt on the vendor page\\tstructural\\nhttps://example.org/p/spec\\t\\\"row 1:\\tmax SPL\\nrow 2:\\timpedance\\\"\\tstructural\\n\",\"_other_pages_format\":\"tsv\"}",
++      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"other_pages\":\"url\\treason\\tkind\\nhttps://example.org/p/hd600\\tthe page calls this one \\\"the reference\\\" for the price band\\tstructural\\nhttps://example.org/p/driver\\tsee C:\\\\\\\\drivers\\\\\\\\readme.txt on the vendor page\\tstructural\\nhttps://example.org/p/spec\\trow 1:\\\\tmax SPL\\\\nrow 2:\\\\timpedance\\tstructural\\n\",\"_other_pages_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+@@ -10,7 +10,7 @@
+     "answer": "The page is about adaptive web fetching.",
+     "byline": "Jane Doe",
+     "confidence": "high",
+-    "other_pages": "url\treason\tkind\nhttps://example.org/p/hd600\t\"the page calls this one \"\"the reference\"\" for the price band\"\tstructural\nhttps://example.org/p/driver\tsee C:\\drivers\\readme.txt on the vendor page\tstructural\nhttps://example.org/p/spec\t\"row 1:\tmax SPL\nrow 2:\timpedance\"\tstructural\n",
++    "other_pages": "url\treason\tkind\nhttps://example.org/p/hd600\tthe page calls this one \"the reference\" for the price band\tstructural\nhttps://example.org/p/driver\tsee C:\\\\drivers\\\\readme.txt on the vendor page\tstructural\nhttps://example.org/p/spec\trow 1:\\tmax SPL\\nrow 2:\\timpedance\tstructural\n",
+     "published": "2026-04-01",
+     "title": "How adaptive web fetching saves agent tokens"
+   }
+```

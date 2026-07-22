@@ -123,13 +123,18 @@
 
 ## 7. Reconcile with existing contract tests
 
-- [ ] 7.1 **OPEN — needs a call.** Delete the `call_wire` + `compute_schema`
+- [x] 7.1 **RESOLVED 2026-07-22 — by the sunset, then by cleanup.** Delete the `call_wire` + `compute_schema`
       snapshots in `tests/contracts/test_contracts.py`, or retain them as a
       `structured_content`-only view? Recommend delete: they measure a path the
       wire does not take and will not exist after the sunset. Left in place for
       now — deleting is the user's call, and they are harmless meanwhile.
-- [ ] 7.2 If deleted, confirm Artifact 2 subsumes their coverage (it does — all
+- [x] 7.2 If deleted, confirm Artifact 2 subsumes their coverage (it does — all
       six scenarios are reproduced, plus two).
+
+      Sunset Phase 4 (`9bb4c37`) deleted `test_contracts.py` outright, which
+      settled 7.1 — but it left the six snapshot JSONs behind with no reader.
+      An orphaned golden is worse than a deleted one: it looks like coverage,
+      greps like coverage, and asserts nothing. Removed 2026-07-22.
 - [x] 7.3 `tests/capabilities/ask_response/test_error_envelope_wire.py` (from
       the hotfix) is complementary, not duplicated: it owns the substrate
       guard + the real-cause assertion; Artifact 3 owns the frozen bytes.

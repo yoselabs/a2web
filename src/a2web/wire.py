@@ -35,8 +35,23 @@ is the workaround.
    `AskResponse._prune_wire` produces), the `isinstance(rows, (list, tuple))`
    test fell through to `[]` and overwrote real content with the empty marker.
 
-Both are guarded below, and both are pinned by tests that were
-`xfail(strict=True)` while a2kit owned the code.
+3. `encode_tsv` raises on rows it cannot tabulate, and a2kit swallowed the
+   raise — so one unencodable field (`headings`, a list of `[level, text]`
+   pairs) voided the encode for the WHOLE envelope and nothing on `fetch_raw`
+   was ever TSV-encoded.
+
+All three are guarded below, and each is pinned by a test that was
+`xfail(strict=True)` (1 and 2) or newly written (3) while a2kit owned the code.
+
+**The codec itself is the shelf's `lean-wire`, not a2web's** (adopted
+2026-07-22, retiring the vendored `_tsv_compat.py`). The split is deliberate
+and worth keeping straight: `lean-wire` owns *how a row becomes a line*,
+a2web owns *which fields become tables and what happens when one cannot*.
+All three guards above live on a2web's side of that line, which is why
+adopting the shelf codec could not reintroduce any of them — and why guard 3
+is still required, since `lean-wire` raises the same `TypeError` a2kit did.
+That is the correct contract for a codec; deciding what to do about it is the
+caller's job.
 """
 
 from __future__ import annotations
@@ -46,10 +61,8 @@ import logging
 from typing import Any
 
 from fastmcp.server.middleware import Middleware
+from lean_wire import PruneEmpty, encode_tsv, prune_dict
 from mcp.types import TextContent
-from pydantic import BaseModel, SerializerFunctionWrapHandler, model_serializer
-
-from ._tsv_compat import encode_tsv
 
 _log = logging.getLogger(__name__)
 _ENCODE_FAILURES: set[str] = set()
@@ -78,38 +91,6 @@ def tsv_fields_for(tool_name: str) -> tuple[str, ...]:
     compact JSON with no TSV blocks.
     """
     return _TSV_FIELDS.get(tool_name, ())
-
-
-def _is_empty(value: Any) -> bool:
-    """Empty per the wire contract: `None` / `""` / `[]` / `{}`.
-
-    `0`, `False` and empty `frozenset` are NOT empty — they carry information.
-    """
-    if value is None:
-        return True
-    return isinstance(value, (str, list, dict)) and len(value) == 0
-
-
-def prune_dict(payload: dict[str, Any]) -> dict[str, Any]:
-    """Drop empty values from the top level. Non-recursive by design."""
-    return {k: v for k, v in payload.items() if not _is_empty(v)}
-
-
-class PruneEmpty(BaseModel):
-    """Base for wire-facing models that drop empty fields when dumped.
-
-    Cascades naturally: pydantic uses each model's own serializer when
-    serializing a parent's nested field, so a `PruneEmpty` nested inside a
-    non-pruning parent is still pruned. A subclass defining its own
-    `@model_serializer` overrides this one and owns its pruning — which is
-    exactly what `AskResponse` / `FetchResponse` do via `_prune_wire`.
-
-    The JSON schema is unaffected; only the payload is.
-    """
-
-    @model_serializer(mode="wrap")
-    def _prune(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
-        return prune_dict(handler(self))
 
 
 def _encode_json(value: Any) -> str:

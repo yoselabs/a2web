@@ -235,18 +235,38 @@ async def test_wire_query_adversarial_cells(monkeypatch: pytest.MonkeyPatch) -> 
         url="https://example.org/adversarial",
         query="summarize",
     )
-    # Asserted against `structured_content`, not the text channel: the text
-    # channel's `other_pages` is destroyed today by the `encode_envelope`
-    # defect (that destruction is what the xfail at the bottom of this file
-    # pins). These assertions must hold on the channel where the data
-    # currently survives, or they would merely restate the xfail.
     encoded = payload["structured_content"]["other_pages"]
-    # Anti-vacuity: without these, the fixture could stop carrying hostile
-    # cells and this scenario would silently become a duplicate of
+
+    # THE invariant `lean-wire` exists for, and the reason this scenario is not
+    # just `query_success_rich` with uglier strings: **one record is exactly one
+    # physical line.** stdlib `csv` cannot give you that — QUOTE_MINIMAL wraps a
+    # cell containing a newline in quotes but leaves the raw newline INSIDE the
+    # field, so an agent doing the obvious thing with a line-oriented format
+    # (`payload.split("\n")`) tears one record into several. Counting lines is
+    # therefore the assertion, not a spot-check on any one cell.
+    lines = [line for line in encoded.split("\n") if line]
+    assert len(lines) == len(_ADVERSARIAL_LINKS) + 1, (
+        f"expected 1 header + {len(_ADVERSARIAL_LINKS)} records, got {len(lines)} lines. "
+        "A cell leaked a raw newline, which is precisely the csv behaviour "
+        "`lean-wire` was adopted to remove."
+    )
+
+    # Anti-vacuity: without these, the fixture could stop carrying hostile cells
+    # and this scenario would silently become a duplicate of
     # `query_success_rich` while still comparing equal to its golden.
-    assert '""the reference""' in encoded, "quote-doubling did not fire"
-    assert "C:\\drivers\\readme.txt" in encoded, "backslash cell missing"
-    assert "max SPL" in encoded, "interior newline/tab cell missing"
+    assert '"the reference"' in encoded, (
+        "quote cell missing. NOTE the single quotes: `lean-wire` does not double "
+        "them, because with per-cell escaping a quote is no longer special. This "
+        "assertion read `\'\"\"the reference\"\"\'` under the csv codec — if it "
+        "ever reverts, the escaping regressed."
+    )
+    assert "C:\\\\drivers\\\\readme.txt" in encoded, (
+        "backslash cell missing, or backslashes are no longer escaped. "
+        "`lean-wire` doubles them so the escaping stays reversible."
+    )
+    assert "row 1:\\tmax SPL\\nrow 2:" in encoded, (
+        "the interior tab/newline cell did not survive as two-character escapes"
+    )
     check_wire("call/query_adversarial_cells", payload)
 
 
@@ -568,10 +588,7 @@ def test_headings_do_not_abort_the_envelope_encode() -> None:
         "so no field on `fetch_raw` was ever TSV-encoded in production."
     )
     assert encoded["operator_hints"] == "code\tseverity\ncookies_stale\tinfo\n"
-    assert encoded["headings"] == [[1, "Title"], [2, "Section"]], (
-        "a non-tabular field should pass through as JSON, unchanged"
-    )
+    assert encoded["headings"] == [[1, "Title"], [2, "Section"]], "a non-tabular field should pass through as JSON, unchanged"
     assert "_headings_format" not in encoded, (
-        "no TSV block was emitted for `headings`, so claiming `tsv` in the "
-        "discriminator would lie to the reader about what it is parsing"
+        "no TSV block was emitted for `headings`, so claiming `tsv` in the discriminator would lie to the reader about what it is parsing"
     )

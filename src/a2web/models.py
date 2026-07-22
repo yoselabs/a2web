@@ -15,6 +15,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
 
+from lean_wire import encode_tsv
 from pydantic import (
     BaseModel,
     Field,
@@ -24,7 +25,6 @@ from pydantic import (
     model_serializer,
 )
 
-from ._tsv_compat import encode_tsv
 from .wire import PruneEmpty
 
 

@@ -41,6 +41,16 @@ dependencies = [
     # not move. It is one of the four packages tagged on the shelf's `work/a2kay`
     # branch — repin to the shelf once that merges to `main`.
     "a2effect",
+    # lean-wire: the TSV codec + `PruneEmpty` behind the agent-facing wire.
+    # Adopted from the shelf 2026-07-22, retiring the vendored `_tsv_compat.py`
+    # that the sunset carried as a byte-for-byte copy of a2kit's encoder. The
+    # swap is NOT cosmetic: a2kit built TSV on stdlib `csv` with QUOTE_MINIMAL,
+    # which quotes a cell containing a tab or newline but leaves the raw `\n`
+    # INSIDE the field — so an agent splitting the payload on `\n` (the whole
+    # point of a line-oriented format) tears one record into several. lean-wire
+    # escapes `\`, `\t`, `\n`, `\r` instead, so one record is always exactly
+    # one physical line, reversibly.
+    "lean-wire>=0.1,<1",
     # http + extraction
     # http-fetch: the shared HTTP GET primitive (browser TLS impersonation,
     # conditional GET, injected proxy + breaker, closed-verdict mapping) —
@@ -200,6 +210,7 @@ a2web-serve = "a2web.server:serve_http_main"
 
 [tool.uv.sources]
 a2effect = { git = "https://github.com/yoselabs/a2kit.git", subdirectory = "packages/a2effect", tag = "v0.49.2" }
+lean-wire = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/lean-wire", tag = "lean-wire-v0.1.0" }
 http-fetch = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-fetch", tag = "http-fetch-v0.2.0" }
 sqlite-resource = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/sqlite-resource", tag = "sqlite-resource-v0.1.0" }
 http-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-cache", tag = "http-cache-v0.1.0" }
