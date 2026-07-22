@@ -345,3 +345,46 @@ converts the convention back into a structural guarantee. Plus the a2kay-style
 - documents the error envelope as `{class, message, traceback}`; the real shape is
   a2effect's `ErrorEnvelope{type, kind, base_kind, retryable, hint, details,
   cause}` and there is no `traceback` key anywhere.
+
+## Q2 / Q3 / Q4 — answered by execution (2026-07-22)
+
+Task 0.1 asked for these to be resolved before starting. They were instead
+resolved *by* the phases, which is worth recording honestly rather than
+back-dating: each answer is what the work turned out to require, and two of
+them differ from what the question anticipated.
+
+**Q2 — log notifications: KEPT, unchanged in shape.** The MCP-wire forward is
+still gated on being inside a tool dispatch; the synchronous log to the `a2web`
+logger always fires. No a2web code needed to change, because Phase 1 had
+already moved the emit sites to `await a2web.log.*` and the notification
+payload gate in `tests/contracts/wire/notifications.json` covers the forward.
+The migration's only notification-visible change was dropping `_meta.a2kit`,
+recorded as the `a2kit-spine-removed` delta.
+
+**Q3 — `typed-events` vs `scoped-log`: a2web's shape wins, and it is no longer
+a shelf question.** The premise was that a2web is the pilot for a shelf
+`scoped-log` package. What Phase 1 actually produced is ~40 lines of `a2web/log`
+over stdlib `logging` with no reusable core: the three items listed above as
+promotable are reserved-name-safe `extra`, a non-fatal handler, and
+span-per-`*Ended`. The first is two lines, the second is a stdlib idiom, and the
+third is OTel glue that belongs with an OTel package. Per the shelf's own ADOPT
+gate (DEEP · STABLE · WINS) this is a shallow candidate — a boundary with
+nothing behind it. **Recommendation: drop `scoped-log` from the shelf backlog**
+rather than promote a2web's version. Not actioned here; it is a shelf edit, and
+`shelf-sweep-promotions` owns the verdict table.
+
+**Q4 — strangler vs atomic: BOTH, split on a seam the question did not have.**
+The question assumed one answer for the whole migration. The phases proved the
+split is per-concern, and the boundary is *whether the concern has a seam*:
+
+| | Concern | Shape | Why |
+|---|---|---|---|
+| Strangler | logging (1), TSV codec (2), `Lazy` (3) | landed independently, green between each | each had a seam a2web already owned, so the old and new could coexist |
+| Atomic | the spine (4) | one commit, 51 files, −1046 lines | `App` + container + wire + error envelope resolve each other; removing any one alone leaves the others unable to construct |
+| Gated rewrite | the CLI (5) | capture-then-rewrite | not a strangler (no seam to run both) and not safely atomic (ungated surface) — so the golden gate substituted for the safety a seam would have given |
+
+The third row is the one worth keeping. When a surface is neither strangleable
+nor safely atomic, **freezing its observable behaviour first is the third
+option**, and it is cheaper than it looks: the Phase 5 capture took one
+afternoon and immediately found a 404'd container healthcheck, a no-op flag, a
+dead truncation cap, and a typo shipped to every agent for months.

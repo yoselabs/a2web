@@ -38,16 +38,29 @@
 
 ## 0. Decisions and prep
 
-- [ ] 0.1 Resolve Q1 (Typer CLI: hand-write / drop / serve-only), Q2 (log
+- [x] 0.1 Resolve Q1 (Typer CLI: hand-write / drop / serve-only), Q2 (log
       notifications), Q3 (`typed-events` vs `scoped-log` shape), Q4 (strangler vs
       atomic). Record each in `design.md`.
-- [ ] 0.2 Fix the `CLAUDE.md` drift enumerated in `design.md` (ten providers, the
+- [x] 0.2 Fix the `CLAUDE.md` drift enumerated in `design.md` (ten providers, the
       current DI keys, the false resolution-order claim + the false
       `server.py:101` comment, the stale error-envelope shape).
-- [ ] 0.3 Confirm the shelf's `work/a2kay` branch is merged to `main` — four
+- [x] 0.3 Confirm the shelf's `work/a2kay` branch is merged to `main` — four
       tagged packages (`lean-wire`, `page-tsv`, `mcp-result-wire`, `a2effect`)
       are stranded off `main`, so `lean-wire` cannot be cleanly pinned until it
       lands. Blocks the follow-on `lean-wire` change, not this one.
+
+      **CHECKED 2026-07-22: still NOT merged.** `origin/work/a2kay` is 3 commits
+      ahead of `origin/main`, and all four tags (`a2effect-v0.1.0`,
+      `lean-wire-v0.1.0`, `mcp-result-wire-v0.1.0`, `page-tsv-v0.1.0`) are
+      reachable only from that branch — `git tag --merged origin/main` lists
+      none of them. So task 9.1 (`lean-wire` adoption) stays blocked, and
+      `_tsv_compat.py` stays vendored until it clears.
+
+      Note this is already load-bearing beyond the shelf: a2web pins `a2effect`
+      by `tag = "v0.49.2"` against the **a2kit** repo, not the shelf, precisely
+      because the shelf's `a2effect-v0.1.0` is off `main`. That pin is a
+      workaround for this branch state and should move to the shelf once it
+      lands.
 
 ## 1. Logging → a2web-owned typed events — **DONE 2026-07-22**
 
@@ -391,7 +404,7 @@
 
 ## 8. Ship
 
-- [ ] 8.1 `make check` green; coverage ≥85%.
+- [x] 8.1 `make check` green; coverage ≥85%. **2026-07-22: 1232 passed, 90.32%.**
 - [ ] 8.2 `make bench` — the envelope and extraction paths moved; confirm the
       clarity and conformance axes held.
 - [ ] 8.3 `make install-global`; verify the live MCP server in a fresh Claude Code
