@@ -99,6 +99,39 @@ folding it into `json-in-html` risk the kitchen-sink smell? Secondary doubt:
 `_rows_to_md_table` may encode a2web's own wire style rather than a neutral
 rendering. Recommend a closer look before extracting.
 
+> **ANSWERED 2026-07-22 — the secondary doubt is CONFIRMED, and it splits the
+> candidate in two.** Both options the question offered (composite sibling vs
+> fold into `json-in-html`) assumed promoting the ~350 lines as one piece. Read
+> closely, they are not one piece.
+>
+> **The rendering half is product, not substrate.** `json_to_markdown_rows`'s
+> own docstring names its consumer: *"a synthetic markdown surface for the
+> extractor LLM"* — not "markdown for a reader". Everything downstream is
+> shaped by that. `_is_commerce_shaped` routes to linked-record rendering when
+> half the rows carry `price`/`url`, and `_rows_to_md_records` preserves those
+> URLs verbatim — which is what makes ADR-0014 closed-set handle rehydration
+> possible. `_normalize_commerce_row` lifts `offers.price` + `priceCurrency`
+> into one `"3690 TRY"` token because that is what a2web's extraction prompt
+> reads well. `_rows_to_md_table`'s constants (sample 5 rows, cap 8 columns,
+> truncate cells to 80 chars) are token-economy tuning for that same prompt.
+> None of it is neutral; a different consumer would want different numbers, and
+> some would want no truncation at all. → **KEEP.**
+>
+> **The normalization half is the real catalog gap.** `_collect_ld_entries`,
+> `_find_product_or_item_list`, `_microdata_to_ld_shape` and
+> `_opengraph_to_markdown` turn LD-JSON / microdata / OpenGraph into uniform
+> row dicts. That is genuinely the missing half of `json-in-html`, whose
+> surface today is `extract_json_payloads` / `rank_payloads` / `JsonPayload`
+> and stops at "here is the raw payload" — so every consumer writes the same
+> schema.org walker, exactly as the "what the shelf gains" section claims.
+>
+> **Recommendation: drop `structured-data-md` as proposed; open a separate,
+> smaller EVOLVE for `json-in-html` covering normalization only.** It needs its
+> own boundary design first — `list[dict]` is too vague a return type to
+> promote — so it is not a Phase E item. Sweep task 6.x closed on that basis;
+> the verdict-table row #7 becomes **KEEP (rendering) + EVOLVE-candidate
+> (normalization, deferred pending boundary design)**.
+
 **Q4. `proxy_routing` — KEEP on doctrine, not on analysis.** The runbook names
 proxy routing as a2web's moat and the sweep honored that. But read cold,
 `resolve_route` is a generic first-match glob router and `_ProxyHealth` is a

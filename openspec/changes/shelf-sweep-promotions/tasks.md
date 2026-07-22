@@ -78,10 +78,13 @@
 
 ## 6. `structured-data-md` (only if Q3 resolves to promote)
 
-- [ ] 6.1 Re-read `_rows_to_md_table` / `_render_rows` for a2web wire-style
+- [x] 6.1 **DONE 2026-07-22 — contamination CONFIRMED.** Re-read `_rows_to_md_table` / `_render_rows` for a2web wire-style
       leakage before extracting.
-- [ ] 6.2 Decide composite-sibling vs `json-in-html` evolution.
-- [ ] 6.3 If promoting: extract, port `tests/capabilities/json_extract/`, tag.
+- [x] 6.2 **DECIDED: neither, as posed.** The candidate splits — rendering is
+      product (KEEP), normalization is the real gap (EVOLVE `json-in-html`,
+      deferred pending boundary design). See proposal Q3.
+- [x] 6.3 ~~If promoting: extract, port `tests/capabilities/json_extract/`, tag.~~
+      **Not promoting in this sweep** — see 6.2.
 
 ## 7. Repoint a2web (Phase E step 6 — per package, tests green each time)
 

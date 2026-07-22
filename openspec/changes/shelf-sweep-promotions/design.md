@@ -20,7 +20,8 @@ distort the piece).
 | 4 | `packages/browser_backends/` | Render a URL with a real JS engine, engine-agnostic | **Yes** (seam) | No browser piece at all | **PROMOTE** seam+drivers / **KEEP** stealth policy |
 | 5 | `packages/llm_extract/cache.py` | Memoize a completion on `(content, prompt, model, template)` with TTL | **Yes** | `http-cache` is the HTTP analogue; nothing caches completions | **PROMOTE** |
 | 6 | `packages/llm_extract/prompts.py:33-80` (`PromptTemplate` only) | Render a versioned prompt into cache-breakpoint-aware parts | **Yes** | `anyllm` **already owns `PromptParts`** | **EVOLVE `anyllm`** |
-| 7 | `domain.py:192-550` (`json_to_markdown_rows` + helpers) | Render an extracted structured-data payload to markdown | **Yes** | `json-in-html` extracts and stops | **PROMOTE (medium confidence)** |
+| 7a | `domain.py` rendering (`_render_rows`, `_rows_to_md_*`, `_normalize_commerce_row`, `_is_commerce_shaped`) | Render rows as a surface **a2web's extractor LLM** reads well | **No** — the consumer is a2web's own prompt | — | **KEEP** (Q3, answered 2026-07-22) |
+| 7b | `domain.py` normalization (`_collect_ld_entries`, `_find_product_or_item_list`, `_microdata_to_ld_shape`, `_opengraph_to_markdown`) | LD-JSON / microdata / OpenGraph → uniform row dicts | **Yes** | `json-in-html` extracts and stops | **EVOLVE `json-in-html`** — deferred, needs boundary design |
 | 8 | `packages/block_detector.py` | Bot-wall / challenge fingerprinting | **No** | — | **KEEP** — named moat; the pattern catalogue *is* the value |
 | 9 | `packages/proxy_routing.py` | Host/tier route table + per-proxy quarantine | **No** (doctrine) | — | **KEEP** — but see open Q4 |
 | 10 | `packages/escalation.py` | Typed escalation signal | **No** | — | **KEEP** — the `Literal` *is* a2web's tier vocabulary |
