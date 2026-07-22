@@ -21,7 +21,7 @@ a2kit's spine was replaced by roughly 300 lines a2web owns:
 | `EncodingPlan` inference + `FormatRoutingMiddleware` | `wire.py` — a literal `_TSV_FIELDS` table |
 | `McpErrorRenderStage` + envelope middleware | `error_wire.py` |
 | `a2kit.log` | `a2web.log` |
-| `encode_tsv` | vendored `_tsv_compat.py` (leaves with shelf `lean-wire`) |
+| `encode_tsv` | shelf `lean-wire` (vendored for one day, then adopted) |
 | `a2kit.testing.client` | `tests/_helpers/mcp.py` |
 | the generated Typer CLI | `cli.py`, derived from `mcp.list_tools()` |
 
