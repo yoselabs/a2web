@@ -150,7 +150,8 @@
 
 ## 9. Findings for the sunset (discovered while capturing)
 
-- [ ] 9.1 A THIRD a2kit encoder defect surfaced, distinct from the two already
+- [x] 9.1 **DECIDED + FIXED 2026-07-22 — and the "harmless" read was wrong.**
+      A THIRD a2kit encoder defect surfaced, distinct from the two already
       tracked: `FormatRoutingMiddleware: content re-derivation failed for
       fetch_raw: encode_tsv expected BaseModel or dict rows, got list`. The
       text channel silently falls back. It happens to be harmless here (the

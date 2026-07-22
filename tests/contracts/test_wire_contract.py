@@ -536,3 +536,42 @@ async def test_populated_other_pages_survives_to_text_channel(monkeypatch: pytes
         "a populated off-page index never reached the caller's text channel — "
         "ADR-0015: withholding the body obliges a2web to leave the index"
     )
+
+
+# The THIRD a2kit encoder defect, distinct from the two above and the only one
+# still live in a2web after the sunset. It was reported as "happens to be
+# harmless here" — it was not, and the reason it looked harmless is instructive:
+# the fallback preserved `links` by accident, because `FetchResponse._omit_empty`
+# pre-encodes that one field a layer down. Everything the fallback did NOT
+# preserve was invisible, because "no TSV block" and "TSV encoding never ran"
+# look identical from outside.
+#
+# Not a golden, for the same reason as the test above: a golden captured against
+# the defective encoder freezes the defect, and a faithful port then passes.
+def test_headings_do_not_abort_the_envelope_encode() -> None:
+    """One non-tabular field must not take the whole envelope down with it."""
+    from a2web.wire import encode_envelope
+
+    payload = {
+        # `Heading` serializes as a compact `[level, text]` pair — not dict rows,
+        # so `encode_tsv` raises `TypeError` on it.
+        "headings": [[1, "Title"], [2, "Section"]],
+        "operator_hints": [{"code": "cookies_stale", "severity": "info"}],
+    }
+
+    encoded = json.loads(encode_envelope(payload, ("headings", "operator_hints")))
+
+    assert encoded["_operator_hints_format"] == "tsv", (
+        "`operator_hints` was not TSV-encoded. Before the shape guard, the "
+        "`TypeError` from `headings` aborted the encode for the ENTIRE envelope "
+        "and `EnvelopeContentMiddleware` silently served FastMCP's plain JSON — "
+        "so no field on `fetch_raw` was ever TSV-encoded in production."
+    )
+    assert encoded["operator_hints"] == "code\tseverity\ncookies_stale\tinfo\n"
+    assert encoded["headings"] == [[1, "Title"], [2, "Section"]], (
+        "a non-tabular field should pass through as JSON, unchanged"
+    )
+    assert "_headings_format" not in encoded, (
+        "no TSV block was emitted for `headings`, so claiming `tsv` in the "
+        "discriminator would lie to the reader about what it is parsing"
+    )

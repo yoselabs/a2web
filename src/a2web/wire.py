@@ -129,6 +129,17 @@ def _derive_columns(rows: list[Any]) -> list[str]:
     return [str(k) for k in first] if isinstance(first, dict) else []
 
 
+def _is_tsv_shaped(rows: list[Any]) -> bool:
+    """Can `rows` become a TSV table at all? Only dict-shaped rows can.
+
+    `encode_tsv` accepts `BaseModel` or dict rows and raises `TypeError` on
+    anything else. Not every field in `_TSV_FIELDS` produces those: `Heading`
+    serializes as a compact `[level, text]` pair (deliberately — it is already
+    lean), so `headings` arrives as a list of *lists*.
+    """
+    return bool(rows) and all(isinstance(row, dict) for row in rows)
+
+
 def encode_envelope(payload: dict[str, Any], tsv_fields: tuple[str, ...]) -> str:
     """Render the `content[0].text` channel from an already-dumped payload.
 
@@ -160,6 +171,30 @@ def encode_envelope(payload: dict[str, Any], tsv_fields: tuple[str, ...]) -> str
             envelope[f"_{name}_format"] = "tsv"
             continue
         rows = list(value) if isinstance(value, (list, tuple)) else []
+        if not _is_tsv_shaped(rows):
+            # SHAPE GUARD — the third a2kit encoder defect, and the only one of
+            # the three that was still live in a2web. `headings` renders as
+            # `[[1, "Title"], [2, "Section"]]`, which `encode_tsv` rejects with
+            # `TypeError: expected BaseModel or dict rows, got list`. a2kit
+            # swallowed that in a bare `except` and a2web inherited the same
+            # rescue in `EnvelopeContentMiddleware`, so the failure was invisible
+            # — but it was NOT harmless, which is how it survived review as a
+            # "happens to be fine" finding.
+            #
+            # One unencodable field aborted the encode for the WHOLE envelope,
+            # and the rescue returned FastMCP's plain JSON. Since `headings` is
+            # on essentially every `fetch_raw`, that means `fetch_raw` has never
+            # shipped a `_<field>_format` discriminator, and `operator_hints` /
+            # `content_candidates` have never been TSV-encoded at all. `links`
+            # looked fine only because `FetchResponse._omit_empty` pre-encodes it
+            # one layer down, so the fallback preserved it by accident.
+            #
+            # Leaving a non-tabular field as JSON is the honest outcome: a
+            # `[level, text]` pair is already lean, and TSV would need invented
+            # positional column names. The point is that it no longer takes the
+            # rest of the envelope down with it. Pinned by
+            # `test_headings_do_not_abort_the_envelope_encode`.
+            continue
         envelope[name] = encode_tsv(rows, columns=_derive_columns(rows))
         envelope[f"_{name}_format"] = "tsv"
     return _encode_json(envelope)
