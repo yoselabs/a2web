@@ -36,10 +36,14 @@ dependencies = [
     "typer>=0.13,<1",
     # a2effect: the typed error taxonomy + `ErrorEnvelope` behind the wire's
     # `{"error": {...}}` channel. Previously reached transitively through a2kit;
-    # now a direct dependency because `error_wire.py` imports it by name. Pinned
-    # to the same artifact that was already resolving, so the envelope bytes do
-    # not move. It is one of the four packages tagged on the shelf's `work/a2kay`
-    # branch — repin to the shelf once that merges to `main`.
+    # now a direct dependency because `error_wire.py` imports it by name.
+    # Repointed from the a2kit repo to the shelf 2026-07-22, once `work/a2kay`
+    # merged to `main` — a2web was pinning a shelf package against a2kit's repo
+    # only because the shelf copy was unreachable from `main`, and that was the
+    # last thread holding a2kit's dissolution open. The shelf copy is NOT
+    # byte-identical (docstrings, a ruff EM101 refactor, `noqa`/`ty` pragmas)
+    # but is behaviourally equivalent — and the wire goldens are the gate that
+    # SAYS so, rather than a comment asserting it should be fine.
     "a2effect",
     # lean-wire: the TSV codec + `PruneEmpty` behind the agent-facing wire.
     # Adopted from the shelf 2026-07-22, retiring the vendored `_tsv_compat.py`
@@ -209,7 +213,7 @@ a2web = "a2web.cli:main"
 a2web-serve = "a2web.server:serve_http_main"
 
 [tool.uv.sources]
-a2effect = { git = "https://github.com/yoselabs/a2kit.git", subdirectory = "packages/a2effect", tag = "v0.49.2" }
+a2effect = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/a2effect", tag = "a2effect-v0.1.0" }
 lean-wire = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/lean-wire", tag = "lean-wire-v0.1.0" }
 http-fetch = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-fetch", tag = "http-fetch-v0.2.0" }
 sqlite-resource = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/sqlite-resource", tag = "sqlite-resource-v0.1.0" }

@@ -25,7 +25,15 @@ a2kit's spine was replaced by roughly 300 lines a2web owns:
 | `a2kit.testing.client` | `tests/_helpers/mcp.py` |
 | the generated Typer CLI | `cli.py`, derived from `mcp.list_tools()` |
 
-`a2effect` is now a direct dependency rather than transitive.
+`a2effect` is now a direct dependency rather than transitive, and as of
+2026-07-22 it resolves **from the shelf**, not from this repo. That was
+the last thread holding a2kit's dissolution open: a2web had been pinning
+`a2effect` against the a2kit repo purely because the shelf's copy lived
+on an unmerged branch. `git grep a2kit` in a2web's `uv.lock` now returns
+nothing.
+
+**a2kit is out of a2web's dependency graph entirely.** Nothing blocks
+dissolution.
 
 ## What a2kit was right about
 
