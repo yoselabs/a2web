@@ -189,7 +189,9 @@ def json_fallback(data: dict | list, *, cap: int = 20_000) -> str
 - Where a2web's version is a **richer superset** of an existing package, the
   arrow reverses and the superset is promoted (resolution 0007 monotonicity) —
   that is why `llm_cost_guard` and `PromptTemplate` are EVOLVE, not PROMOTE.
-- The shelf catalog on `main` is currently **stale**: four packages
-  (`lean-wire`, `page-tsv`, `mcp-result-wire`, `a2effect`) are tagged but stranded
-  on the unmerged branch `work/a2kay`. None overlap the candidates above, but
-  Phase E must re-check against `main` after that branch merges.
+- ~~The shelf catalog on `main` is currently **stale**~~ — **resolved
+  2026-07-22.** `work/a2kay` merged (shelf `8fbed17`), so `lean-wire`,
+  `page-tsv`, `mcp-result-wire` and `a2effect` are all on `main` and in the
+  catalog. a2web has since adopted `lean-wire` and repointed `a2effect` off the
+  a2kit repo. Re-checked: none overlap the candidates above, so the verdict
+  table stands unchanged.

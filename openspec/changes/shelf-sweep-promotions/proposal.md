@@ -107,3 +107,20 @@ generic consecutive-failure quarantine — which **overlaps conceptually with th
 The real question is not promote-vs-keep, it is: **is a2web running two
 independent health-degradation mechanisms?** That is a RECONCILE-pass question and
 may be a genuine design smell worth its own investigation.
+
+> **ANSWERED 2026-07-22 — no, and the doubt traces to a docstring.** Every
+> `get_breaker` key in the tree was enumerated: exactly two, `host`
+> (`tiers/raw.py:92`) and `nitter:{instance}` (`handlers/twitter.py:95`).
+> `ProxyPool._ProxyHealth` is keyed on proxy id, one call site
+> (`fetcher.py:1140`). **The two mechanisms are disjoint, not redundant** —
+> breakers degrade a *destination host*, the pool quarantines an *egress
+> proxy*, and a host that fails through a healthy proxy is a different failure
+> from a proxy that fails across many hosts.
+>
+> What was real: `build_breakers`'s docstring advertised "per-host /
+> **per-proxy** / **global**" breakers, and neither of the last two has ever
+> had a call site. The per-proxy claim is precisely the one that would have
+> overlapped the pool — so the design smell was in the prose, not the design.
+> Docstring corrected; no code change, no RECONCILE pass needed.
+>
+> Q4's KEEP verdict stands, and now rests on analysis rather than doctrine.

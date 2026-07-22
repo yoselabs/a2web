@@ -12,7 +12,10 @@
       Q1 (`any-browser` bakeoff timing), Q2 (`subresource_blocks`),
       Q3 (`structured-data-md` confidence), Q4 (`proxy_routing` / double
       health-degradation).
-- [ ] 0.2 Confirm the shelf's `work/a2kay` branch is merged to `main` — four
+- [x] 0.2 **DONE 2026-07-22** (shelf `8fbed17`, merged not rebased so the four
+      published tags stay reachable from `main`; a retroactive `delivery` row
+      landed as shelf ledger seq 50, which the promotions had been missing).
+      Confirm the shelf's `work/a2kay` branch is merged to `main` — four
       tagged packages are stranded off `main` and the catalog is stale until it
       lands. Re-check the candidate set against the merged catalog.
 - [ ] 0.3 Create the worktree: `git -C <shelf> worktree add ../shelf-a2web -b work/a2web`.

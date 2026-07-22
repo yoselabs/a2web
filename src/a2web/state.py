@@ -54,7 +54,22 @@ class AppState:
 
 
 def build_breakers() -> AsyncCircuitBreakerFactory:
-    """Per-host / per-proxy / global circuit breakers."""
+    """**Per-host** circuit breakers. Not per-proxy, not global.
+
+    This docstring used to claim "per-host / per-proxy / global", and neither
+    of the last two has ever had a call site: the only keys handed to
+    `get_breaker` are a bare `host` (`tiers/raw.py`) and `nitter:{instance}`
+    (`handlers/twitter.py`).
+
+    The correction matters beyond tidiness. Proxy health degradation IS
+    implemented — by `ProxyPool._ProxyHealth`, on a consecutive-failure
+    quarantine, keyed on proxy id — so a reader who believed the old docstring
+    would conclude a2web runs TWO overlapping health mechanisms over the same
+    thing. It does not. The two are orthogonal axes: breakers degrade a
+    *destination host*, the pool quarantines an *egress proxy*. A host that
+    fails through a healthy proxy and a proxy that fails across many hosts are
+    different failures and want different responses.
+    """
     return AsyncCircuitBreakerFactory(default_threshold=5, default_ttl=30.0)
 
 
