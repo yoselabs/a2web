@@ -420,8 +420,14 @@
       have reported a version that never shipped. Now derived from installed
       distribution metadata, pinned against `pyproject.toml` by
       `test_health_reports_the_version_that_actually_shipped`.
-- [ ] 8.4 Notify a2kit that its last consumer has migrated — a2kit can drop
+- [x] 8.4 Notify a2kit that its last consumer has migrated — a2kit can drop
       maintenance mode and proceed with dissolution.
+      **2026-07-22:** `docs/history/A2KIT_FEEDBACK_final-migration.md` — the
+      same channel every prior round used. Carries the takeover table, the
+      three guarantees that went from structural to convention (and the tests
+      that now pin them), the one real loss (`a2kit lint rego`), and the three
+      encoder defects fixed on the way out so a successor substrate does not
+      reintroduce them.
 
 ## 9. Follow-on (separate change, NOT here)
 
