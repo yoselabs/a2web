@@ -8,11 +8,11 @@
 
 ## 0. Gate and setup
 
-- [ ] 0.1 Human sign-off on the `design.md` verdict table. Of the four open
-      questions only **Q2** (`subresource_blocks`) still needs a decision —
-      Q1, Q3 and Q4 are answered with evidence in `proposal.md` (all three
-      turned out to be stale-prose findings rather than design questions; see
-      `design.md` "Method notes").
+- [ ] 0.1 Human sign-off on the `design.md` verdict table. **All four open
+      questions are now answered with evidence in `proposal.md`** — Q1/Q3/Q4
+      were stale-prose findings, Q2 is decided (keep the field, neutralize the
+      docstring). This gate is now purely the go/no-go on the six promotions to
+      a shared shelf, which is Ask First territory — no analysis is outstanding.
 - [x] 0.2 **DONE 2026-07-22** (shelf `8fbed17`, merged not rebased so the four
       published tags stay reachable from `main`; a retroactive `delivery` row
       landed as shelf ledger seq 50, which the promotions had been missing).
@@ -75,8 +75,13 @@
       launcher functions. Both drivers ship: two engines that fail on different
       real sites (the Chromium drop-ins vs the Trendyol/Hepsiburada SPAs) are
       the evidence the Protocol spans engine *families*, not one vendor.
-- [ ] 5.3 Per Q2: decide `subresource_blocks` — keep in the promoted type with a
-      neutral docstring, or leave a2web-side.
+- [ ] 5.3 Per Q2 (answered 2026-07-25): **keep** `subresource_blocks` on the
+      promoted `RenderedPage`, but rewrite the docstring to describe the
+      observation (subresources returning a challenge status during render),
+      NOT a2web's "walled-API fake-empty signal" conclusion — that meaning stays
+      home in `actions/terminal.py` + `actions/empty.py`. (Separately: the
+      zendriver-never-populates-it bug is filed in `BACKLOG.md`, an a2web fix,
+      not a promotion blocker.)
 - [ ] 5.4 Confirm the moat stays home: `select_backend*`, the manifest gating, the
       fast/robust rung split, the `RenderOutcome → Verdict/OperatorHint` mapping.
 - [ ] 5.5 Port `tests/packages/test_playwright_backend.py` +

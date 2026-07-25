@@ -492,6 +492,19 @@ SPA-read/robustness/speed comparison.
   per-host context pool (mirroring `PlaywrightBackend`) would close most of that
   gap. Low urgency: browser is the escalation tier, so the cost only bites when
   the fast rung can't read the page. Scope: M.
+- **🟠 zendriver never populates `subresource_blocks` — the robust rung is blind
+  to the walled-API fake-empty signal.** `packages/browser_backends/zendriver.py`
+  has zero writes to `RenderedPage.subresource_blocks`; only the Playwright-family
+  backend hooks `response` events (`_is_challenged_subresource`). So on the
+  robust rung the field is always `0`, and `actions/empty.py::is_confirmed_empty`
+  can promote a walled-API 200 to an `ok` "no results" answer when the robust
+  rung was the second retrieval — precisely the ADR-0009-class silent miss the
+  empty-vs-wall discrimination exists to prevent. The fast rung catches it; the
+  rung a2web escalates to *because a page looks walled* does not. Fix: hook
+  zendriver's CDP `Network.responseReceived` for 401/403/429 on xhr/fetch and
+  count them the same way. Surfaced by the shelf-sweep Q2 review (2026-07-25).
+  Scope: S. **Not a promotion blocker** — the field stays domain-free either
+  way; this is an a2web escalation-coverage fix.
 - **🟢 Camoufox re-enable when #625 ships.** The Camoufox launcher code is
   retained, gated to `Unavailable` in `_manifests/browser_backends/camoufox.py`.
   When a Camoufox *release* contains juggler `b05563291d` (PR #625), re-enable =

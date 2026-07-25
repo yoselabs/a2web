@@ -124,6 +124,34 @@ signal") is a2web moat. This is the one place product leaked into an otherwise
 domain-free boundary. Keep it in the promoted type with a neutral docstring, or
 leave it a2web-side?
 
+> **ANSWERED 2026-07-25 — keep the field, neutralize the docstring; and the
+> sweep surfaced a real bug behind it.** The FIELD is generic and the producer
+> proves it: `_is_challenged_subresource` (`playwright.py:96`) is
+> `resource_type in ("xhr","fetch") and status in {401,403,429}` — an
+> HTTP-observable fact with no a2web vocabulary in it, and one only a browser
+> can observe (it is the only tier that watches subresource responses during a
+> render). So it belongs ON the promoted `RenderedPage`. The MEANING — count > 0
+> is a wall, blocks the empty→ok promotion, catches the walled-API fake-empty —
+> lives entirely a2web-side already (`actions/terminal.py::has_subresource_block_evidence`,
+> `actions/empty.py`) and does not cross the boundary. Same split as Q3:
+> observation is substrate, interpretation is product.
+>
+> The only thing that actually leaked is the **docstring**. `base.py:66-70`
+> reads *"the walled-API fake-empty signal … render an authentic '0 results'
+> while its data API is blocked"* — that is a2web's conclusion sitting inside
+> the type to be promoted. The promoted version must describe the observation
+> (subresources that returned a challenge status during render), not what a
+> consumer concludes from it. Task 5.3 does this on extraction.
+>
+> **The bug the question uncovered: `zendriver.py` never populates
+> `subresource_blocks`** — grep returns zero writes, so it is always `0` on the
+> robust rung. The robust rung is the one a2web escalates *to* precisely because
+> a page looks walled, and it is blind to the walled-API signal that would
+> confirm it. Not a promotion blocker (`0` reads correctly as "not observed"
+> through the Protocol, and the field is domain-free either way), but a real
+> a2web defect. Filed in `BACKLOG.md` — it is an a2web escalation fix, not
+> shelf work, so it does NOT gate the promotion.
+
 **Q3. `structured-data-md` — medium confidence, not proposed above.**
 `domain.py:192-550` renders an extracted `json_in_html.JsonPayload` (LD-JSON /
 microdata / OpenGraph) to markdown — ~350 lines of schema.org-class logic that any
