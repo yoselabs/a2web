@@ -15,15 +15,62 @@ from typing import Any
 import pytest
 
 from a2web.packages.browser_backends import BackendCookie, RenderOutcome
-from a2web.packages.browser_backends.zendriver import ZendriverBackend, _resolve_executable
+from a2web.packages.browser_backends.zendriver import (
+    ZendriverBackend,
+    _is_challenged_cdp_response,
+    _resolve_executable,
+)
+
+
+class _FakeResourceType:
+    """Stand-in for `cdp.network.ResourceType.<MEMBER>` — read by `.name`."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+
+class _FakeResponseEvent:
+    """A `Network.responseReceived` event: `type_` (ResourceType) + `response.status`."""
+
+    def __init__(self, resource_type: str, status: int) -> None:
+        self.type_ = _FakeResourceType(resource_type)
+        self.response = types.SimpleNamespace(status=status)
 
 
 class _FakeTab:
-    def __init__(self, html: str, *, content_exc: Exception | None = None, content_sleep: float = 0.0) -> None:
+    def __init__(
+        self,
+        html: str,
+        *,
+        content_exc: Exception | None = None,
+        content_sleep: float = 0.0,
+        responses: list[_FakeResponseEvent] | None = None,
+    ) -> None:
         self.url = "https://example.com/final"
         self._html = html
         self._content_exc = content_exc
         self._content_sleep = content_sleep
+        # Events the browser "receives" during navigation; dispatched to any
+        # registered ResponseReceived handler when `get(url)` is called — the
+        # fake's stand-in for real CDP network traffic arriving on load.
+        self._responses = responses or []
+        self._handlers: list[Any] = []
+        self.enabled_network = False
+
+    async def send(self, command: Any) -> None:
+        # `zd.cdp.network.enable()` and friends — the fake accepts and records.
+        self.enabled_network = True
+
+    def add_handler(self, event_type: Any, handler: Any) -> None:
+        self._handlers.append(handler)
+
+    async def get(self, url: str = "about:blank", new_tab: bool = False, new_window: bool = False) -> _FakeTab:
+        # Navigation: fire the seeded responses at every registered handler,
+        # mirroring events arriving as the page loads.
+        for handler in self._handlers:
+            for event in self._responses:
+                handler(event)
+        return self
 
     async def wait_for_ready_state(self, until: str = "complete", timeout: int = 10) -> bool:  # noqa: ASYNC109 - mirrors zendriver's real Tab signature
         return True
@@ -89,20 +136,30 @@ def _install_fake_zendriver(
     class _Config:
         """Mirrors the real `zd.Config` surface the backend touches.
 
-        `browser_executable_path` + `add_argument` are part of the genuine API
-        (verified against the installed zendriver); the real default is an
-        auto-discovered SYSTEM Chrome path, which is precisely why a container
-        with only a Playwright-managed Chromium finds nothing.
+        `browser_executable_path` + `add_argument` + `sandbox` are part of the
+        genuine API (verified against the installed zendriver 0.15.3); the real
+        default is an auto-discovered SYSTEM Chrome path, which is precisely why
+        a container with only a Playwright-managed Chromium finds nothing.
+
+        `add_argument` REJECTS `--no-sandbox` exactly as the real one does — that
+        fidelity is load-bearing: the permissive earlier fake let the robust
+        rung ship a launch that raised `ValueError` on every real call, dead on
+        arrival on this zendriver version.
         """
+
+        _REJECTED = ("headless", "data-dir", "data_dir", "no-sandbox", "no_sandbox", "lang")
 
         def __init__(self, headless: bool = False) -> None:
             self.headless = headless
             self.browser_connection_timeout = 0.25
             self.browser_connection_max_tries = 10
             self.browser_executable_path = "/system/chrome"
+            self.sandbox = True
             self.arguments: list[str] = []
 
         def add_argument(self, arg: str) -> None:
+            if any(x in arg.lower() for x in self._REJECTED):
+                raise ValueError(f'"{arg}" not allowed. please use one of the attributes of the Config object to set it')
             self.arguments.append(arg)
 
     async def _start(*, config: Any) -> _FakeBrowser:
@@ -113,7 +170,14 @@ def _install_fake_zendriver(
         holder["browser"] = browser
         return browser
 
-    cdp = types.SimpleNamespace(network=types.SimpleNamespace(CookieParam=_CookieParam, CookieSameSite=_CookieSameSite))
+    cdp = types.SimpleNamespace(
+        network=types.SimpleNamespace(
+            CookieParam=_CookieParam,
+            CookieSameSite=_CookieSameSite,
+            enable=lambda: object(),  # `zd.cdp.network.enable()` → a sendable command
+            ResponseReceived=object(),  # handler key; the fake dispatches by registration, not key
+        )
+    )
     mod.Config = _Config  # type: ignore[attr-defined]
     mod.start = _start  # type: ignore[attr-defined]
     mod.cdp = cdp  # type: ignore[attr-defined]
@@ -132,6 +196,53 @@ async def test_render_ok_returns_html(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "ok ok" in page.html
     assert page.final_url == "https://example.com/final"
     assert page.bytes_transferred == len(page.html)
+
+
+@pytest.mark.asyncio
+async def test_render_counts_challenged_subresources(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The walled-API fake-empty signal: a 200 shell whose data XHR was 403'd.
+
+    This is the whole reason the fix exists — before it, `subresource_blocks`
+    was permanently 0 on the robust rung, so `actions/empty.py` could promote a
+    walled 200 to an `ok` 'no results' answer (an ADR-0009-class silent miss)
+    whenever zendriver was the second retrieval.
+    """
+    tab = _FakeTab(
+        "<html><body>0 results</body></html>",
+        responses=[
+            _FakeResponseEvent("XHR", 403),  # the walled data API
+            _FakeResponseEvent("FETCH", 429),  # a rate-limited fetch
+            _FakeResponseEvent("SCRIPT", 200),  # ordinary asset — ignored
+            _FakeResponseEvent("XHR", 200),  # a healthy XHR — ignored
+        ],
+    )
+    _install_fake_zendriver(monkeypatch, tab=tab)
+    page = await ZendriverBackend().render("https://shop.example/search?q=x", cookies=[], budget_s=5.0, js_heavy=False)
+    assert page.outcome is RenderOutcome.ok
+    assert page.subresource_blocks == 2  # only the challenged XHR + fetch count
+
+
+@pytest.mark.asyncio
+async def test_render_clean_page_reports_zero_blocks(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No challenged subresources → 0, the genuine-empty case that MAY promote."""
+    tab = _FakeTab(
+        "<html><body>0 results</body></html>",
+        responses=[_FakeResponseEvent("XHR", 200), _FakeResponseEvent("DOCUMENT", 200)],
+    )
+    _install_fake_zendriver(monkeypatch, tab=tab)
+    page = await ZendriverBackend().render("https://shop.example/search?q=x", cookies=[], budget_s=5.0, js_heavy=False)
+    assert page.outcome is RenderOutcome.ok
+    assert page.subresource_blocks == 0
+
+
+def test_is_challenged_cdp_response_matches_playwright_semantics() -> None:
+    """The predicate agrees with the Playwright side: challenged XHR/fetch only."""
+    assert _is_challenged_cdp_response(_FakeResponseEvent("XHR", 403)) is True
+    assert _is_challenged_cdp_response(_FakeResponseEvent("FETCH", 401)) is True
+    assert _is_challenged_cdp_response(_FakeResponseEvent("XHR", 429)) is True
+    assert _is_challenged_cdp_response(_FakeResponseEvent("XHR", 200)) is False  # not challenged
+    assert _is_challenged_cdp_response(_FakeResponseEvent("SCRIPT", 403)) is False  # not a subresource fetch
+    assert _is_challenged_cdp_response(object()) is False  # shape surprise → never fails
 
 
 @pytest.mark.asyncio
@@ -254,8 +365,12 @@ async def test_render_passes_resolved_binary_and_container_flags(monkeypatch: py
     await ZendriverBackend().render("https://example.com/", cookies=[], budget_s=5.0, js_heavy=False)
     config = holder["config"]
     assert config.browser_executable_path == "/opt/browsers/chrome"
-    assert "--no-sandbox" in config.arguments
+    # Sandbox is disabled via the attribute — passing "--no-sandbox" to
+    # add_argument raises on the real Config, so it must NOT appear there.
+    assert config.sandbox is False
+    assert "--no-sandbox" not in config.arguments
     assert "--disable-dev-shm-usage" in config.arguments
+    assert "--disable-gpu" in config.arguments
 
 
 @pytest.mark.asyncio

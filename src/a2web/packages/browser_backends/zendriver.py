@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any
 
 from .base import BackendCookie, RenderedPage, RenderOutcome
-from .playwright import _SCROLL_STABLE_MAX_PASSES, _THIN_FLOOR, _ms, _summarize_exc
+from .playwright import _CHALLENGE_STATUSES, _SCROLL_STABLE_MAX_PASSES, _THIN_FLOOR, _ms, _summarize_exc
 
 _SAMESITE = {"strict": "STRICT", "lax": "LAX", "none": "NONE"}
 
@@ -47,8 +47,18 @@ _PLAYWRIGHT_PATH_ENV = "PLAYWRIGHT_BROWSERS_PATH"
 # Flags a containerized Chromium needs. Without them the process dies during
 # startup and the CDP socket never opens, which surfaces only as zendriver's
 # generic "Failed to connect to browser" — the symptom that made this rung look
-# like a connection bug rather than a launch bug.
+# like a connection bug rather than a launch bug. This full tuple is for the
+# raw `chrome --version` probe in `_launch_diagnostics`, where every entry is a
+# valid CLI flag.
 _CONTAINER_ARGS = ("--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu")
+# The subset that may be passed to `zd.Config.add_argument`. zendriver (0.15.3)
+# REJECTS `--no-sandbox` there with a ValueError — it insists you set the
+# `Config.sandbox` attribute instead — and the backend adds these unconditionally
+# on every launch, so passing the full tuple raised before Chromium was ever
+# spawned and left the robust rung dead on arrival on this version, the
+# container most of all (where --no-sandbox is mandatory). Sandbox is disabled
+# via `config.sandbox = False`; only these two go through add_argument.
+_CONFIG_ADDABLE_ARGS = ("--disable-dev-shm-usage", "--disable-gpu")
 
 
 def _resolve_executable() -> str | None:
@@ -78,6 +88,23 @@ def _resolve_executable() -> str | None:
         key=lambda p: p.parts,
     )
     return str(candidates[-1]) if candidates else None
+
+
+def _is_challenged_cdp_response(event: Any) -> bool:
+    """CDP mirror of `playwright._is_challenged_subresource`: a challenged XHR/fetch.
+
+    A `Network.responseReceived` event carries `type_` (a `ResourceType` enum)
+    and `response.status` (an int). Read the enum by `.name` so no `cdp` module
+    reference is needed at the call site. Best-effort: any shape surprise counts
+    as "not challenged", so this telemetry can never fail a render — the same
+    contract the Playwright side keeps.
+    """
+    try:
+        rtype = getattr(event, "type_", None)
+        name = (getattr(rtype, "name", None) or str(rtype)).upper()
+        return name in ("XHR", "FETCH") and event.response.status in _CHALLENGE_STATUSES
+    except Exception:  # best-effort telemetry — never fail the render on a shape quirk
+        return False
 
 
 def _cookie_to_cdp(cookie: BackendCookie, cdp: Any) -> Any:
@@ -205,6 +232,13 @@ class ZendriverBackend:
 
         wall_start = time.perf_counter()
         browser: Any | None = None
+        # Challenged-subresource counter, populated by a CDP handler registered
+        # in `_navigate` before navigation. Defined here so every return path
+        # (ok / timeout / error) can report it — the fast rung already does, and
+        # the robust rung was permanently blind to the walled-API fake-empty
+        # signal until this was threaded through. A launch failure leaves it 0,
+        # which is correct: no render happened, so nothing was observed.
+        blocked: list[int] = []
         try:
             executable = _resolve_executable()
             try:
@@ -216,7 +250,10 @@ class ZendriverBackend:
                 config = zd.Config(headless=True)
                 if executable:
                     config.browser_executable_path = executable
-                for arg in _CONTAINER_ARGS:
+                # Disable the sandbox via the attribute, NOT add_argument — the
+                # latter raises on "--no-sandbox" (see `_CONFIG_ADDABLE_ARGS`).
+                config.sandbox = False
+                for arg in _CONFIG_ADDABLE_ARGS:
                     config.add_argument(arg)
                 config.browser_connection_timeout = 1.0
                 config.browser_connection_max_tries = 15
@@ -240,11 +277,17 @@ class ZendriverBackend:
 
             try:
                 html, final_url = await asyncio.wait_for(
-                    self._navigate(browser, url, js_heavy, scroll_to_stable),
+                    self._navigate(browser, url, js_heavy, scroll_to_stable, blocked),
                     timeout=budget_s,
                 )
             except TimeoutError:
-                return RenderedPage(outcome=RenderOutcome.timeout, final_url=url, js_executed=True, wall_ms=_ms(wall_start))
+                return RenderedPage(
+                    outcome=RenderOutcome.timeout,
+                    final_url=url,
+                    js_executed=True,
+                    wall_ms=_ms(wall_start),
+                    subresource_blocks=len(blocked),
+                )
         except Exception as exc:  # navigation / CDP / driver errors
             return RenderedPage(
                 outcome=RenderOutcome.error,
@@ -252,6 +295,7 @@ class ZendriverBackend:
                 js_executed=True,
                 wall_ms=_ms(wall_start),
                 detail=_summarize_exc(exc),
+                subresource_blocks=len(blocked),
             )
         finally:
             if browser is not None:
@@ -264,16 +308,44 @@ class ZendriverBackend:
             final_url=final_url,
             # CDP doesn't surface the main-frame nav status as cheaply as
             # Playwright's response object; v1 reports 200 on a successful
-            # content capture and leans on content-side block detection. If
-            # zendriver wins, capture it via a Network.responseReceived handler.
+            # content capture and leans on content-side block detection.
+            # Subresource challenges ARE now captured (the `_navigate` handler);
+            # main-frame status is the remaining gap and would use the same
+            # Network.responseReceived stream, matched to the final document.
             status_code=200,
             js_executed=True,
             wall_ms=_ms(wall_start),
             bytes_transferred=len(html),
+            subresource_blocks=len(blocked),
         )
 
-    async def _navigate(self, browser: Any, url: str, js_heavy: bool, scroll_to_stable: bool = False) -> tuple[str, str]:
-        tab = await browser.get(url)
+    async def _navigate(
+        self,
+        browser: Any,
+        url: str,
+        js_heavy: bool,
+        scroll_to_stable: bool = False,
+        blocked: list[int] | None = None,
+    ) -> tuple[str, str]:
+        import zendriver as zd
+
+        # Open a blank tab, arm the challenged-subresource counter, THEN navigate
+        # — the same ordering the Playwright path uses (`page.on("response")`
+        # before `page.goto`). Registering after navigation would miss the very
+        # XHR/fetch this exists to catch: an SPA shell that 200s while its data
+        # API is 403'd fires that request during load. Best-effort — a driver
+        # missing the CDP surface degrades to a 0 count, never a failed render.
+        tab = await browser.get("about:blank")
+        if blocked is not None:
+
+            def _on_response(event: Any) -> None:
+                if _is_challenged_cdp_response(event):
+                    blocked.append(1)
+
+            with suppress(Exception):
+                await tab.send(zd.cdp.network.enable())
+                tab.add_handler(zd.cdp.network.ResponseReceived, _on_response)
+        await tab.get(url)
         await tab.wait_for_ready_state("complete", timeout=int(self.page_budget_s))
         html = await tab.get_content()
         if len(html) < _THIN_FLOOR and js_heavy:

@@ -8,6 +8,31 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **The robust browser rung (zendriver) could not launch on the pinned
+  version.** `ZendriverBackend` passed `--no-sandbox` through
+  `zd.Config.add_argument`, which zendriver 0.15.3 rejects with a `ValueError`
+  ("use one of the attributes of the Config object") — so every robust-rung
+  launch raised before Chromium was even spawned and returned `unavailable`,
+  the container most of all, where `--no-sandbox` is mandatory. The sandbox is
+  now disabled via `config.sandbox = False`; only the two genuinely-addable
+  flags go through `add_argument`. The `browser`-marked smoke, which skipped on
+  this launch failure, now passes against real zendriver. The unit test's fake
+  `Config` was too permissive to catch this — it now rejects the same argument
+  the real one does.
+- **The robust rung was blind to the walled-API fake-empty signal.** zendriver
+  never populated `RenderedPage.subresource_blocks`, so it was permanently `0`
+  on the `browser_robust` tier — meaning `actions/empty.py::is_confirmed_empty`
+  could promote a walled 200 ("0 results" shell whose data API was 403'd) to an
+  `ok` "no results" answer whenever zendriver was the second retrieval, an
+  ADR-0009-class silent miss. The fast rung (patchright) already caught this.
+  A CDP `Network.responseReceived` handler is now registered before navigation
+  (mirroring the Playwright path's pre-`goto` `page.on("response")`) and counts
+  challenged (401/403/429) XHR/fetch subresources via the same
+  `_CHALLENGE_STATUSES` the Playwright side uses. Surfaced by the shelf-sweep
+  Q2 review.
+
 ## [0.47.2] — 2026-07-21
 
 > CI-gate fix — the first successfully-published image of the 0.47 line. No

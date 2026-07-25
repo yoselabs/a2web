@@ -492,19 +492,21 @@ SPA-read/robustness/speed comparison.
   per-host context pool (mirroring `PlaywrightBackend`) would close most of that
   gap. Low urgency: browser is the escalation tier, so the cost only bites when
   the fast rung can't read the page. Scope: M.
-- **🟠 zendriver never populates `subresource_blocks` — the robust rung is blind
-  to the walled-API fake-empty signal.** `packages/browser_backends/zendriver.py`
-  has zero writes to `RenderedPage.subresource_blocks`; only the Playwright-family
-  backend hooks `response` events (`_is_challenged_subresource`). So on the
-  robust rung the field is always `0`, and `actions/empty.py::is_confirmed_empty`
-  can promote a walled-API 200 to an `ok` "no results" answer when the robust
-  rung was the second retrieval — precisely the ADR-0009-class silent miss the
-  empty-vs-wall discrimination exists to prevent. The fast rung catches it; the
-  rung a2web escalates to *because a page looks walled* does not. Fix: hook
-  zendriver's CDP `Network.responseReceived` for 401/403/429 on xhr/fetch and
-  count them the same way. Surfaced by the shelf-sweep Q2 review (2026-07-25).
-  Scope: S. **Not a promotion blocker** — the field stays domain-free either
-  way; this is an a2web escalation-coverage fix.
+- **✅ zendriver robust-rung launch + subresource blindness — FIXED 2026-07-25.**
+  Two bugs, one session, both in `packages/browser_backends/zendriver.py`.
+  (1) The rung could not launch on the pinned zendriver 0.15.3: `--no-sandbox`
+  was passed via `Config.add_argument`, which that version rejects with a
+  `ValueError`, so every launch returned `unavailable` (container included).
+  Fixed by `config.sandbox = False` + a config-safe arg subset. (2) The rung
+  never populated `RenderedPage.subresource_blocks`, so it was permanently `0`
+  and `is_confirmed_empty` could promote a walled-API 200 to an `ok` "no
+  results" answer — an ADR-0009 silent miss. Fixed with a CDP
+  `Network.responseReceived` handler registered before navigation, counting
+  401/403/429 XHR/fetch via the shared `_CHALLENGE_STATUSES`. The `browser`-marked
+  smoke (which had been silently skipping on the launch failure) now passes
+  against real zendriver. Both surfaced by the shelf-sweep Q2 review; the
+  permissive test-fake `Config` that hid bug 1 was tightened to reject the same
+  argument the real one does. See CHANGELOG [Unreleased].
 - **🟢 Camoufox re-enable when #625 ships.** The Camoufox launcher code is
   retained, gated to `Unavailable` in `_manifests/browser_backends/camoufox.py`.
   When a Camoufox *release* contains juggler `b05563291d` (PR #625), re-enable =
