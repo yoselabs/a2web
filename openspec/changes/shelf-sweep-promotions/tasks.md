@@ -155,6 +155,17 @@ here and nowhere else, NOT an endogenous golden. No package is tagged until:
       port it, don't reinvent it. Until then a2web itself is the only place the
       drivers get a real-launch witness, which is another reason the shelf copy
       must not ship without one.
+- [ ] 5.2c **Absorbs `fix-zendriver-robust-rung` §1–§2** (folded 2026-07-26 — that
+      change archived). Its blocked diagnosis (zendriver dead on CDP handshake in
+      the image) IS what the 5.2b real-launch gate produces: run the gate, and if
+      zendriver fails to launch, that is the diagnosis. Then the fix-or-drop branch
+      resolves — **fix** the launch in `zendriver.py`, or **drop** it and promote a
+      genuinely distinct second engine for `browser_robust` (differentiated stealth
+      profile or reinstated Camoufox), never a same-engine (correlated) witness.
+      Retire the homelab correlated-witness workaround the moment a distinct engine
+      passes the gate; the `CorrelatedWitnessRung` signal (fix-zendriver §3, DONE)
+      is the detectable revert-trigger. `make bench` once the robust engine
+      actually changes (fix-zendriver §4.2, was deferred).
 - [ ] 5.3 Per Q2 (answered 2026-07-25): **keep** `subresource_blocks` on the
       promoted `RenderedPage`, but rewrite the docstring to describe the
       observation (subresources returning a challenge status during render),

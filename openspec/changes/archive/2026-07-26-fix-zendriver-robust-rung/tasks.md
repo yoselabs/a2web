@@ -1,28 +1,35 @@
 # Tasks
 
+> **FOLDED 2026-07-26 into the `any-browser` promotion** (`shelf-sweep-promotions`
+> task 5.2c). §3 (correlated-witness detection) + §4.1 shipped. The blocked §1
+> (diagnose CDP handshake) and §2 (fix-or-drop) relocate there: the shelf real-
+> launch gate (skip-forbidden) is the container diagnostic that unblocks them.
+> The two spec requirements below (distinct evasion engine; observable-not-silent
+> fallback) are still true and land on archive.
+
 ## 1. Diagnose (blocking — must precede any fix decision)
 
-- [ ] 1.1 Run `query` against a known hard-anti-bot URL inside the published
+- [x] 1.1 (FOLDED → any-browser 5.2c) Run `query` against a known hard-anti-bot URL inside the published
       container (or a local Linux container built `--build-arg INSTALL_BROWSER=true`)
       with `debug=true`, forcing browser escalation, and capture the
       `browser_robust` `RenderedPage.detail` — specifically the `_launch_diagnostics`
       suffix that says whether the binary is healthy.
-- [ ] 1.2 If it reports `binary OK … CDP handshake`: capture zendriver's own
+- [x] 1.2 (FOLDED → any-browser 5.2c) If it reports `binary OK … CDP handshake`: capture zendriver's own
       connection error (the module now surfaces it) and the Chromium `--version`
       probe output. Record the exact handshake failure mode.
-- [ ] 1.3 Compare against a patchright render in the same container (which works):
+- [x] 1.3 (FOLDED → any-browser 5.2c) Compare against a patchright render in the same container (which works):
       identify what patchright does at connect time that zendriver does not
       (debug port vs pipe, bind address, user-data-dir/HOME).
-- [ ] 1.4 Write the concrete cause into `LESSONS_LEARNED.md` (replaces the
+- [x] 1.4 (FOLDED → any-browser 5.2c) Write the concrete cause into `LESSONS_LEARNED.md` (replaces the
       "robust rung dead in the image" open note with the root cause).
 
 ## 2. Decide + implement (the branch)
 
-- [ ] 2.1 **If fixable:** apply the launch/connect fix in `zendriver.py`
+- [x] 2.1 (FOLDED → any-browser 5.2c) **If fixable:** apply the launch/connect fix in `zendriver.py`
       (`ZendriverBackend.render`), add a container regression test with the fake
       zendriver asserting the new launch args/config, and verify a real render in
       the container.
-- [ ] 2.2 **If not fixable:** drop the zendriver backend + manifest, and promote
+- [x] 2.2 (FOLDED → any-browser 5.2c) **If not fixable:** drop the zendriver backend + manifest, and promote
       a distinct second engine for `browser_robust` (a differentiated stealth
       profile of a working backend, or a reinstated Camoufox rung). Ensure it is
       genuinely a different engine/fingerprint than the fast `browser` rung.
@@ -51,7 +58,7 @@
 ## 4. Gate
 
 - [x] 4.1 `make check` green (§3 + the length_floor side-fix).
-- [ ] 4.2 (DEFERRED with §1-2) `make bench` — run once the robust rung's engine/launch
+- [x] 4.2 (FOLDED → any-browser 5.2c) (DEFERRED with §1-2) `make bench` — run once the robust rung's engine/launch
       is actually changed by the blocked fix; §3 alone did not change render behavior.
 
 ## Blocked (needs the container — unchanged)

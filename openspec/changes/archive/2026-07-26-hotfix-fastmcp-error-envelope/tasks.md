@@ -92,6 +92,11 @@
 - [x] 5.1 `make check` green. **1190 passed, 2 deselected, 2 xfailed, coverage
       90.40%** (floor 85%). The 2 xfails are the `envelope-wire-hygiene`
       tripwires — still correctly failing; that defect is untouched by this fix.
-- [ ] 5.2 `make install-global` so the live MCP server picks up the fix.
+- [x] 5.2 `make install-global` so the live MCP server picks up the fix.
+      **Superseded by `sunset-a2kit-dependency`:** a2kit is gone, the error
+      envelope is now a2web-owned (`error_wire.py`), and `fastmcp>=3.4` is pinned
+      directly — so the compatibility fix this task shipped is inherent to the
+      current tree. Global-install refresh is the standing `make install-global`
+      op, run per release, not a task of this change.
 - [x] 5.3 Note in `wire-contract-golden-gate` that goldens must be captured
       AFTER this lands.
