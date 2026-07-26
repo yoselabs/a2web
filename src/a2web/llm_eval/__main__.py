@@ -24,13 +24,13 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from anyllm import with_cost_guard
 from plugin_surface import load_surface
 
 from .._manifests.eval_systems import EvalSystemContext
 from ..components import build_components
 from ..llm_resource import _PROVIDER_ORDER, select_provider
 from ..log import get_logger
-from ..packages.llm_cost_guard import with_cost_guard
 from ..packages.llm_extract import Judge, LLMNotAvailable, ModelSpec, Provider
 from ..settings import AppSettings
 from .bench_judge import BenchJudge
@@ -164,12 +164,14 @@ async def _amain(argv: list[str]) -> int:
         return 3
 
     # Cost guard (ADR-0016): wrap the provider so every `complete()` asserts the
-    # (provider_id, model) pair BEFORE the network call. Wrapping here — the one
+    # (provider.name, model) pair BEFORE the network call. Wrapping here — the one
     # place the provider is acquired — means the runner, the judges, and the
     # extraction resource all receive the guarded provider; no un-guarded
-    # completion path exists. A denied pair (e.g. anthropic:sonnet, the $20 case)
-    # raises CostViolation before spending, never silently bills.
-    provider = with_cost_guard(provider_id, provider)
+    # completion path exists. A denied pair (e.g. anthropic-api:sonnet, the $20
+    # case) raises CostViolation before spending, never silently bills. The shelf
+    # guard keys on the anyllm ProviderName (`provider.name`), so no separate id
+    # is passed; `provider_id` stays a2web's manifest alias for provenance below.
+    provider = with_cost_guard(provider)
 
     # Single source of truth (sunset Phase 4): `build_components` is the ONE
     # composition root — the bench builds the same graph production does, so a

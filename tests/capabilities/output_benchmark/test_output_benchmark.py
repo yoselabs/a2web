@@ -486,10 +486,12 @@ async def test_suite_run_persists_axis_traces(tmp_path: Path) -> None:
 def test_default_judge_model_denied_on_metered_anthropic() -> None:
     """The bench's default judge model is Sonnet; on metered anthropic it must
     be refused (the $20 regression), yet allowed via the claude-code subscription."""
-    from a2web.packages.llm_cost_guard import DEFAULT_POLICY
+    from anyllm import DEFAULT_COST_POLICY, ProviderName
 
-    assert DEFAULT_POLICY.permits("anthropic", "claude-sonnet-4-6") is False
-    assert DEFAULT_POLICY.permits("claude-code", "claude-sonnet-4-6") is True
+    # a2web's `anthropic` manifest -> anthropic-api (metered): Sonnet refused;
+    # its `claude-code` manifest -> claude-code-sdk (subscription): allowed.
+    assert DEFAULT_COST_POLICY.permits(ProviderName.ANTHROPIC_API, "claude-sonnet-4-6") is False
+    assert DEFAULT_COST_POLICY.permits(ProviderName.CLAUDE_CODE_SDK, "claude-sonnet-4-6") is True
 
 
 @pytest.mark.asyncio

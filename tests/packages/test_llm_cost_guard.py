@@ -1,99 +1,70 @@
-"""Unit tests for the llm-cost-guard primitive.
+"""a2web's binding of the shelf `anyllm.cost` guard (ADR-0016).
 
-Asserts the default policy's allow/deny decisions and that the guarded
-provider raises BEFORE issuing the underlying `complete()` call — the
-structural "impossible to bill by accident" guarantee (ADR-0016).
+The guard MACHINERY — the `CostPolicy` allowlist, `with_cost_guard`, the
+pre-spend assertion — lives in the shelf package `anyllm.cost` and is tested
+there. What a2web must verify HERE is the binding: that a2web's three concrete
+providers carry the `ProviderName` values the guard keys on, so the default
+policy makes the RIGHT call for a2web's actual backends — the $20 regression
+(metered Sonnet) is refused, the subscription path is allowed. If a2web ever
+swapped an adapter or anyllm renamed a `ProviderName`, this catches it.
 """
 
 from __future__ import annotations
 
 import pytest
-
-from a2web.packages.llm_cost_guard import (
-    DEFAULT_POLICY,
+from anyllm import (
+    DEFAULT_COST_POLICY,
+    Completion,
     CostViolation,
-    assert_within_budget,
+    ProviderName,
     with_cost_guard,
 )
 
 
 class _FakeProvider:
-    """Minimal anyllm-shaped LLMProvider that records whether it was called."""
+    """anyllm-shaped provider carrying a real ProviderName, records if called."""
 
-    name = "fake"
     default_model = ""
 
-    def __init__(self) -> None:
+    def __init__(self, name: ProviderName) -> None:
+        self.name = name
         self.called = False
 
-    async def complete(self, **kwargs: object) -> str:
+    async def complete(self, **kwargs: object) -> Completion:
         self.called = True
-        return "OK"
+        return Completion(text="OK", model=str(kwargs.get("model") or ""))
 
     def available(self) -> bool:
         return True
 
 
-@pytest.mark.parametrize(
-    ("provider_id", "model", "allowed"),
-    [
-        # claude-code (subscription, flat cost) — any model is fine.
-        ("claude-code", "claude-sonnet-4-6", True),
-        ("claude-code", "claude-opus-4-8", True),
-        ("claude-code", "claude-haiku-4-5-20251001", True),
-        # metered anthropic — cheap models only.
-        ("anthropic", "claude-haiku-4-5-20251001", True),
-        ("anthropic", "claude-sonnet-4-6", False),  # the $20 case
-        ("anthropic", "claude-opus-4-8", False),
-        # openai_compatible — conservative cheap allowlist, expensive denied.
-        ("openai_compatible", "gpt-4o-mini", True),
-        ("openai_compatible", "llama-3.1-8b-instruct", True),
-        ("openai_compatible", "gpt-4o", False),
-        ("openai_compatible", "gpt-4-turbo", False),
-        # unknown provider id — denied (fail loud, opt in deliberately).
-        ("mystery-provider", "some-cheap-model", False),
-    ],
-)
-def test_default_policy_allow_deny(provider_id: str, model: str, allowed: bool) -> None:
-    assert DEFAULT_POLICY.permits(provider_id, model) is allowed
-    if allowed:
-        assert_within_budget(provider_id, model)  # no raise
-    else:
-        with pytest.raises(CostViolation):
-            assert_within_budget(provider_id, model)
+def test_a2web_provider_names_map_onto_policy() -> None:
+    """a2web's three manifest providers resolve to these anyllm ProviderNames,
+    and the default policy makes the intended subscription-vs-metered call."""
+    # anthropic manifest -> AnthropicApiAdapter (metered) -> Sonnet refused.
+    assert DEFAULT_COST_POLICY.permits(ProviderName.ANTHROPIC_API, "claude-sonnet-4-6") is False
+    assert DEFAULT_COST_POLICY.permits(ProviderName.ANTHROPIC_API, "claude-haiku-4-5-20251001") is True
+    # claude-code manifest -> ClaudeCodeSdkAdapter (subscription) -> any model.
+    assert DEFAULT_COST_POLICY.permits(ProviderName.CLAUDE_CODE_SDK, "claude-sonnet-4-6") is True
 
 
-async def test_guard_raises_before_calling_inner() -> None:
-    """A denied pair raises CostViolation and the inner provider is never called."""
-    inner = _FakeProvider()
-    guarded = with_cost_guard("anthropic", inner)  # type: ignore[arg-type]
+async def test_guard_refuses_metered_sonnet_before_spending() -> None:
+    """The $20 regression: a guarded anthropic-api provider must raise on Sonnet
+    and never reach the network call."""
+    inner = _FakeProvider(ProviderName.ANTHROPIC_API)
+    guarded = with_cost_guard(inner)
 
     with pytest.raises(CostViolation):
         await guarded.complete(user="hi", model="claude-sonnet-4-6")
 
-    assert inner.called is False, "denied pair must not reach the network call"
+    assert inner.called is False
 
 
-async def test_guard_delegates_on_allowed_pair() -> None:
-    inner = _FakeProvider()
-    guarded = with_cost_guard("claude-code", inner)  # type: ignore[arg-type]
+async def test_guard_allows_subscription_path() -> None:
+    inner = _FakeProvider(ProviderName.CLAUDE_CODE_SDK)
+    guarded = with_cost_guard(inner)
 
     result = await guarded.complete(user="hi", model="claude-sonnet-4-6")
 
-    assert result == "OK"
-    assert inner.called is True
-
-
-async def test_guard_forwards_attributes_and_available() -> None:
-    inner = _FakeProvider()
-    inner.default_model = "claude-haiku-4-5-20251001"
-    guarded = with_cost_guard("anthropic", inner)  # type: ignore[arg-type]
-
-    # default_model forwarded through __getattr__; available() delegated.
-    assert guarded.default_model == "claude-haiku-4-5-20251001"  # type: ignore[attr-defined]
-    assert guarded.available() is True
-
-    # With no explicit model, the inner default_model is what gets asserted —
-    # haiku is allowed on anthropic, so the call goes through.
-    assert await guarded.complete(user="hi") == "OK"
+    assert result.text == "OK"
     assert inner.called is True
