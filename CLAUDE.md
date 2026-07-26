@@ -102,11 +102,27 @@ Unit tests typically call `fetcher.fetch(...)` directly for real `FetchResponse`
 - Local MCP: `make dev`
 - Bootstrap: `make bootstrap` (uv sync --all-extras)
 - Output benchmark: `make bench` (see below)
-- Refresh global install: `make install-global` (see below)
+- Local CLI / local-browser dev: `make install-global` (optional — see below)
 
-## Global install
+## Deployment — remote-first (Shen)
 
-`a2web` is installed as a `uv tool` at `/Users/iorlas/.local/bin/a2web` and wired into Claude Code's MCP config (`~/.claude.json` → `mcpServers.a2web` → `command: /Users/iorlas/.local/bin/a2web`, `args: ["serve"]`). The MCP entry points at the installed binary, NOT at `uvx --from <source>`, for fast cold start. Trade-off: source edits don't auto-propagate — after shipping a version bump, run `make install-global` so Claude picks up the new code on the next session.
+The canonical a2web runtime is a **remote container on Shen**, reached over HTTP.
+Claude Code's MCP config (`~/.claude.json` → `mcpServers.a2web`) is
+`{"type": "http", "url": "https://mcp.shen.iorlas.net/a2web/mcp"}` — no local
+binary, no `serve` subprocess. A source change goes live by building the
+`Dockerfile` image and redeploying it on Shen (owner-driven); pushing `main` is
+the trigger, the redeploy is a Shen-side step. The container is deliberately
+slimmed — no `[browser]`/`[cookies]`/`[claude-code]` extras — so a served a2web
+has no local browser and the `cookies_refresh` tool is ABSENT (gated by
+`expose_cookies_tool`).
+
+**`make install-global` is now optional, for LOCAL work only** — a `uv tool`
+install at `/Users/iorlas/.local/bin/a2web` carrying the extras the container
+drops (`[browser]` patchright/zendriver, `[cookies]` local-browser mirror,
+`[claude-code]` OS-session piggyback). Use it for the local CLI or to exercise
+the browser/cookie paths that only work on a real desktop. It is NO LONGER wired
+into Claude's MCP config, so there's no "reinstall after a version bump so Claude
+picks it up" step — that trade-off died with the remote switch.
 
 ## Benchmark
 
