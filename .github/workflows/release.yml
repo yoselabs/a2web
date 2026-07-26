@@ -34,18 +34,38 @@ jobs:
           version: "0.10.12"
       - name: Sync dependencies (all extras + dev)
         run: uv sync --all-extras
-      - name: Install OPA (a2kit's rego lint needs the `opa` binary on PATH)
-        run: |
-          curl -fsSL -o opa https://github.com/open-policy-agent/opa/releases/download/v1.16.2/opa_linux_amd64_static
-          chmod +x opa
-          sudo mv opa /usr/local/bin/opa
-          opa version
       - name: Quality gate — lint + ty + tests (cov >=85%) + arch
         run: make check
 
+  # Real-launch browser gate. The default `make check` deselects the `browser`
+  # marker, so NOTHING in the ordinary gate ever launches a real engine — which
+  # is exactly how the zendriver robust rung shipped dead-on-launch (it could
+  # not start on the pinned version) while every green stayed green. This lane
+  # installs Chromium and runs the smokes with `A2WEB_REQUIRE_BROWSER=1`, under
+  # which a missing/unlaunchable engine is a hard FAILURE rather than a skip —
+  # the one environment obligated to prove the browser actually comes up. The
+  # published image is the browser-enabled one, so `publish` waits on this.
+  browser-gate:
+    name: Browser gate (real launch, skips forbidden)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.10.12"
+      - name: Sync dependencies (all extras + dev)
+        run: uv sync --all-extras
+      - name: Install Chromium + system deps (serves both patchright and zendriver)
+        run: uv run patchright install --with-deps chromium
+      - name: Launch both rungs against a real page — no skips allowed
+        env:
+          A2WEB_REQUIRE_BROWSER: "1"
+        run: make test-browser
+
   publish:
     name: Build + push to GHCR
-    needs: gate
+    needs: [gate, browser-gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read

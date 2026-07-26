@@ -9,13 +9,22 @@ broken") that no stub can catch. Both rungs are covered:
   - `browser_robust` → zendriver  (robust CDP)
 
 Excluded from `make check` (the `browser` marker is deselected by the
-pyproject `addopts` default). Run it with `make test-browser`. Each test
-auto-skips when its engine binary is unavailable, so CI without a browser
-stays green. (Camoufox is gated off — see _manifests/browser_backends/camoufox.py.)
+pyproject `addopts` default). Run it with `make test-browser`.
+
+**Skip vs fail is environment-conditional (the dead-rung guard).** On a dev
+laptop with no Chromium, a missing engine skips — that is humane and correct for
+the inner loop. But a skip in the one environment you *control* is a dead rung
+wearing a green coat: that is precisely how a robust rung that could not launch
+AT ALL (zendriver `--no-sandbox` via a config API that rejects it) stayed green
+through a full release gate. So the CI browser lane sets `A2WEB_REQUIRE_BROWSER=1`
+after installing Chromium, and in that lane a non-launching engine is a hard
+FAILURE, not a skip. (Camoufox is gated off — see
+_manifests/browser_backends/camoufox.py.)
 """
 
 from __future__ import annotations
 
+import os
 import threading
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -29,6 +38,33 @@ from a2web.tiers.browser import BrowserTier
 from tests.conftest import make_default_state
 
 pytestmark = pytest.mark.browser
+
+def _require_browser() -> bool:
+    """True when a real launch is obligated (the CI browser lane sets the flag).
+
+    Read at call time, not import time, so the policy can be exercised
+    deterministically without reimporting this module.
+    """
+    return os.environ.get("A2WEB_REQUIRE_BROWSER", "").strip().lower() in ("1", "true", "yes")
+
+
+def browser_unavailable_policy(reason: str, *, required: bool) -> None:
+    """The skip→fail decision, pure and testable (no env, no browser).
+
+    Skip on a dev machine; FAIL where a real launch is obligated. Kept pure and
+    exported so `test_browser_gate_policy.py` can pin the FAIL branch in the
+    DEFAULT gate — the branch a working browser can never exercise, and exactly
+    the one that stayed silently correct-looking while a dead rung shipped.
+    """
+    if required:
+        pytest.fail(f"A2WEB_REQUIRE_BROWSER is set but the engine did not launch: {reason}")
+    pytest.skip(reason)
+
+
+def _browser_unavailable(reason: str) -> None:
+    """The chokepoint every smoke routes its "engine didn't come up" outcome
+    through, so the policy lives in one place and cannot drift per-test."""
+    browser_unavailable_policy(reason, required=_require_browser())
 
 
 # A page whose visible content exists ONLY after JavaScript runs — the raw
@@ -91,14 +127,14 @@ async def test_patchright_fast_rung_executes_js(js_fixture_url: str) -> None:
     try:
         import patchright.async_api  # noqa: F401
     except ImportError as exc:
-        pytest.skip(f"patchright not installed: {exc}")
+        _browser_unavailable(f"patchright not installed: {exc}")
 
     backend = PlaywrightBackend(patchright_launcher, name="patchright")
     try:
         await backend._ensure()
     except Exception as exc:  # binary missing / launch failed — environment, not a bug
         await backend.close()
-        pytest.skip(f"patchright Chromium unavailable: {exc!r}")
+        _browser_unavailable(f"patchright Chromium unavailable: {exc!r}")
     try:
         await _assert_renders_js(backend, js_fixture_url)
     finally:
@@ -110,14 +146,14 @@ async def test_zendriver_robust_rung_executes_js(js_fixture_url: str) -> None:
     try:
         import zendriver  # noqa: F401
     except ImportError as exc:
-        pytest.skip(f"zendriver not installed: {exc}")
+        _browser_unavailable(f"zendriver not installed: {exc}")
 
     backend = ZendriverBackend(name="zendriver")
     # zendriver launches per-render (no _ensure); a launch failure surfaces as
     # RenderOutcome.unavailable, which the tier maps to a hint — skip on that.
     result = await BrowserTier().fetch(js_fixture_url, state=_state(), backend=backend)
     if result.operator_hint is not None and result.operator_hint.code == "browser_unavailable":
-        pytest.skip(f"zendriver Chromium unavailable: {result.operator_hint.message}")
+        _browser_unavailable(f"zendriver Chromium unavailable: {result.operator_hint.message}")
     assert result.verdict == Verdict.ok, result.operator_hint
     assert result.js_executed is True
     assert result.pre_rendered is not None

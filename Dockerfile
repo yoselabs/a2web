@@ -85,8 +85,10 @@ RUN useradd --create-home --uid 10001 app \
 VOLUME /data
 
 EXPOSE 8000
-# Liveness against the LIVE serve process (not the CLI): the a2kit-served root
-# /health returns 200 while the multiplex parent is up.
+# Liveness against the LIVE serve process (not the CLI): the `/health` route
+# (registered by `server._register_health_route`) returns 200 while the serve
+# process is up. a2kit's multiplex parent used to serve this for free; a2web
+# owns the route directly since the sunset.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -fsS http://localhost:8000/health || exit 1
 
