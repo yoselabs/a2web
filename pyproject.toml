@@ -109,6 +109,11 @@ dependencies = [
     # 2026-07-26). a2web keeps only its product policy tables (_policies.py) and
     # a thin logger-injecting binding; the machinery is the shelf's.
     "llm-wobble>=0.1,<1",
+    # The sqlite-backed TTL completion cache (promoted from
+    # packages/llm_extract/cache.py 2026-07-26). Speaks anyllm.Completion; a2web
+    # computes the composite key (content+ask+template) via make_key and wires it
+    # over the shared SqliteResource connection.
+    "llm-cache>=0.1,<1",
     "curl_cffi>=0.7,<1",
     "httpx>=0.27,<1",
     # cookie decryption (Chrome v10/v11 AES-GCM). Already pulled in
@@ -228,11 +233,19 @@ html-fragment = { git = "https://github.com/yoselabs/shelf", subdirectory = "pac
 record-mine = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/record-mine", tag = "record-mine-v0.1.0" }
 browser-cookies = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/browser-cookies", tag = "browser-cookies-v0.1.0" }
 content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/content-extract", tag = "content-extract-v0.2.0" }
-anyllm = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/anyllm", tag = "anyllm-v0.5.0" }
+# anyllm is intentionally NOT pinned here. The shelf's workspace root force-sources
+# anyllm (its dev group depends on it), and that source LEAKS to git consumers: a
+# direct `anyllm = { ... tag = "anyllm-v0.5.0" }` pin here collides with the anyllm
+# that `llm-cache` pulls transitively via the shelf workspace ("conflicting URLs for
+# anyllm"). So anyllm resolves through the shelf workspace at the same tag a2web pins
+# for llm-cache below — a2web always consumes anyllm THROUGH the shelf, so there is no
+# independent version to pin. The `anyllm[...]>=0.2,<1` dependency line still declares
+# the version floor + SDK extras; the resolved rev is captured in uv.lock.
 timefmt = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/timefmt", tag = "timefmt-v0.1.0" }
 settings-base = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/settings-base", tag = "settings-base-v0.1.0" }
 plugin-surface = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/plugin-surface", tag = "plugin-surface-v0.1.0" }
 llm-wobble = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/llm-wobble", tag = "llm-wobble-v0.1.0" }
+llm-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/llm-cache", tag = "llm-cache-v0.1.1" }
 
 [build-system]
 requires = ["hatchling"]

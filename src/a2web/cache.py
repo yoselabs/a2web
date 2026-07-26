@@ -8,7 +8,7 @@ free functions (conditional-GET cache mechanics).
 
 a2web keeps its HTTP cache, its extraction-answer cache, and its cookie mirror in
 ONE sqlite file behind a single shared connection: the fetcher uses `.get`/`.put`
-here; `ExtractionCache` and the cookie jar share the same connection via `ensure()`.
+here; the `llm-cache` `LlmCache` and the cookie jar share the same connection via `ensure()`.
 The composite `http_cache.HttpCache` owns a private connection, so it does not fit
 that one-file/three-consumer topology — a2web uses the free-function door instead.
 """

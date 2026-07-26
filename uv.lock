@@ -37,6 +37,7 @@ dependencies = [
     { name = "httpx" },
     { name = "json-in-html" },
     { name = "lean-wire" },
+    { name = "llm-cache" },
     { name = "llm-wobble" },
     { name = "markdownify" },
     { name = "openai" },
@@ -93,7 +94,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20,<1" },
     { name = "anthropic", specifier = ">=0.40,<1" },
     { name = "anyio", specifier = ">=4,<5" },
-    { name = "anyllm", extras = ["anthropic", "openai", "claude-code-sdk"], git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fanyllm&tag=anyllm-v0.5.0" },
+    { name = "anyllm", extras = ["anthropic", "openai", "claude-code-sdk"], specifier = ">=0.2,<1" },
     { name = "browser-cookie3", marker = "extra == 'cookies'", specifier = ">=0.20,<1" },
     { name = "browser-cookies", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fbrowser-cookies&tag=browser-cookies-v0.1.0" },
     { name = "claude-agent-sdk", marker = "extra == 'claude-code'", specifier = ">=0.1.80,<1" },
@@ -109,6 +110,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "json-in-html", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.1.0" },
     { name = "lean-wire", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.1.0" },
+    { name = "llm-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-cache&tag=llm-cache-v0.1.1" },
     { name = "llm-wobble", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-wobble&tag=llm-wobble-v0.1.0" },
     { name = "markdownify", specifier = ">=0.13,<2" },
     { name = "openai", specifier = ">=1.40,<3" },
@@ -229,7 +231,7 @@ wheels = [
 [[package]]
 name = "anyllm"
 version = "0.5.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fanyllm&tag=anyllm-v0.5.0#90452581809c282a1f23d2201515d5c8dfc59b9b" }
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fanyllm&tag=llm-cache-v0.1.1#569d3067b8f2814c786a13d8f47285109541f9f6" }
 
 [package.optional-dependencies]
 anthropic = [
@@ -1616,6 +1618,15 @@ version = "0.1.0"
 source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.1.0#4d6fdb88afef10ac9451c6bece4517abb73517ae" }
 dependencies = [
     { name = "pydantic" },
+]
+
+[[package]]
+name = "llm-cache"
+version = "0.1.1"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-cache&tag=llm-cache-v0.1.1#569d3067b8f2814c786a13d8f47285109541f9f6" }
+dependencies = [
+    { name = "aiosqlite" },
+    { name = "anyllm" },
 ]
 
 [[package]]

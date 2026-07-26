@@ -5,10 +5,11 @@ Claude Code OS session, OpenRouter, Ollama) over arbitrary content +
 caching the result. Zero `a2web.<domain>` imports.
 
 Boundary types are package-owned: `Provider` Protocol, `ModelSpec`,
-`ExtractionResult`, `ExtractionCache`, `PromptTemplate`, `Judge`,
-`JudgeVerdict`, `RouterPayload`, `OtherPageBoundary`. Domain wiring
-(AppSettings provider selection, SqliteResource cache plumbing) lives at
-the a2web seam in `a2web.llm.resource`.
+`ExtractionResult`, `PromptTemplate`, `Judge`, `JudgeVerdict`,
+`RouterPayload`, `OtherPageBoundary`. The completion cache (`LlmCache`) is the
+shelf `llm-cache` package, re-exported here. Domain wiring (AppSettings provider
+selection, SqliteResource cache plumbing) lives at the a2web seam in
+`a2web.llm.resource`.
 """
 
 from __future__ import annotations
@@ -20,7 +21,12 @@ from __future__ import annotations
 from anyllm import Completion as ProviderResponse
 from anyllm import LLMProvider as Provider
 
-from .cache import ExtractionCache, ExtractionCacheRow, hash_text
+# The completion cache was promoted to the shelf (llm-cache 2026-07-26). It
+# speaks anyllm.Completion and keys on an opaque (key, model); a2web builds the
+# composite key from content+ask+template via `make_key`. Re-exported so the
+# package's consumers import it from `llm_extract` unchanged.
+from llm_cache import LlmCache, hash_text, make_key
+
 from .errors import LLMNotAvailable
 from .extractor import ExtractionResult, Extractor, LlmNextLink, ModelSpec
 from .judge import Judge, JudgeParseError, JudgeVerdict
@@ -52,14 +58,13 @@ __all__ = [
     "JUDGE_V1",
     "TERSE_V1",
     "WEBFETCH_DEFAULT_V1",
-    "ExtractionCache",
-    "ExtractionCacheRow",
     "ExtractionResult",
     "Extractor",
     "Judge",
     "JudgeParseError",
     "JudgeVerdict",
     "LLMNotAvailable",
+    "LlmCache",
     "LlmNextLink",
     "ModelSpec",
     "OtherPageBoundary",
@@ -74,6 +79,7 @@ __all__ = [
     "WobbleTolerance",
     "Wobbled",
     "hash_text",
+    "make_key",
     "parse_list_with_policy",
     "parse_with_policy",
     "recovered_fields",

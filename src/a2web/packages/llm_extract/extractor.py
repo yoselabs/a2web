@@ -30,7 +30,7 @@ from .wobble import (
 )
 
 if TYPE_CHECKING:
-    from .cache import ExtractionCache
+    from llm_cache import LlmCache
 
 # Emit on the `a2web` logger by NAME rather than importing `a2web.log` —
 # `packages/` may not import from `a2web.<domain>` (tach.toml). The record
@@ -124,7 +124,7 @@ class Extractor:
         template: PromptTemplate = WEBFETCH_DEFAULT_V1,
         max_content_chars: int = 100_000,
         max_tokens: int = 1024,
-        cache: ExtractionCache | None = None,
+        cache: LlmCache | None = None,
     ) -> None:
         self._provider = provider
         self._model = model
@@ -187,19 +187,13 @@ class Extractor:
         # answer was produced without them; mixing would yield empty payloads
         # on hits.
         if self._cache is not None and not request_next_links and not request_routing:
-            from .cache import hash_text
+            from llm_cache import make_key
 
-            content_hash = hash_text(truncated)
-            ask_hash = hash_text(ask)
-            hit = await self._cache.get(
-                content_hash=content_hash,
-                ask_hash=ask_hash,
-                model_id=self._model.model,
-                template_name=active_template.name,
-            )
+            cache_key = make_key(truncated, ask, active_template.name)
+            hit = await self._cache.get(key=cache_key, model=self._model.model)
             if hit is not None:
                 return ExtractionResult(
-                    answer=hit.answer,
+                    answer=hit.text,
                     model=self._model.model,
                     template_name=active_template.name,
                     prompt_tokens=hit.prompt_tokens,
@@ -289,18 +283,15 @@ class Extractor:
         # alone (without the JSON envelope) is cached so a later plain call
         # still hits.
         if self._cache is not None and answer_text and not request_next_links and not request_routing:
-            from .cache import hash_text
+            from llm_cache import make_key
 
+            # On this path answer_text == response.text (no routing/next_links
+            # split), so the Completion carries the exact text being cached along
+            # with its original cost/token/latency accounting.
             await self._cache.put(
-                content_hash=hash_text(truncated),
-                ask_hash=hash_text(ask),
-                model_id=self._model.model,
-                template_name=active_template.name,
-                answer=answer_text,
-                prompt_tokens=response.prompt_tokens,
-                completion_tokens=response.completion_tokens,
-                cost_usd=response.cost_usd,
-                latency_ms=response.latency_ms,
+                key=make_key(truncated, ask, active_template.name),
+                model=self._model.model,
+                completion=response,
             )
 
         return ExtractionResult(

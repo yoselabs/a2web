@@ -149,7 +149,7 @@ class LlmExtractorResource:
         Resolves the provider from the injected `Lazy[Provider]`; an
         unavailable provider raises `ResourceUnavailable` here.
         """
-        from .packages.llm_extract import ExtractionCache, Extractor, ModelSpec
+        from .packages.llm_extract import Extractor, LlmCache, ModelSpec
         from .packages.llm_extract.prompts import EXTRACT_CACHEABLE_V1
 
         s = self._settings
@@ -160,10 +160,10 @@ class LlmExtractorResource:
         try:
             conn = await self._sqlite.ensure()
         except Exception as exc:  # sqlite open failure shouldn't block extraction
-            cache: ExtractionCache | None = None
+            cache: LlmCache | None = None
             del exc
         else:
-            cache = ExtractionCache(conn, ttl_s=s.extraction_cache_ttl_s)
+            cache = LlmCache(conn, ttl_s=s.extraction_cache_ttl_s)
 
         # A provider may carry its own resolved model (openai_compatible sets
         # `default_model` from OPENAI_MODEL / a host recommendation); it wins over
