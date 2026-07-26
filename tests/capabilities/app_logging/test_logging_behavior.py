@@ -14,8 +14,8 @@ import logging
 from collections.abc import Iterator
 
 import pytest
+from plugin_surface import load_surface
 
-from a2web._plugin import load_surface
 from a2web.log import log_warning
 from a2web.packages.llm_extract import Provider
 from a2web.settings import AppSettings
@@ -51,7 +51,7 @@ def test_provider_load_never_writes_to_stdout(
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
     with _capture_records():
-        load_surface("a2web._manifests.llm_providers", Provider, AppSettings())
+        load_surface("a2web._manifests.llm_providers", Provider, AppSettings(), logger=logging.getLogger("a2web"))
 
     out = capsys.readouterr()
     assert out.out == "", f"logging leaked to stdout (MCP stdio hazard): {out.out!r}"
@@ -63,7 +63,7 @@ def test_provider_fallback_miss_is_debug_only(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
     with _capture_records() as records:
-        load_surface("a2web._manifests.llm_providers", Provider, AppSettings())
+        load_surface("a2web._manifests.llm_providers", Provider, AppSettings(), logger=logging.getLogger("a2web"))
 
     unavailable = [r for r in records if r.getMessage() == "plugin_unavailable"]
     anthropic = [r for r in unavailable if getattr(r, "fields", {}).get("name") == "anthropic"]

@@ -105,9 +105,11 @@ def select_backend_named(settings: AppSettings, name: str) -> BrowserBackend:
     raises `ResourceUnavailable`, degrading at the tool seam (the same path the
     LLM provider uses) rather than crashing.
     """
-    from ._plugin import load_surface
+    from plugin_surface import load_surface
 
-    registry = load_surface(_BACKEND_SURFACE, BrowserBackend, settings)
+    from .log import get_logger
+
+    registry = load_surface(_BACKEND_SURFACE, BrowserBackend, settings, logger=get_logger())
     backend = registry.get(name)
     if backend is None:
         available = ", ".join(sorted(registry)) or "(none)"

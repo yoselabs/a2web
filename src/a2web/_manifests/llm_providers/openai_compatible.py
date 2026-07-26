@@ -24,8 +24,8 @@ from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from anyllm import OpenAICompatibleAdapter
+from plugin_surface import PluginManifest, Unavailable
 
-from a2web._plugin import PluginManifest, Unavailable
 from a2web.log import log_info
 from a2web.packages.llm_extract import LLMNotAvailable, Provider
 from a2web.settings import AppSettings

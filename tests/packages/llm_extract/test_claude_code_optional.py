@@ -17,9 +17,9 @@ import importlib.util
 
 import pytest
 from anyllm import ClaudeCodeSdkAdapter
+from plugin_surface import Unavailable
 
 from a2web._manifests.llm_providers import claude_code as manifest
-from a2web._plugin import Unavailable
 from a2web.llm_resource import select_provider
 from a2web.settings import AppSettings
 

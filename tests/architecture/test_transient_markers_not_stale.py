@@ -72,8 +72,7 @@ def test_no_transient_marker_outlives_its_change() -> None:
             rel = path.relative_to(REPO_ROOT)
             if _change_is_archived(change_id):
                 offenders.append(
-                    f"{rel}: TRANSIENT ({change_id}) — that change is ARCHIVED, "
-                    "so the provisional code outlived it. Resolve or re-label."
+                    f"{rel}: TRANSIENT ({change_id}) — that change is ARCHIVED, so the provisional code outlived it. Resolve or re-label."
                 )
             elif not _change_is_active(change_id):
                 offenders.append(
@@ -95,6 +94,5 @@ def test_guard_recognizes_an_archived_change() -> None:
     archived = [p.name for p in _ARCHIVED_CHANGES.iterdir() if p.is_dir()]
     assert archived, "no archived changes found — the lookup would never fire"
     assert _change_is_archived("browser-backend-bakeoff"), (
-        "expected the archived browser-backend-bakeoff change to resolve; "
-        f"archive holds: {archived}"
+        f"expected the archived browser-backend-bakeoff change to resolve; archive holds: {archived}"
     )

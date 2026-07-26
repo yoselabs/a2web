@@ -11,10 +11,10 @@ from __future__ import annotations
 import types
 
 import pytest
+from plugin_surface import Unavailable
 
 from a2web import llm_resource
 from a2web._manifests.llm_providers import openai_compatible as manifest
-from a2web._plugin import Unavailable
 from a2web.llm_resource import select_provider
 from a2web.settings import AppSettings
 
@@ -107,7 +107,7 @@ def test_manifest_unknown_host_no_model_unavailable(monkeypatch: pytest.MonkeyPa
 
 
 def _fake_registry(monkeypatch: pytest.MonkeyPatch, registry: dict[str, object]) -> None:
-    monkeypatch.setattr("a2web._plugin.load_surface", lambda *_a: registry)
+    monkeypatch.setattr("plugin_surface.load_surface", lambda *_a, **_k: registry)
 
 
 def test_openai_compatible_is_last_in_auto_order() -> None:

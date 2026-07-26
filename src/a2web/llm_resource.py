@@ -97,10 +97,12 @@ def select_provider(settings: AppSettings, *, override: str | None = None) -> tu
     `None` when nothing in `order` is registrable. Callers supply their own
     error-shaping around `None` (silent degrade vs. raise).
     """
-    from ._plugin import load_surface
+    from plugin_surface import load_surface
+
+    from .log import get_logger
     from .packages.llm_extract import Provider
 
-    registry = load_surface(_PROVIDER_SURFACE, Provider, settings)
+    registry = load_surface(_PROVIDER_SURFACE, Provider, settings, logger=get_logger())
     pin = override or settings.llm_provider
     order = auto_order(settings) if pin == "auto" else (pin,)
     for name in order:

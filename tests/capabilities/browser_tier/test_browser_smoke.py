@@ -39,6 +39,7 @@ from tests.conftest import make_default_state
 
 pytestmark = pytest.mark.browser
 
+
 def _require_browser() -> bool:
     """True when a real launch is obligated (the CI browser lane sets the flag).
 

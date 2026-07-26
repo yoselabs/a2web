@@ -25,7 +25,8 @@ from __future__ import annotations
 
 import importlib.util
 
-from a2web._plugin import PluginManifest, Unavailable
+from plugin_surface import PluginManifest, Unavailable
+
 from a2web.packages.browser_backends import BrowserBackend, ZendriverBackend
 from a2web.settings import AppSettings
 

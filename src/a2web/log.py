@@ -268,6 +268,18 @@ def remove_handler(handler: logging.Handler) -> None:
     _LOGGER.removeHandler(handler)
 
 
+def get_logger() -> logging.Logger:
+    """The `a2web` logger itself.
+
+    For handing to substrate that logs via an *injected* logger (e.g. the
+    `plugin-surface` shelf package's `load_surface(..., logger=...)`), so its
+    diagnostics land on a2web's single logger — keeping the `propagate=False` +
+    NullHandler stdio discipline (MCP is stdio) intact rather than escaping to a
+    package-local logger that could write to the root handler.
+    """
+    return _LOGGER
+
+
 __all__ = [
     "LOGGER_NAME",
     "IsolatingHandler",
@@ -275,6 +287,7 @@ __all__ = [
     "configure",
     "debug",
     "error",
+    "get_logger",
     "info",
     "log_debug",
     "log_error",

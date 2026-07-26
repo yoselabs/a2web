@@ -257,16 +257,13 @@ async def test_wire_query_adversarial_cells(monkeypatch: pytest.MonkeyPatch) -> 
     assert '"the reference"' in encoded, (
         "quote cell missing. NOTE the single quotes: `lean-wire` does not double "
         "them, because with per-cell escaping a quote is no longer special. This "
-        "assertion read `\'\"\"the reference\"\"\'` under the csv codec — if it "
+        'assertion read `\'""the reference""\'` under the csv codec — if it '
         "ever reverts, the escaping regressed."
     )
     assert "C:\\\\drivers\\\\readme.txt" in encoded, (
-        "backslash cell missing, or backslashes are no longer escaped. "
-        "`lean-wire` doubles them so the escaping stays reversible."
+        "backslash cell missing, or backslashes are no longer escaped. `lean-wire` doubles them so the escaping stays reversible."
     )
-    assert "row 1:\\tmax SPL\\nrow 2:" in encoded, (
-        "the interior tab/newline cell did not survive as two-character escapes"
-    )
+    assert "row 1:\\tmax SPL\\nrow 2:" in encoded, "the interior tab/newline cell did not survive as two-character escapes"
     check_wire("call/query_adversarial_cells", payload)
 
 

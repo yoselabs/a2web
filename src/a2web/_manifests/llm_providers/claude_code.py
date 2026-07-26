@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 from anyllm import ClaudeCodeSdkAdapter
+from plugin_surface import PluginManifest, Unavailable
 
-from a2web._plugin import PluginManifest, Unavailable
 from a2web.packages.llm_extract import LLMNotAvailable, Provider
 from a2web.settings import AppSettings
 

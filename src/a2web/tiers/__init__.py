@@ -141,10 +141,12 @@ def _load_tier_registry() -> tuple[dict[str, Tier], tuple[str, ...]]:
     dispatched out-of-band by the orchestrator's playbook on escalation
     signals; they live in REGISTRY but never in TIER_ORDER.
     """
-    from .._plugin import load_surface_sorted
+    from plugin_surface import load_surface_sorted
+
+    from ..log import get_logger
     from ..settings import AppSettings
 
-    pairs = load_surface_sorted("a2web._manifests.tiers", Tier, AppSettings())
+    pairs = load_surface_sorted("a2web._manifests.tiers", Tier, AppSettings(), logger=get_logger())
     registry = dict(pairs)
     # Re-walk manifest modules for priority. (load_surface_sorted sorts but
     # drops priority; we need it to filter out-of-band tiers from TIER_ORDER.)

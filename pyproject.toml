@@ -104,6 +104,7 @@ dependencies = [
     # schema, secret set, and path defaults and composes it (was in settings.py).
     "timefmt>=0.1,<1",
     "settings-base>=0.1,<1",
+    "plugin-surface>=0.1,<1",
     "curl_cffi>=0.7,<1",
     "httpx>=0.27,<1",
     # cookie decryption (Chrome v10/v11 AES-GCM). Already pulled in
@@ -226,6 +227,7 @@ content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "p
 anyllm = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/anyllm", tag = "anyllm-v0.4.0" }
 timefmt = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/timefmt", tag = "timefmt-v0.1.0" }
 settings-base = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/settings-base", tag = "settings-base-v0.1.0" }
+plugin-surface = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/plugin-surface", tag = "plugin-surface-v0.1.0" }
 
 [build-system]
 requires = ["hatchling"]

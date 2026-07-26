@@ -6,6 +6,35 @@
 > **Runbook guardrail:** *"Report before invasive change… get human sign-off before
 > deleting consumer code or cutting a promotion tag."* Task 0.1 is that gate.
 
+## GROUND TRUTH reconciliation (2026-07-26) — this list was stale
+
+Read the live shelf catalog + a2web `pyproject.toml` before trusting the phases
+below. Reality diverged materially from what these tasks assumed (the exact
+verify-against-a-second-source discipline in `docs/architecture/verification-provenance.md`):
+
+- **Already promoted + pinned in a prior session** (imported by top-level shelf
+  name everywhere; NOT remaining work): `a2effect`, `lean-wire`,
+  `http-fetch` (v0.2.0), `sqlite-resource`, `http-cache`, `json-in-html`,
+  `html-fragment`, `record-mine`, `browser-cookies`, `content-extract` (v0.2.0),
+  `anyllm` (v0.4.0 — past the catalog README's stale v0.2.0), `timefmt`,
+  `settings-base`.
+- **Dead leftovers** — in-tree copies whose shelf equivalents are already pinned
+  and imported, referenced NOWHERE (repoint task 7.2 never finished the delete):
+  `packages/{content_extract,cookie_store,html_fragment,record_extract}`.
+  Deletion is a pure "leave it smaller" win, verified safe (no test/`__init__`
+  reference). **Pending: blocked by the sandbox destructive-action classifier —
+  needs a human-granted Bash-rm permission (see below).**
+- **Genuine remaining promotions** (still in-tree, no shelf equivalent):
+  1. `plugin-surface` ← `src/a2web/_plugin.py` (179 LOC)
+  2. `llm-wobble` ← `packages/llm_extract/wobble/`
+  3. `llm-cache` ← `packages/llm_extract/cache.py`
+  4. EVOLVE `anyllm.cost` ← `packages/llm_cost_guard.py`
+  5. `any-browser` SEAM ← `packages/browser_backends/` (types only; hold drivers, task 5.2b)
+- **Blocker for autonomous execution:** the repoint step (delete in-tree copy)
+  and the dead-leftover cleanup both require `git rm` in the a2web repo, which
+  the auto-mode classifier denies. The shelf worktree exists at
+  `../shelf-a2web` (branch `work/a2web`, reset to `main` 2026-07-26).
+
 ## 0. Gate and setup
 
 - [ ] 0.1 Human sign-off on the `design.md` verdict table. **All four open

@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import importlib.util
 
-from a2web._plugin import PluginManifest, Unavailable
+from plugin_surface import PluginManifest, Unavailable
+
 from a2web.packages.browser_backends import BrowserBackend, PlaywrightBackend, patchright_launcher
 from a2web.settings import AppSettings
 from a2web.state import _emit_browser_stderr

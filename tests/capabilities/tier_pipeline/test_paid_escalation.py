@@ -11,10 +11,10 @@ Covers task 4.8 of `reddit-reachability-never-silent-miss`:
 from __future__ import annotations
 
 import pytest
+from plugin_surface import Unavailable
 
 from a2web._manifests.tiers import firecrawl as firecrawl_manifest
 from a2web._manifests.tiers import zyte as zyte_manifest
-from a2web._plugin import Unavailable
 from a2web.fetcher import fetch
 from a2web.models import FetchStatus, Verdict
 from a2web.settings import AppSettings

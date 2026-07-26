@@ -18,10 +18,10 @@ from __future__ import annotations
 import importlib.util
 
 import pytest
+from plugin_surface import Unavailable
 
 from a2web._manifests.browser_backends import patchright as patchright_manifest
 from a2web._manifests.browser_backends import zendriver as zendriver_manifest
-from a2web._plugin import Unavailable
 from a2web.settings import AppSettings
 from a2web.state import ResourceUnavailable, select_backend
 

@@ -24,10 +24,12 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from plugin_surface import load_surface
+
 from .._manifests.eval_systems import EvalSystemContext
-from .._plugin import load_surface
 from ..components import build_components
 from ..llm_resource import _PROVIDER_ORDER, select_provider
+from ..log import get_logger
 from ..packages.llm_cost_guard import with_cost_guard
 from ..packages.llm_extract import Judge, LLMNotAvailable, ModelSpec, Provider
 from ..settings import AppSettings
@@ -188,6 +190,7 @@ async def _amain(argv: list[str]) -> int:
         "a2web._manifests.eval_systems",
         EvalSystem,
         EvalSystemContext(provider=provider, state=state, resources=resources),
+        logger=get_logger(),
     )
     keep_by_mode: dict[str, tuple[str, ...]] = {
         "default": ("webfetch_baseline", "a2web_detail", "a2web_extract"),

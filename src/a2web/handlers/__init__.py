@@ -58,10 +58,12 @@ def _registry(settings: AppSettings | None) -> tuple[Handler, ...]:
     global _REGISTRY_CACHE
     if _REGISTRY_CACHE is not None:
         return _REGISTRY_CACHE
-    from .._plugin import load_surface_sorted
+    from plugin_surface import load_surface_sorted
+
+    from ..log import get_logger
     from ..settings import AppSettings as _AppSettings
 
-    sorted_pairs = load_surface_sorted("a2web._manifests.handlers", Handler, settings or _AppSettings())
+    sorted_pairs = load_surface_sorted("a2web._manifests.handlers", Handler, settings or _AppSettings(), logger=get_logger())
     _REGISTRY_CACHE = tuple(handler for _name, handler in sorted_pairs)
     return _REGISTRY_CACHE
 

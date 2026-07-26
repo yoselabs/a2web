@@ -3,8 +3,9 @@ absent — the registry drops it before `app.log.add_handler(...)` ever sees it.
 
 from __future__ import annotations
 
+from plugin_surface import PluginManifest, Unavailable
+
 from a2web._manifests.sinks import Sink
-from a2web._plugin import PluginManifest, Unavailable
 from a2web.events.sinks import _TRACER, OtelHandler
 from a2web.settings import AppSettings
 

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from plugin_surface import PluginManifest, Unavailable
+
 from a2web._manifests.eval_systems import EvalSystemContext
-from a2web._plugin import PluginManifest, Unavailable
 from a2web.llm_eval.systems import EvalSystem, WebFetchBaseline
 
 

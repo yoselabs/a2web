@@ -8,7 +8,8 @@ rung came back thin/blocked (browser-backend-bakeoff).
 
 from __future__ import annotations
 
-from a2web._plugin import PluginManifest, Unavailable
+from plugin_surface import PluginManifest, Unavailable
+
 from a2web.settings import AppSettings
 from a2web.tiers import Tier
 from a2web.tiers.browser import BrowserTier

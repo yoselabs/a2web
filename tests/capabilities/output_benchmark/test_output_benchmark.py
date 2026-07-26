@@ -74,15 +74,15 @@ def test_pick_provider_honours_anthropic_override(monkeypatch: pytest.MonkeyPatc
 
     fake = _FakeAnthropic()
 
-    def _fake_load_surface(_path: str, _protocol: object, _settings: object) -> dict:
+    def _fake_load_surface(_path: str, _protocol: object, _settings: object, **_kwargs: object) -> dict:
         return {"anthropic": fake}
 
     from a2web.settings import AppSettings
 
     monkeypatch.setenv("A2WEB_BENCH_PROVIDER", "anthropic")
     # Selection now flows through `llm_resource.select_provider`, which loads
-    # the registry via `a2web._plugin.load_surface` (function-local import).
-    monkeypatch.setattr("a2web._plugin.load_surface", _fake_load_surface)
+    # the registry via `plugin_surface.load_surface` (function-local import).
+    monkeypatch.setattr("plugin_surface.load_surface", _fake_load_surface)
     provider, provider_id = _pick_provider(AppSettings())
     assert provider_id == "anthropic"
     assert isinstance(provider, _FakeAnthropic)

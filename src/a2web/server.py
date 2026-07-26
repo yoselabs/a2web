@@ -30,13 +30,13 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
+from plugin_surface import load_surface
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from . import __version__
 from . import log as a2web_log
 from ._manifests.sinks import Sink
-from ._plugin import load_surface
 from .components import Components, build_components
 from .error_wire import TypedErrorEnvelopeMiddleware
 from .routers import register_cookies_tools, register_web_tools
@@ -64,7 +64,7 @@ def _configure_logging(settings: AppSettings) -> None:
     # Factories returning `Unavailable` (e.g. OTel with no SDK) are dropped
     # before reaching the logger. `add_handler` replaces same-type sinks —
     # the logger is process-wide and this function is not.
-    for handler in load_surface("a2web._manifests.sinks", Sink, settings).values():
+    for handler in load_surface("a2web._manifests.sinks", Sink, settings, logger=a2web_log.get_logger()).values():
         a2web_log.add_handler(handler)
 
 

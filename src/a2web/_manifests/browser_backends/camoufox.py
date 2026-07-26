@@ -15,7 +15,8 @@ kept (commented) so the wiring is obvious when the gate lifts.
 
 from __future__ import annotations
 
-from a2web._plugin import PluginManifest, Unavailable
+from plugin_surface import PluginManifest, Unavailable
+
 from a2web.packages.browser_backends import BrowserBackend
 from a2web.settings import AppSettings
 
