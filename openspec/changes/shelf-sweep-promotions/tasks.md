@@ -63,18 +63,30 @@
       bespoke `ExtractionCacheRow` (the fields already match).
 - [ ] 4.3 Boundary test; acceptance suite. Tag `llm-cache-v0.1.0`.
 
-## 5. PROMOTE `any-browser` (seam + both drivers — Q1 answered)
+## 5. PROMOTE `any-browser` (SEAM now; drivers gated — Q1 corrected 2026-07-26)
 
-- [x] 5.1 **DONE 2026-07-22 — scope settled: seam AND drivers.** Q1 assumed an
-      in-flight bakeoff; it closed 2026-06-27 keeping *two complementary*
-      engines (patchright fast rung / zendriver robust rung), and `rebrowser`,
-      the one that lost, was already deleted. The three stale `TRANSIENT`
-      docstrings that implied otherwise are corrected in this commit.
-- [ ] 5.2 Extract `BrowserBackend` Protocol, `RenderedPage`, `BackendCookie`,
-      `RenderOutcome`, **and** `PlaywrightBackend` / `ZendriverBackend` + the
-      launcher functions. Both drivers ship: two engines that fail on different
-      real sites (the Chromium drop-ins vs the Trendyol/Hepsiburada SPAs) are
-      the evidence the Protocol spans engine *families*, not one vendor.
+- [x] 5.1 **Scope settled, then CORRECTED.** Q1 assumed an in-flight bakeoff; it
+      closed 2026-06-27 keeping two complementary engines (patchright fast rung /
+      zendriver robust rung), `rebrowser` deleted, stale `TRANSIENT` docstrings
+      fixed. **But the 2026-07-22 conclusion "promote both drivers" was wrong**
+      (corrected 2026-07-26, Q1 block in `proposal.md`): it answered *timing*,
+      not *verifiability*, and days later the zendriver robust rung was found
+      completely dead-on-launch on the pinned version while its unit test + skip-
+      on-failure smoke stayed green (CHANGELOG [Unreleased] 2026-07-25). Revised
+      scope below reinstates the proposal's original option (b).
+- [ ] 5.2a **Promote the SEAM now** — `BrowserBackend` Protocol, `RenderedPage`,
+      `BackendCookie`, `RenderOutcome`. Pure types, no launch behaviour, nothing
+      environment-conditional to fake — mechanism-A endogeneity has no purchase.
+      This is the genuine catalog gap and the real ADOPT case (the Protocol
+      demonstrably spans engine families: Playwright API + raw CDP).
+- [ ] 5.2b **HOLD the drivers** (`PlaywrightBackend`, `ZendriverBackend`,
+      launchers) until a shelf-side **real-launch gate** exists: a CI lane that
+      launches BOTH engines against a real page and asserts a render, with
+      skip-on-missing-binary **forbidden** in that lane (a skip in the one
+      environment you control is a dead rung wearing a green coat — that is
+      literally how the 2026-07-25 dead rung stayed green). Only then extract the
+      drivers. The extracted acceptance suite is NOT this gate — it shares
+      provenance with the code and detects drift, not correctness.
 - [ ] 5.3 Per Q2 (answered 2026-07-25): **keep** `subresource_blocks` on the
       promoted `RenderedPage`, but rewrite the docstring to describe the
       observation (subresources returning a challenge status during render),

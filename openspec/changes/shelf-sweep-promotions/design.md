@@ -17,7 +17,7 @@ distort the piece).
 | 1 | `_plugin.py:1-179` | Declarative plugin discovery + graceful "not configured" degradation | **Yes** — 5 unrelated surfaces already share it | Nothing for extension-point discovery | **PROMOTE** |
 | 2 | `packages/llm_extract/wobble/` | Tolerant-but-auditable LLM JSON parsing, per-field policy, opaque parsed token | **Yes** | `anyllm` returns `Completion.text` and stops | **PROMOTE** |
 | 3 | `packages/llm_cost_guard.py` | Refuse an expensive `(provider, model)` before the call | **Yes** | `anyllm` already owns the price table + the `LLMProvider` Protocol this wraps | **EVOLVE `anyllm`** |
-| 4 | `packages/browser_backends/` | Render a URL with a real JS engine, engine-agnostic | **Yes** (seam) | No browser piece at all | **PROMOTE** seam+drivers / **KEEP** stealth policy |
+| 4 | `packages/browser_backends/` | Render a URL with a real JS engine, engine-agnostic | **Yes** (seam) | No browser piece at all | **PROMOTE seam now** / **HOLD drivers** (real-launch gate, §5.2b) / **KEEP** stealth policy |
 | 5 | `packages/llm_extract/cache.py` | Memoize a completion on `(content, prompt, model, template)` with TTL | **Yes** | `http-cache` is the HTTP analogue; nothing caches completions | **PROMOTE** |
 | 6 | `packages/llm_extract/prompts.py:33-80` (`PromptTemplate` only) | Render a versioned prompt into cache-breakpoint-aware parts | **Yes** | `anyllm` **already owns `PromptParts`** | **EVOLVE `anyllm`** |
 | 7a | `domain.py` rendering (`_render_rows`, `_rows_to_md_*`, `_normalize_commerce_row`, `_is_commerce_shaped`) | Render rows as a surface **a2web's extractor LLM** reads well | **No** — the consumer is a2web's own prompt | — | **KEEP** (Q3, answered 2026-07-22) |
@@ -141,12 +141,17 @@ def chromium_launch(async_playwright_fn); def patchright_launcher(); def camoufo
 `RenderOutcome → Verdict/OperatorHint` mapping, and every escalation decision.
 The seam is not the moat.
 
-**Scope (Q1, answered 2026-07-22): promote the seam AND both engine drivers.**
-There is no open bakeoff — it closed 2026-06-27 keeping *two complementary*
-engines, and the `TRANSIENT` headers that suggested otherwise were stale prose,
-now corrected. The two-engine outcome is itself the evidence that this Protocol
-spans engine families (Playwright API + raw CDP) rather than wrapping one
-vendor. Q2 (`subresource_blocks`) remains open.
+**Scope (Q1, corrected 2026-07-26): promote the SEAM now; HOLD the drivers
+behind a real-launch gate.** There is no open bakeoff — it closed 2026-06-27
+keeping *two complementary* engines. But the first answer ("seam AND both
+drivers") inferred driver safety from a suite that days later passed a fully
+dead robust rung (zendriver couldn't launch on the pinned version; CHANGELOG
+[Unreleased] 2026-07-25). The seam (`BrowserBackend`, `RenderedPage`,
+`BackendCookie`, `RenderOutcome`) is pure types — promote now. The drivers
+(`PlaywrightBackend`, `ZendriverBackend`, launchers) promote only once a shelf
+CI lane launches BOTH engines against a real page with skips forbidden. See the
+Q1 correction in `proposal.md`. Q2 (`subresource_blocks`) is answered (keep +
+neutralize).
 
 ### 5. `llm-cache` (T1 primitive, on `sqlite-resource` + `anyllm`)
 
@@ -220,3 +225,47 @@ def json_fallback(data: dict | list, *, cap: int = 20_000) -> str
   questions from finished work. Verify a prose claim against a call site, a
   setting, or an archived change before letting it gate a decision — every one
   of these three took a single grep to settle.
+
+## The witness rule (Fable-5 review, 2026-07-26)
+
+A council review of this sweep's whole arc named the failure the accidental
+finds keep exposing: **oracle endogeneity** — when a check is derived from the
+same beliefs as the artifact it checks, their errors are correlated and the
+comparison is structurally blind to the error they share. It splits into two
+mechanisms, and the project has only ever defended against one:
+
+- **Mechanism B — unknowns resolve to green.** Skips, vacuous walks, the absent
+  container surface: "couldn't verify" silently becomes "verified." Every guard
+  rule already in `CLAUDE.md` (`_walk` floors, "a guard must find something",
+  accepted-delta liveness) attacks B.
+- **Mechanism A — endogenous oracles.** Golden, fake, docstring: the oracle is a
+  formalized copy of the author's belief, so it agrees with the author's bug.
+  The zendriver fake appended `--no-sandbox`; the code passed `--no-sandbox`;
+  both encoded one wrong belief, and the test agreed with the dead rung. **No
+  rule in the project defends against A** — and every A-failure was fixed by
+  authoring *more* artifacts of the same belief, the one move that cannot help.
+
+The durable rule, paired with the existing non-vacuity rule:
+
+> **Every load-bearing claim needs at least one witness of independent
+> provenance.** A golden is never a witness (it is a snapshot of the artifact).
+> A fake is never a witness (it is the author's belief about the dependency). A
+> docstring is anti-witness. A witness is: a second mechanical renderer of the
+> same source (the derived-CLI catch), the real substrate in an environment
+> *obligated* to run it (CI-with-Chromium, container smoke), or a second
+> consumer (a shelf adopter, a second MCP client). "Found by accident" is the
+> system reporting where detection actually comes from — provenance diversity,
+> not test volume.
+
+Shelf consequences, adopted into the tasks above:
+- `any-browser` **drivers** wait for a real-launch CI lane, skips forbidden (§5.2b).
+- Pure-Python promotions (`plugin-surface`, `llm-wobble`, `llm-cache`, the
+  `anyllm` evolutions) each get a **foreign-soil gate**: the shelf CI installs
+  the package STANDALONE, with a2web NOT importable, and runs its acceptance
+  suite there — the first time any of this code is verified off its home soil,
+  and the cheapest available exogenous witness for the genericity claim.
+- **Consumer-zero:** "generic" stays an unverified claim until a second real
+  project adopts the package. Promotion order should follow adopter readiness —
+  a tagged package with zero external adopters is an untagged belief in a
+  registry accruing authority. (Prefer promoting first whatever `insights-trail`
+  or `a2kay` will actually consume next.)

@@ -118,6 +118,39 @@ seam now, drivers after the bakeoff verdict.
 > Prose is the one artifact here that nothing tests, and the sweep has been
 > treating it as evidence. Recorded in "Method notes".
 
+> **CORRECTED 2026-07-26 — the "and both drivers" conclusion was wrong, and the
+> evidence that it was wrong post-dates it.** The answer above conflated two
+> questions. "Is the bakeoff still open?" is a *timing* question, and the answer
+> (no, closed, keep two) is correct. "Are the drivers safe to promote to a
+> shared registry?" is a *verifiability* question, and the answer above never
+> addressed it — it inferred safety from the same suite that, days later, was
+> shown to pass a **completely dead robust rung**: zendriver could not launch at
+> all on the pinned version (`--no-sandbox` via a config API that rejects it),
+> and `test_zendriver_backend.py` + the skip-on-failure smoke were both green
+> throughout (see CHANGELOG [Unreleased], 2026-07-25). The acceptance suites a
+> promotion ships (`test_playwright_backend.py` is the named one for
+> `any-browser`) were written by the same hand against the same fakes as the
+> code — they detect drift, not correctness, so extracting them carries the
+> blind spot to every consumer, pinned by tag and un-yankable.
+>
+> **Revised scope: promote the SEAM now, HOLD the drivers.** The seam
+> (`BrowserBackend` Protocol, `RenderedPage`, `BackendCookie`, `RenderOutcome`)
+> is pure types with no launch behaviour — no environment-conditional reality to
+> fake, so mechanism-A endogeneity has nothing to bite. The DRIVERS
+> (`PlaywrightBackend`, `ZendriverBackend`, launchers) are exactly the
+> environment-conditional code that just shipped a dead green, and they promote
+> only once a **real-launch gate** exists on the shelf side: a CI lane that
+> actually launches BOTH engines against a real page, with skip-on-missing-binary
+> **forbidden** (a skip in the one environment you control is a dead rung wearing
+> a green coat). This reinstates the proposal's original option (b), which the
+> flawed answer above folded into (a). Task 5.1/5.2 updated.
+>
+> Provenance of this correction: a Fable-5 council review (2026-07-26) that
+> named the underlying failure as **oracle endogeneity** — a check derived from
+> the same beliefs as the artifact it checks cannot see their shared error — and
+> flagged `any-browser` specifically as promoting the blind spot itself. See
+> `design.md` "Method notes" for the durable rule this produced.
+
 **Q2. `subresource_blocks` on the promoted `RenderedPage`.** The field is generic
 (a count of 401/403/429 subresources); its *meaning* ("walled-API fake-empty
 signal") is a2web moat. This is the one place product leaked into an otherwise
