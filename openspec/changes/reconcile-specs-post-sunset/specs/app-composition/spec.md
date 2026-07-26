@@ -204,3 +204,26 @@ drift silently — is now owned by the golden-snapshot gate requirements in the
 **Migration**: Wire stability is enforced by "The wire contract is frozen as
 golden snapshots captured through a real MCP client" and its non-vacuity /
 recorded-reason siblings in `ask-response`.
+
+### Requirement: Router registration under `web`
+
+**Reason**: Described the a2kit `WebRouter` class + `slug`/`tools` ClassVar
+registration mechanism, retired with the framework. Tools are now plain closures
+over `Components` registered directly with `@mcp.tool(...)` in
+`routers.register_web_tools`.
+
+**Migration**: The direct-registration mechanism is covered by "Tools are
+registered directly" under "The app composes on the MCP server library directly"
+above; the concrete `query`/`fetch_raw` tool contracts live in the `ask-response`
+and `extraction` specs.
+
+### Requirement: CookiesRouter exposes the refresh tool
+
+**Reason**: Described a `CookiesRouter` class with `slug = "cookies"` and a
+`tools` ClassVar attached to the a2kit `App` — the router mechanism is gone. The
+`refresh` tool is now registered by `routers.register_cookies_tools` with
+`@mcp.tool`, gated on `expose_cookies_tool`.
+
+**Migration**: The `refresh` tool's contract (name, args, return model, CLI
+surface, disabled-source behaviour) is owned by the `browser-cookies` spec; the
+direct-registration mechanism by "Tools are registered directly" above.

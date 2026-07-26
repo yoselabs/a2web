@@ -1,7 +1,10 @@
 # app-logging Specification
 
 ## Purpose
-TBD - created by archiving change route-logging-through-a2kit. Update Purpose after archive.
+The single managed logging surface for a2web: every operational and diagnostic
+event flows through one process-wide `a2web` logger (typed payloads on stdlib
+logging, owned by `src/a2web/log.py`), never through a bypassing channel and never
+to `stdout` under MCP stdio.
 ## Requirements
 ### Requirement: Single managed logging channel
 

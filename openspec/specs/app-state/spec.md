@@ -1,7 +1,10 @@
 # app-state Specification
 
 ## Purpose
-TBD - created by archiving change pr2-appstate-lifespan. Update Purpose after archive.
+The always-on shared state of the fetch pipeline: `AppState`, a slotted dataclass
+holding the resources every fetch needs (`settings`, `breakers`, `proxy_pool`,
+`sqlite`), constructed through the one composition root. Heavy/conditional
+resources live as `Lazy[T]` thunks on `Components`, not here.
 ## Requirements
 ### Requirement: AppState is a dataclass holding shared resources
 
