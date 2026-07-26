@@ -269,3 +269,41 @@ Shelf consequences, adopted into the tasks above:
   a tagged package with zero external adopters is an untagged belief in a
   registry accruing authority. (Prefer promoting first whatever `insights-trail`
   or `a2kay` will actually consume next.)
+
+## Spike: how many "greens that prove nothing" exist today? (2026-07-26)
+
+The witness rule above is only worth adopting if it *finds* things, so it was
+run as a falsifiable spike against the live suite before any promotion. Three
+sub-hypotheses, each checked against a foreign-provenance witness (grep of real
+call sites + the real installed dependency APIs, never a belief):
+
+- **H1 — skips resolve to green. CONFIRMED, severe.** `addopts = -m "not
+  browser"` deselects the browser marker from the default run; `make check`
+  uses that default; CI runs only `make check`; and there is no
+  `make test-browser` step anywhere in CI. So the *entire browser tier's*
+  real-launch behaviour was verified by zero automated runs — the four smokes
+  skipped locally on missing binary and never ran in CI. Not a zendriver
+  quirk; the whole floor. FIXED this session: the `browser-gate` CI job +
+  `A2WEB_REQUIRE_BROWSER=1` skip→fail policy (commit `14aeef1`).
+- **H2 — permissive fakes (laxer than the real dependency). CLEAN.** A sweep
+  of all 10 external-dependency test doubles, each verified against the
+  installed library's real signatures/raise-conditions, found no instance
+  beyond the already-fixed zendriver `Config`. The promotion candidates
+  specifically (`llm_cost_guard`, `wobble`, `cache`, `_plugin`,
+  `browser_backends`) are clean — the scariest class for the shelf (a
+  permissive fake travelling with a promoted package) is absent. This is the
+  single biggest risk-reducer for the promotion: it says the endogeneity
+  finding was one bug, not a pervasive habit.
+- **H3 — shipped-surface has no witness. PARTIALLY CONFIRMED.** The publish job
+  DOES now run `version()` inside the actual built image (a real foreign
+  witness, added after the `__version__`-stale-by-47-releases bug). But the
+  running-container surface — `/health` answering, `a2web-serve` starting, the
+  browser launching *inside* the image — has no CI witness; the `/health` test
+  is source-level (asserts the Dockerfile path string, does not run the
+  container). Deferred, filed as follow-up: a container smoke that boots the
+  image and curls `/health` + drives one real `query` over HTTP.
+
+Net: the rule found one severe standing gap (H1, now closed) and one deferred
+one (H3), and cleared the highest-stakes worry (H2). The promotion can proceed
+on the pure-Python pieces with real confidence; the browser drivers wait for
+the shelf-side port of the H1 fix (§5.2b).

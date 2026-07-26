@@ -87,6 +87,14 @@
       literally how the 2026-07-25 dead rung stayed green). Only then extract the
       drivers. The extracted acceptance suite is NOT this gate — it shares
       provenance with the code and detects drift, not correctness.
+      **Reference implementation now exists a2web-side (2026-07-26, commit
+      `14aeef1`):** the `browser-gate` CI job + `A2WEB_REQUIRE_BROWSER=1`
+      skip→fail policy (`test_browser_smoke.py::browser_unavailable_policy`,
+      pinned in the default gate by `test_browser_gate_policy.py`). The shelf
+      gate is this pattern, moved to the shelf's CI over the promoted drivers —
+      port it, don't reinvent it. Until then a2web itself is the only place the
+      drivers get a real-launch witness, which is another reason the shelf copy
+      must not ship without one.
 - [ ] 5.3 Per Q2 (answered 2026-07-25): **keep** `subresource_blocks` on the
       promoted `RenderedPage`, but rewrite the docstring to describe the
       observation (subresources returning a challenge status during render),
