@@ -132,12 +132,20 @@ here and nowhere else, NOT an endogenous golden. No package is tagged until:
 - [x] 3.5 Tagged `anyllm-v0.5.0`; pushed; a2web repointed (`packages/llm_cost_guard.py`
       removed, imports from `anyllm` directly). a2web gate 1226 passed / 90.19%.
 
-## 4. PROMOTE `llm-cache`
+## 4. PROMOTE `llm-cache`  ✅ DONE 2026-07-26 (tag llm-cache-v0.1.1)
 
-- [ ] 4.1 Extract `packages/llm_extract/cache.py` on `sqlite-resource` + `anyllm`.
-- [ ] 4.2 Shape change at extraction: return `anyllm.Completion` rather than a
-      bespoke `ExtractionCacheRow` (the fields already match).
-- [ ] 4.3 Boundary test; acceptance suite. Tag `llm-cache-v0.1.0`.
+- [x] 4.1 Extracted `packages/llm_extract/cache.py` → shelf `llm-cache`. Connection-injected
+      (`aiosqlite.Connection` from `SqliteResource.conn`); owns only its table.
+- [x] 4.2 Shape change (D3): `get`/`put` speak `anyllm.Completion`; the a2web-flavoured
+      4-part key collapses to an opaque `(key, model)` — a2web builds the composite via
+      `make_key(truncated, ask, template.name)`. `ExtractionCache`/`ExtractionCacheRow`
+      removed; `extractor.py` reads `hit.text`, caches `response` directly. Table renamed
+      `extraction_cache`→`llm_cache` (orphaned empty table on existing local DBs — harmless).
+- [x] 4.3 Boundary + acceptance suite (D6 gate 7/7 against installed wheels). Tagged
+      `llm-cache-v0.1.1` (v0.1.0's `[tool.uv.sources]` leaked to consumers — dropped).
+      a2web repointed. **Workspace-source leak** surfaced + fixed: a2web sources anyllm
+      through the shelf workspace at the llm-cache tag (the shelf root force-sources anyllm,
+      which collides with an independent a2web pin). a2web gate 1220 passed / 90.12%.
 
 ## 5. PROMOTE `any-browser` (SEAM now; drivers gated — Q1 corrected 2026-07-26)
 
