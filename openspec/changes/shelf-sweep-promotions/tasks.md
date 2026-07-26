@@ -94,15 +94,19 @@ here and nowhere else, NOT an endogenous golden. No package is tagged until:
 - [ ] 1.4 Contract born `candidate`. `make check` green **in the worktree**.
 - [ ] 1.5 Tag `plugin-surface-v0.1.0`; push branch + tags.
 
-## 2. PROMOTE `llm-wobble`
+## 2. PROMOTE `llm-wobble`  ✅ DONE 2026-07-26 (tag llm-wobble-v0.1.0; a2web 5fd4467)
 
-- [ ] 2.1 Extract `packages/llm_extract/wobble/`. **Do not carry `apply_policy`**
-      (`_internal.py:186`, self-declared back-compat shim).
-- [ ] 2.2 Parameterize the logger name (currently hardcoded
-      `logging.getLogger("a2kit")`).
-- [ ] 2.3 Leave `_policies.py`'s tables in a2web — they are product.
-- [ ] 2.4 Port `tests/packages/llm_extract/test_wobble.py`. Boundary test.
-- [ ] 2.5 Tag `llm-wobble-v0.1.0`.
+- [x] 2.1 Extracted `packages/llm_extract/wobble/_internal.py` → shelf `llm-wobble`.
+      `apply_policy` back-compat shim NOT carried; suite exercises the real funnel.
+- [x] 2.2 Logger INJECTED (not just renamed): default `getLogger("llm_wobble")`,
+      `logger=` override. (The hardcode was `"a2web"`, not `"a2kit"` — note was stale.)
+      a2web's shim injects `getLogger("a2web")` by name — boundary-safe.
+- [x] 2.3 `_policies.py` stays in a2web (product); imports types from `llm_wobble`.
+- [x] 2.4 Acceptance suite ported + boundary test. **D6 foreign-soil PASS** (17/17
+      installed wheel, clean venv).
+- [x] 2.5 Tagged `llm-wobble-v0.1.0`, pushed; a2web repointed + gate green
+      (1237 / 90.22% / 39 arch). Fixed testpaths gap (plugin-surface + llm-wobble
+      were never in the shelf pytest run).
 
 ## 3. EVOLVE `anyllm` (cost + prompt)
 
