@@ -17,6 +17,18 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-26 — promote `PromptTemplate` to `anyllm.prompt` when a 2nd consumer appears (S)
+
+Source: `openspec/changes/shelf-sweep-promotions` §3.2 (DEFER verdict). The
+`PromptTemplate` render mechanism in `src/a2web/packages/llm_extract/prompts.py`
+(a versioned template → `anyllm.PromptParts` renderer, two cache modes) is a
+plausible companion to anyllm's cache-breakpoint `PromptParts`, but promoting it
+now hits the micro-software bottom-right trap: LOW reuse (no 2nd consumer) ×
+ALREADY isolated (tidy module) = pure relocation cost, the domain doesn't shrink
+(the concrete a2web templates — product — stay). Revisit when a real second
+anyllm consumer wants cache-aware prompt rendering; then it graduates beside
+`PromptParts`. Until then it lives in a2web unchanged.
+
 ## 2026-07-22 — re-home the Rego policy lint dropped with a2kit (S)
 
 `make lint` used to end with `uv run a2kit lint rego src/ pyproject.toml` — a

@@ -108,17 +108,29 @@ here and nowhere else, NOT an endogenous golden. No package is tagged until:
       (1237 / 90.22% / 39 arch). Fixed testpaths gap (plugin-surface + llm-wobble
       were never in the shelf pytest run).
 
-## 3. EVOLVE `anyllm` (cost + prompt)
+## 3. EVOLVE `anyllm` (cost ✅ DONE 2026-07-26, tag anyllm-v0.5.0; prompt → DEFER)
 
-- [ ] 3.1 Add `anyllm.cost` (`CostPolicy`, `assert_within_budget`,
-      `with_cost_guard`, `CostViolation`). Key the policy on `ProviderName`, not
-      on a2web's manifest strings.
-- [ ] 3.2 Add `anyllm.prompt` (`PromptTemplate`) beside the `PromptParts` it
-      already owns.
-- [ ] 3.3 Monotonicity check (resolution 0007): exposes more, removes nothing.
-- [ ] 3.4 Port `tests/packages/test_llm_cost_guard.py`.
-- [ ] 3.5 Tag `anyllm-v0.5.0`. No `CHANGELOG.md` entry needed unless a contract
-      shape changed (additive → usually zero lines).
+- [x] 3.1 Added `anyllm.cost` (`CostPolicy`, `assert_within_budget`,
+      `with_cost_guard`, `CostViolation`, `DEFAULT_COST_POLICY`). Keyed on
+      `ProviderName` — verified with foreign evidence that a2web's three providers
+      ARE anyllm adapters carrying a canonical `ProviderName` as `.name`, so
+      `with_cost_guard(provider)` reads `provider.name` and the separate manifest-id
+      arg is gone (the a2web "`.name` can vary" comment was stale post v0.3.0).
+- [~] 3.2 `anyllm.prompt` (`PromptTemplate`) — **DEFER, not promoted.** Micro-software
+      Rule 4: `PromptTemplate` is LOW-reuse (no 2nd consumer today) × ALREADY-isolated
+      (a tidy `llm_extract/prompts.py`) = the bottom-right "don't — already hidden;
+      extraction = pure relocation cost" quadrant. The cohesion-with-`PromptParts`
+      argument is real but weak (a2web re-exports `PromptParts` cleanly; the renderer
+      hasn't churned with it), and the reuse case is a guess — the skill bans promoting
+      on a speculative 2nd consumer. The concrete templates (`EXTRACT_ROUTER_V1`,
+      `JUDGE_V1`, ADR-0014 digest rules, query grammar) are a2web PRODUCT and stay
+      regardless. Revisit when a real 2nd anyllm consumer wants cache-breakpoint prompt
+      rendering. Filed in BACKLOG.
+- [x] 3.3 Monotonicity (resolution 0007): v0.4.0→v0.5.0, purely additive.
+- [x] 3.4 Ported `test_llm_cost_guard.py` (a2web keeps a BINDING test; the machinery
+      suite `tests/test_cost.py` lives on the shelf). D6 gate 16/16.
+- [x] 3.5 Tagged `anyllm-v0.5.0`; pushed; a2web repointed (`packages/llm_cost_guard.py`
+      removed, imports from `anyllm` directly). a2web gate 1226 passed / 90.19%.
 
 ## 4. PROMOTE `llm-cache`
 
