@@ -6,13 +6,16 @@ Covers openspec/changes/harsh-test-session-fixes/specs/browser-tier/spec.md
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import pytest
+from any_browser.base import BackendCookie, RenderedPage, RenderOutcome
+from any_browser.playwright import _scroll_and_retry, _scroll_to_stable
 
-from a2web.packages.browser_backends.base import BackendCookie, RenderedPage, RenderOutcome
-from a2web.packages.browser_backends.playwright import _scroll_and_retry, _scroll_to_stable
 from a2web.tiers.browser import _host_is_js_heavy
+
+_LOG = logging.getLogger("test_scroll")
 
 
 class _FakePage:
@@ -43,7 +46,7 @@ async def test_scroll_retry_returns_larger_capture() -> None:
     original = "<html>thin</html>"
     rich = "<html>" + "x" * 20_000 + "</html>"
     page = _FakePage(post_scroll_html=rich)
-    result = await _scroll_and_retry(page, original)
+    result = await _scroll_and_retry(page, original, log=_LOG)
     assert result == rich
     assert page.evaluated == ["window.scrollTo(0, document.body.scrollHeight)"]
 
@@ -53,7 +56,7 @@ async def test_scroll_retry_keeps_original_when_smaller() -> None:
     """Post-scroll HTML is shorter (X served same noscript stub) → original kept."""
     original = "<html>" + "x" * 5_000 + "</html>"
     page = _FakePage(post_scroll_html="<html>tiny</html>")
-    result = await _scroll_and_retry(page, original)
+    result = await _scroll_and_retry(page, original, log=_LOG)
     assert result == original
 
 
@@ -62,7 +65,7 @@ async def test_scroll_retry_swallows_page_exception() -> None:
     """page.evaluate raising must not propagate; falls back to original."""
     original = "<html>thin</html>"
     page = _FakePage(post_scroll_html="never returned", raise_on_eval=True)
-    result = await _scroll_and_retry(page, original)
+    result = await _scroll_and_retry(page, original, log=_LOG)
     assert result == original
 
 
@@ -98,7 +101,7 @@ class _GrowingPage:
 async def test_scroll_to_stable_loops_until_growth_stops() -> None:
     # 100 → 200 → 300 → 300: grows for three passes then flattens.
     page = _GrowingPage([100, 200, 300, 300])
-    result = await _scroll_to_stable(page, "<html>seed</html>")
+    result = await _scroll_to_stable(page, "<html>seed</html>", log=_LOG)
     assert result.count("x") == 300  # the largest capture wins
     # Scrolled through the three growth passes plus the one that confirmed stable.
     assert page.scrolls == 4
@@ -108,7 +111,7 @@ async def test_scroll_to_stable_loops_until_growth_stops() -> None:
 async def test_scroll_to_stable_respects_max_passes() -> None:
     # Always-growing (never stabilises) → the pass cap is the safety bound.
     page = _GrowingPage([100, 200, 300, 400, 500, 600, 700, 800, 900, 1000])
-    result = await _scroll_to_stable(page, "<html>seed</html>", max_passes=3)
+    result = await _scroll_to_stable(page, "<html>seed</html>", log=_LOG, max_passes=3)
     assert page.scrolls == 3
     assert result.count("x") == 300  # stopped after 3 passes
 
@@ -116,7 +119,7 @@ async def test_scroll_to_stable_respects_max_passes() -> None:
 @pytest.mark.asyncio
 async def test_scroll_to_stable_swallows_exception() -> None:
     page = _GrowingPage([100], raise_on_eval=True)
-    result = await _scroll_to_stable(page, "<html>seed</html>")
+    result = await _scroll_to_stable(page, "<html>seed</html>", log=_LOG)
     assert result == "<html>seed</html>"  # first-pass failure → original kept
 
 

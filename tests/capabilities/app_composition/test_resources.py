@@ -14,10 +14,10 @@ import asyncio
 from pathlib import Path
 
 import pytest
+from any_browser import PlaywrightBackend, camoufox_launcher
 
 from a2web.cache import SqliteResource
 from a2web.llm_resource import LlmExtractorResource
-from a2web.packages.browser_backends import PlaywrightBackend, camoufox_launcher
 from a2web.packages.llm_extract import Provider
 from a2web.settings import AppSettings
 from a2web.state import (

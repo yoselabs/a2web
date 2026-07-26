@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import importlib.util
 
+from any_browser import BrowserBackend, PlaywrightBackend, patchright_launcher
 from plugin_surface import PluginManifest, Unavailable
 
-from a2web.packages.browser_backends import BrowserBackend, PlaywrightBackend, patchright_launcher
+from a2web.log import get_logger
 from a2web.settings import AppSettings
 from a2web.state import _emit_browser_stderr
 
@@ -28,6 +29,9 @@ def _build(settings: AppSettings) -> BrowserBackend | Unavailable:
         launch_budget_s=settings.browser_launch_budget_s,
         reaper_interval_s=settings.browser_reaper_interval_s,
         stderr_sink=_emit_browser_stderr,
+        # any-browser defaults scroll-retry diagnostics to its own logger; route
+        # them onto a2web's logger so they keep flowing where a2web handles them.
+        logger=get_logger(),
     )
 
 

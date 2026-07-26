@@ -22,6 +22,7 @@ from typing import Literal, cast
 from urllib.parse import urlparse
 
 import aiosqlite
+from any_browser import BrowserBackend
 from content_extract import (
     extract_markdown as _package_extract_markdown,
 )
@@ -80,7 +81,6 @@ from .models import (
 )
 from .packages.block_detector import LENGTH_FLOOR, THIN_FALLTHROUGH, looks_like_unrendered_spa
 from .packages.block_detector import evaluate as _package_evaluate
-from .packages.browser_backends import BrowserBackend
 from .packages.escalation import EscalationSignal
 from .packages.llm_extract import LlmNextLink, OtherPageBoundary, RouterPayload
 from .settings import AppSettings

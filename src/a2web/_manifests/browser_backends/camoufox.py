@@ -15,9 +15,9 @@ kept (commented) so the wiring is obvious when the gate lifts.
 
 from __future__ import annotations
 
+from any_browser import BrowserBackend
 from plugin_surface import PluginManifest, Unavailable
 
-from a2web.packages.browser_backends import BrowserBackend
 from a2web.settings import AppSettings
 
 _GATE_REASON = "camoufox gated: Firefox build lacks juggler #625 (b05563291d); re-enable when a build ships it + re-add the camoufox dep"
@@ -26,11 +26,13 @@ _GATE_REASON = "camoufox gated: Firefox build lacks juggler #625 (b05563291d); r
 def _build(_settings: AppSettings) -> BrowserBackend | Unavailable:
     # GATED. To re-enable once Camoufox ships #625 (and the `camoufox` dep is
     # back in pyproject), restore:
-    #   from a2web.packages.browser_backends import PlaywrightBackend, camoufox_launcher
+    #   from any_browser import PlaywrightBackend, camoufox_launcher
+    #   from a2web.log import get_logger
     #   from a2web.state import _emit_browser_stderr
     #   return PlaywrightBackend(camoufox_launcher, name="camoufox",
     #       max_pool=_settings.browser_max_pool, idle_timeout_s=_settings.browser_idle_timeout_s,
-    #       page_budget_s=_settings.browser_page_budget_s, stderr_sink=_emit_browser_stderr)
+    #       page_budget_s=_settings.browser_page_budget_s, stderr_sink=_emit_browser_stderr,
+    #       logger=get_logger())
     return Unavailable(_GATE_REASON)
 
 

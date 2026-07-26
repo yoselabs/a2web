@@ -60,9 +60,7 @@ def parse_with_policy(
     logger: logging.Logger | None = None,
 ) -> Wobbled:
     """`llm_wobble.parse_with_policy` with a2web's managed logger injected."""
-    return _w.parse_with_policy(
-        raw, policies=policies, into=into, boundary=boundary, model=model, logger=logger or _A2WEB_LOGGER
-    )
+    return _w.parse_with_policy(raw, policies=policies, into=into, boundary=boundary, model=model, logger=logger or _A2WEB_LOGGER)
 
 
 def parse_list_with_policy(

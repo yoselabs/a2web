@@ -10,10 +10,10 @@ from __future__ import annotations
 from typing import Any, ClassVar
 
 import pytest
+from any_browser import PlaywrightBackend
+from any_browser.playwright import _cookie_to_playwright
 
 from a2web.cookie_jar import Cookie
-from a2web.packages.browser_backends import PlaywrightBackend
-from a2web.packages.browser_backends.playwright import _cookie_to_playwright
 from a2web.tiers.browser import BrowserTier, _cookie_to_backend
 from a2web.tiers.raw import RawTier
 from tests.conftest import make_default_state

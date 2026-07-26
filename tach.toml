@@ -24,7 +24,6 @@ exact = true
 path = "a2web"
 depends_on = [
     "a2web.packages.block_detector",
-    "a2web.packages.browser_backends",
     "a2web.packages.escalation",
     "a2web.packages.llm_extract",
     "a2web.packages.proxy_routing",
@@ -44,10 +43,6 @@ path = "a2web.packages.block_detector"
 # or inline the signal flag back into block_detector since escalation is its
 # sole consumer.
 depends_on = ["a2web.packages.escalation"]
-
-[[modules]]
-path = "a2web.packages.browser_backends"
-depends_on = []
 
 [[modules]]
 path = "a2web.packages.escalation"

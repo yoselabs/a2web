@@ -20,10 +20,10 @@ from __future__ import annotations
 import dataclasses
 
 import pytest
+from any_browser import BrowserBackend
 
 from a2web.components import build_components
 from a2web.lazy import lazy
-from a2web.packages.browser_backends import BrowserBackend
 from a2web.tiers import REGISTRY, TierResult
 from tests._helpers.mcp import mcp_client
 

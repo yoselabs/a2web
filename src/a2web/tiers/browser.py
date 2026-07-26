@@ -18,14 +18,15 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 import trafilatura
+from any_browser import BackendCookie, RenderOutcome
 
 from ..models import OperatorHint, Verdict
 from ..packages.block_detector import LENGTH_FLOOR
-from ..packages.browser_backends import BackendCookie, RenderOutcome
 
 if TYPE_CHECKING:
+    from any_browser import BrowserBackend, RenderedPage
+
     from ..cookie_jar import Cookie
-    from ..packages.browser_backends import BrowserBackend, RenderedPage
     from ..state import AppState
     from . import TierResult
 
@@ -40,7 +41,7 @@ _FIX_HINT = (
     "container: the published image bakes Chromium in from 0.46.0 — pull a current tag "
     "(pre-0.46 images have none). If already on 0.46+, the binary is present but failed to "
     "launch: check the `detail` for the resolved path and the binary's own output, and "
-    "override with A2WEB_BROWSER_EXECUTABLE_PATH if it lives outside PLAYWRIGHT_BROWSERS_PATH."
+    "override with ANY_BROWSER_EXECUTABLE_PATH if it lives outside PLAYWRIGHT_BROWSERS_PATH."
 )
 
 # Actionable next step for an internal driver/navigation failure. The driver

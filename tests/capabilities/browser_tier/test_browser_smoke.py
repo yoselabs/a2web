@@ -30,9 +30,9 @@ from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
+from any_browser import BrowserBackend, PlaywrightBackend, ZendriverBackend, patchright_launcher
 
 from a2web.models import Verdict
-from a2web.packages.browser_backends import BrowserBackend, PlaywrightBackend, ZendriverBackend, patchright_launcher
 from a2web.settings import AppSettings
 from a2web.tiers.browser import BrowserTier
 from tests.conftest import make_default_state

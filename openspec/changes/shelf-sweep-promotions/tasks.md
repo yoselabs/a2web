@@ -29,7 +29,7 @@ verify-against-a-second-source discipline in `docs/architecture/verification-pro
   2. `llm-wobble` ← `packages/llm_extract/wobble/`
   3. `llm-cache` ← `packages/llm_extract/cache.py`
   4. EVOLVE `anyllm.cost` ← `packages/llm_cost_guard.py`
-  5. `any-browser` SEAM ← `packages/browser_backends/` (types only; hold drivers, task 5.2b)
+  5. `any-browser` ← `packages/browser_backends/` (FULL package — seam + both drivers + real-launch gate, per shelf resolution 0013; the "hold drivers" plan was superseded)
 - **Blocker for autonomous execution:** the repoint step (delete in-tree copy)
   and the dead-leftover cleanup both require `git rm` in the a2web repo, which
   the auto-mode classifier denies. The shelf worktree exists at
@@ -158,49 +158,47 @@ here and nowhere else, NOT an endogenous golden. No package is tagged until:
       completely dead-on-launch on the pinned version while its unit test + skip-
       on-failure smoke stayed green (CHANGELOG [Unreleased] 2026-07-25). Revised
       scope below reinstates the proposal's original option (b).
-- [ ] 5.2a **Promote the SEAM now** — `BrowserBackend` Protocol, `RenderedPage`,
-      `BackendCookie`, `RenderOutcome`. Pure types, no launch behaviour, nothing
-      environment-conditional to fake — mechanism-A endogeneity has no purchase.
-      This is the genuine catalog gap and the real ADOPT case (the Protocol
-      demonstrably spans engine families: Playwright API + raw CDP).
-- [ ] 5.2b **HOLD the drivers** (`PlaywrightBackend`, `ZendriverBackend`,
-      launchers) until a shelf-side **real-launch gate** exists: a CI lane that
-      launches BOTH engines against a real page and asserts a render, with
-      skip-on-missing-binary **forbidden** in that lane (a skip in the one
-      environment you control is a dead rung wearing a green coat — that is
-      literally how the 2026-07-25 dead rung stayed green). Only then extract the
-      drivers. The extracted acceptance suite is NOT this gate — it shares
-      provenance with the code and detects drift, not correctness.
-      **Reference implementation now exists a2web-side (2026-07-26, commit
-      `14aeef1`):** the `browser-gate` CI job + `A2WEB_REQUIRE_BROWSER=1`
-      skip→fail policy (`test_browser_smoke.py::browser_unavailable_policy`,
-      pinned in the default gate by `test_browser_gate_policy.py`). The shelf
-      gate is this pattern, moved to the shelf's CI over the promoted drivers —
-      port it, don't reinvent it. Until then a2web itself is the only place the
-      drivers get a real-launch witness, which is another reason the shelf copy
-      must not ship without one.
-- [ ] 5.2c **Absorbs `fix-zendriver-robust-rung` §1–§2** (folded 2026-07-26 — that
-      change archived). Its blocked diagnosis (zendriver dead on CDP handshake in
-      the image) IS what the 5.2b real-launch gate produces: run the gate, and if
-      zendriver fails to launch, that is the diagnosis. Then the fix-or-drop branch
-      resolves — **fix** the launch in `zendriver.py`, or **drop** it and promote a
-      genuinely distinct second engine for `browser_robust` (differentiated stealth
-      profile or reinstated Camoufox), never a same-engine (correlated) witness.
-      Retire the homelab correlated-witness workaround the moment a distinct engine
-      passes the gate; the `CorrelatedWitnessRung` signal (fix-zendriver §3, DONE)
-      is the detectable revert-trigger. `make bench` once the robust engine
-      actually changes (fix-zendriver §4.2, was deferred).
-- [ ] 5.3 Per Q2 (answered 2026-07-25): **keep** `subresource_blocks` on the
-      promoted `RenderedPage`, but rewrite the docstring to describe the
-      observation (subresources returning a challenge status during render),
-      NOT a2web's "walled-API fake-empty signal" conclusion — that meaning stays
-      home in `actions/terminal.py` + `actions/empty.py`. (Separately: the
-      zendriver-never-populates-it bug is filed in `BACKLOG.md`, an a2web fix,
-      not a promotion blocker.)
-- [ ] 5.4 Confirm the moat stays home: `select_backend*`, the manifest gating, the
-      fast/robust rung split, the `RenderOutcome → Verdict/OperatorHint` mapping.
-- [ ] 5.5 Port `tests/packages/test_playwright_backend.py` +
-      `test_zendriver_backend.py`. Tag `any-browser-v0.1.0`.
+      **SUPERSEDED by shelf resolution 0013 (promote-to-be-challenged),
+      2026-07-26** — the "HOLD the drivers" plan below conflated *is-the-shape-
+      right* (resolved only by a 2nd consumer bending the seam, which requires it
+      be ON the shelf) with *is-it-verified* (an obligation that travels WITH the
+      code). Resolution 0013 promotes the FULL package now AND ports the gate in
+      the same change. What actually shipped (tag `any-browser-v0.1.0`):
+- [x] 5.2a **Promoted the SEAM** — `BrowserBackend` Protocol, `RenderedPage`,
+      `BackendCookie`, `RenderOutcome`. The Protocol demonstrably spans engine
+      families (Playwright API + raw CDP).
+- [x] 5.2b **Promoted the DRIVERS too** (`PlaywrightBackend`, `ZendriverBackend`,
+      launchers) — resolution 0013. The real-launch gate travels with them:
+      `browser`-marked `test_browser_smoke.py` launches each real engine against a
+      local JS page and asserts a render; the pure skip→fail policy
+      (`browser_unavailable_policy`) is pinned in the DEFAULT gate by
+      `test_browser_gate_policy.py`; `make test-browser` + `SHELF_REQUIRE_BROWSER=1`
+      make a non-launching engine a hard FAIL (skip forbidden). Ported a2web's
+      `browser-gate` pattern, not reinvented; the a2web env var is
+      `A2WEB_REQUIRE_BROWSER`, the shelf's is `SHELF_REQUIRE_BROWSER`.
+- [x] 5.2c **`fix-zendriver-robust-rung` §1–§2:** no diagnose-or-drop was needed.
+      The fake-fidelity contract + the ported launch gate + `zendriver.py`'s own
+      `_launch_diagnostics` probe already cover the dead-rung failure mode. The
+      homelab correlated-witness workaround was NOT carried into the shelf package
+      (a2web keeps whatever it has). A genuinely-distinct second robust engine +
+      `make bench` remain a2web-side follow-ups, not promotion blockers.
+- [x] 5.3 **Kept** `subresource_blocks` on `RenderedPage`; docstring reworded to
+      the OBSERVATION (subresources returning a challenge status during render),
+      the "walled-API fake-empty" conclusion stays home in `actions/terminal.py` +
+      `actions/empty.py`. (Also: logger INJECTED per D1/D2; the a2web-named
+      `A2WEB_BROWSER_EXECUTABLE_PATH` override renamed to `ANY_BROWSER_EXECUTABLE_PATH`.)
+- [x] 5.4 Moat stays home: `select_backend*` (`state.py`), manifest gating
+      (`_manifests/browser_backends/`), the fast/robust rung split, the
+      `RenderOutcome → Verdict/OperatorHint` mapping (`tiers/browser.py`). The
+      patchright manifest injects `get_logger()` so scroll events keep flowing onto
+      a2web's logger.
+- [x] 5.5 Moved `test_playwright_backend.py` + `test_zendriver_backend.py` to the
+      shelf acceptance suite (deleted from a2web). Tagged `any-browser-v0.1.0`,
+      pushed. **D6 foreign-soil gate PASS** (47/47 against the installed wheel).
+      a2web repointed: package deleted, imports → `any_browser`, `[browser]` extra
+      pulls `any-browser[patchright,zendriver]`, `tach.toml` module dropped,
+      `test_packages_boundary_frozen` drops the two promoted types. a2web gate
+      1173 passed / 90.49% / 37 arch.
 
 ## 6. `structured-data-md` (only if Q3 resolves to promote)
 

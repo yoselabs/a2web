@@ -6,9 +6,9 @@ import builtins
 from typing import Any
 
 import pytest
+from any_browser import PlaywrightBackend, RenderedPage, RenderOutcome, camoufox_launcher
 
 from a2web.models import Verdict
-from a2web.packages.browser_backends import PlaywrightBackend, RenderedPage, RenderOutcome, camoufox_launcher
 from a2web.settings import AppSettings
 from a2web.state import AppState
 from a2web.tiers import REGISTRY

@@ -26,10 +26,10 @@ import asyncio
 import statistics
 from dataclasses import dataclass
 
+from any_browser import RenderOutcome
 from content_extract import extract_markdown
 
 from a2web.packages.block_detector import LENGTH_FLOOR, BlockVerdict, evaluate
-from a2web.packages.browser_backends import RenderOutcome
 from a2web.settings import AppSettings
 from a2web.state import select_backend
 

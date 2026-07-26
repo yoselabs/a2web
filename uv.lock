@@ -23,6 +23,7 @@ dependencies = [
     { name = "aiofiles" },
     { name = "aiosqlite" },
     { name = "anthropic" },
+    { name = "any-browser" },
     { name = "anyio" },
     { name = "anyllm", extra = ["anthropic", "claude-code-sdk", "openai"] },
     { name = "browser-cookies" },
@@ -59,8 +60,7 @@ dependencies = [
 
 [package.optional-dependencies]
 browser = [
-    { name = "patchright" },
-    { name = "zendriver" },
+    { name = "any-browser", extra = ["patchright", "zendriver"] },
 ]
 claude-code = [
     { name = "claude-agent-sdk" },
@@ -93,6 +93,8 @@ requires-dist = [
     { name = "aiofiles", specifier = ">=25.1,<26" },
     { name = "aiosqlite", specifier = ">=0.20,<1" },
     { name = "anthropic", specifier = ">=0.40,<1" },
+    { name = "any-browser", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fany-browser&tag=any-browser-v0.1.0" },
+    { name = "any-browser", extras = ["patchright", "zendriver"], marker = "extra == 'browser'", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fany-browser&tag=any-browser-v0.1.0" },
     { name = "anyio", specifier = ">=4,<5" },
     { name = "anyllm", extras = ["anthropic", "openai", "claude-code-sdk"], specifier = ">=0.2,<1" },
     { name = "browser-cookie3", marker = "extra == 'cookies'", specifier = ">=0.20,<1" },
@@ -117,7 +119,6 @@ requires-dist = [
     { name = "opentelemetry-api", specifier = ">=1.25,<2" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.25,<2" },
     { name = "opentelemetry-sdk", specifier = ">=1.25,<2" },
-    { name = "patchright", marker = "extra == 'browser'", specifier = ">=1.60,<2" },
     { name = "plugin-surface", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fplugin-surface&tag=plugin-surface-v0.1.0" },
     { name = "purgatory", specifier = ">=3,<4" },
     { name = "pydantic-settings", specifier = ">=2.5,<3" },
@@ -129,7 +130,6 @@ requires-dist = [
     { name = "timefmt", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Ftimefmt&tag=timefmt-v0.1.0" },
     { name = "trafilatura", specifier = ">=1.12,<2" },
     { name = "typer", specifier = ">=0.13,<1" },
-    { name = "zendriver", marker = "extra == 'browser'", specifier = ">=0.15,<1" },
 ]
 provides-extras = ["paid", "browser", "claude-code", "cookies"]
 
@@ -213,6 +213,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b5/cb/9d0123243e749ac3a579972b2c398971bce1dc57bcc4efb08066df610360/anthropic-0.101.0.tar.gz", hash = "sha256:1116a6a87c55757e0fbe3e1ba40804fbd04de7963601a6dd6b539a889f18de3e", size = 758603, upload-time = "2026-05-11T15:46:33.944Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/b2/74ff06762d005ecf1658929a292df0acb786d025f6a6c54fcb30e2dc7761/anthropic-0.101.0-py3-none-any.whl", hash = "sha256:cc3cc6576989471e2aa9132258034ad0ff0d8fe500b04ac499e4e46ed68c5ed0", size = 753594, upload-time = "2026-05-11T15:46:32.216Z" },
+]
+
+[[package]]
+name = "any-browser"
+version = "0.1.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fany-browser&tag=any-browser-v0.1.0#d3fc8162632eaa52f1363fe171c07f711bfaf4ee" }
+
+[package.optional-dependencies]
+patchright = [
+    { name = "patchright" },
+]
+zendriver = [
+    { name = "zendriver" },
 ]
 
 [[package]]
