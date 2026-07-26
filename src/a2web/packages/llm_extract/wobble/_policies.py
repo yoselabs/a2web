@@ -7,7 +7,7 @@ to the callable in their consumer module.
 
 from __future__ import annotations
 
-from ._internal import WobblePolicy, WobbleTolerance
+from llm_wobble import WobblePolicy, WobbleTolerance
 
 # Extractor router-shape envelope (v0.21). Three required + three optional.
 # The pydantic mirror at the seam (`fetcher_response._project_routing`) enforces

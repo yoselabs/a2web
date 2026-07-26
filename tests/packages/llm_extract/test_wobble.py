@@ -1,99 +1,62 @@
-"""Unit tests for the shared LLM-contract wobble discipline."""
+"""a2web's binding of the shelf `llm-wobble` funnel.
+
+The funnel MACHINERY (fence strip, decode, per-field policy, recovery, the
+`Wobbled` token) is tested in the shelf package `llm_wobble`. What a2web must
+verify here is the BINDING: that `wobble/__init__.py` injects a2web's managed
+`a2web` logger, so every `llm_wobble` recovery drains through a2web's sinks and
+not the package's default channel. `capture_logs` attaches to the `a2web`
+logger — if the shim stopped injecting, the event would land on the `llm_wobble`
+logger instead and these captures would come back empty.
+"""
 
 from __future__ import annotations
 
-import pytest
-
-from a2web.packages.llm_extract import (
+from a2web.packages.llm_extract.wobble import (
     WobblePolicy,
-    WobbleSkip,
     WobbleTolerance,
+    parse_list_with_policy,
+    parse_with_policy,
+    unwrap,
 )
-from a2web.packages.llm_extract.wobble import apply_policy
 from tests._helpers.log_capture import capture_logs
 
 
-def _ctx(parsed: dict[str, object], field: str, policy: WobblePolicy) -> object:
-    return apply_policy(
-        parsed,
-        field,
-        policy,
+def test_shim_parses_through_funnel() -> None:
+    wobbled = parse_with_policy(
+        '{"x": 1}',
+        policies={"x": WobblePolicy(WobbleTolerance.STRICT)},
+        into=lambda d: d["x"],
         boundary="test",
         model="m",
-        raw_excerpt="raw",
     )
+    assert unwrap(wobbled) == 1
 
 
-def test_strict_present_returns_value() -> None:
-    assert _ctx({"x": 5}, "x", WobblePolicy(WobbleTolerance.STRICT)) == 5
-
-
-def test_strict_missing_raises_keyerror() -> None:
-    with pytest.raises(KeyError):
-        _ctx({}, "x", WobblePolicy(WobbleTolerance.STRICT))
-
-
-def test_derive_calls_callable_and_logs() -> None:
-    policy = WobblePolicy(WobbleTolerance.DERIVE, derive=lambda p: int(p["base"]) * 2)
+def test_shim_injects_a2web_logger_on_recovery() -> None:
     with capture_logs() as logs:
-        out = _ctx({"base": 3}, "x", policy)
-    assert out == 6
+        parse_with_policy(
+            '{"a": 1}',
+            policies={
+                "a": WobblePolicy(WobbleTolerance.STRICT),
+                "b": WobblePolicy(WobbleTolerance.DEFAULT, default=0),
+            },
+            into=dict,
+            boundary="test",
+            model="m",
+        )
     events = [r for r in logs if r.get("event") == "llm_wobble"]
-    assert len(events) == 1
-    assert events[0]["field"] == "x"
-    assert events[0]["tolerance"] == "derive"
-
-
-def test_default_substitutes_and_logs() -> None:
-    with capture_logs() as logs:
-        out = _ctx({}, "x", WobblePolicy(WobbleTolerance.DEFAULT, default="fallback"))
-    assert out == "fallback"
-    events = [r for r in logs if r.get("event") == "llm_wobble"]
-    assert len(events) == 1
+    assert len(events) == 1, "the DEFAULT recovery for `b` must emit on a2web's managed logger"
+    assert events[0]["field"] == "b"
     assert events[0]["tolerance"] == "default"
 
 
-def test_skip_raises_wobbleskip_and_logs() -> None:
-    with capture_logs() as logs, pytest.raises(WobbleSkip):
-        _ctx({}, "x", WobblePolicy(WobbleTolerance.SKIP))
-    events = [r for r in logs if r.get("event") == "llm_wobble"]
-    assert len(events) == 1
-    assert events[0]["tolerance"] == "skip"
-
-
-def test_null_value_treated_as_missing() -> None:
-    """Explicit null is the same wobble as omission — recover via the policy."""
-    out = _ctx({"x": None}, "x", WobblePolicy(WobbleTolerance.DEFAULT, default="ok"))
-    assert out == "ok"
-
-
-def test_derive_without_callable_raises_keyerror() -> None:
-    """DERIVE policy with no `derive` callable is a mis-declared policy."""
-    with pytest.raises(KeyError):
-        _ctx({}, "x", WobblePolicy(WobbleTolerance.DERIVE))
-
-
-def test_raw_excerpt_bounded_in_log() -> None:
-    huge = "z" * 5000
+def test_shim_injects_a2web_logger_on_list_drop() -> None:
     with capture_logs() as logs:
-        apply_policy(
-            {},
-            "x",
-            WobblePolicy(WobbleTolerance.DEFAULT, default=0),
+        wobbled = parse_list_with_policy(
+            '[{"k": 1}, "bad", {"k": 2}]',
+            item=lambda d: d.get("k"),
             boundary="test",
             model="m",
-            raw_excerpt=huge,
         )
-    events = [r for r in logs if r.get("event") == "llm_wobble"]
-    assert len(events) == 1
-    assert len(events[0]["raw"]) <= 200
-
-
-def test_first_json_object_extracts_leading_balanced_object() -> None:
-    from a2web.packages.llm_extract.wobble._internal import _first_json_object
-
-    assert _first_json_object('{"a": 1} trailing junk') == '{"a": 1}'
-    assert _first_json_object('pre {"a": {"b": 2}} post') == '{"a": {"b": 2}}'
-    # brace inside a string value must not close the object early
-    assert _first_json_object('{"s": "brace } inside"}') == '{"s": "brace } inside"}'
-    assert _first_json_object("no object here") is None
+    assert unwrap(wobbled) == [1, 2]
+    assert [r for r in logs if r.get("event") == "llm_wobble"], "dropped entry must emit on a2web's logger"
