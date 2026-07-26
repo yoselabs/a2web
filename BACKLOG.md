@@ -17,6 +17,66 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-27 — investigate dual health-degradation mechanisms (S, design smell)
+
+Source: `shelf-sweep-promotions` §10.1 (Q4 RECONCILE-pass follow-up, filed not
+done). Is a2web running **two independent health-degradation mechanisms** that
+should be one — `_ProxyHealth` quarantine and the `purgatory` circuit breakers
+(`state.py`, per-host/per-proxy/global)? Not a promotion question — a design-smell
+investigation: confirm whether the two overlap, conflict, or are legitimately
+complementary (proxy-selection health vs breaker trip). If redundant, converge on
+`purgatory`; if complementary, document why both exist so the next reader doesn't
+re-ask. Scope: S (investigation), possibly M (converge).
+
+## 2026-07-27 — trim the `query` default-path envelope noise (S, breaking, decision-gated)
+
+Source: `trim-ask-envelope-noise` change (dropped as a standalone proposal —
+no committable spec end-state until the field decision is made). It is the
+surviving half of the archived `envelope-wire-hygiene`; the other half (the a2kit
+`encode_envelope` empty-leak + populated-destruction defect) died with a2kit and
+is fixed and pinned in `wire.py`.
+
+The operator's standing "the `query` envelope is too noisy" complaint is about
+the `structuredContent` shape itself — a2web's own `@model_serializer` output on
+the default (`debug=False`) path — not the encoder. Re-assess `AskResponse` field
+tiers and decide, per candidate (`confidence`, `tier`, the failure-story fields,
+any residual meta), whether each earns default-wire presence or demotes to
+`debug=True`. `answer` + the ADR-0015 index (`also_here`/`other_pages`) are
+**untouchable — never trimmed**.
+
+- *Why deferred, not proposed:* it is **breaking for wire parsers** (ADR "Ask
+  First" names the envelope shape), so the tier decision is a human call made
+  against evidence, not an automatic prune — and the spec end-state cannot be
+  honestly written until that decision lands. The apply step is small
+  (`models.py` field tiers + `_prune_wire`, wire-only serializer contract
+  preserved) and lives in `AskResponse` only (`FetchResponse` stays page-shaped;
+  the encoder in `wire.py` is already correct).
+- *Validation gate:* the **clarity axis of `make bench`** (live-network, spends
+  LLM quota, run under the ADR-0016 subscription provider — never metered)
+  confirming clarity rose or held while answer-quality/contract did not regress.
+  Not in `make check`. When picked up: dump the current default-path envelope on
+  a representative set (success/listing/failure/empty-unverified), decide + record
+  the per-field rationale, apply, then bench. Scope: S.
+
+## 2026-07-27 — confirm a genuinely-distinct robust browser engine + bench (M, blocked on shelf `any-browser`)
+
+Source: `fix-zendriver-robust-rung` (ARCHIVED 2026-07-26) §1-2/§4.2, folded to the
+shelf's `any-browser` 5.2c. `browser_robust` is supposed to be a *second,
+independent* evasion witness when the fast `browser` rung (patchright) is
+fingerprinted — a same-engine retry is not independence, and independence is
+load-bearing for `classify_terminal`. In the slimmed container zendriver's CDP
+connect handshake fails (`Failed to connect to browser`) while patchright launches
+fine as the same uid, so the robust rung can silently collapse to the same engine.
+
+The `correlated_witness` guard (archived §3) already makes a same-engine robust
+rung *observable* rather than silent (v0.47.1). The remaining work: once
+`any-browser` ships the container CDP-connect root-cause fix, verify the robust
+rung is genuinely a different engine/fingerprint than the fast rung (a
+differentiated stealth profile of a working backend, or a reinstated Camoufox
+rung), then run `make bench` — §3 alone did not change render behaviour, so the
+bench is meaningful only after the engine/launch actually changes. Scope: M
+(a2web-side), blocked on the shelf `any-browser` fix (L, infra/CDP).
+
 ## 2026-07-26 — promote `PromptTemplate` to `anyllm.prompt` when a 2nd consumer appears (S)
 
 Source: `openspec/changes/shelf-sweep-promotions` §3.2 (DEFER verdict). The

@@ -210,43 +210,69 @@ here and nowhere else, NOT an endogenous golden. No package is tagged until:
 - [x] 6.3 ~~If promoting: extract, port `tests/capabilities/json_extract/`, tag.~~
       **Not promoting in this sweep** — see 6.2.
 
+> **GROUND-TRUTH reconciliation #2 (2026-07-27).** Verified against the live tree.
+> Repoint is done EXCEPT the provider-identity typing (§7.3/7.4), which never
+> landed — `settings.py:30` still reads `ProviderMode = Literal[...]`, not the
+> shelf's `anyllm.ProviderName` StrEnum, and there is no `assert_never` fallback.
+> This is the **one live remainder**, and it is load-bearing: this change's
+> `app-composition` delta ADDS the requirement "The provider identity is a typed
+> value parsed once at the configuration boundary" — a requirement the code does
+> NOT yet satisfy. **Do not archive shelf-sweep until §7.3/7.4 ship**, or the
+> archived spec will assert an invariant the system fails (the exact "spec lies
+> about the system" hazard `reconcile-specs-post-sunset` exists to kill). §10.1
+> moved to `BACKLOG.md` (a design-smell investigation, never in-scope here).
+
 ## 7. Repoint a2web (Phase E step 6 — per package, tests green each time)
 
-- [ ] 7.1 Add each git+tag source to `pyproject.toml`; `uv lock`.
-- [ ] 7.2 Delete each in-repo copy; update imports.
-- [ ] 7.3 Adopt `anyllm.ProviderName` at the settings field: `ProviderMode
-      = Literal[...]` → `provider: ProviderName` on the `BaseSettings` field
-      (`settings.py:30`). `StrEnum` is natively a pydantic validator — no custom
-      `field_validator`. Everything downstream becomes `ProviderName`-typed.
-- [ ] 7.4 Add an exhaustive `match`/`case` with `assert_never` on the fallback
-      (no wildcard) so a future anyllm provider addition fails statically.
-- [ ] 7.5 Confirm `tests/test_packages_independence.py` still passes and the
-      `packages/*/__init__.py` `__all__` freeze test reflects the removals.
-- [ ] 7.6 `make check` green in a2web after each repoint.
+- [x] 7.1 Add each git+tag source to `pyproject.toml`; `uv lock`. — VERIFIED:
+      `plugin-surface`, `llm-wobble`, `llm-cache`, `any-browser`, `anyllm` all
+      pinned by git+tag in `pyproject.toml`.
+- [x] 7.2 Delete each in-repo copy; update imports. — VERIFIED: `_plugin.py`,
+      `packages/browser_backends/`, `packages/llm_extract/providers/` all gone;
+      `packages/llm_extract/wobble/` correctly STAYS (domain-side policy binding,
+      not the promoted machinery).
+- [ ] 7.3 **THE LIVE REMAINDER.** Adopt `anyllm.ProviderName` at the settings
+      field: `ProviderMode = Literal[...]` → `provider: ProviderName` on the
+      `BaseSettings` field (`settings.py:30`). `StrEnum` is natively a pydantic
+      validator — no custom `field_validator`. Everything downstream becomes
+      `ProviderName`-typed. NOT DONE — still `Literal` as of 2026-07-27.
+- [ ] 7.4 **THE LIVE REMAINDER.** Add an exhaustive `match`/`case` with
+      `assert_never` on the fallback (no wildcard) so a future anyllm provider
+      addition fails statically. NOT DONE. (§7.3+7.4 are one small code change;
+      until they land this change cannot archive — see the note above.)
+- [x] 7.5 Confirm `tests/test_packages_independence.py` still passes and the
+      `packages/*/__init__.py` `__all__` freeze test reflects the removals. —
+      done inline per §5.5 (gate green 1173 passed / 90.49% / 37 arch).
+- [x] 7.6 `make check` green in a2web after each repoint. — done per §5.5;
+      re-run required after §7.3/7.4 land.
 
 ## 8. Close the loop (resolution 0009 — the change isn't done until `main` carries it)
 
-- [ ] 8.1 `use-cases/a2web--<sw>.toml` per adopted piece (the retention claim).
-- [ ] 8.2 A `ledger/00NN-<slug>.toml` **`delivery`** row per promotion, and a
-      **separate** `verdict` row per repoint that held. Two events, two rows —
-      never one row wearing both hats. Grep `ledger/*.toml` for `^event` for the
-      existing vocabulary; do not invent one.
-- [ ] 8.3 `make catalog` (a stale derived README lies).
-- [ ] 8.4 Delete the closed `docs/backlog.md` line for "a2web adopts
+- [x] 8.1 `use-cases/a2web--<sw>.toml` per adopted piece (the retention claim). —
+      DONE 2026-07-27 session: `a2web--plugin-surface`, `--llm-wobble`,
+      `--llm-cache`, `--any-browser` created; `anyllm.cost` reused `a2web--anyllm`.
+- [x] 8.2 A `ledger/00NN-<slug>.toml` **`delivery`** row per promotion, and a
+      **separate** `verdict` row per repoint that held. — DONE: ledger rows
+      0053–0062 (delivered + adopted pairs for each promotion).
+- [x] 8.3 `make catalog` (a stale derived README lies). — DONE (regenerated).
+- [x] 8.4 Delete the closed `docs/backlog.md` line for "a2web adopts
       `anyllm.ProviderName`"; edit any partially-closed line to say what remains.
-- [ ] 8.5 `make check` green, then **merge `work/a2web` into `main` and push** —
-      a promotion that never reaches `main` never happened.
-- [ ] 8.6 `git worktree remove ../shelf-a2web`; delete the merged remote branch.
+      — NOTE: the ProviderName adoption is in fact NOT done (see §7.3); the shelf
+      backlog line should reflect that it remains open a2web-side.
+- [x] 8.5 `make check` green, then **merge `work/a2web` into `main` and push**. —
+      DONE: merged to shelf `main` (565f461), pushed.
+- [x] 8.6 `git worktree remove ../shelf-a2web`; delete the merged remote branch. —
+      DONE this session.
 
 ## 9. Report (Phase F)
 
-- [ ] 9.1 Publish the candidate → verdict → action table plus **what the shelf
-      gained** (packages promoted / capabilities extended). The success metric is
-      future-code-avoided, not a2web shrink.
+- [x] 9.1 Publish the candidate → verdict → action table plus **what the shelf
+      gained**. — DONE: reported end-of-session (5 promotions, shelf gained
+      `plugin-surface`, `llm-wobble`, `llm-cache`, `any-browser`, `anyllm.cost`).
 
 ## 10. Follow-up filed, not done here
 
-- [ ] 10.1 Open a RECONCILE-pass question from Q4: is a2web running **two
-      independent health-degradation mechanisms** (`_ProxyHealth` quarantine and
-      the `purgatory` circuit breakers, `state.py:86-88`)? Not a promote question
-      — a design-smell investigation.
+- [x] 10.1 ~~Open a RECONCILE-pass question from Q4: dual health-degradation
+      mechanisms.~~ **MOVED to `BACKLOG.md` 2026-07-27** (a design-smell
+      investigation, `_ProxyHealth` quarantine vs `purgatory` breakers,
+      `state.py`) — explicitly out of scope for a promotion sweep.
