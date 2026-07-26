@@ -20,6 +20,37 @@
       tagged packages are stranded off `main` and the catalog is stale until it
       lands. Re-check the candidate set against the merged catalog.
 - [ ] 0.3 Create the worktree: `git -C <shelf> worktree add ../shelf-a2web -b work/a2web`.
+
+### 0.4 Promotion-boundary invariants (binding on EVERY promotion below)
+
+Derived from the verification-provenance review (2026-07-26); full rationale in
+`docs/architecture/verification-provenance.md`. Expected-loss order — the thing
+most likely to hurt a consumer we don't control is a package that installs clean
+here and nowhere else, NOT an endogenous golden. No package is tagged until:
+
+- [ ] 0.4a **Foreign-soil install-and-run (THE gate).** Install the package from
+      its tag into a clean env with no repo checkout and none of a2web's
+      incidental deps; run its acceptance suite against the *installed artifact*.
+      Catches undeclared deps, missing `py.typed`, packaging holes, and
+      graceful-absence paths (which never run on home soil). Shelf-side CI; port
+      the a2web `browser-gate` skip-forbidden pattern.
+- [ ] 0.4b **Pin, never `path=`.** Promotion is done only when a2web's full gate
+      is green pinned to the *published tag*, not the worktree.
+- [ ] 0.4c **Boundary enums get an exhaustive `match` + `assert_never` in the
+      consumer** (type drift already happened: `ProviderMode` vs
+      `anyllm.ProviderName`). Drift then breaks at type-check — a compile-time
+      witness.
+- [ ] 0.4d **Tags are immutable.** A bad tag → ledger row + superseding tag,
+      never a deletion/force-push (mirrors the shelf's "never delete an old
+      tag").
+- [ ] 0.4e **Exogenous-witness flake budget.** Real-substrate lanes (browser,
+      bench, foreign-soil) get a separate signal + triage SLA; an ignorable red
+      is mechanism A wearing mechanism B's coat.
+- [ ] 0.4f **Standing fake-fidelity contract** for any external-dep fake in a
+      promoted package (pattern:
+      `test_zendriver_backend.py::test_fake_config_matches_real_add_argument`).
+      The H2 sweep found the candidates clean *today*; this keeps them clean
+      across dependency bumps.
       Then `git fetch && git rebase origin/main` **before touching any file**
       (worktrees share objects but not branch position).
 - [ ] 0.4 All shelf edits happen in `../shelf-a2web`. Never edit the shelf main

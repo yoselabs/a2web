@@ -1,8 +1,11 @@
 """Browser-backend bake-off — render-layer comparison (Phase A).
 
-TRANSIENT (browser-backend-bakeoff §3): drives a browser-stress URL set through
-each candidate backend and scores the three primary axes *at the render layer*,
-so it costs live browser renders but ~no LLM quota:
+Retained render-layer diagnostic (originally from browser-backend-bakeoff §3,
+now archived — the bake-off kept patchright + zendriver as complementary rungs).
+It is NOT transient: it stays as a manual tool for re-comparing engines when a
+new candidate is considered. Drives a browser-stress URL set through each
+registered backend and scores the three primary axes *at the render layer*, so
+it costs live browser renders but ~no LLM quota:
 
   - SPA-read success — did we capture usable markdown (block_detector verdict
     `ok`, i.e. real content above the length floor)?

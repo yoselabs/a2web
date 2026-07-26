@@ -118,6 +118,38 @@ class _CookieParam:
         self.kw = kw
 
 
+class _FakeConfig:
+    """Mirrors the real `zd.Config` surface the backend touches.
+
+    `browser_executable_path` + `add_argument` + `sandbox` are part of the
+    genuine API (verified against the installed zendriver 0.15.3); the real
+    default is an auto-discovered SYSTEM Chrome path, which is precisely why a
+    container with only a Playwright-managed Chromium finds nothing.
+
+    `add_argument` REJECTS `--no-sandbox` exactly as the real one does — that
+    fidelity is load-bearing: the permissive earlier fake let the robust rung
+    ship a launch that raised `ValueError` on every real call, dead on arrival
+    on this zendriver version. `test_fake_config_matches_real_add_argument`
+    keeps this class honest against the installed library on every commit, so
+    the fidelity cannot silently rot when zendriver is upgraded.
+    """
+
+    _REJECTED = ("headless", "data-dir", "data_dir", "no-sandbox", "no_sandbox", "lang")
+
+    def __init__(self, headless: bool = False) -> None:
+        self.headless = headless
+        self.browser_connection_timeout = 0.25
+        self.browser_connection_max_tries = 10
+        self.browser_executable_path = "/system/chrome"
+        self.sandbox = True
+        self.arguments: list[str] = []
+
+    def add_argument(self, arg: str) -> None:
+        if any(x in arg.lower() for x in self._REJECTED):
+            raise ValueError(f'"{arg}" not allowed. please use one of the attributes of the Config object to set it')
+        self.arguments.append(arg)
+
+
 def _install_fake_zendriver(
     monkeypatch: pytest.MonkeyPatch,
     *,
@@ -132,35 +164,6 @@ def _install_fake_zendriver(
         return holder
 
     mod = types.ModuleType("zendriver")
-
-    class _Config:
-        """Mirrors the real `zd.Config` surface the backend touches.
-
-        `browser_executable_path` + `add_argument` + `sandbox` are part of the
-        genuine API (verified against the installed zendriver 0.15.3); the real
-        default is an auto-discovered SYSTEM Chrome path, which is precisely why
-        a container with only a Playwright-managed Chromium finds nothing.
-
-        `add_argument` REJECTS `--no-sandbox` exactly as the real one does — that
-        fidelity is load-bearing: the permissive earlier fake let the robust
-        rung ship a launch that raised `ValueError` on every real call, dead on
-        arrival on this zendriver version.
-        """
-
-        _REJECTED = ("headless", "data-dir", "data_dir", "no-sandbox", "no_sandbox", "lang")
-
-        def __init__(self, headless: bool = False) -> None:
-            self.headless = headless
-            self.browser_connection_timeout = 0.25
-            self.browser_connection_max_tries = 10
-            self.browser_executable_path = "/system/chrome"
-            self.sandbox = True
-            self.arguments: list[str] = []
-
-        def add_argument(self, arg: str) -> None:
-            if any(x in arg.lower() for x in self._REJECTED):
-                raise ValueError(f'"{arg}" not allowed. please use one of the attributes of the Config object to set it')
-            self.arguments.append(arg)
 
     async def _start(*, config: Any) -> _FakeBrowser:
         holder["config"] = config  # captured even on failure, for launch assertions
@@ -178,11 +181,52 @@ def _install_fake_zendriver(
             ResponseReceived=object(),  # handler key; the fake dispatches by registration, not key
         )
     )
-    mod.Config = _Config  # type: ignore[attr-defined]
+    mod.Config = _FakeConfig  # type: ignore[attr-defined]
     mod.start = _start  # type: ignore[attr-defined]
     mod.cdp = cdp  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "zendriver", mod)
     return holder
+
+
+@pytest.mark.parametrize(
+    "arg",
+    [
+        "--no-sandbox",  # the one that shipped a dead rung — real Config rejects it
+        "--headless=new",
+        "--user-data-dir=/tmp/x",
+        "--lang=en-US",
+        "--disable-dev-shm-usage",  # accepted by both
+        "--disable-gpu",  # accepted by both
+        "--window-size=1920,1080",  # accepted by both
+    ],
+)
+def test_fake_config_matches_real_add_argument(arg: str) -> None:
+    """The fake `Config.add_argument` accepts/rejects EXACTLY what the real one does.
+
+    This is the standing, non-endogenous half of the H2 fake audit: the real
+    installed `zendriver.Config` is the exogenous witness, so the fake cannot
+    drift laxer than reality without this going red — which is precisely the
+    failure that let `--no-sandbox` ship a dead robust rung. It fires on a
+    zendriver upgrade that changes the rejection set, the moment `uv.lock`
+    moves, not months later by accident. Imports `zendriver.Config` only (no
+    browser launch), so it runs in the DEFAULT gate, every commit.
+    """
+    zd = pytest.importorskip("zendriver")
+
+    def _outcome(cfg: object) -> str:
+        try:
+            cfg.add_argument(arg)  # type: ignore[attr-defined]
+            return "accepted"
+        except ValueError:
+            return "rejected"
+
+    real = _outcome(zd.Config(headless=True))
+    fake = _outcome(_FakeConfig(headless=True))
+    assert fake == real, (
+        f"fake Config.add_argument({arg!r}) → {fake}, but the real "
+        f"zendriver.Config → {real}. The fake has drifted from reality; "
+        "a laxer fake is exactly how the dead --no-sandbox rung tested green."
+    )
 
 
 @pytest.mark.asyncio
