@@ -3,34 +3,6 @@
 ## Purpose
 TBD - created by archiving change pr1-app-composition. Update Purpose after archive.
 ## Requirements
-### Requirement: Public fetch tool envelope
-
-The system SHALL expose a single `fetch` tool whose return type is a module-scope pydantic model named `FetchResponse`. The tool SHALL NOT return `str`, `dict`, or any nested-class type. The envelope SHALL include all fields specified in `v0.1-response-format.md` §2.
-
-The tool function signature SHALL declare `state: AppState` and `ctx: a2kit.ToolContext` as DI kwargs. Neither SHALL appear in the MCP wire schema. The tool SHALL build an `EventBus` per call, attach the MCP progress sink, invoke the orchestrator with the bus, and return the populated `FetchResponse`. Successful fetches SHALL populate `fit_md` and `tokens`.
-
-After PR4, every successful or failed fetch SHALL produce exactly one `LogRecord` entry on disk via `state.log_writer.write_record(...)`. Log write failures append `OperatorHint(code="log_write_failed", ...)`.
-
-#### Scenario: state and ctx kwargs are hidden from the wire schema
-
-- **WHEN** an MCP client requests the `fetch` tool's input schema
-- **THEN** the schema's required/optional parameters list `url` only — neither `state` nor `ctx` appears
-
-#### Scenario: Successful fetch populates fit_md and tokens
-
-- **WHEN** a successful fetch returns a `FetchResponse` against the blog fixture
-- **THEN** `response.fit_md is not None`, `response.tokens.full == len(response.content_md)`, `response.tokens.fit == len(response.fit_md)`
-
-#### Scenario: Failed fetch leaves fit_md None
-
-- **WHEN** a fetch fails the gate
-- **THEN** `response.fit_md is None` and `response.tokens is None`
-
-#### Scenario: MCP progress notifications fire per phase
-
-- **WHEN** the `fetch` tool is invoked through the App pipeline with a mock `ToolContext`
-- **THEN** the context records at least one `ctx.event` call per tier/stage boundary and `ctx.report_progress` calls only on End events
-
 ### Requirement: Closed-enum diagnostic verdicts
 
 The system SHALL define `Verdict` as a closed `StrEnum` with members `ok`, `paywall`, `block_page_detected`, `anti_bot`, `length_floor`, `content_type_mismatch`, `connection_error`, `timeout`, `not_found`, `rate_limited`, `proxy_unavailable`, `other`. The `Diagnostic` model SHALL carry the verdict plus an optional `subsystem: str | None` for sub-classification (e.g., `cloudflare`, `datadome`, `anubis`).
@@ -48,49 +20,6 @@ The system SHALL define `FetchStatus` as a closed `StrEnum` (`ok`, `failed`, `pa
 
 - **WHEN** code attempts to construct a `FetchResponse` with an out-of-set status, confidence, or cache value
 - **THEN** pydantic raises a validation error
-
-### Requirement: Router registration under `web`
-
-The system SHALL register the `fetch` tool inside a router class named `WebRouter` so the CLI surface is `a2web web fetch ...` and the MCP tool name remains `fetch`.
-
-#### Scenario: CLI verb grouping
-
-- **WHEN** the user runs `a2web --help`
-- **THEN** the output shows a `web` subcommand group, and `a2web web --help` lists `fetch` as a tool
-
-#### Scenario: MCP tool name is unprefixed
-
-- **WHEN** an MCP client lists tools from `a2web serve`
-- **THEN** the tool appears as `fetch` (not `web_fetch` or `web.fetch`)
-
-### Requirement: Server composition entrypoint
-
-The system SHALL expose `a2web.server.main()` as the single entrypoint registered to `[project.scripts] a2web`. `main()` SHALL build an `a2kit.App`, attach `WebRouter`, register `AppState` via `register_state(app)`, then invoke `a2kit.run(app)`. The composition SHALL NOT register a connections CLI.
-
-#### Scenario: CLI help is reachable
-
-- **WHEN** the user runs `a2web --help`
-- **THEN** the command exits 0 and prints help including `web` and `serve` subcommands
-
-#### Scenario: No connections subcommand
-
-- **WHEN** the user runs `a2web --help`
-- **THEN** the output does NOT include a `connections` subcommand group
-
-#### Scenario: Stdio MCP server starts
-
-- **WHEN** the user runs `a2web serve --transport=stdio` and sends an MCP `initialize` message
-- **THEN** the server responds with capability metadata including the `fetch` tool
-
-#### Scenario: Stub fetch invocation succeeds
-
-- **WHEN** the user runs `a2web web fetch --url=https://example.com`
-- **THEN** the command exits 0, prints a `FetchResponse` (default JSON format) with `tier="stub"`, `status="ok"`, a non-null `started_at`, and a narrative that mentions `diagnostics_default`
-
-#### Scenario: AppState provider is registered
-
-- **WHEN** `from a2web.server import app` is executed
-- **THEN** `app.has_provider(AppState)` returns `True`
 
 ### Requirement: Configuration via single YAML file plus env vars
 
@@ -120,58 +49,6 @@ The system SHALL NOT include Firecrawl or Bright Data API key fields in v0.1.
 - **WHEN** the YAML contains a `jina_key` field
 - **THEN** that field is ignored; `AppSettings().jina_key` resolves only from `A2WEB_JINA_KEY` (empty string when unset)
 
-### Requirement: CookieJarResource is registered via app.provide
-
-The system SHALL register `CookieJarResource` via `app.provide(build_cookie_jar)` in `src/a2web/server.py`. The factory SHALL be a named function (not a lambda) with an explicit return annotation, taking `settings: AppSettings` and `sqlite: SqliteResource` as DI kwargs. Insertion order SHALL place the registration AFTER `SqliteResource` (its dependency) and at the same nesting level as `build_browser_pool` and `build_llm_extractor`.
-
-`CookieJarResource` SHALL NOT be a member of `AppState`. It SHALL be surfaced at the tool seam as `Lazy[CookieJarResource]` on tools that may need it (`fetch`, `cookies_refresh`).
-
-#### Scenario: Provider registered
-
-- **WHEN** `from a2web.server import app` is executed
-- **THEN** `app.has_provider(CookieJarResource)` returns `True`
-
-#### Scenario: Factory is a named function
-
-- **WHEN** static analysis walks the providers registered on `app`
-- **THEN** the factory for `CookieJarResource` is a module-scope function named `build_cookie_jar` with a `-> CookieJarResource` return annotation
-
-#### Scenario: Lazy only — fetch tool seam
-
-- **WHEN** static analysis walks the `fetch` tool's signature
-- **THEN** the `cookie_jar` parameter is typed as `Lazy[CookieJarResource]` (not `CookieJarResource`)
-
-#### Scenario: Resource not on AppState
-
-- **WHEN** static analysis walks `AppState`
-- **THEN** `AppState` has no `cookie_jar` attribute
-
-### Requirement: CookiesRouter exposes the refresh tool
-
-The system SHALL register a new router class `CookiesRouter` with `slug = "cookies"` and `tools: ClassVar[tuple[Callable, ...]] = (refresh,)`. The router SHALL be attached to the `App` alongside `WebRouter` in `src/a2web/server.py`. The CLI surface SHALL be `a2web cookies refresh`. The MCP tool name SHALL be `refresh` (a2kit v0.39 uses the function name directly; the router slug controls CLI grouping only).
-
-The `cookies_refresh` tool SHALL declare a `cookie_jar: Lazy[CookieJarResource]` kwarg and a `state: AppState` kwarg. Neither SHALL appear in the MCP wire schema.
-
-#### Scenario: CLI group present
-
-- **WHEN** the user runs `a2web --help`
-- **THEN** the output lists both `web` and `cookies` subcommand groups
-
-#### Scenario: cookies refresh subcommand present
-
-- **WHEN** the user runs `a2web cookies --help`
-- **THEN** the output lists `refresh`
-
-#### Scenario: MCP tool list includes refresh
-
-- **WHEN** an MCP client lists tools from `a2web serve`
-- **THEN** the tool list contains both `fetch` and `refresh`
-
-#### Scenario: DI kwargs hidden from wire schema
-
-- **WHEN** an MCP client requests `cookies_refresh`'s input schema
-- **THEN** the schema's parameters list is empty (no `state`, no `cookie_jar`)
-
 ### Requirement: OperatorHint docstring acknowledges agent-readable code
 
 The `OperatorHint` docstring in `src/a2web/models.py` SHALL be updated to acknowledge that the `code` field is a stable agent-readable branch point. The previous claim that "the AI agent never reads these to decide a next action" SHALL be removed or softened, since existing codes (`llm_unavailable`, `browser_unavailable`, `captcha_redirect`) are already useful to agents in practice and `cookies_stale` extends this pattern.
@@ -188,64 +65,156 @@ The Pydantic schema for `OperatorHint` (field names, types, defaults) SHALL NOT 
 - **WHEN** `OperatorHint.model_json_schema()` is compared between the previous release and this change
 - **THEN** the schema is identical (field names, types, defaults, requirements)
 
-### Requirement: Canonical MCP tool names pinned under flat naming
+### Requirement: The app composes on the MCP server library directly, with no framework layer
 
-The system SHALL pin the canonical MCP name of each router verb verbatim via
-`canonical_name_override`, so the wire contract is unchanged by the a2kit v0.42+
-migration. (a2kit v0.42.0 / ADR-0028 derives the canonical name as
-`{router.slug}_{leaf}` by default, which would otherwise rename a2web's tools to
-`web_ask` / `web_fetch_raw` / `cookies_refresh`. a2web is installed globally and
-wired into operators' MCP configs under the **bare** names, so the override is
-load-bearing.) Specifically:
+a2web SHALL construct its MCP surface directly on the underlying MCP server
+library. There SHALL be no application-framework layer owning composition,
+dependency resolution, surface projection, or dispatch. Consequently there SHALL
+be no dependency-injection container, no provider registry, and no
+framework-derived runtime object.
 
-- `WebRouter.ask` SHALL expose canonical name `ask`.
-- `WebRouter.fetch_raw` SHALL expose canonical name `fetch_raw`.
-- `CookiesRouter.refresh` SHALL expose canonical name `refresh`.
+#### Scenario: No framework dependency remains
 
-The nested CLI surface (`a2web web ask`, `a2web cookies refresh`) SHALL be
-preserved by keeping the routers in place — the override changes only the MCP
-canonical name, not the CLI grouping.
+- **WHEN** the dependency set is inspected
+- **THEN** it contains the MCP server library directly and contains no
+  application-framework package
 
-#### Scenario: MCP client sees bare tool names, not flat slug-prefixed names
+#### Scenario: Tools are registered directly
 
-- **WHEN** an MCP client lists the tools exposed by `build_app()` over the
-  in-process test client
-- **THEN** the registered tool names include `ask`, `fetch_raw`, and `refresh`
-- **AND** they do NOT include `web_ask`, `web_fetch_raw`, or `cookies_refresh`
+- **WHEN** the server is built
+- **THEN** tools are registered on the MCP server object directly, without a
+  router-registry or surface-projection layer
 
-#### Scenario: CLI grouping is preserved
+### Requirement: A single composition root builds every long-lived resource
 
-- **WHEN** the CLI surface is enumerated
-- **THEN** the web verbs remain grouped under `a2web web ...` and the cookie
-  verb under `a2web cookies ...` (the routers are retained, not flattened to
-  App-level bare verbs)
+All long-lived resources SHALL be constructed in exactly one composition root,
+which SHALL also be the construction path used by tests, the evaluation CLI, and
+the benchmark harness. A second construction path for the same object graph SHALL
+NOT exist.
 
-### Requirement: MCP wire contract survives a2kit substrate upgrades
+#### Scenario: One composition root
 
-The a2web MCP wire contract SHALL be invariant across a2kit dependency upgrades:
-the installed binary serves over **stdio** and exposes the **bare** tool names
-`ask`, `fetch_raw`, and `refresh`. An a2kit version bump SHALL NOT alter the
-transport, the tool names, or the input schemas as observed by an MCP client.
-(a2web is installed globally and wired into operators' MCP configs under these
-names over stdio; a regression on either silently breaks every installed client.
-This requirement makes contract-preservation an explicit gate on every future
-substrate bump, not an incidental property.)
+- **WHEN** the codebase is analyzed
+- **THEN** exactly one function constructs the long-lived resource graph, and all
+  consumers obtain resources from it
 
-A substrate upgrade that would change the contract SHALL be treated as a real
-migration — the canonical-name pins (`canonical_name_override`) and the stdio
-entrypoint (`a2kit.run(app)` with `args: ["serve"]`) are load-bearing and SHALL
-be re-verified, not assumed, after each bump.
+#### Scenario: Tests substitute fakes through the same root
 
-#### Scenario: bare tool names survive the a2kit v0.44 bump
+- **WHEN** a test needs a fake resource
+- **THEN** it supplies a factory override to the composition root rather than
+  mutating a registry after construction
 
-- **WHEN** an MCP client lists the tools exposed by `build_app()` over the
-  in-process test client after the pin moves to a2kit v0.44
-- **THEN** the registered tool names include `ask`, `fetch_raw`, and `refresh`
-- **AND** they do NOT include `web_ask`, `web_fetch_raw`, or `cookies_refresh`
+### Requirement: Expensive resources are constructed only when their code path runs
 
-#### Scenario: transport is unchanged by the bump
+Resources whose construction has real cost SHALL be held as deferred handles and
+SHALL NOT be constructed unless the code path that needs them actually executes.
+Awaiting a deferred handle SHALL construct and enter the resource at most once
+per process, and subsequent awaits SHALL return the same instance. A resource
+whose construction failure is expected on an unconfigured install SHALL surface
+that failure per-request rather than at startup.
 
-- **WHEN** the installed binary is launched with `args: ["serve"]` after the
-  a2kit v0.44 bump
-- **THEN** it serves MCP over stdio (no http transport is configured or required)
+#### Scenario: An unused expensive resource is never constructed
+
+- **WHEN** a request is served entirely from cache or from a path that needs
+  neither a rendering engine nor a model provider
+- **THEN** neither resource is constructed and neither is entered
+
+#### Scenario: A deferred handle is memoized
+
+- **WHEN** a deferred handle is awaited more than once
+- **THEN** the underlying resource is constructed exactly once and the same
+  instance is returned
+
+#### Scenario: An unconfigured provider degrades per-request
+
+- **WHEN** no model provider is configured and a request needing one arrives
+- **THEN** the request fails with an explicit unavailability signal and the
+  process does not fail at startup
+
+### Requirement: Resources are torn down in reverse construction order
+
+Entered resources SHALL be released in reverse order of the order in which they
+were entered, so a resource is never released before something that was
+constructed using it. A resource whose entry raised SHALL NOT be released. A
+failure while releasing one resource SHALL NOT prevent the remaining resources
+from being released.
+
+#### Scenario: Dependency-safe unwind
+
+- **WHEN** a resource is constructed during another resource's entry
+- **THEN** the inner-constructed resource is released before the outer one
+
+#### Scenario: A failed entry is not released
+
+- **WHEN** a resource's entry raises
+- **THEN** its release is never invoked
+
+#### Scenario: A release failure is isolated
+
+- **WHEN** one resource's release raises
+- **THEN** the remaining resources are still released
+
+### Requirement: A tool's wire parameters are declared explicitly in its signature
+
+The parameters a tool advertises SHALL be exactly the parameters written in the
+registered function's signature. Whether a parameter is caller-facing or
+internally supplied SHALL NOT depend on an ambient registry, so that registering
+a new internal resource can never remove a caller-facing parameter from the
+advertised schema.
+
+#### Scenario: The advertised schema matches the source
+
+- **WHEN** a tool's advertised input schema is inspected
+- **THEN** it contains exactly the parameters written in the registered
+  function's signature, with their declared descriptions and defaults
+
+#### Scenario: Internal resources are not advertised
+
+- **WHEN** a tool needs an internal resource
+- **THEN** that resource is reached through the enclosing object rather than
+  declared as a parameter, and it cannot appear in the advertised schema
+
+### Requirement: A readiness probe asserts the substrate explicitly
+
+The readiness probe SHALL obtain its resource explicitly and SHALL assert only
+that the storage substrate is usable. It SHALL NOT assert that a model provider
+is configured, because the fetch-only surface serves correctly without one.
+
+#### Scenario: Readiness reflects the substrate
+
+- **WHEN** the readiness probe runs and storage opens
+- **THEN** the probe reports ready
+
+#### Scenario: Readiness ignores model configuration
+
+- **WHEN** no model provider is configured but storage opens
+- **THEN** the probe still reports ready
+
+### Requirement: Typed events are emitted synchronously and cannot disrupt the caller
+
+Typed event payloads SHALL be emitted through a synchronous call. Event emission
+SHALL NOT require awaiting, because the asynchronous form existed only to serve a
+live-notification forward that has no consumer.
+
+Every event sink SHALL be isolated such that a failing sink cannot propagate an
+exception into the emitting code path, and a sink failure SHALL NOT recurse
+through the event system. Each event SHALL be delivered to a given sink exactly
+once.
+
+#### Scenario: Emission does not require awaiting
+
+- **WHEN** a typed event is emitted from application code
+- **THEN** the call is synchronous and the payload fields are preserved on the
+  emitted record
+
+#### Scenario: A failing sink cannot break the caller
+
+- **WHEN** a sink raises while handling an event
+- **THEN** the exception does not propagate into the emitting code path and the
+  remaining sinks still receive the event
+
+#### Scenario: No duplicate delivery
+
+- **WHEN** an event that produces external telemetry is emitted
+- **THEN** exactly one telemetry record is produced, not two
 

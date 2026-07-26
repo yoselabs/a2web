@@ -520,7 +520,7 @@ SHALL preserve today's empty-Completion degrade seam (it SHALL NOT begin raising
 exception to downstream callers that never previously saw one), but it SHALL NOT
 silently discard the failure. Specifically:
 
-1. The catch site SHALL emit an `await a2kit.log.warning(...)` typed event naming the
+1. The catch site SHALL emit an `await a2web.log.warning(...)` typed event naming the
    failure (model id + the provider error message) so a live extraction outage is
    visible to operators — matching the `ResourceUnavailable` path, which already
    surfaces a cause. Swallowing the error with no trace SHALL NOT occur.

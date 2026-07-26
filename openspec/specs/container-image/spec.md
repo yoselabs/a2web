@@ -28,7 +28,7 @@ The image SHALL contain the Chromium binary and system libraries the browser tie
 
 ### Requirement: Configuration and secrets come from the environment at runtime
 
-The image SHALL read all configuration from the environment it already supports (`A2WEB_*`, `A2KIT_*`, and provider/secret env such as `ANTHROPIC_API_KEY` / `A2WEB_LLM_*` / `A2WEB_ZYTE_KEY` / `GOOGLE_*`). Secrets SHALL NOT be baked into any image layer. The sqlite cache SHALL live at a path that can be backed by a mounted volume so it survives container restarts.
+The image SHALL read all configuration from the environment it already supports (`A2WEB_*` and provider/secret env such as `ANTHROPIC_API_KEY` / `A2WEB_LLM_*` / `A2WEB_ZYTE_KEY` / `GOOGLE_*`). Secrets SHALL NOT be baked into any image layer. The sqlite cache SHALL live at a path that can be backed by a mounted volume so it survives container restarts.
 
 #### Scenario: Env-supplied secret reaches settings
 

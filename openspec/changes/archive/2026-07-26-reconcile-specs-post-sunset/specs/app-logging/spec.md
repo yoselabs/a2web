@@ -9,7 +9,7 @@ All a2web operational and diagnostic logging SHALL flow through the single proce
 - **WHEN** an architecture test walks every `.py` file under `src/a2web/`
 - **THEN** no module calls `structlog.get_logger(...)` (or otherwise instantiates a structlog logger) as an emit channel
 
-#### Scenario: a2web logs obey a single mute point
+#### Scenario: a2web logs obey the kill switch
 
 - **WHEN** the `a2web` logger is suppressed (level raised above the emitted level, or disabled) and a2web exercises a code path that previously emitted a `structlog` line (e.g. an unavailable provider)
 - **THEN** no a2web log line is written to stdout or stderr

@@ -1,6 +1,6 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
-### Requirement: CookieJarResource mirrors a single browser profile into SqliteResource
+### Requirement: CookieJarResource mirrors a browser profile into the shared SqliteResource
 
 The system SHALL define `CookieJarResource` in `src/a2web/cookie_jar.py` with `__aenter__` / `__aexit__` lifecycle wrappers, wired in the ONE composition root `components.build_components()` and surfaced at the tool seam as a `Lazy[CookieJarResource]` thunk on the frozen `Components` dataclass. The thunk is constructed on first await and entered via `ResourceScope` (LIFO teardown from the FastMCP lifespan exit). The resource SHALL be domain-coupled (reads `AppSettings`, depends on `SqliteResource`); it SHALL NOT be a member of `AppState`.
 
@@ -76,6 +76,8 @@ The resource SHALL create the tables on first `__aenter__` if missing (idempoten
 - **WHEN** `last_refresh_at` is 30 hours ago and `cookie_stale_after_hours=24`
 - **THEN** `staleness().is_stale == True`
 
+## MODIFIED Requirements
+
 ### Requirement: cookies refresh tool
 
 The system SHALL expose a `refresh` MCP tool registered by `routers.register_cookies_tools` with `@mcp.tool(...)`, gated on `expose_cookies_tool` (so the tool is ABSENT — not present-and-failing — on a served a2web with no local browser). The CLI surface SHALL be `a2web cookies refresh`. The tool SHALL accept no arguments (profile and browser come from `AppSettings`) and SHALL return a pydantic model `CookiesRefreshResult(profile, browser, refreshed_count, refreshed_at)` defined at module scope. When `cookie_source == "none"` the tool SHALL return a result with `refreshed_count = 0` and append a notice to a `notes: str` field explaining that cookie source is disabled.
@@ -128,3 +130,19 @@ The system SHALL, on every fetch where `cookie_source != "none"` AND `staleness(
 
 - **WHEN** `cookie_source == "none"`, regardless of mirror state
 - **THEN** `response.operator_hints` contains no entry with `code == "cookies_stale"` and no `CookiesStale` event is emitted
+
+## REMOVED Requirements
+
+### Requirement: CookieJarResource mirrors a single browser profile into SqliteResource
+
+**Reason**: The base requirement declared the resource "registered via
+`app.provide`" — the a2kit DI-container registration path, retired by
+`sunset-a2kit-dependency`. The resource is now wired in the one composition root
+`components.build_components()` and surfaced as a `Lazy[CookieJarResource]` thunk
+on `Components`.
+
+**Migration**: Re-added above as "CookieJarResource mirrors a browser profile
+into the shared SqliteResource" — identical table shape, `get_for_host`, and
+staleness contract, with the registration scenario rewritten to the composition
+root. Lazy wiring is owned by the `app-composition` requirement "A single
+composition root builds every long-lived resource".

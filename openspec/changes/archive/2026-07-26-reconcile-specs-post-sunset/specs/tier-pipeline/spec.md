@@ -39,7 +39,7 @@ Phases that consume these resources SHALL NOT check `if fc.<resource> is not Non
 - **WHEN** the `query` tool is invoked through the MCP transport
 - **THEN** all three `Lazy[T]` resources resolve to real values via the composition-root thunks on `Components`; no `None` check is required at the phase seam (phases `await` the thunk and `try/except ResourceUnavailable`)
 
-#### Scenario: Eval harness stub raises operator-hint-ready error when no real resource
+#### Scenario: Eval harness stub raises operator-hint-ready error when no real pool
 
 - **WHEN** an eval system runs with a stub `Lazy` in place of a real resource and a phase awaits the stub
 - **THEN** the stub raises `ResourceUnavailable("eval harness not provisioned with <resource>")` which the phase catches and converts to `OperatorHint(code="browser_unavailable", ...)`

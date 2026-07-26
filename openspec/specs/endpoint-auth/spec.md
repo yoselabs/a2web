@@ -5,7 +5,7 @@ TBD - created by archiving change deployable-container-ci. Update Purpose after 
 ## Requirements
 ### Requirement: Config-gated Google OAuth on the HTTP endpoint
 
-When Google OAuth is configured via environment (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`), a2web SHALL register a2kit's bundled `GoogleAuth` AuthSpec on the HTTP-served surface so that reaching the served MCP endpoint requires a valid Google-authenticated principal. When it is not configured, no auth SHALL be registered and behavior SHALL be unchanged.
+When Google OAuth is configured via environment (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`), a2web's `serve_http_main()` SHALL register a FastMCP Google OAuth provider on the HTTP-served surface by passing it to `build_mcp_server(auth=provider)`, so that reaching the served MCP endpoint requires a valid Google-authenticated principal. When it is not configured, no auth provider SHALL be passed and behavior SHALL be unchanged.
 
 #### Scenario: Configured deployment requires authentication
 
@@ -15,7 +15,7 @@ When Google OAuth is configured via environment (`GOOGLE_CLIENT_ID` / `GOOGLE_CL
 #### Scenario: Unconfigured deployment is unchanged
 
 - **WHEN** the server is started with no `GOOGLE_*` env set (e.g. local stdio use)
-- **THEN** no AuthSpec is registered and the endpoint behaves exactly as before this change
+- **THEN** no auth provider is passed to `build_mcp_server` and the endpoint behaves exactly as before this change
 
 ### Requirement: Auth secrets are environment-only
 
@@ -32,13 +32,14 @@ a2web SHALL protect its HTTP MCP endpoint with Google OAuth when, and only when,
 Google OAuth is fully configured via environment. Configuration is env-only:
 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and a public `GOOGLE_BASE_URL` (with
 optional `GOOGLE_REQUIRED_SCOPES` and `GOOGLE_REDIRECT_PATH`). When configured
-and the transport is HTTP, a2web SHALL construct a FastMCP `GoogleProvider` and
-serve it via `serve_process(runtime, …, mcp_options={"auth": provider})`.
+and the transport is HTTP, `serve_http_main()` SHALL construct a FastMCP
+`GoogleProvider` and serve it via `build_mcp_server(auth=provider)` →
+`mcp.run(transport="http")`.
 
 #### Scenario: Configured HTTP endpoint requires authentication
 
 - **WHEN** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_BASE_URL` are all set and a2web serves over HTTP
-- **THEN** a `GoogleProvider` built from those values is passed to the MCP server as `mcp_options={"auth": provider}`, so an anonymous MCP request is rejected and a valid Google principal is admitted
+- **THEN** a `GoogleProvider` built from those values is passed to `build_mcp_server(auth=provider)`, so an anonymous MCP request is rejected and a valid Google principal is admitted
 
 #### Scenario: base_url is the public redirect origin
 
@@ -48,13 +49,14 @@ serve it via `serve_process(runtime, …, mcp_options={"auth": provider})`.
 ### Requirement: Unconfigured deployments are unchanged and auth-free
 
 When Google OAuth is not configured, a2web SHALL behave exactly as before — no
-auth middleware, the current `a2kit.run(app)` serve path — for every transport.
-OAuth SHALL never engage on stdio or the CLI.
+auth middleware, the current `serve_http_main()` → `mcp.run(transport="http")`
+serve path with no `auth=` provider — for every transport. OAuth SHALL never
+engage on stdio or the CLI.
 
 #### Scenario: No Google config → open endpoint, unchanged path
 
 - **WHEN** none of the `GOOGLE_*` variables are set
-- **THEN** a2web serves via the current `a2kit.run(app)` path with no auth provider, identical to pre-change behavior
+- **THEN** a2web serves via the current `serve_http_main()` → `mcp.run(transport="http")` path with no auth provider, identical to pre-change behavior
 
 #### Scenario: stdio and CLI never gate on OAuth
 

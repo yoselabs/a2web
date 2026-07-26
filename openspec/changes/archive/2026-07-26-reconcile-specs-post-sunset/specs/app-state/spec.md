@@ -1,6 +1,6 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
-### Requirement: AppState is a dataclass holding shared resources
+### Requirement: AppState holds only the always-on shared resources
 
 The system SHALL define `AppState` in `src/a2web/state.py` as `@dataclass(slots=True)` holding ONLY the always-on resources of the fetch pipeline: a non-optional `settings: AppSettings`, `breakers: AsyncCircuitBreakerFactory`, `proxy_pool: ProxyPool`, and `sqlite: SqliteResource`. The heavy/conditional resources (`browser_backend`, `llm_extractor`, `cookie_jar`) SHALL NOT be fields on `AppState`; they are `Lazy[T]` thunks on `Components` and reach the tool seam unresolved. `AppState` SHALL be constructed only through the single composition root `components.build_components(...)`.
 
@@ -15,6 +15,21 @@ The system SHALL define `AppState` in `src/a2web/state.py` as `@dataclass(slots=
 - **THEN** `browser_backend`, `llm_extractor`, and `cookie_jar` are `Lazy[T]` thunks on `Components` (resolved on first await), not attributes of `AppState`
 
 ## REMOVED Requirements
+
+### Requirement: AppState is a dataclass holding shared resources
+
+**Reason**: The base requirement was a PR4-era stub: it declared `log_writer`
+and `browser_pool` placeholder fields, `sqlite`/`proxy_pool` defaulting to `None`,
+and scenarios keyed on `register_state(app)` and "PR4"/"PR7" phasing — all a2kit
+composition-era machinery, retired by `sunset-a2kit-dependency`. The live
+`AppState` holds only the four always-on resources and is built by the one
+composition root.
+
+**Migration**: Replaced by the ADDED requirement "AppState holds only the
+always-on shared resources", which declares the current shape (`settings` /
+`breakers` / `proxy_pool` / `sqlite`); the single-composition-root construction
+guarantee is owned by the `app-composition` requirement "A single composition root
+builds every long-lived resource".
 
 ### Requirement: Per-App singleton registration
 

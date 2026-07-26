@@ -208,7 +208,7 @@ When the configured URL is rewritten via `RewriteUrl` and the tier loop restarts
 
 ### Requirement: Stale-cookies operator hint appended exactly once per stale fetch
 
-The orchestrator SHALL consult `CookieJarResource.staleness()` once per fetch when `cookie_source != "none"`. When `staleness().is_stale == True`, the orchestrator SHALL append a single `OperatorHint(code="cookies_stale", message=..., fix="Run `a2web cookies refresh`")` to `FetchResponse.operator_hints` and emit one `a2kit.ldd.event(CookiesStale(profile, browser, age_hours))` for the fetch.
+The orchestrator SHALL consult `CookieJarResource.staleness()` once per fetch when `cookie_source != "none"`. When `staleness().is_stale == True`, the orchestrator SHALL append a single `OperatorHint(code="cookies_stale", message=..., fix="Run `a2web cookies refresh`")` to `FetchResponse.operator_hints` and emit one `CookiesStale(profile, browser, age_hours)` event for the fetch via `await a2web.log.info(...)`.
 
 The hint SHALL NOT be appended more than once per fetch even when the tier loop restarts via `RewriteUrl`. The hint SHALL NOT be appended when `cookie_source == "none"`.
 
@@ -234,29 +234,6 @@ The message SHALL include the numeric `age_hours` (or `"never"` if `last_refresh
 - **WHEN** `cookie_source == "none"`
 - **THEN** `response.operator_hints` contains no `cookies_stale` entry and `CookiesStale` is not emitted
 
-### Requirement: State construction goes through a single bootstrap factory
-
-The codebase SHALL expose exactly one async factory `bootstrap_state(settings: AppSettings) -> tuple[AppState, Resources]` in `src/a2web/state.py`. `Resources` SHALL be a frozen dataclass carrying the three Lazy-eligible resources (`browser_pool: BrowserPool`, `llm_extractor: LlmExtractorResource`, `cookie_jar: CookieJarResource`).
-
-Production composition (`server.py`), eval harness (`llm_eval/__main__.py`), and test fixtures (`tests/conftest.py::make_default_state`) SHALL all delegate to this factory. Direct manual construction of `BrowserPool` / `LlmExtractorResource` / `CookieJarResource` outside the factory is forbidden.
-
-A new resource added to the bundle SHALL automatically appear in all three construction paths without per-path edits.
-
-#### Scenario: Production composition uses bootstrap_state
-
-- **WHEN** `server.py` builds the App's provider chain
-- **THEN** the resources come from `bootstrap_state(...)`, not from individual ad-hoc constructors
-
-#### Scenario: Eval harness wires browser_pool via bootstrap_state
-
-- **WHEN** `llm_eval/__main__.py` constructs systems for the bench
-- **THEN** `BrowserPool` reaches `A2WebDetail` and `A2WebExtract` via the factory's `Resources` bundle, not via a manually constructed pool that could be forgotten (preventing the class of regression that caused the v0.22 bench gap)
-
-#### Scenario: Tests bypass DI but still use the factory
-
-- **WHEN** `tests/conftest.py::make_default_state` is invoked
-- **THEN** it returns the `(AppState, Resources)` tuple from `bootstrap_state`, with stubs as needed for resources that tests want to omit
-
 ### Requirement: FetchContext exposes Lazy[T] resources as non-optional
 
 `FetchContext.browser_pool`, `FetchContext.llm_extractor`, and `FetchContext.cookie_jar` SHALL be declared as `Lazy[BrowserPool]`, `Lazy[LlmExtractorResource]`, `Lazy[CookieJarResource]` respectively — NO `| None` union. When a direct-call path does not provision a real resource, the caller SHALL pass a stub Lazy whose invocation raises a `ResourceUnavailable` exception carrying an operator-hint-ready reason string.
@@ -265,13 +242,13 @@ Phases that consume these resources SHALL NOT check `if fc.<resource> is not Non
 
 #### Scenario: Production tool invocation passes real Lazy
 
-- **WHEN** WebRouter.ask is invoked through the MCP transport
-- **THEN** all three Lazy[T] params resolve to real resources via a2kit DI; no `None` check is required at the phase seam
+- **WHEN** the `query` tool is invoked through the MCP transport
+- **THEN** all three `Lazy[T]` resources resolve to real values via the composition-root thunks on `Components`; no `None` check is required at the phase seam (phases `await` the thunk and `try/except ResourceUnavailable`)
 
 #### Scenario: Eval harness stub raises operator-hint-ready error when no real pool
 
-- **WHEN** an eval system runs with `Resources(browser_pool=stub)` and a phase awaits the stub
-- **THEN** the stub raises `ResourceUnavailable("eval harness not provisioned with BrowserPool")` which the phase catches and converts to `OperatorHint(code="browser_unavailable", ...)`
+- **WHEN** an eval system runs with a stub `Lazy` in place of a real resource and a phase awaits the stub
+- **THEN** the stub raises `ResourceUnavailable("eval harness not provisioned with <resource>")` which the phase catches and converts to `OperatorHint(code="browser_unavailable", ...)`
 
 ### Requirement: Verdict is the pure projection of the decision log
 
