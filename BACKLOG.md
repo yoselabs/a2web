@@ -1930,3 +1930,58 @@ baseline, not a regression. `gh-trending-best` scoring 5 on `a2web_detail` and 2
 on `a2web_extract` for the same page is the sharpest single cell, since the
 systems differ only in envelope shape. Worth one targeted look before reading
 anything into the mean.
+
+
+## Root cause of the link-loss defect — consumption, not coverage (2026-07-28)
+
+Prompted by a fair review question on the fix: *shouldn't the trafilatura call
+and its `include_links` be encapsulated in a shelf package?* It already is. That
+answer inverted the diagnosis.
+
+`content_extract.extract_markdown(html, url, *, include_links=False)` is shelf-
+owned, returns markdown + links + headings + metadata from ONE off-thread parse,
+and is imported by `fetcher.py:27`. **Six sites call `trafilatura.extract`
+directly instead** — `tiers/browser.py`, `tiers/archive.py`,
+`handlers/{wikipedia,reddit,twitter}.py` — each re-deriving a subset and dropping
+links and headings on the floor.
+
+**Chronology kills the "pre-shelf legacy" excuse:**
+
+| date | event |
+|---|---|
+| 2026-05-10 | `tiers/browser.py` added WITH its own `trafilatura.extract` — while `fetcher.py:28` imported a canonical `extract_markdown` **the same day** |
+| 2026-05-12 | that extractor promoted to `packages/content_extract` |
+| 2026-07-08 | promoted again to the shelf, in-tree copy deleted |
+
+The canonical extractor existed when the first bypass was written. Each promotion
+moved the correct copy further up the stack and left the bypass untouched — the
+distance grew and nothing noticed, because "is everyone using the canonical
+thing?" was never a checked property.
+
+**So promotion is the wrong lever.** More shelf packages without a consumption
+guard yields more correct packages with more bypasses around them.
+
+**The gap is that exactly ONE funnel guard exists.** `test_json_loads_funnel.py`
+bans `json.loads` outside `wobble/`. Nothing funnels trafilatura, which has the
+identical shape: a low-level library with a canonical wrapper whose guarantees
+are silently lost by going direct.
+
+Direct third-party imports in `src/a2web/`, as candidates for the same treatment:
+
+    4  import trafilatura   ← canonical wrapper exists, no guard  (fixed by the change)
+    4  import httpx         ← UNCHECKED: is there a canonical wrapper being bypassed?
+    3  import aiosqlite     ← UNCHECKED
+    2  import yaml          ← UNCHECKED
+
+*Probe before guarding any of the three:* a funnel guard is only worth writing
+where a canonical wrapper actually exists and is being bypassed. Direct use of a
+library with no wrapper is not a defect, and a guard written from a pattern
+rather than an incident still has to earn its floor.
+
+**Same failure class as the dead `next_links` axis** (closed the same day): a
+correct mechanism, silently bypassed or starved, with no guard to notice. Both
+would have been caught by guards nobody had yet been bitten into writing — every
+architecture guard in this repo was written AFTER its incident. The trafilatura
+funnel is the first written from a pattern instead of a wound.
+
+Tracked by `openspec/changes/restore-links-on-pre-rendered-tiers/`.
