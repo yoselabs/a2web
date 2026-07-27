@@ -1,0 +1,100 @@
+# Tasks
+
+## 1. Audit before guarding (D4)
+
+- [ ] 1.1 Per handler, record whether its success is defined by a parse yielding
+      units, and whether it can distinguish "parsed nothing" from "parsed a
+      genuinely empty page". A grep found no zero-parse guard in seven of nine;
+      that is a hint, not the answer. Write the table into the change.
+- [ ] 1.2 Per handler, record which `re.compile` sites run over MARKUP (in
+      scope for conversion, later) versus over URLs / JSON / free text (out of
+      scope, regex is right there). Eleven files call `re.compile`; the split
+      matters and is not obvious from the count.
+- [ ] 1.3 Name any handler where the guard MUST NOT be applied, with the reason.
+      A handler that returns non-`ok` on a real empty listing sends the cascade
+      to a browser for nothing.
+
+## 2. Prove the defect before fixing it
+
+- [ ] 2.1 Capture a real arXiv listing page to `tests/fixtures/`. Record the
+      capture date and the entry count the page advertises for itself
+      ("showing N of N entries") — that count is the guard's non-vacuity floor.
+- [ ] 2.2 Failing test: the arXiv listing handler yields entries commensurate
+      with the captured page's advertised count. MUST fail today, at zero.
+- [ ] 2.3 Failing test: a listing parse yielding zero entries does not return
+      `Verdict.ok`. MUST fail today.
+- [ ] 2.4 Note in the commit which EXISTING test stayed green throughout
+      (`test_arxiv_listing_html_parser_extracts_entries`) and why — the
+      hand-written fixture is the oracle-endogeneity instance the design is
+      built on, and it is worth naming once, precisely.
+
+## 3. The verdict guard (D1 — first, because it is the defect)
+
+- [ ] 3.1 `handlers/_common.py` gains the zero-yield helper, beside
+      `empty_result` / `map_non_ok`. Not inline in the handler — the audit may
+      find siblings, and a second inline copy is how the four-way install
+      duplication happened one change ago.
+- [ ] 3.2 `arxiv.py::_fetch_listing` consults its parse yield before choosing a
+      verdict.
+- [ ] 3.3 Apply to whichever handlers task 1.1 identified, and to none it
+      excluded.
+- [ ] 3.4 Confirm 2.3 passes.
+
+## 4. The parser (D2 — second, because it is the instance)
+
+- [ ] 4.1 Replace `_LIST_ABS_RE` / `_LIST_TITLE_RE` / `_LIST_AUTHORS_RE` and
+      `_parse_listing_entries` with a selectolax walk: `dl#articles` →
+      `zip(dt, dd)` → `a[title='Abstract']` href, `div.list-title`,
+      `div.list-authors`. Delete the regexes; do not leave them as a fallback —
+      a fallback that fires on a real page hides the failure the guard exists to
+      surface.
+- [ ] 4.2 Verify the entry count matches the page's OWN advertised count, not
+      just "more than zero". The tolerant regex found 50 where the page says 47;
+      matching the page's count is the correctness claim, robustness is the
+      side-benefit.
+- [ ] 4.3 Replace the hand-written fixture in
+      `test_arxiv_listing_html_parser_extracts_entries` with the capture, or
+      state explicitly what that test is now for. Do not leave a hand-written
+      fixture standing as the oracle for whether the parser matches arXiv.
+- [ ] 4.4 Confirm 2.2 passes.
+
+## 5. Gate
+
+- [ ] 5.1 `make check` green, coverage ≥85%.
+- [ ] 5.2 `make arch` green; `uv run tach check` clean.
+- [ ] 5.3 Every new guard watched failing (task 2) and carrying a non-vacuity
+      floor.
+- [ ] 5.4 Name any existing test that asserted the old behaviour and had to
+      change. `test_arxiv_listing_candidates_shape` and the happy-path test both
+      touch this parser.
+
+## 6. Evidence
+
+- [ ] 6.1 Live probe: `ArxivHandler.fetch("https://arxiv.org/list/cs.CL/recent")`
+      yields entries, `next_links` non-empty, `content_md` well above the length
+      floor, verdict `ok`. Record the before/after side by side.
+- [ ] 6.2 Re-run `--only listing --axis next_links --mode detail` on a
+      subscription provider (ADR-0016). **A non-move is information, not
+      failure** (D5) — this is the fourth blocker found on
+      `listing-answer-always-leaves-an-index` and there is no basis for
+      believing it is the last. Report what moved and what did not.
+- [ ] 6.3 The arXiv cells now exercise a handler that was dead, so their
+      before/after numbers are NOT a regression comparison. Say so explicitly
+      rather than presenting a delta.
+- [ ] 6.4 Check whether the handler now beating the browser is actually better.
+      Handler output is terse and structured; browser output is prose with 484
+      links. Cheaper and faster is not automatically better, and the bench is
+      what says which.
+
+## 7. Close the loop
+
+- [ ] 7.1 BACKLOG: the ten remaining regex-over-markup handler sites, scoped by
+      task 1.2's split. Named so the pattern is not lost — the failure mode the
+      trafilatura funnel exists to prevent.
+- [ ] 7.2 BACKLOG: `record_mine` returns `None` on a `<dl>/<dt>/<dd>` listing.
+      A definition-list listing is a real and common shape, and this is why the
+      digest gate declined on arXiv even with 484 links available. Shelf
+      promotion candidate; wants a second example first.
+- [ ] 7.3 BACKLOG or CLAUDE.md: the captured-not-hand-written fixture rule. It
+      now has a named instance in this repo, which is the bar the repo sets for
+      turning a lesson into a rule.

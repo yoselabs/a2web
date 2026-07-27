@@ -2100,25 +2100,31 @@ early return skipped the structured ladder that PRODUCES those candidates —
 `pre_rendered` optimisation exists to avoid. Fixed in
 `narrow-the-pre-rendered-extraction-skip`. Do not reopen the gate.
 
-## NEXT — a losing tier's structured output is discarded, not merged (L, 2026-07-28)
+## RETIRED (WRONG) — "a losing tier's structured output is discarded" (2026-07-28)
 
-`handlers/arxiv.py::_fetch_listing` parses the listing into entries and builds
-`next_links` from them — a precise, natively-known index. The gate then returns
-`length_floor` on the handler's markdown, the browser escalates, and the
-browser's `TierResult` REPLACES the handler's wholesale. The parsed entries and
-their links are discarded.
+Filed and retired the same day. It claimed arXiv's handler builds a correct
+index that the browser escalation throws away. Run rather than read, the handler
+returns `next_links: 0` and 40 chars of markdown. Nothing correct is discarded.
+Filed from reading that `_parse_listing_entries` exists and inferring it works —
+the fourth wrong diagnosis in this investigation, all four from trusting a read
+over a run. Superseded by the entry below.
 
-So `arxiv.org/list/cs.CL/recent` — the canonical "no index was left" corpus case,
-now three failed rounds deep — has had a correct index available at tier 0 the
-entire time, on a path that throws it away. Verified 2026-07-28 by direct probe:
-`records=None`, `0` JSON payloads, `links=484`, `digest=None`, while the handler
-that lost the gate had already parsed the entries.
+## NEXT — a handler that parses nothing reports success (M, 2026-07-28)
 
-Different defect class from the three rounds so far (missing parse / dropped copy
-/ starved gate). Reopens the deferred JSON-API-handler question with the second
-concrete example both prior designs said they were waiting for. Design question:
-merge a losing tier's structured fields into the winner, or let a handler mark
-its index as survivable? Do not decide from this one example.
+`handlers/arxiv.py::_fetch_listing` returns `Verdict.ok` with ZERO parsed
+entries, and `_render_listing` renders that as a confident `## Papers (0)`. A
+parser that matched nothing reports success.
+
+The instance: all three listing regexes have rotted. arXiv serves single-quoted
+attributes and `<a href ="/abs/…">` (space before the `=`); the patterns require
+double quotes and `href="`. Measured on the live page — `_LIST_ABS_RE` 0 matches
+vs 50 for a tolerant equivalent, `_LIST_TITLE_RE` 0, `_LIST_AUTHORS_RE` 0.
+
+The defect: the ok-with-nothing is why this rotted silently. Same shape as the
+empty-vs-wall invariant — a confident empty asserted with no evidence the page
+was empty. Fix the guard first, then the patterns; fixing only the patterns
+guarantees a silent repeat at arXiv's next markup change. Ask whether the other
+eight handlers have the same hole.
 
 ## Guard candidate — a spec requirement naming a deleted field (S, 2026-07-28)
 
