@@ -41,6 +41,7 @@ from .models import (
     listing_partial_hint,
     llm_error_hint,
 )
+from .packages.llm_extract import RoutingOutcome
 
 if TYPE_CHECKING:
     from record_mine import RecordSet
@@ -298,6 +299,62 @@ def _compose_other_pages(fr: FetchResponse, routing: RouterPayload | None) -> li
     return merged[:_NEXT_LINKS_CAP]
 
 
+#: The routing arms on which an empty index is a LOSS rather than a finding.
+#: `RECOVERED` is excluded because the model read the page and reported nothing
+#: to index — that is a judgement, not a gap. `PROVIDER_ERROR` is excluded
+#: because the failure is already reported as itself; saying it twice in
+#: different words does not help the caller. `None` (routing never requested)
+#: is excluded by construction.
+_INDEX_LOSS_ARMS = (RoutingOutcome.UNPARSABLE, RoutingOutcome.UNCLASSIFIED)
+
+
+def _index_loss_hint(
+    *,
+    outcome: RoutingOutcome | None,
+    also_here: list[str],
+    other_pages: list[OtherPage],
+    options: list[ListingOption],
+) -> list[OperatorHint]:
+    """One `warning` when the withheld body left NO index behind.
+
+    ADR-0015 says a `query` that withholds the page body must leave a faithful
+    index of what it withheld. When the router envelope is lost, that index is
+    lost with it — and the caller, which never sees the body, cannot tell an
+    empty index apart from a page that genuinely had nothing to point at. This
+    hint closes the "never *silently*" clause.
+
+    **Gated on the DELIVERED index, not on routing loss.** The wire index has
+    three independent sources: the LLM payload (`also_here` / `other_pages`),
+    DOM-mined continuation links folded into `other_pages`, and the DOM-mined
+    `options` shelf. Routing loss removes only the first. A hint gated on
+    routing loss alone fires on responses carrying a perfectly good index from
+    the other two — measured on HN, where the LLM supplied zero `other_pages`
+    while the wire carried a populated block from DOM mining. The condition
+    that matches the actual harm is "the caller got no index at all".
+
+    Deliberately `warning`, never `critical`: nothing here suggests the
+    retrieval failed. The page was fetched, the answer is real, and a re-fetch
+    would not repair a formatting artifact — status describes retrieval, hints
+    describe extraction degradation.
+    """
+    if outcome not in _INDEX_LOSS_ARMS:
+        return []
+    if also_here or other_pages or options:
+        return []
+    return [
+        OperatorHint(
+            code="index_lost",
+            message=(
+                "The page body was withheld and the extractor's index of it did not survive "
+                "parsing, so this answer may omit content the page carried without saying so. "
+                "The answer itself is unaffected."
+            ),
+            fix="Call fetch_raw on this same URL to read the body — it is served from cache, so it costs no new fetch.",
+            severity="warning",
+        )
+    ]
+
+
 # --------------------------------------------------------------------- #
 # Top-level builder
 # --------------------------------------------------------------------- #
@@ -494,6 +551,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # rank-don't-skip carrier — a PrivateAttr, set after construction (off the
     # fetch_raw wire + schema; lifted onto AskResponse by build_ask_response).
     response._options = _records_to_options(fc.record_set)
+    response._routing_outcome = fc.routing_outcome
     return response
 
 
@@ -634,6 +692,17 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     if is_confirmed_empty and not (answer or "").strip():
         answer = _EMPTY_RESULT_ANSWER
 
+    other_pages = _compose_other_pages(fr, routing)
+    options = list(fr._options) if is_listing else []
+    op_hints.extend(
+        _index_loss_hint(
+            outcome=fr._routing_outcome,
+            also_here=list(routing.also_here) if routing is not None else [],
+            other_pages=other_pages,
+            options=options,
+        )
+    )
+
     return AskResponse(
         url=fr.url,
         status=fr.status,
@@ -662,9 +731,9 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         diagnostics=list(fr.diagnostics) if debug else [],
         obstacle=routing.obstacle if routing is not None else None,
         also_here=list(routing.also_here) if routing is not None else [],
-        other_pages=_compose_other_pages(fr, routing),
+        other_pages=other_pages,
         refinement_axes=refinement_axes,
-        options=list(fr._options) if is_listing else [],
+        options=options,
     )
 
 

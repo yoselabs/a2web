@@ -82,7 +82,7 @@ from .models import (
 from .packages.block_detector import LENGTH_FLOOR, THIN_FALLTHROUGH, looks_like_unrendered_spa
 from .packages.block_detector import evaluate as _package_evaluate
 from .packages.escalation import EscalationSignal
-from .packages.llm_extract import LlmNextLink, OtherPageBoundary, RouterPayload
+from .packages.llm_extract import LlmNextLink, OtherPageBoundary, RouterPayload, RoutingOutcome
 from .settings import AppSettings
 from .state import AppState, ResourceUnavailable, unavailable_lazy
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult
@@ -342,6 +342,9 @@ class FetchContext:
     # from packages/llm_extract; projected into pydantic at the seam in
     # `fetcher_response.build_response`.
     routing: RouterPayload | None = None
+    # What happened to that envelope. `None` when routing was never requested —
+    # which `routing is None` alone cannot distinguish from a parse failure.
+    routing_outcome: RoutingOutcome | None = None
     include_routing: bool = True
     # v1 link-affordances — the closed link-digest fed to the extractor for
     # `{{n}}` handle references; built in `_phase_extract_answer` gated on a
@@ -2512,6 +2515,7 @@ async def _phase_extract_answer(
     # None. v1 link-affordances: rehydrate `{{n}}` handles → real hrefs against
     # the closed digest set (unknown handles dropped, never guessed).
     fc.routing = _rehydrate_routing_handles(result.routing, fc.link_digest)
+    fc.routing_outcome = result.routing_outcome
     # LLM-side partialness detection (superset of the regex oracle) now that the
     # model's `item_total_seen` is available — closes the noun-list language gap.
     _apply_llm_listing_oracle(fc)

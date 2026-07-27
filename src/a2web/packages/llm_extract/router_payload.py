@@ -71,15 +71,20 @@ class RefinementAxisBoundary:
 class RouterPayload:
     """The full router-shape payload (boundary side).
 
-    Required fields (`answer`, `structural_form`, `shape`) MUST be populated;
-    the parser returns None for the whole payload when any is missing.
+    `answer` MUST be populated — without it the envelope is unrecoverable and
+    the parser raises. `structural_form` / `shape` are requested-but-droppable:
+    the model omitting them costs the *classification*, not the payload, so
+    they are `None` rather than a reason to discard the index parsed alongside
+    them. Consumers that need a classification (the options shelf, listing
+    detection) check for `None`; consumers that need only the index do not.
+
     Optional fields (`obstacle`, `also_here`, `other_pages`) default to
     None / empty tuple; the domain-side serializer omits them from the wire.
     """
 
     answer: str
-    structural_form: str
-    shape: str
+    structural_form: str | None
+    shape: str | None
     obstacle: str | None = None
     also_here: tuple[str, ...] = field(default_factory=tuple)
     other_pages: tuple[OtherPageBoundary, ...] = field(default_factory=tuple)

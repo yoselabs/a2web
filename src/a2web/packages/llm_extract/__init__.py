@@ -28,7 +28,7 @@ from anyllm import LLMProvider as Provider
 from llm_cache import LlmCache, hash_text, make_key
 
 from .errors import LLMNotAvailable
-from .extractor import ExtractionResult, Extractor, LlmNextLink, ModelSpec
+from .extractor import ExtractionResult, Extractor, LlmNextLink, ModelSpec, RoutingOutcome
 from .judge import Judge, JudgeParseError, JudgeVerdict
 from .prompts import (
     EXTRACT_CACHEABLE_V1,
@@ -74,6 +74,7 @@ __all__ = [
     "Provider",
     "ProviderResponse",
     "RouterPayload",
+    "RoutingOutcome",
     "WobblePolicy",
     "WobbleSkip",
     "WobbleTolerance",

@@ -25,6 +25,7 @@ from pydantic import (
     model_serializer,
 )
 
+from .packages.llm_extract import RoutingOutcome
 from .wire import PruneEmpty
 
 
@@ -509,8 +510,10 @@ class RefinementAxis(BaseModel):
 class RouterPayload(BaseModel):
     """Router-shape payload emitted by the `extract_router_v1` template.
 
-    Three required fields (`answer`, `structural_form`, `shape`) describe what
-    the page IS. Three conditional fields (`obstacle`, `also_here`,
+    `answer` is required. `structural_form` / `shape` describe what the page IS
+    and are `None` when the model omitted them — the `unclassified` arm, which
+    costs the classification but NOT the index parsed alongside it. Three
+    conditional fields (`obstacle`, `also_here`,
     `other_pages`) describe the withheld-body index (ADR-0015). This is the internal LLM-parse
     boundary type — `structural_form`/`shape` are consumed internally
     (`content_guidance.kind_guidance()`, the `refinement_axes` gate) but are
@@ -522,8 +525,8 @@ class RouterPayload(BaseModel):
     """
 
     answer: str
-    structural_form: StructuralForm
-    shape: Shape
+    structural_form: StructuralForm | None = None
+    shape: Shape | None = None
     obstacle: Obstacle | None = None
     also_here: list[str] = Field(default_factory=list)
     other_pages: list[OtherPage] = Field(default_factory=list)
@@ -647,6 +650,13 @@ class FetchResponse(BaseModel):
     # rides `content_md`), yet attribute-accessible for the ask projection. Set
     # after construction via `_options`.
     _options: list[ListingOption] = PrivateAttr(default_factory=list)
+    # What happened to the router envelope (`RoutingOutcome | None`). A
+    # PrivateAttr for the same reason as `_options`: the ask projection needs it
+    # to decide whether an empty index means "nothing to index" or "we lost the
+    # index", but it is diagnostic state about the LLM call, not page content —
+    # so it belongs on neither the `fetch_raw` wire nor its JSON schema. Set
+    # after construction in `build_response`.
+    _routing_outcome: RoutingOutcome | None = PrivateAttr(default=None)
 
     @model_serializer(mode="wrap")
     def _omit_empty(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:

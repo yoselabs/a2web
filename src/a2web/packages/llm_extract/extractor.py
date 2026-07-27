@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from anyllm import AnyLLMError, Completion
@@ -24,6 +25,8 @@ from .wobble import (
     EXTRACTOR_ROUTING_POLICY,
     ParseError,
     Wobbled,
+    WobbleTolerance,
+    emit_wobble,
     parse_list_with_policy,
     parse_with_policy,
     strip_fenced_blocks,
@@ -55,6 +58,33 @@ class ModelSpec:
     """
 
     model: str
+
+
+class RoutingOutcome(StrEnum):
+    """What happened to a requested router-shape envelope.
+
+    Replaces a `routing_lost: bool` that collapsed three unlike events into
+    one. They have different causes and different correct responses, so a
+    consumer that can only ask "was it lost?" is forced to guess:
+
+    - `RECOVERED` — an envelope parsed and carried a payload. The normal case.
+    - `UNPARSABLE` — no envelope survived, even after fence tolerance. The
+      answer is whatever prose could be salvaged; there is no index at all.
+    - `UNCLASSIFIED` — the envelope parsed and `answer` is intact, but the model
+      omitted `structural_form`/`shape`. The index may still be fully present:
+      classification and index are independent, and conflating them is what
+      used to discard a perfectly good index alongside a missing label.
+    - `PROVIDER_ERROR` — the call never produced text. Already reported via
+      `provider_error`; it is a member here rather than an exclusion because the
+      extractor genuinely reaches this state, and a type that cannot express it
+      pushes the distinction back into ad-hoc booleans at the call site. Its
+      CONSUMERS exclude it, so degradation is not double-reported.
+    """
+
+    RECOVERED = "recovered"
+    UNPARSABLE = "unparsable"
+    UNCLASSIFIED = "unclassified"
+    PROVIDER_ERROR = "provider_error"
 
 
 @dataclass(slots=True)
@@ -100,11 +130,10 @@ class ExtractionResult:
     # Whether the failed provider call is worth retrying (anyllm classifies it).
     # Meaningless unless `provider_error` is set.
     provider_error_retryable: bool = False
-    # Routing was requested and NOT recovered (parse failure / degraded payload).
-    # Distinct from `routing is None` on a call that never asked for it. Lets the
-    # envelope tell "the page had nothing to index" apart from "we lost the
-    # index" — ADR-0015, since the caller never sees the withheld body.
-    routing_lost: bool = False
+    # What happened to the routing envelope. `None` when routing was never
+    # requested — distinct from every failure arm, and the distinction the old
+    # `routing_lost: bool` could not draw. See `RoutingOutcome`.
+    routing_outcome: RoutingOutcome | None = None
 
 
 class Extractor:
@@ -281,18 +310,23 @@ class Extractor:
             response = Completion(text="", model=self._model.model, raw={"error": provider_error})
 
         routing_payload: RouterPayload | None = None
-        routing_lost = False
+        routing_outcome: RoutingOutcome | None = None
         if request_routing:
             answer_text, routing_wobbled = _split_answer_and_routing(response.text, model=self._model.model)
             if routing_wobbled is not None:
                 routing_result: _RoutingResult = unwrap(routing_wobbled)
                 routing_payload = routing_result.payload
-            # Routing was ASKED FOR and not recovered. Absent `also_here` /
-            # `other_pages` must not read as "the page had nothing to index"
-            # when the truth is "we dropped the index" — different facts, and
-            # the caller (which never sees the body) cannot tell them apart
-            # from the envelope alone. ADR-0015.
-            routing_lost = routing_payload is None
+            # Which arm, and in this order: a dead provider produced no text to
+            # parse, so its unparsable-looking result is not an LLM formatting
+            # fact and must not be reported as one.
+            if provider_error is not None:
+                routing_outcome = RoutingOutcome.PROVIDER_ERROR
+            elif routing_payload is None:
+                routing_outcome = RoutingOutcome.UNPARSABLE
+            elif routing_payload.structural_form is None or routing_payload.shape is None:
+                routing_outcome = RoutingOutcome.UNCLASSIFIED
+            else:
+                routing_outcome = RoutingOutcome.RECOVERED
             parsed_next_links: list[LlmNextLink] = []
         elif request_next_links:
             answer_text, parsed_next_links = _split_answer_and_next_links(response.text, model=self._model.model)
@@ -328,7 +362,7 @@ class Extractor:
             raw=raw_extras,
             next_links=parsed_next_links,
             routing=routing_payload,
-            routing_lost=routing_lost,
+            routing_outcome=routing_outcome,
             provider_error=provider_error,
             provider_error_retryable=provider_error_retryable,
         )
@@ -461,29 +495,66 @@ class _RoutingResult:
     payload: RouterPayload | None
 
 
-def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
+def _note_malformed(field: str, value: Any, model: str) -> None:
+    """Report a field that was PRESENT but the wrong shape.
+
+    The funnel's policies only fire on ABSENCE — a field present with a wrong
+    type never reaches them, so the coercions below (`also_here` that is a
+    string, `other_pages` that is a dict) used to drop real content in total
+    silence. That silence was tolerable only while every absence was also being
+    reported; now that the five optional fields are `OPTIONAL`, it would be the
+    only remaining way for the model to lose an index without saying so.
+
+    The distinction is exactly the one `OPTIONAL` draws: absent-by-contract is
+    normal and silent, present-but-corrupt is a wobble and reports.
+    """
+    emit_wobble(
+        boundary="extractor.router_shape",
+        field=field,
+        tolerance=WobbleTolerance.DEFAULT,
+        model=model,
+        raw_excerpt=repr(value),
+    )
+
+
+def _build_router_payload(parsed: dict[str, Any], *, model: str = "unknown") -> _RoutingResult:
     """Funnel `into` callable. Funnel guarantees `answer` is present (STRICT);
-    structural_form/shape are surfaced as-is and validated here so the answer
-    survives when routing fields are degraded."""
+    everything else is best-effort and never costs the caller the answer.
+
+    **The index is parsed unconditionally, BEFORE the classification is
+    judged.** It used to return `payload=None` the moment `structural_form` or
+    `shape` was missing — several statements above `also_here` / `other_pages`
+    were ever read — so a model that supplied a perfectly good index and merely
+    forgot the label had that index thrown away with it. Classification and
+    index are independent facts about the page: only the options shelf needs
+    the classification, and it gates on it separately (a `None` classification
+    suppresses the shelf exactly as an unsuitable one does). ADR-0015: a
+    withheld body must still leave its index.
+    """
     answer = parsed["answer"]
     if not isinstance(answer, str) or not answer:
         raise ParseError("extractor.router_shape: empty answer")
 
-    structural_form = parsed.get("structural_form")
-    shape = parsed.get("shape")
-    if not isinstance(structural_form, str) or not structural_form:
-        return _RoutingResult(answer=answer, payload=None)
-    if not isinstance(shape, str) or not shape:
-        return _RoutingResult(answer=answer, payload=None)
+    structural_form_raw = parsed.get("structural_form")
+    structural_form = structural_form_raw if isinstance(structural_form_raw, str) and structural_form_raw else None
+    shape_raw = parsed.get("shape")
+    shape = shape_raw if isinstance(shape_raw, str) and shape_raw else None
 
     obstacle_raw = parsed.get("obstacle")
     obstacle = obstacle_raw if isinstance(obstacle_raw, str) and obstacle_raw else None
 
     also_here_raw = parsed.get("also_here", ())
-    also_here: tuple[str, ...] = tuple(q for q in also_here_raw if isinstance(q, str) and q) if isinstance(also_here_raw, list) else ()
+    if isinstance(also_here_raw, list):
+        also_here: tuple[str, ...] = tuple(q for q in also_here_raw if isinstance(q, str) and q)
+    else:
+        also_here = ()
+        if also_here_raw:
+            _note_malformed("also_here", also_here_raw, model)
 
     other_pages: list[OtherPageBoundary] = []
     other_pages_raw = parsed.get("other_pages", ())
+    if other_pages_raw and not isinstance(other_pages_raw, list):
+        _note_malformed("other_pages", other_pages_raw, model)
     if isinstance(other_pages_raw, list):
         for item in other_pages_raw:
             if not isinstance(item, dict):
@@ -508,6 +579,8 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
 
     axes: list[RefinementAxisBoundary] = []
     axes_raw = parsed.get("refinement_axes", ())
+    if axes_raw and not isinstance(axes_raw, list):
+        _note_malformed("refinement_axes", axes_raw, model)
     if isinstance(axes_raw, list):
         for item in axes_raw:
             if not isinstance(item, dict):
@@ -546,7 +619,7 @@ def _split_answer_and_routing(text: str, *, model: str = "unknown") -> tuple[str
         wobbled = parse_with_policy(
             text,
             policies=EXTRACTOR_ROUTING_POLICY,
-            into=_build_router_payload,
+            into=lambda parsed: _build_router_payload(parsed, model=model),
             boundary="extractor.router_shape",
             model=model,
         )

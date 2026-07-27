@@ -49,6 +49,9 @@ def _derive_reached(parsed: dict[str, Any]) -> bool:
 # Per-field policy table for the judge boundary. STRICT fields are
 # load-bearing (an unparseable verdict has no signal to salvage); DERIVE
 # fields recover from a known-derivable peer; DEFAULT fields are decorative.
+# Triaged against `prompts.py`, which asks for `"reasoning":"<one sentence>"`
+# unconditionally: decorative but NOT optional, so it stays DEFAULT rather than
+# becoming OPTIONAL. Nothing in this table is contract-optional.
 _JUDGE_POLICY: dict[str, WobblePolicy] = {
     "scores": WobblePolicy(WobbleTolerance.STRICT),
     "overall": WobblePolicy(WobbleTolerance.STRICT),

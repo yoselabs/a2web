@@ -54,6 +54,8 @@ Every parser in the codebase that consumes LLM-returned JSON SHALL declare an ex
 
 When any field's policy fires AND the policy is not `OPTIONAL`, the parser SHALL emit a single structured log event with key `llm_wobble` and the fields `boundary`, `field`, `policy_applied`, `model`, and a bounded `raw_excerpt` (≤ 200 chars).
 
+**A field that is PRESENT but malformed SHALL still be reported.** The per-field tolerance policies resolve ABSENCE only; a field present with the wrong type never reaches them and is coerced by the boundary builder. Silencing absence therefore requires the builder to report corruption, or an index supplied as the wrong shape would be dropped with no record anywhere — which would trade one blind signal for another. The distinction the `OPTIONAL` tolerance draws is exactly this one: absent-by-contract is normal and silent; present-but-corrupt is a wobble and reports.
+
 The discipline module SHALL remain domain-independent — it SHALL NOT import from `a2web.<domain>`.
 
 The migration sites SHALL adopt the discipline per the policy table documented in `design.md`. In particular:

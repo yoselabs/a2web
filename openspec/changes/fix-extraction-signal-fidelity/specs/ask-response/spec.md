@@ -4,7 +4,9 @@
 
 ADR-0015 requires that `query`, which withholds the page body by default, never withhold it *silently* — the caller is itself an agent that never sees the body and cannot tell an absent index from an empty one.
 
-When the routing outcome is `unparsable` or `unclassified` AND the response would otherwise carry no index at all (no `also_here`, no `other_pages`, no `options`, no `refinement_axes`), the response SHALL carry exactly one `OperatorHint` with severity `warning` recording that the index was lost rather than empty.
+When the routing outcome is `unparsable` or `unclassified` AND the response would otherwise carry no index at all (no `also_here`, no `other_pages`, no `options`), the response SHALL carry exactly one `OperatorHint` with severity `warning` recording that the index was lost rather than empty.
+
+`refinement_axes` is deliberately NOT part of the gate. It is gated on the LLM classifying the page as a listing, which by construction cannot hold on either arm this hint fires for — `unparsable` has no payload and `unclassified` has no classification — so including it would read as a fourth source while being unreachable. A guard condition that can never contribute is indistinguishable from one that works.
 
 The hint message SHALL name the concrete recovery. Re-fetching the same URL is served from the HTTP cache within TTL, so recovering the withheld body via `fetch_raw` on the same URL costs no new proxy fetch — the scarce resource. A hint that reports a problem without naming its cheap remedy pushes the caller toward the expensive one.
 

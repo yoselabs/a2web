@@ -227,8 +227,7 @@ async def test_router_faithful_doubles_are_contract_SENSITIVE() -> None:
         result = await ex.extract(content="page content", ask="what?")  # routing NOT requested
         if result.routing is not None:
             failures.append(
-                f"{where}: produced a routing payload when none was requested — it is "
-                "insensitive to the contract, not faithful to it."
+                f"{where}: produced a routing payload when none was requested — it is insensitive to the contract, not faithful to it."
             )
     assert not failures, "\n".join(failures)
 

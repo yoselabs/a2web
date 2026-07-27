@@ -152,18 +152,49 @@ def test_missing_answer_returns_none() -> None:
     assert answer == text
 
 
-def test_missing_structural_form_returns_answer_but_no_payload() -> None:
+def test_missing_structural_form_costs_the_label_not_the_payload() -> None:
     text = json.dumps({"answer": "An answer.", "shape": "prose"})
     answer, payload = _routing(text)
     assert answer == "An answer."
-    assert payload is None
+    assert payload is not None
+    assert payload.structural_form is None
+    assert payload.shape == "prose"
 
 
-def test_missing_shape_returns_answer_but_no_payload() -> None:
+def test_missing_shape_costs_the_label_not_the_payload() -> None:
     text = json.dumps({"answer": "An answer.", "structural_form": "article"})
     answer, payload = _routing(text)
     assert answer == "An answer."
-    assert payload is None
+    assert payload is not None
+    assert payload.shape is None
+    assert payload.structural_form == "article"
+
+
+def test_unclassified_envelope_keeps_the_index_it_supplied() -> None:
+    """The decoupling, stated as the harm it prevents.
+
+    A model that supplies a perfectly good index and merely forgets the label
+    used to have that index discarded along with it: `_build_router_payload`
+    returned early on the missing `structural_form`, several statements above
+    where `also_here` / `other_pages` were ever read. The caller never sees the
+    withheld body, so a dropped index is a silent loss (ADR-0015).
+    """
+    text = json.dumps(
+        {
+            "answer": "An answer.",
+            "also_here": ["what about X?", "how does Y work?", "when did Z ship?"],
+            "other_pages": [
+                {"url": "https://example.com/a", "reason": "the spec", "kind": "drilldown"},
+                {"url": "https://example.com/b", "reason": "page 2", "kind": "structural"},
+            ],
+        }
+    )
+    _answer, payload = _routing(text)
+    assert payload is not None
+    assert payload.structural_form is None
+    assert payload.shape is None
+    assert len(payload.also_here) == 3
+    assert len(payload.other_pages) == 2
 
 
 def test_unknown_enum_values_pass_through_at_boundary() -> None:
