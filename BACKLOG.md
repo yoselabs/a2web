@@ -1875,47 +1875,52 @@ table. Evidence: `eval/findings_2026-07-28.md`.
 
 Still open from that section: M1, M2, M5, M6, M8, and hypotheses H1/H3/H4/H5.
 
-### NEW — the ADR-0015 index deferral chain bottoms out into silence (L)
+### NEW — `other_pages` is mechanically impossible outside the raw tier (L, ROOT CAUSE)
 
-*(Corrected 2026-07-28. First filed as "corroborates the wikipedia-narrow-ask
-finding, same invariant". Wrong: they share a symptom, not a cause, and the
-difference decides the fix. Full reasoning in `eval/findings_2026-07-28.md`.)*
+*(Third and final diagnosis of this case. The first two — "corroborates the
+wikipedia finding" and "the deferral chain bottoms out" — were both wrong. They
+were readings of prompt text; this is a traceable code path, verified by probe
+`scratchpad/probe_arxiv.py` plus the call chain below.)*
 
-`listing-answer-always-leaves-an-index` (`arxiv.org/list/cs.CL/recent`) returned
-an envelope of `['answer','confidence','operator_hints','tier']` — all four index
-fields absent — while **every prompt clause was followed correctly**:
+```
+tier ∈ {browser, jina, zyte, firecrawl, archive} or ANY of the 9 site handlers
+  → TierResult.pre_rendered = Rendered(content_md, title, byline, headings)
+                                         ↑ dataclass has NO links field
+  → fetcher._phase_extract copies those four and RETURNS  (fetcher.py:1270-1276)
+  → fetcher.py:1318  `fc.links = extract_result.links`    NEVER RUNS
+  → fc.links == []
+  → _build_link_digest: `if not fc.links: return None`    (fetcher.py:2317)
+  → no '## page links' block reaches the prompt
+  → prompt: "If no '## page links' list is present, OMIT other_pages"
+  → other_pages CANNOT be emitted. Not "is not" — cannot.
+```
 
-- `refinement_axes` — "OMIT on non-selection questions"; the task is a FIND.
-- `also_here` — "on listing DEFER to options / refinement_axes and stay sparse".
-- `other_pages` — "zero is a VALID count — do NOT pad".
-- `options` — not an LLM field; DOM-parsed, and the parse found nothing.
+Only the `raw` tier runs trafilatura, and trafilatura is the sole producer of
+`fc.links`. Every other retrieval path silently loses the page's anchors.
 
-Four optional fields, each with an escape hatch, each deferring to the others,
-and **no rule anywhere in the prompt that at least one must survive** (grepped —
-no such clause). The invariant lives only in the corpus criteria, which the model
-never sees.
+**One mechanism explains both failing eval cells**: `listing-answer-always-leaves-an-index`
+(arXiv, browser tier) and `reddit-listing` (zyte tier). No coincidence needed.
 
-Sharpest link: **`also_here` defers to `options`, which the model cannot emit.**
-`options` appears exactly once in the prompt, inside that deferral clause, and is
-never defined as a producible field. The model is told to stay quiet because
-another subsystem will cover it, with no way to learn the subsystem found nothing.
+Scope beyond those two: this affects **every** browser/handler/archive-served
+page, which is the entire hard-fetch population — precisely the pages where a
+caller most needs pointers. ADR-0014's handle-rehydration machinery is intact and
+correct; it just never receives a digest to rehydrate from.
 
-Distinct from the 07-27 `wikipedia-narrow-ask-indexes` defect: that one is clause
-STRENGTH (v0.25 targeted it and it still under-fires); this one is STRUCTURE.
-Strengthening `also_here` fixes the first and does nothing for the second — filing
-them together would let one fix be reported as closing both.
+Probe evidence (`arxiv.org/list/cs.CL/recent`, browser tier, `include_links=True`):
+50 arXiv ids in `content_md`, **0 links, 0 headings**, on a page that is nothing
+but anchors.
 
-**Open confound, resolve first:** the cell was browser-served and the answer says
-the page showed "no titles, authors, or abstracts". If the render was degenerate,
-the empty index is defensible and this case measures a RENDERING defect instead.
-*Probe:* fetch the same URL via the raw tier and compare available anchors/rows.
+Second, narrower gate worth reviewing at the same time: `_build_link_digest` also
+requires a `json_synth`/`record_synth` candidate (`_DIGEST_GATE_SOURCES`), so even
+on the raw tier a prose-shaped listing gets no digest. That one looks deliberate
+("prose-only articles skip it and pay nothing") — the pre-rendered gap does not.
 
-`reddit-listing` also emitted no candidate block (fetched `ok` via zyte, not a
-wall). Whether it is this defect, the Wikipedia one, or a third is unresolved and
-must not be assumed.
+*Open:* whether `Rendered` should carry links, or whether the pre-rendered path
+should run link extraction over the source HTML separately. That is a design call
+for the change that fixes this, not a foregone conclusion.
 
-Deliberately NOT fixed inside the change that revived the axis. This is the next
-product change to shape, ORTHOGONAL to the P1→P5 measurement chain.
+NOT fixed here — orthogonal to the P1→P5 measurement chain, and now the
+best-evidenced product change on the board.
 
 ### NEW — next_links quality is unmeasured-until-now, and mediocre (M)
 
