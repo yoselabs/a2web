@@ -1443,3 +1443,20 @@ Generalized lesson (third instance this session, after the vacuous architecture
 walks and the `@a2kit.read` matcher): a test double that ignores its input is not
 a witness, and a golden captured through one freezes the lie rather than the
 contract.
+
+## The eval capture harness has no CI coverage (2026-07-27, M)
+
+`eval/_capture/capture.py` was comprehensively broken for five days after the
+a2kit sunset — dead `a2kit.ldd` imports, the removed `bootstrap_state`, and a
+`browser_pool=` kwarg `fetch()` no longer accepts. Repaired in
+`restore-llm-fixture-fidelity`, but the reason it rotted silently is unchanged:
+it is live-network by nature, so `make check` never exercises it, and its first
+failure surfaces only when someone tries to capture a case — typically under
+time pressure, mid-investigation.
+
+A smoke test that imports the module and asserts `capture_case`'s signature
+still matches `fetcher.fetch`'s would have caught every one of these breaks
+without touching the network. Cheap; not yet built.
+
+Sibling of the "never add a structural guard without an assertion that it found
+something" rule — this is the same failure in an offline-untestable component.

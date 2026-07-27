@@ -31,13 +31,11 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from a2kit.ldd import ldd_state_for_call
-from a2kit.packages.testing.null_context import null_context
+from http_fetch import FetchOutcome
 
 from a2web import fetcher
-from http_fetch import FetchOutcome
+from a2web.components import build_components
 from a2web.settings import AppSettings
-from a2web.state import bootstrap_state
 
 from .cassette import serialize_exchanges
 
@@ -68,53 +66,69 @@ def _tee_fetch_bytes(recorder: dict[str, FetchOutcome]) -> Iterator[None]:
             mod.fetch_bytes = real  # type: ignore[attr-defined]
 
 
-class _TeePool:
-    """Wrap a real BrowserPool, capturing the last rendered DOM."""
+class _TeeBackend:
+    """Wrap a real `BrowserBackend`, capturing the last rendered DOM.
+
+    Replaces the old `_TeePool`/`_TeePage` pair, which wrapped a `BrowserPool`
+    with an `acquire()`/`page.content()` API that no longer exists: the browser
+    half was promoted to the shelf as `any_browser`, whose backend exposes a
+    single `render(url, ...) -> RenderedPage`. The old wrapper had been dead
+    since the a2kit sunset (2026-07-22) and nothing in `make check` runs this
+    harness, so it went unnoticed for five days.
+    """
 
     def __init__(self, inner: Any) -> None:
         self._inner = inner
         self.rendered_html: str | None = None
+        self.name = getattr(inner, "name", "tee")
 
-    async def _ensure(self) -> None:
-        await self._inner._ensure()
+    async def render(self, url: str, **kwargs: Any) -> Any:
+        page = await self._inner.render(url, **kwargs)
+        if getattr(page, "html", None):
+            self.rendered_html = page.html
+        return page
 
-    @contextlib.asynccontextmanager
-    async def acquire(self, url: str) -> Any:
-        async with self._inner.acquire(url) as page:
-            yield _TeePage(page, self)
+    async def __aenter__(self) -> _TeeBackend:
+        await self._inner.__aenter__()
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        await self._inner.__aexit__(*exc)
 
 
-class _TeePage:
-    def __init__(self, inner: Any, pool: _TeePool) -> None:
-        self._inner = inner
-        self._pool = pool
-
-    async def content(self) -> str:
-        html = await self._inner.content()
-        self._pool.rendered_html = html
-        return html
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._inner, name)
-
-    @property
-    def url(self) -> Any:
-        return self._inner.url
-
-    @property
-    def context(self) -> Any:
-        return self._inner.context
+def _routing_record(routing: Any) -> dict[str, Any] | None:
+    """Serialize the routing payload for the cassette, or `None` if truly absent."""
+    if routing is None:
+        return None
+    return {
+        "answer": routing.answer,
+        "structural_form": routing.structural_form,
+        "shape": routing.shape,
+        "obstacle": routing.obstacle,
+        "also_here": list(routing.also_here or ()),
+        "other_pages": [
+            {"url": o.url, "reason": o.reason, "kind": o.kind, "handle": getattr(o, "handle", None)} for o in (routing.other_pages or ())
+        ],
+        "refinement_axes": [{"dimension": a.dimension, "how": a.how} for a in (routing.refinement_axes or ())],
+        "item_total_seen": routing.item_total_seen,
+    }
 
 
 class _TeeExtractor:
     """Wrap a real LlmExtractorResource, recording its extraction response."""
 
     def __init__(self, inner: Any) -> None:
+        # `inner` is the `Lazy[LlmExtractorResource]` thunk, not the resource:
+        # resolving it here would construct the provider on every capture,
+        # including runs that never reach extraction.
         self._inner = inner
+        self._resolved: Any = None
         self.record: dict[str, Any] | None = None
 
     async def extract(self, **kwargs: Any) -> Any:
-        result = await self._inner.extract(**kwargs)
+        if self._resolved is None:
+            self._resolved = await self._inner()
+        result = await self._resolved.extract(**kwargs)
         if result is not None:
             self.record = {
                 "answer": result.answer,
@@ -124,6 +138,14 @@ class _TeeExtractor:
                 "completion_tokens": result.completion_tokens,
                 "cost_usd": result.cost_usd,
                 "latency_ms": result.latency_ms,
+                # The routing payload, or an explicit null when the model
+                # genuinely produced none. Recording only post-parse fields made
+                # the cassette structurally unable to express this, so every
+                # replayed case silently ran the routing-LOST branch while
+                # reporting success. The KEY is always written — its presence is
+                # what lets the replay side tell "recorded as lost" from "this
+                # cassette predates the field", instead of guessing None.
+                "routing": _routing_record(result.routing),
             }
         return result
 
@@ -169,40 +191,51 @@ async def capture_case(
     (re-capture an existing case's inputs). Live-network + LLM quota.
     """
     settings = AppSettings()
-    state, resources = await bootstrap_state(settings)
+    parts = build_components(settings=settings)
+    state = await parts.state()
 
     http_record: dict[str, FetchOutcome] = {}
-    tee_pool = _TeePool(resources.browser_pool)
-    tee_extractor = _TeeExtractor(resources.llm_extractor)
+    tee_extractor = _TeeExtractor(parts.llm_extractor)
+    holder: dict[str, _TeeBackend] = {}
 
-    async def _lazy_pool() -> Any:
-        return tee_pool
+    async def _lazy_backend() -> Any:
+        # Wrap lazily: resolving the backend eagerly would launch a browser for
+        # every capture, including the ones that never escalate.
+        if "b" not in holder:
+            holder["b"] = _TeeBackend(await parts.browser_backend())
+        return holder["b"]
 
     async def _lazy_extractor() -> Any:
         return tee_extractor
 
-    with _tee_fetch_bytes(http_record), ldd_state_for_call(ctx=null_context(), events_enabled=True, reports_enabled=False):
-        response = await fetcher.fetch(
-            url,
-            state=state,
-            browser_pool=_lazy_pool,
-            llm_extractor=_lazy_extractor,
-            ask=question,
-            next_links=True,
-            debug=True,
-        )
+    try:
+        with _tee_fetch_bytes(http_record):
+            response = await fetcher.fetch(
+                url,
+                state=state,
+                browser_backend=_lazy_backend,
+                browser_robust_backend=_lazy_backend,
+                llm_extractor=_lazy_extractor,
+                ask=question,
+                next_links=True,
+                debug=True,
+            )
 
-        eager = bool(tags & {"commerce", "js", "spa"}) or all_tiers
-        if eager and tee_pool.rendered_html is None:
-            with contextlib.suppress(Exception):
-                async with tee_pool.acquire(url) as page:
-                    await page.goto(url, wait_until="networkidle")
-                    await page.content()
+            rendered = holder["b"].rendered_html if "b" in holder else None
+            eager = bool(tags & {"commerce", "js", "spa"}) or all_tiers
+            if eager and rendered is None:
+                with contextlib.suppress(Exception):
+                    backend = await _lazy_backend()
+                    async with backend:
+                        await backend.render(url, cookies=[], budget_s=30.0, js_heavy=True)
+                    rendered = holder["b"].rendered_html
+    finally:
+        await parts.aclose()
 
     return CaptureArtifacts(
         response=response,
         http=http_record,
-        rendered_html=tee_pool.rendered_html,
+        rendered_html=rendered,
         llm=tee_extractor.record,
     )
 

@@ -22,6 +22,7 @@ from a2web.settings import AppSettings
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult
 from a2web.tiers.zyte import _zyte_extract_request
+from tests._helpers.llm_doubles import DoubleArm, honor_contract
 from tests.capabilities.listing_completeness.test_listing_completeness import _listing_html
 from tests.conftest import make_default_state
 
@@ -139,15 +140,35 @@ class _ScrollZyteStub:
         )
 
 
+class _P:
+    """Listing-answer provider.
+
+    Module scope, not nested in `_extractor`: a double defined inside a function
+    is unreachable to the fidelity check's behavioural layer, which would make it
+    an unverifiable hole in exactly the guard that exists to close such holes.
+    """
+
+    DOUBLES_ARM = DoubleArm.ROUTER_FAITHFUL
+    name = "stub"
+
+    @classmethod
+    def for_fidelity_check(cls) -> _P:
+        return cls()
+
+    async def complete(self, *, system: object, user: object, model: str, **_: object) -> object:
+        from a2web.packages.llm_extract import ProviderResponse
+
+        return ProviderResponse(
+            text=honor_contract(_LISTING_ANSWER, system),
+            model=model,
+            prompt_tokens=100,
+            completion_tokens=10,
+            cost_usd=0.0,
+            latency_ms=10,
+        )
+
+
 def _extractor(state: AppState) -> LlmExtractorResource:
-    class _P:
-        name = "stub"
-
-        async def complete(self, *, system: object, user: object, model: str, **_: object) -> object:
-            from a2web.packages.llm_extract import ProviderResponse
-
-            return ProviderResponse(text=_LISTING_ANSWER, model=model, prompt_tokens=100, completion_tokens=10, cost_usd=0.0, latency_ms=10)
-
     return LlmExtractorResource(state.settings, state.sqlite, lazy(_P()))
 
 

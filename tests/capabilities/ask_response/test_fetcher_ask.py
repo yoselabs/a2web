@@ -23,6 +23,7 @@ from a2web.packages.llm_extract import Provider
 from a2web.settings import AppSettings
 from a2web.state import AppState, unavailable_lazy
 from a2web.tiers import REGISTRY, TierResult
+from tests._helpers.llm_doubles import DoubleArm, honor_contract
 from tests._helpers.log_capture import capture_log_records
 from tests.conftest import make_default_state
 from tests.fixtures import FIXTURES_DIR
@@ -65,6 +66,13 @@ def _make_state(**overrides) -> AppState:
 class _StubProvider:
     """Provider that returns a canned answer regardless of input."""
 
+    DOUBLES_ARM = DoubleArm.ROUTER_FAITHFUL
+
+    @classmethod
+    def for_fidelity_check(cls) -> _StubProvider:
+
+        return cls(answer="ok")
+
     name = "stub"
 
     def __init__(self, *, answer: str) -> None:
@@ -76,7 +84,7 @@ class _StubProvider:
         from a2web.packages.llm_extract import ProviderResponse
 
         return ProviderResponse(
-            text=self.answer,
+            text=honor_contract(self.answer, system),
             model=model,
             prompt_tokens=200,
             completion_tokens=20,
@@ -284,6 +292,8 @@ async def test_ask_without_llm_available_fails_hard_with_critical_hint(
 
 class _ErroringProvider:
     """Provider whose `complete()` raises, as anyllm backends do on failure."""
+
+    DOUBLES_ARM = DoubleArm.PROVIDER_ERROR
 
     name = "stub"
 

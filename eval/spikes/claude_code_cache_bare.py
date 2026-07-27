@@ -21,9 +21,9 @@ from __future__ import annotations
 import asyncio
 import time
 
-from a2web.packages.llm_extract import EXTRACT_CACHEABLE_V1
 from a2web.packages.llm_extract.providers.base import extract_token_counts
 
+from a2web.packages.llm_extract import EXTRACT_CACHEABLE_V1
 
 _PAGE_A = """# The Lighthouse Keeper of Tristan da Cunha
 

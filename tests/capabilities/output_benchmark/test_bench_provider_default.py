@@ -72,6 +72,5 @@ def test_known_stale_ids_are_rejected(stale: str) -> None:
     still appear in prose and would be plausible hand-typed guesses.
     """
     assert stale not in {p.value for p in ProviderName}, (
-        f"{stale!r} resolves again — if the enum re-adds it, revisit the Makefile comment "
-        "and this test together."
+        f"{stale!r} resolves again — if the enum re-adds it, revisit the Makefile comment and this test together."
     )

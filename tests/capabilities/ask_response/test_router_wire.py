@@ -19,6 +19,7 @@ from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.llm_extract import ProviderResponse
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TierResult
+from tests._helpers.llm_doubles import DoubleArm
 from tests._helpers.mcp import call_wire, mcp_client
 
 _MINIMAL_HTML = (
@@ -48,6 +49,13 @@ class _JsonEnvelopeProvider:
     them — they're just no longer projected onto the `AskResponse` wire (see
     `drop-structural-form-shape-wire`).
     """
+
+    DOUBLES_ARM = DoubleArm.ROUTER_FAITHFUL
+
+    @classmethod
+    def for_fidelity_check(cls) -> _JsonEnvelopeProvider:
+
+        return cls({"answer": "a", "structural_form": "article", "shape": "prose"})
 
     name = "stub"
 
@@ -258,6 +266,7 @@ async def test_malformed_envelope_drops_routing_keeps_answer(
     returns the text as `answer` and all router-shape fields are absent."""
 
     class _PlainTextProvider:
+        DOUBLES_ARM = DoubleArm.UNPARSABLE
         name = "stub"
 
         async def complete(self, *, system: str, user: str, model: str, **_: object) -> ProviderResponse:

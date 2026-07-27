@@ -1,9 +1,32 @@
 {
-  "answer": "700 TL. The listing shows \"890 TL %21 700 TL\" \u2014 the original price of 890 TL with a 21% discount brings the current selling price to 700 TL.",
-  "completion_tokens": 187,
-  "cost_usd": 0.0101002,
-  "latency_ms": 4536,
+  "answer": "The Lenovo E310 Beyaz True Wireless Stereo earphones do not appear on this page. The listing shows 36 earbud/headphone products from Hepsiburada (a Turkish e-commerce site), but none are Lenovo E310 models. To find the current price, you would need to search the site directly or navigate to the headphones category.",
+  "completion_tokens": 261,
+  "cost_usd": 0.0348795,
+  "latency_ms": 6028,
   "model": "claude-haiku-4-5-20251001",
-  "prompt_tokens": 14044,
+  "prompt_tokens": 26860,
+  "routing": {
+    "also_here": [],
+    "answer": "The Lenovo E310 Beyaz True Wireless Stereo earphones do not appear on this page. The listing shows 36 earbud/headphone products from Hepsiburada (a Turkish e-commerce site), but none are Lenovo E310 models. To find the current price, you would need to search the site directly or navigate to the headphones category.",
+    "item_total_seen": 36,
+    "obstacle": null,
+    "other_pages": [],
+    "refinement_axes": [
+      {
+        "dimension": "price range",
+        "how": "filter by minimum/maximum price (current range spans ~600 TL to 11,697 TL)"
+      },
+      {
+        "dimension": "brand",
+        "how": "narrow to Lenovo or search by exact model name"
+      },
+      {
+        "dimension": "form factor",
+        "how": "distinguish between in-ear TWS, over-ear, and open-ear designs"
+      }
+    ],
+    "shape": "records",
+    "structural_form": "listing"
+  },
   "template_name": "extract_router_v1"
 }

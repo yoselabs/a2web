@@ -1,4 +1,4 @@
-captured_at: '2026-06-10T12:15:12.464649+00:00'
+captured_at: '2026-07-27T02:26:48.874672+00:00'
 source_url: https://www.allrecipes.com/recipe/20144/banana-banana-bread/
 layers:
   raw:
@@ -9,4 +9,4 @@ layers:
     bytes: 0
   llm:
     frozen: true
-content_sha256: 18595546f2e7927d126f748eecbe9478611cc44c64bc67dc2c918074a62f8eed
+content_sha256: 1d547de0ff23b6e29ffbd3cc89f12b891421deee418dda06983901ac86b0bccc

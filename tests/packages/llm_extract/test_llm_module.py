@@ -22,6 +22,7 @@ from a2web.packages.llm_extract import (
     Provider,
     ProviderResponse,
 )
+from tests._helpers.llm_doubles import DoubleArm, honor_contract
 
 # --------------------------------------------------------------------- #
 # Mock provider — captures calls + returns canned responses
@@ -30,6 +31,13 @@ from a2web.packages.llm_extract import (
 
 class MockProvider:
     """Provider stub: records every `complete()` call; returns canned text."""
+
+    DOUBLES_ARM = DoubleArm.ROUTER_FAITHFUL
+
+    @classmethod
+    def for_fidelity_check(cls) -> MockProvider:
+
+        return cls()
 
     name = "mock"
 
@@ -73,7 +81,7 @@ class MockProvider:
             }
         )
         return ProviderResponse(
-            text=self.answer,
+            text=honor_contract(self.answer, system),
             model=model,
             prompt_tokens=self.prompt_tokens,
             completion_tokens=self.completion_tokens,
@@ -324,6 +332,8 @@ async def test_extract_handler_candidates_appear_in_prompt() -> None:
 class _RaisingProvider:
     """Provider whose `complete()` fails loud with `AnyLLMError`."""
 
+    DOUBLES_ARM = DoubleArm.PROVIDER_ERROR
+
     name = "raising"
 
     def available(self) -> bool:
@@ -359,10 +369,7 @@ async def test_extract_degrades_on_anyllm_error_instead_of_raising() -> None:
 # --------------------------------------------------------------------- #
 
 
-_ROUTER_JSON = (
-    '{"answer":"Octopuses are cephalopods.",'
-    '"structural_form":"article","shape":"prose"}'
-)
+_ROUTER_JSON = '{"answer":"Octopuses are cephalopods.","structural_form":"article","shape":"prose"}'
 
 
 @pytest.mark.asyncio
@@ -407,9 +414,7 @@ async def test_routing_parse_failure_never_leaks_a_fence_into_the_answer() -> No
     provider = MockProvider(answer=canned)
     ex = Extractor(provider=provider, model=ModelSpec("m"), template=EXTRACT_ROUTER_V1)
 
-    result = await ex.extract(
-        content="c", ask="q", request_routing=True, request_next_links=True
-    )
+    result = await ex.extract(content="c", ask="q", request_routing=True, request_next_links=True)
 
     assert "404 error" in result.answer, "The prose survives"
     assert "```next_links" not in result.answer, "The fence must be stripped"

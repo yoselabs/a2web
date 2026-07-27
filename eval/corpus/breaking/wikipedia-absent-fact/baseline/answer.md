@@ -1,1 +1,1 @@
-Not disclosed in this page. The Wikipedia article on Transformers does not provide USD training cost figures for the original 2017 Transformer model.
+The page does not state the training cost of the original Transformer model. The 2017 'Attention Is All You Need' paper and related sections discuss the architecture, performance, and design choices, but do not disclose USD training expenses.

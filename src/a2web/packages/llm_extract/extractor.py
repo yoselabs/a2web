@@ -354,7 +354,6 @@ _NEXT_LINKS_FENCE_RE = re.compile(
 _VALID_KINDS = frozenset({"drilldown", "related", "source"})
 
 
-
 def _next_links_suffix(handler_candidates: list[LlmNextLink] | None) -> str:
     """Build the user-prompt suffix that requests the JSON next_links block.
 

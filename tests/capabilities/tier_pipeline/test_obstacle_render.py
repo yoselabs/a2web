@@ -22,6 +22,7 @@ from a2web.models import Confidence, Verdict
 from a2web.settings import AppSettings
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult
+from tests._helpers.llm_doubles import DoubleArm, honor_contract
 from tests.conftest import make_default_state
 
 # A fat SPA shell: >500 chars of chrome (passes the length floor) PLUS
@@ -158,6 +159,13 @@ class _RenderPaidTier:
 class _SequencedProvider:
     """Returns each canned response in order (obstacle first, clean after render)."""
 
+    DOUBLES_ARM = DoubleArm.ROUTER_FAITHFUL
+
+    @classmethod
+    def for_fidelity_check(cls) -> _SequencedProvider:
+
+        return cls(["ok"])
+
     name = "stub"
 
     def __init__(self, responses: list[str]) -> None:
@@ -169,7 +177,9 @@ class _SequencedProvider:
 
         text = self._responses[min(len(self.calls), len(self._responses) - 1)]
         self.calls.append({"system": system, "user": user, "model": model})
-        return ProviderResponse(text=text, model=model, prompt_tokens=200, completion_tokens=20, cost_usd=0.0005, latency_ms=120)
+        return ProviderResponse(
+            text=honor_contract(text, system), model=model, prompt_tokens=200, completion_tokens=20, cost_usd=0.0005, latency_ms=120
+        )
 
 
 def _extractor(state: AppState, provider: _SequencedProvider) -> LlmExtractorResource:

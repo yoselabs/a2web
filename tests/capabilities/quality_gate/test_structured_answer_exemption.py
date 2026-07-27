@@ -20,6 +20,7 @@ from a2web.models import FetchStatus
 from a2web.settings import AppSettings
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TierResult
+from tests._helpers.llm_doubles import DoubleArm, honor_contract
 from tests.conftest import make_default_state
 
 # A thin contact page: trafilatura prose is far below the length floor, no SPA /
@@ -61,6 +62,13 @@ def _swap_raw(monkeypatch: pytest.MonkeyPatch, body: bytes) -> None:
 
 
 class _StubProvider:
+    DOUBLES_ARM = DoubleArm.ROUTER_FAITHFUL
+
+    @classmethod
+    def for_fidelity_check(cls) -> _StubProvider:
+
+        return cls(answer="ok")
+
     name = "stub"
 
     def __init__(self, *, answer: str) -> None:
@@ -71,7 +79,9 @@ class _StubProvider:
         self.calls.append({"system": system, "user": user, "model": model})
         from a2web.packages.llm_extract import ProviderResponse
 
-        return ProviderResponse(text=self.answer, model=model, prompt_tokens=100, completion_tokens=10, cost_usd=0.0, latency_ms=10)
+        return ProviderResponse(
+            text=honor_contract(self.answer, system), model=model, prompt_tokens=100, completion_tokens=10, cost_usd=0.0, latency_ms=10
+        )
 
 
 def _extractor(state: AppState, *, answer: str) -> tuple[LlmExtractorResource, _StubProvider]:

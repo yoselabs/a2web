@@ -1,9 +1,25 @@
 {
-  "answer": "Per serving (assuming 8-10 slices): **268 calories** and **24 grams sugar**. The recipe yields 8-10 slices total.",
-  "completion_tokens": 92,
-  "cost_usd": 0.01683675,
-  "latency_ms": 0,
+  "answer": "Per serving: 268 calories and 24 grams of sugar. The recipe yields 8\u201310 slices.",
+  "completion_tokens": 146,
+  "cost_usd": 0.025965000000000002,
+  "latency_ms": 4352,
   "model": "claude-haiku-4-5-20251001",
-  "prompt_tokens": 10401,
+  "prompt_tokens": 15334,
+  "routing": {
+    "also_here": [
+      "full nutrition profile (fat, saturated fat, carbs, fiber, protein, sodium)",
+      "prep/cook/total time",
+      "complete ingredient list",
+      "baking instructions step-by-step",
+      "related recipes (almond butter, plum & raspberry jam, cappuccino)"
+    ],
+    "answer": "Per serving: 268 calories and 24 grams of sugar. The recipe yields 8\u201310 slices.",
+    "item_total_seen": null,
+    "obstacle": null,
+    "other_pages": [],
+    "refinement_axes": [],
+    "shape": "key-value",
+    "structural_form": "article"
+  },
   "template_name": "extract_router_v1"
 }

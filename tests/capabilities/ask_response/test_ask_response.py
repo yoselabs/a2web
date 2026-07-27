@@ -19,6 +19,7 @@ from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.llm_extract import Provider, ProviderResponse
 from a2web.state import AppState, unavailable_lazy
 from a2web.tiers import REGISTRY, TierResult
+from tests._helpers.llm_doubles import DoubleArm, honor_contract
 from tests._helpers.mcp import call_wire, mcp_client
 from tests.fixtures import FIXTURES_DIR
 
@@ -69,51 +70,34 @@ class _RawStub:
 class _StubProvider:
     """LLM provider stub that HONORS the output contract it is handed.
 
-    It used to `del system, user` and return prose unconditionally — which made
-    it a false witness on the `request_routing=True` path. `EXTRACT_ROUTER_V1`
-    says "Output strict JSON only"; a real model returns an envelope. The stub
-    returned prose, `_split_answer_and_routing` raised `ParseError`, and every
-    test driven through this provider silently exercised the ROUTING-LOST
-    branch while looking like a healthy `query`.
+    It used to `del system, user` and return prose unconditionally, which made
+    it a false witness on the `request_routing=True` path: `EXTRACT_ROUTER_V1`
+    says "Output strict JSON only", a real model returns an envelope, this
+    returned prose, the router parse raised, and every test driven through it
+    silently exercised the routing-LOST branch while presenting as a healthy
+    `query`. That is why the ADR-0015 index signal was measured as "fires on
+    every query — permanent noise" and shelved against a fixture rather than a
+    model.
 
-    That mattered beyond tidiness: it is the reason the ADR-0015 index-loss
-    signal was assessed as "fires on every query, permanent noise" and shelved.
-    The measurement was of the stub, not of production. A fixture that ignores
-    the prompt cannot witness what the model does with it.
-
-    Sniffing `structural_form` is deliberate: that field is the router
-    contract's distinguishing demand, so the stub answers exactly the contract
-    it was actually given, and a template rename that drops the field makes the
-    stub fall back to prose loudly rather than silently keep faking success.
+    The contract logic lives in `honor_contract`, shared by every pass-through
+    double. Eight private copies would drift, and a drifted copy is
+    indistinguishable from the bug.
     """
 
+    DOUBLES_ARM = DoubleArm.ROUTER_FAITHFUL
     name = "stub"
 
     def __init__(self, answer: str) -> None:
         self._answer = answer
 
+    @classmethod
+    def for_fidelity_check(cls) -> _StubProvider:
+        return cls(_DEFAULT_ANSWER)
+
     async def complete(self, *, system: str, user: str, model: str, **_: object) -> ProviderResponse:
         del user
-        # A minimal-but-VALID envelope: the same canned answer, plus the two
-        # fields the router shape requires. Deliberately no `also_here` /
-        # `other_pages` — a real model returns those only when the page has
-        # them, and inventing them here would push fiction into the goldens.
-        # `structural_form`/`shape` are consumed internally and never projected
-        # onto the wire, so honoring the contract does not itself move goldens.
-        #
-        # `system` is a TUPLE of prompt-cache blocks, not a str — `in` on the
-        # tuple would test element EQUALITY and quietly never match, which is
-        # the same class of silent-false-negative this stub is being fixed for.
-        #
-        # A caller-supplied answer that is ALREADY an envelope wins: several
-        # suites (refinement_guidance, listing_options) pass a full router
-        # payload as `answer=` to drive a specific classification. Wrapping that
-        # again would bury their envelope as a string inside a generic one.
-        text = self._answer
-        if "structural_form" in str(system) and not self._answer.lstrip().startswith("{"):
-            text = json.dumps({"answer": self._answer, "structural_form": "article", "shape": "prose"})
         return ProviderResponse(
-            text=text,
+            text=honor_contract(self._answer, system),
             model=model,
             prompt_tokens=120,
             completion_tokens=14,

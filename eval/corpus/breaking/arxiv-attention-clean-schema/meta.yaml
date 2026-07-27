@@ -1,4 +1,4 @@
-captured_at: '2026-06-10T12:13:50.372846+00:00'
+captured_at: '2026-07-27T02:26:55.282965+00:00'
 source_url: https://arxiv.org/abs/1706.03762
 layers:
   raw:
@@ -9,4 +9,4 @@ layers:
     bytes: 0
   llm:
     frozen: true
-content_sha256: c19ab20ff6b107f1f60aa38dd98245fb4adbe54d3b186505f013b3eb8ec64943
+content_sha256: 219e36c13d40f01908ae37f423a4de6531d2ea08dbd986546454c9dfaee03f2c

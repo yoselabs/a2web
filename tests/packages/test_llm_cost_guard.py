@@ -20,9 +20,13 @@ from anyllm import (
     with_cost_guard,
 )
 
+from tests._helpers.llm_doubles import DoubleArm
+
 
 class _FakeProvider:
     """anyllm-shaped provider carrying a real ProviderName, records if called."""
+
+    DOUBLES_ARM = DoubleArm.OFF_CONTRACT
 
     default_model = ""
 

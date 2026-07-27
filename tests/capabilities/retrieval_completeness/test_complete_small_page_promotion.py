@@ -25,6 +25,7 @@ from a2web.models import CacheState, Confidence, FetchStatus, Verdict
 from a2web.packages.llm_extract import ProviderResponse
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, Rendered, TierResult
+from tests._helpers.llm_doubles import DoubleArm, honor_contract
 from tests.conftest import make_default_state
 
 # A tiny COMPLETE page: 200, real visible text (clears the 32-char blank floor),
@@ -79,6 +80,13 @@ def _install_small_browser(monkeypatch: pytest.MonkeyPatch, *, subresource_block
 class _StubProvider:
     """LLM stub returning a fixed answer — proves the extractor RAN on the body."""
 
+    DOUBLES_ARM = DoubleArm.ROUTER_FAITHFUL
+
+    @classmethod
+    def for_fidelity_check(cls) -> _StubProvider:
+
+        return cls(answer="ok")
+
     name = "stub"
 
     def __init__(self, *, answer: str) -> None:
@@ -86,9 +94,11 @@ class _StubProvider:
         self.calls = 0
 
     async def complete(self, *, system: str, user: str, model: str, **_: object) -> ProviderResponse:
-        del system, user
+        del user
         self.calls += 1
-        return ProviderResponse(text=self.answer, model=model, prompt_tokens=80, completion_tokens=12, cost_usd=0.0, latency_ms=9)
+        return ProviderResponse(
+            text=honor_contract(self.answer, system), model=model, prompt_tokens=80, completion_tokens=12, cost_usd=0.0, latency_ms=9
+        )
 
 
 def _extractor(state: AppState, *, answer: str) -> tuple[LlmExtractorResource, _StubProvider]:

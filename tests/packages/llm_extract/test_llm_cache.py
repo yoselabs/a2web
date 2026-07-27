@@ -21,6 +21,7 @@ from a2web.packages.llm_extract import (
     PromptTemplate,
     ProviderResponse,
 )
+from tests._helpers.llm_doubles import DoubleArm
 
 
 @pytest.fixture
@@ -34,6 +35,8 @@ async def sqlite():
 
 class _CountingProvider:
     """Provider that records every call. Returns canned text."""
+
+    DOUBLES_ARM = DoubleArm.OFF_CONTRACT
 
     name = "count"
 

@@ -34,6 +34,7 @@ from a2web.packages.llm_extract import (
     ModelSpec,
     ProviderResponse,
 )
+from tests._helpers.llm_doubles import DoubleArm
 
 # --------------------------------------------------------------------- #
 # Provider selection — task 2.3
@@ -192,6 +193,8 @@ def test_contract_deviating_tier_and_status_allowed() -> None:
 
 class _CannedProvider:
     """Provider returning a fixed completion payload."""
+
+    DOUBLES_ARM = DoubleArm.OFF_CONTRACT
 
     name = "canned"
 

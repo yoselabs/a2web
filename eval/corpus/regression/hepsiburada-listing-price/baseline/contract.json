@@ -1,14 +1,11 @@
 {
   "answer_present": true,
-  "content_excludes": [
-    "890 TL%21700"
-  ],
-  "content_includes": [
-    "890 TL %21"
-  ],
   "has_content": true,
   "next_links_min": 10,
+  "operator_hints": [
+    "listing_more"
+  ],
   "status": "ok",
   "tier": "raw",
-  "tokens_full_max": 11196
+  "tokens_full_max": 11243
 }

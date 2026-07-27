@@ -1,9 +1,19 @@
 {
-  "answer": "Not disclosed in this page. The Wikipedia article on Transformers does not provide USD training cost figures for the original 2017 Transformer model.",
-  "completion_tokens": 386,
-  "cost_usd": 0.0395565,
-  "latency_ms": 7148,
+  "answer": "The page does not state the training cost of the original Transformer model. The 2017 'Attention Is All You Need' paper and related sections discuss the architecture, performance, and design choices, but do not disclose USD training expenses.",
+  "completion_tokens": 86,
+  "cost_usd": 0.014172800000000001,
+  "latency_ms": 5398,
   "model": "claude-haiku-4-5-20251001",
-  "prompt_tokens": 19996,
+  "prompt_tokens": 20920,
+  "routing": {
+    "also_here": [],
+    "answer": "The page does not state the training cost of the original Transformer model. The 2017 'Attention Is All You Need' paper and related sections discuss the architecture, performance, and design choices, but do not disclose USD training expenses.",
+    "item_total_seen": null,
+    "obstacle": null,
+    "other_pages": [],
+    "refinement_axes": [],
+    "shape": "prose",
+    "structural_form": "reference"
+  },
   "template_name": "extract_router_v1"
 }

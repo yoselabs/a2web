@@ -1,9 +1,26 @@
 {
-  "answer": "One serving contains 231 calories. The recipe makes 12 servings, yielding 1 (9\u00d75-inch) loaf.",
-  "completion_tokens": 86,
-  "cost_usd": 0.014672,
-  "latency_ms": 4030,
+  "answer": "231 calories per serving; 12 servings per recipe. \"This recipe was developed at its original yield. Original recipe (1X) yields 12 servings.\"",
+  "completion_tokens": 112,
+  "cost_usd": 0.02503725,
+  "latency_ms": 4653,
   "model": "claude-haiku-4-5-20251001",
-  "prompt_tokens": 11394,
+  "prompt_tokens": 14995,
+  "routing": {
+    "also_here": [
+      "ingredients list",
+      "cook/prep times",
+      "storage instructions",
+      "freezing method",
+      "community tips",
+      "related banana bread recipes"
+    ],
+    "answer": "231 calories per serving; 12 servings per recipe. \"This recipe was developed at its original yield. Original recipe (1X) yields 12 servings.\"",
+    "item_total_seen": null,
+    "obstacle": null,
+    "other_pages": [],
+    "refinement_axes": [],
+    "shape": "key-value",
+    "structural_form": "product"
+  },
   "template_name": "extract_router_v1"
 }

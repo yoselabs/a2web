@@ -1,8 +1,7 @@
 {
-  "answer_contains": "Not disclosed",
   "answer_present": true,
   "has_content": true,
   "status": "ok",
   "tier": "site_handler:wikipedia",
-  "tokens_full_max": 49098
+  "tokens_full_max": 49536
 }

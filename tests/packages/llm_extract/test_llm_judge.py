@@ -21,10 +21,13 @@ from a2web.packages.llm_extract import (
     Provider,
     ProviderResponse,
 )
+from tests._helpers.llm_doubles import DoubleArm
 
 
 class _MockJudgeProvider:
     """Provider that returns a configured JSON string regardless of input."""
+
+    DOUBLES_ARM = DoubleArm.OFF_CONTRACT
 
     name = "mock"
 
@@ -270,6 +273,8 @@ def test_judge_parse_error_carries_raw_text() -> None:
 
 class _RaisingJudgeProvider:
     """Provider whose `complete()` fails loud with `AnyLLMError`."""
+
+    DOUBLES_ARM = DoubleArm.OFF_CONTRACT
 
     name = "raising"
 

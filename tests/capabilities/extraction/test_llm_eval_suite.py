@@ -30,6 +30,7 @@ from a2web.packages.llm_extract import (
     JudgeVerdict,
     ModelSpec,
 )
+from tests._helpers.llm_doubles import DoubleArm
 
 # --------------------------------------------------------------------- #
 # Corpus tests
@@ -298,6 +299,8 @@ async def test_eval_row_records_derived_verdict_as_success(tmp_path: Path) -> No
     sys_a = _ConstantSystem(name="a", answer="answer text")
 
     class _DropReachedProvider:
+        DOUBLES_ARM = DoubleArm.OFF_CONTRACT
+
         async def complete(self, **_kwargs: object) -> object:
             class _R:
                 text = json.dumps({"scores": [5, 3, 5], "overall": 4, "reasoning": "good"})

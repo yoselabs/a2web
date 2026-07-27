@@ -6,17 +6,17 @@ final-url: https://export.arxiv.org/api/query?id_list=1706.03762
 conditional-hit: false
 body-encoding: utf-8
 --- headers ---
-via: 1.1 google, 1.1 varnish, 1.1 varnish, 1.1 varnish
-x-cloud-trace-context: 3c6a0faac0f8067eae52228939677e0a
 server: Google Frontend
+via: 1.1 google, 1.1 varnish, 1.1 varnish, 1.1 varnish
+x-cloud-trace-context: 3bad7d79d87ee29d3ec1a959d25b7732
 content-type: application/atom+xml; charset=utf-8
 accept-ranges: bytes
-age: 104
-date: Wed, 10 Jun 2026 12:13:45 GMT
-x-served-by: cache-lga21967-LGA, cache-lga21967-LGA, cache-lga21949-LGA, cache-fra-etou8220185-FRA
+age: 664
+date: Mon, 27 Jul 2026 02:26:51 GMT
+x-served-by: cache-lga21966-LGA, cache-lga21966-LGA, cache-lga21953-LGA, cache-fra-etou8220169-FRA
 x-cache: MISS, HIT, HIT
-x-cache-hits: 0, 9, 0
-x-timer: S1781093625.140554,VS0,VE1
+x-cache-hits: 0, 8, 0
+x-timer: S1785119212.966114,VS0,VE1
 strict-transport-security: max-age=300
 content-length: 2965
 --- body ---
@@ -24,7 +24,7 @@ content-length: 2965
 <feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
   <id>https://arxiv.org/api/zUwBFJ+vAUSpXAR7QFveSY/bZos</id>
   <title>arXiv Query: search_query=&amp;id_list=1706.03762&amp;start=0&amp;max_results=10</title>
-  <updated>2026-06-10T11:15:42Z</updated>
+  <updated>2026-07-27T01:45:00Z</updated>
   <link href="https://arxiv.org/api/query?search_query=&amp;start=0&amp;max_results=10&amp;id_list=1706.03762" type="application/atom+xml"/>
   <opensearch:itemsPerPage>10</opensearch:itemsPerPage>
   <opensearch:totalResults>1</opensearch:totalResults>

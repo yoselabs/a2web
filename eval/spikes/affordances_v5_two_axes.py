@@ -35,15 +35,14 @@ import time
 from pathlib import Path
 from typing import Any, cast
 
+from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
 from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.fetcher import fetch
-from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
-from a2web.packages.proxy_routing import ProxyPool, ProxyEntryShape, RouteRuleShape
+from a2web.packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from a2web.server import build_browser_pool, build_llm_extractor
 from a2web.settings import AppSettings
 from a2web.state import SqliteResource, build_state
-
 
 PRIMER_ASK = "Give a 2-3 sentence summary of what this page is."
 
@@ -262,7 +261,7 @@ async def _run(state: Any, browser_pool: Any, llm: Any, urls: list[tuple[str, st
     lines: list[str] = [
         f"# Affordances spike v5 — two-axis rubric ({tag})\n",
         f"Primer ask: `{PRIMER_ASK}` · Model: claude-haiku-4-5\n",
-        f"Axes: page_kind + page_kind_confidence + content_value (omitted on obstacle)\n",
+        "Axes: page_kind + page_kind_confidence + content_value (omitted on obstacle)\n",
         f"Corpus: {len(urls)} URLs\n\n",
     ]
     summary: dict[str, Any] = {

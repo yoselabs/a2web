@@ -96,12 +96,22 @@ def _run_one(model: str, judge: str, out_dir: Path, base_url: str) -> None:
     env = {**os.environ, "A2WEB_BENCH_PROVIDER": "openai_compatible", "OPENAI_BASE_URL": base_url, "OPENAI_MODEL": model}
     subprocess.run(
         [
-            sys.executable, "-m", "a2web.llm_eval",
-            "--corpus", str(CORPUS), "--mode", "detail",
-            "--judge-model", judge, "--concurrency", "4",
-            "--output-dir", str(out_dir),
+            sys.executable,
+            "-m",
+            "a2web.llm_eval",
+            "--corpus",
+            str(CORPUS),
+            "--mode",
+            "detail",
+            "--judge-model",
+            judge,
+            "--concurrency",
+            "4",
+            "--output-dir",
+            str(out_dir),
         ],
-        env=env, check=False,
+        env=env,
+        check=False,
     )
 
 
@@ -131,20 +141,22 @@ def _score(run_dir: Path, prices: dict[str, tuple[float, float]]) -> list[dict[s
             ptok += int(r["fetch_prompt_tokens"] or 0)
             ctok += int(r["fetch_completion_tokens"] or 0)
         mean = lambda xs: round(sum(xs) / len(xs), 3) if xs else None  # noqa: E731
-        rows.append({
-            "model": model,
-            "n_cells": n,
-            "fetch_fails": fails,
-            "quality": mean(overall),
-            "contract_pass": f"{contract}/{n}",
-            "clarity": mean(clarity),
-            "next_links": mean(nlink),
-            "extraction_prompt_tokens": ptok,
-            "extraction_completion_tokens": ctok,
-            "extraction_cost_usd": round(ptok * pin + ctok * pout, 6),
-            "price_in_per_1m": round(pin * 1e6, 4),
-            "price_out_per_1m": round(pout * 1e6, 4),
-        })
+        rows.append(
+            {
+                "model": model,
+                "n_cells": n,
+                "fetch_fails": fails,
+                "quality": mean(overall),
+                "contract_pass": f"{contract}/{n}",
+                "clarity": mean(clarity),
+                "next_links": mean(nlink),
+                "extraction_prompt_tokens": ptok,
+                "extraction_completion_tokens": ctok,
+                "extraction_cost_usd": round(ptok * pin + ctok * pout, 6),
+                "price_in_per_1m": round(pin * 1e6, 4),
+                "price_out_per_1m": round(pout * 1e6, 4),
+            }
+        )
     rows.sort(key=lambda x: (-(x["quality"] or 0), x["extraction_cost_usd"]))
     return rows
 
@@ -167,7 +179,11 @@ def _write_md(path: Path, prov: dict[str, Any], rows: list[dict[str, Any]]) -> N
             f"{r['next_links']} | ${r['extraction_cost_usd']:.4f} | "
             f"{r['price_in_per_1m']}/{r['price_out_per_1m']} |"
         )
-    lines += ["", "Cost is extraction only (candidate model), over the committed corpus; judge cost is a fixed overhead not attributed to candidates.", ""]
+    lines += [
+        "",
+        "Cost is extraction only (candidate model), over the committed corpus; judge cost is a fixed overhead not attributed to candidates.",
+        "",
+    ]
     path.write_text("\n".join(lines))
 
 
@@ -198,7 +214,11 @@ def main() -> int:
     prices = _fetch_prices(base_url, key)
     rows = _score(run_dir, prices)
     prov = _provenance(date, cfg)
-    result = {"provenance": prov, "prices_snapshot_per_1m": {r["model"]: [r["price_in_per_1m"], r["price_out_per_1m"]] for r in rows}, "leaderboard": rows}
+    result = {
+        "provenance": prov,
+        "prices_snapshot_per_1m": {r["model"]: [r["price_in_per_1m"], r["price_out_per_1m"]] for r in rows},
+        "leaderboard": rows,
+    }
 
     (HERE / "results" / f"{date}.json").write_text(json.dumps(result, indent=2))
     _write_md(HERE / "results" / f"{date}.md", prov, rows)

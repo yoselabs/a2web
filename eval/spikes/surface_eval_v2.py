@@ -31,15 +31,14 @@ import time
 from pathlib import Path
 from typing import Any, cast
 
+from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
 from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.fetcher import fetch
-from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
-from a2web.packages.proxy_routing import ProxyPool, ProxyEntryShape, RouteRuleShape
+from a2web.packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape
 from a2web.server import build_browser_pool, build_llm_extractor
 from a2web.settings import AppSettings
 from a2web.state import SqliteResource, build_state
-
 
 # (slug, ask, url, expected_shape, expected_genre_or_None)
 URLS: list[tuple[str, str, str, str, str | None]] = [
@@ -517,7 +516,7 @@ async def main() -> None:
     out_path.write_text("".join(lines))
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False))
     print(f"\nwrote {out_path}\nwrote {summary_path}")
-    print(f"\nAggregate:")
+    print("\nAggregate:")
     print(f"  cost ${t['cost']:.4f} over {len(URLS)} URLs")
     print(f"  parse_failures={t['parse_failures']}, envelope_violations={t['envelope_violations']}, memory_leaks={t['memory_leaks']}")
     print(f"  shape matches: {t['shape_matches']}/{t['shape_matches'] + t['shape_mismatches']}")

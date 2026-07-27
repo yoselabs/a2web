@@ -42,7 +42,6 @@ from typing import Any
 
 from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
 
-
 NAMES = ["affordances", "signals", "leads", "hints"]
 RUNS_PER_PROBE = 3
 

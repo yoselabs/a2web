@@ -31,7 +31,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
 from http_fetch import FetchOutcome
 
 from .cassette import parse_exchanges

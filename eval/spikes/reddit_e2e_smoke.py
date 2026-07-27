@@ -11,18 +11,16 @@ Pure investigation. No production code modified.
 from __future__ import annotations
 
 import asyncio
+from typing import cast
 
 from a2kit.ldd import ldd_state_for_call
 from a2kit.packages.testing.null_context import null_context
 from a2kit.testing import lazy as lazy_thunk
-
-from typing import cast
-
+from a2web.packages.browser_pool import BrowserPool
+from a2web.packages.http_cache import SqliteResource
 from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.fetcher import fetch as a2web_fetch
-from a2web.packages.browser_pool import BrowserPool
-from a2web.packages.http_cache import SqliteResource
 from a2web.packages.proxy_routing import ProxyPool
 from a2web.settings import AppSettings
 from a2web.state import build_state
@@ -62,7 +60,7 @@ async def main() -> None:
             for d in response.diagnostics:
                 print(f"    t={d.t_ms:>5}ms step={d.step!r:<15} verdict={d.verdict.value!r:<18} subsys={d.subsystem!r}")
             if response.operator_hints:
-                print(f"  operator_hints:")
+                print("  operator_hints:")
                 for h in response.operator_hints:
                     print(f"    {h.code}: {h.message}")
             preview = response.content_md[:300].replace("\n", " ⏎ ")

@@ -23,6 +23,7 @@ from a2web.packages.llm_extract import Provider, ProviderResponse
 from a2web.settings import AppSettings
 from a2web.state import AppState, unavailable_lazy
 from a2web.tiers import REGISTRY, TierResult
+from tests._helpers.llm_doubles import DoubleArm, honor_contract
 
 # --------------------------------------------------------------------- #
 # Test helpers
@@ -31,6 +32,13 @@ from a2web.tiers import REGISTRY, TierResult
 
 class _RecordingProvider:
     """Provider that records every call and returns a canned answer."""
+
+    DOUBLES_ARM = DoubleArm.ROUTER_FAITHFUL
+
+    @classmethod
+    def for_fidelity_check(cls) -> _RecordingProvider:
+
+        return cls()
 
     name = "rec"
 
@@ -58,7 +66,7 @@ class _RecordingProvider:
             }
         )
         return ProviderResponse(
-            text=self.answer,
+            text=honor_contract(self.answer, system),
             model=model,
             prompt_tokens=150,
             completion_tokens=30,

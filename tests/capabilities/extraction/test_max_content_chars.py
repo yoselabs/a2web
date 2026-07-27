@@ -10,10 +10,13 @@ import pytest
 
 from a2web.packages.llm_extract import ProviderResponse
 from a2web.packages.llm_extract.extractor import Extractor, ModelSpec
+from tests._helpers.llm_doubles import DoubleArm
 
 
 class _RecordingProvider:
     """Records the `user` prompt that was sent so tests can assert truncation."""
+
+    DOUBLES_ARM = DoubleArm.OFF_CONTRACT
 
     name = "recording"
     last_user: str = ""

@@ -23,13 +23,12 @@ import asyncio
 import time
 from dataclasses import dataclass
 
+from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
+
 from a2web.packages.llm_extract import (
     EXTRACT_CACHEABLE_V1,
     Extractor,
-    ModelSpec,
 )
-from a2web.packages.llm_extract.providers.claude_code import ClaudeCodeProvider
-
 
 # A ~5 KB page — comfortably above any minimum-token caching threshold and
 # representative of a real wiki/article extraction.
@@ -273,7 +272,7 @@ async def main() -> None:
         later = [r for r in same_page_calls[1:] if r.cache_read > 0]
         if later:
             print(f"- cache_read fired on {len(later)}/{len(same_page_calls) - 1} same-page follow-up calls.")
-            print(f"  → Claude CLI IS applying cache behind the scenes.")
+            print("  → Claude CLI IS applying cache behind the scenes.")
             saved = sum(r.cache_read for r in later)
             print(f"  → ~{saved} prompt tokens served from cache across the session.")
         else:

@@ -20,6 +20,7 @@ import sys
 from typing import TYPE_CHECKING, Any
 
 from eval._capture.corpus import ReplayCase
+from tests._helpers.llm_doubles import DoubleArm
 
 if TYPE_CHECKING:
     import pytest
@@ -131,6 +132,8 @@ class CassetteLlm:
     exact values. A call with no recording is a loud `CassetteMiss`.
     """
 
+    DOUBLES_ARM = DoubleArm.ROUTER_FAITHFUL
+
     def __init__(self, case: ReplayCase) -> None:
         self._case = case
         # Spy: the exact `content` string the orchestrator fed the extractor on
@@ -150,6 +153,11 @@ class CassetteLlm:
 
     async def __aexit__(self, *_: object) -> None:
         return None
+
+    @classmethod
+    def for_fidelity_check(cls) -> CassetteLlm:
+        """A minimal in-memory case carrying a recovered routing payload."""
+        return cls(_fidelity_case())
 
     async def extract(self, **kwargs: object) -> Any:
         from a2web.packages.llm_extract.extractor import ExtractionResult
@@ -171,4 +179,86 @@ class CassetteLlm:
             cost_usd=float(record.get("cost_usd", 0.0)),
             latency_ms=int(record.get("latency_ms", 0)),
             cache_hit=False,
+            routing=_routing_from_record(record, case=self._case),
         )
+
+
+#: Cassettes written before routing was recorded carry no `routing` key at all.
+#: They are INDISTINGUISHABLE from a case that genuinely recorded a lost
+#: payload unless the format says which it is — so the format says.
+#: `"routing": null` means "recorded as lost"; a missing key means "this
+#: cassette predates the field and cannot answer the question".
+_ROUTING_KEY = "routing"
+
+
+def _routing_from_record(record: dict[str, Any], *, case: ReplayCase) -> Any:
+    """Rebuild the routing payload, refusing to guess when the format cannot say.
+
+    This function is the fix for a defect of the same shape as the one the
+    fidelity check exists to catch: the previous implementation simply omitted
+    `routing=`, so it defaulted to `None` and EVERY replayed case ran the
+    routing-lost branch while reporting success. A silent default is precisely
+    the failure mode, so there is deliberately no fallback here — a cassette
+    that cannot express routing raises.
+    """
+    if _ROUTING_KEY not in record:
+        raise CassetteMiss(
+            case,
+            tier="llm",
+            detail=(
+                "cassette predates the routing field, so replay cannot reproduce the "
+                "routing branch. It would otherwise default to None and silently "
+                "exercise the degraded path — the exact defect this check removes. "
+                "Re-capture it"
+            ),
+        )
+    raw = record[_ROUTING_KEY]
+    if raw is None:
+        return None  # recorded as genuinely lost — a legitimate, expressible state
+    from a2web.packages.llm_extract.router_payload import (
+        OtherPageBoundary,
+        RefinementAxisBoundary,
+        RouterPayload,
+    )
+
+    return RouterPayload(
+        answer=str(raw.get("answer", "")),
+        structural_form=str(raw.get("structural_form", "")),
+        shape=str(raw.get("shape", "")),
+        obstacle=raw.get("obstacle"),
+        also_here=tuple(raw.get("also_here", ()) or ()),
+        other_pages=tuple(
+            OtherPageBoundary(
+                url=str(o.get("url", "")),
+                reason=str(o.get("reason", "")),
+                kind=str(o.get("kind", "drilldown")),
+                handle=o.get("handle"),
+            )
+            for o in (raw.get("other_pages", ()) or ())
+        ),
+        refinement_axes=tuple(
+            RefinementAxisBoundary(dimension=str(a.get("dimension", "")), how=str(a.get("how", "")))
+            for a in (raw.get("refinement_axes", ()) or ())
+        ),
+        item_total_seen=raw.get("item_total_seen"),
+    )
+
+
+def _fidelity_case() -> Any:
+    """An in-memory `ReplayCase` for the double-fidelity check only."""
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        corpus="_fidelity",
+        slug="_fidelity",
+        inputs=SimpleNamespace(
+            llm={
+                "extract": {
+                    "answer": "a",
+                    "model": "cassette",
+                    "template_name": "extract_router_v1",
+                    _ROUTING_KEY: {"answer": "a", "structural_form": "article", "shape": "prose"},
+                }
+            }
+        ),
+    )
