@@ -150,7 +150,7 @@ async def test_build_selected_provider_raises_without_provider(monkeypatch: pyte
     (anthropic pinned, no API key in env)."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(ResourceUnavailable):
-        build_selected_provider(AppSettings(llm_provider="anthropic"))
+        build_selected_provider(AppSettings(llm_provider="anthropic-api"))
 
 
 @pytest.mark.asyncio

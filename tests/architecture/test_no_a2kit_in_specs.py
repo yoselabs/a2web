@@ -121,8 +121,7 @@ def test_no_a2kit_vocabulary_in_specs() -> None:
     assert not violations, (
         "Retired-a2kit vocabulary reappeared in capability specs. These specs "
         "describe software that no longer exists — rewrite to the FastMCP-direct "
-        "mechanism (see the archived `sunset-a2kit-dependency` change):\n  "
-        + "\n  ".join(violations)
+        "mechanism (see the archived `sunset-a2kit-dependency` change):\n  " + "\n  ".join(violations)
     )
 
 
@@ -130,9 +129,7 @@ def test_allowlisted_requirement_still_exists() -> None:
     """The exemption must name a real requirement, or it rots into a blind spot."""
     titles_by_capability: dict[str, set[str]] = {}
     for path in _spec_files():
-        titles_by_capability.setdefault(path.parent.name, set()).update(
-            title for title, _ in _requirements(path.read_text()) if title
-        )
+        titles_by_capability.setdefault(path.parent.name, set()).update(title for title, _ in _requirements(path.read_text()) if title)
     for capability, title in _ALLOWED:
         assert title in titles_by_capability.get(capability, set()), (
             f"allowlist entry ({capability!r}, {title!r}) names a requirement "

@@ -210,17 +210,17 @@ here and nowhere else, NOT an endogenous golden. No package is tagged until:
 - [x] 6.3 ~~If promoting: extract, port `tests/capabilities/json_extract/`, tag.~~
       **Not promoting in this sweep** — see 6.2.
 
-> **GROUND-TRUTH reconciliation #2 (2026-07-27).** Verified against the live tree.
-> Repoint is done EXCEPT the provider-identity typing (§7.3/7.4), which never
-> landed — `settings.py:30` still reads `ProviderMode = Literal[...]`, not the
-> shelf's `anyllm.ProviderName` StrEnum, and there is no `assert_never` fallback.
-> This is the **one live remainder**, and it is load-bearing: this change's
-> `app-composition` delta ADDS the requirement "The provider identity is a typed
-> value parsed once at the configuration boundary" — a requirement the code does
-> NOT yet satisfy. **Do not archive shelf-sweep until §7.3/7.4 ship**, or the
-> archived spec will assert an invariant the system fails (the exact "spec lies
-> about the system" hazard `reconcile-specs-post-sunset` exists to kill). §10.1
-> moved to `BACKLOG.md` (a design-smell investigation, never in-scope here).
+> **GROUND-TRUTH reconciliation #2 (2026-07-27) — RESOLVED.** The provider-identity
+> typing (§7.3/7.4), previously the one live remainder, has landed:
+> `ProviderMode = anyllm.ProviderName | Literal["auto"]` (`settings.py`) with the
+> exhaustive `assert_never` match in `llm_resource._config_for`. It went wider
+> than first scoped — the whole `_manifests/llm_providers/` surface was deleted
+> and `select_provider` now delegates the ordered walk + runtime fallback to
+> `anyllm.resolve_provider` (`anyllm-v0.6.0`, via `llm-cache-v0.1.2`). This
+> change's `app-composition` "provider identity is a typed value parsed once at
+> the configuration boundary" requirement is now SATISFIED, so the archive is
+> unblocked (the "spec lies about the system" hazard is cleared). §10.1 moved to
+> `BACKLOG.md` (a design-smell investigation, never in-scope here).
 
 ## 7. Repoint a2web (Phase E step 6 — per package, tests green each time)
 
@@ -231,20 +231,32 @@ here and nowhere else, NOT an endogenous golden. No package is tagged until:
       `packages/browser_backends/`, `packages/llm_extract/providers/` all gone;
       `packages/llm_extract/wobble/` correctly STAYS (domain-side policy binding,
       not the promoted machinery).
-- [ ] 7.3 **THE LIVE REMAINDER.** Adopt `anyllm.ProviderName` at the settings
-      field: `ProviderMode = Literal[...]` → `provider: ProviderName` on the
-      `BaseSettings` field (`settings.py:30`). `StrEnum` is natively a pydantic
-      validator — no custom `field_validator`. Everything downstream becomes
-      `ProviderName`-typed. NOT DONE — still `Literal` as of 2026-07-27.
-- [ ] 7.4 **THE LIVE REMAINDER.** Add an exhaustive `match`/`case` with
-      `assert_never` on the fallback (no wildcard) so a future anyllm provider
-      addition fails statically. NOT DONE. (§7.3+7.4 are one small code change;
-      until they land this change cannot archive — see the note above.)
+- [x] 7.3 DONE (2026-07-27, went wider than first scoped). Adopted
+      `anyllm.ProviderName` at the settings field: `ProviderMode =
+      ProviderName | Literal["auto"]` (`settings.py`). `auto` is a selection
+      OUTCOME, not a ProviderName member, so the union (StrEnum natively
+      validates; the Literal adds the sentinel) — the original "just
+      `provider: ProviderName`" plan was wrong: it can't hold `auto` and the
+      old env values don't map. **Breaking**: `A2WEB_LLM_PROVIDER` values are
+      now anyllm's (`anthropic-api` / `claude-code-sdk` / `openai-compatible` /
+      `auto`); the old `anthropic` / `claude-code` / `openai_compatible` no
+      longer validate (Shen deploy must set the new values or rely on the
+      `auto` default). While here, the whole `_manifests/llm_providers/` surface
+      was **deleted** (scar tissue anyllm's `build_adapter` + `available()`
+      outgrew); `llm_resource.select_provider` now delegates the ordered walk +
+      runtime fallback to `anyllm.resolve_provider` (added as `anyllm-v0.6.0`,
+      picked up via `llm-cache-v0.1.2`), keeping only a2web policy (the order,
+      the gateway-first reorder, the OpenAI model recommendation).
+- [x] 7.4 DONE (2026-07-27). `llm_resource._config_for(name, settings)` matches
+      each `ProviderName` with NO wildcard and `assert_never(name)` on the
+      fallthrough — a future anyllm ProviderName addition fails `ty` statically
+      (over the SHELF's enum, a strictly better guard than a2web's old local
+      Literal). Satisfies §0.4c.
 - [x] 7.5 Confirm `tests/test_packages_independence.py` still passes and the
       `packages/*/__init__.py` `__all__` freeze test reflects the removals. —
       done inline per §5.5 (gate green 1173 passed / 90.49% / 37 arch).
-- [x] 7.6 `make check` green in a2web after each repoint. — done per §5.5;
-      re-run required after §7.3/7.4 land.
+- [x] 7.6 `make check` green in a2web after §7.3/7.4 landed — 1167 passed,
+      90.47%, arch green (2026-07-27).
 
 ## 8. Close the loop (resolution 0009 — the change isn't done until `main` carries it)
 

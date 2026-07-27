@@ -50,42 +50,37 @@ def test_pick_provider_defaults_to_claude_code(monkeypatch: pytest.MonkeyPatch) 
     from a2web.settings import AppSettings
 
     provider, provider_id = _pick_provider(AppSettings())
-    assert provider_id == "claude-code"
+    assert provider_id == "claude-code-sdk"
     assert isinstance(provider, ClaudeCodeSdkAdapter)
 
 
 def test_pick_provider_honours_claude_code_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("A2WEB_BENCH_PROVIDER", "claude-code")
+    monkeypatch.setenv("A2WEB_BENCH_PROVIDER", "claude-code-sdk")
     # Same session-present pin as the default-selection test (CI has no session).
     monkeypatch.setattr(ClaudeCodeSdkAdapter, "available", lambda _self: True)
     from a2web.settings import AppSettings
 
     provider, provider_id = _pick_provider(AppSettings())
-    assert provider_id == "claude-code"
+    assert provider_id == "claude-code-sdk"
     assert isinstance(provider, ClaudeCodeSdkAdapter)
 
 
 def test_pick_provider_honours_anthropic_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`A2WEB_BENCH_PROVIDER=anthropic` forces the API provider. Stub the
-    manifest-registry lookup so the test does not need a real key."""
+    """`A2WEB_BENCH_PROVIDER=anthropic-api` forces the metered API provider.
 
-    class _FakeAnthropic:
-        name = "anthropic"
-
-    fake = _FakeAnthropic()
-
-    def _fake_load_surface(_path: str, _protocol: object, _settings: object, **_kwargs: object) -> dict:
-        return {"anthropic": fake}
+    Selection now flows through `llm_resource.select_provider` →
+    `anyllm.resolve_provider` → `build_adapter`, which gates on the adapter's
+    `available()` (a key-env probe). Pin availability so the test needs no real
+    key and stays host-independent."""
+    from anyllm import AnthropicApiAdapter
 
     from a2web.settings import AppSettings
 
-    monkeypatch.setenv("A2WEB_BENCH_PROVIDER", "anthropic")
-    # Selection now flows through `llm_resource.select_provider`, which loads
-    # the registry via `plugin_surface.load_surface` (function-local import).
-    monkeypatch.setattr("plugin_surface.load_surface", _fake_load_surface)
+    monkeypatch.setenv("A2WEB_BENCH_PROVIDER", "anthropic-api")
+    monkeypatch.setattr(AnthropicApiAdapter, "available", lambda _self: True)
     provider, provider_id = _pick_provider(AppSettings())
-    assert provider_id == "anthropic"
-    assert isinstance(provider, _FakeAnthropic)
+    assert provider_id == "anthropic-api"
+    assert isinstance(provider, AnthropicApiAdapter)
 
 
 # --------------------------------------------------------------------- #

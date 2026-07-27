@@ -112,7 +112,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "json-in-html", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.1.0" },
     { name = "lean-wire", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.1.0" },
-    { name = "llm-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-cache&tag=llm-cache-v0.1.1" },
+    { name = "llm-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-cache&tag=llm-cache-v0.1.2" },
     { name = "llm-wobble", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-wobble&tag=llm-wobble-v0.1.0" },
     { name = "markdownify", specifier = ">=0.13,<2" },
     { name = "openai", specifier = ">=1.40,<3" },
@@ -243,8 +243,8 @@ wheels = [
 
 [[package]]
 name = "anyllm"
-version = "0.5.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fanyllm&tag=llm-cache-v0.1.1#569d3067b8f2814c786a13d8f47285109541f9f6" }
+version = "0.6.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fanyllm&tag=llm-cache-v0.1.2#b810a02e0c9154e7e469bb8b7c2b5b6fb8785e5f" }
 
 [package.optional-dependencies]
 anthropic = [
@@ -1635,8 +1635,8 @@ dependencies = [
 
 [[package]]
 name = "llm-cache"
-version = "0.1.1"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-cache&tag=llm-cache-v0.1.1#569d3067b8f2814c786a13d8f47285109541f9f6" }
+version = "0.1.2"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-cache&tag=llm-cache-v0.1.2#b810a02e0c9154e7e469bb8b7c2b5b6fb8785e5f" }
 dependencies = [
     { name = "aiosqlite" },
     { name = "anyllm" },

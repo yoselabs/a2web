@@ -146,11 +146,10 @@ def build_selected_provider(settings: AppSettings) -> Provider:
     so "no provider" surfaces as `ResourceUnavailable` at the extract seam — the
     same path browser/cookie resources use.
     """
-    selection = select_provider(settings)
-    if selection is None:
-        tried = settings.llm_provider if settings.llm_provider != "auto" else ", ".join(_PROVIDER_ORDER)
+    provider = select_provider(settings)
+    if provider is None:
+        tried = str(settings.llm_provider) if settings.llm_provider != "auto" else ", ".join(p.value for p in _PROVIDER_ORDER)
         raise ResourceUnavailable(f"no LLM provider available (tried: {tried})")
-    _, provider = selection
     return provider
 
 

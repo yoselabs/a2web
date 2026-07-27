@@ -16,6 +16,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from anyllm import ProviderName
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import (
     BaseSettings,
@@ -25,9 +26,15 @@ from pydantic_settings import (
 from settings_base import SecretStrippingYamlSource, resolve_config_path, resolve_env_refs
 
 # LLM provider selection mode. `auto` resolves via the preference order in
-# `llm_resource.select_provider`; the concrete ids name a single backend.
-# Declared once here so the field and the bench's selection boundary share it.
-ProviderMode = Literal["auto", "anthropic", "claude-code", "openai_compatible"]
+# `llm_resource.select_provider`; a concrete `anyllm.ProviderName` names a
+# single backend. `auto` is a selection OUTCOME, never a ProviderName member —
+# hence the union (a StrEnum is natively a pydantic validator; the Literal adds
+# the sentinel). Adopted from the shelf's unified provider identity (v0.47):
+# env values are anyllm's — `anthropic-api` / `claude-code-sdk` /
+# `openai-compatible` / `auto` (the old `anthropic` / `claude-code` /
+# `openai_compatible` no longer validate — a deliberate break onto the shelf
+# contract; the Shen deploy sets `A2WEB_LLM_PROVIDER` accordingly).
+ProviderMode = ProviderName | Literal["auto"]
 
 # Default Discourse-forum allowlist for `DiscourseHandler.matches()`. Shared
 # between the `AppSettings.discourse_hosts` field default and the handler's

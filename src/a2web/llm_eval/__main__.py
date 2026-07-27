@@ -24,7 +24,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from anyllm import with_cost_guard
+from anyllm import ProviderName, with_cost_guard
 from plugin_surface import load_surface
 
 from .._manifests.eval_systems import EvalSystemContext
@@ -52,22 +52,18 @@ def _pick_provider(settings: AppSettings) -> tuple[Provider, str]:
     otherwise the shared auto-order applies. Raises `LLMNotAvailable` when
     nothing resolves.
     """
-    override = os.environ.get(_PROVIDER_ENV, "").strip().lower() or None
-    if override is not None and override not in _PROVIDER_ORDER:
-        # Tolerate hyphen/underscore confusion, but only as a fallback — the
-        # canonical ids are mixed (`claude-code` hyphen, `openai_compatible`
-        # underscore), so a blanket `_`→`-` would mangle the underscore id.
-        alt = override.replace("_", "-")
-        if alt in _PROVIDER_ORDER:
-            override = alt
-        else:
-            raise LLMNotAvailable(f"unknown provider id: {override}")
-    selection = select_provider(settings, override=override)
-    if selection is None:
-        target = override or f"auto ({', '.join(_PROVIDER_ORDER)})"
+    raw = os.environ.get(_PROVIDER_ENV, "").strip().lower() or None
+    override: ProviderName | None = None
+    if raw is not None:
+        try:
+            override = ProviderName(raw)
+        except ValueError:
+            raise LLMNotAvailable(f"unknown provider id: {raw}") from None
+    provider = select_provider(settings, override=override)
+    if provider is None:
+        target = str(override) if override is not None else f"auto ({', '.join(p.value for p in _PROVIDER_ORDER)})"
         raise LLMNotAvailable(f"no LLM provider available (tried: {target})")
-    provider_id, provider = selection
-    return provider, provider_id
+    return provider, str(provider.name)
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:

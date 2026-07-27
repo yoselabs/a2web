@@ -14,10 +14,10 @@ import logging
 from collections.abc import Iterator
 
 import pytest
-from plugin_surface import load_surface
+from anyllm import ClaudeCodeSdkAdapter
 
+from a2web.llm_resource import select_provider
 from a2web.log import log_warning
-from a2web.packages.llm_extract import Provider
 from a2web.settings import AppSettings
 
 
@@ -42,33 +42,25 @@ def _capture_records(level: int = logging.DEBUG) -> Iterator[list[logging.LogRec
         logger.setLevel(prev)
 
 
-def test_provider_load_never_writes_to_stdout(
+def test_provider_selection_never_writes_to_stdout(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Loading the provider surface without an API key emits `plugin_unavailable`
-    for anthropic — and writes nothing to stdout (would corrupt MCP stdio)."""
+    """Provider selection with no backend configured resolves to None and writes
+    nothing to stdout (a stray write would corrupt the MCP stdio JSON-RPC stream).
+
+    Provider construction + the quiet skip of unavailable backends now live in
+    anyllm (`resolve_provider`); a2web's job is only to keep every log record off
+    stdout. Exercise the live `select_provider` path with no key and no session."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(ClaudeCodeSdkAdapter, "available", lambda _self: False)
 
     with _capture_records():
-        load_surface("a2web._manifests.llm_providers", Provider, AppSettings(), logger=logging.getLogger("a2web"))
+        assert select_provider(AppSettings()) is None
 
     out = capsys.readouterr()
     assert out.out == "", f"logging leaked to stdout (MCP stdio hazard): {out.out!r}"
-
-
-def test_provider_fallback_miss_is_debug_only(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The anthropic-unavailable fact is recorded at DEBUG (silent at default
-    wire/stderr levels) — never at INFO+ that would read as a failure."""
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-
-    with _capture_records() as records:
-        load_surface("a2web._manifests.llm_providers", Provider, AppSettings(), logger=logging.getLogger("a2web"))
-
-    unavailable = [r for r in records if r.getMessage() == "plugin_unavailable"]
-    anthropic = [r for r in unavailable if getattr(r, "fields", {}).get("name") == "anthropic"]
-    assert anthropic, "expected a plugin_unavailable record for anthropic without an API key"
-    assert all(r.levelno == logging.DEBUG for r in anthropic), "fallback miss must be DEBUG, not INFO+"
 
 
 def test_emit_obeys_a2kit_logger_level() -> None:

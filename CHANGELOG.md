@@ -8,6 +8,30 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING — `A2WEB_LLM_PROVIDER` values are now the shelf's canonical
+  provider ids.** a2web adopted `anyllm.ProviderName` as its provider identity:
+  the setting is now `anyllm.ProviderName | "auto"`, so the accepted values are
+  `anthropic-api`, `claude-code-sdk`, `openai-compatible`, and `auto` (default).
+  The old `anthropic` / `claude-code` / `openai_compatible` no longer validate —
+  a deployment that sets `A2WEB_LLM_PROVIDER` to one of the old values must
+  switch to the new id (or drop it and rely on the `auto` default). No change is
+  needed for deployments that don't set the var (the default is `auto`).
+
+### Changed (internal)
+
+- **Provider construction moved to the shelf; `_manifests/llm_providers/` is
+  gone.** `llm_resource.select_provider` now delegates the ordered walk + a new
+  **runtime fallback** to `anyllm.resolve_provider` (shipped as `anyllm-v0.6.0`,
+  consumed via `llm-cache-v0.1.2`): if the chosen backend raises a *retryable*
+  error mid-call, the next candidate serves; a `CostViolation` propagates instead
+  (never spends to recover onto a metered backend). a2web keeps only its
+  policy — the preference order, the gateway-first reorder, the OpenAI model
+  recommendation, and the cost guard. An exhaustive `assert_never` over
+  `ProviderName` (in `_config_for`) makes a future shelf provider addition a
+  compile-time failure.
+
 ### Fixed
 
 - **The robust browser rung (zendriver) could not launch on the pinned
