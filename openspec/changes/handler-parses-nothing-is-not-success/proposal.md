@@ -67,13 +67,20 @@ first that is a plain bug rather than a design boundary.
   `handlers/_reddit_html.py` already parses with it, so this is adopting an
   existing in-package pattern, not introducing a parser.
 
-  Verified on the live page: `dl#articles` → 47 `<dt>`/`<dd>` pairs, with
-  titles, authors and abs ids read from the DOM. It is also **more accurate**
-  than the tolerant regex, not merely more robust — the regex found 50 abs
-  anchors by matching stray cross-list links, while 47 is what the page's own
-  header advertises ("showing 47 of 47 entries"). And it is less code: the
-  regex version hand-rolls document-order slicing between anchor matches to
-  pair each id with its title, which `zip(dt, dd)` expresses directly.
+  Verified on the live page: `dl#articles` → `zip(dt, dd)` yields aligned
+  pairs, with titles, authors and abs ids read from the DOM. It is also less
+  code: the regex version hand-rolls document-order slicing between anchor
+  matches to pair each id with its title, which `zip(dt, dd)` expresses
+  directly.
+
+  The justification is **robustness and scoping, NOT accuracy.** A draft of
+  this proposal claimed selectolax was more accurate because it found 47 where
+  a tolerant regex found 50. That was wrong, and the review caught it: the
+  page renders a variable number of day-sections, and the 50-reading was a
+  two-section render (`Mon 27 Jul: showing 47 of 47` + `Fri 24 Jul: showing
+  first 3 of 110`). 47 + 3 = 50, and a DOM anchor query agreed at 50 on that
+  same render. The regex was counting correctly; I compared two different
+  renders of a page that varies between requests.
 - **A live-probe guard** asserts the arXiv listing handler yields entries
   against a recorded fixture of the CURRENT markup, so the next rot fails a test
   instead of degrading a tier. The fixture is a real captured page, not a
@@ -104,13 +111,14 @@ first that is a plain bug rather than a design boundary.
 - `src/a2web/handlers/_common.py`: the shared zero-parse helper.
 - `src/a2web/handlers/arxiv.py`: `_fetch_listing`'s verdict, and the three
   listing regexes — deleted in favour of a selectolax DOM walk.
-- **Eleven handler files call `re.compile` against markup.** This change
-  converts ONE and states the pattern; converting the rest is a follow-up whose
-  scope depends on the audit, not a silent widening of this one.
+- **Ten handler files call `re.compile`.** How many of those run against
+  MARKUP (in scope for later conversion) versus URLs / JSON / free text (where
+  regex is correct) is task 1.2's audit, not a number this proposal asserts.
+  This change converts ONE and states the pattern.
 - `src/a2web/handlers/*.py`: whichever the audit shows have the same hole.
 - `tests/capabilities/site_handlers/`: the fixture-backed yield guard.
 - **Behaviour change for callers**: an arXiv listing fetch begins returning the
-  handler's parsed index (47 entries with titles, authors and abs links) instead
+  handler's parsed index (47 entries in the observed render, with titles, authors and abs links) instead
   of escalating to a browser that produces neither headings nor a structured
   index. Fewer browser dispatches, better content, and `next_links` populated
   from a natively-known source rather than inferred.

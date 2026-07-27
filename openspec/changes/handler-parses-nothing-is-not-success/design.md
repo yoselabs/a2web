@@ -10,7 +10,7 @@ ArxivHandler.fetch("https://arxiv.org/list/cs.CL/recent")   2026-07-28
   next_links       0
   content_md       40 chars          "# arXiv · cs.CL · recent … ## Papers (0)"
 
-  _LIST_ABS_RE       0 matches       (tolerant regex: 50, selectolax: 47)
+  _LIST_ABS_RE       0 matches       (selectolax on the same render: 47)
   _LIST_TITLE_RE     0 matches
   _LIST_AUTHORS_RE   0 matches
 ```
@@ -39,8 +39,9 @@ investigation has the same shape: a read substituted for a run.
 
 **Non-Goals**
 
-- Converting the other ten `re.compile`-against-markup handler sites. Named,
-  scoped out, and gated on the audit — see D4.
+- Converting the other regex-against-markup handler sites. Ten handler files call
+  `re.compile`; how many run over markup rather than URLs / JSON / free text is
+  the audit's answer, not an assumption. Named, scoped out — see D4.
 - Any change to the gate, tier order, or escalation. The gate is the only reason
   this was survivable rather than a silent miss.
 - Making `listing-answer-always-leaves-an-index` scored. This removes one of at
@@ -96,19 +97,37 @@ dd.css_first("div.list-title").text()    # → "Title: Skill Self-Play: …"
 dd.css_first("div.list-authors").text()  # → "Authors: Siyuan Huang, …"
 ```
 
-Three properties, in the order they matter:
+Two properties:
 
-1. **More accurate.** The tolerant regex found 50 abs anchors; selectolax finds
-   47, which is what the page's own header advertises ("showing 47 of 47
-   entries"). The extra three were stray cross-list anchors the regex could not
-   distinguish from entries. Robustness was the motivation; correctness is the
-   larger win, and it was not the one being sought.
-2. **Structurally scoped.** `dl#articles` means entries elsewhere on the page
-   cannot leak in. A regex over the whole document has no such notion.
-3. **Less code.** The regex version hand-rolls document-order slicing —
-   `html[match.end() : next_match.start()]` — to pair each id with the title
-   that follows it. `zip(dt, dd)` is that pairing, expressed by the markup
-   itself.
+1. **Structurally scoped.** `dl#articles` means anchors elsewhere on the page
+   cannot leak in, and `zip(dt, dd)` is alignment the markup already asserts. A
+   regex over the whole document has no such notion — it recovers the pairing by
+   slicing between anchor matches and hoping document order holds.
+2. **Less code.** That slicing — `html[match.end() : next_match.start()]` — is
+   what `zip(dt, dd)` replaces.
+
+**NOT accuracy. A draft of this decision claimed it was, and the review found
+the claim false.** It read: selectolax finds 47 where the tolerant regex finds
+50, and 47 is the count the page advertises, so the regex was matching stray
+cross-list anchors. Every part of that is wrong. The page renders a VARIABLE
+number of day-sections; the 50-reading came from a two-section render:
+
+    Mon, 27 Jul 2026 (showing 47 of 47 entries)
+    Fri, 24 Jul 2026 (showing first 3 of 110 entries)     47 + 3 = 50
+
+and a DOM anchor query returned 50 on that same render. The regex counted
+correctly. I compared two different renders of a page that varies between
+requests and read the difference as a defect in the tool I was replacing.
+
+This matters beyond the correction, because the false claim had already been
+promoted into a test design: the non-vacuity floor was specified as "the count
+the page advertises for itself". There is no such count. There are per-section
+counts, a `showing first N of M` partial marker, and a `Total of 408 entries`
+footer. A guard written to that spec would have been unimplementable, or worse,
+implemented against one section and passing while the parser dropped another.
+
+Fifth wrong claim in this investigation, and the fourth of the same shape: a
+single observation generalised without a second look.
 
 *Alternative considered:* `html_fragment` (the shelf package, lxml-based). It
 exposes `to_markdown` / `to_text` / `unescape`, which is a rendering surface,
@@ -125,6 +144,11 @@ shelf promotion later; it is not this change.
 
 The yield guard asserts the handler returns entries commensurate with a known
 count. Its fixture is a real captured arXiv listing, checked in.
+
+The count comes from the CAPTURE — `dt`/`dd` pairs counted once, by hand, in the
+committed file — and never from the page's self-description. Those are not the
+same number and the page has several of them (per-section `showing N of M`, a
+`showing first N of M` partial marker, `Total of 408 entries`).
 
 **This is not a hypothetical, and it is not an argument. It is already true in
 this repo.** `tests/capabilities/site_handlers/test_handlers_arxiv.py::test_arxiv_listing_html_parser_extracts_entries`
@@ -153,12 +177,19 @@ not a test of arXiv at all, and arXiv is the thing that changed.
 The count is the non-vacuity floor, per the repo's standing rule for structural
 guards: "returns something" passes on one stray entry.
 
+**A synthetic fixture remains legitimate for testing the CAP**, and the existing
+15-entries→10-candidates scenario keeps one. The rule is about what may serve as
+the ORACLE for "does this parser match arXiv" — a hand-written page cannot. A
+hand-written page controlling an entry count to exercise a truncation rule is a
+different job, and the two must not be collapsed: deleting the synthetic fixture
+would lose cap coverage, keeping it as the parse oracle is the defect.
+
 ### D4 — Ten other regex-over-markup sites are named, not converted
 
-`re.compile` appears against markup in eleven handler files. Converting them all
-would be a large, mostly-blind change: some of those patterns run over JSON or
-URLs, where regex is right, and a conversion done without checking would be a
-refactor justified by a pattern rather than by a defect.
+`re.compile` appears in ten handler files. How many of those run against MARKUP
+is not known — some patterns run over JSON, URLs or free text, where regex is
+correct. Converting them all would be a refactor justified by a pattern rather
+than by a defect, and the pattern is currently a `grep -l` count.
 
 The audit in task 1 establishes, per handler, whether its success is defined by
 a parse count — which is the question the verdict guard needs answered anyway.

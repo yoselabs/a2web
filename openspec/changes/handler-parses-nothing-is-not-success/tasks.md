@@ -8,8 +8,9 @@
       that is a hint, not the answer. Write the table into the change.
 - [ ] 1.2 Per handler, record which `re.compile` sites run over MARKUP (in
       scope for conversion, later) versus over URLs / JSON / free text (out of
-      scope, regex is right there). Eleven files call `re.compile`; the split
-      matters and is not obvious from the count.
+      scope, regex is right there). TEN files call `re.compile` (`grep -l`,
+      verified); the markup/non-markup split is not visible in that count and is
+      the number that actually scopes the follow-up.
 - [ ] 1.3 Name any handler where the guard MUST NOT be applied, with the reason.
       A handler that returns non-`ok` on a real empty listing sends the cascade
       to a browser for nothing.
@@ -17,10 +18,16 @@
 ## 2. Prove the defect before fixing it
 
 - [ ] 2.1 Capture a real arXiv listing page to `tests/fixtures/`. Record the
-      capture date and the entry count the page advertises for itself
-      ("showing N of N entries") — that count is the guard's non-vacuity floor.
+      capture date and count the `dt`/`dd` pairs in the COMMITTED file by
+      inspection — that count is the guard's non-vacuity floor. Do NOT use the
+      page's self-described count: there is no single one (per-section
+      `showing N of M`, a `showing first N of M` partial marker, `Total of 408
+      entries`), and the page renders a variable number of day-sections between
+      requests. Prefer capturing a multi-section render, since single-section is
+      the easier case and would not exercise the pairing across a section break.
 - [ ] 2.2 Failing test: the arXiv listing handler yields entries commensurate
-      with the captured page's advertised count. MUST fail today, at zero.
+      with the capture's own `dt`/`dd` pair count (2.1). MUST fail today, at
+      zero.
 - [ ] 2.3 Failing test: a listing parse yielding zero entries does not return
       `Verdict.ok`. MUST fail today.
 - [ ] 2.4 Note in the commit which EXISTING test stayed green throughout
@@ -30,6 +37,15 @@
 
 ## 3. The verdict guard (D1 — first, because it is the defect)
 
+- [ ] 3.0 **DECIDE FIRST, it is not settled:** which verdict a zero-yield parse
+      returns. The design says "non-`ok`" and stops there, but `empty_result(url,
+      verdict)` needs a concrete member and the closed set constrains the choice:
+      `blank_page` asserts the page was blank (an observation the handler did not
+      make), `not_found` asserts absence, `length_floor` is what happens today by
+      accident and is about rendered size rather than parse yield, `other` is
+      honest but carries no signal. Pick one, write the reason into the helper's
+      docstring, and check how `classify_terminal` treats it — a verdict that
+      routes to a `critical` hint would over-warn on a genuinely empty listing.
 - [ ] 3.1 `handlers/_common.py` gains the zero-yield helper, beside
       `empty_result` / `map_non_ok`. Not inline in the handler — the audit may
       find siblings, and a second inline copy is how the four-way install
@@ -48,14 +64,15 @@
       `div.list-authors`. Delete the regexes; do not leave them as a fallback —
       a fallback that fires on a real page hides the failure the guard exists to
       surface.
-- [ ] 4.2 Verify the entry count matches the page's OWN advertised count, not
-      just "more than zero". The tolerant regex found 50 where the page says 47;
-      matching the page's count is the correctness claim, robustness is the
-      side-benefit.
-- [ ] 4.3 Replace the hand-written fixture in
-      `test_arxiv_listing_html_parser_extracts_entries` with the capture, or
-      state explicitly what that test is now for. Do not leave a hand-written
-      fixture standing as the oracle for whether the parser matches arXiv.
+- [ ] 4.2 Verify against a MULTI-SECTION render specifically: `zip(dt, dd)`
+      must stay aligned across an `<h3>` section break, and entries from every
+      section must be parsed. A single-section render passes trivially and is
+      what was observed first.
+- [ ] 4.3 Repoint `test_arxiv_listing_html_parser_extracts_entries` at the
+      capture. Do not leave a hand-written fixture standing as the ORACLE for
+      whether the parser matches arXiv. KEEP a synthetic fixture where one is
+      controlling an entry count to exercise the 10-candidate cap — that is a
+      different job and deleting it would lose cap coverage.
 - [ ] 4.4 Confirm 2.2 passes.
 
 ## 5. Gate
@@ -88,8 +105,8 @@
 
 ## 7. Close the loop
 
-- [ ] 7.1 BACKLOG: the ten remaining regex-over-markup handler sites, scoped by
-      task 1.2's split. Named so the pattern is not lost — the failure mode the
+- [ ] 7.1 BACKLOG: the remaining regex-over-markup handler sites, scoped by
+      task 1.2's split (of ten files calling `re.compile`, an unknown subset). Named so the pattern is not lost — the failure mode the
       trafilatura funnel exists to prevent.
 - [ ] 7.2 BACKLOG: `record_mine` returns `None` on a `<dl>/<dt>/<dd>` listing.
       A definition-list listing is a real and common shape, and this is why the

@@ -95,8 +95,21 @@ A listing parse yielding zero entries SHALL NOT return `Verdict.ok`.
 #### Scenario: Listing parses a captured live page
 
 - **WHEN** the handler parses a fixture captured from the live arXiv listing
-- **THEN** the entry count equals the count that page advertises for itself
+- **THEN** the entry count equals the `dt`/`dd` pair count of the committed
+  capture, established once by inspection
 - **AND** each entry carries a title and authors distinct from its id
+
+> NOT "the count the page advertises for itself" — there is no such single
+> number. The page carries per-section counts (`showing 47 of 47`), a partial
+> marker (`showing first 3 of 110`), and a `Total of 408 entries` footer, and it
+> renders a variable number of day-sections between requests. A guard written to
+> the advertised count would be unimplementable, or would pin one section and
+> pass while the parser dropped another.
+
+#### Scenario: A multi-section listing yields every section's entries
+
+- **WHEN** the listing renders more than one day-section inside its container
+- **THEN** entries from every section are parsed, not only the first
 
 #### Scenario: Zero parsed entries is not success
 
