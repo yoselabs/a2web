@@ -2060,3 +2060,31 @@ Until then the funnel is enforced on 5 of the 7 original bypass sites. Stated
 rather than glossed: a guard with unexplained exemptions rots into a guard with
 many, which is the failure mode that let the original bypass survive three
 promotions.
+
+
+### NEXT — the digest gate blocks every pre-rendered page (L, 2026-07-28)
+
+`restore-links-on-pre-rendered-tiers` fixed the links half of the pre-rendered
+early return and is verified to work (arXiv envelope gained `title`/`byline`,
+`headings` 0→4, extractor returns 484 links on that page). **`other_pages` is
+still impossible on those pages**, for a second reason inside the same early
+return:
+
+    _phase_extract returns at fetcher.py:1276, BEFORE fetcher.py:1320
+      `await _run_extraction_escalation(fc, raw_html=raw_html)`
+    which is the only producer of json_synth / record_synth candidates,
+    which `_build_link_digest` REQUIRES at fetcher.py:2329.
+
+So a pre-rendered page can never satisfy the digest gate no matter how many
+links it has. Measured: `eval/runs/post-link-fix` — the two target cases are
+byte-identical in disposition to before the fix.
+
+The gate is correct in its original intent (a prose article on the raw tier
+should not pay for a digest). It is wrong in combination with the early return,
+where it silently means "no browser-served page ever gets a digest".
+
+*Design question for the next change, not decided here:* should pre-rendered
+pages run the extraction escalation too (costly, and the pre_rendered skip exists
+precisely to avoid re-work), or should the digest gate accept a different
+listing-shaped signal that a pre-rendered page can actually produce? Both are
+plausible; picking from one example is how the last two diagnoses went wrong.

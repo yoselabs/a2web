@@ -70,11 +70,11 @@
 
 ## 7. Close the loop on the root cause
 
-- [ ] 7.1 BACKLOG: record that the bypass predated no shelf gap — the canonical
+- [x] 7.1 BACKLOG: record that the bypass predated no shelf gap — the canonical
       extractor was imported by `fetcher.py` the same day `tiers/browser.py` went
       around it, and each promotion (`extract/` → `packages/` → shelf) moved the
       canonical copy further away while the bypass stayed.
-- [ ] 7.2 BACKLOG: name the remaining unfunnelled libraries with canonical
+- [x] 7.2 BACKLOG: name the remaining unfunnelled libraries with canonical
       wrappers (`httpx` ×4, `aiosqlite` ×3, `yaml` ×2) as candidates for the same
       guard. Do NOT add those guards here — check first whether each actually has
       a canonical wrapper being bypassed, or is legitimately direct. A guard
