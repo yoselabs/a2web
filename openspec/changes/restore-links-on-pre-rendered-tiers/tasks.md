@@ -2,52 +2,54 @@
 
 ## 1. Prove the failures before fixing them
 
-- [ ] 1.1 Failing test: a link-dense HTML fixture through the browser tier's
+- [x] 1.1 Failing test: a link-dense HTML fixture through the browser tier's
       installation path yields a non-empty `fc.links` whose count is commensurate
       with the fixture's anchors. MUST fail today. Use a known anchor count as
       the non-vacuity floor — "not empty" passes on one stray boilerplate link.
-- [ ] 1.2 Failing test: `content_md` from the same fixture preserves link targets
+- [x] 1.2 Failing test: `content_md` from the same fixture preserves link targets
       (`](` present, count commensurate). MUST fail today.
-- [ ] 1.3 Failing architecture test: no direct `trafilatura` import or call
+- [x] 1.3 Failing architecture test: no direct `trafilatura` import or call
       outside the permitted funnel. MUST fail today, naming all six current
       offenders. Carry a `_walk.walked_files(minimum=…)` floor.
-- [ ] 1.4 Record each failure's output in the commit message. Three guards, three
+- [x] 1.4 Record each failure's output in the commit message. Three guards, three
       witnessed failures.
 
 ## 2. Route the bypasses through the shelf extractor (D1)
 
-- [ ] 2.1 `tiers/browser.py` — delete `_to_markdown`, call
+- [x] 2.1 `tiers/browser.py` — delete `_to_markdown`, call
       `content_extract.extract_markdown(html, url, include_links=True)`.
-- [ ] 2.2 `tiers/archive.py` — same.
-- [ ] 2.3 `handlers/wikipedia.py`, `handlers/reddit.py`, `handlers/twitter.py` —
+- [x] 2.2 `tiers/archive.py` — same.
+- [x] 2.3 `handlers/wikipedia.py` converted. `reddit`/`twitter` EXEMPT (shelf has no
+      `include_comments`; comment threads need it) — recorded as a shelf gap.
+      ORIGINAL:
       same. NOTE these also call `trafilatura.extract_metadata`; the shelf
       exposes `parse_metadata`, already imported by `fetcher.py`.
-- [ ] 2.4 Remove every now-unused `import trafilatura` from `src/a2web/`.
-- [ ] 2.5 Confirm 1.3 passes.
+- [x] 2.4 Remove every now-unused `import trafilatura` from `src/a2web/`.
+- [x] 2.5 Confirm 1.3 passes.
 
 ## 3. Carry links across the pre-rendered seam (D2)
 
-- [ ] 3.1 `Rendered` gains `links`, typed like `headings` already is.
-- [ ] 3.2 Each HTML-serving producer fills it from the `ExtractedContent` it now
+- [x] 3.1 `Rendered` gains `links`, typed like `headings` already is.
+- [x] 3.2 Each HTML-serving producer fills it from the `ExtractedContent` it now
       holds. NO second parse — if a producer would need one, it belongs in the
       deferred not-HTML group instead.
-- [ ] 3.3 `_phase_extract`'s pre-rendered branch sets `fc.links` from the payload,
+- [x] 3.3 `_phase_extract`'s pre-rendered branch sets `fc.links` from the payload,
       alongside the four fields it already copies.
-- [ ] 3.4 Confirm 1.1 and 1.2 pass.
+- [x] 3.4 Confirm 1.1 and 1.2 pass.
 
 ## 4. Gate
 
-- [ ] 4.1 `make check` green, coverage ≥85%.
-- [ ] 4.2 `make arch` green; `uv run tach check` clean.
-- [ ] 4.3 Every new guard watched failing (task 1) and carrying a non-vacuity
+- [x] 4.1 `make check` green, coverage ≥85%.
+- [x] 4.2 `make arch` green; `uv run tach check` clean.
+- [x] 4.3 Every new guard watched failing (task 1) and carrying a non-vacuity
       assertion.
 
 ## 5. Measure the markdown trade-off before keeping it (D2 risk)
 
-- [ ] 5.1 Render 3-5 real fixtures with and without `include_links=True`. The
+- [x] 5.1 Render 3-5 real fixtures with and without `include_links=True`. The
       offline check showed list bullets collapsing and items running together;
       establish whether that holds on real pages.
-- [ ] 5.2 If content quality degrades materially, keep the funnel + `Rendered`
+- [x] 5.2 If content quality degrades materially, keep the funnel + `Rendered`
       links (which need no flag) and drop the inline-link half. The two are
       independent by construction — say which shipped and why.
 
@@ -77,5 +79,5 @@
       guard. Do NOT add those guards here — check first whether each actually has
       a canonical wrapper being bypassed, or is legitimately direct. A guard
       written from a pattern still has to earn its floor.
-- [ ] 7.3 CLAUDE.md: add the trafilatura funnel to the enforced-invariants list,
+- [x] 7.3 CLAUDE.md: add the trafilatura funnel to the enforced-invariants list,
       beside the `json.loads` funnel it mirrors.

@@ -159,6 +159,11 @@ Currently enforced:
 
 - Packages may not import from `a2web.<domain>` — `tach.toml`.
 - No `json.loads` outside `packages/llm_extract/wobble/` — `tests/architecture/test_json_loads_funnel.py`.
+- No direct `trafilatura` calls — HTML extraction funnels through the shelf
+  `content_extract` — `tests/architecture/test_trafilatura_funnel.py`. Two
+  handlers are exempt with the reason inline (the shelf has no `include_comments`
+  knob and comment threads need it); that is a shelf gap to promote, not a
+  standing exception.
 - No `dict[str, Any]` on slotted dataclasses (allowlist gated) — `tests/architecture/test_no_dict_str_any_on_dataclasses.py`.
 - Tools never return `str` — `tests/architecture/test_tools_return_pydantic_not_str.py`.
 - Cold start resolves neither browser nor LLM — `tests/architecture/test_cold_start_laziness.py`.

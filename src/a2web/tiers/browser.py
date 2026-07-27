@@ -75,8 +75,15 @@ async def _extract(html: str, url: str) -> ExtractedContent:
     `other_pages` impossible to emit on any browser-served page for two and a
     half months (`eval/findings_2026-07-28.md`). Pinned by
     `tests/architecture/test_trafilatura_funnel.py`.
+
+    `include_links` is deliberately NOT set. Measured 2026-07-28: the flag
+    changes only how `content_md` RENDERS — the structured `links` list is
+    returned either way — and turning it on destroys list structure (a 3-bullet
+    listing rendered as 0 bullets with items run together). The digest needs the
+    structured links; the model reads the markdown. Taking both from one
+    default-flag parse costs nothing and keeps the body readable.
     """
-    return await extract_markdown(html, url, include_links=True)
+    return await extract_markdown(html, url)
 
 
 def _upstream_error_verdict(status: int) -> Verdict:

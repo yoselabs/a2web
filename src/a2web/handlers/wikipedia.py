@@ -76,7 +76,7 @@ class WikipediaHandler:
         # Canonical extractor (NOT a bare trafilatura.extract) — returns links
         # and headings from the same parse, so the pre-rendered payload below can
         # carry them across the seam. See test_trafilatura_funnel.py.
-        extracted = await extract_markdown(html, url, include_links=True)
+        extracted = await extract_markdown(html, url)
         markdown = extracted.content_md
 
         if not markdown:

@@ -61,8 +61,15 @@ async def _extract(html: str, url: str) -> ExtractedContent:
     `tests/architecture/test_trafilatura_funnel.py` for why that call shape is
     banned. An archive snapshot is often the ONLY copy of a dead page, so losing
     its anchors here is the least recoverable version of the defect.
+
+    `include_links` is deliberately NOT set. Measured 2026-07-28: the flag
+    changes only how `content_md` RENDERS — the structured `links` list is
+    returned either way — and turning it on destroys list structure (a 3-bullet
+    listing rendered as 0 bullets with items run together). The digest needs the
+    structured links; the model reads the markdown. Taking both from one
+    default-flag parse costs nothing and keeps the body readable.
     """
-    return await extract_markdown(html, url, include_links=True)
+    return await extract_markdown(html, url)
 
 
 async def _wayback_lookup(url: str) -> tuple[str, str] | None:

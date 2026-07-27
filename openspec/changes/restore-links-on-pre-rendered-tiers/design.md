@@ -97,7 +97,28 @@ links and headings from ONE parse.
 *This subsumes the earlier D2* (adding `include_links=True` to two hand-rolled
 calls) — there are no hand-rolled calls left to add a flag to.
 
-### D2 — `Rendered` gains `links`, filled by the producer that already has them
+### D2 — RESOLVED BY MEASUREMENT: no `include_links` flag
+
+*(The proposal listed "restore inline link targets in the markdown" as a change,
+gated on measuring its cost. Measured; it does not ship.)*
+
+`include_links=True` changes only how `content_md` RENDERS. The structured
+`links` list comes back either way:
+
+    include_links=False: links=4  headings=1  bullets=3
+    include_links=True : links=4  headings=1  bullets=0
+
+Enabling it flattened a 3-item bulleted listing into one run-on line while adding
+nothing the digest needed. The body is what the model reads; the structured links
+are what the digest reads; one default parse serves both. So the flag is not set,
+and `test_the_body_keeps_its_list_structure` exists to stop it being re-added for
+the reason it was first proposed.
+
+This is the whole point of gating a change on a measurement instead of on how
+plausible it sounds — the flag was the most obvious-looking half of the fix and
+it was the wrong half.
+
+### D3 — `Rendered` gains `links`, filled by the producer that already has them
 
 Because D1 makes every HTML-serving tier hold an `ExtractedContent` with links in
 it, carrying them across the seam is now free. `Rendered` grows a `links` field
@@ -117,7 +138,7 @@ next tier author reintroduces the bug.
 markdown bytes, the API handlers return JSON. Unchanged from the earlier draft,
 still stated in the spec as a known gap, still deferred (Open Questions).
 
-### D3 — The guard asserts a link-dense page yields links, per tier
+### D4 — The guard asserts a link-dense page yields links, per tier
 
 A fixture with a known anchor count goes through each pre-rendered tier's
 installation path; the assertion is that `fc.links` is non-empty and its count is

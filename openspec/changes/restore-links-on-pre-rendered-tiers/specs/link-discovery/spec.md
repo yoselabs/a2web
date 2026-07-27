@@ -25,13 +25,20 @@ repo already funnels JSON parsing this way for the same reason.
 - **THEN** it asserts it inspected at least a floor number of source files, so a
   moved source root cannot make it pass by finding nothing to object to
 
-### Requirement: inline links are preserved in extracted page content
+### Requirement: anchors are carried structurally, not inlined into the body
 
-Extracted `content_md` SHALL preserve in-body anchors as markdown links. A page
-whose substance IS its links SHALL NOT be rendered as prose that mentions them
-without targets.
+A page's anchors SHALL reach the digest as structured link records. They SHALL
+NOT be inlined into `content_md` as markdown targets in order to achieve this.
 
-#### Scenario: a listing page's entries keep their targets
+Measured 2026-07-28: the extractor's `include_links` option changes only how
+`content_md` renders — the structured link list is returned either way — and
+enabling it flattens a bulleted listing into a single run-on line (3 bullets to
+0). The body is what the model reads; the structured links are what the digest
+reads. One default parse serves both, and inlining buys nothing while costing
+the body's structure.
 
-- **WHEN** a page of linked entries is extracted
-- **THEN** the entries appear in `content_md` with their link targets intact
+#### Scenario: a listing page keeps its list structure
+
+- **WHEN** a page of linked list entries is extracted by any tier
+- **THEN** the entries remain distinct list items in `content_md`
+- **AND** their anchors are available as structured links

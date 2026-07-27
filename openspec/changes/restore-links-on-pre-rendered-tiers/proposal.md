@@ -97,10 +97,10 @@ via zyte failed the same way. One mechanism, both cells.
   their `content_md` begins carrying inline links. Both are the documented
   contract being met for the first time on those paths, not a new feature — but
   they change bytes on the wire and token counts, so `make bench` is required.
-- **Known cost to weigh (see design):** `include_links=True` changes the markdown
-  rendering — in the offline check, list items lost their bullets and ran
-  together. That trade-off needs measuring before the flag ships, and is
-  separable from the funnel work.
+- **MEASURED, and it does not ship:** `include_links=True` changes only how
+  `content_md` renders — the structured `links` come back either way — and it
+  flattened a 3-item bulleted listing to 0 bullets. The flag was the most
+  obvious-looking half of the fix and was the wrong half. See design D2.
 - **No shelf change required.** `content_extract` already exposes everything
   needed. This change is about a2web CONSUMING it, which is why "promote more to
   the shelf" is the wrong lever here — see design D1.

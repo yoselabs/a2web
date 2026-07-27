@@ -77,21 +77,47 @@ def test_the_fixture_is_link_dense() -> None:
     ],
 )
 @pytest.mark.asyncio
-async def test_pre_rendered_markdown_keeps_link_targets(extract) -> None:
-    """A page whose substance IS its links must not render as target-less prose."""
+async def test_pre_rendered_tier_extracts_the_page_anchors(extract) -> None:
+    """The tier must come away with the anchors, whatever the markdown looks like."""
     extracted = await extract(_FIXTURE, _BASE_URL)
-    md = extracted.content_md
 
-    assert md.strip(), "the extractor returned nothing for a content-shaped fixture"
-    targets = _markdown_link_targets(md)
-    assert len(targets) >= _ANCHOR_COUNT - 1, (
-        f"pre-rendered markdown carries {len(targets)} link target(s) for a fixture with "
-        f"{_ANCHOR_COUNT} anchors. A listing rendered without its targets is prose that "
-        f"mentions links, which no downstream consumer can act on.\n\n{md}"
-    )
+    assert extracted.content_md.strip(), "the extractor returned nothing for a content-shaped fixture"
     assert len(extracted.links) >= _ANCHOR_COUNT - 1, (
         f"the tier extracted {len(extracted.links)} link(s) for a fixture with "
-        f"{_ANCHOR_COUNT} anchors — nothing to carry across the pre-rendered seam."
+        f"{_ANCHOR_COUNT} anchors — nothing to carry across the pre-rendered seam, so "
+        "no link digest, so no other_pages."
+    )
+
+
+@pytest.mark.parametrize(
+    "extract",
+    [
+        pytest.param(browser_extract, id="browser"),
+        pytest.param(archive_extract, id="archive"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_the_body_keeps_its_list_structure(extract) -> None:
+    """Links are carried structurally, NOT by inlining them into the body.
+
+    `content_extract`'s `include_links=True` looked like the obvious fix and is
+    deliberately not used. Measured 2026-07-28: it changes only how `content_md`
+    renders — `links` is returned either way — and it flattens a bulleted listing
+    into one run-on line. The model reads this body; the digest reads the
+    structured links. Taking both from one default parse costs nothing.
+
+    This test is what stops someone re-adding the flag for the reason it was
+    first added.
+    """
+    extracted = await extract(_FIXTURE, _BASE_URL)
+
+    bullets = extracted.content_md.count("\n- ")
+    assert bullets >= 3, (
+        f"the body renders {bullets} list item(s) for a 3-item list. Something "
+        f"flattened the markdown — most likely include_links=True.\n\n{extracted.content_md}"
+    )
+    assert not _markdown_link_targets(extracted.content_md), (
+        "inline link targets appeared in the body. They are redundant with the structured links and cost the list structure asserted above."
     )
 
 
