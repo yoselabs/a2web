@@ -80,8 +80,8 @@ unlock) and the headful-browser POC stand unchanged.
   lazy-loads and yields only ~35 of a 32k-comment thread; useless for depth.
 - **The residential-IP gate is hard and engine-independent.** Camoufox
   (stealth Firefox) + zendriver (stealth Chromium/CDP) both pass headless from a
-  *residential* IP, but **both are blocked through shen/Contabo (datacenter
-  `38.242.156.243`)** on old *and* new reddit. So a self-hosted browser on our
+  *residential* IP, but **both are blocked through a datacenter
+  egress** on old *and* new reddit. So a self-hosted browser on our
   current datacenter egress cannot serve Reddit — Zyte (which solves engine +
   IP as a service) is the only shippable path today.
 

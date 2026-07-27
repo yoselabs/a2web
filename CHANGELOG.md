@@ -1022,7 +1022,7 @@ All notable changes to **a2web** are recorded here. The format follows
 - **Dependency memory (Constitution Article VIII).** ADR-0009 (tenet) + ADR-0010
   (every Reddit access path tried/adopted/rejected/deferred, with re-evaluation
   triggers) + `src/a2web/tiers/_deps.md` record the Zyte/Firecrawl adoptions and
-  the Redlib / PullPush / Reddit-OAuth / proxy-through-Shen / local-cookie-CLI
+  the Redlib / PullPush / Reddit-OAuth / proxy-through-a-self-hosted-hub / local-cookie-CLI
   rejections so none is re-litigated.
 - **Envelope change is additive.** New fields only — `retrieval_incomplete`,
   `OperatorHint.severity`, and one new `Verdict` value (`paid_auth_error`); no

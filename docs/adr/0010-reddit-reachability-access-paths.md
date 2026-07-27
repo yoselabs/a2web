@@ -27,7 +27,7 @@ Reddit is a high-value source for a2web, which is **remote-first** (runs on a se
 | jina reader (`r.jina.ai`) | 403 — *"log in to your Reddit account or use your developer token"* | walled; Reddit names the only 2 endorsed paths |
 | Patchright (current browser tier) | HTTP 200 but body = *"blocked by network security"* | `block_page_detected` |
 | Camoufox (prior browser tier) | `block_page_detected` (14s) | walled |
-| proxy-through-Shen (Contabo datacenter egress) | 403 | datacenter ASN + JS challenge |
+| proxy-through-a-self-hosted-hub (datacenter egress) | 403 | datacenter ASN + JS challenge |
 | Claude Code native `WebFetch` (www + old.reddit) | domain-denylisted, refuses before network | unavailable |
 | Claude Code native `WebSearch` | zero reddit.com URLs; secondhand summaries only | Reddit not in that index |
 | **Reddit `.rss` (Atom)** | **200** — search: 25 entries; thread: post + comment bodies; works via datacenter proxy; 429 on bursts | **ADOPTED** |
@@ -63,9 +63,9 @@ Free cross-Reddit **scored** full-text comment/submission search, structurally p
 Works: 100 QPM free (non-commercial), `oauth.reddit.com` + Bearer, full data. But the Nov-2025 "Responsible Builder Policy" requires **pre-approval for every app** (even hobby), and it's a real credential. Deferred in favor of keyless RSS + paid backstop.
 **Re-eval trigger:** RSS + paid prove insufficient for the comment-depth need AND the approval gate is acceptable. Would return as an env-gated depth tier, graceful when un-keyed.
 
-### REJECTED — proxy-through-Shen (the homelab proxy hub)
-Shen's reachable exits egress a Contabo **datacenter** IP (`38.242.156.243`). Tested: `.rss` passes but `.json` still 403s — datacenter ASN + the JS challenge an HTTP client can't solve. Proxies fix only IP reputation (one layer); they don't solve the challenge layer. Fine for other hosts blocked purely on IP; useless for Reddit `.json`.
-**Re-eval trigger:** a genuine residential exit on Shen AND confirmation that residential-IP `.json` is served without challenge.
+### REJECTED — proxy-through-a-self-hosted-hub (the homelab proxy hub)
+The hub's reachable exits egress a **datacenter** IP. Tested: `.rss` passes but `.json` still 403s — datacenter ASN + the JS challenge an HTTP client can't solve. Proxies fix only IP reputation (one layer); they don't solve the challenge layer. Fine for other hosts blocked purely on IP; useless for Reddit `.json`.
+**Re-eval trigger:** a genuine residential exit on the hub AND confirmation that residential-IP `.json` is served without challenge.
 
 ### REJECTED (for remote) — Chrome-inside-a2web, rdt-cli, OpenCLI, Agent-Reach login-CLIs
 All are **local-desktop, browser-cookie architectures.** Investigated the 23k-star Agent-Reach and its backends:

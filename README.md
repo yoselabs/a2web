@@ -1,6 +1,6 @@
 # a2web
 
-**Agent-to-Web**: adaptive web fetching as an MCP server and CLI for AI agents. Sibling to [`a2db`](https://github.com/yoselabs/a2db) and [`a2atlassian`](https://github.com/yoselabs/a2atlassian). Built on [`a2kit`](https://github.com/yoselabs/a2kit).
+**Agent-to-Web**: adaptive web fetching as an MCP server and CLI for AI agents. Built directly on [`fastmcp`](https://github.com/jlowin/fastmcp), with shared substrate from [the shelf](https://github.com/yoselabs/shelf).
 
 ## Why
 
@@ -8,16 +8,21 @@ Most agent web tools, Claude Code's `WebFetch` included, silently fail on Reddit
 
 a2web turns one tool call into an autonomous tier cascade. Site handlers go first, then a TLS-impersonating raw fetch, then reader and archive fallbacks, with a stealth browser held back as a last resort. You get the best content it could reach, plus a structured trace of how it got there, so the agent never has to re-decide routing.
 
-The primary tool, `ask`, goes a step past fetching. It runs a small fast model server-side to pull a focused answer out of the page, so your agent's context stays small. The page gets read for you. Only the answer comes back.
+The primary tool, `query`, goes a step past fetching. It runs a small fast model server-side to pull a focused answer out of the page, so your agent's context stays small. The page gets read for you. Only the answer comes back — plus a cheap index of what was left behind, so withholding the body never hides anything.
 
 ## Status
 
-v0.23, on `a2kit` v0.44. Cascade and extraction are feature-complete. See [`CHANGELOG.md`](./CHANGELOG.md) for what shipped and [`BACKLOG.md`](./BACKLOG.md) for deferred work.
+v0.48. Cascade and extraction are feature-complete. See [`CHANGELOG.md`](./CHANGELOG.md) for what shipped and [`BACKLOG.md`](./BACKLOG.md) for deferred work.
 
 ## Install
 
+a2web is **not on PyPI** (it depends on git-pinned shelf packages). Install it from
+the repo by tag, or pull the published container image — see
+[Deployment](#deployment-container) for the container, which is the canonical way
+to run it as a service.
+
 ```bash
-uv tool install a2web
+uv tool install 'a2web @ git+https://github.com/yoselabs/a2web@v0.48.1'
 a2web --help
 ```
 
@@ -32,14 +37,26 @@ server deployment stays small:
 | `[paid]` | `firecrawl-py` | the env-gated Firecrawl paid tier. |
 
 ```bash
-uv tool install 'a2web[browser,cookies,claude-code]'   # full local experience
+uv tool install 'a2web[browser,cookies,claude-code] @ git+https://github.com/yoselabs/a2web@v0.48.1'
 ```
 
-`make install-global` installs all of these for the local Claude Code MCP server.
+From a clone, `make install-global` does the same with every extra.
 
 ### As an MCP server
 
-Point your MCP client at the installed binary over stdio. For Claude Code:
+The canonical deployment is the **container over HTTP** (see
+[Deployment](#deployment-container)); point your MCP client at that endpoint:
+
+```json
+{
+  "mcpServers": {
+    "a2web": { "type": "http", "url": "https://<your-gateway>/a2web/mcp" }
+  }
+}
+```
+
+A local install can also serve over stdio, which is handy for development and for
+the browser/cookie paths that only work on a real desktop:
 
 ```json
 {
@@ -49,19 +66,44 @@ Point your MCP client at the installed binary over stdio. For Claude Code:
 }
 ```
 
+## Quickstart
+
+No config needed. `fetch_raw` works with no keys at all; `query` needs an LLM
+backend, because the extraction runs server-side.
+
+```bash
+# 1. Raw fetch — no keys, no LLM. Proves the cascade works.
+a2web web fetch_raw --url=https://news.ycombinator.com/
+
+# 2. Point at any OpenAI-compatible backend (or set ANTHROPIC_API_KEY)
+export OPENAI_API_KEY=...
+export OPENAI_BASE_URL=https://api.deepseek.com
+export OPENAI_MODEL=deepseek-v4-flash
+
+# 3. Ask the page a question — the model reads it, you get the answer
+a2web web query --url=https://news.ycombinator.com/ --query="top stories, AI"
+```
+
+You get back an `answer` plus `confidence`, and — since the body was withheld —
+`also_here` / `other_pages` telling you what else was on the page and where to go
+next. Add `--debug` for the timing, cache, and tier-by-tier trace.
+
+Without an LLM backend, `query` returns a loud `llm_unavailable` operator hint
+rather than a silent empty answer.
+
 ## Tools
 
 | Tool | Kind | What it does |
 |---|---|---|
-| `ask` | read | The one you'll reach for. Fetches the URL through the cascade, then a small fast model (Claude Haiku 4.5 by default) extracts a focused answer to your `question` server-side. Returns a lean answer envelope, not the page. |
+| `query` | read | The one you'll reach for. Fetches the URL through the cascade, then a small fast model extracts a focused answer to your `query` server-side. Returns a lean answer envelope, not the page. |
 | `fetch_raw` | read | Fallback. Same cascade, no LLM. Returns the page itself: `content_md`, headings, links. Use it when you want the raw page or plan to extract yourself. |
 | `refresh` (cookies) | write | Refreshes the local browser-cookie mirror so fetches arrive logged-in. Local-only, off by default — set `A2WEB_EXPOSE_COOKIES_TOOL=true` to expose it (see Cookies). The one moment a Keychain prompt may fire. |
 
 ### CLI
 
 ```bash
-# Primary: ask a question about a page (server-side extraction)
-a2web web ask --url=https://example.com --question="What does this say about X?"
+# Primary: query a page (server-side extraction)
+a2web web query --url=https://example.com --query="return policy"
 
 # Fallback: fetch the raw page, no LLM
 a2web web fetch_raw --url=https://example.com
@@ -69,13 +111,24 @@ a2web web fetch_raw --url=https://example.com
 # Refresh the cookie mirror (opt-in; see Cookies)
 a2web cookies refresh
 
-# Introspection
-a2web list-tools        # every registered tool plus its declared errors
-a2web schema            # tool input/output schemas
-a2web health            # aggregated health probe, non-zero exit on degraded
+# Ops
+a2web health            # readiness probe, non-zero exit on degraded
+a2web version
 ```
 
-The `ask` response always carries `answer` and `confidence`, a `structural_form` and `shape` classification of the page, and curated `next_links` on listings. Failures don't fall silent. You get a `status`, a `narrative`, a `diagnostics_summary`, and `operator_hints`. Pass `debug=true` for the full timing, cache, and diagnostics trace. Pass `include_content=true` to also get the page markdown for grounding.
+`--query` takes a terse **query**, not a sentence: drop the verb frame and the
+page's own name, keep the target plus at most one operator (`,` list · `vs`
+contrast · `/` alternatives), CAPS the word that decides.
+
+The `query` response always carries `answer` and `confidence`. Because the page
+body is withheld by default, it also leaves an index of what it did not surface:
+`also_here` (same-page content the answer skipped — recovering it is a
+cache-served re-query) and `other_pages` (pointers elsewhere, each costing a new
+fetch, so they stay sparse). Every URL it emits is traceable to the fetched page;
+it never invents one. Failures don't fall silent — you get a `status`, a
+`narrative`, a `diagnostics_summary`, and `operator_hints`. Pass `debug=true` for
+the full timing, cache, and diagnostics trace, or `include_content=true` to also
+get the page markdown for grounding.
 
 ## The tier cascade
 
@@ -96,11 +149,11 @@ The orchestrator walks tiers in order, runs a quality gate after each, and escal
                         │
         out-of-band ────┼──────────────────────────────────────────
                         │
-            ┌───────────▼─────────┐   ┌──────────────┐   ┌──────────┐
-            │ archive             │   │ browser      │   │ paid     │
-            │ Wayback CDX +       │   │ Camoufox     │   │ Firecrawl│
-            │ archive.ph (hedged) │   │ (stealth FF) │   │ env-gated│
-            └─────────────────────┘   └──────────────┘   └──────────┘
+            ┌───────────▼─────────┐   ┌──────────────────┐   ┌──────────────┐
+            │ archive             │   │ browser          │   │ paid         │
+            │ Wayback CDX +       │   │ patchright, then │   │ Zyte /       │
+            │ archive.ph (hedged) │   │ zendriver (CDP)  │   │ Firecrawl    │
+            └─────────────────────┘   └──────────────────┘   └──────────────┘
          dispatched on a playbook    on a gate verdict     opt-in extra
          retry signal                of "browser"
 ```
@@ -108,27 +161,36 @@ The orchestrator walks tiers in order, runs a quality gate after each, and escal
 - Site handlers turn known sites into clean structured content (and `next_links`) without an LLM: Reddit threads, the HN front page, arXiv listings, GitHub issue/PR mixes, Wikipedia outbound links. URLs they don't match skip silently.
 - raw is the common path. `curl_cffi` impersonating a real browser's TLS fingerprint.
 - jina wraps `r.jina.ai`. The free tier works without a key; `A2WEB_JINA_KEY` raises the limits.
-- archive (Wayback plus archive.ph, hedged in parallel) and browser (Camoufox, a stealth-patched Firefox driven through Playwright, with locale, timezone, and geo aligned to the egress IP) run out of band, only when the cascade or gate calls for them.
-- paid (Firecrawl) is opt-in behind the `[paid]` extra and an env key.
+- archive (Wayback plus archive.ph, hedged in parallel) and browser run out of band, only when the cascade or gate calls for them. The browser tier is two rungs: `patchright` (fast, stealth-patched Chromium) and `browser_robust` (`zendriver`, driving Chrome over CDP) for what the fast rung can't pass. Both come from the shelf's `any-browser` behind the `[browser]` extra.
+- paid tiers (Zyte, Firecrawl) are opt-in behind an env key.
 
 Throughout: per-host and per-tier proxy routing with circuit breakers, conditional-GET caching, single-flight, and a bounded retry budget. The quality gate catches block pages and paywalls before they ever enter the cache.
 
-## Link discovery: `next_links`
+## Link discovery
 
-Every response can carry up to 10 curated "what to fetch next" candidates. Each one has an `anchor`, a `url`, a `reason`, and a `kind` (`drilldown`, `related`, `source`, or `discussion`). Two sources feed it.
+Because `query` withholds the page body, it must leave a way to reach what it
+didn't surface. `other_pages` carries curated "what to fetch next" pointers, each
+with a `url`, a `reason`, and a `kind` — `structural` (a deterministic
+continuation: pagination, page order) or `drilldown` (a choice that depends on
+your question). `fetch_raw` carries the page-shaped `next_links` instead.
 
-Site handlers emit candidates deterministically from their structured upstream payloads, at zero LLM cost. This works on `fetch_raw` too.
+Two sources feed it. Site handlers emit candidates deterministically from their
+structured upstream payloads, at zero LLM cost — this works on `fetch_raw` too.
+The extraction adds candidates picked from links the model just read, on the same
+call, with no extra round-trip.
 
-The `ask=` extraction adds candidates picked from inline links the model just read, on the same call, no extra round-trip. A URL that isn't present in the page markdown gets dropped with an `extraction_drift` diagnostic. That's the hallucination defense. When both sources fire, the model re-ranks the handler's candidates against your question.
+**Every URL is traceable to the fetched page.** The model references links by
+handle from a closed set built out of the page's own anchors; a handle that
+doesn't resolve is dropped rather than guessed, and a URL that appears nowhere in
+the page never ships. A fetcher that invents a plausible-looking URL is worse
+than one that admits the link isn't there.
 
 ```bash
 # Reddit listing, then an individual thread
-a2web web ask --url=https://www.reddit.com/r/LocalLLaMA/hot/ --question="threads about RTX 5090 inference"
-# next_links -> [{anchor: "RTX 5090 benchmark…", url: "…/comments/…", reason: "412 score, 89 comments", kind: "drilldown"}, …]
-a2web web ask --url=https://reddit.com/r/.../comments/... --question="what model and prompt size?"
+a2web web query --url=https://www.reddit.com/r/LocalLLaMA/hot/ --query="RTX 5090 inference"
+# other_pages -> [{url: "…/comments/…", reason: "412 score, 89 comments", kind: "drilldown"}, …]
+a2web web query --url=https://reddit.com/r/.../comments/... --query="model, prompt size"
 ```
-
-Pass `next_links=false` on terminal fetches to save a few hundred output tokens.
 
 ## Configuration
 
@@ -188,8 +250,8 @@ docker run -d --name a2web -p 8000:8000 \
 
 The container serves via `a2web-serve`, which turns on Google OAuth when
 `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_BASE_URL` are all set (per
-a2kit's blessed MCP-auth recipe — a FastMCP `GoogleProvider`, no a2kit auth
-abstraction). Unset → open, as above. Partial config (id without secret/base_url)
+a FastMCP `GoogleProvider`; no auth abstraction of a2web's own). Unset → open, as
+above. Partial config (id without secret/base_url)
 fails loud at boot rather than silently serving open.
 
 ```bash
@@ -251,7 +313,6 @@ ones:
 | **Storage + surface** | |
 | `A2WEB_CACHE_DIR` | sqlite HTTP-cache dir. Defaults to `/data` in the image; back it with a volume so the cache survives restarts. |
 | `A2WEB_EXPOSE_COOKIES_TOOL` | Leave **unset** on a server (the cookie mirror is local-only). Set `true` only for a local `serve`. |
-| `A2KIT_MCP__CODE_MODE` | `true` re-enables a2kit's code-execution sandbox (search/get_schema/execute meta-tools). a2web ships it off; only flip per-deployment if a client needs it. |
 | `A2WEB_HTTP_HOST` / `A2WEB_HTTP_PORT` | Bind host/port for the `a2web-serve` entrypoint (defaults `0.0.0.0` / `8000`). |
 | **Auth (Google OAuth — optional)** | |
 | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | GCP OAuth client. Both (with `GOOGLE_BASE_URL`) turn auth on; unset → open. |
@@ -262,7 +323,7 @@ ones:
 | `A2WEB_*` | Any other `AppSettings` field (`A2WEB_STEALTH`, `A2WEB_DIAGNOSTICS_DEFAULT`, `A2WEB_BROWSER_MAX_POOL`, cache TTLs, …). |
 
 Without any LLM key the container still serves `fetch_raw` (raw pages, no
-extraction); `ask` returns a loud `llm_unavailable` operator hint rather than a
+extraction); `query` returns a loud `llm_unavailable` operator hint rather than a
 silent empty answer.
 
 **Liveness** is wired as a Docker `HEALTHCHECK` (`curl -f /health`) against the
@@ -318,28 +379,44 @@ After a refresh, every fetch attaches cookies for the request host to the raw (`
 
 ## Architecture
 
-`a2kit` (v0.44) owns the framework: the MCP server and Typer CLI, dependency injection (`Lazy[T]` plus per-resource providers), resource lifecycle, the type-driven formatter (JSON, TSV, page-TSV), schema discovery, in-process testing, and typed diagnostic events on stdlib `logging`.
+a2web composes on `fastmcp` directly and owns its own spine — server composition, the Typer CLI (derived from the registered MCP tools, so `--help` and the MCP `inputSchema` cannot disagree), a single composition root with `Lazy[T]` thunks, LIFO resource lifecycle, wire encoding, and the typed error envelope. Shared, substrate-level pieces come from [the shelf](https://github.com/yoselabs/shelf) (`anyllm`, `any-browser`, `llm-wobble`, `llm-cache`, `lean-wire`, `http-cache`, …).
 
-a2web owns the web-fetching domain:
+On top of that, a2web owns the web-fetching domain:
 
 - The tier-cascade orchestrator, its quality gate, and the escalation playbook.
 - Site handlers: `arxiv`, `discourse`, `github`, `habr`, `hn`, `reddit`, `twitter`, `v2ex`, `wikipedia`.
 - Content extraction: Trafilatura, date detection, structured-record and microdata extraction.
 - Per-host and per-tier proxy routing with `purgatory` circuit breakers.
-- Server-side LLM extraction for `ask`, with a wobble-tolerant JSON contract parser.
+- Server-side LLM extraction for `query`, with a wobble-tolerant JSON contract parser.
 - The browser-cookie mirror.
 
 Heavy resources (the browser pool, the LLM extractor, the cookie jar) are injected lazily. They start on the first fetch that needs them, which keeps cold start cheap.
 
-## Development
+## Contributing
 
 ```bash
 make bootstrap   # uv sync --all-extras
-make check       # lint + ty + test (coverage >= 85%)
+make check       # lint + ty + test (coverage >= 85%) — the gate
 make fix         # ruff format + auto-fix
+make arch        # architecture invariants only
 make dev         # local stdio MCP server
-make install-global   # rebuild and reinstall the global uv tool
+make install-global   # optional: rebuild and reinstall the local uv tool
 ```
+
+`make check` is the gate — it must be green before anything lands.
+
+Two documents are worth reading before a non-trivial change.
+[`CONSTITUTION.md`](./CONSTITUTION.md) governs what belongs in the product versus
+shared substrate, when a dependency may be adopted, and how much magic is
+allowed. [`docs/architecture/`](./docs/architecture/) explains the invariants
+enforced by `make arch` — module boundaries live in `tach.toml`, and call-site
+and class-shape rules live as AST tests under `tests/architecture/`. Adding a new
+invariant means writing a test; landing a violation fails CI.
+
+One house rule that will otherwise surprise you: **a structural guard must assert
+it found something.** A walk that reports "0 violations in 0 candidates" is
+indistinguishable from a passing one, and this repo has been burned by exactly
+that more than once. Pair every walk with a floor, every golden set with a count.
 
 ## Benchmark
 
@@ -349,11 +426,16 @@ It hits the live network and spends LLM quota, so it stays out of `make check` o
 
 ```bash
 make bench
-A2WEB_BENCH_PROVIDER=anthropic make bench   # force the provider
+A2WEB_BENCH_PROVIDER=anthropic make bench   # opt in to the metered API (cheap models only)
 ```
 
-It prefers the Claude Code OS session (the OAuth subscription, no `ANTHROPIC_API_KEY` needed) and falls back to the Anthropic API provider.
+It defaults to the Claude Code OS session — a flat subscription, no
+`ANTHROPIC_API_KEY` needed. If that session is missing it **fails loudly** rather
+than falling through to the metered API: a silent fallback there is a surprise
+bill, not a graceful degrade. Every call passes a cost guard that asserts the
+resolved `(provider, model)` pair before spending, so an expensive model on a
+metered backend raises instead of billing.
 
 ## License
 
-Apache-2.0, © Denis Tomilin
+[Apache-2.0](./LICENSE) — © 2026 Denis Tomilin.

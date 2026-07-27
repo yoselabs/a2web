@@ -220,7 +220,7 @@ browser escalation on it is arguably wasted spend.
 
 ## 2026-07-11 — SSRF egress denylist for internal/private targets (M)
 
-Source: homelab deploy exploration (`iorlas/homelab` change `add-a2web-backend`).
+Source: homelab deploy exploration (a private infra repo's `add-a2web-backend` change).
 When a2web runs as a networked MCP server it fetches any URL a caller supplies,
 from inside the server's network. With no egress guard a caller can pivot a2web
 into private targets it could not reach itself: docker service names on shared
@@ -1232,7 +1232,7 @@ Pattern: hand-rolled async code (cache wrapper, hedged race, proxy health) is ha
 ## v0.2 candidates
 
 - 🟢 **Reader-LM v2 fallback.** Source: engineering.md §10. *Status:*
-  greenlit post-v0.5.0 — Denis OK with running benchmarks + deep
+  greenlit post-v0.5.0 — owner OK with running benchmarks + deep
   research. Trip condition: corpus run shows trafilatura + readability
   miss ≥10% of content on a representative set. Scope: L (corpus
   selection + extraction harness + Reader-LM v2 wrapping + threshold
@@ -1364,8 +1364,8 @@ Still deferred:
   public-only).
   *Why deferred:* the blocker is not the engine — Camoufox (stealth Firefox)
   and zendriver (stealth Chromium/CDP) both pass Reddit headless — it is the
-  **IP**. Both are blocked through shen/Contabo datacenter egress
-  (`38.242.156.243`); the passing recipe needs a **residential IP** (or the
+  **IP**. Both are blocked through a datacenter egress
+  (a datacenter IP); the passing recipe needs a **residential IP** (or the
   operator's own node) plus headful-under-virtual-display (Xvfb/neko/Kasm) for
   the logged-in variant. That is an infra project (egress + display), not a
   code change. Spike scripts: `docs/history/spikes/browser_headful_poc.py`,
@@ -1468,6 +1468,38 @@ is worse than "not yet implemented" — the two `claude-code` adapters are the
 ADR-0016-mandated dev/bench default, and likely cannot expose constrained
 decoding at all, so this could not cover the default path even once `anyllm`
 grows the surface. Revisit if that changes.
+
+## Intermittent failure: `akakce-cloudflare-bot-wall` replay (2026-07-27, M)
+
+`tests/eval_replay/test_regression_corpus.py::test_regression_replay[akakce-cloudflare-bot-wall]`
+has now failed twice under `make check` and passes every time in isolation and
+3/3 on a full standalone `pytest` run. Observed during `fix-extraction-signal-fidelity`
+and again during `foss-readiness`; neither change touches that path (the case is
+a Cloudflare interstitial that never reaches the extractor).
+
+Written down rather than shrugged at, because an intermittent failure nobody
+records is how a real bug becomes "oh, that test is flaky". Unknown whether the
+trigger is test ordering, the coverage plugin, or shared state in the replay
+harness — `make check` differs from a bare run in both ordering and coverage.
+
+First step when picked up: capture the actual assertion (it has only ever been
+seen as a summary line), then try `-p no:randomly` with the same seed under
+coverage to separate ordering from instrumentation.
+
+## PyPI publish is blocked on the shelf packages (2026-07-27, M)
+
+`foss-readiness` deliberately shipped git-tag + container install, not PyPI.
+
+a2web depends on ~15 shelf packages pinned by git tag. A PyPI release of a2web
+would be uninstallable from PyPI alone — `pip install a2web` cannot resolve a
+`git+https://` dependency, so the wheel would either fail to install or need the
+shelf vendored into it.
+
+Publishing therefore means publishing the shelf packages first, which is its own
+decision (namespace, release cadence, versioning contract across ~15 pieces) and
+not one a presentation change should make by accident. Both repos are public and
+installable by tag today, so nothing is blocked on this — it buys discoverability
+and `pip install`, not capability.
 
 ## The eval capture harness has no CI coverage (2026-07-27, M)
 

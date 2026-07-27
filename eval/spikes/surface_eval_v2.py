@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -228,16 +229,25 @@ Output strict JSON. Example shapes:
 """
 
 
-# Memory-leak patterns to grep for in answer / ask_here strings.
+# Memory-leak patterns to grep for in answer / ask_here strings — the check that
+# the extractor answered from the PAGE, not from anything it knows about the
+# person asking.
+#
+# The operator-specific half is read from the environment rather than hardcoded:
+# a public repo should not ship its maintainer's name and handle as fixture data,
+# and the terms that matter are different for every operator anyway. Set
+# `A2WEB_LEAK_TERMS` to a comma-separated list (your name, handle, employer) to
+# restore the identity half of the check for your own runs.
+_OPERATOR_TERMS = [t.strip() for t in os.environ.get("A2WEB_LEAK_TERMS", "").split(",") if t.strip()]
+
 LEAK_PATTERNS = [
-    re.compile(r"\bdenis\b", re.IGNORECASE),
     re.compile(r"your (interests?|preferences?|knowledge)", re.IGNORECASE),
     re.compile(r"based on your", re.IGNORECASE),
     re.compile(r"as we discussed", re.IGNORECASE),
-    re.compile(r"\biorlas\b", re.IGNORECASE),
     re.compile(r"your memory", re.IGNORECASE),
     re.compile(r"your context", re.IGNORECASE),
-    re.compile(r"appeal (most )?to (your|denis)", re.IGNORECASE),
+    re.compile(r"appeals? (most )?to you", re.IGNORECASE),
+    *(re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE) for term in _OPERATOR_TERMS),
 ]
 
 

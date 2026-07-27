@@ -11,7 +11,7 @@ or re-evaluating any fetch backend.
 - **subpackage:** `src/a2web/tiers/` (`zyte.py` + `_manifests/tiers/zyte.py`)
 - **decision:** adopt (env-gated; runtime-optional, no new install dep — plain `httpx` POST)
 - **problem space:** anti-bot / Datadome walls the free ladder (raw → jina → browser → archive) cannot pass.
-- **considered_alternatives:** Firecrawl (also adopted, sibling), Reddit OAuth (deferred), Redlib (rejected), proxy-through-Shen (rejected) — see ADR-0010.
+- **considered_alternatives:** Firecrawl (also adopted, sibling), Reddit OAuth (deferred), Redlib (rejected), proxy-through-a-self-hosted-hub (rejected) — see ADR-0010.
 - **citable_reasons:**
   - Pay-as-you-go (`~$0.13/1K`), the Scrapy company — most reputable of the paid options.
   - Server-side rendering + challenge solving (`browserHtml`) is exactly the capability the free ladder lacks.
@@ -35,4 +35,4 @@ or re-evaluating any fetch backend.
 
 ## Rejected / deferred
 
-Recorded in full in [ADR-0010](../../../docs/adr/0010-reddit-reachability-access-paths.md) with reasons + re-evaluation triggers: **Redlib** (rejected — OAuth spoofing), **PullPush.io** (deferred — ~14mo stale ingest), **Reddit OAuth** (deferred — Nov-2025 approval gate), **proxy-through-Shen** (rejected — datacenter ASN + JS challenge), **Chrome-inside-a2web / rdt-cli / OpenCLI / Agent-Reach login-CLIs** (rejected for remote — local-desktop cookie architectures). Read that ADR before re-proposing any of them.
+Recorded in full in [ADR-0010](../../../docs/adr/0010-reddit-reachability-access-paths.md) with reasons + re-evaluation triggers: **Redlib** (rejected — OAuth spoofing), **PullPush.io** (deferred — ~14mo stale ingest), **Reddit OAuth** (deferred — Nov-2025 approval gate), **proxy-through-a-self-hosted-hub** (rejected — datacenter ASN + JS challenge), **Chrome-inside-a2web / rdt-cli / OpenCLI / Agent-Reach login-CLIs** (rejected for remote — local-desktop cookie architectures). Read that ADR before re-proposing any of them.

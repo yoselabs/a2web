@@ -33,7 +33,7 @@ from settings_base import SecretStrippingYamlSource, resolve_config_path, resolv
 # env values are anyllm's — `anthropic-api` / `claude-code-sdk` /
 # `openai-compatible` / `auto` (the old `anthropic` / `claude-code` /
 # `openai_compatible` no longer validate — a deliberate break onto the shelf
-# contract; the Shen deploy sets `A2WEB_LLM_PROVIDER` accordingly).
+# contract; a served deploy sets `A2WEB_LLM_PROVIDER` accordingly).
 ProviderMode = ProviderName | Literal["auto"]
 
 # Default Discourse-forum allowlist for `DiscourseHandler.matches()`. Shared

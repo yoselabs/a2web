@@ -25,7 +25,7 @@ source (the commit guard installed via `tools/hooks/install.py` blocks it).
 
 CLI and MCP server for AI agents to fetch web content adaptively. Built directly on `fastmcp` (>=3.4) — the `a2kit` framework it used to sit on was retired on 2026-07-22 by `openspec/changes/sunset-a2kit-dependency/`; read that change's `design.md` before touching the composition, wire encoding, or error envelope.
 
-Design lives in `~/Documents/Knowledge/Projects/120-a2web/`. Read `handover.md` first. Migration history lives in `openspec/changes/archive/`; the most recent is `a2kit-v043-migration/` (ADR-0028 unified surface: App authored by subclassing + flat `{slug}_{leaf}` canonical names pinned back to bare names via `canonical_name_override`; ADR-0027 LDD refound: `a2kit.ldd` retired, events emit via `await a2kit.log.info(...)` and sinks are `logging.Handler`s). Outgoing feedback rounds in `docs/history/A2KIT_FEEDBACK_v0.*.md`; deferred wishes in `docs/history/A2KIT_WISHES_DEFERRED.md`.
+Design rationale that predates this repo lives in the maintainer's private notes and is not required to work here — everything load-bearing is in `openspec/` and `docs/adr/`. Migration history lives in `openspec/changes/archive/`; the most recent is `a2kit-v043-migration/` (ADR-0028 unified surface: App authored by subclassing + flat `{slug}_{leaf}` canonical names pinned back to bare names via `canonical_name_override`; ADR-0027 LDD refound: `a2kit.ldd` retired, events emit via `await a2kit.log.info(...)` and sinks are `logging.Handler`s). Outgoing feedback rounds in `docs/history/A2KIT_FEEDBACK_v0.*.md`; deferred wishes in `docs/history/A2KIT_WISHES_DEFERRED.md`.
 
 ## Architecture (FastMCP direct — a2kit retired 2026-07-22)
 
@@ -104,25 +104,25 @@ Unit tests typically call `fetcher.fetch(...)` directly for real `FetchResponse`
 - Output benchmark: `make bench` (see below)
 - Local CLI / local-browser dev: `make install-global` (optional — see below)
 
-## Deployment — remote-first (Shen)
+## Deployment — remote-first
 
-The canonical a2web runtime is a **remote container on Shen**, reached over HTTP.
-Claude Code's MCP config (`~/.claude.json` → `mcpServers.a2web`) is
-`{"type": "http", "url": "https://mcp.shen.iorlas.net/a2web/mcp"}` — no local
-binary, no `serve` subprocess. A source change goes live by building the
-`Dockerfile` image and redeploying it on Shen (owner-driven); pushing `main` is
-the trigger, the redeploy is a Shen-side step. The container is deliberately
-slimmed — no `[browser]`/`[cookies]`/`[claude-code]` extras — so a served a2web
-has no local browser and the `cookies_refresh` tool is ABSENT (gated by
-`expose_cookies_tool`).
+The canonical a2web runtime is a **remote container reached over HTTP**, not a
+local binary and not a `serve` subprocess. Build the `Dockerfile` image, publish
+it to a container registry, and run it behind any HTTP MCP gateway; an MCP client
+then points at that endpoint (`{"type": "http", "url": "https://<your-gateway>/a2web/mcp"}`).
+A source change goes live by rebuilding and redeploying that image — deploying is
+a separate, operator-driven step, never a side effect of pushing.
 
-**`make install-global` is now optional, for LOCAL work only** — a `uv tool`
-install at `/Users/iorlas/.local/bin/a2web` carrying the extras the container
-drops (`[browser]` patchright/zendriver, `[cookies]` local-browser mirror,
-`[claude-code]` OS-session piggyback). Use it for the local CLI or to exercise
-the browser/cookie paths that only work on a real desktop. It is NO LONGER wired
-into Claude's MCP config, so there's no "reinstall after a version bump so Claude
-picks it up" step — that trade-off died with the remote switch.
+The container is deliberately slimmed — no `[browser]`/`[cookies]`/`[claude-code]`
+extras — so a served a2web has no local browser and the `cookies_refresh` tool is
+ABSENT (gated by `expose_cookies_tool`).
+
+**`make install-global` is optional, for LOCAL work only** — a `uv tool` install
+carrying the extras the container drops (`[browser]` patchright/zendriver,
+`[cookies]` local-browser mirror, `[claude-code]` OS-session piggyback). Use it
+for the local CLI or to exercise the browser/cookie paths that only work on a
+real desktop. It is NOT part of the deploy path, so there is no "reinstall after
+a version bump" step — that trade-off died with the remote switch.
 
 ## Benchmark
 

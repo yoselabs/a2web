@@ -8,7 +8,7 @@
 The harsh-test session against TechCrunch surfaced this from camoufox running under a2web's browser tier:
 
 ```
-/Users/iorlas/.local/share/uv/tools/a2web/lib/python3.12/site-packages/playwright/driver/package/lib/coreBundle.js:49624
+$HOME/.local/share/uv/tools/a2web/lib/python3.12/site-packages/playwright/driver/package/lib/coreBundle.js:49624
               url: pageError.location.url,
                                       ^
 TypeError: Cannot read properties of undefined (reading 'url')

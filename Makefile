@@ -64,8 +64,9 @@ dev:
 	uv run a2web serve
 
 # Refresh the globally-installed `a2web` tool from this working tree.
-# Use after shipping a new version when Claude Code's MCP entry points at
-# /Users/iorlas/.local/bin/a2web (see CLAUDE.md → Global install).
+# OPTIONAL and local-only: the canonical deploy is the container image behind an
+# HTTP MCP gateway (CLAUDE.md → Deployment), not a local binary. Use this for the
+# CLI, or to exercise the browser/cookie paths that need a real desktop.
 install-global:
 	# Local tool keeps every extra that was slimmed out of the container:
 	# [claude-code] (OS-session piggyback), [browser] (patchright/zendriver),
