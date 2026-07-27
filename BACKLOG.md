@@ -1469,23 +1469,6 @@ ADR-0016-mandated dev/bench default, and likely cannot expose constrained
 decoding at all, so this could not cover the default path even once `anyllm`
 grows the surface. Revisit if that changes.
 
-## `llm_wobble` logger binding should be an EVOLVE, not consumer glue (2026-07-27, S)
-
-`src/a2web/packages/llm_extract/wobble/__init__.py` wraps three shelf functions
-for the sole purpose of defaulting `logger=` to a2web's managed logger, and does
-it by duplicating each full signature. That is consumer glue routing around a
-dependency's per-call injection — a sharp edge in the shelf loop's sense.
-
-The hazard is drift, and this repo has already paid for it twice this week: when
-`llm_wobble` gains a parameter, a2web's copy of the signature silently drops it,
-which is exactly how the replay harness stopped passing `routing=`.
-
-Fix: EVOLVE `llm_wobble` with `bind(logger=...)` returning a bound facade, after
-which a2web's binding collapses to assignments and has no signature to fall
-behind. The POLICY TABLES (`_policies.py`) stay in a2web — they encode a2web's
-own prompt contract, and each entry's justification is only checkable next to
-`prompts.py`.
-
 ## The eval capture harness has no CI coverage (2026-07-27, M)
 
 `eval/_capture/capture.py` was comprehensively broken for five days after the
