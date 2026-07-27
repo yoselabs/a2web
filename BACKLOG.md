@@ -1417,7 +1417,29 @@ attempt (an `index_lost` warning hint + a `high`→`medium` confidence cap) fire
 on every `query` whose model did not return a router envelope — the common case,
 changing 6 frozen goldens including `query_success_minimal`. Permanent noise.
 
-Blocked on a discriminator between "this model routinely does not emit router
-JSON" (routine; no hint warranted) and "this model emitted a malformed envelope"
-(worth surfacing). Until that exists, ADR-0015's index-loss gap stays
-log-only — real, and knowingly unclosed.
+**UNBLOCKED 2026-07-27 — the diagnosis above was wrong.** "The common case" was
+never measured on production behaviour; it was measured on `_StubProvider`, which
+did `del system, user` and returned prose no matter what contract it was handed.
+`EXTRACT_ROUTER_V1` says "Output strict JSON only" — a real model returns an
+envelope; the stub could not. So every wire golden and most `query` capability
+tests were silently running the routing-LOST branch, and the "fires on every
+query" reading was an artifact of the fixture, not evidence about models.
+
+The stub now honors the contract it is given (a caller-supplied envelope still
+wins), pinned by `tests/capabilities/ask_response/test_stub_provider_fidelity.py`
+— including a non-vacuity case, so a stub hard-wired to always emit JSON would
+fail rather than be blind in the opposite direction. Wire impact of the fix
+itself: **zero goldens moved** (`structural_form`/`shape` are consumed internally
+and never projected), 1178 tests green.
+
+There is no discriminator left to find: `routing_lost` already means
+asked-and-not-recovered, which is exactly the condition worth surfacing. What
+remains is a deliberate envelope decision (a new `index_lost` operator hint,
+and whether it caps `confidence`) — CLAUDE.md "Ask First: before changing the
+response envelope shape". Carrying the ADR-0015 gap knowingly until that call is
+made, no longer because it cannot be measured.
+
+Generalized lesson (third instance this session, after the vacuous architecture
+walks and the `@a2kit.read` matcher): a test double that ignores its input is not
+a witness, and a golden captured through one freezes the lie rather than the
+contract.

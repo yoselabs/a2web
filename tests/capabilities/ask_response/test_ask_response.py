@@ -67,7 +67,25 @@ class _RawStub:
 
 
 class _StubProvider:
-    """LLM provider stub — returns a canned answer regardless of input."""
+    """LLM provider stub that HONORS the output contract it is handed.
+
+    It used to `del system, user` and return prose unconditionally — which made
+    it a false witness on the `request_routing=True` path. `EXTRACT_ROUTER_V1`
+    says "Output strict JSON only"; a real model returns an envelope. The stub
+    returned prose, `_split_answer_and_routing` raised `ParseError`, and every
+    test driven through this provider silently exercised the ROUTING-LOST
+    branch while looking like a healthy `query`.
+
+    That mattered beyond tidiness: it is the reason the ADR-0015 index-loss
+    signal was assessed as "fires on every query, permanent noise" and shelved.
+    The measurement was of the stub, not of production. A fixture that ignores
+    the prompt cannot witness what the model does with it.
+
+    Sniffing `structural_form` is deliberate: that field is the router
+    contract's distinguishing demand, so the stub answers exactly the contract
+    it was actually given, and a template rename that drops the field makes the
+    stub fall back to prose loudly rather than silently keep faking success.
+    """
 
     name = "stub"
 
@@ -75,9 +93,27 @@ class _StubProvider:
         self._answer = answer
 
     async def complete(self, *, system: str, user: str, model: str, **_: object) -> ProviderResponse:
-        del system, user
+        del user
+        # A minimal-but-VALID envelope: the same canned answer, plus the two
+        # fields the router shape requires. Deliberately no `also_here` /
+        # `other_pages` — a real model returns those only when the page has
+        # them, and inventing them here would push fiction into the goldens.
+        # `structural_form`/`shape` are consumed internally and never projected
+        # onto the wire, so honoring the contract does not itself move goldens.
+        #
+        # `system` is a TUPLE of prompt-cache blocks, not a str — `in` on the
+        # tuple would test element EQUALITY and quietly never match, which is
+        # the same class of silent-false-negative this stub is being fixed for.
+        #
+        # A caller-supplied answer that is ALREADY an envelope wins: several
+        # suites (refinement_guidance, listing_options) pass a full router
+        # payload as `answer=` to drive a specific classification. Wrapping that
+        # again would bury their envelope as a string inside a generic one.
+        text = self._answer
+        if "structural_form" in str(system) and not self._answer.lstrip().startswith("{"):
+            text = json.dumps({"answer": self._answer, "structural_form": "article", "shape": "prose"})
         return ProviderResponse(
-            text=self._answer,
+            text=text,
             model=model,
             prompt_tokens=120,
             completion_tokens=14,
