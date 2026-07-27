@@ -589,3 +589,41 @@ def test_headings_do_not_abort_the_envelope_encode() -> None:
     assert "_headings_format" not in encoded, (
         "no TSV block was emitted for `headings`, so claiming `tsv` in the discriminator would lie to the reader about what it is parsing"
     )
+
+
+# --------------------------------------------------------------------- #
+# `answer` never carries model output-contract scaffolding
+#
+# The live defect this guards: `query` shipped an `answer` containing a whole
+# ```next_links fenced JSON array, because the router prompt and the next-links
+# suffix asked the model for two different output contracts and the routing
+# branch never stripped the fence. Asserted on the TEXT channel — the agent's
+# actual view — not `structured_content`, per the two-channel rule.
+# --------------------------------------------------------------------- #
+
+
+def test_no_wire_golden_answer_carries_a_fence() -> None:
+    """No frozen `query` response puts a fenced block in `answer`.
+
+    Walks the goldens rather than re-driving the server: these ARE the surface
+    installed agents consume, so a fence appearing in any of them is the bug
+    regardless of which code path produced it.
+    """
+    import json as _json
+    from pathlib import Path
+
+    golden_dir = Path(__file__).parent / "wire" / "call"
+    checked = 0
+    for path in sorted(golden_dir.glob("query_*.json")):
+        payload = _json.loads(path.read_text())
+        for block in payload.get("content", []):
+            text = block.get("text", "")
+            assert "```next_links" not in text, f"{path.name}: next_links fence on the text channel"
+            checked += 1
+        answer = (payload.get("structured_content") or {}).get("answer", "")
+        if isinstance(answer, str):
+            assert "```" not in answer, f"{path.name}: fenced block inside `answer`"
+
+    # Non-vacuity floor: a walk that inspected nothing is indistinguishable from
+    # a passing one (CLAUDE.md — this rule has already failed twice for real).
+    assert checked >= 6, f"expected to inspect >=6 query content blocks, saw {checked}"

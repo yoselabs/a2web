@@ -458,3 +458,56 @@ urls:
       - "Either retrieves the product (name + price from the page) via browser escalation, OR reports an honest WALL (`retrieval_incomplete` + critical `try_user_browser`) — never a fabricated answer"
       - "Does NOT silently present an empty or partial shell as complete when the render was blocked"
       - "A degraded run (same-engine robust rung) should score WORSE (walled) here, not pass silently — the escalation path must stay observable"
+
+  - slug: dead-product-url-fat-404
+    # fix-routing-fence-and-jina-404-launder (2026-07-27): a LIVE case where a
+    # genuine HTTP 404 was laundered into `ok` with `confidence: high` and no
+    # terminal story at all — the caller saw a success-shaped envelope whose prose
+    # merely mentioned being a 404.
+    #
+    # Two structural facts make this the hard shape, and both are why the entry is
+    # phrased against them rather than page text:
+    #   1. The 404 is FAT — ~320 KB of nav, banners and footer chrome — so every
+    #      thinness heuristic (`length_floor`) passes happily. Body size carries no
+    #      signal here.
+    #   2. `www.` 301s to the apex before the 404, so the status only appears after
+    #      redirect resolution.
+    # The jina reader DOES report it (`Warning: Target URL returned error 404`) in
+    # its header block; the decode was gated behind a 2048-byte ceiling that a2web's
+    # own `X-Return-Format: markdown` header pushed the body past (1467 → 3030
+    # bytes). a2web's own request header disarmed a2web's own guard.
+    #
+    # Survives content rotation: if the site ever publishes this product, the URL
+    # 200s and the ADR-0009 assertions below simply pass on a real page. What must
+    # NEVER happen is a confident success-shaped answer whose own prose says the
+    # page is missing.
+    url: https://www.bhklima.com/urun/1446_vortice-lineo-125-quiet-sessiz-kanal-tipi-fan
+    class: gated
+    task: "What is the price, stock status, airflow and noise level of this fan?"
+    needs: [content+links]
+    criteria:
+      - "If the URL is genuinely 404, the response is `status: failed` with a `content_not_found` hint — NEVER `ok` with no `status` (ADR-0009 tier-truthfulness)"
+      - "Never reports `confidence: high` for a page it simultaneously describes as missing, absent, or a 404 — the envelope must not contradict its own prose"
+      - "Never carries the critical `try_user_browser` klaxon for a 404 (a dead URL is not an anti-bot wall)"
+      - "Does NOT present the site's nav bar as helpful `other_pages` drilldowns implying progress on a dead URL"
+      - "Does NOT fabricate price / airflow / dB / duct-diameter values that are not on the fetched page"
+
+  - slug: answer-carries-no-fenced-scaffolding
+    # Same change: `query` shipped an `answer` containing a whole ```next_links
+    # fenced JSON array, because the router prompt ("Output strict JSON only") and
+    # the next-links suffix ("fenced block, AFTER your answer") asked the model for
+    # two contradictory output contracts, and the fence stripper was unreachable on
+    # the routing branch. On a parse failure the RAW model response became `answer`.
+    #
+    # Any link-dense page exercises it — the fence request only ever appeared when
+    # link discovery was in play. Structural, not content-dependent: this asserts
+    # the SHAPE of `answer`, so it can never rot with the page.
+    url: https://news.ycombinator.com/
+    class: listing
+    task: "What are the top stories right now, and where would I go to read more?"
+    needs: [content+links]
+    criteria:
+      - "`answer` is prose only — contains no ```next_links fence, no ```json fence, and no raw JSON array of {anchor,url,reason,kind} objects"
+      - "Link suggestions arrive in the structured `other_pages` field, never inlined into the answer text as a code block"
+      - "A parse failure degrades to clean prose rather than dumping the raw model response into `answer`"
+    next_links_expected: true

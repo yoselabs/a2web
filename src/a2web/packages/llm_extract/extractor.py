@@ -99,6 +99,11 @@ class ExtractionResult:
     # Whether the failed provider call is worth retrying (anyllm classifies it).
     # Meaningless unless `provider_error` is set.
     provider_error_retryable: bool = False
+    # Routing was requested and NOT recovered (parse failure / degraded payload).
+    # Distinct from `routing is None` on a call that never asked for it. Lets the
+    # envelope tell "the page had nothing to index" apart from "we lost the
+    # index" — ADR-0015, since the caller never sees the withheld body.
+    routing_lost: bool = False
 
 
 class Extractor:
@@ -211,7 +216,15 @@ class Extractor:
         # variation. The link digest rides here (not the cache prefix) so the
         # ~95% no-digest path keeps the same prompt-cache slot.
         tail_suffix = ""
-        if request_next_links:
+        # ONE output contract per call. `request_routing` wins: the router
+        # template already says "Output strict JSON only" and carries
+        # `other_pages`, so also appending the fence suffix asks the model for a
+        # second, differently-shaped contract ("fenced block, AFTER your
+        # answer"). `query` sets BOTH flags, models obeyed whichever they read
+        # last, the router parse then raised, and the raw prose+fence shipped as
+        # `answer`. The flags stay independent in the signature — only prompt
+        # construction resolves the precedence.
+        if request_next_links and not request_routing:
             tail_suffix += _next_links_suffix(handler_candidates)
         if link_digest:
             tail_suffix += _link_digest_suffix(link_digest)
@@ -267,14 +280,22 @@ class Extractor:
             response = Completion(text="", model=self._model.model, raw={"error": provider_error})
 
         routing_payload: RouterPayload | None = None
+        routing_lost = False
         if request_routing:
             answer_text, routing_wobbled = _split_answer_and_routing(response.text, model=self._model.model)
             if routing_wobbled is not None:
                 routing_result: _RoutingResult = unwrap(routing_wobbled)
                 routing_payload = routing_result.payload
+            # Routing was ASKED FOR and not recovered. Absent `also_here` /
+            # `other_pages` must not read as "the page had nothing to index"
+            # when the truth is "we dropped the index" — different facts, and
+            # the caller (which never sees the body) cannot tell them apart
+            # from the envelope alone. ADR-0015.
+            routing_lost = routing_payload is None
             parsed_next_links: list[LlmNextLink] = []
         elif request_next_links:
             answer_text, parsed_next_links = _split_answer_and_next_links(response.text, model=self._model.model)
+            answer_text = strip_answer_fences(answer_text)
         else:
             answer_text, parsed_next_links = response.text, []
 
@@ -306,6 +327,7 @@ class Extractor:
             raw=raw_extras,
             next_links=parsed_next_links,
             routing=routing_payload,
+            routing_lost=routing_lost,
             provider_error=provider_error,
             provider_error_retryable=provider_error_retryable,
         )
@@ -329,6 +351,13 @@ _NEXT_LINKS_FENCE_RE = re.compile(
     re.DOTALL | re.IGNORECASE,
 )
 _VALID_KINDS = frozenset({"drilldown", "related", "source"})
+
+# Any fenced block (```json, ```, ```JSON …) — used only to keep model output
+# scaffolding out of `answer`. Labelled `next_links` fences are handled above.
+_JSON_FENCE_RE = re.compile(
+    r"```[a-zA-Z0-9_-]*\s*\n(?P<json>.*?)\n```",
+    re.DOTALL,
+)
 
 
 def _next_links_suffix(handler_candidates: list[LlmNextLink] | None) -> str:
@@ -511,6 +540,38 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
     return _RoutingResult(answer=answer, payload=payload)
 
 
+def strip_answer_fences(text: str) -> str:
+    """Remove model output-contract scaffolding from answer prose.
+
+    `answer` is the one field every caller parses; a fenced block in it is
+    un-contracted scaffolding that inflates tokens, breaks prose rendering, and
+    puts structured data in the channel reserved for the answer. Strips
+    ```next_links blocks and any fence whose body parses as JSON — an unlabelled
+    or ```json fence carrying an array/object is the same leak wearing a
+    different label.
+
+    Deliberately belt-and-braces alongside the prompt fix: a guarantee that holds
+    only because the prompt currently behaves is not a guarantee.
+    """
+    cleaned = _NEXT_LINKS_FENCE_RE.sub("", text)
+    cleaned = _JSON_FENCE_RE.sub(_drop_if_json_shaped, cleaned)
+    return cleaned.strip()
+
+
+def _drop_if_json_shaped(match: re.Match[str]) -> str:
+    """Drop a fenced block only when its body opens as JSON — keep code samples.
+
+    Shape check, not a parse: `json.loads` is funnel-only (the architecture ban
+    in `tests/architecture/test_json_loads_funnel.py`), and calling it here would
+    be the wrong tool anyway. This is a formatting decision about prose, not a
+    boundary parse — the payload is being DISCARDED, so whether it is
+    well-formed JSON is irrelevant. A malformed array is exactly as unwelcome in
+    `answer` as a valid one, and a fence opening with `[`/`{` is never prose.
+    """
+    body = match.group("json").strip()
+    return "" if body[:1] in ("[", "{") else match.group(0)
+
+
 def _split_answer_and_routing(text: str, *, model: str = "unknown") -> tuple[str, Wobbled | None]:
     """Parse the router-shape JSON envelope through the wobble funnel.
 
@@ -528,9 +589,26 @@ def _split_answer_and_routing(text: str, *, model: str = "unknown") -> tuple[str
             model=model,
         )
     except ParseError:
-        return text, None
+        # NEVER return the raw model response as the answer. This is the exact
+        # mechanism by which a ```next_links fence reached the wire: the router
+        # parse raised and the whole response — prose plus scaffolding — became
+        # `answer`. The spec always said "the successfully parsed answer text";
+        # the raw dump was never what was specified.
+        _LOG.warning(
+            "llm_wobble",
+            extra={
+                "fields": {
+                    "boundary": "extractor.router_shape",
+                    "field": "__envelope__",
+                    "policy_applied": "skip",
+                    "model": model,
+                    "raw_excerpt": text[:200],
+                }
+            },
+        )
+        return strip_answer_fences(text), None
     result: _RoutingResult = unwrap(wobbled)
-    return result.answer, wobbled
+    return strip_answer_fences(result.answer), wobbled
 
 
 __all__ = ["ExtractionResult", "Extractor", "LlmNextLink", "ModelSpec"]

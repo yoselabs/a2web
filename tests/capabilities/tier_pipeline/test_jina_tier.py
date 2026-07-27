@@ -76,6 +76,31 @@ async def test_wrapped_404_surfaces_not_found(monkeypatch: pytest.MonkeyPatch) -
 
 
 @pytest.mark.asyncio
+async def test_verbose_wrapped_404_is_still_decoded(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A wrapped upstream 404 is decoded at ANY body length.
+
+    Non-vacuity guard (design D6): the body is deliberately pushed past 2048
+    bytes — the old `_STUB_MAX_BODY` ceiling — so reintroducing a length gate
+    fails this test instead of passing it silently. This is the exact shape that
+    shipped the bug: a2web's own `X-Return-Format: markdown` header inflates the
+    wrapper body (measured 3030 bytes on a real fat 404 page) past the ceiling,
+    which disarmed the decode and laundered the 404 into `ok`/`confidence: high`.
+    """
+    body = (
+        "Title: BH Klima\n\n"
+        "URL Source: https://example.com/urun/1446\n\n"
+        "Warning: Target URL returned error 404: Not Found\n\n"
+        "Markdown Content:\n" + ("Nav chrome and footer boilerplate. " * 100)
+    )
+    assert len(body) > 2048, "Guard must be exercised above the retired ceiling"
+    _mock_jina(monkeypatch, text=body)
+    result = await JinaTier().fetch("https://example.com/urun/1446", state=_state())
+    assert result.verdict == Verdict.not_found
+    assert result.status_code == 404
+    assert result.pre_rendered is None
+
+
+@pytest.mark.asyncio
 async def test_wrapped_403_maps_to_paywall(monkeypatch: pytest.MonkeyPatch) -> None:
     """Wrapped 401/403 → paywall, preserving the archive-on-paywall routing."""
     body = "Title: nyt\n\nWarning: Target URL returned error 403: Forbidden\n\nMarkdown Content:\n# nyt\n"
@@ -96,10 +121,16 @@ async def test_wrapped_401_maps_to_paywall(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.asyncio
 async def test_long_body_quoting_error_string_is_not_unwrapped(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A long article that merely QUOTES the stub string is not misread as a
-    wrapper (the body-length guard)."""
+    """An article that merely QUOTES the stub string is not misread as a wrapper.
+
+    The quotation sits AFTER the `Markdown Content:` separator — i.e. in the body
+    region, never in jina's own header block — which is what makes it safe. The
+    body is also well over 2048 bytes, so this passes on the POSITIONAL guard and
+    not on any length ceiling.
+    """
     body = "Markdown Content:\n" + ("Lorem ipsum dolor sit amet. " * 200) + "\nThe paper cited `Target URL returned error 403`.\n"
     _mock_jina(monkeypatch, text=body)
+    assert len(body) > 2048, "The false-positive guard must hold at large body sizes"
     result = await JinaTier().fetch("https://blog.example/post", state=_state())
     assert result.verdict == Verdict.ok
     assert result.pre_rendered is not None

@@ -30,11 +30,36 @@ _TIMEOUT_S = 15.0
 # jina wraps an upstream error as its OWN HTTP 200 with a body stub of the shape
 # `Target URL returned error <status>: <reason>`. Decode the real upstream status
 # generically (any 3-digit code — enumerate-by-status is what let a fixed 40[13]
-# miss 404 once), behind a body-length ceiling so a long article that merely
-# QUOTES the stub string is never misread as a wrapper. Tier-truthfulness
-# contract: a retrieved error page surfaces its real upstream status, never `ok`.
+# miss 404 once). Tier-truthfulness contract: a retrieved error page surfaces its
+# real upstream status, never `ok`.
+#
+# The guard against a FALSE wrapper (an article that merely QUOTES the stub
+# string) is POSITIONAL, not length-based. It used to be a 2048-byte ceiling
+# (`_STUB_MAX_BODY`) and that was the wrong measurement — do not reintroduce one.
+# Length only ever correlated with the real discriminator, and a2web's OWN
+# `X-Return-Format: markdown` request header (set in `fetch` below) inflates the
+# wrapper body past any fixed ceiling: one real 404 page measured 1467 bytes on a
+# bare request and 3030 with that header. a2web's own header silently disarmed
+# a2web's own guard, laundering a live upstream 404 into `ok` with
+# `confidence: high` and no terminal story at all.
+#
+# Position IS the discriminator. jina emits its metadata (`Title:`,
+# `URL Source:`, `Published Time:`, `Warning: ...`) in a header block, then the
+# `Markdown Content:` separator, then the retrieved body. A wrapper stub is
+# ALWAYS in the header; a quotation is ALWAYS in the body. Searching the header
+# region alone is correct at any body size, in both directions.
 _UPSTREAM_ERROR_RE = re.compile(r"Target URL returned error (\d{3})")
-_STUB_MAX_BODY: int = 2_048
+_BODY_SEPARATOR = "Markdown Content:"
+
+
+def _wrapper_header(text: str) -> str:
+    """The region where jina states its own metadata, before the retrieved body.
+
+    No separator means jina returned metadata with nothing after it — the whole
+    response is header, so search all of it.
+    """
+    head, sep, _ = text.partition(_BODY_SEPARATOR)
+    return head if sep else text
 
 
 def _unwrapped_verdict(upstream_status: int) -> Verdict:
@@ -143,10 +168,11 @@ class JinaTier:
 
         # Tier-truthfulness: a jina 200 whose body is a wrapper stub is an
         # UPSTREAM error, not real content. Decode the real status, surface it,
-        # and drop the stub body so the tier never falsely wins the loop. Guarded
-        # by the body-length ceiling (a long article quoting the stub is safe).
-        if verdict == Verdict.ok and len(markdown) < _STUB_MAX_BODY:
-            stub = _UPSTREAM_ERROR_RE.search(markdown)
+        # and drop the stub body so the tier never falsely wins the loop. Scoped
+        # to jina's own header region, so an article quoting the stub in its BODY
+        # is safe at any length (see the note on `_BODY_SEPARATOR` above).
+        if verdict == Verdict.ok:
+            stub = _UPSTREAM_ERROR_RE.search(_wrapper_header(markdown))
             if stub is not None:
                 upstream_status = int(stub.group(1))
                 verdict = _unwrapped_verdict(upstream_status)

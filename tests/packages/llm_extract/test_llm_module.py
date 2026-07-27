@@ -11,6 +11,7 @@ from __future__ import annotations
 import pytest
 
 from a2web.packages.llm_extract import (
+    EXTRACT_ROUTER_V1,
     JUDGE_V1,
     WEBFETCH_DEFAULT_V1,
     ExtractionResult,
@@ -343,3 +344,73 @@ async def test_extract_degrades_on_anyllm_error_instead_of_raising() -> None:
     assert result.cost_usd == 0.0
     assert result.prompt_tokens == 0
     assert result.completion_tokens == 0
+
+
+# --------------------------------------------------------------------- #
+# Routing path owns ONE output contract (fix-routing-fence-and-jina-404-launder)
+#
+# `query` calls `extract(request_routing=True, request_next_links=True)`. Before
+# this change that combination had ZERO test coverage (`grep -rn
+# "request_routing=True" tests/` returned nothing) and shipped a prompt carrying
+# two contradictory output contracts: the router template's "Output strict JSON
+# only" AND the next-links suffix's "fenced block, AFTER your answer". Models
+# obeyed the latter, the router parse raised, and the raw response — fence
+# included — was returned as `answer`.
+# --------------------------------------------------------------------- #
+
+
+_ROUTER_JSON = (
+    '{"answer":"Octopuses are cephalopods.",'
+    '"structural_form":"article","shape":"prose"}'
+)
+
+
+@pytest.mark.asyncio
+async def test_routing_prompt_never_requests_a_next_links_fence() -> None:
+    """The router path requests exactly one output contract.
+
+    Asserts on the RENDERED PROMPT, not the parsed output: a refactor that stops
+    appending the suffix for some unrelated reason still exercises the real
+    claim. Both flags are True — the combination `query` uses in production.
+    """
+    provider = MockProvider(answer=_ROUTER_JSON)
+    ex = Extractor(provider=provider, model=ModelSpec("m"), template=EXTRACT_ROUTER_V1)
+
+    await ex.extract(
+        content="content with a [link](https://example.com/x)",
+        ask="what?",
+        request_routing=True,
+        request_next_links=True,
+    )
+
+    assert len(provider.calls) == 1
+    prompt = str(provider.calls[0]["system"]) + str(provider.calls[0]["user"])
+    assert "```next_links" not in prompt, "Router path must not request a next_links fence"
+    assert '"anchor"' not in prompt, "Router path must not carry the anchor/url fence exemplar"
+
+
+@pytest.mark.asyncio
+async def test_routing_parse_failure_never_leaks_a_fence_into_the_answer() -> None:
+    """A routing ParseError must return sanitized prose, never the raw response.
+
+    The canned response is the shape observed live: prose followed by a
+    ```next_links fenced array. It is not a valid router envelope, so
+    `parse_with_policy` raises and the failure path decides what `answer` is.
+    """
+    canned = (
+        "The page is a 404 error; no product details are provided.\n\n"
+        "```next_links\n"
+        '[{"anchor":"Tüm Ürünler","url":"https://example.com/all",'
+        '"reason":"full product list","kind":"drilldown"}]\n'
+        "```\n"
+    )
+    provider = MockProvider(answer=canned)
+    ex = Extractor(provider=provider, model=ModelSpec("m"), template=EXTRACT_ROUTER_V1)
+
+    result = await ex.extract(
+        content="c", ask="q", request_routing=True, request_next_links=True
+    )
+
+    assert "404 error" in result.answer, "The prose survives"
+    assert "```next_links" not in result.answer, "The fence must be stripped"
+    assert '"anchor"' not in result.answer, "No raw JSON scaffolding in the answer"
