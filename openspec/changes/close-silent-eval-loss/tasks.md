@@ -68,13 +68,21 @@
 
 ## 8. Evidence — the re-run
 
-- [ ] 8.1 Full-corpus `make bench` on a subscription provider (ADR-0016;
-      `A2WEB_BENCH_PROVIDER=claude-code-sdk`). Confirm `next_links` reports real
-      scores on the `next_links_expected` cases rather than `None`.
-- [ ] 8.2 Write `eval/findings_<date>.md` comparing the new run against
-      `eval/runs/2026-07-22_024912/`, stating which deltas are the revived axis and
-      which are product changes since 2026-07-22.
-- [ ] 8.3 Record any product defect the revived axis surfaces as a BACKLOG entry or a
-      corpus case. Do NOT fix it inside this change.
-- [ ] 8.4 Update BACKLOG.md: mark M3, M4, M7 closed; note that M8 and the quality-0
-      expected-failure cells remain open and are sequenced behind the corpus change.
+- [x] 8.1 SUBSET run on a subscription provider (ADR-0016) confirming the axis
+      reports: `--only listing --axis next_links --mode detail` on `claude-code-sdk`,
+      16 cells, 139 s, $0.66 → `eval/runs/axis-revival-probe`. `next_links` scored
+      12 of 16 cells (was 0 of 29). Deliberately scoped to "does the axis report",
+      not "how good is a2web".
+- [ ] 8.1b Full-corpus run for the actual comparison against
+      `eval/runs/2026-07-22_024912/`. ~8 min, all 33 cases x 3 systems, all axes.
+      Open — needs a spend decision, and is the only way to read quality/clarity
+      deltas or to re-check the four cases that never ran on 2026-07-22.
+- [x] 8.2 `eval/findings_2026-07-28.md` written, stating explicitly what the subset
+      run does NOT establish (quality, clarity, the M8 quality-0 cells, non-listing
+      classes, and independence — cache mode was ON).
+- [x] 8.3 Recorded in BACKLOG, not fixed: `listing-answer-always-leaves-an-index`
+      emits no index on either system (ADR-0015, corroborates the 2026-07-27
+      `wikipedia-narrow-ask-indexes` finding by an independent route); `reddit-listing`
+      likewise; and the axis's first-ever quality baseline (mean 3.17).
+- [x] 8.4 BACKLOG.md updated: M3, M4, M7 closed; M1, M2, M5, M6, M8 and H1/H3/H4/H5
+      explicitly still open.
