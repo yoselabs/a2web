@@ -8,6 +8,8 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-07-27
+
 ### Changed
 
 - **BREAKING — `A2WEB_LLM_PROVIDER` values are now the shelf's canonical

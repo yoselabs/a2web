@@ -16,7 +16,7 @@ dependencies = [
 
 [[package]]
 name = "a2web"
-version = "0.47.2"
+version = "0.48.0"
 source = { editable = "." }
 dependencies = [
     { name = "a2effect" },
