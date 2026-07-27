@@ -1662,3 +1662,141 @@ the degraded arms are validated only by constructed offline tests. Not a defect
 and not obviously actionable; recorded so that a future reading of "0% index
 loss" is understood as "rare trigger", not as "mechanism confirmed working in
 production".
+
+# ═══ Measurement-layer integrity — investigation 2026-07-28 ═══
+
+Prompted by a fair challenge: several findings this session were reported as
+"caught it" or "nearly filed the wrong thing". Catching a problem by hand is
+what an unstructured layer feels like from the inside, so the near-misses were
+treated as a symptom and investigated rather than as a run of good luck.
+
+**The result is narrower than "we are unstructured", and better news.** The
+product layer is genuinely well-defended: 1223 tests, 64 architecture guards,
+tach module boundaries, anti-vacuity floors, and a standing rule that every
+guard must be watched failing. The measurement layer — the thing that tells us
+whether the product is any good — has almost none of that. Every near-miss this
+session landed in that gap, which is exactly where one would predict.
+
+The one-line version: **we built rigorous structure around the code, then judged
+whether the code was good using a system with no structure at all.**
+
+Verified defects and unproven hypotheses are kept separate below on purpose.
+Nothing here commits to a fix; M1 and M2 in particular want a design
+conversation before anyone touches them.
+
+## VERIFIED — structural defects
+
+### M1 — Two disjoint corpora, zero overlap (L, root cause)
+
+| | `eval/corpus.yaml` | `eval/corpus/{regression,breaking}` |
+|---|---|---|
+| cases | 33 | 6 |
+| slug overlap | **0** | **0** |
+| criteria | prose, LLM-judged | fixture replay, deterministic |
+| in `make check` | no | yes |
+| cost to run | live network + LLM quota | free |
+
+**Only 2 of 33 `corpus.yaml` slugs are named in any deterministic test**
+(`hn-front`, `wikipedia-rust`). The other 31 are exercised by `make bench`
+alone — live, quota-spending, deliberately not in CI, not run by default.
+
+The sharp edge: CLAUDE.md's **"Never lose a case"** rule points at
+`corpus.yaml`. So the discipline we are proudest of routes every newly-found
+case into the corpus that nothing runs. The rule is followed faithfully and
+produces an inert record.
+
+Not obviously fixable by merging the two — they answer different questions
+(fixture replay cannot judge answer quality; the bench cannot run free). The
+design question is what a case's *lifecycle* is: captured where, promoted to a
+fixture when, checked how often.
+
+### M2 — Structural criteria are graded by a fuzzy judge (M)
+
+15 of 100 criteria name an actual wire field (`also_here is NON-EMPTY`,
+`status`, `obstacle`, `retrieval_incomplete`). Those are deterministically
+checkable, and they are being evaluated as prose by an LLM judge inside a
+harness that is not run.
+
+The 2026-07-27 ADR-0015 finding is exactly this shape: the requirement was
+written down, correctly, in the one place where only a fuzzy and unexecuted
+mechanism could ever see it. A criterion that names a wire field should be
+asserted, not judged.
+
+### M3 — Silent skips indistinguishable from passes (M)
+
+`runner._score_next_links` returns early when a system emits no block, and a
+`JudgeParseError` leaves the score `None`. Already paid for: a bench run
+reported `4/4` while scoring **zero cells** on the changed path
+(`eval/findings_2026-07-27.md`, first section, which names it "precisely the
+vacuous-guard shape CLAUDE.md warns about"). The anti-vacuity rule exists and
+was never extended across the eval boundary.
+
+### M4 — Two of four axes report a mean with no denominator (S)
+
+`report.py`: `next_links` renders `4.0 (8)` and contract renders `12/14`, but
+**quality** and **clarity** render a bare mean computed over non-`None` rows
+while the `n` column counts *all* rows. A clarity mean of 4.2 over 3 surviving
+cells is visually identical to 4.2 over 29.
+
+The inconsistency is the tell — two axes get it right, so this is an absent
+rule, not an absent thought.
+
+### M5 — Inert corpus schema (S)
+
+`needs` carries three spellings for what look like two concepts
+(`content+links` ×23, `content_only` ×7, `content` ×3), has **no consumer**
+anywhere outside the parser, and no closed-set validation. The only test that
+touches it asserts it round-trips — testing the parser, not any behaviour.
+`next_links_expected` is present on 9/33; elsewhere that axis is silently N/A
+rather than explicitly not-applicable.
+
+### M6 — URL is not identity, and nothing enforces slug selection (S)
+
+Five URLs appear twice across ten cases, deliberately (same page, different
+ask) — including two Wikipedia entries with **opposite** expectations about
+whether `also_here` may be empty. Any tool that samples or selects cases must
+key on `slug`; nothing states this or enforces it. This is what caused the
+2026-07-27 near-miss where a sweep sampled the broad-ask entry and the finding
+was nearly filed against the wrong case.
+
+### M7 — No cache discipline in the eval path (S)
+
+Repeat measurement is silently served from the extraction cache, so
+"reproduced N times" is not N independent observations. Hit on 2026-07-27: a
+4/4 reproduction was really one or two real samples, caught by suspicion rather
+than by the harness saying so. Any measurement loop needs an explicit
+cache-bypass and should state which mode it ran in.
+
+## HYPOTHESES — probe before believing
+
+### H1 — ADR-0014 and ADR-0017 may be unpinned (S)
+
+Zero test files name either; ADR-0009 and ADR-0015 are named by 11 each.
+**Weak proxy** — a test can enforce an invariant without citing it, so this may
+be nothing. *Probe:* read both ADRs, grep for the behaviour rather than the
+label, and record which requirement each is pinned by.
+
+### H2 — The full-corpus pass rate may be unknown (S)
+
+No evidence surfaced of a recent complete bench run. If true, we do not know how
+many of the 33 cases currently fail — and the ADR-0015 finding shows at least
+one silently does. *Probe:* look for a full-corpus artifact under `eval/runs/`
+and check its date and completeness.
+
+### H3 — Criteria may have rotted against page content (M)
+
+The rule says phrase criteria against stable structural facts so entries survive
+content rotation. Nothing checks it. *Probe:* sample 10 criteria and ask of each
+whether it survives a site redesign; count the ones keyed to today's text.
+
+### H4 — Findings may not close (S)
+
+Roughly eight `eval/findings_*.md` exist. Whether any produced a tracked action
+is unknown. *Probe:* trace three findings forward to a backlog entry or commit.
+
+### H5 — This backlog may be a graveyard (S)
+
+52 sections, 14 struck through, no priority or triage field, monotonically
+growing. *Probe:* date-bucket the open items; if the median age exceeds the
+rate of retirement, the file is an archive pretending to be a queue — and this
+very entry is making it longer.
