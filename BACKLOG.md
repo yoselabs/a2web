@@ -17,6 +17,32 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-27 — strip ambient LLM availability from the whole test suite (S, CI correctness)
+
+Source: the v0.48.0 release build, which failed the gate on a bare runner after
+passing locally. Three releases have now died to the same class: the suite reads
+whether the DEVELOPER'S MACHINE has an LLM (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
+a live Claude Code session), so a test can be green on a laptop and red in CI with
+no code difference. 0.47.0/0.47.1 died on provider-selection tests; 0.48.0 died on
+`tests/contracts/test_cli_contract.py`, where the `Extractor.extract` stub is only
+reached once `select_provider` returned something, so the `web query` goldens
+silently degraded to `llm_unavailable` payloads. Each was fixed one test at a time;
+none of the fixes made the next one impossible.
+
+The structural fix is an autouse `conftest.py` fixture that strips the credential
+env vars and forces `claude-code-sdk` unavailable for EVERY test, with an explicit
+opt-in marker (e.g. `@pytest.mark.ambient_llm`) for the few that genuinely want the
+host's providers. Then "green because my laptop has a session" stops being
+writable, and the laptop and the runner are the same environment by construction.
+Lint cannot catch this class (both states are type-correct and style-clean) and a
+green local run cannot either, which is why it needs a fixture rather than a rule.
+Scope: S.
+
+Trigger: pick up before the next release, or immediately if a fourth release build
+fails on provider availability.
+
+---
+
 ## 2026-07-27 — investigate dual health-degradation mechanisms (S, design smell)
 
 Source: `shelf-sweep-promotions` §10.1 (Q4 RECONCILE-pass follow-up, filed not
