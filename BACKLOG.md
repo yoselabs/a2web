@@ -1588,3 +1588,29 @@ only ADR-0011's citation happens to live in a directory a guard now watches. A
 trigger citing a `make` target, a corpus entry, or a script elsewhere has no
 such floor. Worth a sweep of every ADR's trigger section against what it names —
 offline, and cheap enough to do by hand once.
+
+## Two limits accepted by `close-silent-enforcement-loss` (2026-07-27, S)
+
+Both are stated in the change's design and repeated here so they are findable
+without reading an archived change.
+
+**1. The tach coverage guard answers "is there a contract", not "is it tight".**
+`test_tach_covers_every_package.py` asserts the module list and the package tree
+are the same set. A package listed with permissive `depends_on` satisfies it
+while granting no real protection — the guard would go green on a contract that
+allows exactly what the invariant forbids. Closing this means asserting each
+entry's declared dependencies are minimal, which needs a survey of what the
+current entries actually declare before a rule can be written that does not
+immediately need grandfathering. Noted in the test's own docstring too, since
+that is where someone will be standing when it matters.
+
+**2. Citation-checking stops at `CLAUDE.md`.** `CONSTITUTION.md` and
+`docs/adr/*.md` cite paths the same way and rot the same way — the ADR sweep
+already has its own entry above (ADR re-evaluation triggers citing things that
+no longer run), and this is the same problem seen from the docs side. Deferred
+deliberately: the `<!-- gone -->` marker convention is one day old and has
+exactly one user. Extending it to two more file classes before it has survived
+contact with ordinary editing would be committing to a convention on no
+evidence. Revisit after the next few `CLAUDE.md` edits — if the marker gets
+used correctly without prompting, extend it; if it gets worked around, the
+convention is wrong and extending it would spread the mistake.
