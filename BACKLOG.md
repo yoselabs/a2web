@@ -1875,22 +1875,47 @@ table. Evidence: `eval/findings_2026-07-28.md`.
 
 Still open from that section: M1, M2, M5, M6, M8, and hypotheses H1/H3/H4/H5.
 
-### NEW — `listing-answer-always-leaves-an-index` emits no index (L)
+### NEW — the ADR-0015 index deferral chain bottoms out into silence (L)
 
-The corpus case written to pin ADR-0015 produces **no `other_pages` block on
-either system** (`eval/runs/axis-revival-probe`, 2026-07-28). Independently
-corroborates the 2026-07-27 `wikipedia-narrow-ask-indexes` finding — different
-case, different field (`other_pages` vs `also_here`), different discovery
-mechanism, same invariant. Two independent signals now say the ADR-0015 index is
-underfiring in production.
+*(Corrected 2026-07-28. First filed as "corroborates the wikipedia-narrow-ask
+finding, same invariant". Wrong: they share a symptom, not a cause, and the
+difference decides the fix. Full reasoning in `eval/findings_2026-07-28.md`.)*
 
-`reddit-listing` also emitted no candidate block on either system; fetched `ok`
-via zyte, so not a wall. Unresolved whether it is the same defect.
+`listing-answer-always-leaves-an-index` (`arxiv.org/list/cs.CL/recent`) returned
+an envelope of `['answer','confidence','operator_hints','tier']` — all four index
+fields absent — while **every prompt clause was followed correctly**:
 
-Deliberately NOT fixed inside the change that revived the axis — repairing
-product behaviour in the same commit as its measurement leaves neither
-independently verifiable. This is the next product change to shape, and it is
-ORTHOGONAL to the P1→P5 measurement chain.
+- `refinement_axes` — "OMIT on non-selection questions"; the task is a FIND.
+- `also_here` — "on listing DEFER to options / refinement_axes and stay sparse".
+- `other_pages` — "zero is a VALID count — do NOT pad".
+- `options` — not an LLM field; DOM-parsed, and the parse found nothing.
+
+Four optional fields, each with an escape hatch, each deferring to the others,
+and **no rule anywhere in the prompt that at least one must survive** (grepped —
+no such clause). The invariant lives only in the corpus criteria, which the model
+never sees.
+
+Sharpest link: **`also_here` defers to `options`, which the model cannot emit.**
+`options` appears exactly once in the prompt, inside that deferral clause, and is
+never defined as a producible field. The model is told to stay quiet because
+another subsystem will cover it, with no way to learn the subsystem found nothing.
+
+Distinct from the 07-27 `wikipedia-narrow-ask-indexes` defect: that one is clause
+STRENGTH (v0.25 targeted it and it still under-fires); this one is STRUCTURE.
+Strengthening `also_here` fixes the first and does nothing for the second — filing
+them together would let one fix be reported as closing both.
+
+**Open confound, resolve first:** the cell was browser-served and the answer says
+the page showed "no titles, authors, or abstracts". If the render was degenerate,
+the empty index is defensible and this case measures a RENDERING defect instead.
+*Probe:* fetch the same URL via the raw tier and compare available anchors/rows.
+
+`reddit-listing` also emitted no candidate block (fetched `ok` via zyte, not a
+wall). Whether it is this defect, the Wikipedia one, or a third is unresolved and
+must not be assumed.
+
+Deliberately NOT fixed inside the change that revived the axis. This is the next
+product change to shape, ORTHOGONAL to the P1→P5 measurement chain.
 
 ### NEW — next_links quality is unmeasured-until-now, and mediocre (M)
 
