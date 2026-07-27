@@ -1517,3 +1517,62 @@ without touching the network. Cheap; not yet built.
 
 Sibling of the "never add a structural guard without an assertion that it found
 something" rule — this is the same failure in an offline-untestable component.
+
+## The `surface_eval_v2` leak detector is vacuous by default (2026-07-27, S)
+
+`foss-readiness` parameterized the personal-leak check in
+`eval/spikes/surface_eval_v2.py` rather than stripping it, because the operator
+terms it searched for were load-bearing test data — they proved the model was
+answering from the fetched page rather than from its own knowledge.
+
+The parameterization landed as
+`_OPERATOR_TERMS = os.environ.get("A2WEB_LEAK_TERMS", "").split(",")`, which
+defaults to **empty**. So the detector now passes unconditionally unless an
+operator happens to know the env var exists and sets it. That is exactly the
+failure mode the repo bans elsewhere: a check that scans nothing is
+indistinguishable from a check that found nothing.
+
+It is a spike script, not on the `make check` path, so the stakes are low — but
+the fix is small: fail loudly when the spike runs with an empty term list, so
+"leak detection was off" can never be silently reported as "no leaks found".
+Whoever next runs the spike should decide whether the answer is a hard error, a
+printed banner, or a repo-local uncommitted term file.
+
+## The OPTIONAL/DEFAULT triage is coupled to prompt wording, unguarded (2026-07-27, S)
+
+`wobble/_policies.py` states the rule plainly — `OPTIONAL` is a claim about the
+prompt, and the prompt settles it — and each of the eight policy lines cites the
+`prompts.py` clause that justifies it (`"obstacle (optional)"`,
+`"structural_form (required)"`, and so on). The citations were correct when
+written and were checked by hand against `prompts.py` during
+`fix-extraction-signal-fidelity`.
+
+Nothing keeps them correct. Reword one prompt line from `(required)` to
+`(optional)` — a perfectly ordinary prompt-tuning edit — and the policy table
+silently starts firing `llm_wobble` on a field the contract now permits to be
+absent, or (worse, in the other direction) stops firing on a field the contract
+still demands. The comment would still read as justification; only the prompt
+moved.
+
+This is cheaply guardable, and the guard is the interesting part: parse
+`EXTRACT_ROUTER_V1` for `<field> (required|optional` markers and assert the set
+agrees with `_ROUTER_POLICY`'s tolerances. That also pins the field *names*,
+catching a renamed prompt field that no longer matches any policy key. Include
+an anti-vacuity floor — the parse must find at least as many marked fields as
+the table has entries — or the guard passes by matching nothing the day the
+prompt's formatting changes.
+
+## No security-disclosure channel on a now-public repo (2026-07-27, S)
+
+`foss-readiness` shipped the LICENSE, the identifier guard, and a Contributing
+section, but no `SECURITY.md`. For most repos that is a formality; for this one
+it is slightly more, because a2web's whole job is *making outbound requests to
+attacker-influenced URLs on someone else's behalf*. The backlog already carries
+one unshipped item in that exact class (2026-07-11, SSRF egress denylist for
+internal/private targets), and ADR-0014 exists because anchor labels on a
+fetched page are attacker-controlled input to an LLM.
+
+So the plausible report is not hypothetical, and today it has nowhere to go but
+a public issue. A `SECURITY.md` naming a private channel and a rough response
+expectation is a few lines. Worth pairing with a decision on whether the SSRF
+item's status should be stated openly rather than living only here.
