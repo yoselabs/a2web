@@ -1862,3 +1862,41 @@ A product rename silently voided its own measurement, and the report rendered
 `—`, the same glyph as "axis not applicable to this corpus". This is
 `close-silent-enforcement-loss` one layer out: the anti-vacuity rule exists and
 had never been extended across the eval boundary.
+
+## M3 / M4 / M7 — CLOSED 2026-07-28 by `close-silent-eval-loss`
+
+Axes now carry a closed `AxisDisposition` (scored / not_applicable / unscored
+with a reason); every reported statistic renders its denominator; an axis
+requested on ≥1 cell and scored on 0 exits non-zero after artifacts are written;
+`--no-extraction-cache` gives genuinely independent observations and the
+manifest records the mode. Root cause of the dead axis was the ADR-0015
+`next_links`→`other_pages` fold; `_CANDIDATE_FIELD` is now a literal per-system
+table. Evidence: `eval/findings_2026-07-28.md`.
+
+Still open from that section: M1, M2, M5, M6, M8, and hypotheses H1/H3/H4/H5.
+
+### NEW — `listing-answer-always-leaves-an-index` emits no index (L)
+
+The corpus case written to pin ADR-0015 produces **no `other_pages` block on
+either system** (`eval/runs/axis-revival-probe`, 2026-07-28). Independently
+corroborates the 2026-07-27 `wikipedia-narrow-ask-indexes` finding — different
+case, different field (`other_pages` vs `also_here`), different discovery
+mechanism, same invariant. Two independent signals now say the ADR-0015 index is
+underfiring in production.
+
+`reddit-listing` also emitted no candidate block on either system; fetched `ok`
+via zyte, so not a wall. Unresolved whether it is the same defect.
+
+Deliberately NOT fixed inside the change that revived the axis — repairing
+product behaviour in the same commit as its measurement leaves neither
+independently verifiable. This is the next product change to shape, and it is
+ORTHOGONAL to the P1→P5 measurement chain.
+
+### NEW — next_links quality is unmeasured-until-now, and mediocre (M)
+
+Mean 3.17 over 6 scored cells per system; `pypi-httpx` 1–2, `gh-trending` 2.
+**First observation ever on this axis** — no prior number exists, so this is a
+baseline, not a regression. `gh-trending-best` scoring 5 on `a2web_detail` and 2
+on `a2web_extract` for the same page is the sharpest single cell, since the
+systems differ only in envelope shape. Worth one targeted look before reading
+anything into the mean.
