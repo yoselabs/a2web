@@ -1614,3 +1614,51 @@ contact with ordinary editing would be committing to a convention on no
 evidence. Revisit after the next few `CLAUDE.md` edits — if the marker gets
 used correctly without prompting, extend it; if it gets worked around, the
 convention is wrong and extending it would spread the mistake.
+
+## `also_here` empty on a narrow ask against a rich page (2026-07-27, M) — ADR-0015
+
+Live spike finding, `eval/findings_2026-07-27.md` (second run). Corpus case
+`wikipedia-narrow-ask-indexes` encodes the requirement explicitly — *"`also_here`
+is NON-EMPTY — the narrow ask did not 'cover' the rich article"* — and the live
+result is `also_here: []`, `other_pages: []` on the Rust Wikipedia article for
+"Who created Rust and in what year did it first appear?".
+
+That is ADR-0015 ("never withhold the body without leaving the index") failing on
+its canonical case. The prompt instructs the behaviour in as many words; the
+model returned nothing. The answer itself was correct, which is what makes this
+the ADR-0015 harm rather than a wrong answer: the caller gets a confident
+one-line reply and no signal that an enormous article sat behind it.
+
+**Before designing a fix, establish the rate.** The 4/4 reproduction is
+misleading — the extraction cache very likely served trials 2–4, so the real
+evidence is one or two independent observations. Re-run with the extraction
+cache bypassed, across several rich pages (Wikipedia, MDN, a spec, a product
+page) and several narrow asks. A prompt change made against a single observation
+would be tuning on noise.
+
+Candidate directions once the rate is known, in rough order of how much they
+respect the existing design: the instruction may be losing to its position in a
+long prompt (it sits inside the `also_here` field description, far down); the
+model may be reading "COVERED" as satisfied by answering the asked question,
+which the prompt explicitly warns against and may need to state as a rule rather
+than a caution; or the narrow-ask case may need its own worked example, since
+the existing examples are all richer asks.
+
+Related: the `arxiv` listing no-index item above, and the `index_lost` hint,
+which fires on lost ROUTING but by construction cannot fire here — routing
+succeeded and returned a legitimately-empty index. The two failure modes are
+disjoint, which is worth remembering when reading a green `index_lost` rate as
+evidence that indexes are healthy. They are not the same claim.
+
+## Routing arms: three of four unobserved in the wild (2026-07-27, S)
+
+Same spike. `routing_outcome` was `recovered` on 14/14 URLs where extraction
+ran; `unparsable`, `unclassified`, and `provider_error` did not occur, and
+`index_lost` fired 0/15.
+
+Good news for the dilution worry that motivated the run — the hint is not noise.
+But it also means the four-arm split is carrying one arm in live practice, and
+the degraded arms are validated only by constructed offline tests. Not a defect
+and not obviously actionable; recorded so that a future reading of "0% index
+loss" is understood as "rare trigger", not as "mechanism confirmed working in
+production".

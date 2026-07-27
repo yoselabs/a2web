@@ -1,0 +1,190 @@
+{
+  "n": 15,
+  "routing_arms": {
+    "recovered": 14,
+    "none": 1
+  },
+  "index_lost_fired": 0,
+  "index_lost_rate": 0.0,
+  "carried_an_index": 11,
+  "rows": [
+    {
+      "slug": "hn-front",
+      "class": "listing",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 0,
+      "other_pages": 10,
+      "hints": [
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "reddit-listing",
+      "class": "listing",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 3,
+      "other_pages": 0,
+      "hints": [
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "pypi-httpx",
+      "class": "listing",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 0,
+      "other_pages": 1,
+      "hints": [
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "gh-trending",
+      "class": "listing",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 0,
+      "other_pages": 10,
+      "hints": [
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "reddit-comments",
+      "class": "comments",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 5,
+      "other_pages": 0,
+      "hints": [
+        "reddit_forbidden_try_archive",
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "reddit-iem-compare",
+      "class": "comments",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 2,
+      "other_pages": 1,
+      "hints": [
+        "reddit_forbidden_try_archive",
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "wikipedia-rust",
+      "class": "clean",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 0,
+      "other_pages": 0,
+      "hints": []
+    },
+    {
+      "slug": "arxiv-abstract",
+      "class": "clean",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 0,
+      "other_pages": 0,
+      "hints": []
+    },
+    {
+      "slug": "medium-tag",
+      "class": "gated",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 0,
+      "other_pages": 0,
+      "hints": [
+        "listing_more",
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "spa-react-dev",
+      "class": "spa",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 7,
+      "other_pages": 4,
+      "hints": [
+        "listing_partial",
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "hepsiburada-product-reviews",
+      "class": "affordance",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 4,
+      "other_pages": 1,
+      "hints": [
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "hepsiburada-product-no-footer-options",
+      "class": "clean",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 3,
+      "other_pages": 0,
+      "hints": [
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "hepsiburada-reviews-drilldown-on-page",
+      "class": "affordance",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 3,
+      "other_pages": 1,
+      "hints": [
+        "content_guidance"
+      ]
+    },
+    {
+      "slug": "amazon-product-reviews-elsewhere",
+      "class": "affordance",
+      "status": "failed",
+      "routing_outcome": null,
+      "index_lost": false,
+      "also_here": 0,
+      "other_pages": 0,
+      "hints": [
+        "content_not_found"
+      ]
+    },
+    {
+      "slug": "router-envelope-survives-model-fencing",
+      "class": "article",
+      "status": "ok",
+      "routing_outcome": "recovered",
+      "index_lost": false,
+      "also_here": 4,
+      "other_pages": 0,
+      "hints": []
+    }
+  ]
+}

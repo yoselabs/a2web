@@ -11,7 +11,8 @@ Three modes:
 
 Provider: prefers Claude Code's OS session (OAuth subscription — no
 `ANTHROPIC_API_KEY` needed), falls back to the Anthropic API provider.
-`A2WEB_BENCH_PROVIDER` forces the choice (`claude-code` | `anthropic`).
+`A2WEB_BENCH_PROVIDER` forces the choice — an `anyllm.ProviderName` value
+(`claude-code-sdk` | `claude-code-cli` | `anthropic-api` | `openai-compatible`).
 """
 
 from __future__ import annotations
