@@ -1268,11 +1268,21 @@ async def _phase_extract(fc: FetchContext) -> None:
     raw_html = fc.body.decode("utf-8", errors="replace") if fc.body else ""
 
     if fc.pre_rendered_payload is not None:
-        # Site handler / archive / browser already produced markdown; skip trafilatura.
+        # Site handler / archive / browser already ran the canonical extractor;
+        # skip the second pass.
+        #
+        # `links` is copied here for the same reason as the other four, and its
+        # absence was NOT a cosmetic omission: without it `fc.links` stayed empty
+        # on every pre-rendering tier, `_build_link_digest` bailed, no
+        # `## page links` block reached the prompt, and `other_pages` became
+        # impossible to emit on the entire hard-fetch population — the pages a
+        # caller can least afford to fetch twice. See
+        # `eval/findings_2026-07-28.md`.
         fc.content_md = fc.pre_rendered_payload.content_md
         fc.title = fc.pre_rendered_payload.title
         fc.byline = fc.pre_rendered_payload.byline
         fc.headings = fc.pre_rendered_payload.headings
+        fc.links = fc.pre_rendered_payload.links
         return
 
     # JSON response body (json-endpoint-direct-routing): the raw tier now wins on

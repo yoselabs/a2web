@@ -11,10 +11,10 @@ import re
 from typing import TYPE_CHECKING
 from urllib.parse import unquote, urlparse
 
-import trafilatura
+from content_extract import extract_markdown
 from http_fetch import fetch_bytes
 
-from ..models import NextLink, Verdict
+from ..models import Heading, Link, NextLink, Verdict
 from ._common import empty_result, map_non_ok
 
 if TYPE_CHECKING:
@@ -73,16 +73,11 @@ class WikipediaHandler:
             return empty_result(url, Verdict.length_floor)
 
         title = unquote(slug).replace("_", " ")
-        markdown = (
-            trafilatura.extract(
-                html,
-                url=url,
-                output_format="markdown",
-                include_comments=False,
-                include_tables=True,
-            )
-            or ""
-        )
+        # Canonical extractor (NOT a bare trafilatura.extract) — returns links
+        # and headings from the same parse, so the pre-rendered payload below can
+        # carry them across the seam. See test_trafilatura_funnel.py.
+        extracted = await extract_markdown(html, url, include_links=True)
+        markdown = extracted.content_md
 
         if not markdown:
             return empty_result(url, Verdict.length_floor)
@@ -97,7 +92,12 @@ class WikipediaHandler:
             status_code=outcome.status_code,
             final_url=url,
             headers=outcome.headers,
-            pre_rendered=Rendered(content_md=markdown, title=title),
+            pre_rendered=Rendered(
+                content_md=markdown,
+                title=title,
+                headings=[Heading(level=h.level, text=h.text) for h in extracted.headings],
+                links=[Link(anchor=lk.anchor, href=lk.href, role=lk.role) for lk in extracted.links],
+            ),
             next_links=next_links,
             verdict=Verdict.ok,
         )

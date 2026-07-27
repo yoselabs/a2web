@@ -19,10 +19,10 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 import anyio
-import trafilatura
+from content_extract import ExtractedContent, extract_markdown
 from http_fetch import FetchVerdict, fetch_bytes
 
-from ..models import Verdict
+from ..models import Heading, Link, Verdict
 
 
 @dataclass(slots=True)
@@ -54,9 +54,15 @@ def _strip_wayback_chrome(html: str) -> str:
     return _WAYBACK_DIV_RE.sub("", html)
 
 
-def _to_markdown(html: str, url: str) -> str:
-    md = trafilatura.extract(html, url=url, output_format="markdown", include_comments=False, include_tables=True)
-    return md or ""
+async def _extract(html: str, url: str) -> ExtractedContent:
+    """Canonical extraction — markdown AND links AND headings, one off-thread parse.
+
+    NOT a bare `trafilatura.extract`; see `tiers/browser.py::_extract` and
+    `tests/architecture/test_trafilatura_funnel.py` for why that call shape is
+    banned. An archive snapshot is often the ONLY copy of a dead page, so losing
+    its anchors here is the least recoverable version of the defect.
+    """
+    return await extract_markdown(html, url, include_links=True)
 
 
 async def _wayback_lookup(url: str) -> tuple[str, str] | None:
@@ -159,7 +165,8 @@ class ArchiveTier:
             )
 
         cleaned = _strip_wayback_chrome(winner.html) if winner.source == "wayback" else winner.html
-        markdown = _to_markdown(cleaned, url)
+        extracted = await _extract(cleaned, url)
+        markdown = extracted.content_md
 
         from . import Rendered  # local — avoid circular
 
@@ -175,6 +182,12 @@ class ArchiveTier:
             from_archive=True,
             archive_source=winner.source,
             snapshot_age_days=snapshot_age_days,
-            pre_rendered=Rendered(content_md=markdown),
+            pre_rendered=Rendered(
+                content_md=markdown,
+                title=extracted.title,
+                byline=extracted.byline,
+                headings=[Heading(level=h.level, text=h.text) for h in extracted.headings],
+                links=[Link(anchor=lk.anchor, href=lk.href, role=lk.role) for lk in extracted.links],
+            ),
             verdict=Verdict.ok if markdown else Verdict.length_floor,
         )

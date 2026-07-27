@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from ..models import Heading, NextLink, OperatorHint, Verdict
+from ..models import Heading, Link, NextLink, OperatorHint, Verdict
 from ..state import AppState
 
 
@@ -27,13 +27,21 @@ class Rendered:
     """Pre-rendered markdown payload from a tier that did its own extraction.
 
     Site handlers, archive recoveries, and browser results all populate this
-    instead of leaving raw HTML for the orchestrator's trafilatura pass.
+    instead of leaving raw HTML for the orchestrator's extraction pass.
+
+    `links` is load-bearing, not decorative. Without it a tier that correctly
+    extracted a page's anchors still dropped them here, so `fc.links` stayed
+    empty, no link digest was built, and `other_pages` became impossible to emit
+    on every pre-rendering tier — see `eval/findings_2026-07-28.md`. The
+    canonical extractor returns links from the same parse as the markdown, so
+    filling this costs nothing beyond passing it along.
     """
 
     content_md: str
     title: str | None = None
     byline: str | None = None
     headings: list[Heading] = field(default_factory=list)
+    links: list[Link] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Rendered:
@@ -43,6 +51,7 @@ class Rendered:
             title=d.get("title"),  # type: ignore[arg-type]
             byline=d.get("byline"),  # type: ignore[arg-type]
             headings=d.get("headings") or [],  # type: ignore[arg-type]
+            links=d.get("links") or [],  # type: ignore[arg-type]
         )
 
 

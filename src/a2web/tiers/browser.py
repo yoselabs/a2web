@@ -13,14 +13,13 @@ dispatches it only when the gate sets `suggested_tier == "browser"`.
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-import trafilatura
 from any_browser import BackendCookie, RenderOutcome
+from content_extract import ExtractedContent, extract_markdown
 
-from ..models import OperatorHint, Verdict
+from ..models import Heading, Link, OperatorHint, Verdict
 from ..packages.block_detector import LENGTH_FLOOR
 
 if TYPE_CHECKING:
@@ -68,9 +67,16 @@ def _cookie_to_backend(cookie: Cookie) -> BackendCookie:
     )
 
 
-def _to_markdown(html: str, url: str) -> str:
-    md = trafilatura.extract(html, url=url, output_format="markdown", include_comments=False, include_tables=True)
-    return md or ""
+async def _extract(html: str, url: str) -> ExtractedContent:
+    """Canonical extraction — markdown AND links AND headings, one off-thread parse.
+
+    NOT a bare `trafilatura.extract`. That returns markdown only, and using it
+    here silently discarded every anchor on the page, which is what made
+    `other_pages` impossible to emit on any browser-served page for two and a
+    half months (`eval/findings_2026-07-28.md`). Pinned by
+    `tests/architecture/test_trafilatura_funnel.py`.
+    """
+    return await extract_markdown(html, url, include_links=True)
 
 
 def _upstream_error_verdict(status: int) -> Verdict:
@@ -191,7 +197,8 @@ class BrowserTier:
             )
 
         # outcome == ok — run trafilatura over the rendered HTML.
-        markdown = await asyncio.to_thread(_to_markdown, page.html, page.final_url)
+        extracted = await _extract(page.html, page.final_url)
+        markdown = extracted.content_md
         # Tier-truthfulness: a rendered UPSTREAM error page (4xx/5xx) with only a
         # thin body is a real error, not content — surface the status so a
         # browser-confirmed 404 is an observation in the decision log, not a
@@ -212,6 +219,12 @@ class BrowserTier:
             browser_wall_ms=page.wall_ms,
             browser_bytes=page.bytes_transferred,
             subresource_blocks=page.subresource_blocks,
-            pre_rendered=Rendered(content_md=markdown),
+            pre_rendered=Rendered(
+                content_md=markdown,
+                title=extracted.title,
+                byline=extracted.byline,
+                headings=[Heading(level=h.level, text=h.text) for h in extracted.headings],
+                links=[Link(anchor=lk.anchor, href=lk.href, role=lk.role) for lk in extracted.links],
+            ),
             verdict=verdict,
         )

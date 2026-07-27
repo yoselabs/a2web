@@ -1985,3 +1985,78 @@ architecture guard in this repo was written AFTER its incident. The trafilatura
 funnel is the first written from a pattern instead of a wound.
 
 Tracked by `openspec/changes/restore-links-on-pre-rendered-tiers/`.
+
+
+### Should ALL extraction live in the shelf, leaving no library traces in a2web? (open question, 2026-07-28)
+
+Raised while fixing the trafilatura bypasses. The stronger form of that fix:
+a2web should not know WHICH library extracts HTML at all — "stop caring which
+extractor" is exactly the micro-software stop-caring litmus. Today it half-knows.
+
+Surface as of 2026-07-28 (`src/a2web/`):
+
+| | count | status |
+|---|---|---|
+| `import trafilatura` | 4 | being removed by `restore-links-on-pre-rendered-tiers` |
+| `from selectolax.parser import HTMLParser, Node` | 1 | `handlers/_reddit_html.py` — untouched, unexamined |
+| `from content_extract import …` | 3 | shelf, correct |
+| `from html_fragment import …` | 7 | shelf, correct |
+| `from json_in_html import …` | 2 | shelf, correct |
+
+So after the current change lands, **one** library import remains, and it is in
+a site handler — the place where the argument is weakest AND strongest at once.
+
+**The tension, stated honestly rather than resolved:**
+
+- *For full encapsulation.* A library import is a substrate detail leaking into
+  product code. Every one of them is a place where the canonical wrapper's
+  guarantees can be silently lost — which is not theoretical, it is precisely
+  what just happened with trafilatura for two and a half months.
+- *Against.* The shelf's own rule is DEEP · STABLE · WINS, and reuse-xor-
+  simplification. `handlers/_reddit_html.py` walks Reddit's *specific* DOM shape.
+  Pushing that into a shelf package would export a2web's domain knowledge into
+  substrate — the exact inversion the packages/ boundary exists to prevent. The
+  right split may be "shelf owns the parser, a2web owns which nodes matter",
+  which is what selectolax already is.
+
+**The question is therefore not "move it all" but "which half".** A parser
+handed to a domain module is substrate used correctly; a parser used to
+re-derive what a canonical wrapper already returns is a bypass. trafilatura was
+the second. selectolax may be the first. Nobody has checked.
+
+*Probe (cheap, offline):* read `handlers/_reddit_html.py` and answer one
+question — does it use selectolax to do something `content_extract` already
+does, or something only Reddit's DOM shape requires? If the former it is the
+same defect and the funnel should cover it. If the latter it is correct as-is
+and should be documented as deliberately direct, so the next audit does not
+re-litigate it.
+
+*Do NOT generalise into a blanket "no library imports in a2web" rule before that
+probe.* A rule that bans correct usage produces exemptions, and an exemption list
+nobody re-reads is how the trafilatura bypass survived three promotions. Related:
+the unchecked `httpx` / `aiosqlite` / `yaml` candidates recorded above.
+
+
+### SHELF GAP — `content_extract` needs an `include_comments` knob (2026-07-28)
+
+`content_extract.extract_markdown(html, url, *, include_links=False)` exposes no
+control over trafilatura's `include_comments` / `include_tables`. Two a2web
+handlers pass `include_comments=True` because on a comment thread **the comments
+ARE the content**:
+
+- `handlers/reddit.py`
+- `handlers/twitter.py`
+
+Routing them through the shelf today would silently drop the page's substance —
+a worse regression than the missing links the funnel exists to prevent. So both
+are listed in `test_trafilatura_funnel._FUNNEL_EXEMPT` with the reason inline.
+
+**This is a shelf gap, not a permanent a2web exception.** The fix is to promote
+the knob into `content_extract` (shelf loop: read `<shelf>/docs/agent-loop.md`,
+propose, release, re-pin), then delete both exemptions and let the funnel cover
+all of `src/a2web/`.
+
+Until then the funnel is enforced on 5 of the 7 original bypass sites. Stated
+rather than glossed: a guard with unexplained exemptions rots into a guard with
+many, which is the failure mode that let the original bypass survive three
+promotions.
