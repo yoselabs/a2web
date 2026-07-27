@@ -239,13 +239,14 @@ class LlmExtractorResource:
 
         # Hook the extraction cache into the same sqlite file as the HTTP
         # cache. Ensures the underlying connection is open first.
-        try:
-            conn = await self._sqlite.ensure()
-        except Exception as exc:  # sqlite open failure shouldn't block extraction
-            cache: LlmCache | None = None
-            del exc
-        else:
-            cache = LlmCache(conn, ttl_s=s.extraction_cache_ttl_s)
+        cache: LlmCache | None = None
+        if s.extraction_cache_enabled:
+            try:
+                conn = await self._sqlite.ensure()
+            except Exception as exc:  # sqlite open failure shouldn't block extraction
+                del exc
+            else:
+                cache = LlmCache(conn, ttl_s=s.extraction_cache_ttl_s)
 
         # A provider may carry its own resolved model (openai_compatible sets
         # `default_model` from OPENAI_MODEL / a host recommendation); it wins over

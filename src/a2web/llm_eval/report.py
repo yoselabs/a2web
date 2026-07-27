@@ -23,8 +23,12 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from .runner import EvalReport, EvalRow
+from .runner import _AXIS_ATTR, AxisDisposition, EvalReport, EvalRow, row_as_flat_dict
 
+#: Columns of `results.tsv`, in order. Every axis carries its disposition
+#: beside its value: a downstream reader that sees `next_links_score` empty can
+#: tell from `next_links_disposition` whether the cell was ever asked, which is
+#: the distinction whose absence hid a dead axis for five weeks.
 _RESULTS_FIELDS = [
     "slug",
     "url",
@@ -35,17 +39,25 @@ _RESULTS_FIELDS = [
     "fetch_prompt_tokens",
     "fetch_completion_tokens",
     "fetch_error",
+    "quality_disposition",
     "judge_overall",
     "judge_reached",
     "judge_scores",
     "judge_cost_usd",
     "judge_latency_ms",
-    "judge_error",
+    "quality_reason",
+    "tokens_disposition",
     "envelope_tokens_total",
+    "contract_disposition",
     "contract_conformant",
+    "contract_debug_disposition",
     "contract_conformant_debug",
+    "clarity_disposition",
     "clarity_score",
+    "clarity_reason",
+    "next_links_disposition",
     "next_links_score",
+    "next_links_reason",
 ]
 
 
@@ -69,7 +81,7 @@ def _cost_token_summary(rows: list[EvalRow]) -> dict[str, object]:
     token totals are fetch-side (judge tokens are not retained per row)."""
     return {
         "cells": len(rows),
-        "total_cost_usd": round(sum(r.fetch_cost_usd + r.judge_cost_usd for r in rows), 6),
+        "total_cost_usd": round(sum(r.fetch_cost_usd + r.quality.cost_usd for r in rows), 6),
         "fetch_prompt_tokens": sum(r.fetch_prompt_tokens for r in rows),
         "fetch_completion_tokens": sum(r.fetch_completion_tokens for r in rows),
     }
@@ -86,16 +98,16 @@ def _write_results_json(report: EvalReport) -> None:
             "system": r.system,
             "task": r.task,
             "provider": r.provider,
-            "quality": r.judge_overall,
-            "reached": r.judge_reached,
-            "clarity": r.clarity_score,
-            "contract_ok": r.contract_conformant,
-            "next_links_score": r.next_links_score,
-            "envelope_tokens_total": r.envelope_tokens_total,
+            "quality": r.quality.overall,
+            "reached": r.quality.reached,
+            "clarity": r.clarity.score,
+            "contract_ok": r.contract.conformant,
+            "next_links_score": r.next_links.score,
+            "envelope_tokens_total": r.tokens.total,
             "fetch_cost_usd": r.fetch_cost_usd,
             "fetch_prompt_tokens": r.fetch_prompt_tokens,
             "fetch_completion_tokens": r.fetch_completion_tokens,
-            "judge_cost_usd": r.judge_cost_usd,
+            "judge_cost_usd": r.quality.cost_usd,
             "fetch_error": r.fetch_error,
         }
         for r in report.rows
@@ -113,36 +125,22 @@ def _write_results_json(report: EvalReport) -> None:
     (report.output_dir / "results.json").write_text(json.dumps(payload, indent=2) + "\n")
 
 
+def _tsv_cell(value: object) -> object:
+    """`None` renders as an empty cell; everything else renders as itself."""
+    return "" if value is None else value
+
+
 def _write_results_tsv(report: EvalReport) -> None:
     path = report.output_dir / "results.tsv"
     with path.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=_RESULTS_FIELDS, delimiter="\t")
         w.writeheader()
         for row in report.rows:
-            w.writerow(
-                {
-                    "slug": row.slug,
-                    "url": row.url,
-                    "url_class": row.url_class,
-                    "system": row.system,
-                    "fetch_latency_ms": row.fetch_latency_ms,
-                    "fetch_cost_usd": f"{row.fetch_cost_usd:.6f}",
-                    "fetch_prompt_tokens": row.fetch_prompt_tokens,
-                    "fetch_completion_tokens": row.fetch_completion_tokens,
-                    "fetch_error": row.fetch_error or "",
-                    "judge_overall": row.judge_overall if row.judge_overall is not None else "",
-                    "judge_reached": row.judge_reached if row.judge_reached is not None else "",
-                    "judge_scores": ",".join(str(s) for s in (row.judge_scores or [])),
-                    "judge_cost_usd": f"{row.judge_cost_usd:.6f}",
-                    "judge_latency_ms": row.judge_latency_ms,
-                    "judge_error": row.judge_error or "",
-                    "envelope_tokens_total": row.envelope_tokens_total,
-                    "contract_conformant": "" if row.contract_conformant is None else row.contract_conformant,
-                    "contract_conformant_debug": ("" if row.contract_conformant_debug is None else row.contract_conformant_debug),
-                    "clarity_score": row.clarity_score if row.clarity_score is not None else "",
-                    "next_links_score": row.next_links_score if row.next_links_score is not None else "",
-                }
-            )
+            flat = row_as_flat_dict(row)
+            flat["fetch_cost_usd"] = f"{row.fetch_cost_usd:.6f}"
+            flat["judge_cost_usd"] = f"{row.quality.cost_usd:.6f}"
+            flat["judge_scores"] = ",".join(str(s) for s in (row.quality.scores or []))
+            w.writerow({name: _tsv_cell(flat.get(name)) for name in _RESULTS_FIELDS})
 
 
 def _write_manifest(report: EvalReport) -> None:
@@ -159,6 +157,8 @@ def _write_manifest(report: EvalReport) -> None:
                 "ended_at": report.ended_at.isoformat(),
                 "wall_seconds": report.wall_seconds,
                 "row_count": len(report.rows),
+                "extraction_cache_bypassed": report.extraction_cache_bypassed,
+                "broken_axes": list(report.broken_axes()),
             },
             indent=2,
             default=str,
@@ -173,11 +173,11 @@ def _write_leaderboard(report: EvalReport) -> None:
     reached_by_system: dict[str, list[bool]] = defaultdict(list)
 
     for row in report.rows:
-        if row.judge_overall is not None:
-            by_system[row.system].append(row.judge_overall)
-            by_class_system[(row.url_class or "?", row.system)].append(row.judge_overall)
-        if row.judge_reached is not None:
-            reached_by_system[row.system].append(row.judge_reached)
+        if row.quality.overall is not None:
+            by_system[row.system].append(row.quality.overall)
+            by_class_system[(row.url_class or "?", row.system)].append(row.quality.overall)
+        if row.quality.reached is not None:
+            reached_by_system[row.system].append(row.quality.reached)
 
     lines: list[str] = ["# Leaderboard\n"]
     lines.append("## Overall\n")
@@ -224,6 +224,59 @@ def _fmt(value: float | None, places: int = 2) -> str:
     return f"{value:.{places}f}" if value is not None else "—"
 
 
+def _covered(value: float | None, n: int, places: int = 2) -> str:
+    """A statistic and the number of cells it covers, always together.
+
+    Zero coverage renders `— (0)`, not a bare `—`: an axis that scored nothing
+    and an axis nobody asked for used to print the same glyph, and that is
+    exactly how a dead axis passed for "not applicable to this corpus".
+    """
+    if value is None:
+        return f"— ({n})"
+    return f"{value:.{places}f} ({n})"
+
+
+def _axis_coverage_section(report: EvalReport) -> str:
+    """Per-axis scored / not-applicable / unscored, with reasons.
+
+    The denominator of the whole run. Reading this answers "did the harness
+    actually measure anything" without trusting any mean above it.
+    """
+    lines = ["## Axis coverage\n"]
+    lines.append("| Axis | scored | not applicable | unscored |")
+    lines.append("|---|---|---|---|")
+    for name in _AXIS_ATTR:
+        c = report.axis_coverage(name)
+        lines.append(f"| {name} | {c.scored} | {c.not_applicable} | {c.unscored} |")
+    lines.append("")
+
+    reasons: dict[tuple[str, str], int] = defaultdict(int)
+    for row in report.rows:
+        for name in _AXIS_ATTR:
+            axis = row.axis(name)
+            if axis.disposition is AxisDisposition.UNSCORED and axis.reason:
+                reasons[(name, axis.reason)] += 1
+    if reasons:
+        lines.append("### Why cells went unscored\n")
+        for (name, reason), count in sorted(reasons.items(), key=lambda kv: -kv[1]):
+            lines.append(f"- `{name}` x{count} — {reason}")
+        lines.append("")
+
+    broken = report.broken_axes()
+    if broken:
+        lines.append("### BROKEN AXES\n")
+        lines.append(
+            "These axes were requested on at least one cell and scored on none. "
+            "That is a failure of the harness, not a result — do not read this "
+            "run's numbers for them.\n"
+        )
+        for name in broken:
+            c = report.axis_coverage(name)
+            lines.append(f"- **{name}** — requested on {c.requested} cell(s), scored 0")
+        lines.append("")
+    return "\n".join(lines)
+
+
 def _delta(value: float | None, base: float | None) -> str:
     """Signed a2web-minus-baseline delta, '—' when either side is missing."""
     if value is None or base is None:
@@ -244,25 +297,40 @@ def _write_axes(report: EvalReport) -> None:
         "`next_links` axis is scored on listing URLs only.\n"
     )
 
+    lines.append(
+        "Every axis states the number of cells it was computed over. A mean "
+        "beside a bare row count cannot be read: 4.2 over 3 surviving cells "
+        "looks identical to 4.2 over 29.\n"
+    )
+
     lines.append("## Per system\n")
-    lines.append("| System | n | quality | env tokens | clarity | contract ok | next_links (n) |")
+    lines.append("| System | n | quality (n) | env tokens (n) | clarity (n) | contract ok | next_links (n) |")
     lines.append("|---|---|---|---|---|---|---|")
     agg: dict[str, dict[str, float | None]] = {}
     for system in report.systems:
         rows = [r for r in report.rows if r.system == system]
-        quality = _mean_opt([r.judge_overall for r in rows if r.judge_overall is not None])
-        tokens = _mean_opt([r.envelope_tokens_total for r in rows if r.envelope_tokens_total])
-        clarity = _mean_opt([r.clarity_score for r in rows if r.clarity_score is not None])
-        contract_rows = [r for r in rows if r.contract_conformant is not None]
-        contract_ok = sum(1 for r in contract_rows if r.contract_conformant)
-        nl_rows = [r for r in rows if r.next_links_score is not None]
-        nl_mean = _mean_opt([r.next_links_score for r in rows if r.next_links_score is not None])
+        quality_rows = [r for r in rows if r.quality.overall is not None]
+        token_rows = [r for r in rows if r.tokens.total]
+        clarity_rows = [r for r in rows if r.clarity.score is not None]
+        contract_rows = [r for r in rows if r.contract.conformant is not None]
+        nl_rows = [r for r in rows if r.next_links.score is not None]
+        quality = _mean_opt([r.quality.overall for r in quality_rows if r.quality.overall is not None])
+        tokens = _mean_opt([r.tokens.total for r in token_rows])
+        clarity = _mean_opt([r.clarity.score for r in clarity_rows if r.clarity.score is not None])
+        contract_ok = sum(1 for r in contract_rows if r.contract.conformant)
+        nl_mean = _mean_opt([r.next_links.score for r in nl_rows if r.next_links.score is not None])
         agg[system] = {"quality": quality, "tokens": tokens, "clarity": clarity}
-        contract_cell = f"{contract_ok}/{len(contract_rows)}" if contract_rows else "—"
-        nl_cell = f"{_fmt(nl_mean)} ({len(nl_rows)})" if nl_rows else "—"
-        tok_cell = _fmt(tokens, 0) if tokens is not None else "—"
-        lines.append(f"| {system} | {len(rows)} | {_fmt(quality)} | {tok_cell} | {_fmt(clarity)} | {contract_cell} | {nl_cell} |")
+        lines.append(
+            f"| {system} | {len(rows)} "
+            f"| {_covered(quality, len(quality_rows))} "
+            f"| {_covered(tokens, len(token_rows), places=0)} "
+            f"| {_covered(clarity, len(clarity_rows))} "
+            f"| {f'{contract_ok}/{len(contract_rows)}' if contract_rows else '—'} "
+            f"| {_covered(nl_mean, len(nl_rows))} |"
+        )
     lines.append("")
+
+    lines.append(_axis_coverage_section(report))
 
     baseline = "webfetch_baseline"
     if baseline in agg:
@@ -282,11 +350,11 @@ def _write_axes(report: EvalReport) -> None:
             )
         lines.append("")
 
-    violators = [r for r in report.rows if r.contract_conformant is False or r.contract_conformant_debug is False]
+    violators = [r for r in report.rows if r.contract.conformant is False or r.contract_debug.conformant is False]
     if violators:
         lines.append(f"## Data-contract violations ({len(violators)} rows)\n")
         for r in violators[:20]:
-            viols = r.contract_violations + r.contract_violations_debug
+            viols = r.contract.violations + r.contract_debug.violations
             lines.append(f"- `{r.slug}` x `{r.system}` — {'; '.join(viols)}")
         if len(violators) > 20:
             lines.append(f"- … and {len(violators) - 20} more")
@@ -302,9 +370,9 @@ def _write_cost(report: EvalReport) -> None:
     scores: dict[str, list[int]] = defaultdict(list)
     for row in report.rows:
         fetch_cost[row.system] += row.fetch_cost_usd
-        judge_cost[row.system] += row.judge_cost_usd
-        if row.judge_overall is not None:
-            scores[row.system].append(row.judge_overall)
+        judge_cost[row.system] += row.quality.cost_usd
+        if row.quality.overall is not None:
+            scores[row.system].append(row.quality.overall)
 
     total_fetch = sum(fetch_cost.values())
     total_judge = sum(judge_cost.values())
@@ -338,7 +406,7 @@ def _write_findings(report: EvalReport) -> None:
     # System reach summary
     lines.append("## Reach (judge said real content delivered)\n")
     for system in report.systems:
-        reached = sum(1 for r in report.rows if r.system == system and r.judge_reached)
+        reached = sum(1 for r in report.rows if r.system == system and r.quality.reached)
         total = sum(1 for r in report.rows if r.system == system)
         lines.append(f"- **{system}**: {reached}/{total}")
     lines.append("")
@@ -349,11 +417,11 @@ def _write_findings(report: EvalReport) -> None:
         by_slug[row.slug].append(row)
     won_by: dict[str, int] = defaultdict(int)
     for rows in by_slug.values():
-        scored = [r for r in rows if r.judge_overall is not None]
+        scored = [r for r in rows if r.quality.overall is not None]
         if not scored:
             continue
-        best = max(r.judge_overall for r in scored)  # type: ignore[type-var]
-        winners = [r.system for r in scored if r.judge_overall == best]
+        best = max(r.quality.overall for r in scored)  # type: ignore[type-var]
+        winners = [r.system for r in scored if r.quality.overall == best]
         for w in winners:
             won_by[w] += 1
     if won_by:
@@ -364,7 +432,7 @@ def _write_findings(report: EvalReport) -> None:
 
     # Errors
     fetch_errors = [r for r in report.rows if r.fetch_error]
-    judge_errors = [r for r in report.rows if r.judge_error]
+    judge_errors = [r for r in report.rows if r.quality.disposition is AxisDisposition.UNSCORED]
     if fetch_errors:
         lines.append(f"## Fetch errors ({len(fetch_errors)} rows)\n")
         for r in fetch_errors[:20]:
@@ -375,7 +443,7 @@ def _write_findings(report: EvalReport) -> None:
     if judge_errors:
         lines.append(f"## Judge errors ({len(judge_errors)} rows)\n")
         for r in judge_errors[:20]:
-            lines.append(f"- `{r.slug}` x `{r.system}` — {r.judge_error}")
+            lines.append(f"- `{r.slug}` x `{r.system}` — {r.quality.reason}")
         if len(judge_errors) > 20:
             lines.append(f"- … and {len(judge_errors) - 20} more")
         lines.append("")
@@ -399,17 +467,17 @@ def stats_dict(report: EvalReport) -> dict[str, Any]:
     next_links_by_system: dict[str, list[int]] = defaultdict(list)
     contract_by_system: dict[str, list[bool]] = defaultdict(list)
     for row in report.rows:
-        if row.judge_overall is not None:
-            by_system_overall[row.system].append(row.judge_overall)
-        cost_by_system[row.system] += row.fetch_cost_usd + row.judge_cost_usd
-        if row.envelope_tokens_total:
-            tokens_by_system[row.system].append(row.envelope_tokens_total)
-        if row.clarity_score is not None:
-            clarity_by_system[row.system].append(row.clarity_score)
-        if row.next_links_score is not None:
-            next_links_by_system[row.system].append(row.next_links_score)
-        if row.contract_conformant is not None:
-            contract_by_system[row.system].append(row.contract_conformant)
+        if row.quality.overall is not None:
+            by_system_overall[row.system].append(row.quality.overall)
+        cost_by_system[row.system] += row.fetch_cost_usd + row.quality.cost_usd
+        if row.tokens.total:
+            tokens_by_system[row.system].append(row.tokens.total)
+        if row.clarity.score is not None:
+            clarity_by_system[row.system].append(row.clarity.score)
+        if row.next_links.score is not None:
+            next_links_by_system[row.system].append(row.next_links.score)
+        if row.contract.conformant is not None:
+            contract_by_system[row.system].append(row.contract.conformant)
 
     def _means(buckets: dict[str, list[int]]) -> dict[str, float | None]:
         return {s: (statistics.mean(v) if v else None) for s, v in buckets.items()}

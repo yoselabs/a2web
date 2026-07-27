@@ -228,6 +228,13 @@ class AppSettings(BaseSettings):
     llm_openai_api_key_env: str = "OPENAI_API_KEY"
     extraction_max_chars: int = 100_000  # matches WebFetch's BD_ constant
     extraction_cache_ttl_s: int = 900  # matches WebFetch's sg5 (15 min)
+    # Bypass the extraction cache entirely — no read AND no write. Set by the
+    # bench's `--no-extraction-cache` so a repeat measurement is N independent
+    # observations rather than one sample served N times. Expiry-based bypass
+    # (ttl=0) would not do: it still writes, so the first cell of a run would
+    # poison the rest and a "bypassed" run would silently become cache-served
+    # partway through.
+    extraction_cache_enabled: bool = True
 
     # Exposure toggle for the local-only `cookies_refresh` tool. Default OFF:
     # a2web served as a network MCP server has no local browser to read cookies

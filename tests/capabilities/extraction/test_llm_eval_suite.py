@@ -223,8 +223,8 @@ async def test_suite_runs_full_matrix(tmp_path: Path) -> None:
     # 2 URLs x 2 systems = 4 rows
     assert len(report.rows) == 4
     assert {r.system for r in report.rows} == {"alpha", "beta"}
-    assert all(r.judge_overall is not None for r in report.rows)
-    assert all(r.judge_error is None for r in report.rows)
+    assert all(r.quality.overall is not None for r in report.rows)
+    assert all(r.quality.reason is None for r in report.rows)
 
     # Each system received 2 calls (one per corpus URL)
     assert len(a.calls) == 2
@@ -261,8 +261,8 @@ async def test_suite_records_fetch_errors_as_rows(tmp_path: Path) -> None:
     for r in bad_rows:
         assert r.fetch_error is not None
         assert "simulated system failure" in r.fetch_error
-        assert r.judge_overall is None
-        assert r.judge_error == "skipped_due_to_fetch_error"
+        assert r.quality.overall is None
+        assert r.quality.reason == "skipped_due_to_fetch_error"
 
 
 @pytest.mark.asyncio
@@ -283,9 +283,9 @@ async def test_suite_handles_empty_answer(tmp_path: Path) -> None:
 
     assert len(report.rows) == 2
     for r in report.rows:
-        assert r.judge_overall == 0
-        assert r.judge_reached is False
-        assert r.judge_reasoning == "empty answer from system"
+        assert r.quality.overall == 0
+        assert r.quality.reached is False
+        assert r.quality.reasoning == "empty answer from system"
 
 
 @pytest.mark.asyncio
@@ -316,9 +316,9 @@ async def test_eval_row_records_derived_verdict_as_success(tmp_path: Path) -> No
     suite = EvalSuite(corpus=corpus, systems=[sys_a], judge=judge, output_dir=tmp_path / "out")
     report = await suite.run()
     for r in report.rows:
-        assert r.judge_error is None
-        assert r.judge_reached is True
-        assert r.judge_overall == 4
+        assert r.quality.reason is None
+        assert r.quality.reached is True
+        assert r.quality.overall == 4
 
 
 @pytest.mark.asyncio
@@ -338,9 +338,9 @@ async def test_suite_records_judge_parse_errors(tmp_path: Path) -> None:
     report = await suite.run()
 
     for r in report.rows:
-        assert r.judge_error is not None
-        assert "parse_error" in r.judge_error
-        assert r.judge_overall is None
+        assert r.quality.reason is not None
+        assert "parse_error" in r.quality.reason
+        assert r.quality.overall is None
         raw_path = report.output_dir / "trace" / r.slug / r.system / "judge_raw.txt"
         assert raw_path.exists()
         assert raw_path.read_text() == "garbage"

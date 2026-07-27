@@ -29,6 +29,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -73,9 +74,90 @@ def _log_ambient(handlers: tuple[logging.Handler, ...] = ()) -> Iterator[None]:
         a2web_logger.setLevel(prior_level)
 
 
+class AxisDisposition(StrEnum):
+    """Why an axis does or does not carry a score for one cell.
+
+    A bare `score: int | None` cannot express this, and the ambiguity was not
+    theoretical: `EvalRow` used to document two different meanings for the same
+    `None` three lines apart ("not applicable, e.g. WebFetch" on the contract
+    axis, "not scored" on clarity), while `next_links` silently carried a third
+    — *the harness read a field the envelope no longer has*. That third meaning
+    is what let the next_links axis score zero cells for five weeks.
+    """
+
+    SCORED = "scored"
+    #: The corpus entry does not ask for this axis, or the system cannot serve
+    #: it (WebFetch has no structured envelope to check a contract against).
+    #: Excluded from the axis denominator.
+    NOT_APPLICABLE = "not_applicable"
+    #: The axis was asked for and produced nothing. Counts toward the
+    #: denominator as an unscored cell and always carries a `reason`.
+    UNSCORED = "unscored"
+
+
+@dataclass(slots=True)
+class ScoreAxis:
+    """An LLM-judged 0-5 axis — clarity, next_links."""
+
+    disposition: AxisDisposition = AxisDisposition.NOT_APPLICABLE
+    score: int | None = None
+    reasoning: str | None = None
+    reason: str | None = None
+
+    def mark_unscored(self, reason: str) -> None:
+        self.disposition = AxisDisposition.UNSCORED
+        self.reason = reason
+
+    def mark_scored(self, *, score: int, reasoning: str | None) -> None:
+        self.disposition = AxisDisposition.SCORED
+        self.score = score
+        self.reasoning = reasoning
+
+
+@dataclass(slots=True)
+class QualityAxis:
+    """Answer quality — the per-criterion judge."""
+
+    disposition: AxisDisposition = AxisDisposition.NOT_APPLICABLE
+    scores: list[int] | None = None
+    overall: int | None = None
+    reached: bool | None = None
+    reasoning: str | None = None
+    reason: str | None = None
+    cost_usd: float = 0.0
+    latency_ms: int = 0
+
+
+@dataclass(slots=True)
+class ContractAxis:
+    """Deterministic envelope field-presence conformance."""
+
+    disposition: AxisDisposition = AxisDisposition.NOT_APPLICABLE
+    conformant: bool | None = None
+    violations: list[str] = field(default_factory=list)
+    reason: str | None = None
+
+
+@dataclass(slots=True)
+class TokenAxis:
+    """Token cost of the envelope the agent reads. Deterministic and free."""
+
+    disposition: AxisDisposition = AxisDisposition.NOT_APPLICABLE
+    total: int = 0
+    by_field: dict[str, int] = field(default_factory=dict)
+    reason: str | None = None
+
+
 @dataclass(slots=True)
 class EvalRow:
-    """One row in the eval matrix — (entry, system) coordinates + outcomes."""
+    """One row in the eval matrix — (entry, system) coordinates + outcomes.
+
+    Every axis is a record carrying its own disposition. There is no bare
+    nullable score on this model on purpose: an absent score cannot say whether
+    the system correctly produced nothing or the harness failed to read what it
+    produced, and those two were indistinguishable for the entire life of the
+    next_links axis.
+    """
 
     slug: str
     url: str
@@ -90,32 +172,38 @@ class EvalRow:
     fetch_completion_tokens: int
     fetch_error: str | None
     fetch_metadata: dict[str, Any]
-    # Axis 1 — answer quality (None if judge failed)
-    judge_scores: list[int] | None
-    judge_overall: int | None
-    judge_reached: bool | None
-    judge_reasoning: str | None
-    judge_cost_usd: float = 0.0
-    judge_latency_ms: int = 0
-    judge_error: str | None = None
-    # Axis 2 — token cost of the response envelope the agent reads
-    envelope_tokens_total: int = 0
-    envelope_tokens_by_field: dict[str, int] = field(default_factory=dict)
-    # Axis 3 — data-contract conformance (None = not applicable, e.g. WebFetch)
-    contract_conformant: bool | None = None
-    contract_violations: list[str] = field(default_factory=list)
-    contract_conformant_debug: bool | None = None
-    contract_violations_debug: list[str] = field(default_factory=list)
-    # Axis 4 — output clarity (None if not scored)
-    clarity_score: int | None = None
-    clarity_reasoning: str | None = None
-    clarity_error: str | None = None
-    # next_links_picked_correctly — listing entries only
-    next_links_score: int | None = None
-    next_links_reasoning: str | None = None
-    next_links_error: str | None = None
+    # The five axes.
+    quality: QualityAxis = field(default_factory=QualityAxis)
+    tokens: TokenAxis = field(default_factory=TokenAxis)
+    contract: ContractAxis = field(default_factory=ContractAxis)
+    contract_debug: ContractAxis = field(default_factory=ContractAxis)
+    clarity: ScoreAxis = field(default_factory=ScoreAxis)
+    next_links: ScoreAxis = field(default_factory=ScoreAxis)
     # Provenance (ADR-0016) — which provider actually served this cell's calls.
     provider: str = "unknown"
+
+    def axis(self, name: str) -> ScoreAxis | QualityAxis | ContractAxis | TokenAxis:
+        """The axis record by report name. Raises on an unknown axis rather
+        than returning a default, so a renamed axis fails loudly."""
+        return getattr(self, _AXIS_ATTR[name])
+
+
+#: Report axis name -> `EvalRow` attribute. Literal, like `wire._TSV_FIELDS`:
+#: which axes exist is a contract, and deriving it from model introspection is
+#: how an axis silently changes shape.
+_AXIS_ATTR = {
+    "quality": "quality",
+    "tokens": "tokens",
+    "contract": "contract",
+    "contract_debug": "contract_debug",
+    "clarity": "clarity",
+    "next_links": "next_links",
+}
+
+#: Axes whose absence means the harness is broken rather than the run being
+#: uninteresting. The deterministic axes (tokens, contract) are excluded: a
+#: WebFetch-only run legitimately scores neither.
+_JUDGED_AXES = ("quality", "clarity", "next_links")
 
 
 @dataclass(slots=True)
@@ -133,11 +221,59 @@ class EvalReport:
     # (e.g. `claude-code` subscription vs metered `anthropic`). A run that hit
     # the metered API is identifiable from its own artifact.
     provider: str = "unknown"
+    #: Whether the extraction cache was bypassed. A run that does not state
+    #: this cannot be read as evidence of reproduction: repeat cells served
+    #: from cache are one observation reported N times.
+    extraction_cache_bypassed: bool = False
     rows: list[EvalRow] = field(default_factory=list)
 
     @property
     def wall_seconds(self) -> float:
         return (self.ended_at - self.started_at).total_seconds()
+
+    def axis_coverage(self, name: str) -> AxisCoverage:
+        """How many cells this axis scored, skipped, and failed to score."""
+        dispositions = [self.axis_of(row, name).disposition for row in self.rows]
+        return AxisCoverage(
+            axis=name,
+            scored=sum(1 for d in dispositions if d is AxisDisposition.SCORED),
+            not_applicable=sum(1 for d in dispositions if d is AxisDisposition.NOT_APPLICABLE),
+            unscored=sum(1 for d in dispositions if d is AxisDisposition.UNSCORED),
+        )
+
+    @staticmethod
+    def axis_of(row: EvalRow, name: str) -> ScoreAxis | QualityAxis | ContractAxis | TokenAxis:
+        return row.axis(name)
+
+    def broken_axes(self) -> tuple[str, ...]:
+        """Judged axes that were requested on ≥1 cell and scored on none.
+
+        Zero scores where at least one cell asked for a score is a broken
+        harness, not a result — the state the next_links axis sat in for five
+        weeks while the report rendered the same dash it uses for an axis the
+        corpus never asked for.
+        """
+        broken = []
+        for name in _JUDGED_AXES:
+            coverage = self.axis_coverage(name)
+            if coverage.requested and coverage.scored == 0:
+                broken.append(name)
+        return tuple(broken)
+
+
+@dataclass(slots=True, frozen=True)
+class AxisCoverage:
+    """The denominator of one axis. Every reported statistic carries one."""
+
+    axis: str
+    scored: int
+    not_applicable: int
+    unscored: int
+
+    @property
+    def requested(self) -> int:
+        """Cells that asked for this axis, whether or not they got a score."""
+        return self.scored + self.unscored
 
 
 class EvalSuite:
@@ -158,6 +294,7 @@ class EvalSuite:
         handlers: tuple[logging.Handler, ...] = (),
         provider: str = "unknown",
         axes: frozenset[str] | None = None,
+        extraction_cache_bypassed: bool = False,
     ) -> None:
         if not systems:
             raise ValueError("EvalSuite requires at least one system")
@@ -168,6 +305,7 @@ class EvalSuite:
         self._concurrency = max(1, concurrency)
         self._handlers = handlers
         self._provider = provider
+        self._extraction_cache_bypassed = extraction_cache_bypassed
         # Which LLM-judged axes to score. `None` = all. Restricting to a subset
         # (e.g. {"quality"}) skips the other LLM axes' calls — the per-axis
         # isolation that keeps a spike a handful of calls, not the full matrix.
@@ -223,6 +361,7 @@ class EvalSuite:
             judge_model=self._judge.model.model,
             bench_judge_model=self._bench_judge.model.model if self._bench_judge else None,
             provider=self._provider,
+            extraction_cache_bypassed=self._extraction_cache_bypassed,
             rows=list(rows),
         )
 
@@ -259,7 +398,7 @@ class EvalSuite:
             row = _base_row(entry, system.name, answer="")
             row.fetch_latency_ms = fetch_latency_ms
             row.fetch_error = f"system_raised: {exc}"
-            row.judge_error = "skipped_due_to_fetch_error"
+            row.quality.reason = "skipped_due_to_fetch_error"
             (cell_dir / "row.json").write_text(_row_to_json(row))
             await self._emit_cell_ended(entry, system, row, "system_raised")
             return row
@@ -294,10 +433,12 @@ class EvalSuite:
 
         # 3) No answer → judges skipped (judging an empty string is noise).
         if not fetch_result.answer:
-            row.judge_scores = [0] * len(entry.criteria)
-            row.judge_overall = 0
-            row.judge_reached = False
-            row.judge_reasoning = "empty answer from system"
+            # An empty answer IS a quality result — zero — not an unscored cell.
+            row.quality.disposition = AxisDisposition.SCORED
+            row.quality.scores = [0] * len(entry.criteria)
+            row.quality.overall = 0
+            row.quality.reached = False
+            row.quality.reasoning = "empty answer from system"
             (cell_dir / "row.json").write_text(_row_to_json(row))
             await self._emit_cell_ended(entry, system, row, "empty_answer")
             return row
@@ -308,8 +449,12 @@ class EvalSuite:
         # the unselected LLM axes (their fields stay None).
         if self._axis_on("clarity"):
             await self._score_clarity(row, entry, fetch_result)
+        else:
+            row.clarity.reason = "axis not selected"
         if self._axis_on("next_links"):
             await self._score_next_links(row, entry, fetch_result, cell_dir)
+        else:
+            row.next_links.reason = "axis not selected"
 
         # 5) Answer-quality axis — skipped when not selected.
         if self._axis_on("quality"):
@@ -321,17 +466,19 @@ class EvalSuite:
                 )
             except JudgeParseError as exc:
                 (cell_dir / "judge_raw.txt").write_text(exc.raw_text)
-                row.judge_error = f"parse_error: {exc}"
+                row.quality.disposition = AxisDisposition.UNSCORED
+                row.quality.reason = f"parse_error: {exc}"
                 (cell_dir / "row.json").write_text(_row_to_json(row))
                 await self._emit_cell_ended(entry, system, row, "judge_failed")
                 return row
 
-            row.judge_scores = verdict.scores
-            row.judge_overall = verdict.overall
-            row.judge_reached = verdict.reached
-            row.judge_reasoning = verdict.reasoning
-            row.judge_cost_usd = verdict.cost_usd
-            row.judge_latency_ms = verdict.latency_ms
+            row.quality.disposition = AxisDisposition.SCORED
+            row.quality.scores = verdict.scores
+            row.quality.overall = verdict.overall
+            row.quality.reached = verdict.reached
+            row.quality.reasoning = verdict.reasoning
+            row.quality.cost_usd += verdict.cost_usd
+            row.quality.latency_ms = verdict.latency_ms
             (cell_dir / "judge.json").write_text(
                 json.dumps(
                     {
@@ -347,6 +494,8 @@ class EvalSuite:
                     default=str,
                 )
             )
+        else:
+            row.quality.reason = "axis not selected"
         (cell_dir / "row.json").write_text(_row_to_json(row))
         await self._emit_cell_ended(entry, system, row, None)
         return row
@@ -361,7 +510,7 @@ class EvalSuite:
         """One emission site for CellEnded — every exit path of _run_one
         funnels here. `failure_reason=None` means ok; anything else is fail."""
         ok = failure_reason is None
-        cost = row.fetch_cost_usd + row.judge_cost_usd
+        cost = row.fetch_cost_usd + row.quality.cost_usd
         meta = row.fetch_metadata or {}
         cache_hit = bool(meta.get("cache_hit", False))
         tier_value = meta.get("tier") or meta.get("winning_tier")
@@ -382,18 +531,23 @@ class EvalSuite:
 
     async def _score_clarity(self, row: EvalRow, entry: CorpusEntry, fetch_result: SystemResult) -> None:
         """Output-clarity axis — graded for every system on every cell with a
-        non-empty answer. No-op when no bench judge is configured."""
+        non-empty answer.
+
+        No bench judge is `not_applicable` (the axis was never available); a
+        judge that failed to parse is `unscored` (it was asked for and gave
+        nothing). Both used to leave `clarity_score` at None.
+        """
         if self._bench_judge is None:
+            row.clarity.reason = "no bench judge configured"
             return
         try:
             verdict = await self._bench_judge.score_clarity(task=entry.task, answer=fetch_result.answer)
         except JudgeParseError as exc:
             await a2web_log.warning("clarity_judge_failed", slug=entry.slug, system=row.system, error=str(exc))
-            row.clarity_error = f"parse_error: {exc}"
+            row.clarity.mark_unscored(f"parse_error: {exc}")
             return
-        row.clarity_score = verdict.score
-        row.clarity_reasoning = verdict.reasoning
-        row.judge_cost_usd += verdict.cost_usd
+        row.clarity.mark_scored(score=verdict.score, reasoning=verdict.reasoning)
+        row.quality.cost_usd += verdict.cost_usd
 
     async def _score_next_links(
         self,
@@ -402,22 +556,35 @@ class EvalSuite:
         fetch_result: SystemResult,
         cell_dir: Path,
     ) -> None:
-        """next_links_picked_correctly axis — graded only on listing entries
-        for systems that actually produced a next_links block."""
-        if self._bench_judge is None or not entry.next_links_expected:
+        """next_links_picked_correctly axis — graded only on entries that ask
+        for it, for systems that actually produced a candidate block.
+
+        The three no-score paths were one silent `return` each. They are now
+        three distinct records, because "the corpus did not ask", "no judge was
+        configured", and "the system emitted a set the harness could not find"
+        are not the same fact — and it was the third, unnamed, that hid the
+        ADR-0015 rename.
+        """
+        if not entry.next_links_expected:
+            row.next_links.reason = "corpus entry does not expect next_links"
             return
-        block = _next_links_block(fetch_result)
+        if self._bench_judge is None:
+            row.next_links.reason = "no bench judge configured"
+            return
+        block = _candidate_block(fetch_result, system=row.system)
         if block is None:
+            row.next_links.mark_unscored(
+                f"system produced no candidate block under {_CANDIDATE_FIELD[row.system]!r}",
+            )
             return
         try:
             verdict = await self._bench_judge.score_next_links(task=entry.task, next_links=block)
         except JudgeParseError as exc:
             await a2web_log.warning("next_links_judge_failed", slug=entry.slug, system=row.system, error=str(exc))
-            row.next_links_error = f"parse_error: {exc}"
+            row.next_links.mark_unscored(f"parse_error: {exc}")
             return
-        row.next_links_score = verdict.score
-        row.next_links_reasoning = verdict.reasoning
-        row.judge_cost_usd += verdict.cost_usd
+        row.next_links.mark_scored(score=verdict.score, reasoning=verdict.reasoning)
+        row.quality.cost_usd += verdict.cost_usd
         (cell_dir / "next_links.json").write_text(
             json.dumps(
                 {"score": verdict.score, "reasoning": verdict.reasoning, "block": block},
@@ -442,86 +609,148 @@ def _base_row(entry: CorpusEntry, system: str, *, answer: str) -> EvalRow:
         fetch_completion_tokens=0,
         fetch_error=None,
         fetch_metadata={},
-        judge_scores=None,
-        judge_overall=None,
-        judge_reached=None,
-        judge_reasoning=None,
     )
 
 
 def _apply_token_axis(row: EvalRow, fetch_result: SystemResult) -> None:
     """Read the envelope token breakdown the system recorded in metadata."""
     tokens = fetch_result.metadata.get("envelope_tokens")
-    if isinstance(tokens, dict):
-        total = tokens.get("total")
-        per_field = tokens.get("per_field")
-        row.envelope_tokens_total = int(total) if isinstance(total, int) else 0
-        row.envelope_tokens_by_field = dict(per_field) if isinstance(per_field, dict) else {}
+    if not isinstance(tokens, dict):
+        row.tokens.reason = "system recorded no envelope_tokens"
+        return
+    total = tokens.get("total")
+    per_field = tokens.get("per_field")
+    row.tokens.disposition = AxisDisposition.SCORED
+    row.tokens.total = int(total) if isinstance(total, int) else 0
+    row.tokens.by_field = dict(per_field) if isinstance(per_field, dict) else {}
 
 
 def _apply_contract_axis(row: EvalRow, fetch_result: SystemResult, requested_url: str) -> None:
     """Run the deterministic envelope contract check for both the debug=False
-    and debug=True envelopes the system recorded. Systems without a structured
-    envelope (WebFetch) leave the axis as None — not applicable."""
-    envelope = fetch_result.metadata.get("envelope")
-    if isinstance(envelope, dict):
-        result = check_envelope_contract(envelope, requested_url=requested_url, debug=False)
-        row.contract_conformant = result.conformant
-        row.contract_violations = result.violations
-    envelope_debug = fetch_result.metadata.get("envelope_debug")
-    if isinstance(envelope_debug, dict):
-        result_debug = check_envelope_contract(envelope_debug, requested_url=requested_url, debug=True)
-        row.contract_conformant_debug = result_debug.conformant
-        row.contract_violations_debug = result_debug.violations
+    and debug=True envelopes the system recorded.
+
+    Systems without a structured envelope (WebFetch) are `not_applicable` with
+    a stated reason, rather than carrying a None that also means "not scored".
+    """
+    for key, axis, debug in (
+        ("envelope", row.contract, False),
+        ("envelope_debug", row.contract_debug, True),
+    ):
+        envelope = fetch_result.metadata.get(key)
+        if not isinstance(envelope, dict):
+            axis.reason = f"system recorded no {key} to check"
+            continue
+        result = check_envelope_contract(envelope, requested_url=requested_url, debug=debug)
+        axis.disposition = AxisDisposition.SCORED
+        axis.conformant = result.conformant
+        axis.violations = result.violations
 
 
-def _next_links_block(fetch_result: SystemResult) -> str | None:
-    """The rendered next_links block from the system's wire envelope, or None
-    when the system produced no next_links."""
+#: System name -> the envelope field carrying its "what to fetch next" set.
+#:
+#: LITERAL on purpose, in the spirit of `wire._TSV_FIELDS`. ADR-0015 folded
+#: `next_links` and `try_url` into `other_pages` on the `query` envelope while
+#: `fetch_raw` kept `next_links`; the reader assumed one name across systems,
+#: found it on neither, and scored nothing for five weeks without saying so.
+#:
+#: A tolerant lookup (try one, fall back to the other) would have absorbed that
+#: rename silently and kept producing numbers, which is worse — a wrong number
+#: outranks a missing one in how confidently it is acted on.
+#:
+#: `None` means the system has no structured candidate set at all. Declared
+#: rather than omitted: absence from this table is a build-time failure, so a
+#: new system cannot join the matrix with a quietly unscorable axis.
+_CANDIDATE_FIELD: dict[str, str | None] = {
+    "a2web_extract": "other_pages",
+    "a2web_detail": "next_links",
+    "webfetch_baseline": None,
+}
+
+
+def _candidate_block(fetch_result: SystemResult, *, system: str) -> str | None:
+    """The rendered "what to fetch next" block for `system`, or None when the
+    system produced none.
+
+    Raises on an unregistered system rather than returning None, because
+    "unknown system" and "system produced nothing" must not share an outcome.
+    """
+    if system not in _CANDIDATE_FIELD:
+        raise KeyError(
+            f"eval system {system!r} is not in _CANDIDATE_FIELD, so the next_links axis "
+            "cannot know which envelope field carries its candidate set. Add an entry "
+            "(use None if the system has no structured envelope)."
+        )
+    field_name = _CANDIDATE_FIELD[system]
+    if field_name is None:
+        return None
     envelope = fetch_result.metadata.get("envelope")
     if isinstance(envelope, dict):
-        block = envelope.get("next_links")
+        block = envelope.get(field_name)
         if isinstance(block, str) and block.strip():
             return block
     return None
 
 
+def row_as_flat_dict(row: EvalRow) -> dict[str, Any]:
+    """The flat per-cell record written to `row.json`, `results.json`, and TSV.
+
+    Flattening happens HERE, at the write boundary, not on the model. Every
+    axis contributes its disposition alongside its value, so a consumer reading
+    `next_links_score: null` can always see whether the cell was asked.
+    """
+    return {
+        "slug": row.slug,
+        "url": row.url,
+        "url_class": row.url_class,
+        "task": row.task,
+        "system": row.system,
+        "fetch_latency_ms": row.fetch_latency_ms,
+        "fetch_cost_usd": row.fetch_cost_usd,
+        "fetch_prompt_tokens": row.fetch_prompt_tokens,
+        "fetch_completion_tokens": row.fetch_completion_tokens,
+        "fetch_error": row.fetch_error,
+        "quality_disposition": str(row.quality.disposition),
+        "quality_reason": row.quality.reason,
+        "judge_scores": row.quality.scores,
+        "judge_overall": row.quality.overall,
+        "judge_reached": row.quality.reached,
+        "judge_reasoning": row.quality.reasoning,
+        "judge_cost_usd": row.quality.cost_usd,
+        "judge_latency_ms": row.quality.latency_ms,
+        "tokens_disposition": str(row.tokens.disposition),
+        "envelope_tokens_total": row.tokens.total,
+        "envelope_tokens_by_field": row.tokens.by_field,
+        "contract_disposition": str(row.contract.disposition),
+        "contract_conformant": row.contract.conformant,
+        "contract_violations": row.contract.violations,
+        "contract_debug_disposition": str(row.contract_debug.disposition),
+        "contract_conformant_debug": row.contract_debug.conformant,
+        "contract_violations_debug": row.contract_debug.violations,
+        "clarity_disposition": str(row.clarity.disposition),
+        "clarity_reason": row.clarity.reason,
+        "clarity_score": row.clarity.score,
+        "clarity_reasoning": row.clarity.reasoning,
+        "next_links_disposition": str(row.next_links.disposition),
+        "next_links_reason": row.next_links.reason,
+        "next_links_score": row.next_links.score,
+        "next_links_reasoning": row.next_links.reasoning,
+        "provider": row.provider,
+    }
+
+
 def _row_to_json(row: EvalRow) -> str:
-    return json.dumps(
-        {
-            "slug": row.slug,
-            "url": row.url,
-            "url_class": row.url_class,
-            "task": row.task,
-            "system": row.system,
-            "fetch_latency_ms": row.fetch_latency_ms,
-            "fetch_cost_usd": row.fetch_cost_usd,
-            "fetch_prompt_tokens": row.fetch_prompt_tokens,
-            "fetch_completion_tokens": row.fetch_completion_tokens,
-            "fetch_error": row.fetch_error,
-            "judge_scores": row.judge_scores,
-            "judge_overall": row.judge_overall,
-            "judge_reached": row.judge_reached,
-            "judge_reasoning": row.judge_reasoning,
-            "judge_cost_usd": row.judge_cost_usd,
-            "judge_latency_ms": row.judge_latency_ms,
-            "judge_error": row.judge_error,
-            "envelope_tokens_total": row.envelope_tokens_total,
-            "envelope_tokens_by_field": row.envelope_tokens_by_field,
-            "contract_conformant": row.contract_conformant,
-            "contract_violations": row.contract_violations,
-            "contract_conformant_debug": row.contract_conformant_debug,
-            "contract_violations_debug": row.contract_violations_debug,
-            "clarity_score": row.clarity_score,
-            "clarity_reasoning": row.clarity_reasoning,
-            "clarity_error": row.clarity_error,
-            "next_links_score": row.next_links_score,
-            "next_links_reasoning": row.next_links_reasoning,
-            "next_links_error": row.next_links_error,
-        },
-        indent=2,
-        default=str,
-    )
+    return json.dumps(row_as_flat_dict(row), indent=2, default=str)
 
 
-__all__ = ["EvalReport", "EvalRow", "EvalSuite"]
+__all__ = [
+    "AxisCoverage",
+    "AxisDisposition",
+    "ContractAxis",
+    "EvalReport",
+    "EvalRow",
+    "EvalSuite",
+    "QualityAxis",
+    "ScoreAxis",
+    "TokenAxis",
+    "row_as_flat_dict",
+]

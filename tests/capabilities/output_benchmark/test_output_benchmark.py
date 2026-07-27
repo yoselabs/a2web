@@ -380,7 +380,7 @@ async def test_next_links_axis_scores_listing_not_permalink(tmp_path: Path) -> N
     corpus = load_corpus(_corpus(tmp_path))
     # Both entries get a system that produces next_links; only the listing
     # entry should be scored on the axis.
-    system = _StubSystem(name="a2web", answer="answer body", next_links_block="anchor\turl\treason\nA\thttps://x\twhy")
+    system = _StubSystem(name="a2web_detail", answer="answer body", next_links_block="anchor\turl\treason\nA\thttps://x\twhy")
 
     suite = EvalSuite(
         corpus=corpus,
@@ -392,11 +392,11 @@ async def test_next_links_axis_scores_listing_not_permalink(tmp_path: Path) -> N
     report = await suite.run()
 
     by_slug = {r.slug: r for r in report.rows}
-    assert by_slug["listing"].next_links_score == 3
-    assert by_slug["permalink"].next_links_score is None
+    assert by_slug["listing"].next_links.score == 3
+    assert by_slug["permalink"].next_links.score is None
     # Clarity is scored for every cell regardless of listing-ness.
-    assert by_slug["listing"].clarity_score == 4
-    assert by_slug["permalink"].clarity_score == 4
+    assert by_slug["listing"].clarity.score == 4
+    assert by_slug["permalink"].clarity.score == 4
 
 
 # --------------------------------------------------------------------- #
@@ -424,18 +424,18 @@ async def test_suite_run_carries_all_four_axes(tmp_path: Path) -> None:
     assert len(report.rows) == 4  # 2 URLs x 2 systems
     for row in report.rows:
         # Axis 1 — answer quality.
-        assert row.judge_overall == 4
+        assert row.quality.overall == 4
         # Axis 2 — token cost.
-        assert row.envelope_tokens_total > 0
+        assert row.tokens.total > 0
         # Axis 4 — output clarity.
-        assert row.clarity_score == 4
+        assert row.clarity.score == 4
 
     # Axis 3 — data-contract conformance: present for a2web, N/A for WebFetch.
     a2web_rows = [r for r in report.rows if r.system == "a2web_detail"]
     webfetch_rows = [r for r in report.rows if r.system == "webfetch_baseline"]
-    assert all(r.contract_conformant is True for r in a2web_rows)
-    assert all(r.contract_conformant_debug is True for r in a2web_rows)
-    assert all(r.contract_conformant is None for r in webfetch_rows)
+    assert all(r.contract.conformant is True for r in a2web_rows)
+    assert all(r.contract_debug.conformant is True for r in a2web_rows)
+    assert all(r.contract.conformant is None for r in webfetch_rows)
 
     # Report carries the axes file and the new TSV columns.
     out = report.output_dir
@@ -459,7 +459,7 @@ async def test_suite_run_carries_all_four_axes(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_suite_run_persists_axis_traces(tmp_path: Path) -> None:
     corpus = load_corpus(_corpus(tmp_path))
-    system = _StubSystem(name="a2web", answer="body", next_links_block="anchor\turl\treason\nA\thttps://x\twhy")
+    system = _StubSystem(name="a2web_detail", answer="body", next_links_block="anchor\turl\treason\nA\thttps://x\twhy")
     suite = EvalSuite(
         corpus=corpus,
         systems=[system],
@@ -470,7 +470,7 @@ async def test_suite_run_persists_axis_traces(tmp_path: Path) -> None:
     report = await suite.run()
 
     # The listing cell persists a next_links trace.
-    nl_trace = report.output_dir / "trace" / "listing" / "a2web" / "next_links.json"
+    nl_trace = report.output_dir / "trace" / "listing" / "a2web_detail" / "next_links.json"
     assert nl_trace.exists()
     payload = json.loads(nl_trace.read_text())
     assert payload["score"] == 3
@@ -495,7 +495,7 @@ def test_default_judge_model_denied_on_metered_anthropic() -> None:
 @pytest.mark.asyncio
 async def test_provider_stamped_in_report_and_artifacts(tmp_path: Path) -> None:
     corpus = load_corpus(_corpus(tmp_path))
-    system = _StubSystem(name="a2web", answer="body")
+    system = _StubSystem(name="a2web_detail", answer="body")
     suite = EvalSuite(
         corpus=corpus,
         systems=[system],
@@ -522,7 +522,7 @@ async def test_axis_isolation_runs_only_selected_axis(tmp_path: Path) -> None:
     calls entirely — the per-axis isolation that keeps a spike cheap."""
     corpus = load_corpus(_corpus(tmp_path))
     system = _StubSystem(
-        name="a2web",
+        name="a2web_detail",
         answer="body",
         next_links_block="anchor\turl\treason\nA\thttps://x\twhy",
     )
@@ -567,6 +567,6 @@ async def test_axis_isolation_runs_only_selected_axis(tmp_path: Path) -> None:
     assert bench.clarity_calls == 0
     assert bench.next_links_calls == 0
     for row in report.rows:
-        assert row.judge_overall == 4  # quality scored
-        assert row.clarity_score is None  # clarity skipped
-        assert row.next_links_score is None  # next_links skipped
+        assert row.quality.overall == 4  # quality scored
+        assert row.clarity.score is None  # clarity skipped
+        assert row.next_links.score is None  # next_links skipped

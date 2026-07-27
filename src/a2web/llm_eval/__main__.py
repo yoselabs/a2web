@@ -118,6 +118,13 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         help="run only these LLM-judged axes (repeatable); default all. The deterministic "
         "token + contract axes always run (they are free). Restricting axes cuts LLM-call count for spikes.",
     )
+    p.add_argument(
+        "--no-extraction-cache",
+        action="store_true",
+        help="bypass the extraction cache so every cell is an INDEPENDENT observation. "
+        "Without this, a repeat measurement can be one real sample reported N times — "
+        "which is why the run manifest records the mode either way.",
+    )
     return p.parse_args(argv)
 
 
@@ -153,7 +160,7 @@ async def _amain(argv: list[str]) -> int:
 
     # Bench uses a stand-in AppSettings; provider selection only reads
     # llm_api_key_env (default "ANTHROPIC_API_KEY") so AppSettings() suffices.
-    settings = AppSettings()
+    settings = AppSettings(extraction_cache_enabled=not args.no_extraction_cache)
     try:
         provider, provider_id = _pick_provider(settings)
     except LLMNotAvailable as exc:
@@ -215,6 +222,7 @@ async def _amain(argv: list[str]) -> int:
         handlers=(live_sink,),
         provider=provider_id,
         axes=frozenset(args.axis) if args.axis else None,
+        extraction_cache_bypassed=args.no_extraction_cache,
     )
 
     print(f"Running benchmark: {len(corpus)} URLs x {len(systems)} systems (provider={provider_id}) → {output_dir}")
@@ -226,9 +234,21 @@ async def _amain(argv: list[str]) -> int:
             report = await suite.run()
     finally:
         await resources.aclose()
+    # Artifacts FIRST, always. A bench run costs live network, LLM quota, and
+    # minutes; a broken axis must never cost the three good axes their evidence.
     write_all(report)
     print(json.dumps(stats_dict(report), indent=2, default=str))
     print(f"\nReport written to: {output_dir}")
+
+    broken = report.broken_axes()
+    if broken:
+        print(
+            f"\n!! BROKEN AXES: {', '.join(broken)} — requested on at least one cell and "
+            "scored on none. This is a harness failure, not a result: do not read this "
+            "run's numbers for these axes. See the 'Axis coverage' section of axes.md.",
+            file=sys.stderr,
+        )
+        return 4
     return 0
 
 
