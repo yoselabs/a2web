@@ -26,6 +26,7 @@ from .wobble import (
     Wobbled,
     parse_list_with_policy,
     parse_with_policy,
+    strip_fenced_blocks,
     unwrap,
 )
 
@@ -295,7 +296,7 @@ class Extractor:
             parsed_next_links: list[LlmNextLink] = []
         elif request_next_links:
             answer_text, parsed_next_links = _split_answer_and_next_links(response.text, model=self._model.model)
-            answer_text = strip_answer_fences(answer_text)
+            answer_text = strip_fenced_blocks(answer_text)
         else:
             answer_text, parsed_next_links = response.text, []
 
@@ -352,12 +353,6 @@ _NEXT_LINKS_FENCE_RE = re.compile(
 )
 _VALID_KINDS = frozenset({"drilldown", "related", "source"})
 
-# Any fenced block (```json, ```, ```JSON …) — used only to keep model output
-# scaffolding out of `answer`. Labelled `next_links` fences are handled above.
-_JSON_FENCE_RE = re.compile(
-    r"```[a-zA-Z0-9_-]*\s*\n(?P<json>.*?)\n```",
-    re.DOTALL,
-)
 
 
 def _next_links_suffix(handler_candidates: list[LlmNextLink] | None) -> str:
@@ -540,38 +535,6 @@ def _build_router_payload(parsed: dict[str, Any]) -> _RoutingResult:
     return _RoutingResult(answer=answer, payload=payload)
 
 
-def strip_answer_fences(text: str) -> str:
-    """Remove model output-contract scaffolding from answer prose.
-
-    `answer` is the one field every caller parses; a fenced block in it is
-    un-contracted scaffolding that inflates tokens, breaks prose rendering, and
-    puts structured data in the channel reserved for the answer. Strips
-    ```next_links blocks and any fence whose body parses as JSON — an unlabelled
-    or ```json fence carrying an array/object is the same leak wearing a
-    different label.
-
-    Deliberately belt-and-braces alongside the prompt fix: a guarantee that holds
-    only because the prompt currently behaves is not a guarantee.
-    """
-    cleaned = _NEXT_LINKS_FENCE_RE.sub("", text)
-    cleaned = _JSON_FENCE_RE.sub(_drop_if_json_shaped, cleaned)
-    return cleaned.strip()
-
-
-def _drop_if_json_shaped(match: re.Match[str]) -> str:
-    """Drop a fenced block only when its body opens as JSON — keep code samples.
-
-    Shape check, not a parse: `json.loads` is funnel-only (the architecture ban
-    in `tests/architecture/test_json_loads_funnel.py`), and calling it here would
-    be the wrong tool anyway. This is a formatting decision about prose, not a
-    boundary parse — the payload is being DISCARDED, so whether it is
-    well-formed JSON is irrelevant. A malformed array is exactly as unwelcome in
-    `answer` as a valid one, and a fence opening with `[`/`{` is never prose.
-    """
-    body = match.group("json").strip()
-    return "" if body[:1] in ("[", "{") else match.group(0)
-
-
 def _split_answer_and_routing(text: str, *, model: str = "unknown") -> tuple[str, Wobbled | None]:
     """Parse the router-shape JSON envelope through the wobble funnel.
 
@@ -606,9 +569,9 @@ def _split_answer_and_routing(text: str, *, model: str = "unknown") -> tuple[str
                 }
             },
         )
-        return strip_answer_fences(text), None
+        return strip_fenced_blocks(text), None
     result: _RoutingResult = unwrap(wobbled)
-    return strip_answer_fences(result.answer), wobbled
+    return strip_fenced_blocks(result.answer), wobbled
 
 
 __all__ = ["ExtractionResult", "Extractor", "LlmNextLink", "ModelSpec"]

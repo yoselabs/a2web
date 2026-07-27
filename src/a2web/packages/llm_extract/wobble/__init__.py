@@ -30,6 +30,7 @@ from llm_wobble import (
     WobbleSkip,
     WobbleTolerance,
     recovered_fields,
+    strip_fenced_blocks,
     unwrap,
 )
 
@@ -106,5 +107,6 @@ __all__ = (
     "parse_list_with_policy",
     "parse_with_policy",
     "recovered_fields",
+    "strip_fenced_blocks",
     "unwrap",
 )

@@ -113,7 +113,7 @@ requires-dist = [
     { name = "json-in-html", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.1.0" },
     { name = "lean-wire", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.1.0" },
     { name = "llm-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-cache&tag=llm-cache-v0.1.2" },
-    { name = "llm-wobble", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-wobble&tag=llm-wobble-v0.1.0" },
+    { name = "llm-wobble", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-wobble&tag=llm-wobble-v0.2.0" },
     { name = "markdownify", specifier = ">=0.13,<2" },
     { name = "openai", specifier = ">=1.40,<3" },
     { name = "opentelemetry-api", specifier = ">=1.25,<2" },
@@ -1644,8 +1644,8 @@ dependencies = [
 
 [[package]]
 name = "llm-wobble"
-version = "0.1.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-wobble&tag=llm-wobble-v0.1.0#2e497fa091715ffc2477b3b3e35eaa5ccfdb58ab" }
+version = "0.2.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-wobble&tag=llm-wobble-v0.2.0#dd24d3099ca2088cf2b392a429802fcafe627311" }
 
 [[package]]
 name = "lxml"

@@ -97,11 +97,23 @@ install-global:
 #
 # Cost floor (ADR-0016): default the bench provider to the Claude Code OS
 # subscription so a run never bills the metered Anthropic API by accident. Your
-# env still wins (`?=`), so `A2WEB_BENCH_PROVIDER=anthropic make bench` opts into
-# the metered path (cheap models only — the cost guard still refuses Sonnet/Opus).
-# If the subscription session is absent, the bench fails loud (LLMNotAvailable)
-# rather than silently falling through to metered billing.
-A2WEB_BENCH_PROVIDER ?= claude-code
+# env still wins (`?=`), so `A2WEB_BENCH_PROVIDER=anthropic-api make bench` opts
+# into the metered path (cheap models only — the cost guard still refuses
+# Sonnet/Opus). If the subscription session is absent, the bench fails loud
+# (LLMNotAvailable) rather than silently falling through to metered billing.
+#
+# This value MUST be a member of `anyllm.ProviderName`. It silently stopped being
+# one in `ee2452c` (adopt `anyllm.ProviderName`), which renamed `claude-code` →
+# `claude-code-sdk` and updated the tests but not this default — so `make bench`
+# failed for everyone with "unknown provider id" and the ADR-0016 default was
+# inoperative for anyone who did not hand-supply a provider. The floor itself
+# held (it failed LOUD, never fell through to metered billing), but the obvious
+# manual guess for someone unaware of the rename is the metered one, which is
+# exactly what the default exists to prevent.
+# `tests/capabilities/output_benchmark/test_bench_provider_default.py` now parses
+# this line and asserts it against the live enum, so the next rename fails CI
+# instead of the next bench run.
+A2WEB_BENCH_PROVIDER ?= claude-code-sdk
 export A2WEB_BENCH_PROVIDER
 bench:
 	uv run python eval/_prod_env.py python -m a2web.llm_eval $(ARGS)

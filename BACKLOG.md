@@ -1407,31 +1407,6 @@ Still deferred:
   A deployment keyed with *only* Firecrawl falls back to RSS for Reddit. If that
   combination matters, add a Firecrawl raw-fetch shape. Scope: M.
 
-## Fence-stripping is adjacent to the wobble funnel's turf (2026-07-27, S)
-
-Source: `openspec/changes/fix-routing-fence-and-jina-404-launder/`.
-
-`extractor.strip_answer_fences` carries its own fence regex and a
-"body opens with `[`/`{`" shape check. The shape check exists only because
-`json.loads` is funnel-only (`tests/architecture/test_json_loads_funnel.py`) —
-needing to route around that ban is a signal the logic sits next to the funnel's
-responsibility, not inside it.
-
-The shelf `llm_wobble` already owns "what a markdown fence looks like"
-(`_strip_fences`, private). It is not directly reusable here because the two
-operations are INVERSE: the funnel keeps the JSON and discards prose/fences;
-this keeps the prose and discards the JSON block. So this is duplicated
-knowledge, not duplicated code.
-
-Right fix: promote a prose-preserving `strip_fenced_blocks(text) -> str` to
-`llm_wobble` and have a2web call it, so fence syntax is defined once. Deferred
-because it is a shelf promotion (DEEP · STABLE · WINS review + a version bump),
-not in scope for a bugfix, and one call site is below the rule-of-three bar.
-
-Do NOT resolve this by moving `strip_answer_fences` into a2web's `wobble/`
-binding — that package is the shelf binding plus policy tables, and prose
-sanitization is neither.
-
 ## Wire-visible signal for a lost router payload (2026-07-27, M)
 
 Source: same change, group 4 (attempted and reverted).
@@ -1446,29 +1421,3 @@ Blocked on a discriminator between "this model routinely does not emit router
 JSON" (routine; no hint warranted) and "this model emitted a malformed envelope"
 (worth surfacing). Until that exists, ADR-0015's index-loss gap stays
 log-only — real, and knowingly unclosed.
-
-## `make bench` default provider id is stale — ADR-0016 floor inoperative (2026-07-27, S)
-
-Found while running the targeted bench for
-`fix-routing-fence-and-jina-404-launder` (see `eval/findings_2026-07-27.md`).
-
-`make bench` fails on `main` for everyone:
-
-    LLM provider unavailable: unknown provider id: claude-code
-
-The Makefile pins `A2WEB_BENCH_PROVIDER ?= claude-code`, but commit `ee2452c`
-(adopt `anyllm.ProviderName` + `resolve_provider`) renamed the ids. Valid values
-are now `claude-code-cli`, `claude-code-sdk`, `anthropic-api`,
-`openai-compatible`.
-
-The ADR-0016 cost floor itself held — the bad id failed LOUD, never
-silent-fell-through to metered billing, so there is no spend risk. But the
-DEFAULT is inoperative: every bench run now needs a hand-supplied provider, and
-the obvious guess for someone unaware of the rename is `anthropic` — the metered
-path the default exists to prevent.
-
-Fix: one line (`claude-code` → `claude-code-sdk`), plus a test asserting the
-Makefile default is a member of `anyllm.ProviderName` so the next rename fails
-CI instead of the next bench run. The test is the point — this is exactly the
-"guard that stopped matching reality" shape, like `test_tools_return_pydantic_not_str`
-matching a decorator that no longer existed.
