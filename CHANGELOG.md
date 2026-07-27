@@ -8,7 +8,23 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
-## [0.48.0] - 2026-07-27
+## [0.48.1] — 2026-07-27
+
+### Fixed
+
+- **The CLI contract gate depended on the machine's ambient LLM availability,
+  so the 0.48.0 release build failed.** `tests/contracts/test_cli_contract.py`
+  stubs `Extractor.extract`, but that stub only takes effect once a provider was
+  selected at all — under the `auto` default with no credentials,
+  `select_provider` returns `None` and every `web query` golden degrades to an
+  `llm_unavailable` payload. The gate therefore passed on a laptop with a Claude
+  Code session and failed on a bare CI runner (the same ambient-availability
+  class that broke the 0.47.0/0.47.1 builds). The fixture now pins an
+  OpenAI-compatible gateway with fake credentials, so selection succeeds by
+  construction and the gate measures the CLI rather than the host. No runtime
+  change over 0.48.0, which never published an image.
+
+## [0.48.0] — 2026-07-27
 
 ### Changed
 

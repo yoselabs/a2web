@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from anyllm import ProviderName
 from typer.testing import CliRunner
 
 from a2web.cli import build_cli
@@ -106,8 +107,23 @@ def _pinned(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     Stubbing `Extractor.extract` rather than injecting a fake extractor
     resource is deliberate: it is the seam the capture used, and a capture and
     its gate that stub at different depths are not comparing the same thing.
+
+    The provider pin is the ONE thing the capture did not pin and should have.
+    Stubbing `Extractor.extract` only takes effect once a provider was selected
+    at all: with `auto` and no credentials, `select_provider` returns None and
+    every `web query` golden degrades to an `llm_unavailable` payload instead.
+    That made the gate pass on a developer laptop with a Claude Code session and
+    fail on a bare CI runner — the same ambient-availability class that broke the
+    0.47.0/0.47.1 releases. Pinning an OpenAI-compatible gateway with fake
+    credentials makes selection succeed by construction (nothing is ever called;
+    the stub intercepts before any request), so the gate now measures the CLI and
+    nothing about the machine it runs on.
     """
     monkeypatch.setenv("A2WEB_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("A2WEB_LLM_PROVIDER", ProviderName.OPENAI_COMPATIBLE.value)
+    monkeypatch.setenv("OPENAI_API_KEY", "gate-stub-key-never-sent")
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://gate.invalid/v1")
+    monkeypatch.setenv("OPENAI_MODEL", "stub-model")
     monkeypatch.setitem(REGISTRY, "raw", _RawStub())
 
     import a2web.fetcher_response as fetcher_response
