@@ -252,7 +252,7 @@ content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "p
 timefmt = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/timefmt", tag = "timefmt-v0.1.0" }
 settings-base = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/settings-base", tag = "settings-base-v0.1.0" }
 plugin-surface = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/plugin-surface", tag = "plugin-surface-v0.1.0" }
-llm-wobble = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/llm-wobble", tag = "llm-wobble-v0.3.0" }
+llm-wobble = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/llm-wobble", tag = "llm-wobble-v0.4.0" }
 llm-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/llm-cache", tag = "llm-cache-v0.1.2" }
 any-browser = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/any-browser", tag = "any-browser-v0.1.0" }
 

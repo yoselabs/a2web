@@ -20,15 +20,14 @@ independence test). The `_policies` re-export keeps every existing consumer's
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, TypeVar
 
-import llm_wobble as _w
 from llm_wobble import (
     ParseError,
     Wobbled,
     WobblePolicy,
     WobbleSkip,
     WobbleTolerance,
+    bind,
     recovered_fields,
     strip_fenced_blocks,
     unwrap,
@@ -40,58 +39,20 @@ from ._policies import (
     EXTRACTOR_ROUTING_POLICY,
 )
 
-if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
-    from typing import Any
-
-T = TypeVar("T")
-
 # Resolved by name — NOT `from a2web.log import ...` — so `packages/` stays free
 # of domain imports. Same logger object `a2web.log.configure()` manages.
 _A2WEB_LOGGER = logging.getLogger("a2web")
 
+# `bind` rather than three hand-written wrapper functions, which is what this
+# module used to be. A wrapper restates the signature it wraps, so a parameter
+# added upstream silently stops reaching a2web's call sites — the same drift
+# that let the replay harness quietly stop passing `routing=`. `bind` is
+# `functools.partial` underneath: one binding, no second signature to rot.
+_funnel = bind(_A2WEB_LOGGER)
 
-def parse_with_policy(
-    raw: str,
-    *,
-    policies: Mapping[str, WobblePolicy],
-    into: Callable[[dict[str, Any]], T],
-    boundary: str,
-    model: str,
-    logger: logging.Logger | None = None,
-) -> Wobbled:
-    """`llm_wobble.parse_with_policy` with a2web's managed logger injected."""
-    return _w.parse_with_policy(raw, policies=policies, into=into, boundary=boundary, model=model, logger=logger or _A2WEB_LOGGER)
-
-
-def parse_list_with_policy(
-    raw: str,
-    *,
-    item: Callable[[dict[str, Any]], T | None],
-    boundary: str,
-    model: str,
-    strip_fences: bool = True,
-    logger: logging.Logger | None = None,
-) -> Wobbled:
-    """`llm_wobble.parse_list_with_policy` with a2web's managed logger injected."""
-    return _w.parse_list_with_policy(
-        raw, item=item, boundary=boundary, model=model, strip_fences=strip_fences, logger=logger or _A2WEB_LOGGER
-    )
-
-
-def emit_wobble(
-    *,
-    boundary: str,
-    field: str,
-    tolerance: WobbleTolerance,
-    model: str,
-    raw_excerpt: str,
-    logger: logging.Logger | None = None,
-) -> None:
-    """`llm_wobble.emit_wobble` with a2web's managed logger injected."""
-    _w.emit_wobble(
-        boundary=boundary, field=field, tolerance=tolerance, model=model, raw_excerpt=raw_excerpt, logger=logger or _A2WEB_LOGGER
-    )
+parse_with_policy = _funnel.parse_with_policy
+parse_list_with_policy = _funnel.parse_list_with_policy
+emit_wobble = _funnel.emit_wobble
 
 
 __all__ = (
