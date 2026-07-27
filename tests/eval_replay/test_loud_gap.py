@@ -59,3 +59,44 @@ async def test_browser_hit_serves_frozen_dom() -> None:
     assert page.html == "<html>frozen</html>"
     assert page.final_url == "https://example.com/x"
     assert page.outcome.value == "ok"
+
+
+# --------------------------------------------------------------------- #
+# Cassette format — a legacy record must FAIL, never silently degrade
+# --------------------------------------------------------------------- #
+
+
+async def test_legacy_cassette_without_routing_fails_loud() -> None:
+    """A pre-routing cassette must raise, not quietly replay the degraded branch.
+
+    This is the regression that motivated the whole change: the harness simply
+    omitted `routing=`, so it defaulted to `None` and EVERY replayed case ran
+    the routing-lost branch while reporting success — for 16 cases, invisibly.
+    A tolerant fallback here would restore that exact behaviour under the name
+    of backward compatibility, so the absence of the key is an ERROR.
+    """
+    from tests.eval_replay.harness import CassetteLlm
+
+    legacy = {"answer": "a", "model": "m", "template_name": "extract_router_v1"}
+    case = _case(inputs=CaseInputs(llm={"extract": legacy}))
+    with pytest.raises(CassetteMiss) as excinfo:
+        await CassetteLlm(case).extract(content="c", ask="q", request_routing=True)
+    msg = str(excinfo.value)
+    assert "predates the routing field" in msg
+    assert "eval-refresh" in msg, "the error must name the one-command fix"
+
+
+async def test_cassette_can_record_a_genuinely_lost_payload() -> None:
+    """`routing: null` is expressible and distinct from a missing key.
+
+    Without this the loud failure above would be un-silenceable for a case that
+    legitimately exercises a lost payload, and the only escape would be to
+    weaken the check.
+    """
+    from tests.eval_replay.harness import CassetteLlm
+
+    recorded_lost = {"answer": "a", "model": "m", "template_name": "extract_router_v1", "routing": None}
+    case = _case(inputs=CaseInputs(llm={"extract": recorded_lost}))
+    result = await CassetteLlm(case).extract(content="c", ask="q", request_routing=True)
+    assert result.routing is None
+    assert result.answer == "a", "the answer still replays; only routing was recorded as lost"

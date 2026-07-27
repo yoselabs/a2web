@@ -147,12 +147,20 @@ def test_declared_arms_are_in_the_closed_set() -> None:
 
 
 def _router_faithful_doubles() -> list[tuple[str, Any]]:
-    """Import the modules owning ROUTER_FAITHFUL doubles and return the classes."""
+    """Import the modules owning ROUTER_FAITHFUL doubles and return the classes.
+
+    Doubles defined in THIS file are excluded: they are the check's own negative
+    fixtures, deliberately built to fail, and are asserted against directly
+    below. Including them in the population under test would make the suite
+    permanently red for the wrong reason.
+    """
     import importlib
 
     out: list[tuple[str, Any]] = []
     for d in _discover():
         if d.arm not in (DoubleArm.ROUTER_FAITHFUL.name, DoubleArm.ROUTER_FAITHFUL.value):
+            continue
+        if d.path == Path(__file__).resolve():
             continue
         rel = d.path.relative_to(TESTS_ROOT.parent).with_suffix("")
         mod = importlib.import_module(".".join(rel.parts))
@@ -191,6 +199,37 @@ async def test_router_faithful_doubles_actually_satisfy_the_contract() -> None:
             result = await double.extract(content="page content", ask="what?", request_routing=True)
         if result.routing is None:
             failures.append(f"{where}: claims ROUTER_FAITHFUL but the envelope was not recoverable")
+    assert not failures, "\n".join(failures)
+
+
+@pytest.mark.asyncio
+async def test_router_faithful_doubles_are_contract_SENSITIVE() -> None:
+    """Fidelity is answering the contract given — not always answering the same way.
+
+    A double hard-wired to emit an envelope regardless of the prompt passes the
+    check above while being exactly as blind as the version it replaced, just
+    failing in the opposite direction. So each faithful double is ALSO driven on
+    a non-routing contract and must NOT produce a routing payload.
+
+    This is the substance of the deleted per-double
+    `test_stub_provider_fidelity.py`: subsuming it must not lose the assertion,
+    only the duplication. Applying it to every double rather than one is
+    strictly stronger than what was removed.
+    """
+    from a2web.packages.llm_extract import TERSE_V1
+
+    failures = []
+    for where, cls in _router_faithful_doubles():
+        double = getattr(cls, FIDELITY_FACTORY)()
+        if not hasattr(double, "complete"):
+            continue  # extractor-seam doubles have no prompt to be sensitive to
+        ex = Extractor(provider=double, model=ModelSpec("m"), template=TERSE_V1)
+        result = await ex.extract(content="page content", ask="what?")  # routing NOT requested
+        if result.routing is not None:
+            failures.append(
+                f"{where}: produced a routing payload when none was requested — it is "
+                "insensitive to the contract, not faithful to it."
+            )
     assert not failures, "\n".join(failures)
 
 

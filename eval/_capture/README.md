@@ -61,6 +61,25 @@ replaces the extractor egress wholesale (the cache is never consulted in
 replay). A bot-walled / honest-failure case records **no** LLM file at all — the
 extractor is never invoked (e.g. `regression/akakce-cloudflare-bot-wall`).
 
+**The record includes the routing payload (`routing`), and the key is ALWAYS
+written.** Recording only post-parse fields (`answer`, tokens, cost, latency,
+model, template) made the cassette structurally unable to express what the
+router path produced — so every replayed case rebuilt `ExtractionResult` with
+`routing=None` and silently exercised the routing-LOST branch while reporting
+success, across all 16 cases.
+
+The key's PRESENCE is load-bearing, not just its value:
+
+| cassette | means | replay does |
+|---|---|---|
+| `"routing": {...}` | recovered payload | replays the recovered branch |
+| `"routing": null` | the model genuinely produced none | replays the lost branch |
+| key absent | predates the field; cannot answer | **raises `CassetteMiss`** |
+
+There is deliberately no fallback for the third row. Defaulting it to `None`
+would be indistinguishable from the second and would reinstate the original
+defect. Re-capture the case instead: `make eval-refresh CASE=<corpus>/<slug>`.
+
 ## Failure-class taxonomy (`failure_class`)
 
 Every case declares the failure class it exercises. The breaking corpus

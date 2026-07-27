@@ -32,7 +32,7 @@
 
 - [x] 5.1 `make check` green.
 - [x] 5.2 `make arch` green.
-- [x] 5.3 Confirm zero production-code changes in the diff. If any turned out to be required, STOP and report rather than folding it in.
+- [x] 5.3 Production-code diff: ONE blank line removed by `ruff format` in `extractor.py`. Behaviourally inert, but recorded rather than claimed as "zero" — the claim was checked, not assumed.
 - [x] 5.4 Confirm no wire goldens moved — this change must be wire-neutral.
 
 ## 6. UNPLANNED — the capture harness was dead (found during 4.1)
