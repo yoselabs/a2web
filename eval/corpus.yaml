@@ -511,3 +511,44 @@ urls:
       - "Link suggestions arrive in the structured `other_pages` field, never inlined into the answer text as a code block"
       - "A parse failure degrades to clean prose rather than dumping the raw model response into `answer`"
     next_links_expected: true
+
+  - slug: listing-answer-always-leaves-an-index
+    # SPIKE FINDING 2026-07-27 (n=5, full-pipeline, high run-to-run variance —
+    # a lead, not a verdict). `arxiv.org/list/cs.CL/recent` returned a distilled
+    # `answer` with NO index at all: no `also_here`, no `other_pages`, no
+    # `options`, no `refinement_axes`. `query` withholds the body by default, so
+    # the caller got a summary of a link-dense listing and nothing to navigate
+    # with — the ADR-0015 harm directly.
+    #
+    # Note the wire index is fed from THREE sources (LLM `routing`, DOM-mined
+    # `next_links` folded into `other_pages`, DOM-mined `options`), so a gap here
+    # means all three came up empty at once — which is why this is worth a
+    # standing case rather than a one-off bug.
+    url: https://arxiv.org/list/cs.CL/recent
+    class: listing
+    task: "What are the recent NLP papers?"
+    needs: [content+links]
+    criteria:
+      - "With the body withheld (`include_content` unset), the response carries a NON-EMPTY index: at least one of `other_pages`, `options`, `also_here`, or `refinement_axes` (ADR-0015)"
+      - "On a listing of N entries, the caller can reach individual entries — the answer is not a dead-end summary of a page full of links"
+      - "Never substitutes prose mention of items for a structured index the caller can act on"
+    next_links_expected: true
+
+  - slug: router-envelope-survives-model-fencing
+    # SPIKE FINDING 2026-07-27: across 15 live extractions the model wrapped its
+    # response in a ```json fence EVERY time, despite EXTRACT_ROUTER_V1 saying
+    # "Output strict JSON only". The wobble funnel rescues it on every call, so
+    # this is currently harmless — but it means the strict-JSON clause is
+    # decorative, and any future change that trusts it (constrained decoding, a
+    # stricter parser, dropping fence tolerance) would break 100% of traffic.
+    #
+    # Structural: asserts the ENVELOPE is recovered, never that the model
+    # complied — so it stays true whether or not fencing behaviour changes.
+    url: https://en.wikipedia.org/wiki/Transformer_(deep_learning_architecture)
+    class: article
+    task: "What is multi-head attention?"
+    needs: [content]
+    criteria:
+      - "`answer` is clean prose with no ```json fence and no envelope keys leaked as literal text"
+      - "The routing payload is recovered even when the model wraps the envelope in a markdown fence"
+      - "Fence tolerance is never removed on the assumption the model obeys 'output strict JSON only' — it does not"
