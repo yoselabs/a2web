@@ -47,7 +47,15 @@ occurrences of `](`**. Nothing to point at, by either mechanism.
 **Goals**
 
 - A page's anchors survive retrieval regardless of which tier won.
-- `other_pages` becomes reachable on the hard-fetch population.
+- ~~`other_pages` becomes reachable on the hard-fetch population.~~
+  **NOT ACHIEVED — measured false twice** (`eval/runs/post-link-fix`,
+  `eval/runs/post-ladder-fix`). Two further blockers sat behind this one: the
+  structured ladder was skipped on the same early return (fixed by
+  `narrow-the-pre-rendered-extraction-skip`), and this change's fix reached only
+  ONE of the four sites that copy a `Rendered` payload onto the context — so it
+  was a no-op on every page reaching the browser by escalation, which is the
+  common path. This change is necessary and was never sufficient. Do not archive
+  it as having delivered this goal.
 - The invariant is pinned by a guard that fails when a link-dense page yields no
   links, so this cannot silently regress again.
 

@@ -988,10 +988,7 @@ def _install_gate_archive(fc: FetchContext, outcome: _ArchiveOutcome) -> None:
     """
     pre = outcome.pre_rendered
     assert pre is not None  # noqa: S101 — narrowed by the caller
-    fc.content_md = pre.content_md
-    fc.title = pre.title
-    fc.byline = pre.byline
-    fc.headings = pre.headings
+    _install_rendered_fields(fc, pre)
     fc.body = outcome.body
     fc.content_type = outcome.content_type
     fc.final_url = outcome.final_url
@@ -1262,6 +1259,34 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
             return
 
 
+def _install_rendered_fields(fc: FetchContext, pre: Rendered) -> None:
+    """Copy a pre-rendered payload's content fields onto the context.
+
+    THE ONLY PLACE THIS COPY IS WRITTEN. There were FOUR, and they disagreed:
+    `_phase_extract` (the tier won the loop), `_dispatch_archive`,
+    `_escalate_browser` (the gate said escalate), and `_escalate_paid`. Adding a
+    field to `Rendered` meant remembering all four, and `links` was added to
+    exactly one — so the fix meant to make `other_pages` reachable did nothing on
+    any page that reached the browser by ESCALATION rather than by winning the
+    tier loop. That is the common path: a handler wins, the gate says
+    `length_floor`, the browser escalates. Measured on
+    `arxiv.org/list/cs.CL/recent` after that fix shipped: `fc.links == 0`.
+
+    The guard written for it could not see this — it tested the extraction seam,
+    not the install. One copy is what makes a guard's coverage honest: there is
+    now a single line to get wrong.
+
+    Transport fields (`body`, `content_type`, `final_url`, `tier_used`,
+    `status_code`) are deliberately NOT here. The escalation paths set them from
+    their tier result; `_phase_extract` must not touch them.
+    """
+    fc.content_md = pre.content_md
+    fc.title = pre.title
+    fc.byline = pre.byline
+    fc.headings = pre.headings
+    fc.links = pre.links
+
+
 async def _phase_extract(fc: FetchContext) -> None:
     """Run extraction on `body` (or use pre-rendered handler output)."""
     extract_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
@@ -1271,18 +1296,40 @@ async def _phase_extract(fc: FetchContext) -> None:
         # Site handler / archive / browser already ran the canonical extractor;
         # skip the second pass.
         #
-        # `links` is copied here for the same reason as the other four, and its
-        # absence was NOT a cosmetic omission: without it `fc.links` stayed empty
-        # on every pre-rendering tier, `_build_link_digest` bailed, no
-        # `## page links` block reached the prompt, and `other_pages` became
-        # impossible to emit on the entire hard-fetch population — the pages a
-        # caller can least afford to fetch twice. See
-        # `eval/findings_2026-07-28.md`.
-        fc.content_md = fc.pre_rendered_payload.content_md
-        fc.title = fc.pre_rendered_payload.title
-        fc.byline = fc.pre_rendered_payload.byline
-        fc.headings = fc.pre_rendered_payload.headings
-        fc.links = fc.pre_rendered_payload.links
+        # THE SKIP IS SCOPED TO CONTENT EXTRACTION AND METADATA. `extract_markdown`,
+        # `parse_metadata` and the date finders are what a pre-rendering tier has
+        # already paid for, and they stay skipped — that is the whole optimisation.
+        # The structured ladder below is NOT trafilatura: it is `json_in_html` plus
+        # `record_mine` over the same bytes, which no tier has run. Skipping it too
+        # (which this branch did until 2026-07-28, purely because those calls sat
+        # textually below the early return) starved four consumers on every fetch
+        # whose tier WON the loop with a pre-rendered payload:
+        #
+        #   fc.content_candidates  → the extractor's menu collapsed to one item,
+        #                            voiding the ADR-0005 collect-every-rung contract
+        #   json_synth/record_synth → `_build_link_digest`'s gate was unsatisfiable,
+        #                            so `other_pages` could never be emitted here
+        #   fc.record_count        → `listing_partial` could never fire, i.e.
+        #                            ADR-0009's sufficiency axis was off on exactly
+        #                            the population that forced a browser BECAUSE
+        #                            it was an infinite-scroll listing
+        #   fc.record_set          → the rank-don't-skip option shelf stayed empty
+        #
+        # The escalation install paths (`_escalate_browser` / `_escalate_paid`)
+        # already ran the ladder themselves; this brings the tier-loop-win path
+        # into line with them. See `eval/findings_2026-07-28.md`.
+        #
+        # Pinned by `tests/capabilities/tier_pipeline/test_pre_rendered_skip_boundary.py`,
+        # which asserts BOTH halves: the ladder runs, and no `extract` row appears.
+        _install_rendered_fields(fc, fc.pre_rendered_payload)
+        # Seeds its baseline candidate from `fc.content_md`, assigned just above —
+        # so the menu has the same shape here as on the raw path, with no second
+        # parse. Each rung self-gates, so a non-HTML pre-rendered body (a JSON API
+        # payload, jina's markdown) produces nothing and costs only its own
+        # precondition check: measured at 0.16 ms, against 2.9 ms on a real
+        # listing DOM.
+        await _run_extraction_escalation(fc, raw_html=raw_html)
+        _phase_listing_completeness(fc, raw_html=raw_html)
         return
 
     # JSON response body (json-endpoint-direct-routing): the raw tier now wins on
@@ -2086,10 +2133,7 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
         )
     browser_pre = browser_result.pre_rendered
     if browser_result.verdict == Verdict.ok and browser_pre is not None:
-        fc.content_md = browser_pre.content_md
-        fc.title = browser_pre.title
-        fc.byline = browser_pre.byline
-        fc.headings = browser_pre.headings
+        _install_rendered_fields(fc, browser_pre)
         fc.body = browser_result.body
         fc.content_type = browser_result.content_type
         fc.final_url = browser_result.final_url
@@ -2189,10 +2233,7 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = Fa
 
         pre = result.pre_rendered
         if result.verdict is Verdict.ok and pre is not None:
-            fc.content_md = pre.content_md
-            fc.title = pre.title
-            fc.byline = pre.byline
-            fc.headings = pre.headings
+            _install_rendered_fields(fc, pre)
             fc.body = result.body
             fc.content_type = result.content_type
             fc.final_url = result.final_url

@@ -38,6 +38,17 @@ via zyte failed the same way. One mechanism, both cells.
 
 ## What Changes
 
+> **CORRECTION (2026-07-28, after measurement).** This change did NOT make
+> `other_pages` reachable. It fixed `fc.links` at ONE of the four sites that copy
+> a `Rendered` payload onto the context (`_phase_extract`), leaving
+> `_dispatch_archive`, `_escalate_browser` and `_escalate_paid` still dropping
+> links — so it was a no-op on every page that reaches the browser by escalation
+> rather than by winning the tier loop, which is the common path. Two further
+> blockers sat behind it. See `eval/findings_2026-07-28.md` (rounds 2 and 3) and
+> `narrow-the-pre-rendered-extraction-skip`. What this change DID deliver stands:
+> the trafilatura funnel guard, `Rendered.links`, and the six bypasses routed
+> through the shelf extractor.
+
 - **The pre-rendered path populates `fc.links`** — from the links the producing
   tier now hands over, not from a second parse. This restores the anchors the
   tier already fetched; it does not re-run content extraction or undo the

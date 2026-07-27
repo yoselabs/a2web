@@ -2088,3 +2088,54 @@ pages run the extraction escalation too (costly, and the pre_rendered skip exist
 precisely to avoid re-work), or should the digest gate accept a different
 listing-shaped signal that a pre-rendered page can actually produce? Both are
 plausible; picking from one example is how the last two diagnoses went wrong.
+
+## RESOLVED — the digest gate blocks every pre-rendered page (2026-07-28)
+
+Resolved, and the answer was neither option posed. The gate (`_DIGEST_GATE_SOURCES`)
+was never the defect: it requires a structured candidate as a pre-LLM proxy for
+product/listing shape, which is exactly what `link-affordances` requires so prose
+articles pay no digest cost. The defect was that `_phase_extract`'s pre-rendered
+early return skipped the structured ladder that PRODUCES those candidates —
+`json_in_html` + `record_mine`, neither of which is the trafilatura pass the
+`pre_rendered` optimisation exists to avoid. Fixed in
+`narrow-the-pre-rendered-extraction-skip`. Do not reopen the gate.
+
+## NEXT — a losing tier's structured output is discarded, not merged (L, 2026-07-28)
+
+`handlers/arxiv.py::_fetch_listing` parses the listing into entries and builds
+`next_links` from them — a precise, natively-known index. The gate then returns
+`length_floor` on the handler's markdown, the browser escalates, and the
+browser's `TierResult` REPLACES the handler's wholesale. The parsed entries and
+their links are discarded.
+
+So `arxiv.org/list/cs.CL/recent` — the canonical "no index was left" corpus case,
+now three failed rounds deep — has had a correct index available at tier 0 the
+entire time, on a path that throws it away. Verified 2026-07-28 by direct probe:
+`records=None`, `0` JSON payloads, `links=484`, `digest=None`, while the handler
+that lost the gate had already parsed the entries.
+
+Different defect class from the three rounds so far (missing parse / dropped copy
+/ starved gate). Reopens the deferred JSON-API-handler question with the second
+concrete example both prior designs said they were waiting for. Design question:
+merge a losing tier's structured fields into the winner, or let a handler mark
+its index as survivable? Do not decide from this one example.
+
+## Guard candidate — a spec requirement naming a deleted field (S, 2026-07-28)
+
+`tier-pipeline`'s "Pre-rendered handler results bypass extraction" described
+`tier_result.tier_extras["pre_rendered"]` — a `dict[str, Any]` bag removed when
+`TierResult` became typed — through every review since. Corrected by
+`narrow-the-pre-rendered-extraction-skip`. Same shape as the CLAUDE.md staleness
+`close-silent-enforcement-loss` found: a document nobody re-reads describing code
+that moved. Candidate for the same class of guard; needs a second instance before
+the rule is worth writing.
+
+## Known inaccuracy — `source="trafilatura"` on the pre-rendered path (S, 2026-07-28)
+
+The escalation ladder's baseline candidate is labelled `source="trafilatura"`.
+On the pre-rendered path the markdown came from the tier, which for
+browser/archive/wikipedia did run `extract_markdown` inside the tier, but for the
+API handlers did not. Renaming the literal is wire-visible on the candidate menu,
+so it was deliberately not done inside a change whose value is one measured
+behaviour delta. It will confuse the next person reading a candidate menu from a
+handler fetch.
