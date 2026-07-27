@@ -6,6 +6,8 @@ Probe 2: use the production BrowserTier (Camoufox) to fetch the listing URL.
 No production code modified. Pure investigation.
 """
 
+# SPIKE-ARCHIVED: `packages/browser_pool` was promoted to the shelf as `any_browser`; this predates the move. Frozen artifact - read the recorded findings in BACKLOG/ADR.
+
 from __future__ import annotations
 
 import asyncio

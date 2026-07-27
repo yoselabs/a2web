@@ -17,6 +17,8 @@ Output: a short markdown table to stdout. Findings should be pasted into
 `eval/findings_<date>-claude-code-cache-probe.md`.
 """
 
+# SPIKE-ARCHIVED: `packages/llm_extract/providers/` was promoted to the shelf as `anyllm`; this predates the move. Frozen artifact - read the `*_output.md` beside it.
+
 from __future__ import annotations
 
 import asyncio

@@ -27,8 +27,8 @@ grant SHALL be delivered as text, not asserted in metadata alone.
 Files that ship in the public repository SHALL NOT contain identifiers specific
 to a single operator's environment — personal usernames, private host names, or
 absolute home-directory paths. Generic self-hosting nouns (e.g. "homelab") are
-permitted; a named private gateway, a personal domain, or a `/Users/<name>/…`
-path is not. Archived changes and regenerable artifacts are out of scope.
+permitted; a named private gateway, a personal domain, or a macOS home-directory
+prefix followed by a user name is not. Archived changes and regenerable artifacts are out of scope.
 
 #### Scenario: A personal identifier fails the hygiene guard
 

@@ -32,6 +32,8 @@ Run:
     uv run python eval/spikes/affordances_v6_name_bench.py
 """
 
+# SPIKE-ARCHIVED: `packages/llm_extract/providers/` was promoted to the shelf as `anyllm`; this predates the move. Frozen artifact - read the `*_output.md` beside it.
+
 from __future__ import annotations
 
 import asyncio

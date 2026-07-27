@@ -1,6 +1,6 @@
 import asyncio
 from patchright.async_api import async_playwright
-from a2web.packages.cookie_store import read_cookies
+from browser_cookies import read_cookies
 
 def to_pw(row):
     d = {"name": row.name, "value": row.value, "path": row.path or "/",

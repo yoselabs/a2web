@@ -12,6 +12,8 @@ content where raw gets the 'Just a moment...' interstitial.
 No production code modified.
 """
 
+# SPIKE-ARCHIVED: `packages/browser_pool` was promoted to the shelf as `any_browser`; this predates the move. Frozen artifact - read the recorded findings in BACKLOG/ADR.
+
 from __future__ import annotations
 
 import asyncio

@@ -1518,49 +1518,33 @@ without touching the network. Cheap; not yet built.
 Sibling of the "never add a structural guard without an assertion that it found
 something" rule — this is the same failure in an offline-untestable component.
 
-## The `surface_eval_v2` leak detector is vacuous by default (2026-07-27, S)
+## ~~The `surface_eval_v2` leak detector is vacuous by default~~ — SUPERSEDED 2026-07-27
 
-`foss-readiness` parameterized the personal-leak check in
-`eval/spikes/surface_eval_v2.py` rather than stripping it, because the operator
-terms it searched for were load-bearing test data — they proved the model was
-answering from the fetched page rather than from its own knowledge.
+Two corrections to the entry this replaces. First, it overstated the problem:
+the six generic phrasing patterns (`"based on your"`, `"your interests"`) always
+run; only the identity half is env-gated, so the check was weakened, not
+disabled. Second, and larger — **the file cannot import at all.** It is one of
+the 15 dead spikes found below, so the banner fix drafted for it would have been
+cosmetic work on a corpse.
 
-The parameterization landed as
-`_OPERATOR_TERMS = os.environ.get("A2WEB_LEAK_TERMS", "").split(",")`, which
-defaults to **empty**. So the detector now passes unconditionally unless an
-operator happens to know the env var exists and sets it. That is exactly the
-failure mode the repo bans elsewhere: a check that scans nothing is
-indistinguishable from a check that found nothing.
+Closed by marking the script `# SPIKE-ARCHIVED:`. If it is ever revived, the
+identity half needs the banner: an unconfigured run must not print a leak count
+that reads as "no identity leaks" when that half never ran.
 
-It is a spike script, not on the `make check` path, so the stakes are low — but
-the fix is small: fail loudly when the spike runs with an empty term list, so
-"leak detection was off" can never be silently reported as "no leaks found".
-Whoever next runs the spike should decide whether the answer is a hard error, a
-printed banner, or a repo-local uncommitted term file.
+## ~~The OPTIONAL/DEFAULT triage is coupled to prompt wording, unguarded~~ — SHIPPED 2026-07-27
 
-## The OPTIONAL/DEFAULT triage is coupled to prompt wording, unguarded (2026-07-27, S)
+`tests/architecture/test_wobble_policies_match_prompts.py` parses the
+`(required|optional` markers out of `_ROUTER_SCHEMA_DOC` and compares them
+against `EXTRACTOR_ROUTING_POLICY`: field sets must match exactly (catching a
+renamed prompt field), `(optional)` must map to `OPTIONAL`, `(required)` to
+`STRICT` or `DEFAULT`.
 
-`wobble/_policies.py` states the rule plainly — `OPTIONAL` is a claim about the
-prompt, and the prompt settles it — and each of the eight policy lines cites the
-`prompts.py` clause that justifies it (`"obstacle (optional)"`,
-`"structural_form (required)"`, and so on). The citations were correct when
-written and were checked by hand against `prompts.py` during
-`fix-extraction-signal-fidelity`.
-
-Nothing keeps them correct. Reword one prompt line from `(required)` to
-`(optional)` — a perfectly ordinary prompt-tuning edit — and the policy table
-silently starts firing `llm_wobble` on a field the contract now permits to be
-absent, or (worse, in the other direction) stops firing on a field the contract
-still demands. The comment would still read as justification; only the prompt
-moved.
-
-This is cheaply guardable, and the guard is the interesting part: parse
-`EXTRACT_ROUTER_V1` for `<field> (required|optional` markers and assert the set
-agrees with `_ROUTER_POLICY`'s tolerances. That also pins the field *names*,
-catching a renamed prompt field that no longer matches any policy key. Include
-an anti-vacuity floor — the parse must find at least as many marked fields as
-the table has entries — or the guard passes by matching nothing the day the
-prompt's formatting changes.
+Verified red before green, against three injected drifts: a required field
+reclassified `OPTIONAL`, a policy key deleted, and a reformatted prompt that
+defeats the regex (caught by the vacuity floor, not by silently governing zero
+fields). The bench-judge tables are deliberately out of scope — their prompts
+have no marker syntax, and inventing one to satisfy the guard would be writing
+the oracle to fit the test.
 
 ## No security-disclosure channel on a now-public repo (2026-07-27, S)
 
@@ -1576,3 +1560,31 @@ So the plausible report is not hypothetical, and today it has nowhere to go but
 a public issue. A `SECURITY.md` naming a private channel and a rough response
 expectation is a few lines. Worth pairing with a decision on whether the SSRF
 item's status should be stated openly rather than living only here.
+
+## Spike rot was systemic, and one class of it broke an ADR trigger (2026-07-27, S)
+
+Measured while checking one spike: **18 of 19 spike scripts could not import.**
+Nine died with the a2kit sunset (`a2kit.ldd`, `a2kit.testing`), the rest with
+the shelf promotions that moved `llm_extract/providers`, `browser_pool`, and
+`cookie_store` out from under hardcoded paths. Nothing went red, because no test
+imports a spike and a spike is run by hand, months apart.
+
+For the one-shot corpus under `eval/spikes/` that is mostly fine — the durable
+value is the frozen `*_output.md` beside each script. Those 15 are now marked
+`# SPIKE-ARCHIVED: <cause>`.
+
+The three under `docs/history/spikes/` were a different matter: **ADR-0011 names
+them as the instruments of its own re-evaluation triggers** ("Probe scripts:
+`reddit_json_cookie_spike.py`"). An ADR promising "re-run this to reopen the
+decision" while pointing at a script that cannot import has been frozen by
+bit-rot rather than by evidence. Repaired (one-line swap to the promoted shelf
+`browser_cookies`) and pinned live by
+`tests/architecture/test_spike_scripts_are_runnable_or_archived.py`, which also
+refuses to let those three be silenced with the archive marker.
+
+**What remains open** is the generalization: an ADR re-evaluation trigger that
+cites *anything* executable is only as good as that thing still running, and
+only ADR-0011's citation happens to live in a directory a guard now watches. A
+trigger citing a `make` target, a corpus entry, or a script elsewhere has no
+such floor. Worth a sweep of every ADR's trigger section against what it names —
+offline, and cheap enough to do by hand once.

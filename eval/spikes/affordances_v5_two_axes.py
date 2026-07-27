@@ -26,6 +26,8 @@ Run:
     uv run python eval/spikes/affordances_v5_two_axes.py [--full]
 """
 
+# SPIKE-ARCHIVED: a2kit was retired 2026-07-22 (`sunset-a2kit-dependency`); this predates it and its `a2kit.ldd`/`a2kit.testing` imports have no successor here. Frozen artifact - read the `*_output.md` beside it.
+
 from __future__ import annotations
 
 import asyncio

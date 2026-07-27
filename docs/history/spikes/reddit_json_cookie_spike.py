@@ -11,7 +11,7 @@ import asyncio
 
 from curl_cffi import requests as cr
 
-from a2web.packages.cookie_store import read_cookies
+from browser_cookies import read_cookies
 
 _IMPERSONATE = "chrome120"
 _INTERESTING = {"datadome", "reddit_session", "token_v2", "loid", "edgebucket", "session", "csv", "session_tracker"}
