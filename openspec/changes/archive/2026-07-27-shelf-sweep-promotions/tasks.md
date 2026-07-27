@@ -37,7 +37,7 @@ verify-against-a-second-source discipline in `docs/architecture/verification-pro
 
 ## 0. Gate and setup
 
-- [ ] 0.1 Human sign-off on the `design.md` verdict table. **All four open
+- [x] 0.1 Human sign-off on the `design.md` verdict table. **All four open
       questions are now answered with evidence in `proposal.md`** — Q1/Q3/Q4
       were stale-prose findings, Q2 is decided (keep the field, neutralize the
       docstring). This gate is now purely the go/no-go on the six promotions to
@@ -48,7 +48,7 @@ verify-against-a-second-source discipline in `docs/architecture/verification-pro
       Confirm the shelf's `work/a2kay` branch is merged to `main` — four
       tagged packages are stranded off `main` and the catalog is stale until it
       lands. Re-check the candidate set against the merged catalog.
-- [ ] 0.3 Create the worktree: `git -C <shelf> worktree add ../shelf-a2web -b work/a2web`.
+- [x] 0.3 Create the worktree: `git -C <shelf> worktree add ../shelf-a2web -b work/a2web`.
 
 ### 0.4 Promotion-boundary invariants (binding on EVERY promotion below)
 
@@ -57,42 +57,43 @@ Derived from the verification-provenance review (2026-07-26); full rationale in
 most likely to hurt a consumer we don't control is a package that installs clean
 here and nowhere else, NOT an endogenous golden. No package is tagged until:
 
-- [ ] 0.4a **Foreign-soil install-and-run (THE gate).** Install the package from
+- [x] 0.4a **Foreign-soil install-and-run (THE gate).** Install the package from
       its tag into a clean env with no repo checkout and none of a2web's
       incidental deps; run its acceptance suite against the *installed artifact*.
       Catches undeclared deps, missing `py.typed`, packaging holes, and
       graceful-absence paths (which never run on home soil). Shelf-side CI; port
       the a2web `browser-gate` skip-forbidden pattern.
-- [ ] 0.4b **Pin, never `path=`.** Promotion is done only when a2web's full gate
+- [x] 0.4b **Pin, never `path=`.** Promotion is done only when a2web's full gate
       is green pinned to the *published tag*, not the worktree.
-- [ ] 0.4c **Boundary enums get an exhaustive `match` + `assert_never` in the
+- [x] 0.4c **Boundary enums get an exhaustive `match` + `assert_never` in the
       consumer** (type drift already happened: `ProviderMode` vs
       `anyllm.ProviderName`). Drift then breaks at type-check — a compile-time
       witness.
-- [ ] 0.4d **Tags are immutable.** A bad tag → ledger row + superseding tag,
+- [x] 0.4d **Tags are immutable.** A bad tag → ledger row + superseding tag,
       never a deletion/force-push (mirrors the shelf's "never delete an old
       tag").
-- [ ] 0.4e **Exogenous-witness flake budget.** Real-substrate lanes (browser,
+- [x] 0.4e **Exogenous-witness flake budget.** Real-substrate lanes (browser,
       bench, foreign-soil) get a separate signal + triage SLA; an ignorable red
       is mechanism A wearing mechanism B's coat.
-- [ ] 0.4f **Standing fake-fidelity contract** for any external-dep fake in a
+- [x] 0.4f **Standing fake-fidelity contract** for any external-dep fake in a
       promoted package (pattern:
       `test_zendriver_backend.py::test_fake_config_matches_real_add_argument`).
       The H2 sweep found the candidates clean *today*; this keeps them clean
       across dependency bumps.
       Then `git fetch && git rebase origin/main` **before touching any file**
       (worktrees share objects but not branch position).
-- [ ] 0.4 All shelf edits happen in `../shelf-a2web`. Never edit the shelf main
+- [x] 0.4 All shelf edits happen in `../shelf-a2web`. Never edit the shelf main
       checkout.
 
-## 1. PROMOTE `plugin-surface`
+## 1. PROMOTE `plugin-surface`  ✅ DONE (tag plugin-surface-v0.1.0; ledger 0053 delivered / 0054 adopted)
 
-- [ ] 1.1 Extract `_plugin.py` into `packages/plugin-surface/` behind the
-      Capability in `design.md`. Drop `settings_prefix` (an invented no-op field).
-- [ ] 1.2 Boundary test: must not import any consumer app.
-- [ ] 1.3 Port `tests/plugin_framework/` as the package's acceptance suite.
-- [ ] 1.4 Contract born `candidate`. `make check` green **in the worktree**.
-- [ ] 1.5 Tag `plugin-surface-v0.1.0`; push branch + tags.
+- [x] 1.1 Extracted `_plugin.py` → shelf `packages/plugin-surface/`; `settings_prefix`
+      dropped. a2web's `_plugin.py` is gone; consumers import `from plugin_surface import
+      load_surface[_sorted]` in `server.py` / `state.py` / `handlers` / `tiers` / `llm_eval`.
+- [x] 1.2 Boundary test carried as the package's own suite (no consumer import).
+- [x] 1.3 `tests/plugin_framework/` ported as the acceptance suite.
+- [x] 1.4 Contract born `candidate`; a2web full gate green pinned to the tag.
+- [x] 1.5 Tagged `plugin-surface-v0.1.0`; a2web pins it in `pyproject.toml`.
 
 ## 2. PROMOTE `llm-wobble`  ✅ DONE 2026-07-26 (tag llm-wobble-v0.1.0; a2web 5fd4467)
 
