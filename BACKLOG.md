@@ -1800,3 +1800,65 @@ is unknown. *Probe:* trace three findings forward to a backlog entry or commit.
 growing. *Probe:* date-bucket the open items; if the median age exceeds the
 rate of retirement, the file is an archive pretending to be a queue — and this
 very entry is making it longer.
+
+## SEQUENCE — one change at a time (set 2026-07-28)
+
+Five changes, strictly ordered. Only the head is written as a proposal; the rest
+are one line each until their predecessor lands, because each one's content
+depends on what the previous exposes. Writing all five today would produce four
+documents to rewrite later, which is the pattern H5 describes.
+
+| # | change | covers | status |
+|---|---|---|---|
+| P1 | `close-silent-eval-loss` | M3, M4, M7, dead `next_links` axis | **proposal written** |
+| P2 | corpus schema is validated | M5, M6, the 4 never-run cases | queued |
+| P3 | expected-failure is declarable | M8 (needs P2's schema) | queued |
+| P4 | structural criteria are asserted | M2 (needs P2's schema) | queued |
+| P5 | case lifecycle | M1 + the "Never lose a case" rule | queued |
+
+### H2 — RESOLVED 2026-07-27, and it inverts the hypothesis
+
+A full run exists: `eval/runs/2026-07-22_024912/` — 87 cells, 29 cases × 3
+systems, 8 minutes, subscription provider. The corpus pass rate was never
+unknown. `a2web_extract` scored quality **0 on 6** cases, **≤2 on 10 of 29**,
+and `next_links_score: None` on **29 of 29**.
+
+The consequence is worse than the hypothesis. `wikipedia-narrow-ask-indexes`
+scored 2 in that run, five days before the ADR-0015 index gap was
+"discovered" by a hand-written spike and reported as new. **Detection was
+correct and on time; nothing obliged anyone to read it.** The measurement layer
+does not primarily lack rigour — it lacks a consumer. Re-read M1 with that in
+mind: merging the corpora would not have made anyone read the 2.
+
+Four corpus slugs never ran at all, and they are the invariant cases:
+`listing-answer-always-leaves-an-index`, `router-envelope-survives-model-fencing`,
+`answer-carries-no-fenced-scaffolding`, `dead-product-url-fat-404`. Folded into P2.
+
+### M8 — Expected failure is unrepresentable, so the aggregate is uninterpretable (L, NEW)
+
+`incehesap-404-dead-search-url` has criteria that read, in full: *reports NOT
+FOUND, does NOT emit the critical `try_user_browser` hint, does NOT fabricate a
+price*. The pass condition **is a loud failure**, exactly as ADR-0009 requires.
+It scored quality **0**. Same shape for `walled-api-fake-empty-spa`, whose
+criteria demand the fetch be classified as a wall.
+
+`reached: False` collapses "a2web correctly refused" and "a2web broke" into one
+number. Of the six quality-0 cells, at least three may be passes and the
+artifact cannot say which. The leaderboard systematically punishes a2web on
+precisely the cases ADR-0009 exists to create. Sequenced as P3 — it is a corpus
+*vocabulary* gap, not a scoring bug, and it needs P2's validated schema to live
+in.
+
+### Root cause of the dead axis — verified, not inferred
+
+ADR-0015 folded `next_links` into `other_pages` on the `AskResponse`.
+`runner._next_links_block` still reads `envelope["next_links"]`. Confirmed
+against the stored artifact
+`eval/runs/2026-07-22_024912/trace/hn-front/a2web_extract/fetch_result.json`,
+whose envelope keys are `['tier','confidence','answer','title','operator_hints',
+'other_pages','refinement_axes']` — a populated `other_pages`, no `next_links`.
+
+A product rename silently voided its own measurement, and the report rendered
+`—`, the same glyph as "axis not applicable to this corpus". This is
+`close-silent-enforcement-loss` one layer out: the anti-vacuity rule exists and
+had never been extended across the eval boundary.
