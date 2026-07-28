@@ -9,9 +9,14 @@ the challenge as content.
 
 A handler knows what it asked for and what it received. That a downstream gate
 also inspects the rendered body is a backstop, not a reason for the handler to
-report something it did not observe — the gate consults the catalogue only for
-sub-floor bodies, so a verbose interstitial reaches it as apparently-valid
-content.
+report something it did not observe.
+
+The check SHALL consult the catalogue with the body's REAL extracted text, and
+therefore inherits the catalogue's own two-tier precision: vendor fingerprints
+(widget ids, cookie names, asset paths) match at any length; prose markers match
+only below the length floor. It SHALL NOT force the prose markers on by
+declaring the extracted text empty — those markers are ordinary English phrases
+and the length floor is the only thing keeping them safe.
 
 This applies to handlers that extract from HTML. Handlers consuming a structured
 API are unaffected: a challenge page is not valid JSON and already fails them
@@ -24,12 +29,20 @@ into a non-`ok` verdict.
 - **THEN** the handler returns a wall verdict, not `Verdict.ok` with the
   interstitial rendered as the page
 
-#### Scenario: A verbose interstitial is caught too
+#### Scenario: A fingerprinted wall is caught behind a long body
 
-- **WHEN** the interstitial's extracted text is long enough to clear the gate's
-  length floor
-- **THEN** the handler still returns a wall verdict — the handler's check is not
-  gated on rendered length
+- **WHEN** the body carries a vendor fingerprint that cannot occur in prose
+  (a turnstile widget id, an Akamai cookie name, a Baxia asset path) and its
+  extracted text is long enough to clear the length floor
+- **THEN** the handler still returns a wall verdict
+
+#### Scenario: An article that quotes a wall phrase is not a wall
+
+- **WHEN** a page has a full article body that happens to contain a catalogue
+  prose marker — a cited title such as "Network Security Enhancements for
+  Python 2.7.x"
+- **THEN** the handler returns `Verdict.ok`; a prose marker under a full body is
+  not evidence of a challenge
 
 #### Scenario: A structured-API handler is unaffected
 
@@ -64,13 +77,25 @@ order.
 - **THEN** that upstream's circuit breaker records a failure, so a persistently
   walled upstream is tripped rather than retried on every fetch
 
-#### Scenario: All upstreams walled fails loudly
+#### Scenario: All upstreams walled surfaces the wall
 
 - **WHEN** every upstream in the list has been tried and at least one returned a
   challenge page
-- **THEN** the handler returns `Verdict.block_page_detected` with the critical
-  `try_user_browser` operator hint, so the caller is told the URL was not
-  retrieved (ADR-0009)
+- **THEN** the handler returns `Verdict.block_page_detected`, so the wall is
+  recorded as an observation and the terminal classifier can reach a `wall`
+  outcome
+
+#### Scenario: The handler does not pre-judge the whole cascade
+
+- **WHEN** a tier-0 handler found every upstream walled but a later tier then
+  retrieves the page
+- **THEN** the response is `ok` and carries NO critical `try_user_browser` hint
+
+The critical hint is attached by the cascade's failure floor on a `wall`
+terminal, not eagerly by the handler. Whether a URL was retrieved AT ALL is a
+property of the whole cascade, and a tier-0 handler does not yet know it; an
+eager hint asserts "this URL was NOT retrieved" over a response that carries the
+content (ADR-0009 protects against a silent miss, not against a loud false one).
 
 #### Scenario: Order does not determine the outcome
 

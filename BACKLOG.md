@@ -17,36 +17,59 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
-## 2026-07-28 — the twitter handler returns `Verdict.ok` on an anti-bot wall (S, correctness)
+## 2026-07-28 — retire the twitter handler? (S, decision — REVISIT, do not act yet)
 
-**Source:** `probe-asserts-yield-not-reachability`, task 8.1.
+**Source:** `handler-never-reports-ok-on-a-challenge`, D4 + task 7.3.
 
-Measured 2026-07-28: `xcancel.com` serves HTTP 200 with a browser-verification
-interstitial. `TwitterHandler.fetch` renders it to 416 characters and returns
-`Verdict.ok`. That is a handler asserting success about a page it never got —
-tier-truthfulness, the ADR-0009 floor.
+The two entries that used to sit here — "the handler returns `ok` on a wall" and
+"does it have any reachable upstream?" — are both ANSWERED and were removed.
+The handler is now truthful, and the survey of ten public instances on
+2026-07-28 found NONE working (5 walled, 4 dead, 1 redirector into a walled one).
 
-This change fixed the GATE's reading of that page (`block_detector` now
-fingerprints it as `block_page_detected` rather than bare `length_floor`), and
-made the probe fail on it. Neither touches the handler, which still reports
-`ok`. Witness: `tests/fixtures/captured/xcancel_antibot_interstitial.html`.
+Retirement was measured and rejected: handler-absent degrades the same URL to
+`not_found` with an `info`-severity `content_not_found` hint, which claims the
+page might not exist — false. Handler-present is `block_page_detected`, which is
+the honest signal.
 
-Deferred because the fix wants its own evidence: whether the right move is a
-handler-side challenge check, or reusing `block_detector` at the handler seam,
-depends on how many handlers have the same hole — and that is the audit the
-arXiv change did for parse yield, not for challenge pages.
+**Two things must happen before retirement is reconsidered:**
 
-## 2026-07-28 — does the twitter handler have any reachable upstream? (S, investigation)
+1. Re-survey from a PROXIED route. One network is one data point (task 7.3).
+2. Note that D4's comparison was weakened by this environment having no browser
+   at the time; a later live run showed the cascade reaching the tweet via jina
+   anyway (2204 chars), so the handler is not the only path to the content.
 
-**Source:** `probe-asserts-yield-not-reachability`, task 8.2.
+Retiring while the failover bug was unfixed would have been wrong regardless —
+the bug returns with the next working upstream. That bug is now fixed, so this
+is a clean decision whenever the proxied survey happens.
 
-Three public nitter instances tried on 2026-07-28: `nitter.privacydev.net`
-→ `connection_error`, `nitter.net` → `length_floor`, `xcancel.com` → walled
-interstitial. Public nitter has been decaying for years.
+## 2026-07-28 — a prose-only challenge above the length floor still reads as content (S, correctness)
 
-If none is reachable, the handler is dead code with a live test, and the honest
-options are a different upstream or retirement — not a probe case that can never
-pass. Worth one bounded survey before either.
+**Source:** `handler-never-reports-ok-on-a-challenge`, D1b.
+
+`challenge_verdict` inherits `block_detector`'s two-tier precision: vendor
+fingerprints match at any length, prose markers only below `LENGTH_FLOOR`. So a
+WORDIER interstitial than the captured 416-char one still extracts as content.
+
+The obvious fix — force the prose markers on — was tried and refuted in one live
+run: the wikipedia article for Python turned `block_page_detected` on a cited
+title, "PEP 466 – Network Security Enhancements for Python 2.7.x". The length
+floor is the only thing making those markers safe.
+
+The real fix is a TIGHTER fingerprint for the xcancel/Anubis interstitial family
+(a widget id or asset path), matched length-independently. Wants a second
+captured sample from the family first — generalising a fingerprint from one page
+is how a false positive gets catalogued.
+
+## 2026-07-28 — the wall check belongs at the `SiteHandlerTier` seam (S, design)
+
+**Source:** `handler-never-reports-ok-on-a-challenge`, task 7.2 + Open Questions.
+
+Two handlers now call `challenge_verdict` themselves. A check at the tier seam
+would cover every current and future handler in one place, and would not need
+remembering. It is the better shape and a bigger change — `SiteHandlerTier` must
+distinguish "handler declined" (`no_match`) from "handler retrieved a wall".
+
+Worth doing when a FOURTH handler needs it, not before.
 
 ---
 

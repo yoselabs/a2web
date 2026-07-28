@@ -59,6 +59,36 @@ discovering later. The alternative, re-implementing a fingerprint check inside
 worse: the catalogue's value is that it is one bounded list with one set of
 witnesses.
 
+### D1b — The check passes the REAL extracted text, not `""` (revised on evidence)
+
+The first cut called `evaluate(content_md="")` so that every length-gated marker
+fired, delivering the "not gated on rendered length" property this design asked
+for. The first live probe run refuted it:
+
+```
+[FAIL] site_handler:wikipedia  https://en.wikipedia.org/wiki/Python_(programming_language)
+       verdict=block_page_detected
+  matched: \bnetwork security\b
+  context: "PEP 466 – Network Security Enhancements for Python 2.7.x"
+```
+
+The catalogue holds two kinds of marker:
+
+| kind | examples | length-gated? |
+|---|---|---|
+| vendor fingerprint | turnstile widget id, `_abck=`, Baxia asset path | no — cannot occur in prose |
+| prose marker | "access denied", "network security", "checking your browser" | YES — ordinary English |
+
+The length floor is the ONLY thing making the second row acceptable, so forcing
+it off trades a false negative for a false positive on every article that
+discusses security. The check therefore passes the real extracted text and
+inherits the catalogue's own precision split: a fingerprinted wall is caught at
+any length; a prose-only challenge is caught while it is thin — which is what a
+challenge page normally is, the captured interstitial being 416 characters.
+
+Widening this needs a TIGHTER marker (a fingerprint for the xcancel/Anubis
+family), not a wider gate. Noted in Open Questions.
+
 ### D2 — The handler check does NOT replace the gate check
 
 Two components now ask "is this a wall?" of the same page. That is deliberate.
@@ -95,6 +125,34 @@ instance gets tripped rather than re-tried every fetch.
 
 Note what this does NOT do: it does not rank instances or prefer one. It removes
 a false positive from an existing failover, nothing more.
+
+**The exhausted-all terminal carries the verdict but NOT the hint** (revised on
+evidence). Task 3.3 said to reuse reddit's `_walled_signal` shape "if it fits".
+It does not. Reddit attaches the critical `try_user_browser` hint eagerly; run
+live on twitter, that produced:
+
+```
+site_handler  block_page_detected   ← handler: every nitter instance walled
+raw           not_found (404)
+browser       timeout
+jina          ok (200)              ← the tweet, 2204 chars
+─────────────────────────────────────
+status ok · retrieval_incomplete False · hint try_user_browser [critical]
+```
+
+A critical hint reading "This URL was NOT retrieved — do not answer as if you
+do" on a response that carries the content. ADR-0009 exists to prevent a silent
+miss; a loud false one is its own harm and would train callers to discount the
+klaxon.
+
+So the handler surfaces `block_page_detected` — enough for the wall to enter
+`observations` and for `classify_terminal` to reach `wall` — and
+`_attach_failure_floor` attaches the hint, which it already does, and which it
+correctly skips when the cascade resolves `ok`. Whether the URL was retrieved at
+all is a property of the whole cascade; a tier-0 handler does not know it yet.
+
+Reddit's eager hint is left alone: its handler is not one rung of a ladder the
+same way, and changing it is not this change's business.
 
 ### D4 — Keep the handler, do not retire it
 
@@ -134,9 +192,14 @@ survey.
 - **A false-positive challenge match makes a handler skip a good upstream.** The
   catalogue's markers are tight and length-gated, and the failover means a false
   positive costs one extra request rather than a failed fetch. Acceptable.
-- **`habr` and `wikipedia` gain a check that may never fire.** Neither has been
-  observed serving a challenge. The value is symmetry — a check present only
-  where a defect was observed is a check nobody remembers to add next time.
+- **`wikipedia` gains a check that may never fire.** It has not been observed
+  serving a challenge. The value is symmetry — a check present only where a
+  defect was observed is a check nobody remembers to add next time. (`habr` was
+  in this list until apply; it is JSON-only and structurally immune — see the
+  proposal's corrected audit.)
+- **A prose-only challenge above the length floor still reads as content.** The
+  stated limit of D1b, and the price of not false-positiving every article that
+  quotes a security phrase. Closing it needs a tighter fingerprint.
 - **The twitter handler still cannot succeed.** Its probe case and corpus cell
   stay red. That is the honest state, and both are annotated as expected-red.
 - **Two wall readers can diverge** if one is updated and the other is not. They
@@ -150,6 +213,10 @@ survey.
   handler in one place. It is the better shape and it is a bigger change —
   `SiteHandlerTier` would need to distinguish "handler declined" from "handler
   retrieved a wall". Worth doing if a fourth handler needs the check.
+- **Is there a tight fingerprint for the xcancel/Anubis interstitial family?**
+  A widget id or asset path, matched length-independently, would close D1b's
+  stated limit without touching the prose markers. Wants a second captured
+  sample from the family before generalising from one page.
 - **Does any nitter instance work from a residential IP?** The survey ran from
   one network. A proxy-routed survey might find one, which would change D4's
   arithmetic but not the failover fix.

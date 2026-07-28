@@ -165,3 +165,21 @@ def test_wikipedia_wikilink_candidates_capped_at_10() -> None:
     # cap. Real Parsoid shape, so it cannot drift from what the parser accepts.
     html = "".join(f'<a rel="mw:WikiLink" href="./Article_{i}">Article {i}</a>' for i in range(15))
     assert len(_wikilink_candidates(html, lang="en")) == 10
+
+
+@pytest.mark.asyncio
+async def test_wikipedia_does_not_report_ok_on_a_challenge_page(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Symmetry, not incident: no wikipedia REST response has been observed
+    carrying a challenge, but every handler that extracts HTML runs the check —
+    one added only where a defect was already seen is one the next handler never
+    gets. Uses the CAPTURED interstitial, never a hand-written one."""
+    html = (_FIX / "captured" / "xcancel_antibot_interstitial.html").read_text()
+
+    async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text=html, headers={"content-type": "text/html"})
+
+    patch_curl_session(monkeypatch, _fake_get)
+
+    result = await WikipediaHandler().fetch("https://en.wikipedia.org/wiki/Octopus", state=_state())
+    assert result.verdict == Verdict.block_page_detected
+    assert result.pre_rendered is None

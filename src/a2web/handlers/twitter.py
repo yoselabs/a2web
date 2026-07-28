@@ -25,7 +25,7 @@ from http_fetch import FetchVerdict, fetch_bytes
 
 from .. import log as a2web_log
 from ..models import Heading, Verdict
-from ._common import empty_result
+from ._common import challenge_verdict, empty_result
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -91,6 +91,7 @@ class TwitterHandler:
         random.shuffle(instances)
 
         last_verdict = Verdict.connection_error
+        saw_wall = False
         for instance in instances:
             breaker = await state.breakers.get_breaker(f"nitter:{instance}")
             try:
@@ -103,6 +104,8 @@ class TwitterHandler:
                     )
                     if verdict == Verdict.ok and result is not None:
                         return result
+                    if verdict in _WALL_VERDICTS:
+                        saw_wall = True
                     last_verdict = verdict
                     # Raise to register a failure with the breaker. The
                     # outer `try` catches this and moves to the next
@@ -115,7 +118,43 @@ class TwitterHandler:
                 await a2web_log.debug("nitter_instance_skipped", instance=instance, error=str(exc))
                 continue
 
+        if saw_wall:
+            return _walled_signal(url)
         return empty_result(url, last_verdict)
+
+
+_WALL_VERDICTS = frozenset({Verdict.anti_bot, Verdict.block_page_detected})
+
+
+def _walled_signal(url: str) -> TierResult:
+    """Every instance exhausted and at least one answered with a wall.
+
+    Carries `Verdict.block_page_detected` so the wall lands in `observations`
+    and `classify_terminal` can reach a `wall` outcome. The alternative,
+    `last_verdict`, would report whatever the LAST instance happened to say (a
+    404 from a dead mirror), losing the fact that a wall was seen at all.
+
+    **No eager `try_user_browser` hint, unlike reddit's `_walled_signal`.** That
+    shape was tried here and is wrong for a tier-0 handler that the cascade
+    continues past: on the live run, nitter was walled, the handler attached the
+    critical "This URL was NOT retrieved — do not answer as if you do" hint, and
+    then JINA RETRIEVED THE TWEET. The response carried 2204 characters of
+    content under a klaxon saying it had none.
+
+    The hint is not lost — `_attach_failure_floor` appends exactly this hint on a
+    `wall` terminal, and stands down when the cascade resolves `ok`. Deciding
+    "was this URL retrieved at all?" needs the whole cascade's result, which is
+    information a tier-0 handler does not have yet.
+    """
+    from ..tiers import TierResult
+
+    return TierResult(
+        body=b"",
+        content_type="",
+        status_code=0,
+        final_url=url,
+        verdict=Verdict.block_page_detected,
+    )
 
 
 class _NitterInstanceFailure(Exception):
@@ -171,6 +210,17 @@ async def _try_instance(
     )
     if not markdown:
         return Verdict.length_floor, None
+
+    # An instance that answered with a challenge has NOT served the request.
+    # A challenge page extracts perfectly well, so without this the extraction
+    # above succeeds and the instance reports `ok`. Returning a verdict rather
+    # than a result routes it through the caller's existing
+    # `_NitterInstanceFailure` path: the breaker records the failure and the
+    # loop moves on to the next instance instead of returning the interstitial
+    # as the tweet.
+    walled = challenge_verdict(html, content_md=markdown)
+    if walled is not None:
+        return walled, None
 
     metadata = trafilatura.extract_metadata(html)
     title = (metadata.title if metadata else None) or f"@{user}"

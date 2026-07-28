@@ -17,7 +17,7 @@ from dom_schema import Schema, extract
 from http_fetch import fetch_bytes
 
 from ..models import Heading, Link, NextLink, Verdict
-from ._common import empty_result, map_non_ok
+from ._common import challenge_verdict, empty_result, map_non_ok
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -83,6 +83,20 @@ class WikipediaHandler:
 
         if not markdown:
             return empty_result(url, Verdict.length_floor)
+
+        # No wikipedia REST response has ever been observed carrying a challenge.
+        # This is SYMMETRY, not an incident fix: the check belongs on every
+        # handler that extracts HTML, because one present only where a defect was
+        # already observed is one nobody remembers to add to the next handler.
+        #
+        # It runs AFTER extraction, and this article is exactly why: a first cut
+        # checked the raw HTML with an empty `content_md`, and the live probe
+        # came back `block_page_detected` on /wiki/Python_(programming_language)
+        # because a cited PEP title contains "Network Security". See
+        # `challenge_verdict`.
+        walled = challenge_verdict(html, content_md=markdown)
+        if walled is not None:
+            return empty_result(url, walled)
 
         from ..tiers import Rendered
 

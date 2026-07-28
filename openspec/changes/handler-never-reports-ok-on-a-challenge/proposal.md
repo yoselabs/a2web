@@ -33,16 +33,36 @@ choice of hosts.
 - The nitter failover loop treats a walled instance as a FAILED instance and
   continues to the next one, rather than returning it as the answer.
 - When every instance is exhausted and at least one was walled, the handler
-  returns `Verdict.block_page_detected` with the critical `try_user_browser`
-  hint — reddit's existing `_walled_signal` shape (ADR-0009).
+  returns `Verdict.block_page_detected`.
+
+**Two claims in the original draft did not survive their first live run**, and
+the change is better for it — both are recorded at the code that fixes them:
+
+- *"The handler's check is not gated on rendered length."* Forcing the
+  catalogue's length-gated markers on turned `/wiki/Python_(programming_language)`
+  into `block_page_detected`, because a cited PEP title contains "Network
+  Security". Those markers are English phrases; the length floor is what makes
+  them safe. The real guarantee is narrower and stated as such.
+- *"…with the critical `try_user_browser` hint, reddit's `_walled_signal`
+  shape."* Reddit's eager shape does not fit a tier-0 handler the cascade
+  continues past: nitter was walled, the hint fired, and then jina retrieved the
+  tweet — a response carrying 2204 characters under a klaxon saying it had none.
+  The hint belongs to the failure floor, which knows how the cascade ended.
 
 ## Scope, and what the audit found
 
-Three of the nine handlers can be fed a challenge page and call it content:
-`twitter`, `habr`, `wikipedia` (`reddit` already fails walls loudly via
-`_walled_signal`). The four JSON-API handlers — `discourse`, `hn`, `v2ex`, and
-habr's API path — are structurally immune: a challenge page is not valid JSON,
-so `json.loads` already fails them into a non-`ok` verdict.
+TWO of the nine handlers can be fed a challenge page and call it content:
+`twitter` and `wikipedia` (`reddit` already fails walls loudly via
+`_walled_signal`). The JSON-API handlers — `discourse`, `hn`, `v2ex`, `habr` —
+are structurally immune: a challenge page is not valid JSON, so `json.loads`
+already fails them into a non-`ok` verdict.
+
+**Corrected during apply:** an earlier draft of this section said THREE and
+listed `habr` as an HTML handler while ALSO listing it among the JSON-API ones.
+The code settles it — habr fetches `habr.com/kek/v2/articles/…` and gates on
+`isinstance(payload, dict)`, so it is JSON-only and needs no check. The
+structural-immunity claim is no longer argued: `test_json_api_handler_is_immune_to_a_challenge_body`
+feeds hn and habr the captured interstitial and asserts the verdict.
 
 Only `twitter` has the failover loop, so only `twitter` has the shadowing bug.
 

@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from a2web.handlers import HNHandler, RedditHandler, TwitterHandler, match_handler
+from a2web.handlers import HabrHandler, HNHandler, RedditHandler, TwitterHandler, match_handler
 from a2web.handlers.hn import _render_item
 from a2web.handlers.reddit import _fetch_old_reddit, _to_old_reddit_url
 from a2web.models import Verdict
@@ -507,6 +507,179 @@ async def test_twitter_handler_returns_empty_when_all_instances_fail(
     result = await TwitterHandler().fetch("https://x.com/karpathy/status/123", state=state)
 
     assert result.verdict == Verdict.connection_error
+    assert result.pre_rendered is None
+
+
+# --------------------------------------------------------------------- #
+# A walled upstream is a FAILED upstream (handler-never-reports-ok-on-a-challenge)
+# --------------------------------------------------------------------- #
+
+
+def _captured_interstitial() -> str:
+    """The real anti-bot interstitial served by a nitter instance on 2026-07-28.
+
+    CAPTURED, never hand-written: a synthetic interstitial would encode the same
+    assumption as the check that reads it, so it could only confirm the check
+    agrees with itself.
+    """
+    return (FIXTURES_DIR / "captured" / "xcancel_antibot_interstitial.html").read_text()
+
+
+@pytest.mark.asyncio
+async def test_twitter_handler_does_not_report_ok_on_a_challenge_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A 200 carrying a challenge is not content, however well it extracts."""
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text=_captured_interstitial(), content_type="text/html")
+
+    patch_curl_session(monkeypatch, handler)
+
+    state = _make_state_with_nitter("https://walled.example.com")
+    result = await TwitterHandler().fetch("https://x.com/karpathy/status/123", state=state)
+
+    assert result.verdict != Verdict.ok
+    assert result.verdict == Verdict.block_page_detected
+    assert result.pre_rendered is None
+    # NO eager `try_user_browser` hint. The handler is tier 0 and the cascade
+    # continues past it; on the live run jina then retrieved the tweet, and an
+    # eager hint put "This URL was NOT retrieved" on a response carrying 2204
+    # characters of it. `_attach_failure_floor` owns that hint, because only it
+    # knows whether the cascade as a whole failed.
+    assert result.operator_hint is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "instances",
+    [
+        ("https://walled.example.com", "https://ok.example.com"),
+        ("https://ok.example.com", "https://walled.example.com"),
+    ],
+    ids=["walled-first", "walled-second"],
+)
+async def test_twitter_handler_walled_instance_does_not_shadow_the_rest(
+    monkeypatch: pytest.MonkeyPatch,
+    instances: tuple[str, str],
+) -> None:
+    """The claim that outlives the upstream drought.
+
+    A failover list exists so one bad upstream does not decide the outcome. An
+    upstream answering with a wall has not served the request, so the result
+    must be the WORKING upstream's content in either order. Before this change
+    the walled-first order returned the interstitial, and since the list is
+    shuffled per fetch, which one won was random.
+    """
+    tweet_html = "<html><body><article><div>" + ("substantive tweet body. " * 60) + "</div></article></body></html>"
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        if "walled.example.com" in url:
+            return FakeCurlResp(200, text=_captured_interstitial(), content_type="text/html")
+        return FakeCurlResp(200, text=tweet_html)
+
+    patch_curl_session(monkeypatch, handler)
+    monkeypatch.setattr("a2web.handlers.twitter.random.shuffle", lambda _: None)
+
+    state = _make_state_with_nitter(*instances)
+    result = await TwitterHandler().fetch("https://x.com/karpathy/status/123", state=state)
+
+    assert result.verdict == Verdict.ok
+    assert result.pre_rendered is not None
+    assert "substantive" in result.pre_rendered.content_md
+
+
+def test_challenge_check_does_not_fire_on_an_article_quoting_a_wall_phrase() -> None:
+    """The false positive that shaped the check, kept as a regression.
+
+    An earlier cut called the catalogue with an empty `content_md` to force its
+    length-gated markers on, so that a verbose challenge would be caught too.
+    The first live probe run came back `block_page_detected` for
+    `/wiki/Python_(programming_language)`: a citation title, "PEP 466 - Network
+    Security Enhancements for Python 2.7.x", matches `\\bnetwork security\\b`.
+
+    Synthetic on purpose — it controls one variable (a long body carrying a
+    prose marker) and the real page is 862KB. The phrase is the one observed
+    live, in the markup shape it was observed in.
+    """
+    from a2web.handlers._common import challenge_verdict
+
+    body = "<html><body><p>" + ("Real article prose about the language. " * 60) + "</p>"
+    body += "<cite>PEP 466 - Network Security Enhancements for Python 2.7.x</cite></body></html>"
+    content_md = "Real article prose about the language. " * 60
+
+    assert challenge_verdict(body, content_md=content_md) is None
+
+
+def test_challenge_check_still_fires_on_a_vendor_fingerprint_at_any_length() -> None:
+    """The other half of the same trade-off: markers that CANNOT occur in prose
+    (widget ids, asset paths) are matched by the catalogue at any length, so a
+    fingerprinted wall is caught even behind a long body. Only the prose markers
+    are length-gated."""
+    from a2web.handlers._common import challenge_verdict
+
+    long_md = "words that look like a real page. " * 60
+    body = '<html><body><div class="cf-turnstile" data-sitekey="x"></div><p>' + long_md + "</p></body></html>"
+
+    assert challenge_verdict(body, content_md=long_md) == Verdict.anti_bot
+
+
+@pytest.mark.asyncio
+async def test_twitter_handler_walled_instance_registers_with_its_breaker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Routing the wall through `_NitterInstanceFailure` means the per-instance
+    circuit breaker records it, so a persistently walled instance trips rather
+    than being re-tried on every fetch. That falls out of the existing path, but
+    it is a behaviour change and is asserted rather than assumed."""
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text=_captured_interstitial(), content_type="text/html")
+
+    patch_curl_session(monkeypatch, handler)
+
+    state = _make_state_with_nitter("https://walled.example.com")
+    await TwitterHandler().fetch("https://x.com/karpathy/status/123", state=state)
+
+    breaker = await state.breakers.get_breaker("nitter:https://walled.example.com")
+    assert breaker.context.failure_count > 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("make_handler", "target"),
+    [
+        (HNHandler, "https://news.ycombinator.com/item?id=1"),
+        (HabrHandler, "https://habr.com/ru/articles/123456/"),
+    ],
+    ids=["hn", "habr"],
+)
+async def test_json_api_handler_is_immune_to_a_challenge_body(
+    monkeypatch: pytest.MonkeyPatch,
+    make_handler: Any,
+    target: str,
+) -> None:
+    """The JSON-API handlers are claimed STRUCTURALLY immune: a challenge page
+    is not valid JSON, so the parse already fails them into a non-`ok` verdict
+    and they need no challenge check of their own.
+
+    A claim of structural immunity is worth one run rather than one argument —
+    and this run is why `habr` carries no check. The change's own audit listed
+    habr as an HTML handler AND as a JSON-API one; it fetches
+    `habr.com/kek/v2/articles/…` and gates on `isinstance(payload, dict)`, so
+    the second reading is the true one.
+    """
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text=_captured_interstitial(), content_type="text/html")
+
+    patch_curl_session(monkeypatch, handler)
+
+    from tests.conftest import make_default_state
+
+    result = await make_handler().fetch(target, state=make_default_state())
+
+    assert result.verdict != Verdict.ok
     assert result.pre_rendered is None
 
 
