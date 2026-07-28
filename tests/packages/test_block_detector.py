@@ -8,7 +8,9 @@ with `subsystem="captcha_redirect"` so the gate surfaces an actionable hint.
 
 from __future__ import annotations
 
-from a2web.packages.block_detector import BlockVerdict, evaluate, looks_like_unrendered_spa
+from pathlib import Path
+
+from a2web.packages.block_detector import LENGTH_FLOOR, BlockVerdict, evaluate, looks_like_unrendered_spa
 
 
 def _eval(raw_html: str, content_md: str = "", content_type: str = "text/html"):
@@ -306,3 +308,50 @@ def test_noscript_plus_analytics_is_not_a_spa() -> None:
 def test_custom_element_without_mount_is_not_a_spa() -> None:
     # Web components on an otherwise-static page are not evidence of CSR.
     assert not looks_like_unrendered_spa("<html><body><my-widget>rendered</my-widget><script>x()</script></body></html>")
+
+
+# --------------------------------------------------------------------- #
+# Browser-verification interstitial — CAPTURED witness, not a hand-written one
+# --------------------------------------------------------------------- #
+
+_CAPTURED = Path(__file__).resolve().parents[1] / "fixtures" / "captured" / "xcancel_antibot_interstitial.html"
+
+
+def test_captured_browser_verification_interstitial_is_a_hard_wall() -> None:
+    """The real page, byte for byte, not an approximation of it.
+
+    Observed 2026-07-28: a nitter instance served this with HTTP 200. The
+    twitter handler rendered it to 416 characters and returned `Verdict.ok`.
+    Before this pattern the gate called it a bare `length_floor` — thin, which
+    the terminal hedges as a possible empty result — rather than a wall.
+
+    The fixture is CAPTURED because a hand-written stand-in encodes the same
+    assumption as the pattern it tests, authored at the same moment, and so
+    cannot witness the pattern being wrong about the real page.
+    """
+    raw_html = _CAPTURED.read_text(encoding="utf-8")
+    assert "Checking your browser" in raw_html, "capture no longer contains the marker — re-capture or retire the pattern"
+
+    # The handler's rendered body is sub-floor, which is the branch that reads
+    # the catalogue at all.
+    result = _eval(raw_html, content_md="Checking your browser\n\nStarting verification…")
+    assert result.verdict is BlockVerdict.block_page_detected
+
+
+def test_browser_verification_marker_is_gated_on_the_length_floor() -> None:
+    """A STATED LIMIT, asserted so it cannot be mistaken for coverage.
+
+    `_BLOCK_PATTERNS` is consulted only below `LENGTH_FLOOR`. An interstitial
+    from the same family that rendered past the floor still reads as content,
+    and this catalogue entry does not change that. Making the marker
+    length-independent would risk a false wall on any article ABOUT anti-bot
+    systems — an English sentence is not an asset path.
+    """
+    raw_html = _CAPTURED.read_text(encoding="utf-8")
+    above_floor = "Checking your browser. " + ("real article prose about anti-bot systems " * 30)
+    assert len(above_floor) >= LENGTH_FLOOR
+    result = _eval(raw_html, content_md=above_floor)
+    assert result.verdict is BlockVerdict.ok, (
+        "the marker fired above the length floor — that is a broader change than this pattern intends, "
+        "and puts legitimate articles at risk"
+    )

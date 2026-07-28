@@ -17,6 +17,39 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-28 — the twitter handler returns `Verdict.ok` on an anti-bot wall (S, correctness)
+
+**Source:** `probe-asserts-yield-not-reachability`, task 8.1.
+
+Measured 2026-07-28: `xcancel.com` serves HTTP 200 with a browser-verification
+interstitial. `TwitterHandler.fetch` renders it to 416 characters and returns
+`Verdict.ok`. That is a handler asserting success about a page it never got —
+tier-truthfulness, the ADR-0009 floor.
+
+This change fixed the GATE's reading of that page (`block_detector` now
+fingerprints it as `block_page_detected` rather than bare `length_floor`), and
+made the probe fail on it. Neither touches the handler, which still reports
+`ok`. Witness: `tests/fixtures/captured/xcancel_antibot_interstitial.html`.
+
+Deferred because the fix wants its own evidence: whether the right move is a
+handler-side challenge check, or reusing `block_detector` at the handler seam,
+depends on how many handlers have the same hole — and that is the audit the
+arXiv change did for parse yield, not for challenge pages.
+
+## 2026-07-28 — does the twitter handler have any reachable upstream? (S, investigation)
+
+**Source:** `probe-asserts-yield-not-reachability`, task 8.2.
+
+Three public nitter instances tried on 2026-07-28: `nitter.privacydev.net`
+→ `connection_error`, `nitter.net` → `length_floor`, `xcancel.com` → walled
+interstitial. Public nitter has been decaying for years.
+
+If none is reachable, the handler is dead code with a live test, and the honest
+options are a different upstream or retirement — not a probe case that can never
+pass. Worth one bounded survey before either.
+
+---
+
 ## 2026-07-27 — strip ambient LLM availability from the whole test suite (S, CI correctness)
 
 Source: the v0.48.0 release build, which failed the gate on a bare runner after

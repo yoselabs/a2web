@@ -105,6 +105,20 @@ _BLOCK_PATTERNS = (
     #   - Incapsula/Imperva "Request unsuccessful. Incapsula incident ID" block.
     re.compile(r"pardon the interruption", re.IGNORECASE),
     re.compile(r"Request unsuccessful\.\s*Incapsula", re.IGNORECASE),
+    #   - the browser-verification interstitial ("Checking your browser"), the
+    #     classic Cloudflare IUAM title and the shape several smaller anti-bot
+    #     vendors copy. Observed 2026-07-28 on a nitter instance: HTTP 200,
+    #     6822 bytes, rendering to 416 characters — UNDER the 500-char floor, so
+    #     it was reported as thin rather than walled, and the handler upstream
+    #     called it `Verdict.ok`. Witness:
+    #     `tests/fixtures/captured/xcancel_antibot_interstitial.html`.
+    #
+    #     STATED LIMIT: this branch only runs below LENGTH_FLOOR, so a wordier
+    #     interstitial from the same family still reads as content. Left
+    #     length-GATED on purpose — unlike turnstile/akamai/baxia (asset paths
+    #     and widget ids that cannot appear in prose), this is an English
+    #     sentence, and any article ABOUT anti-bot systems contains it.
+    re.compile(r"checking your browser", re.IGNORECASE),
 )
 
 # Empty-result phrases — a CONSERVATIVE, high-precision multilingual set. This is

@@ -552,3 +552,66 @@ urls:
       - "`answer` is clean prose with no ```json fence and no envelope keys leaked as literal text"
       - "The routing payload is recovered even when the model wraps the envelope in a markdown fence"
       - "Fence tolerance is never removed on the assumption the model obeys 'output strict JSON only' — it does not"
+
+  # ─── Handlers with zero corpus coverage until 2026-07-28 ───────────────
+  # Four of the nine site handlers had no corpus cell at all. A handler with
+  # no cell is invisible to the bench: it can rot to a `Papers (0)` body and
+  # nothing here notices, which is precisely how the arXiv listing parser
+  # stayed green while dead. Criteria are phrased against STABLE STRUCTURAL
+  # facts (a topic has replies, an article has a body) rather than today's
+  # text, per the standing rule.
+
+  - slug: discourse-topic-list
+    # The discourse handler serves TWO shapes — /latest (an index, 30 topic
+    # candidates observed) and /t/<slug>/<id> (a post tree). Only the index
+    # shape carries the ADR-0015 obligation, so that is the one cased here.
+    url: https://meta.discourse.org/latest
+    class: listing
+    next_links_expected: true
+    task: "What is being discussed on this forum right now? Give the 5 most prominent topics."
+    needs: [content+links]
+    criteria:
+      - "Identifies at least 5 distinct topic titles that read like real forum threads, not navigation chrome"
+      - "With the body withheld, the response carries a non-empty index the caller can drill into (ADR-0015)"
+      - "Topic links point at /t/ topic paths on the same host, never invented (ADR-0014)"
+
+  - slug: habr-article
+    # Russian-language article handler. Also the only non-Latin-script prose
+    # cell outside the Turkish shopping pages — an extraction that silently
+    # drops Cyrillic would otherwise show up nowhere.
+    url: https://habr.com/ru/articles/1032730/
+    class: article
+    task: "Что описывает эта статья? Ответь по существу."
+    needs: [content]
+    criteria:
+      - "Answers from the article's actual body, not from the title alone"
+      - "Cyrillic text survives extraction intact — no mojibake, no dropped-to-Latin transliteration"
+      - "Does not fabricate detail absent from the page (ADR-0014)"
+
+  - slug: v2ex-topic
+    # Chinese-language forum topic — CJK segmentation is a distinct extraction
+    # risk from Cyrillic, and neither was covered.
+    url: https://www.v2ex.com/t/1000000
+    class: comments
+    task: "What is this thread about, and what do the replies say?"
+    needs: [content]
+    criteria:
+      - "Distinguishes the opening post from the replies rather than merging them into one block"
+      - "CJK text survives extraction intact"
+      - "Reports the discussion faithfully without manufacturing a consensus the thread does not state (ADR-0012)"
+
+  - slug: twitter-upstream-walled
+    # EXPECTED RED, and cased for that reason. Every public nitter instance
+    # tried on 2026-07-28 was dead or walled; xcancel.com serves an HTTP 200
+    # browser-verification interstitial that the handler reports as
+    # `Verdict.ok` with a 416-char body. This cell asserts the ADR-0009 floor:
+    # a wall must surface AS a wall. It should fail while the upstream is
+    # walled, and that failure is the signal, not noise.
+    url: https://twitter.com/anthropicai/status/1701832836929187894
+    class: gated
+    task: "What does this tweet say?"
+    needs: [content]
+    criteria:
+      - "A walled or unreachable upstream surfaces as an explicit failure — never an `ok` answer summarising an interstitial (ADR-0009)"
+      - "The response carries a diagnostic and an operator hint the caller can act on"
+      - "Never presents 'Checking your browser' or equivalent challenge text as the page's content"

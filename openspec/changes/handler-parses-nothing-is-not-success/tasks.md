@@ -129,6 +129,15 @@
       text failed in both directions.
 - [x] 8.5 Evidence: `listing-answer-always-leaves-an-index` moved
       `unscored -> scored` 4 and 5. The claim this proposal declined to make.
-- [ ] 8.6 REMAINS: the probe asserts yield over real URL shapes, and corpus
-      entries for the four handlers with zero coverage (discourse, habr,
-      twitter, v2ex). Wikipedia's yield guard depends on it. Own change.
+- [x] 8.6 CLOSED by `probe-asserts-yield-not-reachability` (2026-07-28). The
+      probe now declares a yield per handler AND per URL shape; the four
+      uncovered handlers have corpus entries.
+
+      **Be precise about what wikipedia got.** Not a verdict guard — it still
+      cannot have one, for the reason recorded in 8.2 (its `dom_schema`
+      container is `<body>`, which always matches, so a rotted selector reads
+      as `EMPTY` and no verdict can be derived from it). What it got is the
+      LIVE half: a probe case declaring `min_candidates >= 5` against the real
+      article, plus an offline guard that fails if that floor is ever zeroed.
+      A rotted wikilink parse now fails a live check instead of nothing. The
+      offline captured-fixture test is still the other half, and still ages.
