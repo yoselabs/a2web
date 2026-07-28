@@ -126,3 +126,51 @@ first that is a plain bug rather than a design boundary.
   output on every arXiv listing URL in the corpus. That is the point, and it
   means the arXiv cells' numbers before and after are not comparable as a
   regression check.
+
+---
+
+## WHAT ACTUALLY SHIPPED (2026-07-28) — read this first
+
+This proposal was written before the spike loop and is **wrong in scope, design
+and claim**. It is kept as the record of what was believed at the time; the
+delivered change differs on every axis. Corrections, in the order the spikes
+found them:
+
+1. **Scope.** "Audit the nine handlers" is DONE, not pending — and the answer is
+   two. Live-probing all nine found exactly two dead parsers, and excluding
+   named-group syntax there are exactly four markup regexes in the package,
+   both files being the two dead ones. 100% of markup regexes were broken;
+   the class is enumerated, not sampled.
+
+2. **A second instance, with a DIFFERENT shape.** `wikipedia._wikilink_candidates`
+   returned 0 against 1066 `rel="mw:WikiLink"` anchors. Its CONTENT parse is
+   fine, so this proposal's "zero parse → non-`ok` verdict" cannot fire on it,
+   and forcing it would send a healthy 49 KB article to a browser for nothing.
+   Two shapes, two mechanisms.
+
+3. **The fix is a shelf package, not a local helper.** Raised in review:
+   "shouldn't we abstract things away, or propose to shelf". Promoted as
+   `dom-schema-v0.1.0` — declared CSS extraction with a three-way yield verdict.
+   A two-level `Schema` (container + row) makes `ROT` separable from `EMPTY`;
+   a flat selector cannot. EVOLVE of `record-mine` was tested and rejected
+   (handed arXiv's `<dl>` alone it still returns `None`; and inference vs
+   declaration fails monotonicity in the removal direction).
+
+4. **The funnel guard cannot classify pattern text.** Attempted and it failed
+   both ways — named groups read as markup, and `listing_oracle`'s `rel\s*=`
+   was missed because the target is itself a regex. The shipped rule is
+   structural: in `handlers/`, a `re.compile` pattern must be an anchored URL
+   path.
+
+5. **The claim was too cautious.** This proposal said it does NOT claim the
+   corpus case. It does: `listing-answer-always-leaves-an-index` moved
+   `unscored → scored` at 4 and 5 (`eval/runs/post-dom-schema`), after
+   defeating three consecutive changes.
+
+6. **`_render_listing`'s "Papers (0)" is gone**, but the deeper reason is the
+   verdict: a `ROT` parse now returns non-`ok` and the cascade continues.
+
+Not shipped and correctly out of scope: `reddit-listing` (handler blocked →
+zyte wins → zyte carries no candidates — an unrelated defect), and the
+wikipedia yield guard, which needs the probe change because its container is
+`<body>` and therefore always matches.

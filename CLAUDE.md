@@ -164,6 +164,14 @@ Currently enforced:
   handlers are exempt with the reason inline (the shelf has no `include_comments`
   knob and comment threads need it); that is a shelf gap to promote, not a
   standing exception.
+- Handlers parse markup with a DOM, never a regex — `tests/architecture/test_handler_markup_funnel.py`.
+  In `handlers/`, every `re.compile` pattern must be an anchored URL path; markup
+  goes through the shelf's `dom_schema.extract`. Structural on purpose: classifying
+  patterns by their text was tried and failed BOTH ways (named groups `(?P<x>` read
+  as markup; `listing_oracle`'s `rel\s*=` was missed because the target is itself a
+  regex). Born 2026-07-28 when the arXiv listing and wikipedia wikilink parsers were
+  both found returning ZERO rows against live pages holding 47 entries and 1066
+  anchors, each behind a GREEN suite over hand-written fixtures.
 - No `dict[str, Any]` on slotted dataclasses (allowlist gated) — `tests/architecture/test_no_dict_str_any_on_dataclasses.py`.
 - Tools never return `str` — `tests/architecture/test_tools_return_pydantic_not_str.py`.
 - Cold start resolves neither browser nor LLM — `tests/architecture/test_cold_start_laziness.py`.
@@ -194,6 +202,14 @@ Currently enforced:
 - Never let `encode_envelope` resurrect a pruned field or re-encode an already-encoded string. Both were a2kit defects a2web filed and could not fix; owning the encoder is the whole point.
 - Never let a CLI command return without unwinding its `ResourceScope`. `aiosqlite`'s worker thread is **non-daemon** in production (the daemon patch is test-only, by design — durability matters outside tests), so an unclosed scope parks that thread on an empty queue and `threading._shutdown()` never completes: the command prints correct output and then hangs forever. Not a leak — a hang. `cli._make_command` closes in a `finally`; a new command must too.
 - Never add a structural guard (AST walk, golden gate, contract table) without an assertion that it found something. A guard reporting "0 violations in 0 candidates" is indistinguishable from a passing one and reads as coverage while providing none. This has now failed twice for real: 30 of 32 architecture tests passed against an *empty source tree* (fixed by `_walk.walked_files(minimum=…)`), and `test_tools_return_pydantic_not_str` stayed green for the whole sunset while matching `@a2kit.read`, a decorator that no longer existed. Pair every walk with a floor, every golden set with a count, every accepted-delta table with a test that the delta is still real.
+- **Never let a hand-written fixture be the oracle for whether a parser matches a
+  live site.** It encodes the same assumption as the parser, authored by the same
+  person at the same moment, so it cannot fail when that assumption is wrong — it
+  can only confirm the parser agrees with itself. This cost two silently dead
+  parsers behind five green tests (2026-07-28). Site-parse fixtures are CAPTURED
+  and committed (`tests/fixtures/captured/`); synthetic fixtures are legitimate
+  only where they control a variable (a count, a language) and must be written in
+  the real markup shape so they cannot drift from what the parser accepts.
 - Never treat a golden as proof of correctness. A golden proves a surface has not **changed**; it says nothing about whether it was right when captured. `list_tools.json` froze `~95%%` — a typo in the description every agent reads — perfectly, through seventeen rounds of wire review. It took rendering the same string through a different surface (`--help`) to see it.
 
 ## Backlog
