@@ -52,6 +52,24 @@ urls:
       - "Each post has a title that reads like a real submission, not navigation chrome"
       - "Posts are on-topic for r/LocalLLaMA (local LLM / inference)"
 
+  - slug: arxiv-listing-partial
+    url: https://arxiv.org/list/cs.CL/recent
+    class: listing
+    next_links_expected: true
+    # Completeness case, found live 2026-07-28: the page advertises a total
+    # ("Total of N entries") and renders only the first ~50 behind pagination
+    # links. The oracle's noun list had no "entries", so it returned None and
+    # the caller was told the rendered batch was the whole set — a silent
+    # under-report of the kind ADR-0015's index exists to prevent.
+    # Criteria are phrased against the STRUCTURE (a stated total exceeding the
+    # rendered batch), never today's count, which changes daily.
+    task: "How many total papers does this listing say it has, and are you seeing all of them on this page?"
+    needs: [content+links]
+    criteria:
+      - "States a total number of entries advertised by the page"
+      - "Says explicitly that the page shows only a subset, not the full total"
+      - "Does not claim the rendered batch is the complete set"
+
   - slug: pypi-httpx
     url: https://pypi.org/project/httpx/
     class: listing

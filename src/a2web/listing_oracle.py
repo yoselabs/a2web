@@ -24,7 +24,10 @@ _NUMBER_OF_ITEMS_RE = re.compile(r'"?numberOfItems"?\s*[:=]\s*"?(\d[\d.,]*)"?', 
 # the noun so popularity numbers ("1000 reviews", "4.7 rating", "12 comments")
 # are NOT misread as an item total. Turkish (sonuç / ürün / adet) + English.
 _VISIBLE_COUNT_RE = re.compile(
-    r"(\d[\d.,]*)\s*(?:results?|sonuç|sonuc|ürün|urun|adet|products?|items?|listings?)\b",
+    # `entries` earns its place on evidence: arXiv's listing advertises "Total of
+    # 445 entries" and renders 50, and without the noun the oracle returned None
+    # and the caller was told the 50 were all of them (found live 2026-07-28).
+    r"(\d[\d.,]*)\s*(?:results?|sonuç|sonuc|ürün|urun|adet|products?|items?|listings?|entries|entry)\b",
     re.IGNORECASE,
 )
 

@@ -75,6 +75,25 @@ def test_oracle_ignores_review_and_rating_numbers() -> None:
     assert listing_oracle("<div>1000 reviews, 4.7 rating</div>") is None
 
 
+def test_oracle_reads_a_real_arxiv_listing_total() -> None:
+    """The captured arXiv listing advertises "Total of 408 entries" and renders
+    50 of them behind 9 pagination links.
+
+    Found live on 2026-07-28 while scoping the regex-over-markup backlog: the
+    oracle returned `None` and `listing_has_more` returned `False`, so a caller
+    was told the 50 rendered entries were the whole set. The noun list carried
+    results / products / items / listings — but not "entries", which is the word
+    arXiv uses.
+
+    The fixture was captured for an earlier change, BEFORE this defect was
+    known, so it is a witness rather than a restatement of the fix.
+    """
+    from tests.fixtures import FIXTURES_DIR
+
+    html = (FIXTURES_DIR / "captured" / "arxiv_list_cs_CL_recent.html").read_text()
+    assert listing_oracle(html) == 408
+
+
 def test_oracle_none_on_article() -> None:
     assert listing_oracle("<p>Just an article with no counts at all.</p>") is None
 

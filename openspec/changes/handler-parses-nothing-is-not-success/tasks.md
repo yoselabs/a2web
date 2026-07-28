@@ -105,16 +105,25 @@
 
 ## 7. Close the loop
 
-- [ ] 7.1 BACKLOG: the remaining regex-over-markup handler sites, scoped by
-      task 1.2's split (of ten files calling `re.compile`, an unknown subset). Named so the pattern is not lost — the failure mode the
-      trafilatura funnel exists to prevent.
-- [ ] 7.2 BACKLOG: `record_mine` returns `None` on a `<dl>/<dt>/<dd>` listing.
-      A definition-list listing is a real and common shape, and this is why the
-      digest gate declined on arXiv even with 484 links available. Shelf
-      promotion candidate; wants a second example first.
-- [ ] 7.3 BACKLOG or CLAUDE.md: the captured-not-hand-written fixture rule. It
-      now has a named instance in this repo, which is the bar the repo sets for
-      turning a lesson into a rule.
+- [x] 7.1 BACKLOG, and the "unknown subset" is now KNOWN. An AST spike over
+      `src/a2web` outside `handlers/` (which the markup funnel guard now covers)
+      cut ten `re.compile` matches to three real sites: `listing_oracle`'s
+      `rel=next` (VERIFIED ALIVE against HN + discourse — quote- and
+      order-tolerant, unlike the two that died), and the two Wayback
+      toolbar strips in `tiers/archive.py` (whose rot LEAKS the toolbar into
+      content rather than silently returning zero). `block_detector`'s six are
+      fingerprints, not parsers, and are out of scope.
+
+      The spike also found a LIVE defect, fixed separately: `listing_oracle`'s
+      noun list had no "entries", so arXiv's "Total of 445 entries" read as no
+      total and a 50-of-445 page reported as complete.
+- [x] 7.2 BACKLOG entry written, with the "wants a second example first"
+      condition kept — one site is not enough to shape a general record-shape
+      rule.
+- [x] 7.3 ALREADY DONE — the rule is in CLAUDE.md's Never list ("Never let a
+      hand-written fixture be the oracle for whether a parser matches a live
+      site"), carrying the 2026-07-28 instance and the captured-fixtures
+      directory it created. Verified present rather than re-added.
 
 ## 8. Reconciliation — what shipped vs what this planned
 

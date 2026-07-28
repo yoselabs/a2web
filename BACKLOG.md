@@ -17,6 +17,43 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-28 — regex-over-markup OUTSIDE `handlers/` (S, correctness — SCOPED)
+
+**Source:** `handler-parses-nothing-is-not-success`, task 7.1.
+
+The proposal left this as "of ten files calling `re.compile`, an unknown
+subset". An AST spike over `src/a2web` (excluding `handlers/`, which
+`test_handler_markup_funnel.py` now guards) narrowed it to THREE real sites out
+of ten matches:
+
+| site | what it does | risk |
+|---|---|---|
+| `listing_oracle.py:_REL_NEXT_RE` | `rel=next` pagination affordance | VERIFIED ALIVE — fires on HN + discourse, quiet on a plain article. Quote- and attribute-order-tolerant, unlike the two that died. |
+| `tiers/archive.py` ×2 | strips the Wayback toolbar | if it rots, the toolbar LEAKS INTO content — visibly wrong, not a silent zero |
+| `packages/block_detector.py` ×6 | fingerprints + a tag-stripper for visible-text length | OUT OF SCOPE: these are markers, not parsers. A DOM parse does not make a fingerprint catalogue better. |
+
+`packages/llm_extract/extractor.py:384` matches a fenced code block in LLM
+output, not markup — out of scope.
+
+So the remaining exposure is small and NONE of it is the silent-zero shape that
+motivated the guard. Worth converting the archive toolbar strip when that file
+is next touched; not worth its own change.
+
+The spike DID find a live defect, fixed separately: the oracle's noun list had
+no "entries", so arXiv's "Total of 445 entries" read as no total at all.
+
+## 2026-07-28 — `record_mine` returns `None` on a `<dl>/<dt>/<dd>` listing (S, shelf)
+
+**Source:** `handler-parses-nothing-is-not-success`, task 7.2.
+
+A definition-list listing is a real and common shape, and `record_mine` does not
+recognise it — which is why the digest gate declined on arXiv even with 484
+links available on the page.
+
+Shelf promotion candidate. Wants a SECOND example before promoting: one site is
+not enough to shape a general record-shape rule, and the repo has been bitten by
+generalising a parser from a single page.
+
 ## 2026-07-28 — retire the twitter handler? (S, decision — REVISIT, do not act yet)
 
 **Source:** `handler-never-reports-ok-on-a-challenge`, D4 + task 7.3.
