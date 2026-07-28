@@ -42,7 +42,7 @@ is next touched; not worth its own change.
 The spike DID find a live defect, fixed separately: the oracle's noun list had
 no "entries", so arXiv's "Total of 445 entries" read as no total at all.
 
-## 2026-07-28 — a2web reports a 50-of-445 listing as COMPLETE (M, correctness — LOAD-BEARING)
+## 2026-07-28 — `extract_records` blinds partial-listing detection on handler pages (M, shelf — HALF FIXED)
 
 **Source:** full-corpus bench run, `eval/findings_2026-07-28-full.md`.
 Supersedes the earlier "`record_mine` returns None on `<dl>/<dt>/<dd>`" entry,
@@ -66,15 +66,27 @@ Verified chain (measured, not inferred):
       -> listing_oracle() IS NEVER CALLED, no listing_partial hint
       -> the model answers from "Papers (25)"
 
-**Two fixes, and they are independent:**
+**Two independent fixes. The second is DONE; the first is not.**
 
-1. `extract_records` must recognise definition-list listings, so `record_count`
-   is set and the partial machinery switches on. Shelf promotion — and the
-   "wants a second example first" caveat is now weaker, because this one example
-   is load-bearing rather than cosmetic.
-2. The arXiv handler must carry the page's STATED total (and pagination) into
-   its rendered markdown. Even with (1) fixed, a model reading `content_md` has
-   no total to report.
+1. **OPEN — `extract_records` must recognise definition-list listings**, so
+   `record_count` is set and the partial machinery switches on. Shelf promotion.
+   The "wants a second example first" caveat is weaker now: this example is
+   load-bearing. **Note the wider blast radius** — `record_count is None`
+   disables `_maybe_flag_partial_listing` for ANY listing whose shape
+   `extract_records` misses, so no `listing_partial` / `listing_more` hint fires
+   there regardless of handler. arXiv is the case that was measured, not
+   necessarily the only one.
+2. **DONE 2026-07-28** — the arXiv handler now carries the page's stated total
+   into its rendered markdown (`## Papers (25 of 445)` plus an explicit
+   partial-view line), sourced from `listing_oracle` rather than a new regex
+   (the markup-funnel guard bars regexes in `handlers/`). Re-benched on the
+   single slug: quality 1 -> 5 and 2 -> 5, clarity 5, both a2web systems now
+   level with WebFetch. Pinned by
+   `test_arxiv_listing_renders_the_pages_own_stated_total`.
+
+   This fixes the ANSWER, not the SIGNAL: with (1) still open there is still no
+   `listing_partial` operator hint on this page — the model now reports the
+   shortfall in prose because it can finally see it.
 
 Note for whoever picks this up: adding "entries" to `listing_oracle`'s noun list
 (shipped 2026-07-28, `91a7377`) is correct and verified live, but does NOT close

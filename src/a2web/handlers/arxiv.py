@@ -18,6 +18,7 @@ from dom_schema import Extraction, Schema, extract
 from dom_schema import Field as DomField
 from http_fetch import fetch_bytes
 
+from ..listing_oracle import listing_oracle
 from ..log import log_warning
 from ..models import Heading, NextLink, Verdict
 from ._common import empty_result, map_non_ok
@@ -132,7 +133,8 @@ class ArxivHandler:
         if non_ok is not None:
             return non_ok
 
-        parsed = _parse_listing(outcome.body.decode("utf-8", errors="replace"))
+        listing_html = outcome.body.decode("utf-8", errors="replace")
+        parsed = _parse_listing(listing_html)
         if parsed.is_rot:
             # The schema stopped describing arXiv. That is a fact about THIS
             # handler, never about the page — so it must not be laundered into a
@@ -149,7 +151,7 @@ class ArxivHandler:
             return empty_result(url, Verdict.length_floor)
 
         entries = parsed.rows
-        rendered = _render_listing(cat, window, entries)
+        rendered = _render_listing(cat, window, entries, advertised_total=listing_oracle(listing_html))
         next_links = _listing_candidates(entries)
 
         return TierResult(
@@ -257,15 +259,46 @@ def _parse_listing(html: str) -> Extraction:
     )
 
 
-def _render_listing(cat: str, window: str, entries: tuple[dict[str, str], ...]) -> dict[str, object]:
-    """Render an arxiv listing as a terse list."""
+def _render_listing(
+    cat: str,
+    window: str,
+    entries: tuple[dict[str, str], ...],
+    *,
+    advertised_total: int | None = None,
+) -> dict[str, object]:
+    """Render an arxiv listing as a terse list.
+
+    `advertised_total` is the count the PAGE states ("Total of 408 entries"),
+    which is routinely far larger than what one request renders. It belongs in
+    the markdown because the caller of `query` never sees the body: given only
+    `## Papers (25)`, a model correctly concludes it has 25 papers and wrongly
+    concludes that is all of them. Measured on the 2026-07-28 bench run, where
+    a2web answered "you are seeing all 25" about a 445-entry listing and scored
+    1 and 2 against WebFetch's 5.
+
+    Sourced from `listing_oracle`, not a local regex: `handlers/` may not carry
+    markup regexes (the markup-funnel guard), and advertised totals are exactly
+    what that module already owns.
+    """
+    shown = min(len(entries), 25)
     title_text = f"arXiv · {cat} · {window}"
-    parts: list[str] = [f"# {title_text}\n", f"## Papers ({min(len(entries), 25)})\n"]
+    # Only a total that EXCEEDS what we render is news. An equal or smaller one
+    # (a short listing, or an oracle that matched some other number on the page)
+    # would turn "25 of 25" into noise, or worse, into a false shortfall.
+    if advertised_total is not None and advertised_total > shown:
+        count_label = f"Papers ({shown} of {advertised_total})"
+        preamble = f"_Showing {shown} of {advertised_total} entries the page advertises — this is a partial view._\n"
+    else:
+        count_label = f"Papers ({shown})"
+        preamble = ""
+    parts: list[str] = [f"# {title_text}\n", f"## {count_label}\n"]
+    if preamble:
+        parts.append(preamble)
     for entry in entries[:25]:
         parts.append(f"- **{entry['title']}** ({entry['authors']})\n  <https://arxiv.org/abs/{entry['id']}>")
     headings: list[Heading] = [
         Heading(level=1, text=title_text),
-        Heading(level=2, text=f"Papers ({min(len(entries), 25)})"),
+        Heading(level=2, text=count_label),
     ]
     return {
         "content_md": "\n".join(parts).strip() + "\n",

@@ -116,3 +116,38 @@ does not close. The corpus entry is what caught it.
 - **2 quality cells lost to a judge parse error** (`int() argument … not
   'list'`) — the judge returned a list where a scalar was expected. Small, but
   it is silent loss of the kind `close-silent-eval-loss` exists to prevent.
+
+## Follow-up, same day: the handler half is fixed
+
+`eval/runs/2026-07-28_arxiv_recheck` — single slug, `--no-extraction-cache`, 26 s.
+
+The arXiv handler now carries the page's advertised total into its rendered
+markdown, sourced from `listing_oracle` (not a new regex — `handlers/` may not
+carry markup regexes):
+
+    # arXiv · cs.CL · recent
+    ## Papers (25 of 445)
+
+    _Showing 25 of 445 entries the page advertises — this is a partial view._
+
+| system | quality before | after |
+|---|---|---|
+| webfetch_baseline | 5 | 5 |
+| a2web_detail | 1 | **5** |
+| a2web_extract | 2 | **5** |
+
+Clarity 5 across all three. The extract answer is now:
+
+> "The page advertises 445 total papers in cs.CL (recent), but shows only 25 of
+> them. This is a partial view; the remaining 420 papers are not displayed on
+> this page."
+
+**This fixes the ANSWER, not the SIGNAL.** Defect 1 (`extract_records` returning
+None on `<dl>/<dt>/<dd>`) is untouched, so `record_count` is still None, so
+`_maybe_flag_partial_listing` still returns at its first line and NO
+`listing_partial` operator hint fires on this page. The model reports the
+shortfall in prose because it can finally see it — a machine consumer reading
+hints still cannot. That half is shelf work and stays open in BACKLOG.
+
+The single-slug re-bench is a targeted check, not a corpus-wide claim: it says
+this cell moved, nothing about the other 37.

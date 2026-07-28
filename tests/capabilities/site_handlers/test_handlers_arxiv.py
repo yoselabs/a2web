@@ -166,3 +166,33 @@ async def test_arxiv_429_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None:
 
     result = await ArxivHandler().fetch("https://arxiv.org/abs/2401.12345", state=_state())
     assert result.verdict == Verdict.rate_limited
+
+
+@pytest.mark.asyncio
+async def test_arxiv_listing_renders_the_pages_own_stated_total(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A rendered listing must carry the total the PAGE advertises, not just the
+    count the handler chose to render.
+
+    The defect this pins, measured on the 2026-07-28 full-corpus bench run: the
+    handler rendered `## Papers (25)` and nothing else, so the model — which
+    never sees the body — answered "25 total papers, you are seeing all of them"
+    about a page stating "Total of 408 entries" behind 9 pagination links. a2web
+    scored 1 and 2 against WebFetch's 5 on that cell. Withholding the body while
+    dropping the page's own size is the ADR-0015 harm.
+
+    The captured fixture states 408; the handler renders 25 of them.
+    """
+    html = _captured("arxiv_list_cs_CL_recent.html")
+
+    def handler(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
+        return FakeCurlResp(200, text=html, content_type="text/html")
+
+    patch_curl_session(monkeypatch, handler)
+
+    result = await ArxivHandler().fetch("https://arxiv.org/list/cs.CL/recent", state=_state())
+
+    assert result.verdict == Verdict.ok
+    md = result.pre_rendered.content_md
+    assert "408" in md, "the page's stated total is absent from what the model reads"
+    # And it must be legible as a subset, not as the whole set.
+    assert "25 of 408" in md
