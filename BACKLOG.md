@@ -42,17 +42,44 @@ is next touched; not worth its own change.
 The spike DID find a live defect, fixed separately: the oracle's noun list had
 no "entries", so arXiv's "Total of 445 entries" read as no total at all.
 
-## 2026-07-28 — `record_mine` returns `None` on a `<dl>/<dt>/<dd>` listing (S, shelf)
+## 2026-07-28 — a2web reports a 50-of-445 listing as COMPLETE (M, correctness — LOAD-BEARING)
 
-**Source:** `handler-parses-nothing-is-not-success`, task 7.2.
+**Source:** full-corpus bench run, `eval/findings_2026-07-28-full.md`.
+Supersedes the earlier "`record_mine` returns None on `<dl>/<dt>/<dd>`" entry,
+which was filed as a speculative shelf-promotion candidate and turns out to be
+the CAUSE of a live silent miss.
 
-A definition-list listing is a real and common shape, and `record_mine` does not
-recognise it — which is why the digest gate declined on arXiv even with 484
-links available on the page.
+On `arxiv-listing-partial` a2web scored **1 and 2 against WebFetch's 5** — the
+worst cell in the run — answering:
 
-Shelf promotion candidate. Wants a SECOND example before promoting: one site is
-not enough to shape a general record-shape rule, and the repo has been bitten by
-generalising a parser from a single page.
+> "The page header states '## Papers (25)', indicating 25 total papers. You are
+> seeing all 25 on this page — no truncation notice or pagination control."
+
+The page says "Total of 445 entries" and renders 50 behind 9 pagination links.
+
+Verified chain (measured, not inferred):
+
+    handler pre-renders "## Papers (25)" — no total, no pagination
+      -> extract_records(html) returns None on the <dl>/<dt>/<dd> shape
+      -> fc.record_count stays None
+      -> _maybe_flag_partial_listing() returns at its first line
+      -> listing_oracle() IS NEVER CALLED, no listing_partial hint
+      -> the model answers from "Papers (25)"
+
+**Two fixes, and they are independent:**
+
+1. `extract_records` must recognise definition-list listings, so `record_count`
+   is set and the partial machinery switches on. Shelf promotion — and the
+   "wants a second example first" caveat is now weaker, because this one example
+   is load-bearing rather than cosmetic.
+2. The arXiv handler must carry the page's STATED total (and pagination) into
+   its rendered markdown. Even with (1) fixed, a model reading `content_md` has
+   no total to report.
+
+Note for whoever picks this up: adding "entries" to `listing_oracle`'s noun list
+(shipped 2026-07-28, `91a7377`) is correct and verified live, but does NOT close
+this — the gate above it closes first. Do not mark this done by pointing at that
+commit.
 
 ## 2026-07-28 — retire the twitter handler? (S, decision — REVISIT, do not act yet)
 

@@ -73,10 +73,23 @@
       16 cells, 139 s, $0.66 → `eval/runs/axis-revival-probe`. `next_links` scored
       12 of 16 cells (was 0 of 29). Deliberately scoped to "does the axis report",
       not "how good is a2web".
-- [ ] 8.1b Full-corpus run for the actual comparison against
-      `eval/runs/2026-07-22_024912/`. ~8 min, all 33 cases x 3 systems, all axes.
-      Open — needs a spend decision, and is the only way to read quality/clarity
-      deltas or to re-check the four cases that never ran on 2026-07-22.
+- [x] 8.1b DONE 2026-07-28 — `eval/runs/2026-07-28_full`, 114 cells (38 x 3),
+      743 s, provider `claude-code-sdk` (subscription; the reported $9.11 is an
+      estimated token cost, not metered billing — ADR-0016).
+      Findings: `eval/findings_2026-07-28-full.md`.
+
+      **The headline means are NOT a regression comparison** — the corpus grew
+      29 -> 38 between the runs, so the case mix changed underneath them. Said
+      explicitly in the findings rather than presented as a delta.
+
+      What it established: contract 38/38 on both systems; `reddit-listing` moved
+      unscored -> 5/5 (its BACKLOG entry can close); `twitter-upstream-walled`
+      scores 4/4 via jina; all four handler-coverage entries score.
+
+      What it FOUND, and the reason the run was worth its quota: a2web answers
+      `arxiv-listing-partial` WORSE than WebFetch (1 and 2 vs 5), asserting a
+      50-of-445 listing is complete. Root-caused end to end and filed as a
+      load-bearing BACKLOG entry.
 - [x] 8.2 `eval/findings_2026-07-28.md` written, stating explicitly what the subset
       run does NOT establish (quality, clarity, the M8 quality-0 cells, non-listing
       classes, and independence — cache mode was ON).
