@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING
 from urllib.parse import unquote, urlparse
 
 from content_extract import extract_markdown
+from dom_schema import Field as DomField
+from dom_schema import Schema, extract
 from http_fetch import fetch_bytes
 
 from ..models import Heading, Link, NextLink, Verdict
@@ -107,31 +109,49 @@ class WikipediaHandler:
 # Wikilink extraction (v0.7 link-discovery)
 # --------------------------------------------------------------------- #
 
-_WIKILINK_RE = re.compile(
-    r'<a\s+[^>]*href="/wiki/(?P<target>[^"#:?]+)"[^>]*>(?P<anchor>[^<]+)</a>',
-    re.IGNORECASE,
+#: Parsoid's internal-article-link shape, declared rather than pattern-matched.
+#:
+#: The container is the document body because wikilinks are scattered through
+#: prose — there is no listing region to scope to. That means `ROT` is NOT
+#: separable here the way it is for a listing: `<body>` always matches, so a
+#: rotted row selector reads as `EMPTY`. Wikipedia's yield is therefore guarded
+#: by the captured-fixture test and the probe's declared expectation, NOT by a
+#: verdict. See `openspec/changes/` for the two-shapes design.
+#:
+#: This replaced a regex requiring `href="/wiki/X"` that returned ZERO links
+#: against a live article carrying 1066 (measured 2026-07-28). Parsoid serves
+#: `rel="mw:WikiLink"` with a RELATIVE `./Target` href; the old docstring
+#: asserted the absolute form as fact, and its three tests were green against a
+#: hand-written fixture in that same stale shape.
+_WIKILINK_SCHEMA = Schema(
+    container="body",
+    row="a[rel='mw:WikiLink']",
+    fields={
+        "target": DomField(css=".", attr="href", required=True),
+        "anchor": DomField(css="."),
+    },
 )
+
+_WIKILINK_CAP = 10
 
 
 def _wikilink_candidates(html: str, *, lang: str) -> list[NextLink]:
     """Pull up to 10 outbound article wikilinks from Parsoid HTML.
 
-    Wikipedia's REST output renders internal article links as `<a href="/wiki/X">Y</a>`.
-    Namespaced links (File:, Category:, Help:, etc.) carry a `:` in the target and
-    are filtered out — we want article-to-article links only. Deduplicates on target.
-    External citations (`<a class="external" href="https://...">`) live elsewhere
-    and are not in scope for v0.7 (deferred per spec).
+    Parsoid marks internal article links with `rel="mw:WikiLink"` and a relative
+    `./Target` href. Namespaced links (File:, Category:, Help:, …) carry a `:` in
+    the target and are filtered out — we want article-to-article links only.
+    Deduplicates on target. External citations live elsewhere and are not in
+    scope (deferred per spec).
     """
     seen: set[str] = set()
     out: list[NextLink] = []
-    for match in _WIKILINK_RE.finditer(html):
-        if len(out) >= 10:
+    for row in extract(html, _WIKILINK_SCHEMA).rows:
+        if len(out) >= _WIKILINK_CAP:
             break
-        target = match.group("target")
-        if target in seen:
-            continue
-        anchor = (match.group("anchor") or "").strip()
-        if not anchor or not target:
+        target = row["target"].removeprefix("./").split("#")[0]
+        anchor = row.get("anchor", "").strip()
+        if not target or not anchor or ":" in target or target in seen:
             continue
         seen.add(target)
         out.append(

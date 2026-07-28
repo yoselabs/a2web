@@ -14,8 +14,11 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlencode, urlparse
 from xml.etree import ElementTree as ET
 
+from dom_schema import Extraction, Schema, extract
+from dom_schema import Field as DomField
 from http_fetch import fetch_bytes
 
+from ..log import log_warning
 from ..models import Heading, NextLink, Verdict
 from ._common import empty_result, map_non_ok
 
@@ -129,7 +132,23 @@ class ArxivHandler:
         if non_ok is not None:
             return non_ok
 
-        entries = _parse_listing_entries(outcome.body.decode("utf-8", errors="replace"))
+        parsed = _parse_listing(outcome.body.decode("utf-8", errors="replace"))
+        if parsed.is_rot:
+            # The schema stopped describing arXiv. That is a fact about THIS
+            # handler, never about the page — so it must not be laundered into a
+            # rendered "Papers (0)" with Verdict.ok, which is exactly what the
+            # old parser did while returning nothing for every listing URL.
+            # A non-ok verdict lets the cascade try another tier, and the
+            # captured-fixture test is what turns this into a red build.
+            log_warning(
+                "handler_schema_rot",
+                handler="arxiv",
+                url=url,
+                missing=sorted(parsed.missing),
+            )
+            return empty_result(url, Verdict.length_floor)
+
+        entries = parsed.rows
         rendered = _render_listing(cat, window, entries)
         next_links = _listing_candidates(entries)
 
@@ -198,43 +217,47 @@ def _render_entry(entry: ET.Element) -> dict[str, object]:
 # Listing parsing (v0.7 link-discovery)
 # --------------------------------------------------------------------- #
 
-_LIST_ABS_RE = re.compile(
-    r'<a href="/abs/(?P<id>[^"]+?)"[^>]*>arXiv:(?P=id)</a>',
-    re.IGNORECASE,
-)
-_LIST_TITLE_RE = re.compile(
-    r'<div class="list-title[^"]*"[^>]*>\s*<span class="descriptor">\s*Title:\s*</span>\s*(?P<title>.+?)</div>',
-    re.IGNORECASE | re.DOTALL,
-)
-_LIST_AUTHORS_RE = re.compile(
-    r'<div class="list-authors"[^>]*>\s*<span class="descriptor">\s*Authors?:\s*</span>\s*(?P<authors>.+?)</div>',
-    re.IGNORECASE | re.DOTALL,
+#: The arXiv listing shape, declared rather than pattern-matched.
+#:
+#: One logical entry spans TWO sibling elements — `<dt>` carries the abs link,
+#: `<dd>` the title and authors — which is what `pair_with` exists for.
+#:
+#: This replaced three regexes that returned ZERO entries against a live page
+#: holding 47 (measured 2026-07-28). They required double-quoted attributes and
+#: `href="`; arXiv serves single quotes and `<a href ="…">`. A DOM parse is
+#: indifferent to quote style, attribute order and whitespace inside tags —
+#: none of which are part of the page's meaning. A *tolerant* regex was the
+#: obvious fix and was rejected: it survives this change and dies on the next.
+_LISTING_SCHEMA = Schema(
+    container="dl#articles",
+    row="dt",
+    pair_with="dd",
+    fields={
+        "id": DomField(css="a[title='Abstract']", attr="href", required=True),
+        "title": DomField(css="div.list-title", strip_prefix="Title:", required=True),
+        "authors": DomField(css="div.list-authors", strip_prefix="Authors:"),
+    },
 )
 
 
-def _parse_listing_entries(html: str) -> list[dict[str, str]]:
-    """Pull (id, title, authors) for each entry on an arxiv listing page.
+def _parse_listing(html: str) -> Extraction:
+    """Extract the listing entries, carrying WHY when there are none.
 
-    Listing pages are well-known stable HTML — sequential `<dt>...<dd>...` blocks.
-    Walk by abs-id anchor matches and pair each with the nearest title/authors div
-    that follows it in document order.
+    Returns the `Extraction` rather than a bare list so the caller can tell a
+    genuinely empty listing (`EMPTY` — a fact about the page) from selectors
+    that stopped matching (`ROT` — a fact about this schema). Collapsing the two
+    into `[]` is how the old parser reported "0 papers" with `Verdict.ok` for
+    however long it had been broken.
     """
-    out: list[dict[str, str]] = []
-    abs_matches = list(_LIST_ABS_RE.finditer(html))
-    for i, match in enumerate(abs_matches):
-        abs_id = match.group("id")
-        slice_end = abs_matches[i + 1].start() if i + 1 < len(abs_matches) else len(html)
-        block = html[match.end() : slice_end]
-        title_match = _LIST_TITLE_RE.search(block)
-        authors_match = _LIST_AUTHORS_RE.search(block)
-        title = re.sub(r"\s+", " ", title_match.group("title")).strip() if title_match else abs_id
-        authors_raw = re.sub(r"<[^>]+>", "", authors_match.group("authors")) if authors_match else ""
-        authors = re.sub(r"\s+", " ", authors_raw).strip()
-        out.append({"id": abs_id, "title": title, "authors": authors})
-    return out
+    got = extract(html, _LISTING_SCHEMA)
+    return Extraction(
+        verdict=got.verdict,
+        rows=tuple({**row, "id": row["id"].rsplit("/", 1)[-1]} for row in got.rows),
+        missing=got.missing,
+    )
 
 
-def _render_listing(cat: str, window: str, entries: list[dict[str, str]]) -> dict[str, object]:
+def _render_listing(cat: str, window: str, entries: tuple[dict[str, str], ...]) -> dict[str, object]:
     """Render an arxiv listing as a terse list."""
     title_text = f"arXiv · {cat} · {window}"
     parts: list[str] = [f"# {title_text}\n", f"## Papers ({min(len(entries), 25)})\n"]
@@ -252,7 +275,7 @@ def _render_listing(cat: str, window: str, entries: list[dict[str, str]]) -> dic
     }
 
 
-def _listing_candidates(entries: list[dict[str, str]]) -> list[NextLink]:
+def _listing_candidates(entries: tuple[dict[str, str], ...]) -> list[NextLink]:
     """Build up to 10 NextLink entries from listing entries.
 
     `reason` is the comma-joined first authors (truncated to the model's 80-char cap).

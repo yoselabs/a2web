@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pathlib
 from typing import Any
 
 import pytest
@@ -89,34 +90,70 @@ def test_wikipedia_slug_decoded() -> None:
     assert WikipediaHandler().matches("https://en.wikipedia.org/wiki/New_York_City")
 
 
-def test_wikipedia_wikilink_candidates_dedupes_and_caps() -> None:
-    """Outbound article links → up to 10 `related` candidates, deduped on target."""
+#: Wikilinks the captured Parsoid page carries, well above the 10-cap so the
+#: cap is genuinely exercised. Established by inspection of the committed file.
+_CAPTURED_WIKILINKS_MIN = 20
+
+
+def _captured(name: str) -> str:
+    path = pathlib.Path(__file__).parents[2] / "fixtures" / "captured" / name
+    assert path.exists(), f"captured fixture missing: {path}. Re-capture it; never hand-write one."
+    return path.read_text(encoding="utf-8")
+
+
+def test_wikipedia_wikilinks_from_a_captured_parsoid_page() -> None:
+    """The ORACLE — captured Parsoid output, never a hand-written approximation.
+
+    The three tests this replaces were GREEN while `_wikilink_candidates`
+    returned ZERO against a live article carrying 1066 anchors. Their fixture
+    used `<a href="/wiki/Octopus">`; Parsoid serves `rel="mw:WikiLink"` with a
+    RELATIVE `./Target` href. The fixture and the regex shared one stale
+    assumption, so the suite could never contradict it.
+
+    Unlike the arXiv listing, this yield is NOT verdict-guarded: wikilinks are
+    scattered through prose, so the schema's container is `<body>`, which always
+    matches — a rotted row selector reads as EMPTY, not ROT. This test and the
+    probe's declared expectation are therefore the ONLY things standing between
+    a stale selector and a silently index-free article.
+    """
     from a2web.handlers.wikipedia import _wikilink_candidates
 
-    html = """
-    <p>See also <a href="/wiki/Octopus">Octopus</a> and <a href="/wiki/Cephalopod">Cephalopod</a>.</p>
-    <p>Mentioned again: <a href="/wiki/Octopus">Octopus species</a>.</p>
-    <p>Categories: <a href="/wiki/Category:Animals">Animals</a></p>
-    <p>File: <a href="/wiki/File:Photo.jpg">photo</a></p>
-    """
-    cands = _wikilink_candidates(html, lang="en")
-    targets = [c.url for c in cands]
-    assert "https://en.wikipedia.org/wiki/Octopus" in targets
-    assert "https://en.wikipedia.org/wiki/Cephalopod" in targets
-    # File: and Category: links carry `:` and are filtered out
-    assert not any("Category:" in u or "File:" in u for u in targets)
-    # Dedupe: Octopus only once
-    assert targets.count("https://en.wikipedia.org/wiki/Octopus") == 1
+    cands = _wikilink_candidates(_captured("wikipedia_parsoid_octopus_disambig.html"), lang="en")
+
+    assert len(cands) == 10, "the cap should be reached on a real article"
     assert all(c.kind == "related" for c in cands)
     assert all(c.reason == "related article" for c in cands)
+    assert all(c.url.startswith("https://en.wikipedia.org/wiki/") for c in cands)
+    assert not any(":" in c.url.removeprefix("https://en.wikipedia.org/wiki/") for c in cands), (
+        "namespaced targets (File:, Category:) must be filtered out"
+    )
+    assert len({c.url for c in cands}) == len(cands), "targets must be deduplicated"
+
+
+def test_wikipedia_captured_page_is_link_dense_enough_to_exercise_the_cap() -> None:
+    """Non-vacuity floor: the capture must hold well more than the cap.
+
+    Without this, a capture that decayed to 3 links would make the test above
+    assert the cap against a page that never reaches it.
+    """
+    from dom_schema import extract
+
+    from a2web.handlers.wikipedia import _WIKILINK_SCHEMA
+
+    got = extract(_captured("wikipedia_parsoid_octopus_disambig.html"), _WIKILINK_SCHEMA)
+    assert len(got.rows) >= _CAPTURED_WIKILINKS_MIN, f"capture carries only {len(got.rows)} wikilinks — re-capture a denser article"
 
 
 def test_wikipedia_wikilink_candidates_stay_on_source_language() -> None:
     """Wikilinks generated for a `ru.wikipedia.org` article all carry ru host."""
     from a2web.handlers.wikipedia import _wikilink_candidates
 
-    html = '<p>See <a href="/wiki/Москва">Moscow</a> and <a href="/wiki/Россия">Russia</a></p>'
+    # Synthetic is legitimate HERE: this controls the LANGUAGE variable, it is
+    # not the oracle for whether the parser matches Parsoid (that is the
+    # captured-fixture test above). Written in the real `./Target` shape.
+    html = '<p>See <a rel="mw:WikiLink" href="./Москва">Moscow</a> and <a rel="mw:WikiLink" href="./Россия">Russia</a></p>'
     cands = _wikilink_candidates(html, lang="ru")
+    assert len(cands) == 2
     assert all(c.url.startswith("https://ru.wikipedia.org/wiki/") for c in cands)
 
 
@@ -124,5 +161,7 @@ def test_wikipedia_wikilink_candidates_capped_at_10() -> None:
     """15 wikilinks → exactly 10 candidates returned."""
     from a2web.handlers.wikipedia import _wikilink_candidates
 
-    html = "".join(f'<a href="/wiki/Article_{i}">Article {i}</a>' for i in range(15))
+    # Synthetic is legitimate HERE too: it controls the COUNT to exercise the
+    # cap. Real Parsoid shape, so it cannot drift from what the parser accepts.
+    html = "".join(f'<a rel="mw:WikiLink" href="./Article_{i}">Article {i}</a>' for i in range(15))
     assert len(_wikilink_candidates(html, lang="en")) == 10

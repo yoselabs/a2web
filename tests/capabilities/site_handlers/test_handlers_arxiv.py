@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import pathlib
 from typing import Any
 
 import pytest
+from dom_schema import Yield
 
 from a2web.handlers import ArxivHandler, match_handler
+from a2web.handlers.arxiv import _parse_listing
 from a2web.models import Verdict
 from a2web.state import AppState
 from tests._helpers.fake_http import FakeCurlResp, patch_curl_session
@@ -53,29 +56,62 @@ def test_arxiv_listing_candidates_shape() -> None:
     assert cands[0].reason == "Alice, Bob"
 
 
-def test_arxiv_listing_html_parser_extracts_entries() -> None:
-    """`_parse_listing_entries` pulls (id, title, authors) per `<dt><dd>` block."""
-    from a2web.handlers.arxiv import _parse_listing_entries
+#: The captured page's own entry count, established once by inspection. NOT the
+#: count arXiv advertises for itself — there is no single such number (per-section
+#: `showing N of M`, a `showing first N of M` partial marker, `Total of 408
+#: entries`) and the page renders a variable number of day-sections.
+_CAPTURED_ARXIV_ENTRIES = 47
 
-    html = """
-    <dl>
-      <dt><a href="/abs/2401.0001">arXiv:2401.0001</a></dt>
-      <dd>
-        <div class="list-title mathjax"><span class="descriptor">Title:</span> First paper</div>
-        <div class="list-authors"><span class="descriptor">Authors:</span> <a href="x">Alice</a>, <a href="y">Bob</a></div>
-      </dd>
-      <dt><a href="/abs/2401.0002">arXiv:2401.0002</a></dt>
-      <dd>
-        <div class="list-title mathjax"><span class="descriptor">Title:</span> Second paper</div>
-        <div class="list-authors"><span class="descriptor">Authors:</span> Carol</div>
-      </dd>
-    </dl>
+
+def _captured(name: str) -> str:
+    path = pathlib.Path(__file__).parents[2] / "fixtures" / "captured" / name
+    assert path.exists(), f"captured fixture missing: {path}. Re-capture it; never hand-write one."
+    return path.read_text(encoding="utf-8")
+
+
+def test_arxiv_listing_parses_a_captured_live_page() -> None:
+    """The ORACLE for "does this parser match arXiv" — captured, never hand-written.
+
+    The test this replaces was GREEN while the handler returned ZERO entries on
+    the live site, because its fixture used `<a href="/abs/…">arXiv:…</a>` with
+    double quotes and flush anchor text — the shape the regex expected, authored
+    from the same mental model as the regex. arXiv serves single-quoted
+    attributes and `<a href ="…">`. A fixture written from the parser's own
+    assumptions cannot fail when those assumptions are wrong about the site; it
+    can only confirm the parser agrees with itself.
+
+    A failure here after a re-capture means arXiv changed and the schema must
+    follow. It is NOT a reason to weaken the assertion.
     """
-    entries = _parse_listing_entries(html)
-    assert len(entries) == 2
-    assert entries[0] == {"id": "2401.0001", "title": "First paper", "authors": "Alice, Bob"}
-    assert entries[1]["id"] == "2401.0002"
-    assert entries[1]["authors"] == "Carol"
+    parsed = _parse_listing(_captured("arxiv_list_cs_CL_recent.html"))
+
+    assert parsed.verdict is Yield.OK, f"verdict={parsed.verdict} on a captured arXiv listing"
+    assert len(parsed.rows) == _CAPTURED_ARXIV_ENTRIES
+    first = parsed.rows[0]
+    assert first["id"] == "2607.22529"
+    assert first["title"].startswith("Skill Self-Play")
+    assert "Siyuan Huang" in first["authors"]
+
+
+def test_arxiv_listing_reports_rot_not_an_empty_listing() -> None:
+    """A page that is not an arXiv listing must blame the SCHEMA, never the page.
+
+    This is the guard that would have caught the real defect: the old parser
+    returned `[]` and the handler rendered `## Papers (0)` with `Verdict.ok`,
+    which is indistinguishable from a quiet day.
+    """
+    parsed = _parse_listing("<html><body><section class='articles'><dt>x</dt></section></body></html>")
+
+    assert parsed.verdict is Yield.ROT
+    assert parsed.is_rot
+
+
+def test_arxiv_listing_empty_container_is_empty_not_rot() -> None:
+    """A real arXiv listing with no entries is a fact about the PAGE."""
+    parsed = _parse_listing("<html><body><dl id='articles'></dl></body></html>")
+
+    assert parsed.verdict is Yield.EMPTY
+    assert not parsed.is_rot
 
 
 @pytest.mark.asyncio
