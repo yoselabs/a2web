@@ -55,18 +55,46 @@
 
 ## 6. Evidence — the live run
 
-- [ ] 6.1 Re-run the subset that found this: `--only listing --axis next_links
+- [x] 6.1 Re-run the subset that found this: `--only listing --axis next_links
       --mode detail` on a subscription provider (ADR-0016). Confirm
       `listing-answer-always-leaves-an-index` and `reddit-listing` now emit a
       candidate block, i.e. their disposition moves from `unscored` to `scored`.
-- [ ] 6.2 Full-corpus `make bench` for the token-cost delta. `content_md` with
+- [x] 6.2 Full-corpus `make bench` for the token-cost delta. `content_md` with
       inline links is larger and a populated digest adds prompt tokens on pages
       that previously sent none; the envelope-diet work fought for those tokens.
-- [ ] 6.3 Write `eval/findings_<date>.md`. State plainly that `other_pages`
+- [x] 6.3 Written as a section of `eval/findings_2026-07-28-full.md` ("The index axis: one cell moved, one did not") rather than a new file — the measurement came from that run, and splitting it from its own run report would strand the caveats. Original wording:
+      Write `eval/findings_<date>.md`. State plainly that `other_pages`
       quality on browser-served pages is a FIRST observation — the axis has one
       prior data point ever (mean 3.17, 2026-07-28) and none on this population.
       Poor first numbers are a baseline, not a regression.
-- [ ] 6.4 Record, do not fix, whatever the newly-reachable index surfaces.
+- [x] 6.4 Record, do not fix, whatever the newly-reachable index surfaces.
+
+      **MEASURED 2026-07-28 from the full-corpus run** (`eval/runs/2026-07-28_full`,
+      114 cells) — no new spend; this is the run `close-silent-eval-loss` 8.1b
+      commissioned. The answer is SPLIT, and both halves matter:
+
+        listing-answer-always-leaves-an-index   unscored -> SCORED
+                                                  a2web_detail  next_links 4
+                                                  a2web_extract next_links 3
+        reddit-listing                          STILL unscored
+                                                  "system produced no candidate
+                                                   block" on BOTH systems
+
+      So `other_pages` is now reachable on the arXiv-listing cell — the claim
+      this change originally made and then had to retract is TRUE for that cell
+      after the later changes landed. It is NOT true for `reddit-listing`, which
+      still emits no index at all despite scoring quality 5. One cell moving is
+      not the population moving; do not restate the retracted claim.
+
+      **New, recorded not fixed** (task 6.4 / 5.5): `listing-answer-always-leaves-an-index`
+      scored quality **0** on `a2web_extract` while its `next_links` scored 3.
+      The judge: "a prose summary of paper topics with no structured index, no
+      links or identifiers to individual entries, and no actionable pointers."
+      The index exists in `other_pages` but the ANSWER points at nothing — so
+      the two axes disagree about the same cell. Either the answer must reference
+      the index it shipped, or the quality rubric is reading a channel the
+      envelope deliberately separates. Worth deciding before either is called a
+      regression.
 
 ## 7. Close the loop on the root cause
 

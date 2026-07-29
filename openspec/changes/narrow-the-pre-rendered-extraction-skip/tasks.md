@@ -58,23 +58,56 @@
       THIRD blocker, per page — neither yields a structured candidate, so the
       digest gate correctly declines. Probe on arxiv: `records=None`,
       `0` JSON payloads, `links=484`, `digest=None`.
-- [ ] 5.2 Full-corpus `make bench` for the token and latency delta.
+- [x] 5.2 Full-corpus `make bench` for the token and latency delta.
 - [x] 5.3 Write `eval/findings_<date>.md`. State that `other_pages` quality on
       browser-served pages is a FIRST observation — the axis has one prior data
       point ever (mean 3.17, 2026-07-28) and none on this population. Poor first
       numbers are a baseline, not a regression.
-- [ ] 5.4 Report `listing_partial` firing where it never has. Expect it to look
+- [x] 5.4 Report `listing_partial` firing where it never has. Expect it to look
       like a regression in any metric counting `ok` verdicts; it is the
       capability working.
-- [ ] 5.5 Record, do not fix, whatever the newly-reachable index and sufficiency
+- [x] 5.5 Record, do not fix, whatever the newly-reachable index and sufficiency
       signals surface.
+
+      **MEASURED 2026-07-28 from the full-corpus run** (`eval/runs/2026-07-28_full`,
+      114 cells) — no new spend; this is the run `close-silent-eval-loss` 8.1b
+      commissioned. The answer is SPLIT, and both halves matter:
+
+        listing-answer-always-leaves-an-index   unscored -> SCORED
+                                                  a2web_detail  next_links 4
+                                                  a2web_extract next_links 3
+        reddit-listing                          STILL unscored
+                                                  "system produced no candidate
+                                                   block" on BOTH systems
+
+      So `other_pages` is now reachable on the arXiv-listing cell — the claim
+      this change originally made and then had to retract is TRUE for that cell
+      after the later changes landed. It is NOT true for `reddit-listing`, which
+      still emits no index at all despite scoring quality 5. One cell moving is
+      not the population moving; do not restate the retracted claim.
+
+      **New, recorded not fixed** (task 6.4 / 5.5): `listing-answer-always-leaves-an-index`
+      scored quality **0** on `a2web_extract` while its `next_links` scored 3.
+      The judge: "a prose summary of paper topics with no structured index, no
+      links or identifiers to individual entries, and no actionable pointers."
+      The index exists in `other_pages` but the ANSWER points at nothing — so
+      the two axes disagree about the same cell. Either the answer must reference
+      the index it shipped, or the quality rubric is reading a channel the
+      envelope deliberately separates. Worth deciding before either is called a
+      regression.
 
 ## 6. Close the loop
 
-- [ ] 6.1 BLOCKED on 5.1, which failed. `restore-links-on-pre-rendered-tiers`
-      stays open too. NOTE its proposal's claim ("`other_pages` becomes reachable
-      on the hard-fetch population") is now measured false TWICE and must be
-      corrected in place before that change is archived at all.
+- [x] 6.1 UNBLOCKED and resolved 2026-07-28. The correction this task demanded
+      is already in `restore-links-on-pre-rendered-tiers/proposal.md` as an
+      in-place CORRECTION block, so that change is safe to archive on this count.
+
+      A THIRD measurement (full-corpus run) refines the picture rather than
+      repeating the retraction: `listing-answer-always-leaves-an-index` moved
+      `unscored -> scored` (next_links 4 / 3), so `other_pages` IS reachable
+      there now — but `reddit-listing` still emits no candidate block at all.
+      One cell is not the population. The retracted claim stays retracted; what
+      is now true is narrower and is stated as such in both task files.
 - [x] 6.2 BACKLOG: retire the "NEXT — the digest gate blocks every pre-rendered
       page" entry, replacing it with the resolved answer (the gate was right; the
       skip was over-scoped) so the next reader does not re-open it.
@@ -115,14 +148,17 @@ Its guard could not see this: it tested the extraction seam, not the install.
 
 ## 8. The third blocker — recorded, deliberately not fixed
 
-- [ ] 8.1 NEXT CHANGE, not this one: arXiv's handler parses the listing into
-      entries and builds `next_links`, and the browser escalation DISCARDS the
-      handler's `TierResult` wholesale when the gate returns `length_floor`. The
-      canonical "no index was left" case has had a correct index at tier 0 the
-      whole time, on a path that throws it away. This is a losing tier's
-      structured output being discarded rather than merged — a different defect
-      class from all three rounds so far. It reopens the deferred
-      JSON-API-handler question with the concrete second example both prior
-      designs said they were waiting for. Do NOT bundle it here: this change
-      already grew one unplanned section (7) and a second would make its measured
-      delta unattributable.
+- [x] 8.1 SUPERSEDED — do NOT open this change. Its premise ("arXiv's handler
+      has had a correct index at tier 0 the whole time, on a path that throws it
+      away") was retired as WRONG in BACKLOG the same day it was filed: run
+      rather than read, the handler returned `next_links: 0` and 40 chars of
+      markdown, so nothing correct was being discarded.
+
+      It is now moot for a second, independent reason. `handler-parses-nothing-is-not-success`
+      fixed the arXiv parser, so the handler WINS the tier loop (probe:
+      `ok (5910 chars, 10 candidates)`) and never reaches the browser escalation
+      whose discard was the alleged defect. The "losing tier's structured output"
+      path needs a handler that actually loses; arXiv is no longer one.
+
+      If the discard-vs-merge question is real it needs a fresh example and its
+      own evidence — not this one, which was wrong twice over.

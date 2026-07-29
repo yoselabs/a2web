@@ -151,3 +151,48 @@ hints still cannot. That half is shelf work and stays open in BACKLOG.
 
 The single-slug re-bench is a targeted check, not a corpus-wide claim: it says
 this cell moved, nothing about the other 37.
+
+## The index axis: one cell moved, one did not
+
+Answers the open evidence tasks in `restore-links-on-pre-rendered-tiers` (6.1-6.4)
+and `narrow-the-pre-rendered-extraction-skip` (5.2, 5.4, 5.5) from THIS run — no
+additional spend.
+
+| cell | before | now |
+|---|---|---|
+| `listing-answer-always-leaves-an-index` | unscored | **scored** — detail 4, extract 3 |
+| `reddit-listing` | unscored | **still unscored** — "no candidate block", both systems |
+
+`other_pages` is reachable on the arXiv-listing cell after the three link/skip
+changes landed. It is NOT reachable on `reddit-listing`, which emits no index at
+all while scoring quality 5. **One cell moving is not the population moving** —
+`restore-links`' retracted claim ("`other_pages` becomes reachable on the
+hard-fetch population") stays retracted. What is true now is narrower.
+
+`listing_partial` still fires nowhere on handler-served listings, for the reason
+recorded above: `extract_records` returns None on the `<dl>/<dt>/<dd>` shape, so
+`record_count` is None and the sufficiency phase returns at its first line. Task
+5.4 expected to report this capability finally firing; it does not fire, and the
+cause is not the skip these changes narrowed.
+
+### Recorded, not fixed: the two axes disagree about the same cell
+
+`listing-answer-always-leaves-an-index` scored **quality 0** on `a2web_extract`
+while its `next_links` scored **3**. The judge:
+
+> "a prose summary of paper topics with no structured index, no links or
+> identifiers to individual entries, and no actionable pointers the caller can
+> follow to reach specific papers."
+
+So the index shipped in `other_pages` and the answer pointed at nothing. Two
+readings, and they lead to opposite fixes:
+
+1. The answer should reference the index it shipped — the caller reading prose
+   never learns the pointers exist.
+2. The quality rubric is reading a channel the envelope deliberately separates
+   (ADR-0015 puts the index BESIDE the answer, not inside it), and is penalising
+   the design rather than a defect.
+
+Do not call either a regression until that is decided. Note the same cell scores
+quality 5 on `a2web_detail`, which ships the body with links inline — consistent
+with reading (1), but detail also costs 2050 tokens against extract's 546.
