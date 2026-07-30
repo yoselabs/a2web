@@ -17,6 +17,707 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-31 — `endpoint-auth` spec yields an UNAUTHENTICATED endpoint if followed (S, SECURITY)
+
+**Source:** openspec drift sweep, 2026-07-31. Verified.
+
+`openspec/specs/endpoint-auth/spec.md` writes its OAuth variables bare —
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_BASE_URL`,
+`GOOGLE_REQUIRED_SCOPES`, `GOOGLE_REDIRECT_PATH` — in 8 places (`:8`, `:12`,
+`:17`, `:33-34`, `:41`, `:58`, `:64`).
+
+`settings.py:92` sets `env_prefix="A2WEB_"` and the fields are `google_client_id`
+/ `google_client_secret` / `google_base_url`, so the real variables are
+**`A2WEB_GOOGLE_*`**.
+
+**Failure mode:** an operator follows the spec, sets `GOOGLE_CLIENT_ID`, the
+settings field stays `""`, a2web reads that as "not configured", and the spec's
+own branch — *"When it is not configured, no auth provider SHALL be passed and
+behavior SHALL be unchanged"* — makes a **publicly reachable, unauthenticated
+MCP endpoint** look like correct intended behaviour. Silent, and the spec
+explains away its own symptom.
+
+Deploy-time security consequence, not documentation drift. Fix the spec; and
+consider making `serve_http_main()` fail loudly when it finds bare `GOOGLE_*`
+set in the environment while its own `A2WEB_GOOGLE_*` are empty — the
+misconfiguration is detectable at boot.
+
+---
+
+## 2026-07-31 — `_ttl_for` caches almost everything for 7 days (S, correctness — LIVE)
+
+**Source:** threshold audit, 2026-07-31. Measured against `AppSettings()`:
+
+```
+text/html             ->   24 h
+application/json      ->  168 h
+text/markdown         ->  168 h
+application/atom+xml  ->  168 h
+""  /  None           ->  168 h
+```
+
+`fetcher.py:263 _ttl_for` routes everything non-HTML — **including an absent
+content-type** — to the 7-day static TTL. The jina tier sets
+`content_type="text/markdown"` (`jina.py:119-192`), so **every jina-served page
+is cached for a week.** `handlers/_common.py:46` and `reddit.py:181` set `""`;
+discourse/github/habr/hn/v2ex set `application/json`; `arxiv.py:107` sets
+`application/atom+xml`. **Only wikipedia gets the 24h article TTL.** Reddit and
+HN escape only because `live_only_hosts` bypasses cache entirely — GitHub issue
+lists, Discourse forums, Habr threads, arXiv listings and firecrawl renders do
+not.
+
+Fail-unsafe by default: an unknown content-type gets the LONGEST TTL.
+
+`_ttl_for` has **zero tests** — every TTL test (`tests/capabilities/cache/test_cache.py:48,75,99`)
+hard-codes `ttl_s=3600`, exercising storage and never policy. Perturbation:
+`cache_ttl_static_h` 168→336 = 0 failures; `cache_ttl_article_h` 24→48 = 0.
+
+While here: **`cache_ttl_live_m = 5` is dead code** — read nowhere (`is_live_only`
+does a full cache bypass). An operator setting `A2WEB_CACHE_TTL_LIVE_M` gets
+nothing. Delete or wire it.
+
+Also `fetcher.py:267-268` uses `getattr(settings_obj, "cache_ttl_article_h", 24)` —
+renaming the setting silently falls back to a hard-coded default instead of
+failing.
+
+---
+
+## 2026-07-31 — `_MAX_RECORDS` × `DEFAULT_TOLERANCE` dead zone (S, correctness — ADR-0009 LIVE)
+
+**Source:** threshold audit, 2026-07-31. Measured:
+
+```
+total 50 -> ready     total 55 -> ready     total 56 -> partial
+```
+
+`fc.record_count = len(record_set.records)` (`fetcher.py:1731`) is the
+**post-cap** count. For any listing advertising **51-55 items**, `_MAX_RECORDS=50`
+truncates `loaded` to 50, `DEFAULT_TOLERANCE=0.9` clears it as `ready`, and
+`listing_partial` never fires — **the caller is told the listing is complete
+while 1-5 items were dropped.**
+
+Shelf ledger 0074 admits the reported shortfall is IMPRECISE above 50. It does
+not admit the shortfall can VANISH. A silent miss produced by two independently
+ASSERTED constants interacting — neither wrong alone. `_MAX_RECORDS` is
+INHERITED from a2web's own unexplained `domain.py:285,439` `[:50]`;
+`DEFAULT_TOLERANCE`'s cited validation was a 489/7899 read (6%), which never
+exercises the 90% boundary.
+
+Witness: `_MAX_RECORDS` 50→100 = **0 failures** — the direction that would fix
+the ledger bug is unwitnessed. `DEFAULT_TOLERANCE` is witnessed (9 failures at
+0.45) but every test case uses loaded values far below 50, so the dead zone is
+untested. Add the boundary test first, then decide whether the cap or the
+tolerance moves.
+
+---
+
+## 2026-07-31 — 22 constants can be doubled with zero test failures (M, verification)
+
+**Source:** threshold audit, 2026-07-31. Method: rewrote each constant's SOURCE
+LITERAL through a `sys.meta_path` loader (catches `from x import CONST` bindings
+that attribute monkeypatching misses), 50 perturbations, full suite each.
+Baseline 1274 passed.
+
+**29 of 50 perturbations changed nothing.** Of ~60 audited constants, **three**
+are genuinely measurement-derived (`zyte._TIMEOUT_S=60.0`,
+`_RENDER_CONTENT_CEILING=2000`, `BLANK_HTML_THRESHOLD=32`); one is externally
+sourced (`WEBFETCH_HTTP_TIMEOUT_S`); two are weakly corpus-tuned. Everything
+else is ASSERTED or INHERITED.
+
+**Worst: `_HEADING_FRAC_MIN = 0.50`** (record-mine `detector.py:62`) —
+**unwitnessed in BOTH directions** (0.25 = 0 failures, 1.00 = 0 failures). At
+1.0 every record must carry an `h1`-`h6`, so record detection dies on any
+listing using `<div>`/`<span>` titles — most e-commerce grids. Silent:
+`record_count` stays `None`, removing the ADR-0015 index AND the ADR-0009
+completeness signal at once, with no diagnostic. Its own design doc
+(`2026-05-22-structural-record-detection`) says *"corpus-tuned (10 pages) —
+widen the benchmark corpus and retune if a real miss appears."* Never retuned.
+Related: the shelf implementation dropped `[role=heading]`, a silent divergence
+from the normative text in `openspec/specs/record-extraction/spec.md`.
+
+`_CONSISTENCY_MIN = 0.70`: 0.95 = 0 failures, 0.35 = 1. Same capability-off
+shape — 0.95 kills detection on any listing with mixed card types (sponsored /
+promoted rows).
+
+**`LENGTH_FLOOR = 500`'s test is endogenous.** `tests/capabilities/extraction/test_wire_content_md.py:17`
+is `assert len(_PROSE) >= LENGTH_FLOOR` — a fixture sized FROM the constant. It
+can only confirm the fixture agrees with it. This is the single most
+load-bearing number in the product (gates quality-gate, extraction,
+retrieval-completeness, browser escalation, empty-vs-wall) and it is ASSERTED,
+day-one, with no comment.
+
+**Every timeout is unwitnessed** — raw 10→20, jina 15→30, archive 12→24 all = 0
+failures. Archive's 12 applies to THREE sequential fetches (CDX → wayback →
+archive.ph), so the real worst case is ~36s.
+
+**`firecrawl._TIMEOUT_S = 40.0` is a stale twin of a disproven number.** Zyte's
+identical 40.0 was MEASURED to fail under concurrent load (`2bf60ca`: *"one
+Reddit cell got zyte ok in 7.9s, a concurrent one timed out at 40.3s and fell to
+a weaker fallback"*) and raised to 60. Firecrawl renders server-side the same
+way, kept 40, and still carries the "generous headroom" comment that was
+falsified for its sibling. Propagate the correction.
+
+**Silent truncation with no shortfall signal.** `arxiv.py:297 entries[:25]` is
+the ONLY cap in the codebase that reports its own truncation (`Papers (25 of
+408)` + a partial-view note), and its docstring cites the bench measurement that
+forced it. The same failure is live one file over:
+
+| constant | reports shortfall? | witness |
+|---|---|---|
+| `habr._MAX_COMMENTS = 400` | **no — stops mid-tree, no count, no total** | 0 failures |
+| `hn._ALGOLIA_SEARCH_HITS_PER_PAGE = 30` | **no — Algolia returns `nbHits`, ignored** | 1 |
+| `v2ex._MAX_REPLIES = 200` | post-truncation count only (full `replies` in hand, discarded) | 0 |
+| `discourse._MAX_TOPICS = 50` | post-cap count only | 0 |
+
+All four landed in one commit (`7b1abdd`) with no openspec, ADR, findings or
+CHANGELOG derivation. Port the arXiv `N of M` pattern; `hn` and `v2ex` already
+hold the total.
+
+**Cross-cutting:** `listing_scroll_cap = 8` and
+`any_browser.playwright._SCROLL_STABLE_MAX_PASSES = 8` are two independent 8s
+for one concept; `_THIN_BROWSER_MAX_BODY = 1_024` and
+`any_browser.playwright._THIN_FLOOR = 4_096` are two browser-thinness floors
+**4x apart in the same render path**; four unrelated 500s
+(`LENGTH_FLOOR`, `_MAX_RECORD_CHARS`, `_ENTITY_VALUE_CAP`,
+`extractor._PROVIDER_ERROR_MAX`) with no stated linkage; and
+`openspec/specs/link-discovery/spec.md:37`'s single "capped at 10" invariant is
+implemented as four hardcoded literals (`arxiv.py:317`, `hn.py:169`,
+`reddit.py:612`, only `wikipedia._WIKILINK_CAP` named), so the spec's cap cannot
+be changed in one place.
+
+**Two self-declared soft values worth acting on:** `_ENTITY_ARRAY_CAP = 10` is
+documented as *"a starting guess… adjust at implementation time if a real
+fixture suggests otherwise"* — no fixture ever revisited it. And
+`_CORROBORATION_THRESHOLD = 2` is already known-wrong at `BACKLOG.md:428` (counts
+OBSERVATIONS, not INDEPENDENT EGRESSES), which **directly contradicts the word
+"independent" in the code comment at `terminal.py:72`**.
+
+**Doc drift found here:** CLAUDE.md:73 says browser is "capped at 1/fetch";
+`playbook.py:156,172,260` caps at `< 2` (fast → robust rungs).
+
+---
+
+## 2026-07-31 — there is no CI on push or PR (S to fix, L in consequence — READ FIRST)
+
+**Source:** doc-drift sweep, 2026-07-31. Verified: `.github/workflows/` contains
+exactly one file, `release.yml`, and its trigger is:
+
+```yaml
+on:
+  push:
+    tags:
+      - "v*"
+```
+
+**Every guard in this backlog runs only when a version tag is pushed.** Not on a
+branch, not on a PR, not on a merge to main. CLAUDE.md:20 states the shelf guard
+"runs in `make check` and therefore on CI" — it does not, on the events where
+regressions actually arrive.
+
+This reframes every other verification entry below: the goldens, the endogenous
+fixtures, the missing wire witnesses are all weaker than they look, because the
+gate they hang from does not fire. **Fix this before investing in any individual
+guard** — a stronger assertion on an ungated pipeline buys nothing.
+
+---
+
+## 2026-07-31 — two named guards answer a different question than advertised (S, verification)
+
+**Source:** doc-drift sweep, 2026-07-31. Both verified by reading the tests.
+
+1. **`test_packages_boundary_frozen.py`.** CLAUDE.md:249 and
+   `docs/architecture/README.md:73` both state it pins `packages/*/__init__.py`
+   `__all__`. It asserts `@dataclass(frozen=True)` + slots on `BlockResult` and
+   `EscalationSignal`. **The word "frozen" is doing double duty across two
+   unrelated invariants.** Only one package has an `__all__`
+   (`packages/llm_extract/__init__.py:55`) and it is unguarded. Precisely the
+   shape `close-silent-enforcement-loss` was created to kill.
+
+2. **`test_transient_markers_not_stale`.** `grep -rn "TRANSIENT ("` over `src/`
+   and `tests/` returns **0** outside the guard itself. The population is empty,
+   so the guard cannot fire — while `verification-provenance.md:26` lists it as
+   one of three mechanizable remedies for mechanism-B rot. Its non-vacuity test
+   proves the archive LOOKUP resolves, not that any marker exists. A guard
+   reporting "0 violations in 0 candidates", named as coverage, inside the very
+   doc that names that pathology.
+
+Adjacent: **`pytest-archon` is a declared dependency used by zero tests**
+(`pyproject.toml:223-226`, ADR-0001:60, CLAUDE.md:243 — "the pytest-archon
+`json.loads`-ban will close this loop"). Every architecture guard is hand-rolled
+`ast`. An auditor sees an installed library plus a promise.
+
+And **the rules registry is 10 of 33.** `docs/architecture/README.md` omits 23
+existing guards including `test_one_composition_root`, `test_cold_start_laziness`,
+`test_trafilatura_funnel`, `test_handler_markup_funnel`,
+`test_tach_covers_every_package`. The documented "adding a rule" workflow has a
+step for CLAUDE.md and none for this table — which is why it rotted.
+
+**`json.loads` scope gap, corrected.** The handler sites
+(`discourse.py:78`, `habr.py:127`, `v2ex.py:110`, `hn.py:100`,
+`tiers/archive.py:82`) parse SITE API JSON and are benign. The real hole is that
+CLAUDE.md names five LLM-contract-parsing sites and **two live outside the
+walked root** (`test_json_loads_funnel.py:30` walks only
+`src/a2web/packages/llm_extract/`): `llm_eval/bench_judge.py` and
+`fetcher_response.py::_project_routing`. A future LLM-JSON parse at either
+bypasses the funnel with the guard green.
+
+---
+
+## 2026-07-31 — openspec canonical specs contradict shipped code (M, docs — 4 load-bearing)
+
+**Source:** doc-drift sweep, 2026-07-31.
+
+Dominant cause: two structural migrations landed with no spec sync — the
+`anyllm` adoption (`ee2452c`, shipped BREAKING, updated no spec) and the shelf
+promotions that emptied `packages/`.
+
+| spec | asserts | code |
+|---|---|---|
+| `provider-selection:22,34-37,100-107` | `openai_compatible` is LAST in auto order so it "can never shadow a working Claude/Anthropic path" | `llm_resource.py:71-74` `_GATEWAY_FIRST_ORDER` puts it **FIRST** when `OPENAI_API_KEY`+`OPENAI_BASE_URL` are both set — **a live routing invariant inverted** |
+| `endpoint-auth` | writes every env var bare (`GOOGLE_CLIENT_ID`) | `env_prefix="A2WEB_"` applies — **an operator following it literally gets an UNAUTHENTICATED endpoint** |
+| `browser-tier:180,192-195` | the smoke check SHALL auto-skip when the binary is unavailable | `test_browser_smoke.py` hard-FAILS under `A2WEB_REQUIRE_BROWSER=1`; following the spec re-opens the dead-rung hole the guard closes |
+| `tier-pipeline:8,84-96` (+ `site-handlers`, `raw-tier`) | requires `tier_extras: dict[str, Any]` | CLAUDE.md says never reintroduce it; `test_no_dict_str_any_on_dataclasses.py` fails on it |
+| `extraction:103-152` vs `content-expectations:48` | contradict EACH OTHER on candidate selection | and both contradict `fetcher.py:1541-1586` |
+| `output-benchmark`, `openai-compatible-provider` | prescribe the invalid provider ids as normative config | see the provider-ids entry |
+
+Nine `openspec/specs/` sites still cite the deleted
+`tests/test_packages_independence.py` — `close-silent-enforcement-loss` fixed
+that citation in CLAUDE.md only, because the guard it built reads CLAUDE.md
+alone.
+
+**Cheapest high-value fix:** two fully-implemented changes were never archived —
+`narrow-the-pre-rendered-extraction-skip` (27/27) and
+`restore-links-on-pre-rendered-tiers` (25/25). Their delta specs already contain
+corrected text for `tier-pipeline`, `extraction`, `link-affordances`,
+`listing-completeness`, `link-discovery` — including the `tier_extras` fix.
+Sync those, then sync `provider-selection` + `openai-compatible-provider` +
+`output-benchmark` for `ee2452c`.
+
+**Refuted hypothesis, recorded so it is not re-checked:** `handler-live-probe/spec.md`
+is one of the MOST current specs in the tree (rewritten by
+`2026-07-28-probe-asserts-yield-not-reachability`, matches `handler_probe.py`
+requirement-for-requirement). Its only defect is a `_HANDLERS` registry name with
+zero hits.
+
+---
+
+## 2026-07-31 — CLAUDE.md describes a different system than the one shipped (S, docs)
+
+**Source:** doc-drift sweep, 2026-07-31. CLAUDE.md is the map every agent reads
+first; each of these sends a reader somewhere wrong.
+
+**Load-bearing:** CLAUDE.md:119,125 — *"The container is deliberately slimmed —
+no `[browser]`/`[cookies]`/`[claude-code]` extras — so a served a2web has no
+local browser."* `release.yml:92-94` builds and pushes with
+`INSTALL_BROWSER=true`; `Dockerfile:9-13` and `README.md:332-334` both describe
+the published image as browser-baked (~1.9 GB). Three sources agree against
+CLAUDE.md. An agent reasoning "the served instance cannot browser-escalate"
+routes wrong. (`openspec/specs/container-image:20-27` errs the OPPOSITE way,
+asserting Chromium unconditionally while a default `docker build` ships none.)
+
+**Structural, misleads anyone reasoning about ordering:** CLAUDE.md:72 says
+`_run_pipeline` is "a 12-line coordinator calling six named phases". It is **47
+lines calling twelve**, and `_phase_cache_write` is NOT terminal — three
+promotion/terminal steps run after it.
+
+**Inventory drift:** 9 site handlers documented as 5 (`:69`); the **zyte tier and
+the `browser_robust` rung are absent entirely** while `_PAID_TIER_ORDER =
+("zyte", "firecrawl")` puts zyte first (`:70` says only "`paid.py` (Firecrawl
+env-gated)"; the files are `_paid.py`, `firecrawl.py`, `zyte.py`); 8 tier
+manifests documented as 5; `_manifests/llm_providers/` listed as a live plugin
+surface (`:85`) but the directory is empty with no `load_surface` targeting it;
+`domain.py` described as "pure functions too small for their own files" (`:75`)
+when ~370 of 551 lines are a structured-data renderer.
+
+**Dead/renamed symbols:** `_apply_after_tier_action` / `_AfterTier` (now
+`_dispatch_action` / `_Exec`; survive in test comments at
+`test_fetcher.py:360,384`, the latter claiming to test "the
+`_apply_after_tier_action` contract"); `next_action_after_gate` /
+`next_action_after_tier` (now `decide_next(log, *, url, caps)`);
+`ExtractionCache` (now `LlmCache`); the tool registered as `refresh` but called
+`cookies_refresh` in CLAUDE.md:119, `settings.py:239,253`, `README.md:367-368`.
+
+**Why the citation guard missed these:** `test_claude_md_citations_resolve.py:61`
+requires a file suffix, so it checks 43 of 78 path-shaped citations and **no
+directory citation at all** — which is why CLAUDE.md:29,81 can cite
+`openspec/changes/sunset-a2kit-dependency/` and `.../shelf-sweep-promotions/` as
+read-this-first gates when both moved under `archive/` with date prefixes.
+Widening that regex is the cheapest fix in this entry.
+
+Also `CLAUDE.md:31` names `a2kit-v043-migration/` as the most recent archived
+change; it is one of ~55 older ones (latest is `2026-06-19-a2kit-v044-migration`).
+And `CLAUDE.md:249`'s "aiosqlite worker thread doesn't leak" — the test asserts
+the conftest TEST-ONLY daemon patch is applied and says nothing about production.
+
+---
+
+## 2026-07-31 — stale provider ids break a documented boot (S, correctness — LIVE)
+
+**Source:** doc-drift sweep, 2026-07-31.
+
+`ee2452c` (HEAD, 2026-07-27) adopted `anyllm.ProviderName` and its own commit
+body says the old ids no longer validate. The sweep reached `Makefile` and
+CLAUDE.md; it missed four places, three of which are copy-pasteable:
+
+| site | says | truth |
+|---|---|---|
+| `README.md:305` | `A2WEB_LLM_PROVIDER` accepts `anthropic` / `claude-code` / `openai_compatible` | all three `ValidationError` at settings load |
+| `README.md:429` | `A2WEB_BENCH_PROVIDER=anthropic make bench` | `anthropic-api` |
+| `settings.py:205-206`, `:223` | same three ids, as the documented menu | contradicts `settings.py:37` 170 lines above |
+| `eval/model_benchmark/run.py:96` | sets `"openai_compatible"` — **live code, not a doc** | `openai-compatible` |
+| `llm_resource.py:11-21`, `:56` | same menu + a `claude-code`→SDK mapping | no such id to map from |
+
+Measured: `AppSettings(llm_provider="anthropic")` → `ValidationError`.
+Mitigating for ADR-0016: it fails LOUD at resolution rather than silently
+falling through to metered billing. Note README is clean on env var NAMES —
+every `A2WEB_*` in its deployment matrix resolves to a real `AppSettings` field;
+it is the documented VALUES that are dead.
+
+Second-order: **ADR-0016 and CLAUDE.md now contradict each other in front of the
+reader.** ADR-0016:22,33 carries `claude-code` / `anthropic` /
+`packages/llm_cost_guard.py`; CLAUDE.md carries the corrected
+`claude-code-sdk` / `anthropic-api` / shelf `anyllm.cost`. Both are
+correctly-dated records, so neither is drift by the stated rule — but ADR-0016
+is cited as LIVE doctrine from CLAUDE.md and `verification-provenance.md:131`.
+Same shape at ADR-0014:21,45 (`NextUrl.off_domain` → `OtherPage.off_domain`,
+folded by ADR-0015, with no "superseded by" pointer on 0014). The underlying
+symbols all survive: `assert_within_budget`, `CostPolicy`, `CostViolation`,
+`with_cost_guard` are exported by `anyllm.cost`. Suggests ADRs cited as live
+doctrine need a superseded-identifier pointer, not a rewrite.
+
+---
+
+## 2026-07-31 — two cited architecture guards do not exist (S, verification)
+
+**Source:** doc-drift sweep, 2026-07-31.
+
+1. `docs/architecture/README.md:66` lists **`tests/architecture/test_no_lambdas_in_app_provide.py`** in the LIVE "current rules" table (repeated at `:15`). The file does not exist; `app.provide` died with a2kit on 2026-07-22. The manual's own "Removing a rule" section requires deleting the file AND the docs — half was done. A reader adding a lambda believes CI catches it. This is precisely the "rule that reads as coverage while providing none" pathology, inside the document that warns about it.
+
+2. `docs/architecture/README.md:74` and `docs/architecture/verification-provenance.md:70-71` cite **`tests/packages/test_zendriver_backend.py::test_fake_config_matches_real_add_argument`** as the standing fake-fidelity contract AND as the reference implementation of mechanizable guard #1. Neither file nor function exists — promoted to the shelf with `any_browser`, no a2web-side successor.
+
+(2) is the higher consequence and the sharper lesson: `verification-provenance.md`
+lists exactly three mechanizable guards, and then reasons FROM the existence of
+this one — *"H1 + the wire golden gate + the standing fake-fidelity contract
+already bought most of the endogenous-oracle risk down"* — to advise spending
+marginal effort elsewhere. A live budget recommendation resting on a guard that
+is not there, and the failure it was built to catch (the dead `--no-sandbox`
+rung, cited twice in the same file) is exactly the class now unguarded.
+
+**The doc that codifies the foreign-provenance rule fails it.** Worth an entry
+in that doc itself, not just a fix.
+
+The two SURVIVING guards were verified real and correct: `_walk.walked_files(minimum=…)`,
+`test_transient_markers_not_stale` (which carries its own non-vacuity test), and
+the `browser-gate` CI job (`publish` genuinely `needs: [gate, browser-gate]`;
+the smoke test `pytest.fail`s rather than skips under `A2WEB_REQUIRE_BROWSER=1`).
+
+---
+
+## 2026-07-31 — naming rot: `_prescribe_browser_on_wall` (XS, cosmetic)
+
+Cited in present tense at `fetcher.py:1839,1919` and `fetcher_response.py:388,429`
+as the live emitter of the `try_user_browser` floor. The symbol does not exist.
+
+**Behaviour is intact** — `_apply_terminal` (`fetcher.py:1973`, called at `:2349`,
+second-to-last statement of `_run_pipeline`) runs the floor, and
+`fetcher_response.py:435` reads the resulting hint. Renamed by
+`2026-07-15-fetch-failure-semantics`, which updated `terminal.py`'s history
+docstring and missed four consumer comments.
+
+Cost is navigational: four comments name a grep target that returns zero hits.
+Recorded explicitly because an earlier reading of this session blamed it for the
+`paid_auth_error` hole; it is not the cause.
+
+**Worst of this group is not that rename.** `state.py:144` claims, present
+tense: *"Registered in `server.py` as `app.provide(Provider, build_selected_provider)`."*
+`server.py` has no `provide`; the factory is wired in
+`components.build_components()`. The docstring names the WRONG FILE and the
+WRONG API for the composition root — pointing a reader at exactly the
+parallel-root violation `test_one_composition_root.py` exists to prevent.
+`cookie_jar.py:9` is the same shape one file off. Eleven a2kit-API comment sites
+survive in `src/`; the four in `components.py`/`server.py` are explicitly
+past-tense migration tables and are fine.
+
+Same class, same fix pass: `twitter.py:144` `_attach_failure_floor`;
+`log.py:251` `build_app()` (→ `server.build_mcp_server`); `_policies.py:4`
+`JUDGE_VERDICT_POLICY` (→ `_JUDGE_POLICY`); `settings.py:242` `CookiesRouter`;
+`fetcher_response.py:408` `_extract_answer` (→ `_phase_extract_answer`);
+`content_expectations.py:29` `TOLERANCE` (→ `DEFAULT_TOLERANCE`).
+Also `CONSTITUTION.md:427` / ADR-0001:61 cite `tests/test_packages_independence.py`
+(replaced by Tach); `CONSTITUTION.md:488,491` cite `AGENTS.md` and
+`docs/PROMOTION_AUDIT.md` (neither exists) — but that file is a declared verbatim
+a2kit copy, so the fix belongs upstream.
+`BACKLOG.md:539-543` names `make bless-contracts` / `test_contracts.py` /
+`tool_schemas.json` / `ask_success_rich.json` — all four nouns stale.
+`docs/architecture/cloudflare-handling.md` is present-tense and turn-key-framed
+over `packages/browser_pool.py` (gone), Camoufox-as-default (gated off
+unconditionally), `tiers/paid.py` (never existed), and an `assets/` specimen with
+no `assets/` dir; its Layer-2 half verifies clean, which makes the rotted half
+more likely to be trusted.
+
+---
+
+## 2026-07-31 — `paid_auth_error` has no operator hint (S, correctness — LIVE DEFECT)
+
+**Source:** encapsulation scan, 2026-07-31.
+
+Not a rot risk. Already broken. A keyed paid tier rejecting our key today ships
+`status: failed` + `retrieval_incomplete: true` + narrative + diagnostics and
+**zero operator hints** — the one signal that would say "fix your key" does not
+exist.
+
+`grep -n 'code="' src/a2web/models.py` returns 10 hint factories; none is
+`paid_auth_error`. Two chokepoints each stand down believing the other covers
+it:
+
+- `fetcher.py:1994` — *"`operator_error` / `unreachable` → no hint here
+  (paid_auth_error carries its own)"*
+- `fetcher_response.py:390` — *"Only `paid_auth_error` is special: it keeps its
+  OWN dedicated hint... instead of `try_user_browser`"*
+
+CLAUDE.md's Never clause requires it verbatim: *"a critical `try_user_browser`
+operator hint (**or `paid_auth_error` when a keyed paid tier's key is bad**)"*.
+
+`test_paid_escalation.py:183-200` asserts the verdict and diagnostics, never a
+hint; `test_never_silent_miss.py:104` asserts exactly-one `try_user_browser`,
+which this branch deliberately does not emit. So both witnesses pass.
+
+Fix is small (one factory + one emission site). The lesson is not: this is the
+same shape as the listing oracle — a capability whose only description was a
+comment referring to something that was never written.
+
+Also waived by a guard: `tests/architecture/test_terminal_hint_coherence.py:33`
+declares `operator_error: frozenset({None})` with the comment "emitted at the
+paid tier". That file declares `_COHERENCE` inside itself and asserts properties
+OF THAT LITERAL — it never reads `fetcher._apply_terminal`. A spec-consistency
+test wearing an enforcement test's clothes.
+
+**Not** caused by the `_prescribe_browser_on_wall` naming rot (logged separately
+below) — that drift is cosmetic and the wall floor it describes is intact.
+
+---
+
+## 2026-07-31 — invariants with no code implementer (M-L, structure)
+
+**Source:** encapsulation scan, 2026-07-31. Ranked by exposure.
+
+Each is a stated first-class invariant whose enforcement is prose, or whose
+test asserts the fixture rather than the behaviour.
+
+| # | invariant | where it "lives" | why it can die silently |
+|---|---|---|---|
+| 1 | **ADR-0012** never manufacture a selection | `prompts.py:202-209` — English only | sole `make check` assertion is that a corpus entry EXISTS (`test_corpus_subset_and_selection.py:52`). Delete the paragraph, suite stays green. Behaviour judged only under `make bench`, which is not run by default. |
+| 2 | **ADR-0014** never surface an ungrounded URL | `link_digest.py` + a second, unrelated substring check at `fetcher.py:2536` | no end-to-end witness. The one wire test (`test_router_wire.py:122`) feeds a raw model-typed URL and asserts it REACHES the wire — pinning the escape hatch open. Its stub page is prose-only, so no digest is built and both rehydration sites are inert: the capability can be entirely off, green suite. |
+| 3 | `structural_form` — the unnamed master switch | six independent proxies (`extractor.py:538`, `fetcher_response.py:628`, `fetcher.py:2355`, `domain.py:41`, `block_detector.py:249`, `fetcher_response.py:234`) | `wobble/_policies.py:34` defaults it to `None` BY POLICY. Model stops emitting it → `options` and `refinement_axes` permanently empty, silently. Every listing test hand-feeds the value. This switch also gates #1's only visible artifact. |
+| 4 | **ADR-0015** index loss | `fetcher_response.py:311-355` `_index_loss_hint` | the docstring (`:326-333`) argues the gate must be on the DELIVERED index; `:341` then returns early unless routing was unparsable, making that check unreachable on the OK path. A clean envelope with `also_here: []` fires nothing — and `prompts.py:181-184` records that harm already happening live. A named guard that reads as coverage and does not cover the failure that occurred. |
+| 5 | handler wall check | `handlers/_common.py:80` `challenge_verdict` | adopted by 2 of 9 handlers (`twitter`, `wikipedia`). JSON-API handlers are genuinely N/A. **Real gap: `arxiv.py:136-165`** decodes HTML, parses it, returns `Verdict.ok`, no challenge check — a Cloudflare interstitial renders "Papers (0)" as success, in the same handler that already shipped a silently-dead parser. No AST guard asserts adoption. |
+| 6 | breakers / proxy routing | `fetcher.py:1086-1140`, `tiers/raw.py:92` | answered only inside the tier loop. Browser (`:2111`), paid (`:2216`), archive (`:905`), jina (own client) and 8 of 9 handlers bypass both. No test asserts a breaker ever opens or that a configured proxy is applied. Silent death = proxies stop applying and the resulting blocks get blamed on anti-bot. |
+| 7 | `domain.py` (inverse case) | ~370 of 551 lines are a complete structured-data→markdown renderer (the `json_synth` rung) | CLAUDE.md:75 describes the module as "pure functions too small for their own files". Mis-documented and un-findable, but genuinely WITNESSED (`tests/capabilities/json_extract/`, two architecture tests) — so low severity. |
+
+**The template for fixing all of them already exists in-repo.** ADR-0009 is the
+counter-example: `actions/terminal.py::classify_terminal` is named after the
+QUESTION, pure, total over a closed enum, one chokepoint (`_apply_terminal`),
+six test files. The archived `2026-07-11-prescribe-browser-on-any-wall` change
+is the record of collapsing three scattered emission sites into it. This smear
+was found and fixed once; it was not reapplied elsewhere.
+
+Caveat on that counter-example: the ADR-0009 four-signal conjunction is itself
+never asserted as executable code — only byte-equality against a re-blessable
+golden (`A2WEB_ACCEPT_WIRE_DELTA`), with `test_no_golden_is_degenerate` checking
+only non-emptiness and `len(text) > 20`. That gap is exactly how the
+`paid_auth_error` hole got through.
+
+---
+
+## 2026-07-31 — the corpus cannot see the envelope (L, verification — HIGHEST LEVERAGE)
+
+**Source:** corpus negative-space scan, 2026-07-31.
+
+`JUDGE_V1` (`prompts.py:409`) has three slots: `{ask}`, `{content}` (= the
+criteria list), `{answer}`. **The page is never in the prompt.** The instruction
+says "penalize fabrication" to a judge with no ground truth.
+
+Axes and what each can read: quality → answer prose; clarity → answer prose;
+next_links → the `other_pages` TSV block only; contract → the full envelope, but
+asserts exactly 5 SHAPE rules, never semantics. Nothing reads `also_here`,
+`options`, `refinement_axes`, `obstacle`, `operator_hints`, `diagnostics`,
+`confidence`, or `status` semantics.
+
+**33 of 115 criteria are addressed to a reader that does not exist.**
+
+Invariants with ZERO catching cells: ADR-0009 wire half (1 offline only),
+ADR-0014, ADR-0015, ADR-0017, empty-vs-wall, tier-truthfulness wire half,
+listing `options` shape, never-cache-below-the-gate, ADR-0013 handles. **Nine of
+twelve.** ADR-0012 is the one healthy invariant (4 cells, prose-level,
+genuinely catchable) — and it is the one with no code implementer, so it is
+witnessed exactly where it is not enforced.
+
+The 21 anti-fabrication criteria are decorative, and `_NEXT_LINKS_TEMPLATE`
+explicitly instructs *"never penalize an entry for being unfamiliar or assume it
+is fabricated"* — the one axis that reads URLs is told not to suspect them.
+
+**The fix is mostly wiring that already exists.** `tests/eval_replay/replay.py::assert_contract`
+already supports `status`, exact `operator_hints`, `tier`, `next_links_min`,
+`content_includes/excludes`, `input_menu_includes/excludes`. It is used on 7
+offline cases, 5 of which assert `status: ok` — the failure taxonomy has ONE
+frozen witness in the repo. Wire that vocabulary into the live bench as a
+per-cell deterministic assertion block and 33 dead criteria become live.
+Second: pass the fetched page to the quality judge so "does not fabricate"
+becomes checkable.
+
+Also add `retrieval_incomplete` + `narrative` to `replay.py::observe()` — they
+are not in the projection, so the akakce wall baseline can never regress on them
+and is not the second witness it appears to be.
+
+**Language over-fit, measured:** English 26 / Turkish 9 / Russian 1 / Chinese 1.
+**Every commerce, wall, empty-vs-wall and 404 case is Turkish.** No non-English
+listing, no non-English wall, no non-English 404. Zero RTL, JP/KR, or
+non-English-European. Archetypes with zero coverage: PDF, login-wall, metered
+paywall, geo-block/451, cookie-consent interstitial, JSON content-type,
+data-table page, infinite-scroll feed, redirect chain, video/transcript.
+
+---
+
+## 2026-07-31 — a wire regression on ADR-0009 is one re-bless from green (M, verification)
+
+**Source:** golden-witness scan, 2026-07-31. Measured, not reasoned.
+
+Simulated wire-only regressions (monkeypatching `_prune_wire`, so object
+attributes stay correct — the shape of a serializer bug). Baseline 1274 passed.
+
+| regression | failures |
+|---|---|
+| drop `narrative` | 3 |
+| drop `diagnostics_summary` | 3 |
+| drop `retrieval_incomplete` | **1** |
+| drop the critical hint | **1** |
+| **downgrade hint `critical` → `info`** | **1** — the golden's BYTE-COMPARE, nothing else |
+
+Turning the ADR-0009 klaxon into an informational note for every agent in the
+field is one `make bless-wire SLUG=whatever` away from green.
+`wire_harness.py:169` is `if ACCEPT_SLUG: path.write_text(actual)` — the slug is
+never validated, and it rewrites all 12 goldens in one run.
+
+Cause is structural: 55 `retrieval_incomplete` assertions exist and
+`test_never_silent_miss.py:103-105` does assert `severity == "critical"` — but
+every one reads `result.<attr>` from `fetcher.fetch()`. **None exercises the wire
+projection**, the layer agents actually consume.
+
+`test_no_golden_is_degenerate` bars only `len(text) > 20`; the real coverage is
+the inline per-scenario asserts, which are good. `test_every_accepted_delta_is_real`
+proves A difference persists, never THE described one (all 9 slugs currently
+pass; nothing stale today).
+
+**Fix:** lift the three inline asserts out of `test_wire_query_failure` into a
+standalone wire capability test asserting all five signals PLUS
+`severity == "critical"` — removing the golden from the enforcement path.
+
+---
+
+## 2026-07-31 — 21 behavioural rules live only as prompt English (L, structure)
+
+**Source:** prompt-rule scan, 2026-07-31. ~34 rules: 8 enforced, 5 witnessed,
+21 prompt-only, 3 contradictions, 2 undocumented code rules.
+
+Structural caveat on every "witnessed" claim below: `tests/_helpers/llm_doubles.honor_contract`
+SYNTHESIZES a compliant envelope whenever the router contract is detected, so
+every `query` capability test and every wire golden asserts a hand-made
+envelope. Those are fixture assertions, not rule witnesses.
+
+**Worst — ADR-0014 is enforced only on the path that rarely runs.** The prompt
+says twice "NEVER type a raw URL". `extractor.py:~576` accepts `item["url"]` —
+any non-empty string — when there is no handle; `fetcher.py:2405` passes it
+through unvalidated; and `test_rehydration_seam.py::test_legacy_url_entry_passes_through`
+**asserts that `https://x.example/` reaches the wire**. Grounding holds only on
+the digest path, and the digest is built only when a `json_synth`/`record_synth`
+candidate exists (`fetcher.py:2358`) — so on every article/reference/thread/
+tutorial page the only URL channel open to the model is the unvalidated one.
+`_validate_llm_next_links_against_markdown`, the one real on-page check, is
+UNREACHABLE from `query` (`extractor.extract` appends it only
+`if request_next_links and not request_routing`; `query` always sets routing) —
+it guards `fetch_raw` only. Inline URLs in the answer prose are never checked at
+all: `rehydrate_text` substitutes `{{n}}` and nothing else.
+
+Other prompt-only rules, by harm: `refinement_axes` "never name a specific value"
+(ADR-0012 in a second costume — two free strings, unchecked); `item_total_seen`
+"the total the PAGE advertises" (drives wire state, only the type is checked; and
+the prompt scopes it to listings while the code gates on `record_count`);
+off-domain justification discipline (the flag is computed, the gate is not — this
+is the prompt-injection surface, anchor labels being attacker-controlled); the
+entire `also_here` query grammar (~10 lines, zero enforcement — and the exact
+under-firing regression that motivated v0.25 is invisible to `make check`
+because `_index_loss_hint` is gated on the routing ARM); `other_pages.reason`
+≤120 chars (never measured, never truncated); evidence-scoped absence ("NEVER
+assert it does not exist at all" — a confident false negative shipping
+`status: ok`); "never drop a factual value" (the safety clause on terseness);
+the WebFetch copyright guardrails.
+
+**Contradictions:** (C1) prompt says "put that continuation FIRST",
+`_compose_other_pages` reorders every model drilldown behind every DOM link;
+(C2) `_NEXT_LINKS_CAP = 10` is never stated in the prompt and applies AFTER C1's
+reorder, so on a handler page with 10 structural links every model drilldown is
+silently dropped — no wobble, no hint, no diagnostic; (C3) `item_total_seen`
+scope, above.
+
+**Undocumented code rules punishing the model:** `strip_fenced_blocks(json_only=True)`
+deletes any fence opening `[`/`{` from the answer — on a `code`-shaped page an
+answer correctly quoting JSON is silently gutted, and `also_here` will not
+mention it because the model believes it answered. And `obstacle` has expensive
+side effects the prompt never mentions: `confidence` forced low,
+`retrieval_incomplete` set, a critical hint, and a PAID render dispatch.
+
+**The guard to write first (~15 lines):** there is no test that the prompt's
+closed-VALUE lists match the `Literal`s in `models.py`. `test_wobble_policies_match_prompts.py`
+checks field NAMES and required/optional only — and is otherwise the one
+genuinely good prompt↔code guard in the repo (vacuity floor, can-this-fail case;
+use it as the template). Add one `structural_form` value to the prompt without
+touching `models.py` and `_project_routing` returns `None` for every page so
+classified, losing all seven router fields. Silent but for an `llm_wobble` log.
+
+---
+
+## 2026-07-31 — the sufficiency question has no name (M, structure)
+
+**Source:** listing-machinery reflection, 2026-07-30/31 (five-agent audit).
+
+The question *"did this fetch retrieve the whole thing, or a slice?"* is
+implemented in seven places across three files and is named in none of them:
+
+| piece | where |
+|---|---|
+| advertised total | `listing_oracle.py::listing_oracle` |
+| "more exists" affordance | `listing_oracle.py::listing_has_more` |
+| loaded-vs-total verdict | `content_expectations.py::assess` |
+| wire the verdict | `fetcher.py::_phase_listing_completeness` |
+| LLM fallback total | `fetcher.py::_apply_llm_listing_oracle` |
+| act on it | `fetcher.py::_phase_listing_render` |
+| report it | `fetcher_response.py`, `models.py` (`items_*`) |
+
+`listing_oracle` names the **trick** (an oracle, a regex), not the purpose.
+That is the whole defect: nobody could see the capability was dead because
+there was no single thing to look at. It fired 4 times in the project's
+history, on 1 URL, which was not a listing — and the module name gave no
+surface on which that could be noticed.
+
+**Proposed shape:** `packages/sufficiency/` owning the VERDICT only —
+`assess(rendered, advertised, has_more) -> Ready | Partial | Unknown`.
+Extraction stays outside (LLM `item_total_seen`, parsed JSON-LD,
+`listing_has_more`): verdicts are pure, extraction is web- and site-shaped.
+The abstraction is already proven — `content_expectations.assess` is shared
+with Reddit comment counts, the same question with a different noun.
+
+**Not** "page completeness loading detection": "loading" imports a
+browser-mechanics assumption. jina truncating and infinite-scroll not firing
+are the same verdict. `sufficiency` is the word the ADR and the phase
+docstrings already use — just never a filename.
+
+**Order is load-bearing: delete first, then name.** Encapsulating the current
+pile would make broken machinery legible instead of gone. Ships after the
+`_VISIBLE_COUNT_RE` deletion + the `fetcher.py:1466` ordering fix; what
+survives is a verdict function and two honest signals.
+
+---
+
 ## 2026-07-28 — regex-over-markup OUTSIDE `handlers/` (S, correctness — SCOPED)
 
 **Source:** `handler-parses-nothing-is-not-success`, task 7.1.
