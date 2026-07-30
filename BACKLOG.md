@@ -42,7 +42,7 @@ is next touched; not worth its own change.
 The spike DID find a live defect, fixed separately: the oracle's noun list had
 no "entries", so arXiv's "Total of 445 entries" read as no total at all.
 
-## 2026-07-28 — `extract_records` blinds partial-listing detection on handler pages (M, shelf — HALF FIXED)
+## RESOLVED 2026-07-30 — a2web reported a 50-of-445 listing as complete (M, correctness)
 
 **Source:** full-corpus bench run, `eval/findings_2026-07-28-full.md`.
 Supersedes the earlier "`record_mine` returns None on `<dl>/<dt>/<dd>`" entry,
@@ -66,16 +66,26 @@ Verified chain (measured, not inferred):
       -> listing_oracle() IS NEVER CALLED, no listing_partial hint
       -> the model answers from "Papers (25)"
 
-**Two independent fixes. The second is DONE; the first is not.**
+**Two independent fixes. BOTH DONE.**
 
-1. **OPEN — `extract_records` must recognise definition-list listings**, so
-   `record_count` is set and the partial machinery switches on. Shelf promotion.
-   The "wants a second example first" caveat is weaker now: this example is
-   load-bearing. **Note the wider blast radius** — `record_count is None`
-   disables `_maybe_flag_partial_listing` for ANY listing whose shape
-   `extract_records` misses, so no `listing_partial` / `listing_more` hint fires
-   there regardless of handler. arXiv is the case that was measured, not
-   necessarily the only one.
+1. **DONE 2026-07-30 — shelf `record-mine-v0.2.0`**, adopted. A `<dl>` of
+   `<dt>`/`<dd>` pairs is now a record region: both signature guards were blind
+   to it (classless -> guard (a); no `h1`-`h6` -> guard (c)), and both guards are
+   proxies for "this element is a record" that a `<dl>` states outright by
+   specification. Additive fallback, so no page that already yielded a region
+   changed. Live: `items_loaded=50 items_total=450` + the `listing_partial` hint,
+   where nothing fired before. Pinned a2web-side by
+   `test_definition_list_listing_yields_records_for_the_sufficiency_axis` so a
+   tag downgrade cannot silently switch the axis back off.
+
+   Does NOT contradict shelf ledger 0071, which rejected an EVOLVE of this
+   package: that tested an optional CONTAINER HINT and rightly found it useless
+   (location was never the problem). This is the semantics axis. See ledger 0073.
+
+   **The wider blast radius is now a benefit, not a risk** — `record_count is
+   None` disabled the sufficiency axis for ANY shape the detector missed, so
+   recovering a shape switches it on for a population, not one page. Other
+   missed shapes remain possible; arXiv is the one that was measured.
 2. **DONE 2026-07-28** — the arXiv handler now carries the page's stated total
    into its rendered markdown (`## Papers (25 of 445)` plus an explicit
    partial-view line), sourced from `listing_oracle` rather than a new regex
@@ -84,9 +94,16 @@ Verified chain (measured, not inferred):
    level with WebFetch. Pinned by
    `test_arxiv_listing_renders_the_pages_own_stated_total`.
 
-   This fixes the ANSWER, not the SIGNAL: with (1) still open there is still no
-   `listing_partial` operator hint on this page — the model now reports the
-   shortfall in prose because it can finally see it.
+   With (1) now also done, this page carries BOTH: the prose answer and the
+   machine-readable `listing_partial` hint.
+
+**Caveat worth carrying forward, not a defect:** `record_mine`'s `_MAX_RECORDS`
+cap is 50 and arXiv renders 50 per page, so `items_loaded=50` is exact here by
+coincidence. On a listing rendering MORE than 50 records, `items_loaded` is the
+cap rather than the true rendered count, and the reported shortfall would be
+larger than reality. The signal's DIRECTION is always right (there is more);
+its precision is bounded by that cap. Do not quote `items_loaded` as an exact
+rendered count without checking it against the cap.
 
 Note for whoever picks this up: adding "entries" to `listing_oracle`'s noun list
 (shipped 2026-07-28, `91a7377`) is correct and verified live, but does NOT close

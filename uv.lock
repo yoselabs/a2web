@@ -125,7 +125,7 @@ requires-dist = [
     { name = "purgatory", specifier = ">=3,<4" },
     { name = "pydantic-settings", specifier = ">=2.5,<3" },
     { name = "pyyaml", specifier = ">=6,<7" },
-    { name = "record-mine", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Frecord-mine&tag=record-mine-v0.1.0" },
+    { name = "record-mine", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Frecord-mine&tag=record-mine-v0.2.0" },
     { name = "selectolax", specifier = ">=0.3,<1" },
     { name = "settings-base", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fsettings-base&tag=settings-base-v0.1.0" },
     { name = "sqlite-resource", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fsqlite-resource&tag=sqlite-resource-v0.1.0" },
@@ -2839,8 +2839,8 @@ wheels = [
 
 [[package]]
 name = "record-mine"
-version = "0.1.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Frecord-mine&tag=record-mine-v0.1.0#911a2307595a5f4ff02fd390af2492d73a12c1bd" }
+version = "0.2.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Frecord-mine&tag=record-mine-v0.2.0#939dbeb4dfe41c5b64277ade2d37fbef13810b2a" }
 dependencies = [
     { name = "lxml" },
 ]

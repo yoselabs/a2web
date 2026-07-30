@@ -260,3 +260,29 @@ async def test_ask_uncounted_listing_with_more_control_surfaces_signal(monkeypat
     assert data["items_loaded"] == 31
     assert "items_total" not in data
     assert "listing_more" in [h["code"] for h in data["operator_hints"]]
+
+
+def test_definition_list_listing_yields_records_for_the_sufficiency_axis() -> None:
+    """The adoption pin for `record-mine>=0.2` (shelf, 2026-07-30).
+
+    `record_count` is the switch for the whole partial-listing machinery:
+    `_maybe_flag_partial_listing` returns at its first line when it is None, so
+    `listing_oracle` is never consulted and no `listing_partial` hint can fire.
+    `extract_records` returned None on every `<dl>/<dt>/<dd>` listing, which is
+    why a2web reported a 50-of-445 arXiv page as complete.
+
+    This asserts the shelf capability a2web now depends on, against the captured
+    page. A tag downgrade, or a regression upstream, fails here rather than
+    silently switching the sufficiency axis back off — which is how it went
+    unnoticed the first time.
+    """
+    from record_mine import extract_records
+
+    from tests.fixtures import FIXTURES_DIR
+
+    html = (FIXTURES_DIR / "captured" / "arxiv_list_cs_CL_recent.html").read_text()
+
+    rs = extract_records(html, base_url="https://arxiv.org/list/cs.CL/recent")
+
+    assert rs is not None, "definition-list listing read as no record region — record_count would be None"
+    assert len(rs.records) >= 25
