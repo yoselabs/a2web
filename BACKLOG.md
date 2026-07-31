@@ -17,6 +17,956 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-07-31 — the file-size ledger, and what it actually measured (framing)
+
+**Source:** structural scan, 2026-07-31. Five parallel agents on three axes —
+line count, responsibility count, change coupling — plus an AST function census.
+Working rule the scan was run against: **500 lines is uncomfortable, 600 is
+critical.**
+
+`src/` over the line, measured:
+
+```
+2771  fetcher.py            929  models.py             923  handlers/reddit.py
+ 756  llm_eval/runner.py    740  fetcher_response.py   649  llm_extract/extractor.py
+ 551  domain.py             513  actions/playbook.py
+```
+
+602 functions in `src/`; **51 over 50 lines, 13 over 100**. The longest is not in
+`fetcher.py`:
+
+```
+236  routers.py:57              register_web_tools     ← 355-line file, one function
+193  fetcher_response.py:363    build_response
+190  llm_extract/extractor.py   extract
+181  fetcher.py:1079            _phase_tier_loop
+154  fetcher_response.py:584    build_ask_response
+146  routers.py:66              query                  ← nested inside the 236
+```
+
+**Two results that reframe the whole exercise.**
+
+**(1) Size is not the signal; co-change is.** `handlers/reddit.py` is 923 lines
+and #2 in total line churn (2237) — and it is *cheap*, because its changes stay
+inside it: 17 commits, and its strongest partner is 5 co-changes with `hn.py`.
+Whereas `tiers/__init__.py` is small and has **never once changed without
+`fetcher.py`** (12/12, P=1.00). Any size-driven refactor would attack Reddit and
+leave the registry alone, which is exactly backwards. Rank by co-change first,
+size second.
+
+**(2) `fetcher.py` grew monotonically THROUGH its own structural refactor.**
+
+```
+2026-05-15   913        2026-07-01  1728
+2026-06-01  1610        2026-07-15  2547   ← +819 in two weeks
+2026-06-15  1711        2026-07-31  2771
+```
+
+v0.23 (`7b864afc`, "fetcher orchestrator structural refactor") reorganized the
+inside into named phases. The curve did not bend. It is the cost centre on all
+three axes simultaneously — biggest file (3× the next), most commits (78, 2× the
+next), most churn (6361 lines = **10.8% of all `src/` churn**). A second
+same-shaped refactor should be expected to produce the same result; the entries
+below are about the seam, not the tidying.
+
+Positives worth pointing at, so "good" is nameable in this codebase:
+**`handlers/`** (9 files, 60+ commits, strongest inter-handler pair = 5),
+**`llm_eval/`** (closed cluster, essentially never pairs with `fetcher.py`), and
+the **`packages/` leaves** (each pairs almost exclusively with its own test).
+Those boundaries work. Whatever they do, the response contract does not do.
+
+Already dead, do NOT spend on: `settings ↔ state`, `routers ↔ server`,
+`models ↔ routers` were all real couplings pre-sunset and are gone now. The
+sunset fixed them.
+
+Scan method note: co-change ranking excluded 11 bulk commits (>20 `src/` files)
+and was re-run at a ≤8-file cutoff as a sensitivity check — the top of the
+ranking is unchanged, so nothing below is a migration artifact.
+
+## 2026-07-31 — the response contract is one concept in three files (L, structure — HIGHEST)
+
+**Source:** structural scan, 2026-07-31. Cross-confirmed by two independent
+methods (git co-change; AST responsibility census). Verified.
+
+`fetcher.py` + `fetcher_response.py` + `models.py` co-change in **17 commits** —
+3× the next-largest triple. Pairwise, and **strengthening**, not decaying:
+
+| pair | era A (05-09..06-15) | era B (06-16..07-31) | last 30d |
+|---|---|---|---|
+| `fetcher ↔ fetcher_response` | 5 (0.17/0.71) | **21 (0.53/0.84)** | 20 (0.56/0.83) |
+| `fetcher ↔ models` | 9 (0.30/0.75) | **19 (0.47/0.86)** | 18 (0.50/0.90) |
+| `fetcher_response ↔ models` | 4 (0.57/0.33) | **18 (0.72/0.82)** | 17 (0.71/0.85) |
+
+Not a migration artifact — every commit subject is a product feature, and the
+list reads as a single concept:
+
+```
+v0.14 envelope deviation trim · v0.21 router-shape envelope · ADR-0005 candidate
+menu · v0.25 never-tolerate-any-unfetched-URL · honest partial-listing signal ·
+structural "more exists" fallback · ADR-0015 withheld-body index · tier
+truthfulness + classify_terminal + honest 404s · thin-not-wall · empty-vs-wall
+discrimination · promote corroborated complete small pages to ok
+```
+
+Every ADR-0009/0012/0014/0015 tenet in CLAUDE.md lands as an edit to all three
+files. **The invariants are documented as one concept and implemented as three.**
+The 4-support extension with `packages/llm_extract/router_payload.py` says the
+boundary type is a fourth fragment of the same thing.
+
+Name it what its own commits name it: the **retrieval-completeness / response
+contract**. That is the missing module. Every other seam below can be cut
+without touching it, and none of them would make the remaining ~2100 lines of
+`fetcher.py` any less coupled.
+
+## 2026-07-31 — listing sufficiency is OFF on the population it exists for (M, correctness — LIVE)
+
+**Source:** structural scan, 2026-07-31. Verified by call-site count.
+
+`_run_extraction_escalation` is called at **4** sites — `fetcher.py:1331`,
+`:1377`, `:2150` (browser), `:2252` (paid). `_phase_listing_completeness` is
+called at **2** — `:1332`, `:1378`. So a listing reached *by escalation*
+recomputes `fc.record_count`/`fc.record_set` (`:1731-1732`) and never recomputes
+`items_loaded` / `items_total` / `regex_oracle_total`.
+
+**The population that escalates to a browser is the infinite-scroll listing —
+the exact case the sufficiency machinery exists for.**
+
+Second-order damage: `_apply_llm_listing_oracle:1500-1501` treats
+`regex_oracle_total is None` as *"the regex found no numeric total"*. After an
+escalation it actually means *"the phase never ran."* The two are
+indistinguishable in the field, and the LLM oracle is muzzled on the first
+reading.
+
+`_phase_listing_render:2716-2722` already compensates by re-implementing the
+assess-and-set inline — so the invariant lives in two places with no link
+between them. Same failure shape as the `fetcher.py:1299-1323` incident (a
+pre-rendered branch that returned before the ladder and starved four consumers
+for months), one level out.
+
+Related ordering hazards found in the same sweep, all unpinned:
+
+- **`_phase_extract_answer` is re-entrant three times** (`:2324`, `:2658`,
+  `:2724`) and is **not idempotent**. `fc.extraction_meta` (`:2554`) is
+  overwritten wholesale, so token/cost accounting reports only the LAST call —
+  **earlier LLM spend is invisible**. `fc.next_links_llm` (`:2536`) is assigned
+  only inside `if request_next_links and result.next_links:`, so a second call
+  returning nothing leaves the first call's links on the wire.
+  `fc.link_digest` (`:2477`) is rebuilt against possibly-different `fc.links`,
+  so the second pass rehydrates against a different closed set than the answer
+  prose was rehydrated with (ADR-0014 surface).
+- **The single paid budget is order-allocated.** `fc.paid_dispatches < 1` gates
+  four competitors, resolved purely by call order in `_run_pipeline`:
+  `:1827` → `_dispatch_action:1071` → `_obstacle_wants_render:2623` →
+  `_listing_wants_render:2685`. Reordering `_phase_obstacle_render` (`:2330`)
+  and `_phase_listing_render` (`:2335`) silently changes which product feature
+  gets the render.
+- **`fc.record_count` never resets** — `_escalate_via_records:1725-1732` sets it
+  only on success, no `else: None`. A second ladder run finding no records
+  leaves the pre-escalation count, which then feeds `:2716-2718`.
+- **`_install_gate_archive` (`:982-996`) does not set `fc.status_code`** while
+  `_install_archive_payload:978` does, though `_ArchiveOutcome` carries it
+  (`:867`). Whether `status_code` reflects the archive depends on which region
+  installed it — the same class of bug `_install_rendered_fields`'s docstring
+  was written to prevent.
+- **Five phases' ordering constraints are prose in docstrings only** (`:1955`,
+  `:2315`, `:2337`, `:2344`). Nothing fails if the calls are reordered.
+
+Fix the H1 call-site gap first — it is a live product defect, not a refactor
+concern. The rest is the case for the entry below.
+
+## 2026-07-31 — the ADR-0009 floor is derived from the severity of an English sentence (M, structure — LIVE)
+
+**Source:** structural scan, 2026-07-31. Verified.
+
+`actions/terminal.py:29-66` defines `TerminalOutcome` — a closed 7-value
+classification of what a failed fetch *means*. `fetcher.py:2009` computes it:
+
+```python
+outcome = classify_terminal(fc.observations, fc.resolved_verdict())
+```
+
+`:2010-2024` maps it to a hint code and **throws the value away**. `grep
+TerminalOutcome src/` hits only `fetcher.py:46, 2010, 2013, 2019, 2022`. It is
+not a `FetchContext` field and not on `FetchResponse`.
+
+Then `fetcher_response.py:435, 442, 449` reconstructs the same classification by
+string-matching the hints it just produced:
+
+```python
+if status == FetchStatus.failed and any(h.code == "try_user_browser" ...)          # outcome was `wall`
+if ... any(h.code == "content_not_found" and h.severity == "warning" ...)          # `gone_unverified`
+if ... any(h.code == "content_thin" ...)                                           # `thin_unverified`
+```
+
+The `severity == "warning"` test is the sharpest symptom: it reads back the
+severity that `content_not_found_hint(verified=False)` (`models.py:187-198`)
+chose, in order to recover the `verified` boolean that was passed **in**. A
+round-trip through a message catalogue to recover a boolean.
+
+`fetcher_response.py:427` calls the hint *"the SINGLE source of truth for
+incompleteness"* — while `actions/terminal.py:8-16` exists precisely because the
+previous design keyed on a projection instead of the observations.
+
+**Six instances of the same shape** — a decision made upstream in a typed closed
+vocabulary, erased at a boundary, reconstructed downstream from a string or a
+constant:
+
+1. `TerminalOutcome` → hint code → re-derived (above). **Touches ADR-0009.**
+2. **`kind="structural"` at `fetcher_response.py:294`** discards every handler's
+   own classification. Handlers set `drilldown` (`arxiv:323`, `hn:186`,
+   `reddit:611`), `related` (`github:281,309`, `wikipedia:176`), `discussion`
+   (`discourse:228`) — **none ever sets a structural-shaped one**. `NextLinkKind`
+   (`models.py:371`) is a 4-value vocabulary with **no `structural` member**;
+   `OtherPageKind` (`:448`) has 2. The fold relabels every handler entry to the
+   one value its source vocabulary cannot express, and `models.py:456` defines
+   `structural` as "deterministic continuation — pagination, page-order", a
+   false claim for a Reddit post drilldown. Same line silently drops
+   `NextLink.anchor`. And `models.py:729-734` says the `kind` column is dropped
+   from the TSV "when every row is `drilldown` (the common handler-derived
+   case)" — the authors know, in the same file where the fold calls them
+   structural.
+3. `empty_confirmed` — decided by `actions/empty.is_confirmed_empty`, set at
+   `fetcher.py:1946`, read correctly at `fetcher_response.py:375`, then
+   **re-derived at `:685`** from `any(h.code == "content_empty" ...)`, shadowing
+   the imported name of the real predicate. Its sibling `small_page_confirmed`
+   *is* carried across properly (`models.py:616`, set `:538`, read `:664`) — two
+   adjacent promotions, two different mechanisms.
+4. `_compose_next_links` (`:274-281`) drops `fc.next_links_handler` wholesale
+   when the LLM list is non-empty, justified by "the LLM re-ranked handler
+   candidates" — but `fetcher.py:2462` only passes them when
+   `request_next_links`, so when it is False the LLM never saw them.
+5. `retrieval_incomplete` and `confidence` are each decided twice, so neither
+   `FetchResponse` field is final for `query` callers while both are final for
+   `fetch_raw` callers. **The same field name means two different things
+   depending on which tool you called.** (The confidence half is deliberate and
+   documented at `:638-646` — a genuine two-phase decision. The fix is naming
+   the phases, not merging the sites.)
+6. **Two TSV field tables, three owners, one contract.** `wire._TSV_FIELDS` is
+   literal *on purpose* (CLAUDE.md: "inference is how a field added to
+   `AskResponse` silently changes the agent-facing wire"). But `models.py` holds
+   a second implicit table in its serializer branches: `other_pages` is encoded
+   at `models.py:921`, `links` at `:665`, `next_links` at `:667` — `wire.py`
+   defers to all three via its ALREADY-TSV guard — while `operator_hints` /
+   `refinement_axes` / `options` / `content_candidates` are encoded in
+   `wire.encode_envelope`, and `headings` by **nobody** (`_is_tsv_shaped`
+   rejects it). Nothing asserts the two tables describe the same set. The rule
+   is honoured against *introspection* and defeated by *duplication* — the exact
+   failure it names. `models.py:18` also imports `lean_wire.encode_tsv` directly
+   rather than through `wire.py`, so the codec has two in-tree consumers.
+
+Also found: **hint construction is spread across 5 modules** — 9 factories in
+`models.py:141-368`, plus raw `OperatorHint(...)` at `fetcher_response.py:345,
+600, 617, 668`, `fetcher.py:831, 1899, 2497`, `tiers/browser.py:129, 198`,
+`handlers/reddit.py:730`. Seven codes (`answer_truncated`, `content_guidance`,
+`retrieval_incomplete`, `index_lost`, `captcha_redirect`, `browser_unavailable`,
+…) exist only as inline literals with no factory. The set of codes is a de-facto
+closed enum that is **nowhere declared** — while four sites match on it by
+string.
+
+## 2026-07-31 — no "install a fetch result" type; six fields written six ways (M, structure)
+
+**Source:** structural scan, 2026-07-31. AST-measured (attribute stores/loads on
+`fc`).
+
+`FetchContext` has **69 declared fields** (`fetcher.py:271-539` — 269 lines, 10%
+of the file is one dataclass). 73 distinct `fc.<field>` names are referenced
+across the module; **`fetcher_response.py` reads 41 of them from outside.**
+
+Six *transport* fields are each written by **six different functions across
+three responsibility groups**:
+
+| field | writers | readers |
+|---|---|---|
+| `body` | 6 | 4 |
+| `content_type` | 6 | 3 |
+| `final_url` | 6 | 6 |
+| `tier_used` | 6 | 4 |
+| `pre_rendered_payload` | 6 | 2 |
+| `status_code` | 5 | 1 |
+
+`_install_rendered_fields` (`:1262`) already unified the **content** half of
+that copy — after it caused a live bug, and its docstring says so — and
+explicitly excluded the transport half (`:1279-1281`), which is still hand-copied
+six ways. That exclusion is the asymmetry `_install_gate_archive`'s missing
+`status_code` (entry above) falls through.
+
+**A `TierInstall` value type consumed by ONE `install(fc, result)` chokepoint is
+the change that makes the extraction ladder / tier walk / escalators separable.**
+It is exactly what `_install_rendered_fields`'s own docstring argues for, on the
+half it did cut.
+
+Cleanly extractable *without* touching that (≈640 lines, 23%, none carrying
+`FetchContext` in the public surface):
+
+- **`quality_gate.py`** (~132) — `js_heavy_hosts`, `evaluate`, `regate`. Highest
+  value: `tiers/browser.py:111` already does `from ..fetcher import
+  js_heavy_hosts`, an import inversion that exists *only* because the gate lives
+  in the orchestrator.
+- **`content_menu.py`** (~191) — `ContentCandidate`, `assemble_menu`,
+  `wire_content_md`. Entirely pure, already the most test-exercised surface.
+- **`next_link_derivation.py`** (~95) — `_records_to_next_links` is already
+  labelled *"Domain seam"* at `:1789`.
+- **`link_affordances.py`** (~52) — or fold into the existing `link_digest.py`.
+- **`cookie_attach.py`** (~90), **`cache_policy.py`** (~41 — gives the `_ttl_for`
+  defect a home), **`tier_telemetry.py`** (~36).
+
+**Anti-seams — do not cut these**, each verified:
+
+- `_phase_tier_loop` must not split from `_dispatch_action`: the `:1247`
+  escalation-win check (`fc.tier_used != "none" and resolved_verdict() is ok`) is
+  correct **only because** `_install_won_tier` at `:1254` has not run yet. Moving
+  either statement changes which content wins.
+- The three escalators cannot be unified without also moving the gate and the
+  extraction ladder — `_escalate_browser:2150`, `_escalate_paid:2252` and
+  `_dispatch_action:1058` all call into both. Extracting escalators alone leaves
+  a three-way cycle.
+- `_phase_empty_promotion` / `_phase_complete_small_page_promotion` /
+  `_apply_terminal` are one unit — a mutually-exclusive chain expressed only by
+  early returns across three functions, with `small_page_promoted()` reading a
+  field written 460 lines away.
+- `_phase_extract`'s pre-rendered branch is not liftable — `:1299-1323`
+  documents that it previously returned *before* the ladder and starved four
+  consumers for months.
+- `FetchContext` itself: 69 fields, 41 read externally, ~19 test modules import
+  it. Splitting it per-phase breaks the response builder's flat access.
+
+Also: **13 private names whose only external consumer is the test suite**
+(`_wire_content_md`, `_obstacle_wants_render`, `_apply_llm_listing_oracle`,
+`_build_link_digest`, `_dispatch_action`, `_phase_extract`, …). That is the
+shape of a module with no public API other than `fetch`.
+
+Dead: `fetcher.py:1090`'s `_phase_resolve_cookies` call is a provable no-op given
+the identical call at `:1095` and the host guard at `:777`.
+
+## 2026-07-31 — `domain.py` is 69% an undocumented renderer (M, structure)
+
+**Source:** structural scan, 2026-07-31. AST-measured.
+
+`domain.py` is 551 lines doing **three** jobs:
+
+| job | lines | share |
+|---|---|---|
+| structured-data → markdown renderer (`:188-551` + `json_response_fallback`) | 381 | **69.1%** |
+| URL policy (`is_search_shaped`, `rewrite_captcha_host`, `strip_reader_prefix`) | 107 | 19% |
+| settings-coupled glue (`compute_profile_hash`, `is_live_only`) | **12** | **2.2%** |
+
+CLAUDE.md and the module's own docstring (`:3`) both describe it as *"pure
+functions reading `AppSettings` or models but too small to deserve their own
+module."* That describes **12 of 551 lines**. The renderer reads neither
+settings nor models; `rewrite_captcha_host` — one of the three functions CLAUDE.md
+names — reads neither either. "Too small" against `_single_entity_md` at 36
+lines and a 5-deep transitive call graph.
+
+The renderer has **zero a2web imports** — it is already `tach.toml`-eligible for
+`packages/` today — and **four test files already aim at it as a unit**
+(`test_ld_json_itemlist.py`, `test_json_recipe_synthesis.py`,
+`test_json_entity_render_is_default_keep.py`,
+`test_json_entity_array_rendering.py`). The test tree treats it as a package;
+only the source file disagrees. Consumers: `fetcher.py:1346`, `:1689`.
+
+Anti-seams: `is_search_shaped` cannot follow the renderer — `:36-37` states it
+exists to gate `actions.empty.is_confirmed_empty` (`empty.py:70`), so it is one
+clause of the ADR-level empty→ok conjunction. And `_CAPTCHA_SEARCH_HOSTS`
+(`:77-84`) is coupled to `packages/block_detector.py:186-190, 305-307` **by
+comment only** — the two halves of one Google/Bing policy, in two modules, linked
+in prose, with nothing testing the pair.
+
+Dead public surface: `parse_query_params` is in `__all__` (`:30`), documented at
+length, has 6 tests — and **zero call sites in `src/`**. Conversely
+`strip_reader_prefix` is *not* in `__all__` yet is imported by `fetcher.py:56`.
+`__all__` no longer describes the module.
+
+## 2026-07-31 — `models.py` is 25% prose and 12% wire projection (M, structure)
+
+**Source:** structural scan, 2026-07-31. AST-measured.
+
+| job | lines | share |
+|---|---|---|
+| type definitions (vocabulary + leaf models + envelopes) | 513 | 55% |
+| **operator-hint message catalogue** (`:141-368`, 9 factories) | **228** | **25%** |
+| **wire projection** (`:703-809`, 6 field-tier tables + `_prune_wire`) | **107** | **12%** |
+
+Those 228 lines contain **no types**. They are agent-facing English — the
+ADR-0009 never-silently-miss copy, severity calibration, remediation text.
+`content_not_found_hint` (`:162-198`) is 37 lines of which 20 are literal message
+strings encoding the verified/unverified severity policy.
+
+**The ADR-0009 severity ladder — `critical` = wall, `warning` = unverified,
+`info` = verified-dead — is discoverable only by reading nine docstrings
+scattered through a type-definition file. There is no place where the ladder is
+stated once.** That is what makes it re-derivable by string-match at
+`fetcher_response.py:442` (entry above).
+
+Wire projection is a separate job on three independent measurements: (1) it
+already has a file — `wire.py` does the same job for the sibling channel; (2) its
+parameters are field-name *tables about* the models, the shape `wire._TSV_FIELDS`
+already uses; (3) `models.py` now contains **two omit-empty implementations that
+do not know about each other** — `_prune_wire`'s inline `is_empty` (`:786`) and
+`lean_wire.PruneEmpty` inherited by `AskExtraction` (`:678`). Import direction is
+already clean: `models.py:29` imports from `.wire`; `wire.py` does not import
+`models`.
+
+The load-bearing anti-seam: the three `*_tsv` renderers **cannot** follow.
+`_next_links_tsv` (`:733`) picks its column set by inspecting `lk.kind` across
+*typed* rows; `_other_pages_tsv` (`:746`) the same on `p.off_domain`. Both need
+model instances **before** `model_dump`, and `wire.encode_envelope` runs after
+it. The pre-dump column decision is genuinely model-side; only the post-dump
+rendering is wire-side.
+
+## 2026-07-31 — `fetcher_response.py` is 740 lines CLAUDE.md never mentions (M, structure + docs)
+
+**Source:** structural scan, 2026-07-31.
+
+**`fetcher_response.py` has no entry in CLAUDE.md's module table.** It appears
+twice in passing — inside the `models.py` bullet, and in the LLM-contract note.
+It owns the ADR-0009 `retrieval_incomplete` contract, the ADR-0015 index
+composition, the obstacle→confidence reconciliation, and both response builders.
+
+The two functions named "builders" are **~72 lines of construction wrapped in
+~263 lines of policy**: `build_response` is 193 lines of which the
+`FetchResponse(...)` call is 40; `build_ask_response` is 154 of which the
+`AskResponse(...)` call is 32. The entire `retrieval_incomplete` contract is six
+sequential `if` statements at `:393, :417-419, :424-425, :435-436, :442-443,
+:449-450`.
+
+The seam is already there, undeclared: **the two halves share exactly zero
+helpers.** `_confidence_for` / `_wrap_content_md` / `_build_narrative` /
+`_records_to_options` / `_compose_next_links` are `build_response`-only;
+`_curate_ask_meta` / `_debug_extraction` / `_index_loss_hint` /
+`_compose_other_pages` are `build_ask_response`-only. `build_response` never
+touches `AskResponse` and vice versa.
+
+Anti-seam: `build_response`'s policy is pure but **cannot** move to `actions/` —
+its sole input is `FetchContext` (`fetcher.py:272`) and `fetcher.py` imports
+`actions/`, so relocating inverts the dependency. `actions/terminal.py:18` states
+the constraint. It is portable only once its input is `Sequence[Observation]` —
+the exact substrate `terminal.py` and `empty.py` already stand on.
+
+Docstring drift found in the same files, all verified:
+
+- `fetcher_response.py:3` says **"Pure functions."** — `_project_routing` calls
+  `log_warning` (`:98`); `build_response` calls `time.perf_counter()` (`:365`)
+  and mutates its return value after construction (`:553-554`).
+- `fetcher_response.py:7-9` states `include_links`/`link_roles` are applied
+  **after** the builder. They are applied at `fetcher.py:692-695` — **before**.
+  The stated ordering is backwards.
+- `models.py:7-9` still describes a2kit's default formatter and "the custom
+  renderer ships in a later PR"; a2kit was retired 2026-07-22 and the renderer is
+  `wire.py`.
+- `models.py:686-690` attributes `PruneEmpty` to "a2kit v0.40.1"; it comes from
+  the shelf's `lean_wire`.
+- `models.py:4-5` pins the shape to `v0.1-response-format.md` §2 — **not in the
+  repo** — and the model has since gained 7+ fields.
+- `AskResponse` and friends still say **"the `ask` tool"** (`:813`, `:678`,
+  `:706`, `:721`) — renamed to `query` in v0.23. `wire._TSV_FIELDS` keys on
+  `"query"`, so the two files disagree on the tool's name.
+- `RouterPayload`'s docstring (`:517-522`) says **three** conditional fields;
+  `fetcher_response.py:70-83` projects **seven** plus `item_total_seen`; CLAUDE.md
+  says seven. Three counts of one thing, two wrong.
+
+## 2026-07-31 — `routers.py` is one function with a hole in it (S, structure)
+
+**Source:** function census, 2026-07-31.
+
+`register_web_tools` (`routers.py:57`) is **236 lines of a 355-line file** — 66%.
+`query` (`:66`) is a 146-line closure nested inside it; `fetch_raw` (`:219`) is
+74 more.
+
+CLAUDE.md describes tools as *"plain closures over `Components`"*. A 146-line
+closure inside a 236-line registrar is not plain, and the nesting makes both
+untestable except through the MCP client seam. Note this is a genuine consequence
+of design D1 (the parameter list IS the wire schema) — the signature must be
+visible at the decoration site — so the fix is where the *body* lives, not where
+the signature does.
+
+Git says this one is **fading**, not live: `fetcher ↔ routers` was 11 in era A
+and <3 in the last 30 days. Low priority; recorded so the size number is not
+mistaken for urgency later.
+
+## 2026-07-31 — the Registry half of Strategy+Registry isolates nothing (S, structure)
+
+**Source:** co-change analysis, 2026-07-31.
+
+**`tiers/__init__.py` has never changed without `fetcher.py` — 12 of 12,
+P(fetcher | tiers/__init__) = 1.00.** That is not layering; it is a registry
+whose only consumer must be edited in lockstep.
+
+Two more pure-function extractions with the same one-way leak, and both arrows
+are **new** (era B, i.e. post-sunset):
+
+- `domain.py → fetcher.py`: 0.71 overall, **0.89** in era B
+- `actions/playbook.py → fetcher.py`: 0.64 overall, **0.86** in era B
+
+Read: you cannot add a decision to the playbook without editing its interpreter,
+while `fetcher.py` changes without the playbook ~85% of the time. The extraction
+bought **testability, not independent evolvability**. Worth deciding explicitly
+whether that was the goal — if it was, this entry is a no-op and should be
+closed rather than left looking like a defect.
+
+## 2026-07-31 — `playbook.py` and its test are in 1.00/1.00 lockstep (S, verification)
+
+**Source:** test-to-source co-change, 2026-07-31.
+
+Recent era (since 2026-06-16): `actions/playbook.py ↔
+tests/capabilities/cascade_decision_log/test_decide_next.py` — **6 commits,
+P(test|src) = 1.00, P(src|test) = 1.00.** Total lockstep both ways. The table
+cannot change without its test changing, and the test has no independent life.
+
+For a pure function over enums that is arguably correct — the test *is* the
+table. But it means **the test cannot catch a wrong table**: it and the playbook
+were authored together, by the same author, at the same moment, and can only
+confirm they agree. Same endogenous-oracle shape as the 2026-07-28
+arXiv/wikipedia incident (five green tests over two dead parsers), one
+abstraction level up.
+
+What would make it a real witness: a corpus case or live probe where the
+*outcome* of a routing decision is observed, not the decision itself. Note
+`test_decide_next.py` is not naive — `:52` and `:59` are hypothesis property
+tests, `:518` asserts rule-name uniqueness, `:526` asserts purity. Those four are
+genuinely independent; the other 49 are the table restated.
+
+Second instance in the same measurement: `handlers/reddit.py →
+test_handlers.py` at **P(test|src) = 0.73**, the classic
+fixture-encodes-implementation signature, on the handler with the largest churn
+(2237 lines). Check whether those fixtures are under
+`tests/fixtures/captured/` or hand-written.
+
+Deliberately not actionable yet: `models.py → tests/contracts/tool_schemas.json`
+measured 0.50/1.00, but that golden was **deleted** in the a2kit sunset
+(`9bb4c37`). Its replacement `tests/contracts/wire/` has only 5 commits — not
+enough history. **Re-measure in a month** rather than acting on the pre-sunset
+number.
+
+## 2026-07-31 — a partial eval loss exits 0 (S, verification)
+
+**Source:** structural scan, 2026-07-31. Verified.
+
+`eval/findings_2026-07-28-full.md` recorded 2 quality cells lost to a judge parse
+error (`int() argument … not 'list'`, from
+`packages/llm_extract/judge.py:111-112`, bench twin `bench_judge.py:181-186`).
+
+**The loss is no longer silent** — `runner.py:467-472` catches it, writes
+`judge_raw.txt`, sets `AxisDisposition.UNSCORED` with `reason=f"parse_error:
+{exc}"`, and it surfaces in three artifacts (`report.py:246-250`, `:255-263`,
+`:435-449`). `close-silent-eval-loss` did its job.
+
+**But nothing fails.** `broken_axes()` (`runner.py:247-262`) fires only when
+`coverage.requested and coverage.scored == 0` → exit 4 (`__main__.py:243-252`).
+A 2-of-N loss is exit 0, and the mean is over survivors (`_mean_opt`,
+`report.py:217-221`; leaderboard `:193`; `stats_dict` `:482-491`). So an axis can
+degrade from 20/20 to 3/20 across runs with no gate — honest denominators
+(`_covered`, `:227`) are the only mitigation, and they require a human to read
+them.
+
+No test covers partial loss; `test_axis_disposition.py:165, 186, 221, 276` cover
+the all-or-nothing case only. Wants a coverage floor (e.g. fail below X% scored
+on a requested axis), which is a decision, not a bug fix.
+
+## 2026-07-31 — `llm_eval/systems.py` carries a second fetch stack (S, structure)
+
+**Source:** structural scan, 2026-07-31.
+
+`systems.py` is 375 lines: `WebFetchBaseline` (`:81-186`) plus its private HTTP
+stack — `_FetchError:323`, `_http_get:327-360`, `_html_to_markdown:361-375`,
+caps `:41-45` — is **~150 lines reproducing a competitor's fetch behaviour**,
+sitting beside two ~50-line a2web adapters (`A2WebDetail:187`,
+`A2WebExtract:239`). Purpose-named seam: `systems_webfetch.py`. It is a
+reproduction of a competitor, not an a2web system, and that is the whole reason
+it must not share a2web's stack.
+
+`runner.py` (756) is 6 jobs. The one real mixing: **cell artifacts are written by
+the driver** (`_run_one` writes at `:406, 407, 441, 466, 470, 481, 502`;
+`_score_next_links` at `:589`) **while run artifacts are written by
+`report.py`** — one concern, two owners. Cost accounting is smeared across
+`:479, 558, 586`. Candidate seams: `axes.py` (the `AxisDisposition`/`*Axis`/
+`AxisCoverage`/`broken_axes` block, `:77-277` — purpose already named in prose at
+`:202-206` but not by structure), and moving `row_as_flat_dict`/`_row_to_json`
+(`:694-745`, self-described as a write-boundary concern) to `report.py`.
+
+`report.py` (499) is cohesive — 8 writers behind `write_all:64-77` with a stated
+ordering invariant (`__main__.py:238-239`). The separable part is **not** the
+writers: the run statistics are recomputed independently in **four** places
+(`:193`, `:317-321`, `:393`, `:482-491`). One `stats(report)` the writers render.
+
+Anti-seam worth keeping: `_CANDIDATE_FIELD` (`runner.py:660-666`) is literal on
+purpose (`:648-659`) — extracting it without the systems list would reintroduce
+the tolerant-lookup failure that cost five weeks of unscored `next_links`.
+
+## 2026-07-31 — test files that have drifted from their subject (S, structure)
+
+**Source:** structural scan, 2026-07-31. Counts measured.
+
+| file | tests | body lines | median | verdict |
+|---|---|---|---|---|
+| `site_handlers/test_handlers.py` | 57 | 736/972 | 13 | **(c)** four capabilities |
+| `contracts/test_wire_contract.py` | 18 | 405/629 | 20 | **(a)** + one intruder |
+| `output_benchmark/test_output_benchmark.py` | 23 | 322/572 | 9 | **(c)** five subjects |
+| `tier_pipeline/test_fetcher.py` | 23 | 420/569 | 15 | (a) with a (c) tail |
+| `cascade_decision_log/test_decide_next.py` | 53 | 314/533 | 5 | **(b)** repetition |
+
+**`test_handlers.py` is an unsplit residue.** Its siblings already split per
+handler (`test_handlers_arxiv.py`, `_discourse`, `_github`, `_habr`, `_v2ex`,
+`_wikipedia`, `test_hn_front_page.py`, `test_reddit_html.py`). What is left is
+registry dispatch `:27-66`, Reddit RSS `:74-155`, HN `:157-249`, old-Reddit
+fallback `:261-396`, Twitter/nitter `:409-511`, challenge detection `:528-692`,
+Reddit escalation `:698-945` — **and `test_playbook_*` at `:947-973`, which
+exercises `actions/playbook.py:483`**. Nobody changing `decide_next` will grep a
+file called `test_handlers.py`; `:959` does not even involve Reddit. The 6 other
+handlers are *not* in the file despite its name. `test_hn_front_page.py` already
+covers `_front_page_candidates`, which `:167` and `:186` cover again.
+
+**`test_wire_contract.py` hides an architecture test.**
+`test_a2web_matches_the_resolved_mcp_substrate` (`:439-520`) is 81 lines walking
+every `src/a2web/**/*.py` with `ast`, resolving `fastmcp`/`mcp` imports and
+comparing call-site keywords against `inspect.signature`. It captures no wire
+bytes and opens no client. Its subject is every `ToolResult(...)` construction in
+the tree; the filename says "wire contract goldens". Belongs in
+`tests/architecture/`, beside its peers. Also `:34` imports **private symbols
+from another test module** (`tests.capabilities.ask_response.test_ask_response`)
+— a contract gate whose fixtures live in a capability test.
+
+**`test_output_benchmark.py` re-implements shared doubles.** `_MockJudge:321` and
+`_MockBenchJudge:338` are line-for-line re-implementations of `MockJudge`/
+`MockBenchJudge` in `tests/capabilities/output_benchmark/_doubles.py:19,36` —
+the module its sibling `test_axis_disposition.py:40` imports. It is the only file
+in the directory not using it. `:484`
+(`test_default_judge_model_denied_on_metered_anthropic`) asserts **only** on the
+third-party `anyllm.DEFAULT_COST_POLICY` and touches no a2web code, while
+`tests/packages/test_llm_cost_guard.py` exists. ADR-0016 coverage in a file
+nobody changing cost policy will open.
+
+**`test_decide_next.py` is genuine repetition** — 53 tests, median body 5 lines,
+two shapes covering half the file (build a log, assert `decide_next(...) ==
+Action`). Parameterizable with `id=` per rule. Except: `:321` and `:497` are
+*precedence* tests needing two rules live at once, and cannot become rows.
+
+**`test_fetcher.py:291-433`** tests `domain.py::rewrite_captcha_host` while
+`test_domain.py` sits in the same directory.
+
+Anti-seams that block the obvious splits: `_make_state` (`test_handlers.py:255`)
+spans the fallback and escalation clusters; `_make_state_with_nitter` (`:402`)
+and `_captured_interstitial` (`:518`) weld Twitter to the challenge catalogue;
+`_StubSystem`/`_corpus` (`test_output_benchmark.py:278, 352`) are used by all
+five suite-level tests and `_CountingJudge:530` subclasses the mocks in-test.
+Promote the helpers first, split second.
+
+## 2026-07-31 — the markup-funnel guard misses `re.search`/`re.sub` (S, verification — LIVE)
+
+**Source:** structural scan, 2026-07-31. Verified. **Supersedes and widens the
+2026-07-28 "regex-over-markup OUTSIDE `handlers/`" entry below.**
+
+`tests/architecture/test_handler_markup_funnel.py:90-96` matches **only
+`ast.Call` where `node.func.attr == "compile"`.** Every inline `re.search` /
+`re.sub` / `re.match` is invisible to it.
+
+Full inline-regex inventory in `handlers/`:
+
+| site | pattern | markup? |
+|---|---|---|
+| `reddit.py:502` | `<div class="md">(.*)</div>` | **YES — unguarded** |
+| `reddit.py:497` | `<!--.*?-->` | **YES — unguarded** |
+| `reddit.py:482` | `/r/([^/]+)/` | no (URL) |
+| `arxiv.py:172` | `\s+` | no (whitespace) |
+
+Both live in `_atom_body_markdown` (`:486-504`) — the exact failure surface the
+guard was written for. Its own comment at `:500-501` admits *"Reddit's rendered
+md never nests `<div>`, so the greedy match closes on the md div itself"* — a
+spelling assumption, precisely what killed the arXiv and Parsoid parsers.
+
+The guard's docstring claims *"all 18 legitimate patterns were anchored path
+matchers and all 4 rotted ones were not — the split is clean."* **That census
+counted only `re.compile`.** So the guard is a third instance of the pattern
+CLAUDE.md already records twice (30 of 32 architecture tests passing against an
+empty source tree; `test_tools_return_pydantic_not_str` matching a decorator
+that no longer existed) — green while not covering the thing it names.
+
+Two more guards in the same condition, found in the same sweep:
+
+- **The prompt↔policy guard covers 8 of 86 rules.**
+  `test_wobble_policies_match_prompts.py:36` imports `_ROUTER_SCHEMA_DOC` from
+  `prompts.py` — so it is structurally blind to `extractor.py:391-424`'s
+  `_next_links_suffix`, 34 lines of literal instruction text ("up to 10 links",
+  "≤80 characters", the three `kind` definitions, a JSON exemplar). The
+  next_links contract is ungoverned because the prompt text lives in the wrong
+  module.
+- **`_common.py` adoption has no guard at all** — `empty_result` 9/9,
+  `map_non_ok` **4/9**, `challenge_verdict` **2 of 3 eligible**.
+
+Fix the AST matcher first (widen to `search`/`sub`/`match`/`findall`), then the
+two reddit patterns. Note `_ALLOWED_PREFIXES` (test `:54`) admits anything
+starting `^(` / `^[` / `^/`, so `re.compile(r"^[<]div…")` would pass; low risk,
+recorded for completeness.
+
+## 2026-07-31 — reddit's old.reddit channel can serve an interstitial as `ok` (S, correctness — LIVE)
+
+**Source:** structural scan, 2026-07-31. Verified.
+
+`wikipedia.py:87-96` argues in prose that the challenge check *"belongs on every
+handler that extracts HTML, because one present only where a defect was already
+observed is one nobody remembers to add to the next handler."* Three handlers
+extract raw HTML — `wikipedia.py:81`, `twitter.py:202`, `reddit.py:889`. **Only
+the first two call `_common.challenge_verdict`.**
+
+So `reddit._fetch_old_reddit` (`:862-923`) can return a Reddit interstitial as
+`Verdict.ok` with `pre_rendered` content. That is the empty-vs-wall invariant's
+exact failure direction — a wall laundered into content — on the busiest
+handler in the repo.
+
+The argument for symmetry was written down and never mechanised. Fix the call
+site; then decide whether the guard the wikipedia docstring implies is worth
+writing (it would need to identify "extracts raw HTML" structurally).
+
+## 2026-07-31 — reddit.py is four retrieval channels behind one `matches()` (M, structure)
+
+**Source:** structural scan, 2026-07-31. Section-measured.
+
+`reddit.py` is 923 lines + `_reddit_html.py` 294 = **1,217 lines**. Every other
+handler has exactly one retrieval channel (twitter has one channel over N
+mirrors); the next-largest handler is `arxiv.py` at 326, median 247.
+
+`fetch` (`:168-276`, **109 lines**) picks between four channels: eager
+Zyte/old.reddit (`:198-201`), keyless `.rss` (`:203-276`), old.reddit HTML
+fallback (`:221`, `:260` → `:850-923`), and archive/render escalation signals
+(`:230`, `:233`, `:751`). **That ladder is the file's true centre and it has no
+name.**
+
+Of the 923, roughly **310 lines are not Reddit knowledge at all**:
+
+- `:378-504` (127) — a general Atom/RSS feed client (`_AtomEntry`, `_AtomFeed`,
+  `_parse_atom`, `_el_text`, `_iso_to_epoch`). Zero Reddit specificity except the
+  `t1`/`t3` id-prefix convention on one line (`:433`). Shelf-shaped.
+- `:318-375` (58) — a bespoke 429 retry loop honouring `x-ratelimit-reset`.
+  Purely a `FetchOutcome` + header contract. **Habr, v2ex and discourse have no
+  such policy at all** and would inherit one.
+- `human_age` (`:681-692`), `_stub_line` (`:539-554`) — formatting, no domain.
+
+**And ~136 lines are orchestrator policy that leaked down a layer.**
+`_zyte_reddit_enabled` (`:770-777`) reads `settings.zyte_key` +
+`settings.reddit_tier_policy` and **decides to spend money at tier 0** — the same
+decision `playbook._decide_paid_last_resort` (`playbook.py:411`) exists to own,
+documented at `playbook.py:61-67` as *"the last resort… must never preempt a free
+recovery."* Reddit preempts it unconditionally.
+
+**Two inert artefacts, measured:**
+
+- **`_walled_signal` (`:700-717`) has exactly one occurrence in the entire repo:
+  its own `def`.** Nothing calls it in `src/` or `tests/`. It is the sole reason
+  `try_user_browser_hint` is imported at `:49`. And `twitter.py:137-147` names
+  that shape as a **rejected** design — *"that shape was tried here and is
+  wrong… the response carried 2204 characters of content under a klaxon saying
+  it had none."*
+- The hint codes `reddit_forbidden_try_archive` (`:235`) and
+  `reddit_deleted_try_archive` (`:857`) are read by **no code in `src/`** — only
+  two test assertions (`test_handlers.py:750, 766`). The archive dispatch
+  actually fires off the *verdict*: `_archive_escalation_signal` returns
+  `Verdict.not_found` (`:728`), `fetcher.py:1218` stamps `authoritative=True`,
+  and `playbook._decide_reddit_comment_not_found_archive` (`:196-199`) matches
+  on that. The docstring at `:721` describes an intent the string does not carry.
+  **Side effect worth flagging:** the same authoritative `not_found` also
+  suppresses the `content_not_found` hint at `fetcher.py:2016` — "try archive"
+  and "definitively gone" are the same signal.
+
+Anti-seams: `_to_rss_url` (`:284-315`) and `_url_shape` (`:105-115`) share
+`_LISTING_PATH_RE` group semantics — splitting them re-parses the URL twice and
+lets the two drift on sort-name changes. `_atom_body_markdown` (`:486-504`) looks
+like generic HTML→md but the `<!-- SC_ON -->` split (`:496`) is Reddit's exact
+render output; it must move *with* the renderer, not into `html_fragment` — but
+it must stop being a regex. `_fetch_via_zyte_oldreddit` (`:780-832`) reads like
+paid plumbing, but `:806-811` couples it to `content_expectations.assess` and the
+fall-through-to-RSS on an oracle miss — **that fall-through is the Reddit-specific
+value; the Zyte call around it is not.**
+
+For contrast, `github.py` (483) is the healthiest of the large files: one
+channel, one transport (`_CurlCffiGitHubAPI:120-153`), one classifier
+(`_classify:84-104`), three pure renderers (`:387-483`). Its only duplication is
+internal — `_fetch_repo_candidates:250-314` is 64 lines of near-identical
+issue/PR loops (`:259-284` vs `:286-312`) differing only in endpoint, cap source
+and `reason` prefix.
+
+## 2026-07-31 — cross-handler duplication: seven shapes, partial adoption (M, structure)
+
+**Source:** structural scan, 2026-07-31. All 9 handlers + `_common.py` +
+`_reddit_html.py`.
+
+`_common.py` was created for three helpers and **stalled at partial adoption on
+all three**, with nothing testing or enforcing it:
+
+- **D1 — non-ok `FetchOutcome` → `Verdict` mapping.** `map_non_ok` used by 4/9
+  (arxiv `:90,132`, hn `:91`, discourse `:73`, wikipedia `:69`). Carrying the
+  table inline instead: `reddit.py:206-239` + `:875-882`, `twitter.py:187-195`,
+  `github.py:191-209` (as a gidgethub exception ladder). `habr.py:124` and
+  `v2ex.py:107` collapse it to `verdict is not ok → None`, **silently losing the
+  timeout/404/429 distinction**. 4/9 with 5 divergent variants — the extraction
+  happened and then stopped.
+- **D2 — the never-raises JSON GET.** `habr._fetch_json:115-130` and
+  `v2ex._fetch_json:99-112` are near-identical, same docstring, each paired with
+  an identical `anyio.create_task_group` fan-out (`habr:87-95`, `v2ex:70-78`).
+- **D3 — depth-indented blockquote comment renderer. Five sites, four
+  implementations:** `hn._render_kid:233-247`, `habr._render_comment:198-227`,
+  `discourse._render_post:179-193`, `_reddit_html._render_comment:271-276`
+  (`"> " * (depth+1)`, note the differing spacing), `reddit.py:666` inline. All
+  produce the same `{quote} body / {quote} / {quote} — {author}`. habr and
+  discourse are byte-level near-twins. **Depth caps diverge unjustifiedly** —
+  `_MAX_DEPTH = 20` in habr (`:48`) and discourse (`:41`); hn and `_reddit_html`
+  have **none**.
+- **D4 — an untyped render bag the guard cannot see.** 7 handlers return
+  `{"content_md","title","byline","headings"}` as a dict and hand it to
+  `Rendered.from_dict`; 3 construct `Rendered(...)` directly. This is a
+  `dict[str, Any]` bag that `test_no_dict_str_any_on_dataclasses.py` misses —
+  **it walks dataclass fields, not function returns.** Worse,
+  `discourse._render_index:238-243` smuggles a **fifth key `next_links`** through
+  the same bag and unpacks it at `:95` — a second, undeclared contract on an
+  untyped dict.
+- **D5 — `NextLink` builders with unexplained cap divergence.** arxiv `:311-326`
+  cap 10, hn `:160-189` cap 10, wikipedia `:152-179` cap 10, reddit `:610-614`
+  cap 10, github `:250-314` 5+5, **discourse `:227-229` up to `_MAX_TOPICS`=50,
+  effectively uncapped.** And `kind=` values diverge with no shared vocabulary
+  check: `drilldown` (arxiv/hn/reddit), `related` (github/wikipedia),
+  **`discussion` (discourse:228) — which is not in `extractor._VALID_KINDS`**
+  (`{"drilldown","related","source"}`, `extractor.py:388`).
+- **D6 — listing stub line.** `- **Title** (meta)\n  <url>` produced
+  independently four times: reddit `:539-554`, arxiv `:298`, hn `:146`,
+  discourse `:226`.
+- **D7 — the H1-from-title / H2-from-section headings idiom.** Mechanically
+  identical in all 9.
+
+**Do NOT merge** (coincidental similarity): the `matches()` bodies — each is one
+call to a site-specific classifier and the shared shape is already the `Handler`
+protocol; the anchored path regexes — each encodes a different site's URL
+grammar and sharing them creates false coupling; `github._CurlCffiGitHubAPI` — a
+genuine one-off; `twitter`'s instance rotation — unique to a mirror farm.
+
+## 2026-07-31 — 45 of 86 prompt rules have neither code nor test (L, verification)
+
+**Source:** structural scan, 2026-07-31. Independent census. **Supersedes the
+"21 behavioural rules live only as prompt English" entry below** — that count was
+a subset (it counted only the `_ROUTER_SCHEMA_DOC` field-description clauses).
+
+86 distinct behavioural instructions across the 5 templates in `prompts.py`:
+
+| enforcement | count |
+|---|---|
+| has a **code implementer** | 24 |
+| has a test of any kind | 33 — of which **13 assert only that the sentence is in the prompt string**, and 3 are live-network corpus proxies |
+| **NEITHER code nor test** | **45** |
+| covered by the one structural guard (field presence) | **8** |
+
+**Largest untested cluster: the `also_here` query grammar — 11 consecutive rules
+with zero enforcement** (`prompts.py:256-273`): drop-the-verb-frame, ≤1 operator
+from `, / vs / /`, CAPS at most one token, trailing `?` only for DECIDE items,
+split `and`-joined items, listing-orthogonality, "COVERED means everything the
+page holds", count guidance 3/5/5+. `extractor.py:546-552` only filters
+non-strings. **v0.23 and v0.25 both revised this cluster** (module comments
+`:161-186`) — two tuning rounds against an unmeasured surface.
+
+**Three places where the prompt and the code actively disagree, verified:**
+
+1. **`prompts.py:291-294` "put that continuation FIRST" is overridden.**
+   `fetcher_response._compose_other_pages:284-299` re-sorts to
+   `handler-structural + llm-structural + llm-drilldown` and truncates to
+   `_NEXT_LINKS_CAP`. A drilldown the model deliberately placed first lands last
+   — or off the end. The prompt asks for an ordering the pipeline structurally
+   cannot honour.
+2. **`prompts.py:277-280` "NEVER type a raw URL" has a sanctioned escape hatch.**
+   `extractor.py:576-578` accepts any model-supplied `url` string unchecked, and
+   `tests/capabilities/link_affordances/test_rehydration_seam.py:55`
+   (`test_legacy_url_entry_passes_through`) **pins** that. The ADR-0014
+   closed-set guarantee holds only on the `{{n}}` handle path; the legacy `url`
+   path is a hole with a test defending it. (Already recorded separately; this is
+   the prompt-side view of the same hole.)
+3. **`prompts.py:305-306` gates `refinement_axes` on "listing AND SELECTION
+   question"; `fetcher_response.py:628, 636` gates on `is_listing` alone.** Axes
+   reach the wire for a non-selection listing question.
+
+Unenforced by explicit admission in the source: `router_payload.py:43-44`
+("≤120 chars per prompt instruction; the pydantic mirror does not truncate" —
+and `models.py:466` has no `max_length` on `OtherPage.reason` while `:382` *does*
+cap `anchor` at 120), and `router_payload.py:61-63` ("dimensional-not-value
+discipline is a prompt instruction; the boundary type stays loose").
+
+The only behavioural check on the ADR-0012/0014/0015 prompt clauses is
+`eval/corpus.yaml` — 38 entries, live-network, quota-spending, deliberately
+outside `make check`.
+
+**The missing structure, named:** *"this behavioural clause is claimed by X"* —
+where X is a code implementer (24), a corpus entry (3), an assertion (13
+wording-only), or nothing (45). Today there is one guard and it verifies field
+presence for 8.
+
+Anti-seam: the four worked examples (`prompts.py:321-363`) look like fixtures
+that could move to a test file. **They cannot** — they are inside the cached
+`system` bucket, and the v0.19 cache-prefix invariant (`:400-401`, guarded by
+`test_prompt_cache_stability.py`) makes their bytes part of the contract.
+`WEBFETCH_DEFAULT_V1` (`:85-99`) is likewise immovable by design — a byte-equality
+eval anchor.
+
+## 2026-07-31 — `extractor.py` holds ~200 lines its siblings are named for (M, structure)
+
+**Source:** structural scan, 2026-07-31.
+
+`extractor.py` is 649 lines doing nine jobs, in a package whose siblings are
+literally named `prompts` and `router_payload`:
+
+| lines | job | sibling that owns the concern |
+|---|---|---|
+| `:179-368` | `Extractor.extract` — 190 lines: template swap, truncation, cache read, **prompt assembly (`:243-269`)**, provider call + degrade, routing classification, cache write | prompt half → `prompts.py` |
+| `:384-437` | **prompt English** — `_next_links_suffix` is 34 lines of literal instruction text | `prompts.py` |
+| `:440-481` | next_links response parsing | wobble / a parse module |
+| `:489-646` | **router-envelope parsing**, incl. `_build_router_payload` (88 lines) | `router_payload.py` owns every type it builds |
+| `:90-103` | `LlmNextLink` boundary type | `router_payload.py` |
+
+`judge.py` is the counter-precedent — it keeps its policy table and parse
+adjacent to its consumer — but `judge.py` is 238 lines total, **smaller than
+`extractor.py`'s parse block alone.**
+
+The split is not aesthetic: it is why the prompt↔policy guard cannot see the
+next_links contract (entry above). Seams, named by purpose: `build_parts(...)`
+(absorbs `:243-269`, `:384-437`, and the flag-precedence rule at `:257`),
+`parse_router(...)` (`:489-646`), `parse_next_links(...)` (`:384-388` +
+`:440-481`), and the never-raises provider call (`:271-310`).
+
+Anti-seams: the extraction **cache** (`:224-241`, `:341-351`) looks liftable but
+its skip predicates are entangled with `request_routing`/`request_next_links` —
+cache and prompt shape are one decision. And `RoutingOutcome` (`:63-87`) reads
+free-standing but its four arms are only distinguishable *at* `:314-329`, where
+`provider_error` and `routing_payload is None` are both in scope.
+
+Also: `Extractor.extract` carries a precedence rule between two independent flags
+(`:257`, documented over 8 lines at `:249-256` **as a shipped bug**) — a policy
+the signature says is caller-controlled and the body says is not.
+
+## 2026-07-31 — five escalation decisions live outside the "single policy function" (M, structure)
+
+**Source:** structural scan, 2026-07-31. The module says so itself.
+
+`playbook.py:10-15`: *"the post-extraction completeness escalations — the
+obstacle-driven render, the listing scroll render, and the handler
+`escalate_to_render` ladder — are NOT yet planner rules; their policy still lives
+in dedicated fetcher phases."*
+
+Measured, that policy is at `fetcher.py:1204` (`escalate_to_render`), `:1828`
+(forced paid render), `:2331` + `:2662-2713` (listing scroll), plus
+`reddit.py:198` (eager Zyte). **A rule added to `_RULES` and a rule added to a
+fetcher phase are indistinguishable to a reader** — but only `decide_next` has
+the priority lattice, the caps, and the 53-test gate.
+
+**`playbook.py` itself is not the problem, and its 513 lines are not bloat.** All
+14 rules in `_RULES` (`:435-476`) are exercised, including the four whose *names*
+never appear in tests. Rule uniqueness is asserted (`:518`), purity (`:526`),
+totality is property-tested (`:52`). `RulePriority` (`:95-117`) is closed,
+`_RuleContext` (`:120-128`) frozen, `decide_next` (`:483-499`) the sole entry.
+Roughly 200 lines code / 300 comment, and the comments carry live incident
+history (`:342-362` documents the jina-stripped-markdown hole). **This is what
+the earlier `playbook → fetcher` co-change entry is measuring: the leak is
+outward, not inward.**
+
+Anti-seam: the seven transport rules (`:265-339`) look like a table that could
+be data. They cannot — `_decide_other_4xx_escalate` (`:281`) carves 403 out
+because 403 has its own rule, `_decide_uncorroborated_404_escalate` (`:315`)
+inverts on `authoritative`, and `_decide_network_drop_escalate` (`:301`) depends
+on which verdicts *aren't* `connection_error`. **The exclusions are the content;
+a table would hide them.**
+
 ## 2026-07-31 — `endpoint-auth` spec yields an UNAUTHENTICATED endpoint if followed (S, SECURITY)
 
 **Source:** openspec drift sweep, 2026-07-31. Verified.
