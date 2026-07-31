@@ -9,6 +9,77 @@ Nothing here is actionable. If an entry looks live again, move it back rather
 than re-deriving it.
 
 ---
+## SHIPPED 2026-07-31 — five wire-level ADR-0009 leaks (was: T3 + T7 live defects)
+
+**Closed by `openspec/changes/close-wire-level-adr-0009-leaks/`, commits
+`e02a142`, `ca2d9b8`, `1395f8d`, `bddb33b`, `ed2d448`.**
+
+Five independent leaks sharing one failure shape: **a2web knew more than it told
+the caller, and what it told read as success.** Each closed with a witness that
+was verified to fail when its fix is reverted — a green suite is not the same
+claim.
+
+**1. TSV columns came from the first row.** `_derive_columns` read `rows[0]`
+while `OperatorHint._omit_default_severity` elides `severity` at its default.
+So an `info` hint followed by a `critical` one produced a table with NO
+`severity` column and the critical marker was discarded — on
+`try_user_browser`, ADR-0009's loudest signal. Reachable in production: a stale
+cookie mirror plus a walled page.
+
+Two things worth keeping. `structured_content` was never affected, so the
+~1350 field-presence assertions could not see it; **they all read `call_wire`
+and the agent reads `content[0].text`.** And the wire golden that covers the
+walled path did not move: `query_failure` carries exactly ONE hint, the
+critical one, so the first row held every key. The golden froze a correct table
+for the wrong reason and was blind to the defect by construction — the
+`query_heterogeneous_hints` capture exists so that is no longer true.
+
+**2. `github.py` laundered degradation into `ok`.** Six sites swallowed a
+`GitHubException` from a supplementary call and rendered the section empty, so
+a rate-limited comments fetch and an issue with zero comments were
+byte-identical. Fixed by keeping three outcomes distinct rather than two
+(retrieved-with-rows / retrieved-and-empty / NOT retrieved). A seventh site had
+the OPPOSITE bug — the README guard caught only `BadRequest` where four
+siblings catch `GitHubException`, so a rate-limited README aborted the whole
+repo fetch.
+
+**3. `_fetch_old_reddit` returned `ok` for an interstitial.** Same shape as its
+two siblings (GET HTML → trafilatura → prose), but it never ran
+`challenge_verdict`, and a challenge page extracts perfectly well.
+
+The captures showed **the call alone would not have fixed it**: the catalogue
+already carried `whoa there, pardner`, but only below `LENGTH_FLOOR`, and the
+real block page extracts to 779 characters. A marker gated on thinness is inert
+against a wordier interstitial from the same family — which the catalogue's own
+comment had stated as a known limit. Now length-independent, on the test that
+justifies matching turnstile/akamai at any length.
+
+**4. `paid_auth_error` had no hint, and three places said it did.**
+`fetcher_response` seeded `retrieval_incomplete` *because* the verdict "keeps
+its OWN dedicated hint"; `_apply_terminal`'s docstring agreed; and the
+coherence guard allowlisted `operator_error` to `frozenset({None})` citing a
+hint "emitted at the paid tier". None existed. The guard was green because it
+had been told to expect nothing on the strength of a claim nobody checked, and
+would have stayed green through the hint's deletion.
+
+**5. The `a2effect` taxonomy was unreachable.** `except AppError` in
+`guard_tool` never fired — a2web raised none of the five types, so a missing
+LLM credential and a null deref rendered identically as `UnexpectedDefect`.
+`LLMNotAvailable` → `AuthError`, `ResourceUnavailable` →
+`InfrastructureError`, both keeping `RuntimeError` in their bases so existing
+`except` sites still catch them. The change named a third site that turned out
+not to exist: the paid tiers return a `Verdict` and contain no `raise` at all.
+
+**What this cost, and the general lesson.** Four of the five were invisible to a
+green suite for a structural reason, not an oversight: a test of a GOOD page
+passes with or without a wall check; a machine-channel assertion cannot see an
+agent-channel defect; and a guard told to expect nothing reports success for
+finding nothing. Two new guards close the classes
+(`test_handler_challenge_check.py`, and the coherence table's allowlist
+converted to an assertion). The handler guard's own non-vacuity floor caught its
+first draft matching six false positives.
+
+---
 ## SHIPPED 2026-07-31 — there is no CI on push or PR (was: READ FIRST, T4)
 
 **Closed by `openspec/changes/run-the-gate-on-every-push/`, commit `5fa4a19`.**

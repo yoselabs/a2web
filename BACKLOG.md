@@ -96,7 +96,7 @@ same as ready to start.
 
 | # | change | covers | status |
 |---|---|---|---|
-| 1 | `close-wire-level-adr-0009-leaks` | T3 + T7 live: TSV severity loss, github silent degrade, reddit interstitial, `paid_auth_error` hint, dead `a2effect` branch | **authored** |
+| 1 | `close-wire-level-adr-0009-leaks` | T3 + T7 live: TSV severity loss, github silent degrade, reddit interstitial, `paid_auth_error` hint, dead `a2effect` branch | **SHIPPED** 2026-07-31 → `BACKLOG-CLOSED.md` |
 | 2 | `bound-every-unbounded-path` | T3 + T7 live: no LLM timeout, no per-fetch deadline, `hn.py` unbounded recursion | **authored** |
 | 3 | `fix-cache-ttl-and-listing-sufficiency` | T3: 7-day TTL on live API data, dead `cache_ttl_live_m`, listing sufficiency OFF | **authored** |
 | 4 | `run-the-gate-on-every-push` | T4 CI — **do first**, everything else's guards are inert until it lands | **authored** |
@@ -234,9 +234,7 @@ Three recurring failures, in cost order:
 
 | finding | tier |
 |---|---|
-| [`AppError` has no subclass, so `guard_tool`'s typed branch is dead](docs/findings/2026-07-31-primitives-scan.md#a2effect--adopted-at-one-boundary-taxonomy-unused) | S, correctness — LIVE wire defect |
 | [no per-fetch deadline; the LLM call has no timeout at all](docs/findings/2026-07-31-primitives-scan.md#no-per-fetch-deadline-anywhere--live) | M, correctness — LIVE |
-| [`github.py` degrades silently six times and still returns `ok`](docs/findings/2026-07-31-primitives-scan.md#githubpy-degrades-silently-six-times--adr-0009-leak-live) | S, correctness — ADR-0009 LIVE |
 | [`hn.py:233` recurses on untrusted input with no depth cap](docs/findings/2026-07-31-primitives-scan.md#hnpy233-recurses-on-untrusted-input-with-no-depth-cap--live) | S, correctness — LIVE |
 | [`page-tsv` still ships all three encoder defects a2web fixed](docs/findings/2026-07-31-primitives-scan.md#the-largest-un-repaid-debt-page-tsv-still-ships-all-three-encoder-defects) | M, shelf promotion — affects `a2kay` |
 | [five more shelf gaps a2web has already paid for](docs/findings/2026-07-31-primitives-scan.md#five-more-shelf-gaps-a2web-paid-for) | M, shelf promotion |
@@ -455,7 +453,6 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 | [`llm_eval/systems.py` carries a second fetch stack](docs/findings/2026-07-31-structural-scan.md#llm_evalsystemspy-carries-a-second-fetch-stack-s-structure) | S, structure |
 | [test files that have drifted from their subject](docs/findings/2026-07-31-structural-scan.md#test-files-that-have-drifted-from-their-subject-s-structure) | S, structure |
 | [the markup-funnel guard misses `re.search`/`re.sub`](docs/findings/2026-07-31-structural-scan.md#the-markup-funnel-guard-misses-researchresub-s-verification--live) | S, verification — LIVE |
-| [reddit's old.reddit channel can serve an interstitial as `ok`](docs/findings/2026-07-31-structural-scan.md#reddits-oldreddit-channel-can-serve-an-interstitial-as-ok-s-correctness--live) | S, correctness — LIVE |
 | [reddit.py is four retrieval channels behind one `matches()`](docs/findings/2026-07-31-structural-scan.md#redditpy-is-four-retrieval-channels-behind-one-matches-m-structure) | M, structure |
 | [cross-handler duplication: seven shapes, partial adoption](docs/findings/2026-07-31-structural-scan.md#cross-handler-duplication-seven-shapes-partial-adoption-m-structure) | M, structure |
 | [45 of 86 prompt rules have neither code nor test](docs/findings/2026-07-31-structural-scan.md#45-of-86-prompt-rules-have-neither-code-nor-test-l-verification) | L, verification |
@@ -471,7 +468,6 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 | [stale provider ids break a documented boot](docs/findings/2026-07-31-structural-scan.md#stale-provider-ids-break-a-documented-boot-s-correctness--live) | S, correctness — LIVE |
 | [two cited architecture guards do not exist](docs/findings/2026-07-31-structural-scan.md#two-cited-architecture-guards-do-not-exist-s-verification) | S, verification |
 | [naming rot: `_prescribe_browser_on_wall`](docs/findings/2026-07-31-structural-scan.md#naming-rot-_prescribe_browser_on_wall-xs-cosmetic) | XS, cosmetic |
-| [`paid_auth_error` has no operator hint](docs/findings/2026-07-31-structural-scan.md#paid_auth_error-has-no-operator-hint-s-correctness--live-defect) | S, correctness — LIVE DEFECT |
 | [invariants with no code implementer](docs/findings/2026-07-31-structural-scan.md#invariants-with-no-code-implementer-m-l-structure) | M-L, structure |
 | [the corpus cannot see the envelope](docs/findings/2026-07-31-structural-scan.md#the-corpus-cannot-see-the-envelope-l-verification--highest-leverage) | L, verification — HIGHEST LEVERAGE |
 | [a wire regression on ADR-0009 is one re-bless from green](docs/findings/2026-07-31-structural-scan.md#a-wire-regression-on-adr-0009-is-one-re-bless-from-green-m-verification) | M, verification |

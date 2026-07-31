@@ -98,8 +98,13 @@ anything.
 
 ## 6. Close out
 
-- [ ] 6.1 `make check` green.
-- [ ] 6.2 Confirm each of the five witnesses fails when its fix is reverted —
-      the fix-reverted check, not merely a green suite.
-- [ ] 6.3 Update `CLAUDE.md` if any never-clause wording changed.
-- [ ] 6.4 Move the five BACKLOG entries to `BACKLOG-CLOSED.md`.
+- [x] 6.1 `make check` green.
+- [x] 6.2 Confirm each of the five witnesses fails when its fix is reverted —
+      the fix-reverted check, not merely a green suite. Done per group, and for
+      group 3 per HALF (the catalogue marker and the handler call were reverted
+      separately; both are load-bearing).
+- [x] 6.3 Update `CLAUDE.md` if any never-clause wording changed.
+- [x] 6.4 Move the five BACKLOG entries to `BACKLOG-CLOSED.md`. FOUR rows
+      existed to move; the TSV column defect had no standalone row (it was found
+      while authoring this change, by executing the encoder directly) and is
+      recorded in the closed entry.
