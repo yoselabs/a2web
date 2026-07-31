@@ -48,7 +48,7 @@ from http_fetch import FetchOutcome, FetchVerdict, fetch_bytes
 from .. import content_expectations
 from ..models import Heading, NextLink, OperatorHint, Verdict, comments_partial_hint, try_user_browser_hint
 from . import _reddit_html as rh
-from ._common import empty_result
+from ._common import challenge_verdict, empty_result
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -897,6 +897,15 @@ async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str
     )
     if not markdown:
         return empty_result(url, Verdict.length_floor)
+
+    # The wall check `twitter.py` and `wikipedia.py` already run on the same
+    # shape (GET HTML → trafilatura → prose). Without it this returned
+    # `Verdict.ok` for ANYTHING that extracted to prose — and a challenge page
+    # extracts perfectly well, so a "whoa there, pardner" block or an over-18
+    # gate came back as the thread's content (ADR-0009).
+    walled = challenge_verdict(html, content_md=markdown)
+    if walled is not None:
+        return empty_result(url, walled)
 
     metadata = trafilatura.extract_metadata(html)
     title = (metadata.title if metadata else None) or None

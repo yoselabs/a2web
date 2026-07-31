@@ -76,8 +76,7 @@ async def test_rate_limited_comments_are_not_rendered_as_no_comments(
 
     body = result.pre_rendered.content_md
     assert "not retrieved" in body.lower(), (
-        "the Comments section was rate-limited but renders indistinguishably "
-        f"from an issue with zero comments:\n{body}"
+        f"the Comments section was rate-limited but renders indistinguishably from an issue with zero comments:\n{body}"
     )
 
     hint = result.operator_hint
@@ -170,6 +169,4 @@ async def test_several_unretrieved_sections_are_named_in_one_hint(
     hint = result.operator_hint
     assert hint is not None
     message = hint.message.lower()
-    assert "reviews" in message and "comments" in message, (
-        f"both degraded sections must be named, got: {hint.message}"
-    )
+    assert "reviews" in message and "comments" in message, f"both degraded sections must be named, got: {hint.message}"

@@ -298,10 +298,7 @@ def section_unretrieved_hint(sections: list[str]) -> OperatorHint:
             "The rest of the page was retrieved normally. Do not read their absence as "
             "meaning the source has none — treat them as unknown."
         ),
-        fix=(
-            "Usually an API rate limit; retry later, or set a credential "
-            "(e.g. A2WEB_GITHUB_TOKEN) to raise the quota."
-        ),
+        fix=("Usually an API rate limit; retry later, or set a credential (e.g. A2WEB_GITHUB_TOKEN) to raise the quota."),
         severity="warning",
     )
 

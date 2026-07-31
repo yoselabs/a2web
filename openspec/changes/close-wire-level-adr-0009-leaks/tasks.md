@@ -44,16 +44,29 @@ anything.
 
 ## 3. `_fetch_old_reddit` returns ok for an interstitial
 
-- [ ] 3.1 Capture a real Reddit block/interstitial page into
+- [x] 3.1 Capture a real Reddit block/interstitial page into
       `tests/fixtures/captured/` — captured, never hand-written, per the
       handler-fixture rule.
-- [ ] 3.2 Write the failing test: that fixture through `_fetch_old_reddit`
+- [x] 3.2 Write the failing test: that fixture through `_fetch_old_reddit`
       currently yields `Verdict.ok`.
-- [ ] 3.3 Call `challenge_verdict` in `_fetch_old_reddit` before returning.
-- [ ] 3.4 Add the architecture guard: every handler path calling a generic prose
+- [x] 3.3 Call `challenge_verdict` in `_fetch_old_reddit` before returning.
+      **The call alone did NOT fix it.** Both captures are walls the catalogue
+      did not recognise: `whoa there, pardner` was present but ONLY in the
+      branch gated below `LENGTH_FLOOR`, and the real block page extracts to
+      779 chars. Promoted the Reddit interstitial markers to a
+      length-independent `_REDDIT_INTERSTITIAL_MARKER` (verbatim UI copy, not
+      English an article could contain — the same test that justifies matching
+      turnstile/akamai at any length). Verified by reverting each half
+      separately: both are load-bearing.
+- [x] 3.4 Add the architecture guard: every handler path calling a generic prose
       extractor on retrieved HTML also calls `challenge_verdict`.
-- [ ] 3.5 Give that guard a non-vacuity floor — assert it found at least the
+- [x] 3.5 Give that guard a non-vacuity floor — assert it found at least the
       three known candidate paths, so a walk matching nothing cannot read green.
+      The floor also caught the guard's own first draft being WRONG: matching
+      bare `extract`/`to_markdown` flagged six extra handlers, all false
+      positives (a `dom_schema` selector parse and an HN API field cannot
+      launder an interstitial). Narrowed to qualified `trafilatura.extract` +
+      `extract_markdown`, which is exactly the known population of three.
 
 ## 4. `paid_auth_error` has no hint
 

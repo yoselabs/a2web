@@ -162,6 +162,34 @@ _AKAMAI_BMP_MARKER = re.compile(r"_abck=|bm_sz=|akam/\d+/[0-9a-f]{6,}", re.IGNOR
 _CF_INTERSTITIAL_MARKER = re.compile(r"\bcf-chl-bypass\b|\bJust a moment\b", re.IGNORECASE)
 _SCRIPT_TAG_RE = re.compile(r"<script\b", re.IGNORECASE)
 
+# Reddit's own interstitials, matched LENGTH-INDEPENDENTLY.
+#
+# `whoa there, pardner` was already in `_BLOCK_PATTERNS` — but that branch only
+# runs below `LENGTH_FLOOR`, and the real captured block page extracts to 779
+# characters of perfectly plausible prose ("Your request has been blocked due to
+# a network policy. Try logging in…"). So the marker was present and inert: the
+# exact "wordier interstitial from the same family still reads as content" limit
+# stated on the `checking your browser` entry below.
+#
+# These belong with the vendor fingerprints rather than the prose markers, on
+# the same test that justifies matching turnstile/akamai/baxia at any length:
+# the strings are verbatim Reddit UI copy, not English that an article could
+# contain. "whoa there, pardner" is a Reddit-ism; "You must be 18+ to view this
+# community" is a literal button-bearing gate, not a sentence about one.
+#
+# The over-18 gate is a wall in the sense that matters here: HTTP 200, real
+# prose, and the requested content withheld behind an action a2web cannot take.
+# Reporting it as the thread is the ADR-0009 harm exactly.
+# Witnesses: `tests/fixtures/captured/old_reddit_network_policy_block.html`,
+# `tests/fixtures/captured/old_reddit_over18_interstitial.html`.
+_REDDIT_INTERSTITIAL_MARKER = re.compile(
+    r"whoa there,? pardner"
+    r"|blocked due to a network policy"
+    r"|You must be 18\+ to view this community"
+    r"|attempting to access a blocked page",
+    re.IGNORECASE,
+)
+
 # Alibaba Baxia "punish" anti-bot interstitial — the wall fronting AliExpress
 # and other Alibaba-family sites. raw curl_cffi follows the redirect and lands
 # on the punish page, whose body carries these markers (observed on real
@@ -295,6 +323,8 @@ def evaluate(
             subsystem="anubis",
             escalation=EscalationSignal(next_tier="browser", reason="anubis"),
         )
+    if _REDDIT_INTERSTITIAL_MARKER.search(raw_html):
+        return BlockResult(BlockVerdict.block_page_detected, subsystem="reddit_interstitial")
     if _ALIBABA_BAXIA_MARKER.search(raw_html):
         return BlockResult(
             BlockVerdict.anti_bot,
