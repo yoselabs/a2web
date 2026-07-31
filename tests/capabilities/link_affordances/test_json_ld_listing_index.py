@@ -63,8 +63,7 @@ def _ld_json_page() -> str:
 def _dom_page() -> str:
     """The SAME items as mineable DOM records — the path that already worked."""
     rows = "".join(
-        f"<article class='row'><h3><a href='{url}'>{name}</a></h3>"
-        f"<p>{price} TRY{f' rating {rating}' if rating else ''}</p></article>"
+        f"<article class='row'><h3><a href='{url}'>{name}</a></h3><p>{price} TRY{f' rating {rating}' if rating else ''}</p></article>"
         for name, url, price, rating in _ITEMS
     )
     return f"<html><body><h1>Catalog</h1><div class='listing'>{rows}</div></body></html>"

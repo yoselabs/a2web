@@ -5,19 +5,33 @@ do it first.
 
 ## 1. `hn.py` recursion is unbounded on untrusted input
 
-- [ ] 1.1 Write the failing test: a synthetic HN tree nested past 1000 levels
+**SHIPPED 2026-08-01.** Both shapes reproduced as `RecursionError` at depth
+5000 before the fix. One deviation, recorded at 1.4 below. The architecture
+guard's FIRST draft was itself vacuous — it accepted the substring `budget`
+anywhere in the function, including the parameter name, and so stayed green
+when the bound was deleted from the body; it now requires an actual comparison.
+Caught only by running the fix-reverted check against the guard as well as the
+witnesses.
+
+- [x] 1.1 Write the failing test: a synthetic HN tree nested past 1000 levels
       raises `RecursionError` through `_render_kid`. Written in the real API
       shape, not an approximation — it controls one variable (depth), which is
       the legitimate use of a synthetic fixture.
-- [ ] 1.2 Write the second failing test: a chain of DELETED comments, which
+- [x] 1.2 Write the second failing test: a chain of DELETED comments, which
       recurses via `hn.py:240` with `depth` unchanged and therefore defeats a
       depth cap.
-- [ ] 1.3 Add `_MAX_DEPTH = 20` and `_MAX_COMMENTS = 400`, matching `habr.py`
+- [x] 1.3 Add `_MAX_DEPTH = 20` and `_MAX_COMMENTS = 400`, matching `habr.py`
       name-for-name and value-for-value.
-- [ ] 1.4 Advance `depth` on the deleted-comment path.
-- [ ] 1.5 Declare truncation in the render when a bound is hit, as
+- [x] 1.4 ~~Advance `depth` on the deleted-comment path.~~ **Deliberately NOT
+      done.** Advancing `depth` there would re-indent every existing thread
+      containing a deleted comment — a wire change to fix a bound. Decrementing
+      the shared comment budget on that path bounds the recursion just as hard
+      (≤ `_MAX_COMMENTS` frames) with no rendering change, which is what ships.
+      `test_the_deleted_chain_is_bounded_by_the_comment_budget` asserts the
+      bound rather than the mechanism, so it stays honest either way.
+- [x] 1.5 Declare truncation in the render when a bound is hit, as
       `arxiv.py:288` does for listings.
-- [ ] 1.6 Add the architecture guard: every handler rendering a recursive
+- [x] 1.6 Add the architecture guard: every handler rendering a recursive
       structure has a depth bound. Give it a non-vacuity floor asserting it
       found the three known tree-renderers.
 

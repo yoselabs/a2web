@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
@@ -212,10 +213,17 @@ def _render_item(item: Any) -> dict[str, Any]:
     parts.append("---\n")
     parts.append("## Comments\n")
 
+    budget = _RenderBudget()
     for child in item.get("children") or []:
-        rendered = _render_kid(child, depth=1)
+        rendered = _render_kid(child, depth=1, budget=budget)
         if rendered:
             parts.append(rendered)
+    # Declare the truncation rather than silently shipping a partial thread —
+    # the same contract `arxiv.py` applies to a capped listing. A caller that
+    # cannot tell a bounded render from a complete one will read "no further
+    # replies" into a cap (ADR-0009's honest-incompleteness floor).
+    if budget.truncated:
+        parts.append(f"\n_Thread truncated: rendering stops at {_MAX_COMMENTS} comments or {_MAX_DEPTH} levels of nesting._\n")
 
     headings: list[Heading] = []
     if title:
@@ -230,18 +238,65 @@ def _render_item(item: Any) -> dict[str, Any]:
     }
 
 
-def _render_kid(node: Any, *, depth: int) -> str:
-    if not isinstance(node, dict):
+# Bounds on an UNTRUSTED remote tree — same names and values as `habr.py`.
+_MAX_DEPTH = 20
+_MAX_COMMENTS = 400
+
+
+@dataclass(slots=True)
+class _RenderBudget:
+    """Comment budget for one thread render, plus whether a bound was hit.
+
+    A mutable object rather than a return value because the recursion is
+    depth-first over an arbitrary tree: every branch draws from the same
+    allowance, so the budget has to be shared, not summed on the way out.
+    """
+
+    remaining: int = _MAX_COMMENTS
+    truncated: bool = False
+
+
+def _render_kid(node: Any, *, depth: int, budget: _RenderBudget) -> str:
+    """Render one comment and its reply subtree, blockquote-indented by depth.
+
+    **Bounded on both axes, because the tree is untrusted remote input.** The
+    Algolia response is an arbitrarily deep structure from the network; before
+    2026-08-01 this walked it with no cap at all and a thread nested past
+    CPython's ~1000-frame limit raised `RecursionError` out of the handler.
+
+    The deleted-comment branch is the sharper half. It recursed with `depth`
+    UNCHANGED — deliberately, so a removed comment does not add a blockquote
+    level — which means a chain of deleted nodes advances no counter at all. A
+    depth cap alone would not have bounded it: `_MAX_DEPTH` would never be
+    reached while the stack still grew one frame per node. That is why the
+    comment budget is decremented on that path too, and why the test for it is
+    separate.
+    """
+    if not isinstance(node, dict) or depth > _MAX_DEPTH:
+        if depth > _MAX_DEPTH:
+            budget.truncated = True
         return ""
+    if budget.remaining <= 0:
+        budget.truncated = True
+        return ""
+    budget.remaining -= 1
+
     text = to_markdown(node.get("text") or "").strip()
     author = node.get("author") or "[deleted]"
     if not text:
-        # Item may have been deleted; recurse into kids if any
-        return "".join(_render_kid(c, depth=depth) for c in (node.get("children") or []))
+        # Item may have been deleted; recurse into kids if any. `depth` is
+        # deliberately NOT advanced — a removed comment adds no blockquote
+        # level, and advancing it would re-indent every existing thread that
+        # contains one. The change's task list said to advance it, to make the
+        # depth cap bite on this path; decrementing the shared comment budget
+        # here bounds the recursion just as hard (≤ `_MAX_COMMENTS` frames)
+        # without touching rendering, so that is what ships. The deleted-chain
+        # test asserts the bound, not the mechanism.
+        return "".join(_render_kid(c, depth=depth, budget=budget) for c in (node.get("children") or []))
 
     quote = ">" * depth
     quoted = "\n".join(f"{quote} {line}".rstrip() for line in text.splitlines())
     block = f"{quoted}\n{quote}\n{quote} — {author}\n"
     for child in node.get("children") or []:
-        block += _render_kid(child, depth=depth + 1)
+        block += _render_kid(child, depth=depth + 1, budget=budget)
     return block
