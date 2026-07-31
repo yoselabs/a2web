@@ -466,6 +466,19 @@ def test_no_golden_is_degenerate() -> None:
     forever while asserting nothing — it looks like coverage and provides
     none. This walks the artifacts and fails on any that could not possibly
     detect a regression.
+
+    **Scope, stated because it is narrower than the name suggests.** The bar is
+    `len(text) > 20` and a non-empty structure. That catches a golden frozen
+    over nothing; it says nothing about whether the payload is CORRECT. A golden
+    can be non-degenerate by this test and still have frozen a defect —
+    `list_tools.json` froze the typo `~95%%` perfectly through seventeen rounds
+    of wire review.
+
+    The real per-scenario coverage is the inline asserts in each
+    `test_wire_*` function, plus — for the ADR-0009 signals specifically —
+    `tests/capabilities/retrieval_completeness/test_adr0009_wire_signals.py`,
+    which lives OUTSIDE the golden mechanism so that an accepted re-bless cannot
+    weaken it. Do not read a green run here as "the wire is right".
     """
     goldens = sorted(WIRE_DIR.rglob("*.json"))
     assert len(goldens) >= 11, f"expected the full artifact set, found {len(goldens)}"

@@ -40,6 +40,7 @@ import datetime as _datetime_mod
 import difflib
 import json
 import os
+import re
 import time
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -55,7 +56,38 @@ DELTAS_PATH = Path(__file__).parent / "DELTAS.md"
 #: Set to a reason slug to accept a wire change. Writes the new golden AND
 #: appends the diff to DELTAS.md under that slug. A re-bless with no slug is
 #: rejected when goldens exist — that is the whole point of the two phases.
-ACCEPT_SLUG = os.environ.get("A2WEB_ACCEPT_WIRE_DELTA")
+def _validated_accept_slug() -> str | None:
+    """The re-bless reason, rejected unless it is actually a reason.
+
+    Any truthy value rewrote all 12 goldens. `A2WEB_ACCEPT_WIRE_DELTA=1` — a
+    plausible slip when reaching for a flag — silently re-blessed the entire
+    agent-facing wire contract and wrote "1" into DELTAS.md as the
+    justification. The gate's whole design is "an unexplained re-bless is
+    rejected"; a value that explains nothing must be treated as unexplained.
+
+    So: kebab-case, at least two words, no bare booleans or digits. This cannot
+    tell a real reason from a well-formed lie — nothing can — but it does stop
+    the accidental blanket accept, which is the failure that actually happens.
+    """
+    raw = os.environ.get("A2WEB_ACCEPT_WIRE_DELTA")
+    if raw is None:
+        return None
+    slug = raw.strip()
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)+", slug) or slug in _REJECTED_SLUGS:
+        raise RuntimeError(
+            f"A2WEB_ACCEPT_WIRE_DELTA={raw!r} is not a reason.\n"
+            "Re-blessing rewrites the surface installed agents consume, so the slug is\n"
+            "recorded in tests/contracts/DELTAS.md as the justification. Use kebab-case\n"
+            "with at least two words, e.g. `severity-column-union-fix`.\n"
+            "Rejected: bare digits, booleans, and single words."
+        )
+    return slug
+
+
+#: Values that parse as slugs but say nothing.
+_REJECTED_SLUGS = frozenset({"yes-yes", "true-true", "accept-it", "do-it", "just-do-it"})
+
+ACCEPT_SLUG = _validated_accept_slug()
 
 #: The instant every captured response is pinned to.
 FROZEN_INSTANT = _datetime_mod.datetime(2026, 1, 1, 0, 0, 0, tzinfo=_datetime_mod.UTC)

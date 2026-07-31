@@ -111,14 +111,14 @@ on push buys nothing until it does.
 
 ## 7. The ADR-0009 wire signals
 
-- [ ] 7.1 Lift the three inline asserts out of `test_wire_query_failure` into a
+- [x] 7.1 Lift the three inline asserts out of `test_wire_query_failure` into a
       standalone wire capability test asserting all five signals **plus**
       `severity == "critical"`.
-- [ ] 7.2 Verify by downgrading the hint in the wire projection and confirming
+- [x] 7.2 Verify by downgrading the hint in the wire projection and confirming
       the new test fails independently of any golden.
-- [ ] 7.3 Validate `ACCEPT_SLUG` in `wire_harness.py:169` against the known set —
+- [x] 7.3 Validate `ACCEPT_SLUG` in `wire_harness.py:169` against the known set —
       today any value rewrites all 12 goldens.
-- [ ] 7.4 Note in the wire-contract docs that `test_no_golden_is_degenerate` bars
+- [x] 7.4 Note in the wire-contract docs that `test_no_golden_is_degenerate` bars
       only `len(text) > 20`; the real coverage is the inline per-scenario
       asserts.
 
