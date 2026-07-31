@@ -223,6 +223,45 @@ parallel with them. Entries listed below.
 **Recommended order:** T3 (+ T7's live defects) → T4's CI entry → T1 phase one →
 T2 → T1 phase two → T5/T7 → T4 remainder → T6.
 
+## 2026-08-01 — deferred from `close-guards-that-read-green`
+
+**§5.1-5.3 — constants that change behaviour, still unwitnessed.** Three
+constants whose value silently changes what a2web detects, each needing a
+CAPTURED page with a specific property before a witness means anything:
+
+- `detector._HEADING_FRAC_MIN` — needs a listing whose item titles are
+  `<div>`/`<span>` rather than headings; the witness must FAIL at `1.00`.
+- `_CONSISTENCY_MIN` — needs a listing with mixed card types (sponsored /
+  promoted rows among organic ones).
+- `LENGTH_FLOOR` — `tests/capabilities/extraction/test_wire_content_md.py:17`
+  asserts `len(_PROSE) >= LENGTH_FLOOR`, a fixture SIZED FROM the constant, so
+  it cannot fail whatever the constant becomes. Needs a real page straddling it.
+
+Deliberately not faked: a fixture hand-written beside the constant reproduces
+the exact defect these tasks exist to fix. They need capture work.
+
+**§4 — the playbook has no foreign witness.** 49 of 53 tests in
+`test_decide_next.py` restate the decision table; four are genuinely independent
+(two hypothesis properties, uniqueness, purity). An outcome-level witness — a
+replay observing the RESULT of a routing decision rather than the decision — is
+new offline replay infrastructure, not a tweak.
+
+**§6 — the corpus cannot see the envelope.** The quality judge never receives
+the fetched page (`JUDGE_V1` has slots for ask/criteria/answer only), 33 corpus
+criteria are unread, and `replay.py::observe()` omits `retrieval_incomplete` and
+`narrative` so the akakce wall baseline cannot regress on them. Includes §6.5:
+`_NEXT_LINKS_TEMPLATE` instructs the judge to *"never penalize an entry for
+being unfamiliar or assume it is fabricated"* — an instruction that exists
+because the judge could not verify, and which **disarms ADR-0014** once it can.
+Verification is a live `make bench` run (network + LLM quota, ADR-0016).
+
+**The fake-fidelity slot is empty.** `verification-provenance.md` names a
+standing fake-fidelity contract as one of three mechanizable remedies and cited
+a test that does not exist; the zendriver backend moved to the shelf and took it
+along. The failure it caught — the dead `--no-sandbox` rung — is unguarded in
+a2web today. Either restore a witness for whichever fakes a2web still
+hand-writes, or verify that `any_browser` holds it.
+
 ## 2026-08-01 — T7 promotion candidate: `anyllm` needs a per-request timeout
 
 **Filed while shipping `bound-every-unbounded-path` §2.** `anyllm.LLMProvider.complete()`

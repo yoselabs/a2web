@@ -525,3 +525,50 @@ advertised total; discourse/v2ex compute none, reddit's is a comment count
 already wired, and HN's `nbHits` semantics are unverified, so declaring it risks
 a FALSE `listing_partial`, which teaches callers to ignore the signal. Needs a
 captured HN fixture. 5.3 (bench re-run) — live-network and spends LLM quota.
+
+## 2026-08-01 — `close-guards-that-read-green` (§1-§3, §5.4-5.5, §7-§8)
+
+Guards and citations that reported coverage they did not have.
+
+- **The markup funnel matched only `re.compile`.** The rule said "never a
+  regex"; the enforcement said "never a COMPILED regex", so a one-shot
+  `re.search` over markup passed through. `reddit._atom_body_markdown` was
+  parsing HTML with `re.sub` + `re.search` under a green build, and its own
+  comment conceded the assumption it broke on. Replaced with a DOM after
+  demonstrating the failing shape (a sibling `<div>` after the body makes the
+  greedy match swallow site chrome into the author's words).
+- **A guard named for a claim it never made.** `test_packages_boundary_frozen.py`
+  was cited twice for freezing `__all__`, which it has never checked. Renamed;
+  `__all__` recorded as unguarded.
+- **A guard with zero adopters.** `test_transient_markers_not_stale` policed a
+  marker convention with no instances anywhere in the tree. Retired.
+- **Citations that do not resolve**, including two to a test that does not
+  exist inside the document codifying the foreign-provenance rule — and that
+  document's closing recommendation reasoned FROM that test's existence. The
+  recommendation is re-derived in place; the self-failure is recorded in the
+  document, not only in the fix.
+- **A registry listing 10 of 34 guards**, because the "adding a rule" workflow
+  had no step to register one. Filled, and completeness mechanized in both
+  directions.
+- **The ADR-0009 wire signals**: three of five asserted, severity asserted by
+  nothing — the exact field the TSV column-union bug stripped. Lifted into a
+  standalone test outside the golden mechanism.
+- **`A2WEB_ACCEPT_WIRE_DELTA` accepted any truthy value**, so `=1` silently
+  re-blessed all 12 goldens and recorded "1" as the justification.
+- **`pytest-archon` was a dependency imported by nothing**, while its name stood
+  in for the enforcement that actually existed as plain pytest + `ast`.
+- **`firecrawl._TIMEOUT_S`** kept the value AND the comment that a measurement
+  on its sibling (`zyte`, `2bf60ca`) had falsified.
+- **Four capped renderers dropped their tails silently** (`hn`, `v2ex`,
+  `discourse`, `habr`), each holding the total and discarding it — ADR-0009 on
+  the sufficiency axis. arXiv's `N of M` declaration ported via one shared helper.
+
+**The guard I wrote to catch stale citations was itself reading my machine.** It
+passed locally and failed CI, because my working tree had `eval/runs/` (gitignored
+bench output) and a `__pycache__` under a manifest surface with no tracked files.
+CI was the foreign witness. It exposed a real finding in passing:
+`_manifests/llm_providers/` has no tracked files at all — CLAUDE.md listed it as
+a current plugin surface, naming plugins whose spellings were themselves retired.
+
+Open, with reasons, in `BACKLOG.md`: §4 (playbook foreign witness), §5.1-5.3
+(constants needing captured fixtures), §6 (corpus/bench).
