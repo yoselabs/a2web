@@ -198,3 +198,38 @@ async def test_bad_paid_key_fails_loud_and_stops(monkeypatch: pytest.MonkeyPatch
     assert result.tier != "firecrawl"
     # never-silently-miss: the miss is explicit.
     assert result.retrieval_incomplete is True
+
+
+@pytest.mark.asyncio
+async def test_bad_paid_key_names_the_fix_in_an_operator_hint(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`paid_auth_error` must carry a hint naming the fix.
+
+    Three places asserted it already did. `fetcher_response.py` seeds
+    `retrieval_incomplete` for this verdict *because* it "keeps its OWN
+    dedicated hint"; `fetcher._apply_terminal`'s docstring repeats the claim;
+    and `test_terminal_hint_coherence.py` allowlisted `operator_error` to
+    `{None}` with a comment citing a hint "emitted at the paid tier". None
+    existed. A bad key produced `failed` + `retrieval_incomplete` with nothing
+    naming the remedy — and CLAUDE.md's never-clause requires exactly that hint.
+
+    A bad key is an OPERATOR fault, not a wall: it is the one failure the
+    caller cannot route around, and the person who can fix it is not the agent.
+    """
+    monkeypatch.setitem(REGISTRY, "raw", _BlockedRawTier())
+    monkeypatch.setitem(REGISTRY, "zyte", _BadKeyPaidTier("zyte"))
+    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+
+    result = await fetch("https://walled.example/article", state=make_default_state(), debug=True)
+
+    assert result.status == FetchStatus.failed
+    codes = [h.code for h in result.operator_hints]
+    assert "paid_auth_error" in codes, f"no hint names the bad key; got {codes}"
+
+    hint = next(h for h in result.operator_hints if h.code == "paid_auth_error")
+    assert hint.fix, "an operator fault the caller cannot route around must name its remedy"
+    assert hint.severity == "critical", (
+        "a keyed tier that cannot authenticate is a hard stop, not an advisory"
+    )
+    # The wall klaxon means one thing. A bad key is not an anti-bot wall, and
+    # prescribing a browser here would send the caller down the wrong path.
+    assert "try_user_browser" not in codes, "an auth failure must not masquerade as a wall"

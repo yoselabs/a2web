@@ -77,6 +77,7 @@ from .models import (
     content_empty_hint,
     content_not_found_hint,
     content_thin_hint,
+    paid_auth_error_hint,
     try_user_browser_hint,
 )
 from .packages.block_detector import LENGTH_FLOOR, THIN_FALLTHROUGH, looks_like_unrendered_spa
@@ -1991,8 +1992,10 @@ def _apply_terminal(fc: FetchContext) -> None:
       empty-result marker leaned empty on but the promotion conjunction did not
       hold); the retrieved body is attached to the envelope by the response
       builder. NEVER `try_user_browser`.
-    - `operator_error` / `unreachable` → no hint here (paid_auth_error carries its
-      own; dns/content_type_mismatch are honestly terminal).
+    - `operator_error` / `unreachable` → no hint HERE. `paid_auth_error` carries
+      its own critical `paid_auth_error_hint`, emitted at the paid tier where the
+      rejecting tier's name is known (this seam only sees the resolved verdict);
+      dns/content_type_mismatch are honestly terminal.
     """
     if fc.resolved_verdict() is Verdict.ok:
         return
@@ -2222,6 +2225,11 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = Fa
 
         if result.verdict is Verdict.paid_auth_error:
             # Fail loud: authoritative hard-stop. Do NOT try the next paid tier.
+            # The hint is the "loud" half — without it this returns `failed` +
+            # `retrieval_incomplete` and nothing naming the fix, which is the
+            # state three separate comments claimed was already handled here.
+            if not _has_hint(fc, "paid_auth_error"):
+                fc.operator_hints.append(paid_auth_error_hint(fc.final_url, tier=tier_name))
             fc.observe(
                 kind=ObservationKind.tier_outcome,
                 source=tier_name,

@@ -273,6 +273,40 @@ def comments_partial_hint(*, loaded: int, total: int) -> OperatorHint:
     )
 
 
+def paid_auth_error_hint(url: str, *, tier: str) -> OperatorHint:
+    """A keyed paid tier rejected its credential — an OPERATOR fault, loud.
+
+    `critical`, like `try_user_browser`, because it is equally terminal: the URL
+    was not retrieved and the caller cannot route around it. Unlike a wall it is
+    not the CALLER's problem to solve — the person who can fix it holds the key,
+    so the fix names the credential rather than prescribing a browser. Emitting
+    `try_user_browser` here would send the caller down the wrong path entirely.
+
+    This hint was claimed by three separate places before it existed:
+    `fetcher_response` seeded `retrieval_incomplete` for this verdict *because*
+    it "keeps its OWN dedicated hint", `_apply_terminal`'s docstring said the
+    same, and the terminal-hint coherence guard allowlisted `operator_error` to
+    `{None}` citing a hint "emitted at the paid tier". A bad key therefore
+    produced `failed` + `retrieval_incomplete` with nothing naming the remedy,
+    which the never-silently-miss floor explicitly requires.
+    """
+    return OperatorHint(
+        code="paid_auth_error",
+        message=(
+            f"This URL was NOT retrieved ({url}). The paid fallback tier "
+            f"`{tier}` rejected its API key (authentication or billing failure), "
+            "so the last-resort retrieval path is unavailable. You do NOT have "
+            "this content; do not answer as if you do."
+        ),
+        fix=(
+            f"An operator must fix the `{tier}` credential — check the API key is "
+            "valid and the account's billing is current. This is a configuration "
+            "fault, not an anti-bot wall; retrying or using a browser will not help."
+        ),
+        severity="critical",
+    )
+
+
 def section_unretrieved_hint(sections: list[str]) -> OperatorHint:
     """A supplementary section of a multi-part page could not be retrieved.
 

@@ -22,19 +22,27 @@ from a2web.actions.terminal import TerminalOutcome
 
 # The permitted terminal operator-hint codes per outcome. `None` in the set means
 # "may legitimately emit no terminal hint" (an authoritative gone stays silent;
-# operator_error carries its own `paid_auth_error` hint elsewhere; unreachable is
-# honestly terminal). Keep this in lockstep with `fetcher._apply_terminal`.
+# unreachable is honestly terminal). Keep this in lockstep with
+# `fetcher._apply_terminal`.
+#
+# `operator_error` held `frozenset({None})` until 2026-07-31, commented
+# "paid_auth_error hint emitted at the paid tier". NO SUCH HINT EXISTED. The
+# guard was green because it had been told to expect nothing, on the strength of
+# a claim nobody checked — and it would have stayed green through the hint's
+# deletion, which is the state being fixed. An allowlist entry justified by a
+# thing that does not exist is worse than no entry: it reads as a decision.
 _COHERENCE: dict[TerminalOutcome, frozenset[str | None]] = {
     TerminalOutcome.wall: frozenset({"try_user_browser"}),
     TerminalOutcome.gone_confirmed: frozenset({"content_not_found", None}),  # HTTP-corroborated info, or authoritative-silent
     TerminalOutcome.gone_unverified: frozenset({"content_not_found"}),
     TerminalOutcome.thin_unverified: frozenset({"content_thin"}),  # retrieved thin 200, no wall evidence, no marker
     TerminalOutcome.empty_unverified: frozenset({"content_thin"}),  # thin 200 with an empty marker, uncorroborated
-    TerminalOutcome.operator_error: frozenset({None}),  # paid_auth_error hint emitted at the paid tier
+    TerminalOutcome.operator_error: frozenset({"paid_auth_error"}),  # emitted at the paid tier on a rejected key
     TerminalOutcome.unreachable: frozenset({None}),
 }
 
 _WALL_HINT = "try_user_browser"
+_OPERATOR_HINT = "paid_auth_error"
 _GONE_HINT = "content_not_found"
 _THIN_HINT = "content_thin"
 
@@ -73,3 +81,25 @@ def test_thin_signal_only_on_thin_or_empty_unverified() -> None:
     for outcome, codes in _COHERENCE.items():
         if outcome not in (TerminalOutcome.thin_unverified, TerminalOutcome.empty_unverified):
             assert _THIN_HINT not in codes, f"{outcome} must not emit content_thin"
+
+
+def test_operator_error_requires_a_hint_that_actually_exists() -> None:
+    """`operator_error` must demand a hint, and that hint must be constructible.
+
+    Two assertions, because the failure had two halves. The table must not
+    allow silence (it did, for as long as the claim went unchecked), AND the
+    code it names must exist — an entry naming a hint nobody builds is the same
+    green-for-nothing the `None` entry was.
+    """
+    codes = _COHERENCE[TerminalOutcome.operator_error]
+    assert None not in codes, (
+        "operator_error may not emit NO hint. A bad paid key is a retrieval "
+        "failure the caller cannot route around; ADR-0009 requires it name the fix."
+    )
+    assert codes == frozenset({_OPERATOR_HINT})
+
+    from a2web.models import paid_auth_error_hint
+
+    hint = paid_auth_error_hint("https://example.org/x", tier="zyte")
+    assert hint.code == _OPERATOR_HINT, "the table names a code the factory does not produce"
+    assert hint.severity == "critical" and hint.fix

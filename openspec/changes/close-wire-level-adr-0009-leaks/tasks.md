@@ -70,11 +70,11 @@ anything.
 
 ## 4. `paid_auth_error` has no hint
 
-- [ ] 4.1 Write the failing test: a paid tier with a bad key produces `failed` +
+- [x] 4.1 Write the failing test: a paid tier with a bad key produces `failed` +
       `retrieval_incomplete` and NO operator hint.
-- [ ] 4.2 Add the hint factory in `models.py` alongside the existing ten.
-- [ ] 4.3 Emit it at the paid-tier authentication failure.
-- [ ] 4.4 Change `test_terminal_hint_coherence.py:33` from a `None` allowlist
+- [x] 4.2 Add the hint factory in `models.py` alongside the existing ten.
+- [x] 4.3 Emit it at the paid-tier authentication failure.
+- [x] 4.4 Change `test_terminal_hint_coherence.py:33` from a `None` allowlist
       entry to an assertion that the hint is present, and delete the comment
       that justified the allowlist.
 

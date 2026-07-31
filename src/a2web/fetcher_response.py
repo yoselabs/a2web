@@ -390,6 +390,12 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # incompleteness — a single source of truth. Only `paid_auth_error` is special:
     # it keeps its OWN dedicated hint (an operator error, a bad paid key) instead of
     # `try_user_browser`, so it is seeded here.
+    #
+    # That dedicated hint did NOT exist until 2026-07-31 — this comment, the one
+    # on `_apply_terminal`, and the terminal-hint coherence table all asserted it
+    # while a bad key produced `failed` + `retrieval_incomplete` and NOTHING
+    # naming the fix. `paid_auth_error_hint` is now emitted at the paid tier, and
+    # the coherence guard asserts its presence rather than allowlisting silence.
     retrieval_incomplete = final_verdict == Verdict.paid_auth_error
     # never-silently-miss at extraction granularity (ADR-0009): an `ask` that
     # fetched real content (verdict ok) but delivered NO answer is a failure the
