@@ -28,8 +28,78 @@ _FULL = {
 # --------------------------------------------------------------------- #
 
 
-def test_unconfigured_returns_none() -> None:
-    """No GOOGLE_CLIENT_ID → None → endpoint stays open (ship behind Tailscale/LAN)."""
+def _clear_auth_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Drop every auth var, prefixed and bare, from the process environment.
+
+    Without this the "unconfigured" assertions read whatever the developer's
+    shell happens to carry — and one of them now RAISES on a bare var, so an
+    unrelated `GOOGLE_CLIENT_ID` in the environment would fail the suite.
+    """
+    for name in server._AUTH_ENV_FIELDS:
+        monkeypatch.delenv(name, raising=False)
+        monkeypatch.delenv(f"A2WEB_{name}", raising=False)
+
+
+def test_unconfigured_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No A2WEB_GOOGLE_CLIENT_ID → None → endpoint stays open (ship behind Tailscale/LAN)."""
+    _clear_auth_env(monkeypatch)
+    assert build_google_provider(AppSettings()) is None
+
+
+# --------------------------------------------------------------------- #
+# The unprefixed-env security defect
+# --------------------------------------------------------------------- #
+
+
+def test_unprefixed_auth_env_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """THE regression: bare vars must never yield a silently open endpoint.
+
+    `env_prefix="A2WEB_"` + `extra="ignore"` means a bare `GOOGLE_CLIENT_ID`
+    reaches nothing. Before 2026-08-01 this returned `None` and the server came
+    up ANONYMOUS while every operator-visible signal said authenticated — and
+    a2web's own README carried the bare spelling in a copy-pasteable
+    `docker run` block, so it was a mistake the project taught.
+    """
+    _clear_auth_env(monkeypatch)
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "cid.apps.googleusercontent.com")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "secret")
+    monkeypatch.setenv("GOOGLE_BASE_URL", "https://a2web.example.com")
+
+    with pytest.raises(ValueError, match="WITHOUT the A2WEB_ prefix") as caught:
+        build_google_provider(AppSettings())
+
+    message = str(caught.value)
+    assert "A2WEB_GOOGLE_CLIENT_ID" in message, "the error must name the CORRECT spelling, not just the wrong one"
+    assert "UNAUTHENTICATED" in message
+
+
+def test_unprefixed_check_does_not_fire_on_a_correct_deployment(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
+    """Anti-vacuity, and a real false-positive risk.
+
+    A correctly-prefixed deployment that also carries an unrelated bare
+    `GOOGLE_CLIENT_ID` (another tool's, a CI runner's) must still boot. The
+    guard fires only on the unambiguous case: no prefixed var set, some bare
+    one set.
+    """
+    _clear_auth_env(monkeypatch)
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "some-other-tools-client")
+    monkeypatch.setenv("A2WEB_GOOGLE_CLIENT_ID", "cid.apps.googleusercontent.com")
+    monkeypatch.setenv("A2WEB_GOOGLE_CLIENT_SECRET", "secret")
+    monkeypatch.setenv("A2WEB_GOOGLE_BASE_URL", "https://a2web.example.com")
+    monkeypatch.setenv("A2WEB_OAUTH_CACHE_DIR", str(tmp_path))
+
+    settings = AppSettings()
+    assert settings.google_client_id == "cid.apps.googleusercontent.com", "the prefixed var is the one that wins"
+    assert build_google_provider(settings) is not None
+
+
+def test_nothing_configured_at_all_still_serves_open(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The guard must not turn "no auth wanted" into a boot failure.
+
+    Serving open behind Tailscale/LAN is a supported deployment; only a
+    *mistaken* configuration is an error.
+    """
+    _clear_auth_env(monkeypatch)
     assert build_google_provider(AppSettings()) is None
 
 

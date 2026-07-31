@@ -9,18 +9,33 @@ and ship them immediately if this change slips.
 
 ## 1. Ship now, regardless of everything else
 
-- [ ] 1.1 **`endpoint-auth` (SECURITY).** The spec writes every env var bare
+**SHIPPED 2026-08-01, ahead of the rest of this change** (commit trailer
+`fix(auth)`). Both items were live harm, so they were lifted out as the design
+said to. Two things the spiking changed vs the task text below:
+
+- 1.1/1.2 grew a CODE half. Rewriting the prose alone leaves every operator who
+  already deployed on the bare spelling silently unauthenticated, so
+  `server._reject_unprefixed_auth_env` now refuses to boot when auth vars are
+  set without the `A2WEB_` prefix and no prefixed one is. 1.2's fail-closed
+  behaviour for *partial* config already existed; it could not catch the bare
+  case, because from inside `AppSettings` nothing was configured at all.
+- 1.4 was NOT confined to specs. `README.md` offered the same three retired ids
+  for `A2WEB_LLM_PROVIDER`, all of which raise a pydantic `literal_error` at
+  settings construction — verified, not assumed. Both doc defects are now
+  pinned by `tests/architecture/test_documented_env_is_real.py`.
+
+- [x] 1.1 **`endpoint-auth` (SECURITY).** The spec writes every env var bare
       (`GOOGLE_CLIENT_ID`) while `env_prefix="A2WEB_"` applies. An operator
       following it literally gets an UNAUTHENTICATED endpoint. Rewrite with the
       prefix.
-- [ ] 1.2 Add the fail-closed behaviour: incomplete auth configuration must fail
+- [x] 1.2 Add the fail-closed behaviour: incomplete auth configuration must fail
       startup rather than serve unauthenticated.
-- [ ] 1.3 **`provider-selection`.** `:22,34-37,100-107` state
+- [x] 1.3 **`provider-selection`.** `:22,34-37,100-107` state
       `openai_compatible` is last so it "can never shadow a working
       Claude/Anthropic path"; `llm_resource.py:71-74`'s `_GATEWAY_FIRST_ORDER`
       puts it **first** when `OPENAI_API_KEY`+`OPENAI_BASE_URL` are both set.
       Document the promotion and its condition.
-- [ ] 1.4 Fix the retired provider ids in `provider-selection`,
+- [x] 1.4 Fix the retired provider ids in `provider-selection`,
       `openai-compatible-provider` and `output-benchmark` — the pre-rename
       spellings fail at resolution, so a documented boot is broken. Under
       ADR-0016 this is the area where a wrong belief costs money.

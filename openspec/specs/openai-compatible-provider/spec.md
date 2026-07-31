@@ -5,7 +5,7 @@ TBD - created by archiving change openai-compatible-llm-provider. Update Purpose
 ## Requirements
 ### Requirement: OpenAI-compatible completion backend
 
-a2web SHALL provide an `openai_compatible` provider that satisfies the text-in/text-out `Provider` protocol (`complete(system, user, model, ...) -> ProviderResponse`) by calling an OpenAI-compatible `chat/completions` endpoint through the `openai` SDK (`AsyncOpenAI(base_url=, api_key=)`). The provider SHALL NOT depend on JSON-mode, tool-use, or streaming — the extractor prompts for JSON in text and the wobble funnel parses it, identical to the Anthropic path.
+a2web SHALL provide an `openai-compatible` provider that satisfies the text-in/text-out `Provider` protocol (`complete(system, user, model, ...) -> ProviderResponse`) by calling an OpenAI-compatible `chat/completions` endpoint through the `openai` SDK (`AsyncOpenAI(base_url=, api_key=)`). The provider SHALL NOT depend on JSON-mode, tool-use, or streaming — the extractor prompts for JSON in text and the wobble funnel parses it, identical to the Anthropic path.
 
 #### Scenario: Completes against a configured endpoint
 
@@ -43,7 +43,7 @@ The provider SHALL read its endpoint and key from the **standard** OpenAI SDK en
 #### Scenario: Standard env vars build the provider
 
 - **WHEN** `OPENAI_API_KEY` resolves to a non-empty value (with `OPENAI_BASE_URL` optionally set for a compat backend)
-- **THEN** the manifest factory returns a constructed `openai_compatible` provider registered under that id, wired to that endpoint and key
+- **THEN** the manifest factory returns a constructed `openai-compatible` provider registered under that id, wired to that endpoint and key
 
 ### Requirement: Model resolution with curated recommendations, fail-loud on unknown
 

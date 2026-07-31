@@ -249,30 +249,37 @@ docker run -d --name a2web -p 8000:8000 \
 ### Authentication (optional, Google OAuth)
 
 The container serves via `a2web-serve`, which turns on Google OAuth when
-`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_BASE_URL` are all set (per
+`A2WEB_GOOGLE_CLIENT_ID` / `A2WEB_GOOGLE_CLIENT_SECRET` / `A2WEB_GOOGLE_BASE_URL`
+are all set (per
 a FastMCP `GoogleProvider`; no auth abstraction of a2web's own). Unset → open, as
 above. Partial config (id without secret/base_url)
 fails loud at boot rather than silently serving open.
 
+> **The `A2WEB_` prefix is mandatory on these.** a2web reads settings with
+> `env_prefix="A2WEB_"`, so an unprefixed `GOOGLE_*` name reaches nothing — auth
+> stays off and the endpoint serves **unauthenticated**, with no error. This
+> README documented the bare spelling until 2026-08-01; `a2web-serve` now
+> refuses to start when it finds bare auth vars and no prefixed ones.
+
 ```bash
 docker run -d --name a2web -p 8000:8000 -v a2web-cache:/data \
   -e OPENAI_API_KEY=... -e OPENAI_BASE_URL=https://api.deepseek.com -e OPENAI_MODEL=deepseek-v4-flash \
-  -e GOOGLE_CLIENT_ID=...apps.googleusercontent.com \
-  -e GOOGLE_CLIENT_SECRET=... \
-  -e GOOGLE_BASE_URL=https://a2web.example.com \
-  -e GOOGLE_JWT_SIGNING_KEY="$(openssl rand -hex 32)" \
+  -e A2WEB_GOOGLE_CLIENT_ID=...apps.googleusercontent.com \
+  -e A2WEB_GOOGLE_CLIENT_SECRET=... \
+  -e A2WEB_GOOGLE_BASE_URL=https://a2web.example.com \
+  -e A2WEB_GOOGLE_JWT_SIGNING_KEY="$(openssl rand -hex 32)" \
   ghcr.io/yoselabs/a2web:latest
 ```
 
 Setup:
 
 1. Create a GCP OAuth **client** (Web application) and add
-   `https://a2web.example.com/auth/callback` (your `GOOGLE_BASE_URL` + FastMCP's
+   `https://a2web.example.com/auth/callback` (your `A2WEB_GOOGLE_BASE_URL` + FastMCP's
    redirect path) as an authorized redirect URI.
-2. **`GOOGLE_BASE_URL` MUST be the public URL** clients reach — the OAuth redirect
+2. **`A2WEB_GOOGLE_BASE_URL` MUST be the public URL** clients reach — the OAuth redirect
    derives from it. It is **not** the bind host (`0.0.0.0`). Getting this wrong is
    the #1 failure mode.
-3. Recommended: set a stable `GOOGLE_JWT_SIGNING_KEY` (`openssl rand -hex 32`) so
+3. Recommended: set a stable `A2WEB_GOOGLE_JWT_SIGNING_KEY` (`openssl rand -hex 32`) so
    tokens survive restarts. OAuth sessions persist in an encrypted-optional
    FileTree store under `/data/oauth` (back the volume). Set
    `A2WEB_OAUTH_ENCRYPTION_KEY` to encrypt the store at rest.
@@ -302,7 +309,7 @@ ones:
 | `ANTHROPIC_API_KEY` | Alternative LLM backend (Anthropic Messages API). Preferred over an openai-compatible backend that was configured by key alone; an explicit gateway (key + base URL) still wins. |
 | `A2WEB_LLM_OPENAI_API_KEY_ENV` | Rename the key env var a2web reads for the OpenAI-compatible backend (default `OPENAI_API_KEY`; set to `OPENROUTER_API_KEY` etc.). `A2WEB_LLM_API_KEY_ENV` does the same for the Anthropic key. |
 | `A2WEB_LLM_MODEL` | Override the extraction model. Note `OPENAI_MODEL` wins for the openai-compatible backend, so a Claude id is never sent to an OpenAI endpoint. |
-| `A2WEB_LLM_PROVIDER` | Pin the backend instead of auto-selecting: `auto` (default), `openai_compatible`, `anthropic`, `claude-code`. Pin it when you want a deterministic backend and no fallback — a pinned provider that is unavailable fails loudly instead of silently selecting another. |
+| `A2WEB_LLM_PROVIDER` | Pin the backend instead of auto-selecting: `auto` (default), `openai-compatible`, `anthropic-api`, `claude-code-sdk`, `claude-code-cli`. These are `anyllm.ProviderName` values — the pre-rename spellings (`anthropic`, `claude-code`, `openai_compatible`) now fail at settings construction. Pin it when you want a deterministic backend and no fallback — a pinned provider that is unavailable fails loudly instead of silently selecting another. |
 | `CLAUDE_CODE_OAUTH_TOKEN` | Only for the `claude-code` backend. That backend needs a logged-in Claude Code **session**, not just the installed package — the `claude-agent-sdk` extra bundles its own CLI, so a container has the binary but no session. Without a session (token, `~/.claude/.credentials.json`, or a macOS Keychain entry) it reports unavailable and auto-selection moves on. |
 | **Paid + token tiers** (all optional) | |
 | `A2WEB_ZYTE_KEY` | Paid Zyte tier (Reddit thread depth + hard walls). |
@@ -315,10 +322,10 @@ ones:
 | `A2WEB_EXPOSE_COOKIES_TOOL` | Leave **unset** on a server (the cookie mirror is local-only). Set `true` only for a local `serve`. |
 | `A2WEB_HTTP_HOST` / `A2WEB_HTTP_PORT` | Bind host/port for the `a2web-serve` entrypoint (defaults `0.0.0.0` / `8000`). |
 | **Auth (Google OAuth — optional)** | |
-| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | GCP OAuth client. Both (with `GOOGLE_BASE_URL`) turn auth on; unset → open. |
-| `GOOGLE_BASE_URL` | **Public** URL clients reach — the OAuth redirect derives from it (NOT the bind host). |
-| `GOOGLE_JWT_SIGNING_KEY` | `openssl rand -hex 32` — stable signing key so sessions survive restarts. Recommended. |
-| `GOOGLE_REQUIRED_SCOPES` | OAuth scopes (default `openid,email`). |
+| `A2WEB_GOOGLE_CLIENT_ID` + `A2WEB_GOOGLE_CLIENT_SECRET` | GCP OAuth client. Both (with `A2WEB_GOOGLE_BASE_URL`) turn auth on; unset → open. **The `A2WEB_` prefix is required** — bare `GOOGLE_*` is read by nothing, and a2web now refuses to boot on it rather than serving open. |
+| `A2WEB_GOOGLE_BASE_URL` | **Public** URL clients reach — the OAuth redirect derives from it (NOT the bind host). |
+| `A2WEB_GOOGLE_JWT_SIGNING_KEY` | `openssl rand -hex 32` — stable signing key so sessions survive restarts. Recommended. |
+| `A2WEB_GOOGLE_REQUIRED_SCOPES` | OAuth scopes (default `openid,email`). |
 | `A2WEB_OAUTH_CACHE_DIR` / `A2WEB_OAUTH_ENCRYPTION_KEY` | Token-store dir (default `<cache_dir>/oauth`) + optional Fernet passphrase to encrypt it at rest. |
 | `A2WEB_*` | Any other `AppSettings` field (`A2WEB_STEALTH`, `A2WEB_DIAGNOSTICS_DEFAULT`, `A2WEB_BROWSER_MAX_POOL`, cache TTLs, …). |
 

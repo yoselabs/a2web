@@ -8,6 +8,43 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- **A deployment configured with unprefixed `GOOGLE_*` env vars served an
+  UNAUTHENTICATED endpoint, silently.** `AppSettings` reads env with
+  `env_prefix="A2WEB_"` and `extra="ignore"`, so a bare `GOOGLE_CLIENT_ID`
+  reached nothing: `build_google_provider` returned `None` and the server came
+  up open — no error, no warning, every operator-visible signal reporting auth
+  configured. The existing partial-config guard could not catch it, because from
+  inside `AppSettings` nothing was configured at all. a2web's own README carried
+  the bare spelling in a copy-pasteable `docker run` block, so this was a
+  mistake the project actively taught. `a2web-serve` now refuses to boot when
+  auth vars are set without the `A2WEB_` prefix and no prefixed one is present
+  (`server._reject_unprefixed_auth_env`), naming the correct spelling in the
+  error. The check is deliberately narrow — a correctly-prefixed deployment
+  carrying an unrelated bare `GOOGLE_CLIENT_ID` still boots.
+
+  **Operator action:** if you configured OAuth with bare `GOOGLE_*` variables,
+  your endpoint has been serving anonymously. Rename them to `A2WEB_GOOGLE_*`.
+
+### Fixed
+
+- **The documented `A2WEB_LLM_PROVIDER` values could not boot.** README and
+  three specs offered `anthropic` / `claude-code` / `openai_compatible`; all are
+  pre-rename spellings that raise a pydantic `literal_error` at settings
+  construction. The accepted ids are `anyllm.ProviderName` values —
+  `anthropic-api`, `claude-code-sdk`, `claude-code-cli`, `openai-compatible`.
+- **`provider-selection` documented a live routing invariant inverted.** The
+  spec stated `openai-compatible` is last in `auto` order so it "can never
+  shadow a working Claude/Anthropic path"; `_GATEWAY_FIRST_ORDER` has put it
+  FIRST since v0.24 whenever `OPENAI_API_KEY` and `OPENAI_BASE_URL` are both
+  set. The spec now describes both orders and the condition that selects
+  between them. Under ADR-0016 provider routing is where a wrong belief costs
+  money.
+- Both doc defects are now pinned by
+  `tests/architecture/test_documented_env_is_real.py`, which reads the values
+  out of README.md rather than restating them.
+
 ## [0.48.1] — 2026-07-27
 
 ### Fixed

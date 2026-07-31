@@ -93,7 +93,7 @@ The benchmark corpus SHALL include the cases that break naive fetchers — Reddi
 
 ### Requirement: the benchmark compares against a WebFetch baseline without an API key
 
-The benchmark SHALL include Claude Code's WebFetch as a baseline system run head-to-head with the a2web systems, produced automatically by the in-process `WebFetchBaseline` reproduction. The benchmark SHALL run on the `claude-code` provider (OAuth subscription) by default and SHALL NOT require `ANTHROPIC_API_KEY`; it MAY fall back to an API-key provider when the subscription provider is unavailable.
+The benchmark SHALL include Claude Code's WebFetch as a baseline system run head-to-head with the a2web systems, produced automatically by the in-process `WebFetchBaseline` reproduction. The benchmark SHALL run on the `claude-code-sdk` provider (OAuth subscription) by default and SHALL NOT require `ANTHROPIC_API_KEY`; it MAY fall back to an API-key provider when the subscription provider is unavailable.
 
 #### Scenario: the run includes the WebFetch baseline automatically
 
@@ -103,7 +103,7 @@ The benchmark SHALL include Claude Code's WebFetch as a baseline system run head
 #### Scenario: the benchmark runs without an API key
 
 - **WHEN** the benchmark is started with no `ANTHROPIC_API_KEY` set and Claude Code is logged in
-- **THEN** the suite runs to completion using the `claude-code` provider for both the reader and the judge
+- **THEN** the suite runs to completion using the `claude-code-sdk` provider for both the reader and the judge
 
 ### Requirement: the benchmark emits live per-cell signals on the LDD bus
 
@@ -219,7 +219,7 @@ run is never mistaken for a pass.
 
 ### Requirement: Bench asserts model cost before every LLM call
 
-Every LLM completion issued by the benchmark SHALL pass through a cost guard on the resolved `(provider, model)` pair *before the call is issued*, raising `CostViolation` when the pair is not cheap-approved. The benchmark SHALL acquire its provider only through a factory that wraps the provider's completion in this guard, so no un-guarded completion path exists. The default policy SHALL allow subscription (`claude-code`) with any model, allow metered `anthropic` only with cheap models (Haiku), allow `openai_compatible` only for an explicit cheap allowlist, and DENY metered `anthropic` with Sonnet/Opus, `openai_compatible` with gpt-4-class models, and any unknown pair.
+Every LLM completion issued by the benchmark SHALL pass through a cost guard on the resolved `(provider, model)` pair *before the call is issued*, raising `CostViolation` when the pair is not cheap-approved. The benchmark SHALL acquire its provider only through a factory that wraps the provider's completion in this guard, so no un-guarded completion path exists. The default policy SHALL allow subscription (`claude-code-sdk`) with any model, allow metered `anthropic-api` only with cheap models (Haiku), allow `openai-compatible` only for an explicit cheap allowlist, and DENY metered `anthropic-api` with Sonnet/Opus, `openai-compatible` with gpt-4-class models, and any unknown pair.
 
 #### Scenario: expensive metered pair is refused before spending
 

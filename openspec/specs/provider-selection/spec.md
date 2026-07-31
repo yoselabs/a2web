@@ -15,11 +15,18 @@ LLM provider selection — choosing which provider backend to use from the manif
 #### Scenario: provider_id is the manifest name
 
 - **WHEN** `select_provider(...)` returns a provider
-- **THEN** the returned `provider_id` is the winning manifest's registry name (e.g. `"anthropic"` / `"claude-code"`), the same string `settings.llm_provider` accepts
+- **THEN** the returned `provider_id` is the winning manifest's registry name (e.g. `"anthropic-api"` / `"claude-code-sdk"`), the same string `settings.llm_provider` accepts
 
 ### Requirement: Preference order has one source of truth
 
-The fallback preference order and the `_manifests.llm_providers` surface path SHALL each be declared exactly once in `src/a2web/`. The auto order SHALL prefer the credential-free backend (`claude-code`), then the API-key backend (`anthropic`), then `openai_compatible` as the LAST-resort fallback. Placing `openai_compatible` last means a configured `OPENAI_API_KEY` can never shadow a working Claude/Anthropic path — the derived fallback activates only when neither is available.
+The fallback preference order and the `_manifests.llm_providers` surface path SHALL each be declared exactly once in `src/a2web/`. There are TWO auto orders and one condition that chooses between them, all owned by `auto_order(settings)`:
+
+- **Default order** — `claude-code-sdk`, then `anthropic-api`, then `openai-compatible` last. A bare `OPENAI_API_KEY` (which may simply be ambient in a shell) can never shadow a working Claude/Anthropic path.
+- **Gateway-first order** — `openai-compatible`, then `claude-code-sdk`, then `anthropic-api`. This applies when, and only when, `OPENAI_API_KEY` **and** `OPENAI_BASE_URL` are BOTH set.
+
+`OPENAI_BASE_URL` is the intent signal: pointing a2web at a specific gateway is a deliberate configuration act, not an ambient credential, so it SHALL lead the order rather than trail it. Requiring both variables is what keeps an ambient key from triggering the promotion.
+
+This spec previously stated that `openai-compatible` is last unconditionally and "can never shadow a working Claude/Anthropic path". `_GATEWAY_FIRST_ORDER` has shipped the promotion since v0.24; the unconditional claim was wrong in the case operators are most likely to hit, and under ADR-0016 provider routing is exactly where a wrong belief costs money.
 
 #### Scenario: Order tuple is not duplicated
 
@@ -29,12 +36,17 @@ The fallback preference order and the `_manifests.llm_providers` surface path SH
 #### Scenario: Auto resolves to claude-code-first
 
 - **WHEN** `select_provider(settings)` runs with `settings.llm_provider == "auto"` and both Anthropic backends are registrable
-- **THEN** it returns `claude-code`
+- **THEN** it returns `claude-code-sdk`
 
-#### Scenario: openai_compatible never shadows a preferred backend
+#### Scenario: An ambient key does not shadow a preferred backend
 
-- **WHEN** `select_provider(settings)` runs with `settings.llm_provider == "auto"`, an `openai_compatible` endpoint is keyed, AND a Claude/Anthropic backend is registrable
-- **THEN** the preferred backend wins (`openai_compatible` is last in the order, entered only when the preferred backends are absent)
+- **WHEN** `select_provider(settings)` runs with `settings.llm_provider == "auto"`, `OPENAI_API_KEY` is set but `OPENAI_BASE_URL` is NOT, AND a Claude/Anthropic backend is registrable
+- **THEN** the preferred backend wins — `openai-compatible` is last in the default order, entered only when the preferred backends are absent
+
+#### Scenario: An explicitly configured gateway leads the order
+
+- **WHEN** `select_provider(settings)` runs with `settings.llm_provider == "auto"`, BOTH `OPENAI_API_KEY` and `OPENAI_BASE_URL` are set, AND a Claude/Anthropic backend is also registrable
+- **THEN** `openai-compatible` wins — `auto_order` returns the gateway-first order, because pointing a2web at a named gateway is a deliberate act rather than an ambient credential
 
 ### Requirement: Explicit pin overrides auto order
 
@@ -42,8 +54,8 @@ When a caller pins a specific provider — via `settings.llm_provider` set to a 
 
 #### Scenario: Explicit anthropic forces anthropic
 
-- **WHEN** `select_provider(settings)` runs with `settings.llm_provider == "anthropic"` and both providers are registrable
-- **THEN** it returns `anthropic`, never `claude-code`
+- **WHEN** `select_provider(settings)` runs with `settings.llm_provider == "anthropic-api"` and both providers are registrable
+- **THEN** it returns `anthropic-api`, never `claude-code-sdk`
 
 #### Scenario: Pinned-but-unavailable yields none
 
@@ -99,53 +111,53 @@ The extraction resource SHALL receive its `Provider` by injection and SHALL NOT 
 
 ### Requirement: OpenAI-compatible derives as the gated fallback
 
-The `openai_compatible` backend SHALL be selected either by explicit pin (`settings.llm_provider == "openai_compatible"`) OR, under `auto`, as the last-resort fallback when no preferred backend is available — gated on its manifest being registrable (a resolvable `OPENAI_API_KEY` and model, per the provider spec). When it is unconfigured (no key, or an unresolvable model), it SHALL be absent from the registry, so an explicit pin yields the none sentinel rather than a silent degrade.
+The `openai-compatible` backend SHALL be selected by explicit pin (`settings.llm_provider == "openai-compatible"`), by the gateway-first auto order (both `OPENAI_API_KEY` and `OPENAI_BASE_URL` set), OR, under the default auto order, as the last-resort fallback when no preferred backend is available — gated on its manifest being registrable (a resolvable `OPENAI_API_KEY` and model, per the provider spec). When it is unconfigured (no key, or an unresolvable model), it SHALL be absent from the registry, so an explicit pin yields the none sentinel rather than a silent degrade.
 
 #### Scenario: Derived fallback when preferred backends are absent
 
-- **WHEN** `settings.llm_provider == "auto"`, no `claude-code`/`anthropic` backend is registrable, and `openai_compatible` is keyed and model-resolved
-- **THEN** `select_provider(...)` returns `openai_compatible` — derived with no explicit pin (the headless-container case)
+- **WHEN** `settings.llm_provider == "auto"`, no `claude-code-sdk`/`anthropic-api` backend is registrable, `OPENAI_BASE_URL` is unset, and `openai-compatible` is keyed and model-resolved
+- **THEN** `select_provider(...)` returns `openai-compatible` — derived with no explicit pin (the headless-container case)
 
 #### Scenario: Explicit pin selects it
 
-- **WHEN** `settings.llm_provider == "openai_compatible"` and the backend is registrable
-- **THEN** it returns `openai_compatible`, never an Anthropic backend
+- **WHEN** `settings.llm_provider == "openai-compatible"` and the backend is registrable
+- **THEN** it returns `openai-compatible`, never an Anthropic backend
 
 #### Scenario: Pin without configuration yields none
 
-- **WHEN** `settings.llm_provider == "openai_compatible"` but no `OPENAI_API_KEY` is set (or the model cannot be resolved)
-- **THEN** `select_provider(...)` returns the none sentinel — the pin does not silently degrade to `claude-code`/`anthropic`
+- **WHEN** `settings.llm_provider == "openai-compatible"` but no `OPENAI_API_KEY` is set (or the model cannot be resolved)
+- **THEN** `select_provider(...)` returns the none sentinel — the pin does not silently degrade to `claude-code-sdk`/`anthropic-api`
 
 ### Requirement: claude-code is optional at the packaging layer
 
-`claude-agent-sdk` is an optional extra (`[claude-code]`), so the `claude-code` provider MAY be absent from an install. When the SDK is not importable, the `claude-code` manifest factory SHALL report `Unavailable` and provider auto-selection SHALL fall through to the next available backend (`anthropic`, or `openai_compatible` by pin) without crashing and without silently disabling `ask`. When the SDK is present, `claude-code` remains first in the auto order as before.
+`claude-agent-sdk` is an optional extra (`[claude-code]`), so the `claude-code-sdk` provider MAY be absent from an install. When the SDK is not importable, the `claude-code-sdk` manifest factory SHALL report `Unavailable` and provider auto-selection SHALL fall through to the next available backend (`anthropic-api`, or `openai-compatible` by pin) without crashing and without silently disabling `ask`. When the SDK is present, `claude-code-sdk` remains first in the auto order as before.
 
 #### Scenario: Slim install degrades to anthropic
 
 - **WHEN** `claude-agent-sdk` is not installed, `ANTHROPIC_API_KEY` is set, and `select_provider(settings)` runs with `llm_provider == "auto"`
-- **THEN** the `claude-code` manifest reports `Unavailable`, auto-select returns `anthropic`, and `ask` works
+- **THEN** the `claude-code-sdk` manifest reports `Unavailable`, auto-select returns `anthropic-api`, and `ask` works
 
 #### Scenario: Slim install with no configured backend fails loud, not silent
 
-- **WHEN** `claude-agent-sdk` is absent and no `anthropic`/`openai_compatible` backend is configured
+- **WHEN** `claude-agent-sdk` is absent and no `anthropic-api`/`openai-compatible` backend is configured
 - **THEN** selection returns the none sentinel and the extraction path surfaces an explicit unavailable signal — never an empty-but-`ok` answer
 
 #### Scenario: Full install still prefers claude-code
 
 - **WHEN** the `[claude-code]` extra is installed and both Anthropic backends are registrable under `llm_provider == "auto"`
-- **THEN** auto-select returns `claude-code`, unchanged from prior behavior
+- **THEN** auto-select returns `claude-code-sdk`, unchanged from prior behavior
 
 ### Requirement: Metered API is opt-in in the bench context
 
-In the benchmark/eval context, the metered `anthropic` provider SHALL be opt-in, never a silent fallback of the auto-order. When the subscription (`claude-code`) session is undetected, the bench SHALL fail loud (`LLMNotAvailable`) rather than silently selecting metered `anthropic`. Metered `anthropic` SHALL be reachable only via an explicit opt-in, and even then only for cheap models per the cost guard.
+In the benchmark/eval context, the metered `anthropic-api` provider SHALL be opt-in, never a silent fallback of the auto-order. When the subscription (`claude-code-sdk`) session is undetected, the bench SHALL fail loud (`LLMNotAvailable`) rather than silently selecting metered `anthropic-api`. Metered `anthropic-api` SHALL be reachable only via an explicit opt-in, and even then only for cheap models per the cost guard.
 
 #### Scenario: undetected subscription session fails loud
 
 - **WHEN** the bench runs with the default provider preference and no Claude Code OS session is detected
-- **THEN** it raises `LLMNotAvailable` instead of falling through to metered `anthropic`
+- **THEN** it raises `LLMNotAvailable` instead of falling through to metered `anthropic-api`
 
 #### Scenario: explicit opt-in still cost-guarded
 
-- **WHEN** metered `anthropic` is explicitly opted into and a Sonnet/Opus model is resolved
+- **WHEN** metered `anthropic-api` is explicitly opted into and a Sonnet/Opus model is resolved
 - **THEN** the cost guard raises `CostViolation` (opt-in does not bypass the model policy)
 

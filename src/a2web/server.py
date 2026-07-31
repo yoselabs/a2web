@@ -158,33 +158,90 @@ def main() -> None:
 # --------------------------------------------------------------------- #
 
 
+# Auth settings fields, and the env var that actually populates each. The
+# `A2WEB_` prefix is NOT decoration: `AppSettings.model_config` sets
+# `env_prefix="A2WEB_"` with `extra="ignore"`, so a bare `GOOGLE_CLIENT_ID` is
+# read by nothing and silently discarded.
+_AUTH_ENV_FIELDS: tuple[str, ...] = (
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_BASE_URL",
+    "GOOGLE_REQUIRED_SCOPES",
+    "GOOGLE_JWT_SIGNING_KEY",
+    "OAUTH_ENCRYPTION_KEY",
+)
+
+
+def _reject_unprefixed_auth_env() -> None:
+    """Fail closed when auth is configured with UNPREFIXED env vars.
+
+    The security defect this exists to prevent: `env_prefix="A2WEB_"` means a
+    bare `GOOGLE_CLIENT_ID` never reaches `AppSettings`, so an operator who sets
+    all three bare variables gets `settings.google_client_id == ""` →
+    `build_google_provider` returns `None` → **the endpoint serves open, with no
+    error and no warning**. Every observable signal says configured; the wire
+    says anonymous. The partial-config guard below cannot catch it either — from
+    inside `AppSettings`, nothing was configured at all.
+
+    a2web's own README documented the bare spelling in a copy-pasteable
+    `docker run` block until 2026-08-01, so this is a mistake the project
+    actively taught. Detecting it in code rather than only fixing the prose is
+    the difference between the operator who reads the corrected docs and the one
+    who already deployed.
+
+    Deliberately narrow: this only fires when NO prefixed auth variable is set
+    and at least one bare one is — the unambiguous "meant to configure auth,
+    configured nothing" case. A correctly-prefixed deployment that also has an
+    unrelated `GOOGLE_CLIENT_ID` in its environment is left alone.
+    """
+    import os
+
+    if any(os.environ.get(f"A2WEB_{name}") for name in _AUTH_ENV_FIELDS):
+        return
+    bare = [name for name in _AUTH_ENV_FIELDS if os.environ.get(name)]
+    if not bare:
+        return
+    raise ValueError(
+        "Google OAuth env vars are set WITHOUT the A2WEB_ prefix: "
+        f"{', '.join(bare)}. a2web reads settings with env_prefix='A2WEB_', so "
+        "these are ignored and the endpoint would serve UNAUTHENTICATED. "
+        f"Rename them to {', '.join('A2WEB_' + name for name in bare)}, "
+        "or unset them to serve open deliberately."
+    )
+
+
 def build_google_provider(settings: AppSettings) -> object | None:
     """Construct the FastMCP Google OAuth provider from env, or None if unset.
 
     Gating:
 
-    - No `GOOGLE_CLIENT_ID` → `None` (endpoint stays open; ship behind Tailscale/LAN).
-    - `GOOGLE_CLIENT_ID` set but `GOOGLE_CLIENT_SECRET`/`GOOGLE_BASE_URL` missing →
-      loud `ValueError` at boot (never silently serve open on a half-config).
+    - No `A2WEB_GOOGLE_CLIENT_ID` → `None` (endpoint stays open; ship behind
+      Tailscale/LAN).
+    - `A2WEB_GOOGLE_CLIENT_ID` set but `A2WEB_GOOGLE_CLIENT_SECRET` /
+      `A2WEB_GOOGLE_BASE_URL` missing → loud `ValueError` at boot (never
+      silently serve open on a half-config).
+    - Auth vars set without the `A2WEB_` prefix → loud `ValueError`, see
+      `_reject_unprefixed_auth_env`.
     - All three set → a `GoogleProvider` with a persistent FileTreeStore token
       store (survives restarts; optionally Fernet-encrypted at rest).
     """
     if not settings.google_client_id:
+        _reject_unprefixed_auth_env()
         return None
     missing = [
         name
         for name, value in (
-            ("GOOGLE_CLIENT_SECRET", settings.google_client_secret),
-            ("GOOGLE_BASE_URL", settings.google_base_url),
+            ("A2WEB_GOOGLE_CLIENT_SECRET", settings.google_client_secret),
+            ("A2WEB_GOOGLE_BASE_URL", settings.google_base_url),
         )
         if not value
     ]
     if missing:
         raise ValueError(
-            "Google OAuth is partially configured: GOOGLE_CLIENT_ID is set but "
+            "Google OAuth is partially configured: A2WEB_GOOGLE_CLIENT_ID is set but "
             f"{' and '.join(missing)} {'is' if len(missing) == 1 else 'are'} missing. "
-            "Set all of GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_BASE_URL, "
-            "or unset GOOGLE_CLIENT_ID to serve without auth."
+            "Set all of A2WEB_GOOGLE_CLIENT_ID / A2WEB_GOOGLE_CLIENT_SECRET / "
+            "A2WEB_GOOGLE_BASE_URL, or unset A2WEB_GOOGLE_CLIENT_ID to serve without auth."
         )
 
     from fastmcp.server.auth.providers.google import GoogleProvider

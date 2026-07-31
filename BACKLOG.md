@@ -115,13 +115,19 @@ demonstration of what a refactor that is also a bug fix costs. #10 goes last,
 because #6 and #7 re-invalidate parts of it. Where a later change rests on an
 assumption an earlier one will test, the design says so and names the tripwire.
 
-**Three items are lifted out of their change and ship early**, because each is
+**Three items are lifted out of their change and ship early** (two now shipped), because each is
 live harm rather than structure:
 
-- `endpoint-auth` (#10 §1) — an operator following the spec literally gets an
-  **UNAUTHENTICATED** endpoint. SECURITY.
-- `provider-selection` (#10 §1) — a live routing invariant documented inverted;
-  under ADR-0016 that is where a wrong belief costs money.
+- ~~`endpoint-auth` (#10 §1)~~ — **SHIPPED 2026-08-01.** An operator following
+  the spec literally got an **UNAUTHENTICATED** endpoint. Fixed in code as well
+  as prose: the docs half alone would have left every existing bare-spelling
+  deployment silently open, so `a2web-serve` now refuses to boot on unprefixed
+  auth vars.
+- ~~`provider-selection` (#10 §1)~~ — **SHIPPED 2026-08-01.** A live routing
+  invariant documented inverted; under ADR-0016 that is where a wrong belief
+  costs money. The scan found a second, sharper defect alongside it: the three
+  provider ids README offered for `A2WEB_LLM_PROVIDER` all raise at settings
+  construction, so a documented boot could not boot.
 - the JSON-LD `ItemList` deriving neither `next_links` nor `options` (#8 §1) —
   a LIVE ADR-0015 hole, shipped as the first commit of that change so the lift
   has a witness already in place.
