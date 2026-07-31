@@ -9,6 +9,53 @@ Nothing here is actionable. If an entry looks live again, move it back rather
 than re-deriving it.
 
 ---
+## SHIPPED 2026-07-31 — there is no CI on push or PR (was: READ FIRST, T4)
+
+**Closed by `openspec/changes/run-the-gate-on-every-push/`, commit `5fa4a19`.**
+
+`.github/workflows/` contained exactly one file, `release.yml`, triggered on
+`v*` tags. So `make check` — lint, types, the full suite, coverage >=85%, and
+**every architecture guard** — ran when someone cut a release and at no other
+time. Between tags a violation landed and stayed landed, to be discovered in a
+batch and attributed to whoever tagged.
+
+This reframed the whole T4 track: goldens, endogenous fixtures and missing wire
+witnesses were all weaker than they read, because the gate they hang from did
+not fire. It is why the track said fix this before investing in any individual
+guard.
+
+**What shipped.** The gate moved into a reusable workflow (`gate.yml`) called by
+both a new `ci.yml` (push + PR, all branches) and `release.yml`, so there is one
+definition and it cannot drift. Release keeps its own independent run — a tag
+can point at any commit and that path publishes a public image.
+
+**Two results worth keeping.**
+
+1. **The baseline was GREEN.** `make check` at `469ca5c`: 1274 passed, 90.96%
+   coverage, tach 69/69. The change's own design predicted the first run might
+   be red and said to fix rather than weaken. It wasn't — nothing had rotted
+   between tags. Recorded as a negative result: the gate's absence had not yet
+   cost a landed violation, so this was prevention, not cleanup.
+2. **The gate was proven by making it fail.** A deliberate `json.loads` funnel
+   violation pushed to a scratch branch turned CI red in 1m30s, failing at
+   `test_no_json_loads_outside_wobble` — the right guard, not an incidental
+   error — and was then reverted. A CI workflow that has never failed is not
+   known to work; this one now has.
+
+**Also closed here:** the `a2kit-rego` pre-commit hook, which had been failing
+to spawn since a2kit's retirement on 2026-07-22 — nine days reading as
+architectural policy enforcement while enforcing nothing. See the surviving
+Rego re-homing entry in `BACKLOG.md`, which now records that its stand-in was
+dead, and note the shape: the loss was recorded in three places and the dead
+hook survived every one of those readings.
+
+**What is NOT closed.** Branch protection is a GitHub repository setting, not a
+file. CI reports red; it does not block a merge, and `fb:no-prs` means there is
+often no PR to block. CLAUDE.md's new "Enforcement — what actually blocks"
+table states that plainly, per mechanism. The browser gate remains release-only
+and is documented as not guarding a push.
+
+---
 ## SUPERSEDED 2026-07-31 — 21 behavioural rules live only as prompt English (L, structure)
 
 > **Superseded the same day by *45 of 86 prompt rules have neither code nor

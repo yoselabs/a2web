@@ -174,9 +174,10 @@ endpoint* (SECURITY, and a spec fix, not a code fix). None of these wait on a
 refactor. Doing them first also means T1 is not simultaneously a bug fix and a
 move, which is the failure mode v0.23 already demonstrated.
 
-**T4 · Guards that read green while not covering what they name.** *there is no
-CI on push or PR* (**READ FIRST** — everything else in this track is worth less
-until a guard actually runs on a push) · *the markup-funnel guard misses
+**T4 · Guards that read green while not covering what they name.** ~~*there is
+no CI on push or PR*~~ — **SHIPPED 2026-07-31** (`5fa4a19`), see
+`BACKLOG-CLOSED.md`; the rest of this track is now worth what it reads, because
+a guard finally runs on a push · *the markup-funnel guard misses
 `re.search`/`re.sub`* · *two named guards answer a different question than
 advertised* · *two cited architecture guards do not exist* · *22 constants can
 be doubled with zero test failures* · *a wire regression on ADR-0009 is one
@@ -464,7 +465,6 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 | [`_ttl_for` caches almost everything for 7 days](docs/findings/2026-07-31-structural-scan.md#_ttl_for-caches-almost-everything-for-7-days-s-correctness--live) | S, correctness — LIVE |
 | [`_MAX_RECORDS` × `DEFAULT_TOLERANCE` dead zone](docs/findings/2026-07-31-structural-scan.md#_max_records--default_tolerance-dead-zone-s-correctness--adr-0009-live) | S, correctness — ADR-0009 LIVE |
 | [22 constants can be doubled with zero test failures](docs/findings/2026-07-31-structural-scan.md#22-constants-can-be-doubled-with-zero-test-failures-m-verification) | M, verification |
-| [there is no CI on push or PR](docs/findings/2026-07-31-structural-scan.md#there-is-no-ci-on-push-or-pr-s-to-fix-l-in-consequence--read-first) | S to fix, L in consequence — READ FIRST |
 | [two named guards answer a different question than advertised](docs/findings/2026-07-31-structural-scan.md#two-named-guards-answer-a-different-question-than-advertised-s-verification) | S, verification |
 | [openspec canonical specs contradict shipped code](docs/findings/2026-07-31-structural-scan.md#openspec-canonical-specs-contradict-shipped-code-m-docs--4-load-bearing) | M, docs — 4 load-bearing |
 | [CLAUDE.md describes a different system than the one shipped](docs/findings/2026-07-31-structural-scan.md#claudemd-describes-a-different-system-than-the-one-shipped-s-docs) | S, docs |

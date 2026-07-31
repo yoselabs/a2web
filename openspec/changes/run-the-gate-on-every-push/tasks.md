@@ -24,10 +24,14 @@ inert until it lands.
 - [x] 2.3 Decide branch scope (design Open Questions) and apply it.
 - [x] 2.4 Point `release.yml` at the same reusable workflow, so there is one
       definition of the gate.
-- [ ] 2.5 Verify by pushing a commit that violates a known architecture guard on
+- [x] 2.5 Verify by pushing a commit that violates a known architecture guard on
       a scratch branch, and confirming CI goes red. A CI workflow that has never
       failed is not known to work.
-- [ ] 2.6 Revert the deliberate violation.
+      **Done 2026-07-31.** Branch `ci-verify-red`, a deliberate `json.loads`
+      call in `packages/llm_extract/errors.py`. Run `30662476447` → **failure**
+      in 1m30s at `test_no_json_loads_outside_wobble` — confirmed it failed for
+      the intended reason, not incidentally.
+- [x] 2.6 Revert the deliberate violation.
 
 ## 3. Remove enforcement that cannot run
 
@@ -50,6 +54,9 @@ inert until it lands.
 
 ## 5. Close out
 
-- [ ] 5.1 `make check` green locally and in CI.
-- [ ] 5.2 Confirm the CI badge / status reflects a real run on a real push.
-- [ ] 5.3 Move the BACKLOG T4 CI entry to `BACKLOG-CLOSED.md`.
+- [x] 5.1 `make check` green locally and in CI. Local: 1274 passed, 90.96%.
+      CI on `main`: run `30662423192`, **success** in 1m38s.
+- [x] 5.2 Confirm the CI badge / status reflects a real run on a real push.
+      Both polarities observed on real pushes: green on `main`, red on the
+      scratch branch. No badge is rendered anywhere yet — noted, not added.
+- [x] 5.3 Move the BACKLOG T4 CI entry to `BACKLOG-CLOSED.md`.
