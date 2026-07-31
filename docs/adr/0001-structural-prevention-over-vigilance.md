@@ -56,7 +56,7 @@ Adopt a **three-pattern stack** that targets each class structurally:
 
 **Pattern 3 — Architectural fitness functions.** Two complementary tools:
 - **Tach** for declarative package-boundary + public-interface enforcement (`[[interfaces]]` per package; everything not exposed is private).
-- **pytest-archon** for AST-level / call-site rules (e.g. "only `wobble/` may call `json.loads` inside `packages/llm_extract/`"; "no `dict[str, Any]` field on internal dataclasses"; "tools must return pydantic, not `str`").
+- **AST-level / call-site rules** (originally proposed as `pytest-archon`; shipped as plain pytest + `ast` under `tests/architecture/`, and `pytest-archon` was removed 2026-08-01 having never been imported) (e.g. "only `wobble/` may call `json.loads` inside `packages/llm_extract/`"; "no `dict[str, Any]` field on internal dataclasses"; "tools must return pydantic, not `str`").
 
 Existing hand-rolled `tests/test_packages_independence.py` is the template; it becomes one of several archon rules. The Packwerk-style ratchet (snapshot today's violations, fail CI on new violations) is provided by `tach sync` for boundary rules and by `pytest-archon`'s standard pytest skip/xfail mechanisms for AST rules.
 

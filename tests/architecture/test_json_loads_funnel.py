@@ -61,9 +61,34 @@ def _is_json_loads(node: ast.Call, module_aliases: set[str], loads_aliases: set[
     return False
 
 
+#: `llm_eval/` parses LLM output too (`bench_judge.py` runs the clarity and
+#: next_links judges), and the guard walked only `packages/llm_extract/`, so it
+#: was never inspected. It was already funnelling through `parse_with_policy`;
+#: adding the root locks that in at the cheap moment rather than after a
+#: regression.
+#:
+#: **The whole `src/a2web` tree is deliberately NOT walked.** Five sites there
+#: call `json.loads` on UPSTREAM API responses — HN's Algolia payload, discourse,
+#: v2ex, habr, the archive CDX rows. Those are not LLM output and the wobble
+#: funnel is not for them: it exists because a model emits *almost* the agreed
+#: contract, which is a different failure than an API returning malformed JSON
+#: (that is simply a broken response, and the tier's verdict machinery owns it).
+#: Widening this guard to the whole tree would flag five correct call sites and
+#: pressure someone into routing API parsing through a policy table built for
+#: model wobble.
+#:
+#: The remaining named site, `fetcher_response.py::_project_routing`, does not
+#: call `json.loads` at all — it pydantic-validates an already-parsed payload —
+#: so there is nothing here for this guard to check.
+_JUDGE_ROOTS = (_REPO_ROOT / "src" / "a2web" / "llm_eval",)
+
+
 def test_no_json_loads_outside_wobble() -> None:
     violations: list[str] = []
-    for path in walked_files(_LLM_EXTRACT_ROOT, minimum=6):
+    walked = list(walked_files(_LLM_EXTRACT_ROOT, minimum=6))
+    for root in _JUDGE_ROOTS:
+        walked.extend(walked_files(root, minimum=3))
+    for path in walked:
         # The funnel itself owns json.loads — skip wobble/.
         try:
             path.relative_to(_WOBBLE_DIR)

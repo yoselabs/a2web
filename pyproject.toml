@@ -220,10 +220,11 @@ dev = [
     "diff-cover>=9,<10",
     # ADR-0001 Pattern 3 (arch-fitness-functions-bootstrap):
     # Tach for module-boundary contracts ("packages/X is private; only __init__
-    # is public"); pytest-archon for AST/call-site invariants Tach can't see
-    # (json.loads ban, no-lambdas-in-app.provide, etc.).
+    # is public"). The AST/call-site invariants Tach cannot see are plain pytest
+    # + `ast` under `tests/architecture/` — `pytest-archon` was declared here for
+    # months and imported by NOTHING, so it shipped as a dependency purchasing
+    # no enforcement. Removed 2026-08-01.
     "tach>=0.20,<1",
-    "pytest-archon>=0.0.6,<1",
     "pymarkdownlnt>=0.9.37",
     "pre-commit>=4.6.0",
 ]

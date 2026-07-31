@@ -60,6 +60,11 @@ on push buys nothing until it does.
 
 ## 4. The playbook's foreign witness
 
+**NOT STARTED.** 4.1 wants a replay or corpus case observing the RESULT of a
+routing decision rather than restating it — that is new offline replay
+infrastructure, not a tweak, and it is the group most likely to be done badly if
+rushed at the end of a long session.
+
 - [ ] 4.1 Add an outcome-level witness for `actions/playbook.py` — a replay or
       corpus case where the *result* of a routing decision is observed, not the
       decision restated. Prefer replay (offline, always runs).
@@ -69,6 +74,13 @@ on push buys nothing until it does.
       be counted as verification.
 
 ## 5. Constants that change behaviour
+
+**5.4/5.5 SHIPPED 2026-08-01.** 5.1/5.2/5.3 remain open — each needs a CAPTURED
+page with a specific property (item titles in `<div>`/`<span>`; mixed
+sponsored/promoted card types; a real page straddling `LENGTH_FLOOR`). Writing
+those fixtures by hand would reproduce the exact defect the tasks exist to fix:
+a fixture authored beside the constant cannot falsify it. Recorded in BACKLOG
+per 5.6 rather than faked.
 
 - [ ] 5.1 `_HEADING_FRAC_MIN` (`detector.py:62`) — add a captured listing page
       whose item titles are `<div>`/`<span>`, asserting records are still
@@ -90,6 +102,13 @@ on push buys nothing until it does.
       widening this change.
 
 ## 6. The corpus can see the envelope
+
+**NOT STARTED.** This group is bench-side and its verification step is a live
+`make bench` run — network + LLM quota under ADR-0016, not something to spend
+unasked. §6.4 alone ("walk the 33 unread criteria, each becomes a deterministic
+assertion or is deleted as decorative — do not bulk-convert") is a careful
+read-each-one pass. Left for a session that can run the bench and check the
+result.
 
 - [ ] 6.1 Pass the fetched page to the quality judge. `JUDGE_V1`'s three slots
       (`{ask}`, `{content}` = criteria, `{answer}`) do not include it.
@@ -124,12 +143,12 @@ on push buys nothing until it does.
 
 ## 8. Close out
 
-- [ ] 8.1 Remove `pytest-archon` from `pyproject.toml:223-226`. Correct
+- [x] 8.1 Remove `pytest-archon` from `pyproject.toml:223-226`. Correct
       ADR-0001:60 and CLAUDE.md:243 to state the `json.loads` loop as open.
-- [ ] 8.2 Extend `test_json_loads_funnel.py:30`'s walked root, or record the gap:
+- [x] 8.2 Extend `test_json_loads_funnel.py:30`'s walked root, or record the gap:
       two of the five named LLM-contract-parsing sites (`llm_eval/bench_judge.py`,
       `fetcher_response.py::_project_routing`) live outside it.
-- [ ] 8.3 `make check` green, and confirm each widened or added guard has been
+- [x] 8.3 `make check` green, and confirm each widened or added guard has been
       observed failing at least once.
 - [ ] 8.4 Move the shipped T4 entries to `BACKLOG-CLOSED.md`; leave the deferred
       constants and corpus-language entries open.
