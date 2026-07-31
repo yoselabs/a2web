@@ -549,3 +549,165 @@ member that would not be torn down if it ever grew a real one.
 - Related: `handlers/reddit.py:865` does `import trafilatura` **inline inside an
   async function** and calls it — a sync CPU call on the event loop with no
   thread hop, reachable via the grandfathered funnel exemption.
+
+---
+
+## Round 2 — the rule-of-three promotion ledger
+
+Fifth agent of the primitives scan, returned after the first write-up. Ranked by
+lines deleted per unit of interface added. Two of its findings are LIVE defects
+neither of the other four agents reached.
+
+### Calibration: a2web is not uniformly under-named
+
+Recorded because it bounds the rest. `scope.py` (110 lines replacing a 599-line
+container), `decision_log.py`, `wire.py`'s literal `_TSV_FIELDS`, `models.py`'s
+ten `*_hint()` factories, `_prune_wire`, and `actions/` are already the
+named-concept treatment and are good. The un-named regions are **four
+neighbourhoods**: the second half of `domain.py`, the render/derive halves of
+`handlers/`, the failure arms of `tiers/`, and the escalation paths of
+`fetcher.py`.
+
+### Row 1 — `domain.py:188-551` is a renderer with ZERO domain coupling
+
+~360 lines importing only `JsonPayload` (shelf `json_in_html`) and stdlib. The
+module docstring says it holds "functions that read `AppSettings` or domain
+models"; this half reads neither. A pure lift — the highest ratio in the repo,
+and the file it leaves behind finally matches its own docstring.
+
+Three accidental divergences prove nobody maintains it as one thing:
+
+- `_opengraph_to_markdown:531` hand-rolls its own markdown table rather than
+  calling `_rows_to_md_table` twelve lines above: cell cap **200** vs **80**, row
+  cap **50** vs **none**. Same escaping, same header shape.
+- `_single_entity_md:345` is explicitly default-keep and its docstring argues an
+  allowlist "silently loses an unanticipated answer-bearing field".
+  `_recipe_md:316`, immediately above, **is** that allowlist. The stated
+  invariant is violated by its neighbour.
+- The cap `50` appears as a bare literal at `:285`, `:439`, `:548` — one of them
+  commented "matching `_find_product_or_item_list`", i.e. a documented manual
+  sync.
+
+### Row 2 — "the item set" — and a LIVE ADR-0015 gap
+
+One concept, **seven-plus incompatible spellings**, with the four operations
+over it (render · derive next-links · cap-and-declare · project to wire)
+re-implemented per site: `record_mine.RecordSet` (`fetcher.py:1723`),
+`_records_to_next_links:1788`, `_records_to_options`
+(`fetcher_response.py:234`), JSON-LD `ItemList` (`domain.py:433`), HN front page
+(`hn.py:125,160`), Discourse (`discourse.py:196-244`), arXiv (`arxiv.py:262,311`),
+Reddit (`reddit.py:562,610`), GitHub/Wikipedia candidates-only.
+
+**LIVE: the divergence is a product hole.** The DOM record-miner path derives
+`next_links` AND `options`; the JSON-LD path renders the *same* item set and
+derives **neither**. A listing page whose items live in `ItemList` JSON-LD ships
+markdown with an empty `other_pages`, while the identical page mined from the
+DOM ships both — an ADR-0015 violation caused purely by two unrelated copies of
+one concept.
+
+Caps diverge unowned: markdown 30/50/25/25, candidates 10/**50**/10/10/5.
+`discourse.py:227` emits up to 50 `next_links` against a 10 cap everywhere else,
+and `handler_probe.py:177` records "observed 30" as healthy — pinning the outlier
+green.
+
+Cap-and-declare is the *under*-applied half: only `arxiv.py:283` and
+`_reddit_html.py:260` declare truncation. `hn.py`, `discourse.py` and
+`reddit.py` listings all truncate **silently**.
+
+### Row 3 — the escalation sequence: five install sites, four sequences
+
+| site | file:line | installs | re-runs ladder | re-gates |
+|---|---|---|---|---|
+| tier-loop win | `fetcher.py:1254` | transport | yes | later |
+| archive, pre-gate | `fetcher.py:1062` | transport | yes | later |
+| **archive, post-gate** | **`fetcher.py:1058`** | content+transport | **NEVER** | `:1059` |
+| browser | `fetcher.py:2136-2151` | content+transport | conditional | `:2151` |
+| paid | `fetcher.py:2236-2253` | content+transport | conditional | `:2253` |
+
+**LIVE, and documented history repeating.** `_install_rendered_fields`'s own
+docstring (`:1262-1282`) is a confession: *"THE ONLY PLACE THIS COPY IS WRITTEN.
+There were FOUR, and they disagreed."* The field-copy was collapsed; **the
+sequence around it was not.** `fetcher.py:1299-1333` documents the identical bug
+one level up — skipping the extraction ladder "starved four consumers"
+(`content_candidates`, `other_pages`, `record_count`, `record_set`), fixed on the
+tier-loop path 2026-07-28. **The archive-post-gate path still skips it.** Same
+bug class, fifth copy, still live.
+
+Diagnostics also disagree: appended only-on-success in `_dispatch_archive:899`,
+always in browser `:2105` / paid `:2210` / tier loop `:1183`.
+
+### Recurs but SHALLOW — do not promote
+
+- **Empty-failure `TierResult` literal**, 17 sites. Semantics agree; only
+  `content_type` on a zero-byte body drifts three ways. `browser.py:120`
+  extracted it once and stopped. **Widen `_common.empty_result` and delete**
+  (−78 lines, interface ≈ 0). A literal, not a concept.
+- **URL matching**, 9 handlers — irreducibly site-specific. But collapse the two
+  duplicated reddit path regexes (`reddit.py:65` vs `_reddit_html.py:33`) and the
+  two suffix-strippers (`reddit.py:755` vs `_reddit_html.py:72`), which
+  **disagree** on trailing slashes.
+- **Hint dedup** `any(h.code == X ...)` ×11 — at most a `.has(code)` method.
+- **Cap constants**, 25 — each domain-specific. Not a shape.
+- **`del cookies` / `del settings` / lazy `from ..tiers import`**, 8+8+18 sites —
+  one signal, that `handlers → tiers` is a real import cycle. Moving
+  `TierResult`/`Rendered` to `tiers/_types.py` deletes all 18 mechanically.
+
+### The inverse — built once, or more general than any caller needs
+
+| mechanism | file:line | finding |
+|---|---|---|
+| hedged archive race | `archive.py:130-162` | 33 lines of task-group + memory-object-stream for **two** upstreams, **one** caller. Docstring says "capacity-1"; code says `max_buffer_size=2`. |
+| `TierResult` | `tiers/__init__.py:59-108` | 25 fields, ~18 written by exactly one tier. A union type spelled as a wide struct — and why the empty-failure literal has 17 sites each picking 5 of 25. |
+| `Tier.fetch(**kwargs)` | `tiers/__init__.py:125-133` | 5 of 7 tiers discard `proxy_url` + `conditional_extras`. `**kwargs: Any` means a misspelled kwarg is silently dropped by every tier. |
+| `_load_tier_registry` | `tiers/__init__.py:144-177` | calls `load_surface_sorted`, then **re-walks the same packages with pkgutil** because the shelf loader "sorts but drops priority". Duplicated module walk at import; fix belongs upstream. |
+| `listing_has_more` | `listing_oracle.py:73-85` | 13 lines + long rationale, **zero handler call sites**. arXiv, the one handler using `listing_oracle`, ignores it. |
+| `PromptTemplate.render` | `prompts.py:58-77` | documents two render modes, ships three template shapes. `JUDGE_V1:409` is 3-slot and **cannot** be rendered — `judge.py:165` calls `.format()` by hand. One accidental `.format()` on `system` would corrupt every `{` in the 5.8 KB `_ROUTER_SCHEMA_DOC`. |
+| `ProxyPool.close()` | `proxy_routing.py:167-169` | `async def` returning `None`; docstring "No-op today". |
+| `_NitterInstanceFailure` | `twitter.py:96-119,160` | exception raised solely to register a breaker failure, caught one frame up. Reddit's failover (`reddit.py:198-260`) is hand-rolled `if`s. Two failover architectures, one instance each. |
+| `budget: list[int]` | `habr.py:189,204,208` | one-element list as a mutable counter box; no sibling tree-renderer has a budget at all. |
+| `_RenderResult` | `reddit.py:512-536` | reddit-private clone of `Rendered`, where six handlers use a dict + `Rendered.from_dict`. Third representation of one payload. |
+| `_prune_wire` | `models.py:790` | a generic helper with `if key == "retrieval_incomplete"` hardcoded inside it. |
+| dead manifests | `_manifests/llm_providers/` | contains **only `__pycache__`** (`openai_compatible.pyc`); likewise `browser_backends/__pycache__/{rebrowser,_common}.pyc`. Sources gone, bytecode a `pkgutil.iter_modules` walk can still see. Verify the loader cannot resurrect them. |
+
+Resource lifecycle is **not** over-built — only two classes hand-roll
+`_lock`/`_ensure`/`close` (`cookie_jar.py:173-193`, `llm_resource.py:212-307`);
+the third is the shelf's. Correctly below the bar.
+
+### Additional bugs surfaced, independent of any promotion
+
+1. `fetcher.py:1058` — archive-post-gate never runs the extraction ladder (Row 3).
+2. `reddit.py:884-923` — no `challenge_verdict`; a snooserv interstitial returns
+   `Verdict.ok`. Exactly what `wikipedia.py:87-90` warns about in prose.
+   **→ change `close-wire-level-adr-0009-leaks`**
+3. `hn.py:128` vs `:150` — `content_md`'s H2 count and `headings[1]`'s count can
+   disagree; a title-less hit desynchronises them. Three sibling answers to the
+   same problem (`discourse.py:233` `parts.insert`, `reddit.py:580` line-count),
+   one wrong.
+4. `arxiv.py:283`/`:297` — the cap `25` as two independent literals. Change one
+   and the header lies.
+5. `jina.py:92-95` and `raw.py:40-43` — `if status >= 500: connection_error`
+   followed by `if status >= 400: connection_error`. Dead branch, copy-pasted
+   into two files.
+6. 401/403 maps four ways across six mappers (`paid_auth_error` / `paywall` /
+   `connection_error` ×2); `browser._upstream_error_verdict:89` drops 429 →
+   `rate_limited` entirely. **`map_non_ok` returns `body=b""` on non-2xx**, so
+   wikipedia/discourse/hn/arxiv discard a 403 challenge body before anything can
+   inspect it.
+7. `extractor.py:538-595` — wrong-type reporting via `_note_malformed` applied to
+   **2 of 8** fields, against that function's own stated invariant. Three
+   incompatible LLM-parse failure contracts: log-and-degrade `:610`, **silently**
+   degrade `:458`, retry-then-raise `judge.py:204`.
+8. `discourse.py:227` — up to 50 `next_links` vs a 10 cap everywhere else,
+   pinned green by `handler_probe.py:177`.
+9. `github.py:226` catches only `BadRequest` for the README where four sibling
+   guards catch `GitHubException` — a rate-limited README aborts the whole repo
+   fetch. **→ change `close-wire-level-adr-0009-leaks`**
+10. `reddit.py:652` `" ".join` vs `_reddit_html.py:255` `" · ".join` — the same
+    thread renders two different header formats depending on whether Zyte or RSS
+    served it.
+
+### Ledger verdict
+
+Take one: **Row 1**, the pure lift. Take two: add **Row 3**, not for the lines
+but because `fetcher.py:1262-1282` already records that this exact bug happened,
+got half-fixed, and is still live in the copy nobody collapsed.

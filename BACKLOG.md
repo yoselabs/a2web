@@ -87,6 +87,37 @@ Scan method note: co-change ranking excluded 11 bulk commits (>20 `src/` files)
 and was re-run at a ≤8-file cutoff as a sensitivity check — the top of the
 ranking is unchanged, so nothing below is a migration artifact.
 
+## 2026-07-31 — THE CHANGE SET: which tracks became OpenSpec proposals
+
+The tracks below are the *queue*. This is the *plan* — ten changes covering
+them, in dependency order. Four are authored; six are named and scoped but not
+yet written, deliberately (see the note at the end).
+
+| # | change | covers | status |
+|---|---|---|---|
+| 1 | `close-wire-level-adr-0009-leaks` | T3 + T7 live: TSV severity loss, github silent degrade, reddit interstitial, `paid_auth_error` hint, dead `a2effect` branch | **authored** |
+| 2 | `bound-every-unbounded-path` | T3 + T7 live: no LLM timeout, no per-fetch deadline, `hn.py` unbounded recursion | **authored** |
+| 3 | `fix-cache-ttl-and-listing-sufficiency` | T3: 7-day TTL on live API data, dead `cache_ttl_live_m`, listing sufficiency OFF | **authored** |
+| 4 | `run-the-gate-on-every-push` | T4 CI — **do first**, everything else's guards are inert until it lands | **authored** |
+| 5 | `close-guards-that-read-green` | T4 remainder: markup funnel misses `re.search`/`re.sub`, two guards answer a different question, two cited guards don't exist, 22 doubleable constants, playbook 1.00 lockstep, partial eval loss exits 0, the corpus cannot see the envelope | named |
+| 6 | `unify-the-response-contract` | T2 — must absorb the 41 external `FetchContext` reads before #7 phase two | named |
+| 7 | `decompose-fetcher-into-files` | T1 — the 26-file tree, the retrieval→comprehension→sufficiency loop, `install()` | named |
+| 8 | `lift-the-item-set-and-renderer` | T5/T7: `domain.py`'s 360-line zero-coupling renderer (ledger Row 1), the item set (Row 2) — closes a LIVE ADR-0015 gap | named |
+| 9 | `repay-the-shelf-debt` | T7: `page-tsv`'s three encoder defects (**affects `a2kay` today**), five more shelf gaps, adopted-then-bypassed primitives | named |
+| 10 | `reconcile-docs-to-shipped-system` | T6 — last, because #6/#7 re-invalidate parts of it | named |
+
+**Why 5–10 are not authored yet.** #6 and #7 are design jobs whose shape should
+be set by what #1–#3 find in the code; #10 documents a system #6/#7 will change
+again. Writing all ten now means six proposals resting on assumptions the first
+four are about to test. Author them as their predecessors land.
+
+**Two live defects found by the round-2 ledger are NOT yet in any change** —
+both belong with #7 because they are the escalation-sequence problem:
+`fetcher.py:1058` (archive-post-gate never runs the extraction ladder — the
+documented four-consumer starvation, fifth copy, still live) and the JSON-LD
+`ItemList` path deriving neither `next_links` nor `options` while the DOM path
+derives both. If #7 slips, lift them out as their own change.
+
 ## 2026-07-31 — TRACKS: how the 2026-07-31 findings group, and what depends on what
 
 38 entries landed on 2026-07-31 across two scans (an openspec/verification drift
@@ -216,6 +247,30 @@ Three recurring failures, in cost order:
 | [`ProxyPool` diverges from the resource pattern](docs/findings/2026-07-31-primitives-scan.md#lifecycle-the-one-thing-that-is-a-single-concept) | XS, structure |
 | [unpromoted a2web substrate with no shelf home](docs/findings/2026-07-31-primitives-scan.md#unpromoted-a2web-substrate-with-no-shelf-home) | S, shelf promotion |
 | [CLAUDE.md drift round 2 — browser cap, globals, `to_thread`](docs/findings/2026-07-31-primitives-scan.md#doc-drift-found-in-this-round-claudemd) | S, docs — joins T6 |
+
+**Round 2 — the rule-of-three promotion ledger** (fifth agent, returned late).
+Evidence appended to the same findings doc.
+
+| finding | tier |
+|---|---|
+| [archive-post-gate never runs the extraction ladder — 5th copy of a documented bug](docs/findings/2026-07-31-primitives-scan.md#row-3--the-escalation-sequence-five-install-sites-four-sequences) | M, correctness — **LIVE** |
+| [JSON-LD `ItemList` derives no `next_links`/`options` while the DOM path derives both](docs/findings/2026-07-31-primitives-scan.md#row-2--the-item-set--and-a-live-adr-0015-gap) | M, correctness — **LIVE**, ADR-0015 |
+| [`domain.py:188-551` — a 360-line renderer with ZERO domain coupling](docs/findings/2026-07-31-primitives-scan.md#row-1--domainpy188-551-is-a-renderer-with-zero-domain-coupling) | L, promotion — highest ratio in repo |
+| [the item set: 7+ spellings, 4 operations re-implemented per site](docs/findings/2026-07-31-primitives-scan.md#row-2--the-item-set--and-a-live-adr-0015-gap) | L, promotion |
+| [`map_non_ok` discards a 403 challenge body before anything can inspect it](docs/findings/2026-07-31-primitives-scan.md#additional-bugs-surfaced-independent-of-any-promotion) | S, correctness |
+| [`extractor.py` — 3 incompatible LLM-parse failure contracts; `_note_malformed` on 2 of 8 fields](docs/findings/2026-07-31-primitives-scan.md#additional-bugs-surfaced-independent-of-any-promotion) | M, correctness |
+| [`hn.py` H2 count and `headings[1]` can disagree; 3 sibling answers, 1 wrong](docs/findings/2026-07-31-primitives-scan.md#additional-bugs-surfaced-independent-of-any-promotion) | S, correctness |
+| [`discourse.py:227` emits 50 `next_links` vs a 10 cap — pinned green by the probe](docs/findings/2026-07-31-primitives-scan.md#additional-bugs-surfaced-independent-of-any-promotion) | S, correctness |
+| [401/403 maps four ways across six mappers; browser drops 429](docs/findings/2026-07-31-primitives-scan.md#additional-bugs-surfaced-independent-of-any-promotion) | M, structure |
+| [dead branch `>=500` then `>=400` copy-pasted into two tiers](docs/findings/2026-07-31-primitives-scan.md#additional-bugs-surfaced-independent-of-any-promotion) | XS, correctness |
+| [`_manifests/llm_providers/` holds ONLY `__pycache__` — verify the loader can't resurrect it](docs/findings/2026-07-31-primitives-scan.md#the-inverse--built-once-or-more-general-than-any-caller-needs) | S, correctness |
+| [`JUDGE_V1` cannot be rendered by `PromptTemplate.render`; 3 brace disciplines coexist](docs/findings/2026-07-31-primitives-scan.md#the-inverse--built-once-or-more-general-than-any-caller-needs) | S, structure |
+| [`listing_has_more` — 13 lines, zero handler call sites](docs/findings/2026-07-31-primitives-scan.md#the-inverse--built-once-or-more-general-than-any-caller-needs) | XS, dead code |
+| [`TierResult` — 25 fields, ~18 written by exactly one tier](docs/findings/2026-07-31-primitives-scan.md#the-inverse--built-once-or-more-general-than-any-caller-needs) | M, structure |
+| [`Tier.fetch(**kwargs)` silently drops a misspelled kwarg in every tier](docs/findings/2026-07-31-primitives-scan.md#the-inverse--built-once-or-more-general-than-any-caller-needs) | S, structure |
+| [`_load_tier_registry` re-walks packages the shelf loader already walked](docs/findings/2026-07-31-primitives-scan.md#the-inverse--built-once-or-more-general-than-any-caller-needs) | S, shelf gap |
+| [widen `_common.empty_result` and delete 17 sites (−78 lines, interface ≈ 0)](docs/findings/2026-07-31-primitives-scan.md#recurs-but-shallow--do-not-promote) | S, structure |
+| [`handlers → tiers` import cycle: moving 2 types deletes 18 lazy imports](docs/findings/2026-07-31-primitives-scan.md#recurs-but-shallow--do-not-promote) | S, structure |
 
 **Explicitly NOT elevated, with reasons** (recorded so they are not re-proposed):
 reddit's retry loop — its comments encode a live-measured penalty-box model that
