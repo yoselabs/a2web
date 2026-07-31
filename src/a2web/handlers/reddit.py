@@ -44,6 +44,7 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 import anyio
 from html_fragment import to_markdown
 from http_fetch import FetchOutcome, FetchVerdict, fetch_bytes
+from selectolax.parser import HTMLParser
 
 from .. import content_expectations
 from ..models import Heading, NextLink, OperatorHint, Verdict, comments_partial_hint, try_user_browser_hint
@@ -495,14 +496,28 @@ def _atom_body_markdown(content_html: str | None) -> str:
     if not content_html:
         return ""
     head = content_html.split("<!-- SC_ON -->", 1)[0]
-    head = re.sub(r"<!--.*?-->", "", head, flags=re.DOTALL)  # drop SC_OFF / SC_ON markers
+
+    # Parsed with a DOM, not a regex (the handler markup funnel). Both steps
+    # below used to be regexes: `<!--.*?-->` to drop the SC_OFF/SC_ON markers,
+    # and `<div class="md">(.*)</div>` to pull the authored body out. The second
+    # one's own comment conceded its assumption — "Reddit's rendered md never
+    # nests `<div>`, so the greedy match closes on the md div itself" — which is
+    # a claim about Reddit's renderer that a2web cannot enforce and would fail
+    # SILENTLY, handing the caller a body with a stray `</div>` tail or the
+    # whole thumbnail table. A DOM closes the right element by construction.
+    tree = HTMLParser(head)
+    for node in tree.root.traverse(include_text=True) if tree.root else ():
+        if node.tag == "_comment":
+            node.decompose()
+
     # Reddit wraps the authored body in `<div class="md">`; the OP entry also
-    # carries a thumbnail `<table>` outside it. Extract just the md div so the
-    # thumbnail/image noise never reaches the markdown. Reddit's rendered md
-    # never nests `<div>`, so the greedy match closes on the md div itself.
-    match = re.search(r'<div class="md">(.*)</div>', head, re.DOTALL)
-    fragment = match.group(1) if match else head
-    return to_markdown(fragment).strip()
+    # carries a thumbnail `<table>` outside it, so selecting the div is what
+    # keeps image noise out of the markdown.
+    md_div = tree.css_first("div.md")
+    if md_div is not None:
+        return to_markdown(md_div.html or "").strip()
+    body = tree.css_first("body")
+    return to_markdown(body.html or "" if body is not None else head).strip()
 
 
 # --------------------------------------------------------------------- #

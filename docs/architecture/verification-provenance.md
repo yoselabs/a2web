@@ -23,7 +23,7 @@ found by accident rather than by a check:
 
 | | Mechanism | Enforceable? | Our defenses |
 |---|---|---|---|
-| **B** | **Unknowns resolve to green** — skips, vacuous walks, absent surfaces. "Couldn't verify" silently becomes "verified." | **Yes** — vacuity is a property of the artifact (count the candidates). | `_walk.walked_files(minimum=…)` floors; `test_walk_is_not_vacuous`; accepted-delta liveness; the new browser-gate skip→fail flag; `test_transient_markers_not_stale`. |
+| **B** | **Unknowns resolve to green** — skips, vacuous walks, absent surfaces. "Couldn't verify" silently becomes "verified." | **Yes** — vacuity is a property of the artifact (count the candidates). | `_walk.walked_files(minimum=…)` floors; `test_walk_is_not_vacuous`; accepted-delta liveness; the new browser-gate skip→fail flag. (`test_transient_markers_not_stale` was listed here and retired 2026-08-01 — it guarded a convention with zero adopters.) |
 | **A** | **Endogenous oracles** — goldens, hand-written fakes, docstrings. The oracle is a copy of the author's belief, so it agrees with the author's bug. | **Only partially.** You can mechanize the *existence* of a second path; you cannot mechanize its *independence*. | The three narrow guards below — and, past them, review discipline + an exogenous-witness budget. |
 
 ## The witness rule (the operational half)
@@ -67,9 +67,19 @@ library's own behavior, a genuinely foreign consumer, and production telemetry.
    commit, so it cannot drift laxer than reality (the exact failure that shipped
    the dead `--no-sandbox` rung). Pattern: run the same battery through the fake
    and the real object; assert identical accept/reject. The real library is the
-   exogenous half. Reference: `test_fake_config_matches_real_add_argument` in
-   `tests/packages/test_zendriver_backend.py`. Extend to any fake whose real
-   counterpart validates, raises, or enforces ordering.
+   exogenous half. Extend to any fake whose real counterpart validates, raises,
+   or enforces ordering.
+
+   > **Reference withdrawn 2026-08-01.** This entry cited
+   > `test_fake_config_matches_real_add_argument` in
+   > `tests/packages/test_zendriver_backend.py`. **Neither the file nor the
+   > function exists** — the zendriver backend moved to the shelf's
+   > `any_browser` and the test went with it. The pattern above is still the
+   > right one; what is gone is a2web's instance of it. **The failure it was
+   > built to catch — the dead `--no-sandbox` rung, cited twice in this very
+   > document — is therefore UNGUARDED in a2web today.** It is now the shelf's
+   > to hold, and whether `any_browser` actually holds it is unverified here.
+   > Do not read this entry as coverage.
 
 2. **Real-substrate lane with skips forbidden.** Any capability whose real
    behavior is expensive to reach (a browser launch, a container boot) gets a CI
@@ -79,14 +89,20 @@ library's own behavior, a genuinely foreign consumer, and production telemetry.
    (`test_browser_smoke.py`), with the fail-branch pinned in the default gate by
    `test_browser_gate_policy.py` (a branch a *working* browser can never reach).
 
-3. **Expiry-carrying transient markers.** Provisional code kept only until a
-   change lands carries `TRANSIENT (<change-id>)`; the marker is stale (guard
-   fails) once that change is archived. The archive directory is the exogenous
-   witness — "the change shipped" is a fact on disk, not a judgement. Reference:
-   `test_transient_markers_not_stale`. We deliberately do **not** ban temporal
-   words: that fires on legitimate corrective narration ("a2kit *used to* own
-   this, now this module does") and trains docstrings to lie fluently. Semantic
-   staleness is not lintable; only the pinned-lifecycle-claim slice is.
+3. ~~**Expiry-carrying transient markers.**~~ **Withdrawn 2026-08-01.** The
+   mechanism was real and the reasoning still holds — `TRANSIENT (<change-id>)`
+   would go stale against the archive directory, an exogenous witness — but a
+   census found **zero** `TRANSIENT (` markers anywhere in `src/` or `tests/`
+   outside the guard's own source. It was enforcing a convention nobody adopted,
+   which is the same failure this document is about: a mechanism listed as a
+   remedy, counted as coverage, and inert. `test_transient_markers_not_stale`
+   was retired rather than left green over an empty set. If the convention is
+   ever adopted, restore the guard WITH a non-vacuity floor.
+
+   Still worth keeping from the original entry: we deliberately do **not** ban
+   temporal words. That fires on legitimate corrective narration ("a2kit *used
+   to* own this, now this module does") and trains docstrings to lie fluently.
+   Semantic staleness is not lintable.
 
 ## Promotion to the shelf — the boundary invariants
 
@@ -130,11 +146,44 @@ worth more than any amount of H4/H5 golden/docstring machinery. It is currently
 manual; a scheduled run with diffed findings is the goal (gated on the ADR-0016
 subscription-only rule — never metered).
 
-## Don't over-index
+## Don't over-index — RE-DERIVED 2026-08-01
 
-The witness rule is right, but it is fourth on the promotion's expected-loss
-list, behind packaging/foreign-soil, semver/compat discipline, and tag
-lifecycle. H1 (the browser gate) + the wire golden gate + the standing
-fake-fidelity contract already bought most of the endogenous-oracle risk down.
-Spend the marginal effort on the boundary mechanics above, not on a fourth
-oracle guard.
+The original conclusion read: *"H1 (the browser gate) + the wire golden gate +
+the standing fake-fidelity contract already bought most of the endogenous-oracle
+risk down. Spend the marginal effort on the boundary mechanics above, not on a
+fourth oracle guard."*
+
+**One of its three premises was false.** The standing fake-fidelity contract has
+no instance in a2web — its cited test does not exist (see the withdrawal above),
+so it bought nothing here. A conclusion about where to spend effort cannot
+survive the deletion of a third of its evidence without being re-derived, and
+re-deriving it changes the answer in one specific place:
+
+- The browser gate and the wire golden gate are real and do hold.
+- The fake-fidelity slot is **empty**, and the failure it existed to catch (the
+  dead `--no-sandbox` rung) is unguarded in a2web. That is not "a fourth oracle
+  guard" — it is the second of three, missing.
+
+So: the boundary mechanics are still the larger expected loss and still come
+first. But "already bought down" overstated the position, and the specific
+marginal spend now worth making is restoring a fake-fidelity witness for
+whichever fakes a2web still hand-writes, or confirming the shelf holds it for
+the ones that moved. Recorded in BACKLOG rather than fixed here.
+
+## This document failed its own rule
+
+Worth stating plainly, in the document itself rather than only in the commit
+that fixed it: **the file codifying the foreign-provenance rule cited, twice, a
+test that does not exist.** Both citations read as evidence for years of
+re-reading; neither resolves. `docs/architecture/README.md` carried the same
+dead citation, plus one to `test_no_lambdas_in_app_provide.py` — a guard whose
+subject (`app.provide`) died with a2kit.
+
+That is mechanism A exactly, one level up: the document is an endogenous oracle
+about its own coverage. It agreed with its author's belief that the guard
+existed, and nothing in the loop could disagree — prose citations were not
+checked by anything. The remedy is the same one the document prescribes for
+code: give the claim a foreign witness. `test_claude_md_citations_resolve.py`
+now covers `path::function` form and directory citations across CLAUDE.md,
+`docs/architecture/README.md`, and this file, so a citation that stops resolving
+fails the gate instead of being re-read as coverage.

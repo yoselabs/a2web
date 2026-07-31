@@ -1,5 +1,14 @@
 """Architectural invariant: boundary dataclasses under `packages/` are frozen.
 
+**Renamed 2026-08-01** from `test_packages_boundary_frozen.py`. The old name read
+as "the packages boundary is frozen", and CLAUDE.md and
+`docs/architecture/README.md` both cited it for exactly that — specifically for
+freezing `packages/*/__init__.py`'s `__all__`, which this file has never
+checked and does not check now. A guard named for a claim it does not make is
+worse than an absent one: the citation reads as coverage, so nobody writes the
+missing check. `__all__` is deliberately NOT guarded (see the docs); this file
+asserts dataclass immutability and nothing else.
+
 Boundary types — the ones domain code reads at the package seam — must be
 immutable. A mutable boundary lets a domain caller pretend to mutate package
 state through a value object, which is exactly the leak the packages-

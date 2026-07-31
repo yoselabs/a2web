@@ -20,10 +20,26 @@ does not match that text, because the target is itself a regex where `\\s*` is
 a literal backslash-s-star, not whitespace. Regexing a regex to decide whether
 it concerns markup is exactly as brittle as the thing it polices.
 
-So the rule keys on shape instead: **in `handlers/`, every `re.compile` pattern
-must be an anchored URL path.** When this was written all 18 legitimate patterns
-were anchored path matchers (`^/r/…`, `^/abs/…`) and all 4 rotted ones were not
-— the split is clean, and it does not require deciding what HTML looks like.
+So the rule keys on shape instead: **in `handlers/`, every direct `re.<fn>`
+pattern must be an anchored URL path**, or carry a named exemption.
+
+**Census re-taken 2026-08-01 with the SHIPPED matcher** (the original was taken
+with a matcher that only saw `re.compile`, so it could not have counted the
+others): 20 direct `re.*` calls with literal patterns across `handlers/` — 18
+`compile`, 1 `sub`, 1 `search`. 15 are anchored path matchers; the remaining 5
+are the three named exemptions plus the two markup regexes this widening
+exposed and removed. The earlier "18 legitimate / 4 rotted, the split is clean"
+claim described a population the matcher could see, not the one in the tree.
+
+**The widening is the point.** The rule was "handlers parse markup with a DOM,
+never a regex"; the enforcement read "…never a COMPILED regex", so a one-shot
+`re.search` over markup — the cheaper and therefore likelier way to write the
+banned thing — passed straight through. `reddit._atom_body_markdown` was pulling
+comment bodies out of HTML with `re.sub` + `re.search` under a green build, and
+its own comment conceded the assumption ("Reddit's rendered md never nests
+`<div>`, so the greedy match closes on the md div itself"). It does not: a
+sibling `<div>` after the body — a footer, an embed — makes the greedy match run
+past the md closer and swallow it. Verified before replacing.
 
 Markup goes through `dom_schema.extract`, which additionally reports WHY a parse
 yielded nothing (`ROT` = the schema stopped matching, vs `EMPTY` = the page
@@ -48,6 +64,16 @@ from ._walk import SRC_ROOT, walked_files
 #: loudly instead of finding nothing to object to and reporting green.
 _MIN_FILES = 8
 
+# Every direct `re.<fn>(pattern, ...)` form, not just `re.compile`.
+#
+# The guard matched ONLY `re.compile`, which meant a one-shot `re.search(...)`
+# against markup — the cheaper and therefore more likely way to write the very
+# thing being banned — passed straight through. The rule was "handlers parse
+# markup with a DOM, never a regex"; the enforcement read "…never a COMPILED
+# regex". That gap is why `reddit.py` was still pulling comment bodies out of
+# HTML with `re.search` under a green build.
+_RE_FUNCS = frozenset({"compile", "search", "sub", "match", "findall", "fullmatch", "finditer", "split", "subn"})
+
 #: A pattern this guard permits: an anchored path matcher. Handlers legitimately
 #: regex the URL path to decide `matches(url)` and to pull ids out of it — that
 #: is text, not markup, and regex is the right tool.
@@ -65,9 +91,22 @@ _ALLOWED_PREFIXES = ("^/", "^(/", "^([", "^\\d", "^[")
 #:
 #: Add here only for a pattern that runs on ALREADY-PARSED text. A pattern that
 #: touches raw markup does not belong in this table under any justification.
+#: `arxiv._text` runs `\s+` over `el.text` — the text content of an XML element
+#: `ElementTree` already parsed. Same side of the line as `_COUNT_RE`: the markup
+#: was parsed, and collapsing whitespace in the resulting string is what a regex
+#: is for.
+#:
+#: `reddit._sub_from_link` reads the subreddit out of a `.../r/<sub>/...`
+#: permalink. It IS a URL path — it just cannot be anchored, because `/r/` sits
+#: mid-path in a full permalink rather than at the start. Anchoring is the
+#: guard's cheap proxy for "this is a URL, not markup"; this is the case where
+#: the proxy and the property disagree, so it is exempted by name rather than by
+#: relaxing the anchor rule for everyone.
 _EXEMPT: frozenset[tuple[str, str]] = frozenset(
     {
         ("_reddit_html.py", r"(\d[\d,]*)"),
+        ("arxiv.py", r"\s+"),
+        ("reddit.py", r"/r/([^/]+)/"),
     }
 )
 
@@ -90,7 +129,7 @@ def _violations() -> list[str]:
             if not (
                 isinstance(node, ast.Call)
                 and isinstance(node.func, ast.Attribute)
-                and node.func.attr == "compile"
+                and node.func.attr in _RE_FUNCS
                 and isinstance(node.func.value, ast.Name)
                 and node.func.value.id == "re"
             ):
@@ -125,7 +164,7 @@ def test_every_exemption_is_real() -> None:
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "compile"
+        and node.func.attr in _RE_FUNCS
         and isinstance(node.func.value, ast.Name)
         and node.func.value.id == "re"
         and node.args

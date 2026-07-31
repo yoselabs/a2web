@@ -42,6 +42,7 @@ marked live one.
 
 from __future__ import annotations
 
+import pathlib
 import re
 
 from ._walk import REPO_ROOT, SRC_ROOT
@@ -60,6 +61,19 @@ _CLAUDE_MD = REPO_ROOT / "CLAUDE.md"
 #: can be confidently wrong is worse than one with a stated blind spot.
 _CITATION = re.compile(r"`([a-zA-Z0-9_\-.]+(?:/[a-zA-Z0-9_\-.]+)+\.(?:py|md|toml|yaml|yml|json))`(.{0,14})")
 
+#: `path/to/file.py::function` — the form the dead
+#: `tests/packages/test_zendriver_backend.py::test_fake_config_matches_real_add_argument`
+#: citation used. The plain `_CITATION` pattern above required the backtick to
+#: close right after the extension, so a `::function` suffix meant the whole
+#: citation matched NOTHING and was never checked at all.
+_CITATION_WITH_FUNC = re.compile(r"`([a-zA-Z0-9_\-.]+(?:/[a-zA-Z0-9_\-.]+)+\.py)::([a-zA-Z0-9_]+)`(.{0,14})")
+
+#: A trailing-slash directory citation (`openspec/changes/sunset-a2kit-dependency/`).
+#: Also invisible to `_CITATION`, which demands a file extension — which is how
+#: two CLAUDE.md citations kept pointing at changes that had moved under
+#: `archive/`.
+_CITATION_DIR = re.compile(r"`([a-zA-Z0-9_\-.]+(?:/[a-zA-Z0-9_\-.]+)*/)`(.{0,14})")
+
 #: The opt-out. Must sit immediately after the citation it applies to.
 _GONE_MARKER = "<!-- gone -->"
 
@@ -67,13 +81,31 @@ _GONE_MARKER = "<!-- gone -->"
 #: paths (`tests/architecture/_walk.py`) and `src/a2web`-relative shorthand
 #: (`wobble/_policies.py`, `actions/playbook.py`) interchangeably. Demanding one
 #: form would rewrite the file's voice to suit a test.
-_ROOTS = (REPO_ROOT, SRC_ROOT, REPO_ROOT / "src", SRC_ROOT / "packages", SRC_ROOT / "packages" / "llm_extract")
+_ROOTS = (
+    REPO_ROOT,
+    SRC_ROOT,
+    REPO_ROOT / "src",
+    SRC_ROOT / "packages",
+    SRC_ROOT / "packages" / "llm_extract",
+    SRC_ROOT / "_manifests",
+)
 
 #: Floor on extracted citations. Population is 43 path-shaped citations, of
 #: which 1 is marked historical. This fails loudly if the file's markup changes
 #: out from under the pattern, rather than silently checking nothing and
 #: reporting green.
 _MIN_CITATIONS = 25
+
+
+#: Every document agents navigate by. `verification-provenance.md` is here
+#: because it cited a nonexistent test TWICE while codifying the rule that
+#: load-bearing claims need a foreign witness — the document was an endogenous
+#: oracle about its own coverage, and nothing in the loop could disagree.
+_DOCS = (
+    _CLAUDE_MD,
+    REPO_ROOT / "docs" / "architecture" / "README.md",
+    REPO_ROOT / "docs" / "architecture" / "verification-provenance.md",
+)
 
 
 def _citations() -> list[tuple[str, bool]]:
@@ -111,3 +143,64 @@ def test_every_current_citation_resolves() -> None:
 
 def _resolves(path: str) -> bool:
     return any((root / path).exists() for root in _ROOTS)
+
+
+# --------------------------------------------------------------------- #
+# `path::function` and directory citations, across every navigational doc
+# --------------------------------------------------------------------- #
+
+
+def _doc_text(doc: pathlib.Path) -> str:
+    return doc.read_text(encoding="utf-8") if doc.exists() else ""
+
+
+def test_function_citations_resolve() -> None:
+    """A cited `file.py::function` must exist AND define that function.
+
+    The file existing is not enough: `verification-provenance.md` cited
+    `tests/packages/test_zendriver_backend.py::test_fake_config_matches_real_add_argument`,
+    and it was the whole citation that was dead. Checking only the path would
+    have let a renamed function keep reading as coverage.
+    """
+    checked = 0
+    broken: list[str] = []
+    for doc in _DOCS:
+        for path, func, trailing in _CITATION_WITH_FUNC.findall(_doc_text(doc)):
+            if trailing.startswith(_GONE_MARKER):
+                continue
+            checked += 1
+            target = next((root / path for root in _ROOTS if (root / path).exists()), None)
+            if target is None:
+                broken.append(f"{doc.name}: {path}::{func} — file does not exist")
+            elif f"def {func}" not in target.read_text(encoding="utf-8"):
+                broken.append(f"{doc.name}: {path}::{func} — file exists, function does not")
+    assert not broken, "citations naming a function that does not resolve:\n" + "".join(f"  {b}\n" for b in broken)
+    # No floor: the population is legitimately allowed to reach zero (the only
+    # two known instances were dead and were removed). Asserting a minimum here
+    # would force the docs to keep a citation shape they no longer use.
+
+
+def test_directory_citations_resolve() -> None:
+    """A cited directory must exist — a change that moved under `archive/` does not."""
+    checked = 0
+    broken: list[str] = []
+    for doc in _DOCS:
+        for path, trailing in _CITATION_DIR.findall(_doc_text(doc)):
+            if trailing.startswith(_GONE_MARKER):
+                continue
+            checked += 1
+            if not any((root / path).is_dir() for root in _ROOTS):
+                broken.append(f"{doc.name}: {path}")
+    assert checked >= 5, f"non-vacuous: expected directory citations, found {checked} — the pattern stopped matching"
+    assert not broken, (
+        "citations pointing at directories that do not exist:\n"
+        + "".join(f"  {b}\n" for b in broken)
+        + "\nAn openspec change that shipped has moved under `changes/archive/<date>-<name>/`."
+    )
+
+
+def test_every_navigational_doc_is_actually_read() -> None:
+    """Anti-vacuity for the two tests above: a missing doc must not read green."""
+    for doc in _DOCS:
+        assert doc.exists(), f"{doc} does not exist — the citation guard is checking nothing for it"
+        assert doc.read_text(encoding="utf-8").strip(), f"{doc} is empty"
