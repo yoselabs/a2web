@@ -15,7 +15,6 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
 
-from lean_wire import encode_tsv
 from pydantic import (
     BaseModel,
     Field,
@@ -26,7 +25,7 @@ from pydantic import (
 )
 
 from .packages.llm_extract import RoutingOutcome
-from .wire import PruneEmpty
+from .wire import PruneEmpty, encode_rows
 
 
 class Verdict(StrEnum):
@@ -662,9 +661,9 @@ class FetchResponse(BaseModel):
     def _omit_empty(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
         tsv: dict[str, str] = {}
         if self.links:
-            tsv["links"] = _links_tsv(self.links)
+            tsv["links"] = encode_rows(self.links)
         if self.next_links:
-            tsv["next_links"] = _next_links_tsv(self.next_links)
+            tsv["next_links"] = encode_rows(self.next_links)
         return _prune_wire(
             handler(self),
             required=_FETCH_REQUIRED_FIELDS,
@@ -722,40 +721,22 @@ _ASK_DEBUG_FIELDS = frozenset({"started_at", "total_ms", "cache", "diagnostics",
 _FETCH_DEBUG_FIELDS = frozenset({"started_at", "total_ms", "cache", "tokens", "diagnostics", "extraction", "content_candidates"})
 
 
-def _next_links_tsv(links: list[NextLink]) -> str:
-    """Render the next-link candidates as a compact TSV block.
-
-    Columns are `anchor` / `url` / `reason` / `kind`; the `kind` column is
-    dropped when every row is `drilldown` (the common handler-derived case)
-    and kept when the list mixes kinds.
-    """
-    columns = ["anchor", "url", "reason"]
-    if {lk.kind for lk in links} != {"drilldown"}:
-        columns.append("kind")
-    return encode_tsv(links, columns=columns)
-
-
-def _other_pages_tsv(pages: list[OtherPage]) -> str:
-    """Render the unified off-page pointers as one compact TSV block (ADR-0015).
-
-    Columns are `url` / `reason` / `kind`; an `off_domain` column is appended
-    only when at least one entry is off-domain (ADR-0014 — the flag rides the
-    wire when set, stays absent otherwise).
-    """
-    columns = ["url", "reason", "kind"]
-    if any(p.off_domain for p in pages):
-        columns.append("off_domain")
-    return encode_tsv(pages, columns=columns)
-
-
-def _links_tsv(links: list[Link]) -> str:
-    """Render the extracted-link list as a compact TSV block.
-
-    Columns are `anchor` / `href` / `role`. `links` is the single largest
-    array `fetch_raw` can emit on an aggregator page — TSV over a JSON array
-    of objects is the biggest per-call byte saving.
-    """
-    return encode_tsv(links, columns=["anchor", "href", "role"])
+# The three former per-field TSV helpers (`_next_links_tsv`,
+# `_other_pages_tsv`, `_links_tsv`) are gone. Each hand-rolled its own
+# conditional-column rule — and the three disagreed: `other_pages` appended
+# `off_domain` only when some row set it, `next_links` DROPPED `kind` when
+# every row agreed, and `links` had no conditional at all. Meanwhile
+# `encode_envelope` read only the first row's keys and silently deleted the
+# rest. `wire.encode_rows` is now the single rule (union of every row's keys,
+# first-seen order) for both producers, so a field a serializer elides on one
+# row can no longer vanish from the table.
+#
+# Two byte-level consequences, both deliberate and re-blessed in the wire
+# contract: `other_pages`' `off_domain` behaviour is UNCHANGED (`OtherPage._wire`
+# elides it when False, so the union reproduces the old conditional exactly),
+# while `next_links` now always carries `kind`. That is a widening, never a
+# loss — a table whose columns depend on whether the rows happen to agree is
+# harder to parse than one that does not.
 
 
 def _prune_wire(
@@ -918,7 +899,7 @@ class AskResponse(BaseModel):
         # `other_pages` renders as one TSV block (url / reason / kind).
         tsv: dict[str, str] = {}
         if self.other_pages:
-            tsv["other_pages"] = _other_pages_tsv(self.other_pages)
+            tsv["other_pages"] = encode_rows(self.other_pages)
         return _prune_wire(
             handler(self),
             required=_ASK_REQUIRED_FIELDS,

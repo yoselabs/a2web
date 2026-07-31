@@ -63,6 +63,7 @@ from typing import Any
 from fastmcp.server.middleware import Middleware
 from lean_wire import PruneEmpty, encode_tsv, prune_dict
 from mcp.types import TextContent
+from pydantic import BaseModel
 
 _log = logging.getLogger(__name__)
 _ENCODE_FAILURES: set[str] = set()
@@ -71,6 +72,7 @@ __all__ = [
     "EnvelopeContentMiddleware",
     "PruneEmpty",
     "encode_envelope",
+    "encode_rows",
     "prune_dict",
     "tsv_fields_for",
 ]
@@ -99,15 +101,45 @@ def _encode_json(value: Any) -> str:
 
 
 def _derive_columns(rows: list[Any]) -> list[str]:
-    """TSV header columns from the first row's keys.
+    """TSV header columns: the UNION of every row's keys, first-seen order.
 
     Rows reaching here are already plain dicts — this runs after the model has
     been dumped, so declared-field order survives as dict insertion order.
+
+    Rows are heterogeneous BY CONSTRUCTION: model serializers elide fields at
+    their default (`OperatorHint._omit_default_severity` drops an `info`
+    severity, `PruneEmpty` drops empties), so which keys a row carries is a
+    property of its data. Reading only `rows[0]` therefore DELETED data — an
+    `info` hint followed by a `critical` one produced a table with no
+    `severity` column and the ADR-0009 klaxon reached the agent unmarked.
+
+    This is not the inference `_TSV_FIELDS` exists to forbid. *Which fields
+    become tables* is a contract and stays literal; *which columns a table
+    has* is a property of the rows, and the three hand-rolled conditional
+    helpers in `models.py` were each approximating this rule already.
+
+    `encode_tsv` fills a missing key with an empty cell, so widening never
+    shifts a sparse row's values.
     """
-    if not rows:
-        return []
-    first = rows[0]
-    return [str(k) for k in first] if isinstance(first, dict) else []
+    columns: dict[str, None] = {}  # dict, not set — insertion order is the contract
+    for row in rows:
+        if isinstance(row, dict):
+            columns.update(dict.fromkeys(str(k) for k in row))
+    return list(columns)
+
+
+def encode_rows(rows: list[Any]) -> str:
+    """Render model or dict `rows` as a TSV block with union-derived columns.
+
+    The ONE column rule, shared by both TSV producers: `encode_envelope`, which
+    encodes already-dumped payload fields, and the `models.py` serializers,
+    which encode model instances before the parent dump. They diverged once —
+    three hand-rolled conditional-column helpers in `models.py`, each
+    approximating this rule differently, while `encode_envelope` had no
+    conditional at all and silently dropped the elided fields.
+    """
+    dumped = [row.model_dump(mode="json") if isinstance(row, BaseModel) else row for row in rows]
+    return encode_tsv(dumped, columns=_derive_columns(dumped))
 
 
 def _is_tsv_shaped(rows: list[Any]) -> bool:

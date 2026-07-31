@@ -633,3 +633,29 @@ urls:
       - "A walled or unreachable upstream surfaces as an explicit failure — never an `ok` answer summarising an interstitial (ADR-0009)"
       - "The response carries a diagnostic and an operator hint the caller can act on"
       - "Never presents 'Checking your browser' or equivalent challenge text as the page's content"
+
+  - slug: walled-page-with-preceding-info-hint
+    # The TSV column defect, cased (2026-07-31). When a fetch emits MORE THAN ONE
+    # operator hint and the FIRST is `info`-severity, the wire encoder derived the
+    # TSV header from the first row's keys only — while `OperatorHint` elides
+    # `severity` when it is the default `info`. So a stale cookie mirror
+    # (`cookies_stale`, info) followed by a wall (`try_user_browser`, critical)
+    # produced a table with NO `severity` column, and the critical marker on the
+    # ADR-0009 klaxon was silently discarded on its way to the agent.
+    #
+    # `structured_content` was never affected, which is why ~1350 field-presence
+    # assertions missed it: they all read the machine channel. THE AGENT READS
+    # `content[0].text`. Fixed by making columns the union of every row's keys.
+    #
+    # Structural fact (survives rotation): this host walls server-side clients, so
+    # the fetch emits the critical wall hint. The multi-hint precondition is what
+    # this cell exists to keep exercised — any second, quieter hint alongside it
+    # (cookies staleness, an unavailable LLM, a truncated answer) reproduces it.
+    url: https://www.g2.com/products/salesforce-salesforce-sales-cloud/reviews
+    class: gated
+    task: "What do reviewers say about this product's pricing?"
+    needs: [content+links]
+    criteria:
+      - "If the wall was not passed, the miss is LOUD — retrieval incomplete plus a critical try-your-own-browser hint (ADR-0009)"
+      - "The critical severity is legible in the agent-facing output, not only in the machine channel — a hint's severity must never be dropped because another hint omitted it"
+      - "Does NOT fabricate reviewer quotes or pricing figures"

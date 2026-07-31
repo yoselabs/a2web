@@ -30,9 +30,11 @@ import json
 import pytest
 
 from a2web.components import build_components
+from a2web.cookie_jar import StalenessInfo
 from a2web.lazy import lazy
 from a2web.models import NextLink
 from a2web.server import build_mcp_server
+from a2web.settings import AppSettings
 from a2web.tiers import REGISTRY
 from tests.capabilities.ask_response.test_ask_response import _MINIMAL_HTML, _extractor, _RawStub
 from tests.contracts.wire_harness import WIRE_DIR, capture, check_wire, freeze_clocks, normalize, wire_client
@@ -80,19 +82,38 @@ _ADVERSARIAL_LINKS = [
 ]
 
 
+class _StaleCookieJar:
+    """A cookie mirror past its staleness threshold, holding no cookies.
+
+    Only the two methods the fetch path calls. The point is the `cookies_stale`
+    operator hint it induces, which is the `info`-severity row that precedes
+    the critical wall hint in `test_wire_query_heterogeneous_hints`.
+    """
+
+    async def get_for_host(self, host: str, scheme: str, path: str) -> list:
+        return []
+
+    async def staleness(self) -> StalenessInfo:
+        return StalenessInfo(last_refresh_at=None, age_hours=99.0, is_stale=True)
+
+
 async def _query_wire(
     monkeypatch: pytest.MonkeyPatch,
     *,
     body: bytes,
     raw_next_links: list | None = None,
     unavailable: str | None = None,
+    settings: AppSettings | None = None,
+    cookie_jar: object | None = None,
     **kwargs: object,
 ) -> dict:
     freeze_clocks(monkeypatch)
     monkeypatch.setitem(REGISTRY, "raw", _RawStub(body, raw_next_links))
-    parts = build_components()
+    parts = build_components(settings=settings) if settings is not None else build_components()
     state = await parts.state()
     parts = dataclasses.replace(parts, llm_extractor=lazy(_extractor(state, unavailable=unavailable)))
+    if cookie_jar is not None:
+        parts = dataclasses.replace(parts, cookie_jar=lazy(cookie_jar))
     async with wire_client(build_mcp_server(components=parts)) as client:
         result = await client.call_tool("query", dict(kwargs), raise_on_error=False)
     return capture(result)
@@ -223,6 +244,50 @@ async def test_wire_query_debug(monkeypatch: pytest.MonkeyPatch) -> None:
     # vanished from the wire the golden would still compare equal.
     assert "debug" in _text(payload)
     check_wire("call/query_debug", payload)
+
+
+@pytest.mark.asyncio
+async def test_wire_query_heterogeneous_hints(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Two hints of DIFFERENT shape — the ADR-0009 klaxon behind an `info` row.
+
+    `query_failure` above cannot catch this: it carries exactly ONE hint, and
+    that hint is the critical one, so the first row happened to hold every key.
+    Under the old first-row column derivation the golden froze a correct table
+    for the wrong reason.
+
+    This scenario is production-reachable, not synthetic: a stale cookie mirror
+    appends an `info` `cookies_stale` hint early in the fetch, and the wall
+    appends `try_user_browser` after the tier ladder. `_omit_default_severity`
+    drops `severity` from the first, so a first-row header had no `severity`
+    column and the `critical` marker on the SECOND row was discarded on its way
+    to the agent — while `structured_content` stayed perfectly correct.
+    """
+    payload = await _query_wire(
+        monkeypatch,
+        body=(FIXTURES_DIR / "cloudflare_block.html").read_bytes(),
+        settings=AppSettings(cookie_source="chrome"),
+        cookie_jar=_StaleCookieJar(),
+        url="https://blocked.example/page",
+        query="q",
+    )
+    encoded = json.loads(_text(payload))["operator_hints"]
+    header, *rows = [line for line in encoded.split("\n") if line]
+
+    # Anti-vacuity: the scenario is worthless unless BOTH hints are present and
+    # they still differ in shape. If cookies_stale stopped firing this would
+    # silently degrade into a duplicate of `query_failure`.
+    assert len(rows) == 2, f"expected both hints, got {len(rows)}: {rows}"
+    assert rows[0].startswith("cookies_stale"), "the info hint must come FIRST — that is the defect's precondition"
+    assert "severity" not in payload["structured_content"]["operator_hints"][0], (
+        "cookies_stale must still elide its default severity, or the rows are no longer heterogeneous"
+    )
+
+    columns = header.split("\t")
+    assert "severity" in columns, f"severity column dropped from the union, header was {header}"
+    assert rows[1].split("\t")[columns.index("severity")] == "critical", (
+        "ADR-0009's loudest signal reached the agent stripped of the field that marks it critical"
+    )
+    check_wire("call/query_heterogeneous_hints", payload)
 
 
 @pytest.mark.asyncio

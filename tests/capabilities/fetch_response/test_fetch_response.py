@@ -162,7 +162,13 @@ async def test_fetch_raw_next_links_render_as_tsv(monkeypatch: pytest.MonkeyPatc
     )
     tsv = data["next_links"]
     assert isinstance(tsv, str)
-    assert tsv.splitlines()[0] == "anchor\turl\treason"  # all-drilldown → no kind column
+    # `kind` is present even when every row agrees. Until 2026-07-31 this helper
+    # dropped a uniform `kind` column to save bytes — one of three divergent
+    # hand-rolled column rules, replaced by `wire.encode_rows` (union of every
+    # row's keys). A table whose columns depend on whether the rows happen to
+    # agree is harder to parse than one that does not, and the same divergence
+    # is what let a `critical` severity vanish from `operator_hints`.
+    assert tsv.splitlines()[0] == "anchor\turl\treason\tkind"
     assert len(tsv.splitlines()) == 3
 
 

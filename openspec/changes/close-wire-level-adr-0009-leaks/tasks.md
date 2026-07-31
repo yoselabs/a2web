@@ -6,18 +6,25 @@ anything.
 
 ## 1. TSV columns lose data on heterogeneous rows
 
-- [ ] 1.1 Write a failing test over `content[0].text` (via `call_text`, not
+- [x] 1.1 Write a failing test over `content[0].text` (via `call_text`, not
       `call_wire`) asserting a `critical` hint's `severity` survives when an
       `info` hint precedes it. Confirm it fails on current `main`.
-- [ ] 1.2 Change `wire._derive_columns` to the union of all rows' keys in
+- [x] 1.2 Change `wire._derive_columns` to the union of all rows' keys in
       first-seen order.
-- [ ] 1.3 Assert rows with disjoint keys render empty cells rather than shifting
+- [x] 1.3 Assert rows with disjoint keys render empty cells rather than shifting
       values.
-- [ ] 1.4 Collapse `models._next_links_tsv`, `_other_pages_tsv` and `_links_tsv`
+- [x] 1.4 Collapse `models._next_links_tsv`, `_other_pages_tsv` and `_links_tsv`
       into the shared rule; delete the three conditional-column bodies.
-- [ ] 1.5 Re-bless the affected wire contract captures, inspecting each diff
+- [x] 1.5 Re-bless the affected wire contract captures, inspecting each diff
       individually and recording in the commit what moved and why.
-- [ ] 1.6 Add a corpus entry for the walled-page-with-preceding-info-hint shape,
+      **No existing capture moved.** `query_failure` carries exactly ONE hint
+      and it is the critical one, so the first row held every key — the golden
+      froze a correct table for the wrong reason and was blind to the defect by
+      construction. Added `call/query_heterogeneous_hints` (stale cookie mirror
+      + walled page, both hints from the real pipeline) so the shape is now
+      frozen. `next_links` gained a permanent `kind` column; `other_pages` is
+      byte-identical.
+- [x] 1.6 Add a corpus entry for the walled-page-with-preceding-info-hint shape,
       per the never-lose-a-case rule.
 
 ## 2. `github.py` launders degradation into ok

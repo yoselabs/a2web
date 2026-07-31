@@ -85,9 +85,7 @@ def test_every_registered_handler_has_a_case() -> None:
 
 
 def test_every_case_says_what_it_checks() -> None:
-    silent = [
-        f"{name}[{case.shape}]" for name, cases in _PROBE_CASES.items() for case in cases if not case.checks.strip()
-    ]
+    silent = [f"{name}[{case.shape}]" for name, cases in _PROBE_CASES.items() for case in cases if not case.checks.strip()]
     assert not silent, (
         f"probe cases with no `checks` prose: {silent}. The field exists so a later reader can tell a "
         "deliberately weak assertion from an overlooked one; blank defeats it."

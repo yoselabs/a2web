@@ -352,6 +352,5 @@ def test_browser_verification_marker_is_gated_on_the_length_floor() -> None:
     assert len(above_floor) >= LENGTH_FLOOR
     result = _eval(raw_html, content_md=above_floor)
     assert result.verdict is BlockVerdict.ok, (
-        "the marker fired above the length floor — that is a broader change than this pattern intends, "
-        "and puts legitimate articles at risk"
+        "the marker fired above the length floor — that is a broader change than this pattern intends, and puts legitimate articles at risk"
     )

@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ncookies_stale\\tBrowser cookies last refreshed 99h ago; threshold is 24h. Some sites may treat this session as logged-out.\\tRun `a2web cookies refresh`\\t\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"diagnostics_summary\":\"tier=raw verdict=block_page_detected total_ms=0 extras=cf_iuam\",\"_operator_hints_format\":\"tsv\"}",
+      "type": "text"
+    }
+  ],
+  "is_error": false,
+  "structured_content": {
+    "answer": null,
+    "confidence": "low",
+    "diagnostics_summary": "tier=raw verdict=block_page_detected total_ms=0 extras=cf_iuam",
+    "narrative": "raw → block_page_detected:cf_iuam (0ms).",
+    "operator_hints": [
+      {
+        "code": "cookies_stale",
+        "fix": "Run `a2web cookies refresh`",
+        "message": "Browser cookies last refreshed 99h ago; threshold is 24h. Some sites may treat this session as logged-out."
+      },
+      {
+        "code": "try_user_browser",
+        "fix": "Open the URL in a real-browser tool and read the page, or report the gap to the user.",
+        "message": "This URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.",
+        "severity": "critical"
+      }
+    ],
+    "retrieval_incomplete": true,
+    "status": "failed",
+    "title": "Just a moment..."
+  }
+}
