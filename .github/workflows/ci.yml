@@ -1,0 +1,24 @@
+# Run the quality gate at the moment a change LANDS, which is the only moment
+# an architecture guard can do its job.
+#
+# a2web's architectural strategy is "encode the invariant as a test and let CI
+# fail the build". That requires CI to run on the push. Until 2026-07-31 the
+# only workflow in this directory was `release.yml` (`on: push: tags: v*`), so
+# the strategy was true only in the sense that a release is CI.
+#
+# Every branch is gated, not just `main`: this repo merges to main directly
+# (no PRs for solo work), so a scratch branch is often what becomes main.
+name: ci
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    uses: ./.github/workflows/gate.yml

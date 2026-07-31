@@ -22,9 +22,11 @@ consider adopting or promoting substrate, never at startup:
 Never hit GitHub to start a session or to write code — only to clone (once) or during an actual
 adopt/promote (a lazy `git pull` at that checkpoint). Never commit a local `path=`/editable shelf
 source. Enforced by `tests/architecture/test_no_local_shelf_source.py`, which
-runs in `make check` and therefore on CI. The shelf also installs a pre-commit
-hook that catches it earlier, but that hook resolves its check out of a shelf
-clone and exits 0 when it cannot find one — it is a convenience, not the floor.
+runs in `make check` and therefore in CI on every push and PR (see
+**Enforcement — what actually blocks** below). The shelf also installs a
+pre-commit hook that catches it earlier, but that hook resolves its check out of
+a shelf clone and exits 0 when it cannot find one — it is a convenience, not the
+floor.
 
 CLI and MCP server for AI agents to fetch web content adaptively. Built directly on `fastmcp` (>=3.4) — the `a2kit` framework it used to sit on was retired on 2026-07-22 by `openspec/changes/sunset-a2kit-dependency/`; read that change's `design.md` before touching the composition, wire encoding, or error envelope.
 
@@ -106,6 +108,31 @@ Unit tests typically call `fetcher.fetch(...)` directly for real `FetchResponse`
 - Bootstrap: `make bootstrap` (uv sync --all-extras)
 - Output benchmark: `make bench` (see below)
 - Local CLI / local-browser dev: `make install-global` (optional — see below)
+
+## Enforcement — what actually blocks
+
+Stated plainly, because overstating enforcement is how a guard comes to read as
+coverage while providing none.
+
+| mechanism | when it runs | what it actually does |
+|---|---|---|
+| `make check` via `.github/workflows/ci.yml` | **every push, every branch, every PR** | The floor. Lint, types, full suite, coverage ≥85%, every architecture guard. Reports red; does not block a merge (see below). |
+| `make check` via `release.yml` | every `v*` tag | Runs again independently — a tag can point at any commit, and this path publishes a public image. |
+| `make test-browser` via `release.yml` | every `v*` tag only | Real Chromium launch, skips forbidden. **Does NOT guard a push.** |
+| `.pre-commit-config.yaml` | locally, if the contributor installed hooks | Lint only — ruff, format, markdown, actionlint (+ `ty` on pre-push). No tests, no architecture guards. A fresh clone and every CI runner have no hooks at all. |
+| the shelf's `no-local-shelf-source` hook | locally, if both the hooks and a shelf clone are present | Convenience. Exits 0 when it cannot find a shelf clone. The real floor for that invariant is the architecture test in `make check`. |
+
+**Branch protection is an operator setting, not a file.** CI running and
+reporting red does not prevent a merge; making the check required is configured
+in the GitHub repository settings. This matters more here than usual — `fb:no-prs`
+means this repo merges to `main` directly, so there is often no PR for a check to
+block. **The realistic protection is: the push is gated and the author sees red
+immediately.** Not: the merge is blocked. Do not write or imply otherwise.
+
+Before 2026-07-31 the only workflow was `release.yml` (`on: push: tags: v*`), so
+every architecture guard ran at tag time and at no other time — a violation
+landed, survived, and surfaced in a batch attributed to whoever tagged. Fixed by
+`openspec/changes/run-the-gate-on-every-push/`.
 
 ## Deployment — remote-first
 

@@ -1,0 +1,36 @@
+# The quality gate, defined ONCE and called by both `ci.yml` (every push and
+# PR) and `release.yml` (every `v*` tag).
+#
+# It lives in its own reusable workflow rather than being duplicated because a
+# duplicated gate drifts, and the copy that drifts is the one nobody watches.
+# Before 2026-07-31 the gate existed only inside `release.yml`, so `make check`
+# — lint, types, the full suite, coverage >=85%, and EVERY architecture guard —
+# ran at tag time and at no other time. A violation landed and stayed landed
+# until whoever cut the next release inherited it.
+#
+# Not included here, deliberately: the real-launch browser gate (slow, needs a
+# Chromium install) stays in `release.yml`. It therefore does NOT guard a push
+# — see `openspec/changes/run-the-gate-on-every-push/design.md`.
+name: gate
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Gate (make check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          # Pin to the uv that produced uv.lock, for a reproducible resolve.
+          version: "0.10.12"
+      - name: Sync dependencies (all extras + dev)
+        run: uv sync --all-extras
+      - name: Quality gate — lint + ty + tests (cov >=85%) + arch
+        run: make check

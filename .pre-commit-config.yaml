@@ -25,12 +25,12 @@ repos:
         language: system
         pass_filenames: false
         files: ^\.github/workflows/.*\.ya?ml$
-      - id: a2kit-rego
-        name: a2kit lint rego (architectural policies)
-        entry: uv run a2kit lint rego src/ pyproject.toml
-        language: system
-        pass_filenames: false
-        always_run: true
+      # NOTE: an `a2kit-rego` hook sat here until 2026-07-31, running
+      # `uv run a2kit lint rego`. a2kit was retired on 2026-07-22, so the hook
+      # had been failing to spawn ever since — it read as architectural policy
+      # enforcement while enforcing nothing. The Rego lint itself is a real
+      # loss and is tracked in BACKLOG.md ("re-home the Rego policy lint");
+      # removing the dead hook makes the gap visible rather than papered over.
       - id: ty
         name: ty (typecheck src)
         entry: uv run ty check src/

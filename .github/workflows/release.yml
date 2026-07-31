@@ -22,20 +22,12 @@ permissions:
   contents: read
 
 jobs:
+  # The same gate `ci.yml` runs on every push — one definition, in
+  # `gate.yml`. Release runs it again rather than trusting that the tagged
+  # commit was green: a tag can point at any commit, and this path publishes a
+  # public image.
   gate:
-    name: Gate (make check)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          # Pin to the uv that produced uv.lock, for a reproducible resolve.
-          version: "0.10.12"
-      - name: Sync dependencies (all extras + dev)
-        run: uv sync --all-extras
-      - name: Quality gate — lint + ty + tests (cov >=85%) + arch
-        run: make check
+    uses: ./.github/workflows/gate.yml
 
   # Real-launch browser gate. The default `make check` deselects the `browser`
   # marker, so NOTHING in the ordinary gate ever launches a real engine — which

@@ -652,6 +652,16 @@ a2kit and with it the only engine that ran those policies.
 - **Why deferred.** It gates nothing today that other guards do not, and the
   sunset's remaining phases are the critical path. The risk is purely that it
   is forgotten, which the `Makefile` comment and this entry exist to prevent.
+- **2026-07-31 — its stand-in hook had been dead since the sunset.**
+  `.pre-commit-config.yaml` still carried an `a2kit-rego` hook running
+  `uv run a2kit lint rego src/ pyproject.toml`. a2kit was removed on 2026-07-22,
+  so from that day the hook could only fail to spawn — it read as architectural
+  policy enforcement while enforcing nothing, for nine days, in a repo whose
+  anti-vacuity rule exists for exactly this. Removed by
+  `run-the-gate-on-every-push`; the gap is now visible instead of papered over,
+  which is what this entry is for. Also worth noting the shape: the loss was
+  *recorded* (this entry, the `Makefile` comment, CLAUDE.md's "dropped — a real
+  loss") and the dead hook still survived every one of those readings.
 
 ## 2026-07-16 — jina foreign-egress corroboration on empty-marked thin (M)
 
