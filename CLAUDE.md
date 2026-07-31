@@ -216,6 +216,8 @@ Currently enforced:
 
 `BACKLOG.md` tracks deferred work (Phase D workspace packaging, OSS swaps that turned out to be wrong fit, post-v0.1 features). CHANGELOG.md is the shipped record.
 
+**Three files, one queue.** `BACKLOG.md` is the *queue* — one entry per open item, plus the TRACKS index that groups them and states the dependency order. `BACKLOG-CLOSED.md` holds shipped/resolved/superseded entries; move an item there rather than deleting it, because a closed entry often records the incident a surviving invariant exists to prevent. `docs/findings/` holds the *evidence* — measurements, `file:line` citations, verification notes — for entries whose backing is too long to sit in a queue. A backlog entry that needs more than a paragraph of proof should carry a pointer, not the proof.
+
 ## Ask First
 
 - Before changing tool signatures (breaking for MCP clients).
