@@ -227,9 +227,7 @@ async def test_bad_paid_key_names_the_fix_in_an_operator_hint(monkeypatch: pytes
 
     hint = next(h for h in result.operator_hints if h.code == "paid_auth_error")
     assert hint.fix, "an operator fault the caller cannot route around must name its remedy"
-    assert hint.severity == "critical", (
-        "a keyed tier that cannot authenticate is a hard stop, not an advisory"
-    )
+    assert hint.severity == "critical", "a keyed tier that cannot authenticate is a hard stop, not an advisory"
     # The wall klaxon means one thing. A bad key is not an anti-bot wall, and
     # prescribing a browser here would send the caller down the wrong path.
     assert "try_user_browser" not in codes, "an auth failure must not masquerade as a wall"

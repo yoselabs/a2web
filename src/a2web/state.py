@@ -22,6 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar, cast
 
+from a2effect.errors import InfrastructureError
 from any_browser import BrowserBackend
 from purgatory import AsyncCircuitBreakerFactory
 
@@ -183,10 +184,22 @@ def build_state(
 # --------------------------------------------------------------------- #
 
 
-class ResourceUnavailable(RuntimeError):
+class ResourceUnavailable(InfrastructureError, RuntimeError):
     """Raised by an unavailable_lazy stub when a phase tries to resolve a
     resource the caller didn't provision. Carries a human-readable `reason`
-    for operator-hint construction at the catch site."""
+    for operator-hint construction at the catch site.
+
+    `InfrastructureError` rather than `AuthError` (the sibling retype in
+    `llm_extract/errors.py`): nothing here is wrong with a credential — a
+    declared dependency is simply absent. Typed so `guard_tool`'s
+    `except AppError` branch can render it as itself; before 2026-07-31 a2web
+    raised none of `a2effect`'s types, so that branch never fired and every
+    failure quarantined into `UnexpectedDefect`.
+
+    `RuntimeError` stays in the bases: the pipeline catches this in several
+    places and losing that would turn a handled degradation into a crash."""
+
+    kind = "infra"
 
     def __init__(self, reason: str) -> None:
         super().__init__(reason)

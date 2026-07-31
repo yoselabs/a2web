@@ -80,13 +80,20 @@ anything.
 
 ## 5. The `a2effect` taxonomy is unreachable
 
-- [ ] 5.1 Write the failing test: a tool failing for want of an LLM provider
+- [x] 5.1 Write the failing test: a tool failing for want of an LLM provider
       renders as `UnexpectedDefect`.
-- [ ] 5.2 Resolve which `a2effect` class each of the three sites maps to, against
+- [x] 5.2 Resolve which `a2effect` class each of the three sites maps to, against
       `a2effect`'s own definitions.
-- [ ] 5.3 Re-type `LLMNotAvailable`, `ResourceUnavailable` and the paid auth
-      failure.
-- [ ] 5.4 Add the standing test that drives the `except AppError` branch, so it
+- [x] 5.3 Re-type `LLMNotAvailable` (`AuthError` — both documented causes are
+      credential problems; NOT `InfrastructureError`, which is defined as
+      retryable) and `ResourceUnavailable` (`InfrastructureError` — a declared
+      dependency is absent, nothing is wrong with a credential). Both keep
+      `RuntimeError` in their bases so existing `except` sites still catch them.
+      **The third named site does not exist.** The paid tier's auth failure is a
+      `Verdict`, returned as data — `tiers/_paid.py`, `zyte.py` and
+      `firecrawl.py` contain no `raise` at all — so there is no exception to
+      type. Its loudness came from group 4's `paid_auth_error_hint`.
+- [x] 5.4 Add the standing test that drives the `except AppError` branch, so it
       cannot become unreachable again without a red build.
 
 ## 6. Close out
