@@ -37,14 +37,32 @@ witnesses.
 
 ## 2. The LLM call has no timeout
 
-- [ ] 2.1 Write the failing test: a provider that never returns hangs the
+**SHIPPED 2026-08-01.** Two design choices worth carrying forward:
+
+- 2.3/2.5 done by wrapping the PROVIDER at `select_provider`, not by wrapping
+  each `complete()`. Five call sites exist today and the sixth would be written
+  without a bound — which is how the unbounded state arose. One seam covers
+  every caller, including ones not yet written, and composes with
+  `anyllm.cost.with_cost_guard` the same way.
+- 2.4's hint rides the EXISTING degrade seam because `LLMTimeout` subclasses
+  `AnyLLMError`. Extractor and judge already convert that into an empty answer
+  plus a carried `provider_error`; an `a2effect` type would have escaped as an
+  exception those callers have never seen, and would have forced
+  `packages/llm_extract/` to import a domain module it must not.
+
+Two defects in the first draft, both caught by existing guards rather than by
+review: wrapping unconditionally produced a truthy `TimeoutProvider(inner=None)`
+that destroyed the `no provider → None` contract the whole `ResourceUnavailable`
+seam rests on, and the new doubles did not declare `DOUBLES_ARM`.
+
+- [x] 2.1 Write the failing test: a provider that never returns hangs the
       extraction call.
-- [ ] 2.2 Add an operator-configurable LLM timeout setting.
-- [ ] 2.3 Wrap `complete()` at a2web's seam with `asyncio.timeout`.
-- [ ] 2.4 Emit an operator hint on expiry, worded as *a2web stopped waiting* —
+- [x] 2.2 Add an operator-configurable LLM timeout setting.
+- [x] 2.3 Wrap `complete()` at a2web's seam with `asyncio.timeout`.
+- [x] 2.4 Emit an operator hint on expiry, worded as *a2web stopped waiting* —
       not as an upstream cancellation a2web cannot verify.
-- [ ] 2.5 Apply at every `complete()` call site (extractor, judge, bench judge).
-- [ ] 2.6 File the shelf promotion: `anyllm.LLMProvider.complete()` needs a
+- [x] 2.5 Apply at every `complete()` call site (extractor, judge, bench judge).
+- [x] 2.6 File the shelf promotion: `anyllm.LLMProvider.complete()` needs a
       per-request timeout. Record it in BACKLOG under T7, not as a task here.
 
 ## 3. There is no per-fetch deadline

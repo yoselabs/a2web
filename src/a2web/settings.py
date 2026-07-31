@@ -202,11 +202,20 @@ class AppSettings(BaseSettings):
     # `auto`         — prefer ClaudeCodeProvider if `claude-agent-sdk` + the
     #                  `claude` CLI are available (uses the OS session, no
     #                  API key needed); fall back to AnthropicProvider.
-    # `anthropic`    — direct Anthropic Messages API; requires API key.
-    # `claude-code`  — Claude Code OS session via `claude-agent-sdk` only.
+    # `anthropic-api`   — direct Anthropic Messages API; requires API key.
+    # `claude-code-sdk` — Claude Code OS session via `claude-agent-sdk` only.
+    # (These are `anyllm.ProviderName` values; the pre-rename spellings
+    #  `anthropic` / `claude-code` fail validation.)
     llm_provider: ProviderMode = "auto"
     llm_model: str = "claude-haiku-4-5-20251001"
     llm_api_key_env: str = "ANTHROPIC_API_KEY"
+    # Wall-clock bound on ONE `provider.complete()` call, seconds. `anyllm` has no
+    # per-request timeout, so without this a provider that never returns hangs the
+    # fetch forever — the tool call never completes and the caller has nothing to
+    # act on, which is worse than a loud failure (ADR-0009). Generous by default:
+    # a long extraction over a large page on a slow gateway is legitimate, and a
+    # timeout that fires on healthy work is its own defect. Set to 0 to disable.
+    llm_timeout_s: float = 180.0
     # OpenAI-compatible backend — reads the OpenAI SDK's STANDARD env vars, not
     # custom a2web ones: `OPENAI_API_KEY` (key; presence gates availability and
     # derives the backend as the last-resort fallback), `OPENAI_BASE_URL`

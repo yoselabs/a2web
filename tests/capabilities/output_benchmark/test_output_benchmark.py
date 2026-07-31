@@ -41,6 +41,17 @@ from tests._helpers.llm_doubles import DoubleArm
 # --------------------------------------------------------------------- #
 
 
+def _unwrap(provider: object) -> object:
+    """Peel the per-request timeout wrapper off a selected provider.
+
+    `select_provider` bounds every completion by wrapping the adapter
+    (`llm_resource.TimeoutProvider`), so the concrete adapter type is no longer
+    the outermost object. These tests assert WHICH BACKEND was selected, which
+    is still a real property — it just lives one layer in. `provider.name` is
+    asserted alongside, so a wrapper that masked the backend would still fail.
+    """
+    return getattr(provider, "inner", provider)
+
 def test_pick_provider_defaults_to_claude_code(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("A2WEB_BENCH_PROVIDER", raising=False)
     # Simulate a Claude Code session being present — otherwise `available()`
@@ -52,7 +63,7 @@ def test_pick_provider_defaults_to_claude_code(monkeypatch: pytest.MonkeyPatch) 
 
     provider, provider_id = _pick_provider(AppSettings())
     assert provider_id == "claude-code-sdk"
-    assert isinstance(provider, ClaudeCodeSdkAdapter)
+    assert isinstance(_unwrap(provider), ClaudeCodeSdkAdapter)
 
 
 def test_pick_provider_honours_claude_code_override(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -63,7 +74,7 @@ def test_pick_provider_honours_claude_code_override(monkeypatch: pytest.MonkeyPa
 
     provider, provider_id = _pick_provider(AppSettings())
     assert provider_id == "claude-code-sdk"
-    assert isinstance(provider, ClaudeCodeSdkAdapter)
+    assert isinstance(_unwrap(provider), ClaudeCodeSdkAdapter)
 
 
 def test_pick_provider_honours_anthropic_override(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -81,7 +92,7 @@ def test_pick_provider_honours_anthropic_override(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(AnthropicApiAdapter, "available", lambda _self: True)
     provider, provider_id = _pick_provider(AppSettings())
     assert provider_id == "anthropic-api"
-    assert isinstance(provider, AnthropicApiAdapter)
+    assert isinstance(_unwrap(provider), AnthropicApiAdapter)
 
 
 # --------------------------------------------------------------------- #

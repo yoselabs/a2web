@@ -223,6 +223,33 @@ parallel with them. Entries listed below.
 **Recommended order:** T3 (+ T7's live defects) → T4's CI entry → T1 phase one →
 T2 → T1 phase two → T5/T7 → T4 remainder → T6.
 
+## 2026-08-01 — T7 promotion candidate: `anyllm` needs a per-request timeout
+
+**Filed while shipping `bound-every-unbounded-path` §2.** `anyllm.LLMProvider.complete()`
+has NO timeout parameter and no internal bound, so a provider that never returns
+hangs its caller forever. a2web now bounds it product-side with
+`llm_resource.TimeoutProvider`, wrapping the provider at `select_provider` —
+the same shape as the shelf's own `anyllm.cost.with_cost_guard`, and it composes
+with it.
+
+**Why it belongs in the shelf, not here.** Every consumer of `anyllm` has this
+hole, and each will discover it the same way — as a hang in production rather
+than an error. The wrapper a2web wrote is ~20 lines with no a2web-specific
+policy in it; only the *default value* is product policy. That is the
+promotion signature: mechanism generic, value local.
+
+**Shape to promote:** a `timeout_s` parameter on `complete()` (per-request, since
+a long extraction and a short judge call want different bounds), or failing
+that, an `anyllm.with_timeout(provider, seconds)` wrapper alongside
+`with_cost_guard`. a2web's `TimeoutProvider` becomes a thin pass-through once
+either lands.
+
+**Do not drop the wording when promoting.** The error says *a2web stopped
+waiting*, never *the LLM timed out* — the caller cannot observe whether the
+upstream request was cancelled, whether the model is still generating, or
+whether tokens were billed. The shelf version should say *the client stopped
+waiting* for the same reason.
+
 ## 2026-07-31 — T7: substrate a2web hand-builds while already owning it
 
 **Source:** primitives & elevation scan, 2026-07-31. Full evidence in

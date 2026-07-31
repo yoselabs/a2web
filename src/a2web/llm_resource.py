@@ -15,10 +15,13 @@ Provider selection follows `settings.llm_provider` (`A2WEB_LLM_PROVIDER`):
                            are both set, that gateway leads instead — an explicit
                            operator configuration is never shadowed by a
                            session-based backend.
-- ``anthropic``          — direct Anthropic Messages API; requires API key.
-- ``claude-code``        — Claude Code OS session only; requires both the
+- ``anthropic-api``      — direct Anthropic Messages API; requires API key.
+- ``claude-code-sdk``    — Claude Code OS session only; requires both the
                            `claude-agent-sdk` package and the `claude` CLI.
-- ``openai_compatible``  — any OpenAI-compatible gateway (`OPENAI_BASE_URL`).
+- ``openai-compatible``  — any OpenAI-compatible gateway (`OPENAI_BASE_URL`).
+
+(These are `anyllm.ProviderName` values. The pre-rename spellings `anthropic` /
+`claude-code` / `openai_compatible` no longer validate.)
 
 The `_ensure()` contract returns `None` on permanent unavailability
 (missing API key AND no Claude Code OAuth session). Transient SDK
@@ -31,12 +34,15 @@ from __future__ import annotations
 import asyncio
 import os
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, assert_never
+from typing import TYPE_CHECKING, Any, TypeVar, assert_never, cast
 
 from anyllm import ProviderName, resolve_provider
+from anyllm.errors import AnyLLMError
 
 from .log import log_info
 from .settings import AppSettings
+
+_P = TypeVar("_P")
 
 if TYPE_CHECKING:
     from anyllm import LLMProvider
@@ -190,7 +196,100 @@ def select_provider(settings: AppSettings, *, override: ProviderName | str | Non
         effective.append(name)
     if not effective:
         return None
-    return resolve_provider(effective, merged, fallback=True)
+    resolved = resolve_provider(effective, merged, fallback=True)
+    if resolved is None:
+        # `effective` being non-empty does not guarantee a provider: anyllm drops
+        # candidates it cannot build or that probe unavailable. Wrapping
+        # unconditionally produced a truthy `TimeoutProvider(inner=None)` and
+        # silently destroyed the "no provider → None" contract the whole
+        # `ResourceUnavailable` degrade seam rests on.
+        return None
+    # Bound every completion at the seam where the provider is built, so no
+    # call site can be written without one (see `TimeoutProvider`).
+    return with_timeout(resolved, settings)
+
+
+# --------------------------------------------------------------------- #
+# Per-request timeout — a2web-side, because `anyllm` has none
+# --------------------------------------------------------------------- #
+
+
+class LLMTimeout(AnyLLMError):
+    """a2web stopped waiting for an LLM completion.
+
+    **Worded as a2web's own decision, deliberately.** a2web cannot observe
+    whether the upstream request was cancelled, whether the model is still
+    generating, or whether tokens were billed. Saying "the LLM timed out" would
+    assert something it has no evidence for; what it knows is that it stopped
+    waiting.
+
+    **An `AnyLLMError` on purpose, not an `a2effect` type.** The extractor and
+    judge already catch `AnyLLMError` and convert it into the degrade seam —
+    empty answer, `provider_error` carried out, operator hint named at the
+    orchestrator. A timeout is exactly that class of failure, so subclassing
+    here means it takes the ADR-0009 path for free instead of escaping as an
+    exception the callers downstream have never seen. It also keeps the package
+    boundary intact: `packages/llm_extract/` must not import this module, and
+    with this base it does not have to.
+
+    `retryable=True` — nothing is wrong with the credential and a retry may
+    genuinely succeed.
+    """
+
+    def __init__(self, seconds: float) -> None:
+        super().__init__(
+            f"a2web stopped waiting for the LLM after {seconds:g}s",
+            retryable=True,
+            hint="Raise A2WEB_LLM_TIMEOUT_S if large pages legitimately take longer, or check the provider endpoint.",
+        )
+        self.seconds = seconds
+
+
+@dataclass(slots=True)
+class TimeoutProvider:
+    """Bounds every `complete()` on a wrapped provider.
+
+    **Wrapping the provider, not each call site, is the point.** There are five
+    `complete()` call sites today (extractor, judge, two bench judges, the eval
+    system) and the sixth would be written without a timeout — that is how the
+    unbounded state arose in the first place. One wrapper at the seam where the
+    provider is built bounds every caller, including ones not yet written.
+
+    Mirrors how `anyllm.cost.with_cost_guard` wraps the same protocol for
+    ADR-0016, and composes with it.
+
+    Ultimately `anyllm.LLMProvider.complete()` should take a per-request
+    timeout, at which point this becomes a thin pass-through — filed as a shelf
+    promotion under BACKLOG T7.
+    """
+
+    inner: Any
+    seconds: float
+
+    @property
+    def name(self) -> ProviderName:
+        return self.inner.name
+
+    def available(self) -> bool:
+        return self.inner.available()
+
+    async def complete(self, **kwargs: Any) -> Any:
+        try:
+            async with asyncio.timeout(self.seconds):
+                return await self.inner.complete(**kwargs)
+        except TimeoutError as exc:
+            raise LLMTimeout(self.seconds) from exc
+
+
+def with_timeout(provider: _P, settings: AppSettings) -> _P:
+    """Wrap `provider` so each completion is bounded. `llm_timeout_s <= 0` disables.
+
+    Never call this with `None` — a wrapped `None` is TRUTHY and would defeat
+    every `is None` availability check downstream.
+    """
+    if settings.llm_timeout_s <= 0:
+        return provider
+    return cast("_P", TimeoutProvider(inner=provider, seconds=settings.llm_timeout_s))
 
 
 class LlmExtractorResource:
