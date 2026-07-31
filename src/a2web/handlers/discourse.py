@@ -26,7 +26,7 @@ from http_fetch import fetch_bytes
 
 from ..models import Heading, NextLink, Verdict
 from ..settings import DEFAULT_DISCOURSE_HOSTS
-from ._common import empty_result, map_non_ok
+from ._common import empty_result, map_non_ok, truncation_note
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -212,6 +212,9 @@ def _render_index(payload: Any, url: str) -> dict[str, Any] | None:
     host = parsed.netloc
 
     parts: list[str] = ["# Discourse — latest topics\n"]
+    note = truncation_note(min(len(topics), _MAX_TOPICS), len(topics), noun="topics")
+    if note:
+        parts.append(note)
     next_links: list[NextLink] = []
     for topic in topics[:_MAX_TOPICS]:
         if not isinstance(topic, dict):

@@ -33,8 +33,7 @@ def _guard_files() -> list[Path]:
 def test_every_guard_is_registered() -> None:
     guards = _guard_files()
     assert len(guards) >= _MIN_GUARDS, (
-        f"walked {len(guards)} guard file(s), expected at least {_MIN_GUARDS} — "
-        "the directory moved and this check is inspecting nothing."
+        f"walked {len(guards)} guard file(s), expected at least {_MIN_GUARDS} — the directory moved and this check is inspecting nothing."
     )
     assert _REGISTRY.exists(), f"the rules registry is missing: {_REGISTRY}"
 

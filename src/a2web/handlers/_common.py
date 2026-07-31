@@ -130,3 +130,24 @@ def challenge_verdict(raw_html: str, *, content_md: str) -> Verdict | None:
 
 
 __all__ = ["challenge_verdict", "empty_result", "map_non_ok"]
+
+
+def truncation_note(shown: int, total: int | None, *, noun: str) -> str:
+    """A `N of M` partial-view note, or `""` when nothing was withheld.
+
+    Ported from `arxiv._render_listing`, which was the only handler declaring
+    its own truncation. Every other capped renderer silently dropped the tail:
+    `v2ex` rendered `_MAX_REPLIES` of a longer list, `discourse` `_MAX_TOPICS`,
+    `hn` 30 hits — each holding the full collection and discarding its length.
+
+    That silence is the ADR-0009 failure on the sufficiency axis. The caller
+    cannot distinguish "the thread has 200 replies" from "a2web rendered the
+    first 200 of 900", so a distilled answer reads as complete over a body that
+    was cut. Where the handler knows both numbers, it must say so.
+
+    Only a total that EXCEEDS what was rendered is news; an equal or smaller one
+    would turn "25 of 25" into noise, or worse, into a false shortfall.
+    """
+    if total is None or total <= shown:
+        return ""
+    return f"_Showing {shown} of {total} {noun} — this is a partial view._\n"

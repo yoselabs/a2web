@@ -12,7 +12,7 @@ from html_fragment import to_markdown
 from http_fetch import fetch_bytes
 
 from ..models import Heading, NextLink, Verdict
-from ._common import empty_result, map_non_ok
+from ._common import empty_result, map_non_ok, truncation_note
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -128,6 +128,9 @@ def _render_front_page(payload: Any) -> dict[str, Any]:
     """Render the HN front page (Algolia `tags=front_page` search) as a list."""
     hits = payload.get("hits", []) if isinstance(payload, dict) else []
     parts: list[str] = ["# Hacker News\n", f"## Front page ({min(len(hits), 30)})\n"]
+    note = truncation_note(min(len(hits), 30), len(hits), noun="stories")
+    if note:
+        parts.append(note)
     count = 0
     for hit in hits[:30]:
         if not isinstance(hit, dict):

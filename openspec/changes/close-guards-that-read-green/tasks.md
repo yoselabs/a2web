@@ -5,56 +5,56 @@ on push buys nothing until it does.
 
 ## 1. The markup funnel
 
-- [ ] 1.1 Widen the AST matcher in `tests/architecture/test_handler_markup_funnel.py`
+- [x] 1.1 Widen the AST matcher in `tests/architecture/test_handler_markup_funnel.py`
       (`:93`, `:128`) from `compile` to `compile`/`search`/`sub`/`match`/`findall`.
-- [ ] 1.2 Run it and record what goes red. Expect at least `reddit.py:497` and
+- [x] 1.2 Run it and record what goes red. Expect at least `reddit.py:497` and
       `:502`; budget for more. **Do not fix anything yet** — the red run is the
       only evidence the widening works.
-- [ ] 1.3 Replace `reddit.py:497` (`<!--.*?-->`) and `:502`
+- [x] 1.3 Replace `reddit.py:497` (`<!--.*?-->`) and `:502`
       (`<div class="md">(.*)</div>`) with `dom_schema.extract`. Note `:500-501`'s
       own comment concedes the nesting assumption.
-- [ ] 1.4 Before trusting the reddit fixtures to verify the replacement, check
+- [x] 1.4 Before trusting the reddit fixtures to verify the replacement, check
       whether they are under `tests/fixtures/captured/` or hand-written.
       `P(test|src) = 0.73` is the fixture-encodes-implementation signature.
-- [ ] 1.5 Re-take the 18-vs-4 census with the shipped matcher and correct the
+- [x] 1.5 Re-take the 18-vs-4 census with the shipped matcher and correct the
       guard's docstring claim.
-- [ ] 1.6 Fix any further violations the widening exposed.
+- [x] 1.6 Fix any further violations the widening exposed.
 
 ## 2. Guards named for what they assert
 
-- [ ] 2.1 Rename `test_packages_boundary_frozen.py` to name dataclass
+- [x] 2.1 Rename `test_packages_boundary_frozen.py` to name dataclass
       immutability, which is what it asserts.
-- [ ] 2.2 Decide whether `packages/*/__init__.py` `__all__` needs a guard (one
+- [x] 2.2 Decide whether `packages/*/__init__.py` `__all__` needs a guard (one
       package has an `__all__`). Write it, or withdraw the citation — say which
       in the docs.
-- [ ] 2.3 Correct CLAUDE.md:249 and `docs/architecture/README.md:73`.
-- [ ] 2.4 Retire `test_transient_markers_not_stale` — zero `TRANSIENT (` markers
+- [x] 2.3 Correct CLAUDE.md:249 and `docs/architecture/README.md:73`.
+- [x] 2.4 Retire `test_transient_markers_not_stale` — zero `TRANSIENT (` markers
       exist outside the guard. Record the retirement and remove it from
       `verification-provenance.md:26`'s list of three mechanizable remedies.
 
 ## 3. Citations that resolve
 
-- [ ] 3.1 Remove `test_no_lambdas_in_app_provide.py` from
+- [x] 3.1 Remove `test_no_lambdas_in_app_provide.py` from
       `docs/architecture/README.md:15,66` — `app.provide` died with a2kit.
-- [ ] 3.2 Correct `docs/architecture/README.md:74` and
+- [x] 3.2 Correct `docs/architecture/README.md:74` and
       `verification-provenance.md:70-71`, which cite
       `tests/packages/test_zendriver_backend.py::test_fake_config_matches_real_add_argument`.
       Neither file nor function exists.
-- [ ] 3.3 **Re-examine `verification-provenance.md`'s budget recommendation.** It
+- [x] 3.3 **Re-examine `verification-provenance.md`'s budget recommendation.** It
       reasons from that guard's existence to advise spending effort elsewhere.
       With the guard absent, the conclusion needs re-deriving, and the failure it
       was built to catch (the dead `--no-sandbox` rung, cited twice in the same
       file) is currently unguarded.
-- [ ] 3.4 Record in `verification-provenance.md` itself that the document
+- [x] 3.4 Record in `verification-provenance.md` itself that the document
       codifying the foreign-provenance rule failed it. That belongs in the doc,
       not only in a fix.
-- [ ] 3.5 Add a citation-resolution guard covering `path::function` form and
+- [x] 3.5 Add a citation-resolution guard covering `path::function` form and
       directory citations, across CLAUDE.md, `README.md`, and
       `verification-provenance.md`.
-- [ ] 3.6 Widen `test_claude_md_citations_resolve.py:61`'s file-suffix regex so
+- [x] 3.6 Widen `test_claude_md_citations_resolve.py:61`'s file-suffix regex so
       directory citations are checked. Fix the citations it exposes —
       CLAUDE.md:29 and :81 both point at changes that moved under `archive/`.
-- [ ] 3.7 Fill in the rules registry: `docs/architecture/README.md` lists 10 of
+- [x] 3.7 Fill in the rules registry: `docs/architecture/README.md` lists 10 of
       33 guards. Add a step for it to the documented "adding a rule" workflow —
       its absence is why the table rotted.
 
@@ -78,11 +78,11 @@ on push buys nothing until it does.
 - [ ] 5.3 `LENGTH_FLOOR` — delete `tests/capabilities/extraction/test_wire_content_md.py:17`
       (`assert len(_PROSE) >= LENGTH_FLOOR`, a fixture sized from the constant)
       and replace with a captured-page behavioural witness.
-- [ ] 5.4 Port arXiv's `N of M` shortfall declaration (`arxiv.py:297`) to
+- [x] 5.4 Port arXiv's `N of M` shortfall declaration (`arxiv.py:297`) to
       `habr._MAX_COMMENTS`, `hn._ALGOLIA_SEARCH_HITS_PER_PAGE` (Algolia returns
       `nbHits`, currently ignored), `v2ex._MAX_REPLIES`, `discourse._MAX_TOPICS`.
       `hn` and `v2ex` already hold the total.
-- [ ] 5.5 Propagate the zyte timeout correction to `firecrawl._TIMEOUT_S = 40.0`
+- [x] 5.5 Propagate the zyte timeout correction to `firecrawl._TIMEOUT_S = 40.0`
       — zyte's identical 40.0 was measured to fail under concurrent load
       (`2bf60ca`) and raised to 60; firecrawl kept 40 and still carries the
       falsified "generous headroom" comment.

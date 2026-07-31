@@ -26,7 +26,7 @@ from html_fragment import to_markdown, to_text
 from http_fetch import FetchVerdict, fetch_bytes
 
 from ..models import Heading, Verdict
-from ._common import empty_result
+from ._common import empty_result, truncation_note
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -195,7 +195,14 @@ def _render_discussion(comments_payload: dict[str, Any]) -> str:
         block = _render_comment(str(root_id), comments, children, depth=1, budget=budget)
         if block:
             blocks.append(block)
-    return "\n".join(blocks)
+    # Declare the shortfall when the budget (or the depth cap) withheld part of
+    # the thread. `comments` is the full upstream set, so the total is known —
+    # it was simply discarded, leaving the caller unable to tell a 400-comment
+    # thread from the first 400 of 2000.
+    rendered = _MAX_COMMENTS - budget[0]
+    note = truncation_note(rendered, len(comments), noun="comments")
+    body = "\n".join(blocks)
+    return f"{note}\n{body}" if note else body
 
 
 def _render_comment(

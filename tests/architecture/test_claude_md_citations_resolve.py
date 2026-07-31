@@ -180,13 +180,31 @@ def test_function_citations_resolve() -> None:
     # would force the docs to keep a citation shape they no longer use.
 
 
+def _is_intentionally_untracked(path: str) -> bool:
+    """True for a path `.gitignore` says the repo does not carry.
+
+    `eval/runs/` is cited by CLAUDE.md and is *supposed* to be absent — the same
+    sentence calls it "gitignored, regenerable". Demanding it exist would force
+    a generated directory to be committed to satisfy a test.
+
+    This distinction is why the guard's first run passed locally and failed in
+    CI: my working tree had `eval/runs/` from actual bench runs, and a
+    `__pycache__` under a manifest surface with no tracked files. A fresh clone
+    had neither. **The guard was reading my machine, not the repository** — the
+    same endogenous-oracle failure it was written to catch, one level down.
+    """
+    ignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    entries = {line.strip().rstrip("/") for line in ignore if line.strip() and not line.startswith("#")}
+    return path.rstrip("/") in entries
+
+
 def test_directory_citations_resolve() -> None:
     """A cited directory must exist — a change that moved under `archive/` does not."""
     checked = 0
     broken: list[str] = []
     for doc in _DOCS:
         for path, trailing in _CITATION_DIR.findall(_doc_text(doc)):
-            if trailing.startswith(_GONE_MARKER):
+            if trailing.startswith(_GONE_MARKER) or _is_intentionally_untracked(path):
                 continue
             checked += 1
             if not any((root / path).is_dir() for root in _ROOTS):

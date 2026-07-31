@@ -25,7 +25,7 @@ from html_fragment import to_markdown
 from http_fetch import FetchVerdict, fetch_bytes
 
 from ..models import Heading, Verdict
-from ._common import empty_result
+from ._common import empty_result, truncation_note
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -136,10 +136,14 @@ def _render(topic: dict[str, Any], replies: list[Any]) -> dict[str, Any]:
     if title:
         headings.append(Heading(level=1, text=title))
 
-    reply_dicts = [r for r in replies if isinstance(r, dict)][:_MAX_REPLIES]
+    all_replies = [r for r in replies if isinstance(r, dict)]
+    reply_dicts = all_replies[:_MAX_REPLIES]
     if reply_dicts:
         parts.append("---\n")
         parts.append(f"## Replies ({len(reply_dicts)})\n")
+        note = truncation_note(len(reply_dicts), len(all_replies), noun="replies")
+        if note:
+            parts.append(note)
         for reply in reply_dicts:
             author = _member_name(reply.get("member")) or "[unknown]"
             reply_body = _post_body(reply)

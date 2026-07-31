@@ -29,7 +29,17 @@ if TYPE_CHECKING:
 
 
 _API_URL = "https://api.firecrawl.dev/v1/scrape"
-_TIMEOUT_S = 40.0  # Firecrawl renders server-side — allow generous headroom.
+# Firecrawl renders server-side, like Zyte. This was 40.0 with the comment
+# "allow generous headroom" — the SAME value and the SAME claim Zyte carried
+# until `2bf60ca` measured it failing: heavy pages take ~8-40s solo and exceed
+# 40s under concurrent load, timing out into a weaker fallback. Zyte was raised
+# to 60; firecrawl kept 40 and kept the comment the measurement had falsified.
+#
+# A bound present in some copies and absent in others is the dangerous variant
+# of duplication — the missing one is invisible next to a sibling that has it.
+# Corrected to match, since the finding is about server-side rendering under
+# load and nothing about it is Zyte-specific.
+_TIMEOUT_S = 60.0
 
 
 class FirecrawlTier:
