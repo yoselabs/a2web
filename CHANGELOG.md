@@ -29,6 +29,22 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ### Fixed
 
+- **A JSON-LD listing left no index (ADR-0015).** `json_to_markdown_rows`
+  rendered an embedded `ItemList` into rich markdown — name, url, price and
+  rating per item — and then returned only the string, discarding the
+  structure. The DOM record-miner keeps its `RecordSet` and so feeds both
+  `other_pages` and the `options` shelf; the JSON-LD path fed neither. On a
+  commerce or SSR'd catalog page (the shape where `ItemList` is the norm) every
+  product URL sat in the rendered body and reached the caller nowhere: the
+  answer looked complete and the index was silently empty, which is ADR-0015's
+  harm exactly. Both paths now converge on `RecordSet`, so
+  `_records_to_next_links` and `_records_to_options` apply unchanged and a page
+  reachable either way yields the same index.
+
+  **Envelope change for JSON-LD listing pages**: `other_pages` and `options`
+  become populated where they were previously absent. Strictly additive — the
+  DOM record-miner keeps precedence wherever it produces a set, so no page that
+  already shipped an index sees it change.
 - **The documented `A2WEB_LLM_PROVIDER` values could not boot.** README and
   three specs offered `anthropic` / `claude-code` / `openai_compatible`; all are
   pre-rename spellings that raise a pydantic `literal_error` at settings

@@ -238,9 +238,7 @@ def _ld_json_to_markdown(data: dict | list) -> str:
             # not chrome (structured-data-answers).
             lines.append(_single_entity_md(entry, kind=str(t)))
         elif t == "ItemList":
-            items = entry.get("itemListElement") or []
-            raw_rows = [item.get("item", item) if isinstance(item, dict) else None for item in items]
-            rows = [_normalize_commerce_row(r) for r in raw_rows if isinstance(r, dict)]
+            rows = _item_list_rows(entry)
             if rows:
                 lines.append(_render_rows(rows, title="ItemList"))
         elif t == "BreadcrumbList":
@@ -251,12 +249,65 @@ def _ld_json_to_markdown(data: dict | list) -> str:
     return "\n\n".join(s for s in lines if s)
 
 
-def _framework_state_to_markdown(data: dict | list) -> str:
+def _item_list_rows(entry: dict) -> list[dict]:
+    """The normalized rows of one JSON-LD `ItemList` entry.
+
+    Split out of `_ld_json_to_markdown` so the SAME rows can back both the
+    synthetic markdown and the wire index — see `listing_rows`.
+    """
+    items = entry.get("itemListElement") or []
+    raw_rows = [item.get("item", item) if isinstance(item, dict) else None for item in items]
+    return [_normalize_commerce_row(r) for r in raw_rows if isinstance(r, dict)]
+
+
+def _framework_state_rows(data: dict | list) -> list[dict]:
+    """The normalized rows behind a framework-state (Next/Nuxt/window-var) render."""
     rows = _find_product_or_item_list(data)
+    return [_normalize_commerce_row(r) for r in rows] if rows else []
+
+
+def _framework_state_to_markdown(data: dict | list) -> str:
+    rows = _framework_state_rows(data)
     if rows:
-        rows = [_normalize_commerce_row(r) for r in rows]
         return _render_rows(rows, title="Listings")
     return ""
+
+
+def listing_rows(payload: JsonPayload) -> list[dict]:
+    """The listing rows behind a payload's synthetic markdown, or `[]`.
+
+    **Why this exists (ADR-0015).** `json_to_markdown_rows` renders an embedded
+    `ItemList` into rich markdown — name, url, price, rating per item — and then
+    throws the structure away, returning a string. The DOM record-miner path
+    keeps its `RecordSet`, so it feeds `other_pages` and the `options` shelf; the
+    JSON-LD path fed neither. A catalog page whose items live in JSON-LD (the
+    common shape for commerce and for most SSR'd listings) therefore returned an
+    answer with NO index of what it withheld — every product URL sat in the
+    rendered markdown and reached the caller nowhere. That is the ADR-0015 harm
+    exactly: withholding the body without leaving the index.
+
+    Returns the same rows the markdown was rendered from, so the two cannot
+    describe different item sets. Non-listing payloads (a single `Product`, an
+    `Article`, OpenGraph) return `[]` — an entity is not an index.
+    """
+    if payload is None:
+        return []
+    data = payload.data
+    if payload.source == "microdata":
+        data = _microdata_to_ld_shape(data)
+    elif payload.source in ("next_data", "nuxt_data", "window_var", "generic"):
+        return _framework_state_rows(data)
+    elif payload.source != "ld_json":
+        return []
+
+    rows: list[dict] = []
+    for entry in _collect_ld_entries(data):
+        entry_type = entry.get("@type")
+        if isinstance(entry_type, list):
+            entry_type = entry_type[0] if entry_type else None
+        if entry_type == "ItemList":
+            rows.extend(_item_list_rows(entry))
+    return rows
 
 
 def _collect_ld_entries(data: dict | list) -> list[dict]:

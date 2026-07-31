@@ -25,6 +25,10 @@ class _FakeFc:
     final_url: str = ""
     start_perf: float = field(default_factory=time.perf_counter)
     next_links_handler: list[NextLink] = field(default_factory=list)
+    # Mirrors `FetchContext`: the escalation installs a JSON-LD-derived record
+    # set here when the DOM miner found none (ADR-0015 listing index).
+    record_set: object | None = None
+    record_count: int | None = None
 
 
 @pytest.mark.asyncio

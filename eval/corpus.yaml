@@ -249,6 +249,29 @@ urls:
       - "Never guesses a reviews URL that is not present on the page (ADR-0014) — surfaces a reviews drilldown ONLY if one is genuinely in the fetched HTML"
       - "Never asserts the product has no reviews at all; distinguishes 'not on this page' from 'do not exist'"
 
+  - slug: json-ld-itemlist-leaves-an-index
+    # ADR-0015 hole, found + closed 2026-08-01. The JSON-LD path rendered an
+    # `ItemList` into rich markdown (name/url/price/rating per item) and then
+    # returned only the STRING — the structure was discarded, so `other_pages`
+    # and `options` were both empty. The DOM record-miner kept its RecordSet and
+    # fed both. A catalog whose items live in JSON-LD (the norm for commerce and
+    # most SSR'd listings) therefore answered with NO index of what it withheld:
+    # every product URL sat in the rendered body and reached the caller nowhere.
+    #
+    # Criteria are phrased against the STRUCTURAL fact (items are carried in
+    # schema.org ItemList markup and each has its own product page), not against
+    # today's product names or prices, which rotate.
+    url: https://www.hepsiburada.com/ara?q=bluetooth+kulaklik
+    class: affordance
+    task: "What options are on this page? I want to compare them."
+    needs: [content+links]
+    criteria:
+      - "Ships a populated `other_pages` — the per-item product pages are drilldowns, and a listing answer that names items without linking any of them fails ADR-0015"
+      - "Every emitted URL is traceable to the fetched page (ADR-0014) — no URL pattern-guessed from a product name or slug"
+      - "Ships a populated `options` shelf carrying each item's distinguishing signal (price / rating), not titles alone"
+      - "Preserves page order and does not crown a 'best' pick (ADR-0012) — the answer presents the option space"
+      - "The index is non-empty even when the page carries no mineable DOM record region (items only in ItemList JSON-LD)"
+
   - slug: hepsiburada-product-no-footer-options
     # Output-hygiene regression (2026-07-11): the DOM record-miner fires on the
     # site-wide FOOTER megamenu (present on every hepsiburada page), parsing 10

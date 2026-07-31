@@ -19,7 +19,7 @@ from dataclasses import dataclass as _dc
 from datetime import UTC, date, datetime
 from enum import Enum
 from typing import Literal, cast
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import aiosqlite
 from any_browser import BrowserBackend
@@ -52,6 +52,7 @@ from .domain import (
     is_live_only,
     json_response_fallback,
     json_to_markdown_rows,
+    listing_rows,
     rewrite_captcha_host,
     strip_reader_prefix,
 )
@@ -1419,7 +1420,8 @@ async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None
     candidates: list[ContentCandidate] = []
     if fc.content_md:
         candidates.append(ContentCandidate(source="trafilatura", content_md=fc.content_md))
-    candidates.extend(await _escalate_via_json(fc, raw_html=raw_html))
+    json_candidates, json_record_set = await _escalate_via_json(fc, raw_html=raw_html)
+    candidates.extend(json_candidates)
     record_candidate = await _escalate_via_records(fc, raw_html=raw_html)
     if record_candidate is not None:
         candidates.append(record_candidate)
@@ -1430,6 +1432,17 @@ async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None
         if cand.next_links:
             fc.next_links_handler = cand.next_links
             break
+
+    # ADR-0015 — the JSON-LD listing index, as a FALLBACK to the DOM miner.
+    # Both `record_set` (the `options` shelf) and `next_links` (`other_pages`)
+    # fill only when the structural path produced nothing, so a page that
+    # already shipped an index keeps exactly the one it shipped.
+    if json_record_set is not None:
+        if fc.record_set is None:
+            fc.record_set = json_record_set
+            fc.record_count = len(json_record_set.records)
+        if not fc.next_links_handler:
+            fc.next_links_handler = _records_to_next_links(json_record_set, page_url=fc.final_url or "")
 
 
 def _phase_listing_completeness(fc: FetchContext, *, raw_html: str) -> None:
@@ -1669,7 +1682,7 @@ def _suppress_subsets(candidates: list[ContentCandidate]) -> list[ContentCandida
     return kept
 
 
-async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[ContentCandidate]:
+async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[ContentCandidate], RecordSet | None]:
     """Menu source — embedded JSON (incl. JSON-LD).
 
     Returns one `ContentCandidate` per *renderable* payload, in rank order —
@@ -1685,6 +1698,7 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[Content
     await a2web_log.info(StageStarted(t_ms=t_ms, step="json_synth"))
     payloads = extract_json_payloads(raw_html)
     candidates: list[ContentCandidate] = []
+    json_record_set: RecordSet | None = None
     seen: set[str] = set()
     for payload in rank_payloads(payloads):
         rendered = json_to_markdown_rows(payload)
@@ -1698,6 +1712,12 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[Content
                     is_prose_metadata=_is_prose_metadata_ld(payload),
                 )
             )
+            # Retain the STRUCTURE behind the render, not just the string.
+            # RETURNED rather than written onto `fc`: this escalator is pure by
+            # contract (`test_menu_assembly_is_pure`), and the caller is what
+            # decides precedence.
+            if json_record_set is None:
+                json_record_set = _rows_to_record_set(listing_rows(payload), base_url=fc.final_url or "")
     dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
     outcome = "no_payloads" if not payloads else ("no_synth" if not candidates else "collected")
     await a2web_log.info(
@@ -1709,7 +1729,51 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> list[Content
             extra={"outcome": outcome, "payloads": len(candidates)},
         )
     )
-    return candidates
+    return candidates, json_record_set
+
+
+def _rows_to_record_set(rows: list[dict], *, base_url: str) -> RecordSet | None:
+    """Build a flat `RecordSet` from JSON-LD / framework-state listing rows.
+
+    Converging on `RecordSet` rather than deriving `other_pages` and `options`
+    separately is the point: `_records_to_next_links` and `_records_to_options`
+    then apply UNCHANGED, so a page reachable by both the JSON-LD path and the
+    DOM record-miner yields the same shape of index either way. Deriving each
+    field twice is how the two paths would drift.
+
+    Rows without a `url` are kept — they still belong on the `options` shelf
+    (they are page content the answer may have skipped); they simply produce no
+    onward link. Rows with neither name nor url carry nothing and are dropped.
+
+    `max_depth=0` — a JSON-LD `ItemList` is flat by construction, never a
+    threaded discussion, so `is_threaded` is False and the catalog-only
+    `_records_to_next_links` path applies.
+    """
+    records: list[Record] = []
+    for row in rows:
+        name = row.get("name") or row.get("headline") or row.get("title")
+        url = row.get("url")
+        if not name and not url:
+            continue
+        title = " ".join(str(name).split()) if name else str(url)
+        link = (title, urljoin(base_url, str(url))) if url else None
+        # `detail` mirrors what `_rows_to_md_records` renders, so the option
+        # shelf carries the same price/rating signal the markdown shows.
+        extras = [str(row[k]) for k in ("price", "rating") if row.get(k) not in (None, "")]
+        text = title if not extras else f"{title} — {' '.join(extras)}"
+        records.append(
+            Record(
+                text=text,
+                links=(link,) if link else (),
+                heading_text=title,
+                heading_link=link,
+                depth=0,
+                markdown=f"- {text}",
+            )
+        )
+    if not records:
+        return None
+    return RecordSet(records=tuple(records), container="json-ld", child_signature="itemListElement", max_depth=0)
 
 
 async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCandidate | None:

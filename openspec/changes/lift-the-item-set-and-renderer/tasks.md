@@ -6,18 +6,34 @@ place before the code moves.
 
 ## 1. The live ADR-0015 hole — ship this first, alone
 
-- [ ] 1.1 Derive `next_links` from the JSON-LD `ItemList` path
+**SHIPPED 2026-08-01, ahead of the rest of this change**, as the section said
+to. Two notes for the lift that follows:
+
+- 1.1/1.2 were done by converging both paths on `RecordSet`, NOT by deriving
+  `next_links` and `options` separately for JSON-LD. `_records_to_next_links`
+  and `_records_to_options` apply unchanged, which is what makes 1.4's
+  equivalence witness meaningful rather than a comparison of two derivations
+  that could drift apart unobserved.
+- The fix is strictly ADDITIVE: the DOM miner keeps precedence wherever it
+  produces a set, so no page that already shipped an index sees it change.
+  `test_dom_records_keep_precedence_when_both_exist` pins that, and the lift
+  must preserve it.
+- `_escalate_via_json` now RETURNS the record set rather than writing it onto
+  `fc` — the first draft mutated the context and broke the purity contract that
+  `test_menu_assembly_is_pure` exists to hold.
+
+- [x] 1.1 Derive `next_links` from the JSON-LD `ItemList` path
       (`domain.py:433`), as the DOM record-miner path does at
       `fetcher.py:1788`.
-- [ ] 1.2 Derive `options` from the same path, as `fetcher_response.py:234` does
+- [x] 1.2 Derive `options` from the same path, as `fetcher_response.py:234` does
       for mined records.
-- [ ] 1.3 Add a corpus case: a listing page whose items live in `ItemList`
+- [x] 1.3 Add a corpus case: a listing page whose items live in `ItemList`
       JSON-LD must ship a populated `other_pages`. Phrase the criteria against
       stable structural facts.
-- [ ] 1.4 Verify a page reachable by both paths produces the same index either
+- [x] 1.4 Verify a page reachable by both paths produces the same index either
       way. This is the witness the lift will be checked against — write it now,
       not after.
-- [ ] 1.5 CHANGELOG: this is an envelope change for JSON-LD listing pages, and a
+- [x] 1.5 CHANGELOG: this is an envelope change for JSON-LD listing pages, and a
       correction.
 
 ## 2. One cap, and the baseline that pins the violation
