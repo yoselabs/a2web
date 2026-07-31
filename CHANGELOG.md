@@ -42,6 +42,22 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ### Fixed
 
+- **Handler-served API responses were cached for seven days.** `_ttl_for` read
+  only the content type, so `application/json` and `application/atom+xml` — what
+  every site handler returns — took the 168-hour static TTL. Discussion threads,
+  issue lists and listings, the freshest surfaces in the product, were held the
+  longest. Tiers now DECLARE volatility (`TierResult.volatility`) and handlers
+  declare `live` (5 minutes, via the previously-dead `cache_ttl_live_m`); the
+  content-type heuristic survives as the fallback for generic HTTP tiers.
+- **`A2WEB_CACHE_TTL_LIVE_M` was declared but read by nothing** — settable,
+  documented, and with no effect. Now wired, and guarded so no TTL setting can
+  go dead again.
+- **Listing sufficiency never ran on the handler path.** A handler that renders
+  its own listing (arXiv's "Showing 25 of 408") set no `record_count`, so the
+  check returned immediately: the rendered prose declared the view partial while
+  `operator_hints`, `items_loaded` and `items_total` carried nothing. Handlers
+  now declare the rendered count and advertised total they already computed, and
+  `listing_partial` fires with counts matching the prose.
 - **`hn` could raise `RecursionError` on a deeply nested comment thread.** The
   Algolia `children` tree is untrusted remote input and was walked with no cap
   on either axis; a thread nested past CPython's frame limit raised out of the

@@ -35,6 +35,9 @@ _ARXIV_HOSTS = frozenset({"arxiv.org", "www.arxiv.org"})
 _API_URL = "https://export.arxiv.org/api/query"
 _LIST_URL = "https://arxiv.org/list"
 _TIMEOUT_S = 10.0
+# How many listing rows the handler renders. Declared once — the render, the
+# `N of M` prose and the sufficiency declaration must not disagree.
+_LISTING_RENDER_CAP = 25
 _NS = {
     "atom": "http://www.w3.org/2005/Atom",
     "arxiv": "http://arxiv.org/schemas/atom",
@@ -110,6 +113,7 @@ class ArxivHandler:
             headers=outcome.headers,
             pre_rendered=Rendered.from_dict(rendered),
             verdict=Verdict.ok,
+            volatility="live",
         )
 
     async def _fetch_listing(
@@ -151,7 +155,8 @@ class ArxivHandler:
             return empty_result(url, Verdict.length_floor)
 
         entries = parsed.rows
-        rendered = _render_listing(cat, window, entries, advertised_total=listing_oracle(listing_html))
+        advertised = listing_oracle(listing_html)
+        rendered = _render_listing(cat, window, entries, advertised_total=advertised)
         next_links = _listing_candidates(entries)
 
         return TierResult(
@@ -163,6 +168,13 @@ class ArxivHandler:
             pre_rendered=Rendered.from_dict(rendered),
             next_links=next_links,
             verdict=Verdict.ok,
+            volatility="live",
+            # Both numbers already drive the "Showing 25 of 445" prose; declaring
+            # them lets the sufficiency check reach the same conclusion the
+            # markdown states. Previously they were computed and discarded, so
+            # `listing_partial` never fired on this path.
+            items_rendered=min(len(entries), _LISTING_RENDER_CAP),
+            items_advertised=advertised,
         )
 
 
@@ -280,7 +292,7 @@ def _render_listing(
     markup regexes (the markup-funnel guard), and advertised totals are exactly
     what that module already owns.
     """
-    shown = min(len(entries), 25)
+    shown = min(len(entries), _LISTING_RENDER_CAP)
     title_text = f"arXiv · {cat} · {window}"
     # Only a total that EXCEEDS what we render is news. An equal or smaller one
     # (a short listing, or an oracle that matched some other number on the page)
@@ -294,7 +306,7 @@ def _render_listing(
     parts: list[str] = [f"# {title_text}\n", f"## {count_label}\n"]
     if preamble:
         parts.append(preamble)
-    for entry in entries[:25]:
+    for entry in entries[:_LISTING_RENDER_CAP]:
         parts.append(f"- **{entry['title']}** ({entry['authors']})\n  <https://arxiv.org/abs/{entry['id']}>")
     headings: list[Heading] = [
         Heading(level=1, text=title_text),

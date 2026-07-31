@@ -149,6 +149,17 @@ None on `<dl>/<dt>/<dd>`) is untouched, so `record_count` is still None, so
 shortfall in prose because it can finally see it — a machine consumer reading
 hints still cannot. That half is shelf work and stays open in BACKLOG.
 
+> **Superseded 2026-08-01** (`fix-cache-ttl-and-listing-sufficiency` §4). It was
+> NOT shelf work. Fixing `extract_records` on `<dl>/<dt>/<dd>` was one route to
+> `record_count`; declaring the count is another, and the handler already had
+> both numbers — it computes "25 of 408" for its own prose and discarded them.
+> `TierResult` now carries `items_rendered`/`items_advertised`, `_install_won_tier`
+> feeds them into the same `record_count` / oracle inputs the record-miner path
+> writes, and `listing_partial` fires on this page with counts matching the
+> prose. A prose/wire agreement test pins the two together, because the body and
+> the wire telling a caller different stories is the original defect in a subtler
+> form.
+
 The single-slug re-bench is a targeted check, not a corpus-wide claim: it says
 this cell moved, nothing about the other 37.
 

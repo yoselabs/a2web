@@ -16,7 +16,7 @@ or after-tier actions.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from ..models import Heading, Link, NextLink, OperatorHint, Verdict
 from ..state import AppState
@@ -95,6 +95,23 @@ class TierResult:
     handler_name: str | None = None
     conditional_hit: bool = False
     archive_source: str | None = None  # "wayback" | "archive.ph"
+    # PRODUCER-DECLARED cache volatility. `None` → fall back to the
+    # content-type heuristic, which is all the generic HTTP tiers can offer.
+    #
+    # A handler serving an upstream API knows something the heuristic cannot
+    # infer: `application/json` from the GitHub issues API is a live discussion,
+    # while `application/json` from a CDN may be a static asset. The heuristic
+    # read both as "not html" and handed them the 168-hour static TTL, so a
+    # handler-served thread, issue list or listing was cached for SEVEN DAYS.
+    # The producer declares; the heuristic only guesses when nobody did.
+    volatility: Literal["live", "article", "static"] | None = None
+    # Listing sufficiency, declared by a handler that RENDERS a listing itself.
+    # `arxiv.py` computes both to write "Showing 25 of 445" into its markdown and
+    # then discarded them, so the sufficiency check — which reads only the DOM
+    # record-miner's output — never ran on the handler path. The prose said the
+    # view was partial while `operator_hints` carried nothing.
+    items_rendered: int | None = None
+    items_advertised: int | None = None
     # v0.7 link-discovery: candidates populated by site handlers on listing-
     # style URLs. Empty list when the URL is terminal (single thread, single
     # paper, etc.) or no handler knows the page schema.

@@ -93,6 +93,7 @@ class V2EXHandler:
             final_url=url,
             pre_rendered=Rendered.from_dict(rendered),
             verdict=Verdict.ok,
+            volatility="live",
         )
 
 

@@ -52,6 +52,7 @@ def _unwrap(provider: object) -> object:
     """
     return getattr(provider, "inner", provider)
 
+
 def test_pick_provider_defaults_to_claude_code(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("A2WEB_BENCH_PROVIDER", raising=False)
     # Simulate a Claude Code session being present — otherwise `available()`

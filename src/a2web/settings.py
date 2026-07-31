@@ -249,6 +249,7 @@ class AppSettings(BaseSettings):
     def request_timeout(self, default_s: float) -> float:
         """Scale one site's tuned request bound. Call at the site, not at import."""
         return default_s * self.request_timeout_scale
+
     # OpenAI-compatible backend — reads the OpenAI SDK's STANDARD env vars, not
     # custom a2web ones: `OPENAI_API_KEY` (key; presence gates availability and
     # derives the backend as the last-resort fallback), `OPENAI_BASE_URL`

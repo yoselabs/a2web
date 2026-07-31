@@ -266,12 +266,31 @@ async def extract_markdown(html: str, url: str) -> _ExtractResult:
     )
 
 
-def _ttl_for(content_type: str | None, settings_obj: object) -> int:
-    """Pick a TTL in seconds based on a coarse content-type heuristic."""
+def _ttl_for(content_type: str | None, settings: AppSettings, *, volatility: str | None = None) -> int:
+    """Cache TTL in seconds: the PRODUCER'S declaration first, heuristic second.
+
+    A handler serving an upstream API knows what the content-type cannot say.
+    `application/json` from the GitHub issues API is a live discussion;
+    `application/json` from a CDN may be a static asset. The heuristic saw only
+    "not html" and gave both the 168-hour static TTL, so every handler-served
+    thread, issue list and listing was cached for SEVEN DAYS — the freshest
+    surfaces in the product, held the longest.
+
+    `settings` is typed `AppSettings`, not `object`, and reads attributes
+    directly. It previously used `getattr(settings_obj, "cache_ttl_article_h", 24)`,
+    which duplicated every default and would have silently kept serving the
+    literal through a settings rename instead of failing.
+    """
+    if volatility is not None:
+        return {
+            "live": settings.cache_ttl_live_m * 60,
+            "article": settings.cache_ttl_article_h * 3600,
+            "static": settings.cache_ttl_static_h * 3600,
+        }[volatility]
     ct = (content_type or "").lower()
     if "html" in ct:
-        return getattr(settings_obj, "cache_ttl_article_h", 24) * 3600
-    return getattr(settings_obj, "cache_ttl_static_h", 168) * 3600
+        return settings.cache_ttl_article_h * 3600
+    return settings.cache_ttl_static_h * 3600
 
 
 @dataclass(slots=True)
@@ -463,6 +482,8 @@ class FetchContext:
     # on a non-listing page), and the wire counts surfaced only when the listing
     # is partial (oracle > records beyond tolerance). Threaded onto the envelope
     # by `build_response`; the shortfall also appends a `listing_partial` hint.
+    # Producer-declared cache volatility, carried from the winning TierResult.
+    volatility: str | None = None
     record_count: int | None = None
     # The parsed record set itself (rank-don't-skip): retained so the ask
     # projection can surface the option shelf, instead of keeping only the count
@@ -1029,6 +1050,16 @@ def _install_won_tier(
     # reddit-via-zyte content-expectations: carry a handler's measured counts.
     fc.comments_loaded = tier_result.comments_loaded
     fc.comments_total = tier_result.comments_total
+    # Producer-declared cache volatility (None → `_ttl_for`'s heuristic).
+    fc.volatility = tier_result.volatility
+    # Listing sufficiency from a RENDERING handler: arxiv (and friends) already
+    # compute "25 of 445" for their prose and used to discard both numbers, so
+    # the sufficiency check — which only ever read the DOM record-miner's
+    # output — never ran on the handler path at all. One assessment, two sources.
+    if tier_result.items_rendered is not None:
+        fc.record_count = tier_result.items_rendered
+    if tier_result.items_advertised is not None:
+        fc.regex_oracle_total = tier_result.items_advertised
 
 
 def _install_archive_payload(fc: FetchContext, outcome: _ArchiveOutcome) -> None:
@@ -2428,7 +2459,7 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
         status_code=fc.status_code,
         content_type=fc.content_type,
         body=fc.body,
-        ttl_s=_ttl_for(fc.content_type, state.settings),
+        ttl_s=_ttl_for(fc.content_type, state.settings, volatility=fc.volatility),
     )
     cache_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - cache_dur_start
     await a2web_log.info(

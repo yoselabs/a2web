@@ -273,6 +273,7 @@ class RedditHandler:
             ),
             next_links=list(rendered.next_links),
             verdict=Verdict.ok,
+            volatility="live",
         )
 
 
@@ -829,6 +830,7 @@ async def _fetch_via_zyte_oldreddit(url: str, *, state: AppState) -> TierResult 
         comments_loaded=loaded,
         comments_total=total,
         verdict=Verdict.ok,
+        volatility="live",
     )
 
 
@@ -929,4 +931,5 @@ async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str
             headings=headings,
         ),
         verdict=Verdict.ok,
+        volatility="live",
     )

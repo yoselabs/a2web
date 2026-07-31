@@ -484,3 +484,44 @@ rather than by review: wrapping the provider unconditionally produced a truthy
 `TimeoutProvider(inner=None)` that destroyed the `no provider → None` contract
 the whole `ResourceUnavailable` seam rests on, and the new LLM doubles did not
 declare `DOUBLES_ARM`.
+
+## 2026-08-01 — `fix-cache-ttl-and-listing-sufficiency` (§1–§3, §4 partial)
+
+- **`_ttl_for` cached almost everything for 7 days.** It read only the content
+  type — `html` → 24h, everything else → 168h. Handlers serve upstream APIs, so
+  every handler-served discussion thread, issue list and listing returned
+  `application/json` or `application/atom+xml` and took the static TTL: the
+  freshest surfaces in the product were held the longest. Fixed by having the
+  PRODUCER declare (`TierResult.volatility`), with the heuristic surviving as
+  the fallback for the generic HTTP tiers, which genuinely know no better. The
+  content type cannot decide this — `application/json` from the GitHub issues
+  API is a live discussion, the same header from a CDN may be a static asset.
+- **`cache_ttl_live_m` was declared and read by nothing.** Not a duplicate of
+  `is_live_only` (that BYPASSES the cache; this is a 5-minute TTL), so it was
+  wired up rather than deleted — it turned out to be exactly the short TTL the
+  volatility fix needed. Now guarded: `test_ttl_settings_are_read.py` fails on
+  any declared TTL setting no code path reads. A dead setting is worse than a
+  missing one — a missing one fails visibly, a dead one silently reports success.
+- **`_ttl_for` masked a settings rename.** `getattr(settings_obj, "cache_ttl_article_h", 24)`
+  duplicated every default and would have kept serving the literal through a
+  rename. Now typed `AppSettings` with direct attribute access, pinned by an AST
+  assertion that no defaulted `getattr` returns.
+- **Listing sufficiency never ran on the handler path.** The check reads
+  `record_count`, which only the DOM record-miner set — so a handler that
+  renders its own listing (arXiv's "Showing 25 of 408") produced no record set,
+  the phase returned at its first line, and the prose declared the view partial
+  while the wire carried nothing. Both numbers were already computed for that
+  sentence and discarded. Handlers now declare them and a prose/wire agreement
+  test pins the two together.
+
+**A witness caught itself being useless.** The first four listing tests called
+`_phase_listing_completeness` with `record_count` already set, so the whole file
+stayed GREEN with the wiring reverted — they proved the phase works given an
+input, never that anything supplies it, which is precisely the defect. Found by
+running the fix-reverted check; a fifth test now drives the real install.
+
+**Left open, deliberately:** 4.7 (other listing handlers) — only arXiv holds an
+advertised total; discourse/v2ex compute none, reddit's is a comment count
+already wired, and HN's `nbHits` semantics are unverified, so declaring it risks
+a FALSE `listing_partial`, which teaches callers to ignore the signal. Needs a
+captured HN fixture. 5.3 (bench re-run) — live-network and spends LLM quota.

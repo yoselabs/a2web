@@ -120,6 +120,7 @@ class HNHandler:
             pre_rendered=Rendered.from_dict(rendered),
             next_links=next_links,
             verdict=Verdict.ok,
+            volatility="live",
         )
 
 

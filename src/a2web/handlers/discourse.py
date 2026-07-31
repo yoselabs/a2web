@@ -94,6 +94,7 @@ class DiscourseHandler:
             pre_rendered=Rendered.from_dict(rendered),
             next_links=list(rendered.get("next_links") or []),
             verdict=Verdict.ok,
+            volatility="live",
         )
 
 

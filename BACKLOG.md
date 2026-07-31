@@ -98,7 +98,7 @@ same as ready to start.
 |---|---|---|---|
 | 1 | `close-wire-level-adr-0009-leaks` | T3 + T7 live: TSV severity loss, github silent degrade, reddit interstitial, `paid_auth_error` hint, dead `a2effect` branch | **SHIPPED** 2026-07-31 → `BACKLOG-CLOSED.md` |
 | 2 | `bound-every-unbounded-path` | T3 + T7 live: no LLM timeout, no per-fetch deadline, `hn.py` unbounded recursion | **SHIPPED** 2026-08-01 → `BACKLOG-CLOSED.md` |
-| 3 | `fix-cache-ttl-and-listing-sufficiency` | T3: 7-day TTL on live API data, dead `cache_ttl_live_m`, listing sufficiency OFF | **authored** |
+| 3 | `fix-cache-ttl-and-listing-sufficiency` | T3: 7-day TTL on live API data, dead `cache_ttl_live_m`, listing sufficiency OFF | **SHIPPED** 2026-08-01 (4.7/5.3 open, see tasks) → `BACKLOG-CLOSED.md` |
 | 4 | `run-the-gate-on-every-push` | T4 CI — **do first**, everything else's guards are inert until it lands | **authored** |
 | 5 | `close-guards-that-read-green` | T4 remainder: markup funnel misses `re.search`/`re.sub`, two guards answer a different question, two cited guards don't exist, 22 doubleable constants, playbook 1.00 lockstep, partial eval loss exits 0, the corpus cannot see the envelope | **authored** |
 | 6 | `unify-the-response-contract` | T2 — must absorb the 41 external `FetchContext` reads before #7 phase two | **authored** |
@@ -490,8 +490,7 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 | [`extractor.py` holds ~200 lines its siblings are named for](docs/findings/2026-07-31-structural-scan.md#extractorpy-holds-200-lines-its-siblings-are-named-for-m-structure) | M, structure |
 | [five escalation decisions live outside the "single policy function"](docs/findings/2026-07-31-structural-scan.md#five-escalation-decisions-live-outside-the-single-policy-function-m-structure) | M, structure |
 | [`endpoint-auth` spec yields an UNAUTHENTICATED endpoint if followed](docs/findings/2026-07-31-structural-scan.md#endpoint-auth-spec-yields-an-unauthenticated-endpoint-if-followed-s-security) | S, SECURITY |
-| [`_ttl_for` caches almost everything for 7 days](docs/findings/2026-07-31-structural-scan.md#_ttl_for-caches-almost-everything-for-7-days-s-correctness--live) | S, correctness — LIVE |
-| [`_MAX_RECORDS` × `DEFAULT_TOLERANCE` dead zone](docs/findings/2026-07-31-structural-scan.md#_max_records--default_tolerance-dead-zone-s-correctness--adr-0009-live) | S, correctness — ADR-0009 LIVE |
+| [`_MAX_RECORDS` × `DEFAULT_TOLERANCE` dead zone](docs/findings/2026-07-31-structural-scan.md#_max_records--default_tolerance-dead-zone-s-correctness--adr-0009-live) — **STAYS OPEN**: `_MAX_RECORDS` was not found anywhere in `src/`, so the interaction the finding describes could not be reproduced and the entry is unverified. Do not close it on the strength of the finding alone. | S, correctness — ADR-0009 LIVE, unverified |
 | [22 constants can be doubled with zero test failures](docs/findings/2026-07-31-structural-scan.md#22-constants-can-be-doubled-with-zero-test-failures-m-verification) | M, verification |
 | [two named guards answer a different question than advertised](docs/findings/2026-07-31-structural-scan.md#two-named-guards-answer-a-different-question-than-advertised-s-verification) | S, verification |
 | [openspec canonical specs contradict shipped code](docs/findings/2026-07-31-structural-scan.md#openspec-canonical-specs-contradict-shipped-code-m-docs--4-load-bearing) | M, docs — 4 load-bearing |

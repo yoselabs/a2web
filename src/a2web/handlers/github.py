@@ -311,6 +311,7 @@ async def _fetch_repo(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierRe
         next_links=next_links,
         operator_hint=_degradation_hint(unretrieved),
         verdict=Verdict.ok,
+        volatility="live",
     )
 
 
@@ -415,6 +416,7 @@ async def _fetch_issue(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierR
         pre_rendered=Rendered.from_dict(rendered),
         operator_hint=_degradation_hint(unretrieved),
         verdict=Verdict.ok,
+        volatility="live",
     )
 
 
@@ -456,6 +458,7 @@ async def _fetch_pull(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierRe
         pre_rendered=Rendered.from_dict(rendered),
         operator_hint=_degradation_hint(unretrieved),
         verdict=Verdict.ok,
+        volatility="live",
     )
 
 
