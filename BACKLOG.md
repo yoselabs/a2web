@@ -83,7 +83,221 @@ Scan method note: co-change ranking excluded 11 bulk commits (>20 `src/` files)
 and was re-run at a ≤8-file cutoff as a sensitivity check — the top of the
 ranking is unchanged, so nothing below is a migration artifact.
 
-## 2026-07-31 — the response contract is one concept in three files (L, structure — HIGHEST)
+## 2026-07-31 — TRACKS: how the 2026-07-31 findings group, and what depends on what
+
+38 entries landed on 2026-07-31 across two scans (an openspec/verification drift
+sweep, then the large-files structural scan). They are **not** 38 independent
+pieces of work. Six tracks, with the dependency edges that matter:
+
+```
+  T1 DECOMPOSE fetcher/  ──depends on──▶  T2 RESPONSE CONTRACT
+        │                                       │
+        │ closes H1 structurally                │ absorbs the 41 external
+        │                                       │ FetchContext reads
+        ▼                                       ▼
+  T3 LIVE DEFECTS (independent — ship first, they are days not weeks)
+
+  T4 GUARDS THAT READ GREEN          T5 MODULE-PURPOSE DRIFT
+  T6 DOCS TELL A DIFFERENT STORY     (both independent of T1/T2)
+```
+
+**T1 · Decompose `fetcher/`** — the entry immediately below is the umbrella.
+Subsumes: *no "install a fetch result" type* (`install.py` is a node in the
+tree), *five escalation decisions live outside the "single policy function"*
+(the loop is what re-homes them), and *the sufficiency question has no name*
+(2026-07-31, prior scan — answered by `sufficiency/` being a directory).
+Structurally closes *listing sufficiency is OFF*. Blocked on nothing.
+
+**T2 · The response contract** — *the response contract is one concept in three
+files* is the umbrella. Subsumes: *the ADR-0009 floor is derived from the
+severity of an English sentence* (the six erase-and-re-derive instances),
+*`models.py` is 25% prose and 12% wire projection*, *`fetcher_response.py` is
+740 lines CLAUDE.md never mentions*. **Ordering: T2 must absorb the 41 external
+`FetchContext` reads before T1 can slice `context.py` per-node.** T1 phase one
+(the tree + the loop) does not need it; T1 phase two does.
+
+**T3 · Live defects — independent, ship first.** *listing sufficiency is OFF* ·
+*reddit's old.reddit channel can serve an interstitial as `ok`* · *`_ttl_for`
+caches almost everything for 7 days* · *`_MAX_RECORDS` × `DEFAULT_TOLERANCE`
+dead zone* · *`paid_auth_error` has no operator hint* · *stale provider ids
+break a documented boot* · *`endpoint-auth` spec yields an UNAUTHENTICATED
+endpoint* (SECURITY, and a spec fix, not a code fix). None of these wait on a
+refactor. Doing them first also means T1 is not simultaneously a bug fix and a
+move, which is the failure mode v0.23 already demonstrated.
+
+**T4 · Guards that read green while not covering what they name.** *there is no
+CI on push or PR* (**READ FIRST** — everything else in this track is worth less
+until a guard actually runs on a push) · *the markup-funnel guard misses
+`re.search`/`re.sub`* · *two named guards answer a different question than
+advertised* · *two cited architecture guards do not exist* · *22 constants can
+be doubled with zero test failures* · *a wire regression on ADR-0009 is one
+re-bless from green* · *`playbook.py` and its test are in 1.00/1.00 lockstep* ·
+*a partial eval loss exits 0* · *45 of 86 prompt rules have neither code nor
+test* · *the corpus cannot see the envelope* (**HIGHEST LEVERAGE** in this
+track) · *invariants with no code implementer*.
+
+**T5 · Module-purpose drift — same shape as T1, different files.** Each is "one
+file, several purposes", and each is independently shippable: *`domain.py` is
+69% an undocumented renderer* · *`extractor.py` holds ~200 lines its siblings
+are named for* · *`reddit.py` is four retrieval channels behind one `matches()`*
+· *cross-handler duplication: seven shapes, partial adoption* ·
+*`llm_eval/systems.py` carries a second fetch stack* · *`routers.py` is one
+function with a hole in it* (LOW — git says fading) · *the Registry half of
+Strategy+Registry isolates nothing* · *test files that have drifted from their
+subject*.
+
+**T6 · Docs describe a system that is not the one shipped.** *CLAUDE.md
+describes a different system than the one shipped* · *openspec canonical specs
+contradict shipped code* · *naming rot: `_prescribe_browser_on_wall`*. Cheap,
+and T1/T2 will invalidate parts of them again — so **do T6 last**, or do only
+the load-bearing half now.
+
+**Superseded, do not action from the older text:** *21 behavioural rules live
+only as prompt English* → superseded by *45 of 86*. *2026-07-28
+regex-over-markup OUTSIDE `handlers/`* → superseded by *the markup-funnel guard
+misses `re.search`/`re.sub`*.
+
+**Recommended order:** T3 → T4's CI entry → T1 phase one → T2 → T1 phase two →
+T5 → T4 remainder → T6.
+
+## 2026-07-31 — decompose `fetcher.py` into single-purpose files (L, structure — T1 UMBRELLA)
+
+**Source:** structural scan + design session, 2026-07-31. Line budgets from the
+AST census; the tree is the applied form of the decomposition criterion below.
+
+`fetcher.py` is 2771 lines. The v0.23 "structural refactor" reorganized its
+interior into named phases and **the growth curve did not bend** (913 → 1610 →
+1711 → 1728 → 2547 → 2771). Interior reorganization is not the fix.
+
+### The criterion
+
+**One file, one purpose.** Exceptions, and only these two: an **aggregation
+point** (a composition root or entrypoint whose purpose IS to assemble), and a
+**utils leaf** (shared mechanism with no domain decision in it).
+
+Applied to `fetcher.py`, four of its phases fail the criterion outright —
+`_phase_tier_loop` carries 5 jobs, `_phase_extract_answer` 6, `_phase_extract`
+3, and the three escalators share a duplicated tail.
+
+### The tree
+
+```
+src/a2web/fetcher/
+├── __init__.py            fetch() — AGGREGATION                    ~60
+├── pipeline.py            the ordered chain, nothing else          ~50
+├── context.py             FetchContext                              281
+├── telemetry.py           UTILS                                      58
+│
+├── retrieval/             "get bytes for this URL"
+│   ├── cache.py           TTL policy, read, write                    41
+│   ├── conditional.py     the 304 path                              ~35   ← out of tier_walk
+│   ├── cookies.py         resolve + staleness                        90
+│   ├── proxy_lease.py     lease/report protocol                     ~45   ← out of tier_walk
+│   ├── tier_walk.py       the walk itself                          ~180
+│   ├── install.py         TierInstall + the one chokepoint          ~80   NEW
+│   └── escalate/
+│       ├── archive.py · browser.py · paid.py                       ~75 ea
+│       └── _tail.py       shared install + re-gate — UTILS LEAF     ~35
+│
+├── comprehension/         "what did we get"
+│   ├── prerendered.py     the handler-payload path                  ~70   ← out of ladder
+│   ├── json_synth.py      JSON body → content                       ~60   ← out of ladder
+│   ├── ladder.py          trafilatura → escalation rungs           ~140
+│   ├── gate.py            evaluate / regate                          132
+│   └── menu.py            candidates → prompt + wire                 191
+│
+├── sufficiency/           "is this ALL of it?"     ← has no name today
+│   └── completeness.py    assess · oracle · scroll decision          138
+│
+├── answer/                "what did the caller ask"
+│   ├── digest.py          {{n}} build + rehydrate (ADR-0014)          52
+│   ├── prompt_call.py     the LLM call + degrade                     ~90   ← out of extract
+│   ├── obstacle.py        the re-render decision                     ~60   ← out of extract
+│   └── links.py           records→NextLink, LLM validation            95
+│
+└── verdict/               "what do we tell the caller"
+    ├── promotions.py      empty · small-page                         ~50
+    └── terminal.py        classify + hints (actions/ owns the        ~45
+                           pure half already)
+```
+
+26 files, largest 281 (`context.py`), then 191. Nothing over 300.
+
+### The load-bearing part is the loop, not the tree
+
+`retrieval → comprehension → sufficiency` **is a loop**, and the code does not
+model it as one. Today escalation hand-calls comprehension from inside
+retrieval, which is why:
+
+- H1 exists at all — escalators re-enter at *comprehension* and skip sufficiency
+  entirely (`_run_extraction_escalation` 4 call sites vs
+  `_phase_listing_completeness` 2)
+- `_phase_listing_render:2716-2722` re-implements assess-and-set inline, because
+  there is no loop head to return to
+- `_phase_extract_answer` is re-entrant 3× and not idempotent — *answer* is
+  being used as the loop body
+- the single paid budget is resolved by call order across four competitors
+
+**Have escalation return a retry signal instead of calling forward.** Then there
+is exactly one path from retrieval through comprehension to sufficiency, and a
+stage cannot be skipped because nothing calls it directly. That also dissolves
+the `retrieval → comprehension` import cycle that blocks a naive file split
+(anti-seam A2 in the scan) — **the cycle WAS the loop, un-named.**
+
+`install.py` is the second load-bearing piece: six transport fields (`body`,
+`content_type`, `final_url`, `tier_used`, `pre_rendered_payload`, `status_code`)
+are each written by six functions across three groups.
+`_install_rendered_fields` already unified the *content* half after it caused a
+live bug and explicitly excluded the transport half (`:1279-1281`). One
+`install(ctx, TierInstall)` is what lets `tier_walk` and `escalate` be siblings
+rather than one 576-line file.
+
+### Rejected: a Stage protocol with declared reads/writes
+
+Considered and dropped. A `Stage` protocol carrying `READS`/`WRITES` field sets
+would make the five prose-only ordering constraints (`:1955`, `:2315`, `:2337`,
+`:2344`) checkable at build time, and would make H1 *unexpressible*. It was
+rejected as a framework where a criterion was asked for — it spends magic budget
+the Constitution does not want spent, for a guarantee the loop restructure
+already delivers structurally.
+
+**What that costs, stated plainly:** the residual ordering hazards — the paid
+budget resolved by call order, `fc.record_count` never resetting
+(`:1725-1732`, no `else: None`), `_install_gate_archive` not setting
+`status_code` — go back to being conventions. They become **one architecture
+test**, not a framework. Cheaper, and the project already has that habit. If
+that test proves hard to write, reopen this decision rather than living with the
+convention.
+
+### Sequencing
+
+**Phase one — the tree + the loop.** Does NOT need `context.py` sliced;
+`FetchContext` stays whole. Closes H1 structurally.
+
+**Phase two — slice `context.py` per node.** **Blocked on T2**: 41 of its 69
+fields are read externally by `fetcher_response.py`, so the response contract
+must absorb those reads first. Attempting both phases at once turns a
+decomposition into a rewrite.
+
+### Anti-seams — verified, do not cut these
+
+- `_phase_tier_loop` / `_dispatch_action`: the `:1247` escalation-win check is
+  correct **only because** `_install_won_tier` at `:1254` has not run yet.
+- `_phase_empty_promotion` / `_phase_complete_small_page_promotion` /
+  `_apply_terminal` are one mutually-exclusive chain expressed by early returns,
+  with `small_page_promoted()` reading a field written 460 lines away. They go
+  into `verdict/` together or not at all.
+- `_phase_extract`'s pre-rendered branch: `:1299-1323` documents that it once
+  returned *before* the ladder and starved four consumers for months. Splitting
+  it into `prerendered.py` must preserve the ladder call, not just the branch.
+- `FetchContext`: 69 fields, ~19 test modules import it. Phase two only.
+
+**Open question for the proposal:** `escalate/_tail.py` is the one file placed by
+judgement rather than census — it is the shared ~35-line install-and-re-gate tail
+(`_escalate_browser:2136-2151` ≈ `_escalate_paid:2236-2253`). It qualifies as a
+utils leaf under the criterion; confirm that reading before writing it.
+
+## 2026-07-31 — the response contract is one concept in three files (L, structure — HIGHEST, T2 UMBRELLA)
 
 **Source:** structural scan, 2026-07-31. Cross-confirmed by two independent
 methods (git co-change; AST responsibility census). Verified.
@@ -1564,7 +1778,12 @@ standalone wire capability test asserting all five signals PLUS
 
 ---
 
-## 2026-07-31 — 21 behavioural rules live only as prompt English (L, structure)
+## SUPERSEDED 2026-07-31 — 21 behavioural rules live only as prompt English (L, structure)
+
+> **Superseded the same day by *45 of 86 prompt rules have neither code nor
+> test*.** The count here was a subset — it counted only the
+> `_ROUTER_SCHEMA_DOC` field-description clauses, not the full 5-template
+> census. Kept for the reasoning, not the number. Do not action from this text.
 
 **Source:** prompt-rule scan, 2026-07-31. ~34 rules: 8 enforced, 5 witnessed,
 21 prompt-only, 3 contradictions, 2 undocumented code rules.
@@ -1626,7 +1845,13 @@ classified, losing all seven router fields. Silent but for an `llm_wobble` log.
 
 ---
 
-## 2026-07-31 — the sufficiency question has no name (M, structure)
+## 2026-07-31 — the sufficiency question has no name (M, structure — ANSWERED by T1)
+
+> **The naming half is answered by *decompose `fetcher.py` into single-purpose
+> files*:** `sufficiency/` is a directory in that tree, which is what gives the
+> question a structural home. What remains open here is the *contract* — what
+> that node promises and how it is witnessed — which the decomposition does not
+> settle. Read this entry for the contract question; take the name from T1.
 
 **Source:** listing-machinery reflection, 2026-07-30/31 (five-agent audit).
 
@@ -1668,7 +1893,12 @@ survives is a verdict function and two honest signals.
 
 ---
 
-## 2026-07-28 — regex-over-markup OUTSIDE `handlers/` (S, correctness — SCOPED)
+## SUPERSEDED 2026-07-28 — regex-over-markup OUTSIDE `handlers/` (S, correctness — SCOPED)
+
+> **Superseded by *the markup-funnel guard misses `re.search`/`re.sub`*
+> (2026-07-31).** That entry has the wider measurement: the guard matches only
+> `ast.Call` with `func.attr == "compile"`, so the census this entry scoped
+> itself against was incomplete. Do not action from this text.
 
 **Source:** `handler-parses-nothing-is-not-success`, task 7.1.
 
