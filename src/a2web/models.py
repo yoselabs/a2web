@@ -273,6 +273,39 @@ def comments_partial_hint(*, loaded: int, total: int) -> OperatorHint:
     )
 
 
+def section_unretrieved_hint(sections: list[str]) -> OperatorHint:
+    """A supplementary section of a multi-part page could not be retrieved.
+
+    The primary object WAS retrieved and is useful, so failing the whole fetch
+    would be worse than this — but the caller must not read the missing section
+    as *absent from the source*. Until 2026-07-31 the GitHub handler swallowed a
+    rate-limited sub-fetch and rendered the section empty, making a throttled
+    comments call indistinguishable from an issue with zero comments (ADR-0009).
+
+    ONE code carrying the section names, not a code per section: the sections
+    are handler-specific and `TierResult.operator_hint` is singular, so a code
+    per section would grow the catalogue per handler and still not fit a fetch
+    that degraded twice.
+
+    `warning`, not `critical` — nothing here suggests a wall, and the
+    `try_user_browser` klaxon must keep meaning exactly one thing.
+    """
+    named = ", ".join(sections)
+    return OperatorHint(
+        code="section_unretrieved",
+        message=(
+            f"These sections were NOT retrieved and are missing from the content below: {named}. "
+            "The rest of the page was retrieved normally. Do not read their absence as "
+            "meaning the source has none — treat them as unknown."
+        ),
+        fix=(
+            "Usually an API rate limit; retry later, or set a credential "
+            "(e.g. A2WEB_GITHUB_TOKEN) to raise the quota."
+        ),
+        severity="warning",
+    )
+
+
 def listing_partial_hint(*, loaded: int, total: int) -> OperatorHint:
     """Honest partial-listing signal (listing-completeness sufficiency axis).
 

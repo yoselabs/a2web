@@ -27,7 +27,7 @@ import gidgethub
 from gidgethub.abc import GitHubAPI
 from http_fetch import FetchVerdict, fetch_bytes
 
-from ..models import Heading, NextLink, Verdict
+from ..models import Heading, NextLink, OperatorHint, Verdict, section_unretrieved_hint
 from ._common import empty_result
 
 if TYPE_CHECKING:
@@ -210,6 +210,57 @@ class GitHubHandler:
 
 
 # --------------------------------------------------------------------- #
+# Partial degradation — a supplementary call failed, the primary one did not
+#
+# Every helper below distinguishes THREE outcomes, not two: retrieved-with-rows,
+# retrieved-and-genuinely-empty, and NOT retrieved. Collapsing the last two into
+# `[]` is what made a rate-limited comments fetch render identically to an issue
+# with no comments (ADR-0009 — a2web knew, and told the caller something that
+# read as complete).
+#
+# `None` is the unretrieved marker; a list (including `[]`) means the call
+# succeeded. Callers accumulate the section names into `unretrieved` and the
+# renderers emit an explicit marker for each, so absence-because-unretrieved is
+# never spelled the same way as absence-because-empty.
+# --------------------------------------------------------------------- #
+
+#: Rendered in place of a section body that could not be retrieved. Prose, not a
+#: sentinel token: the primary consumer is an LLM reading `content_md`, and it
+#: must not be able to mistake this for the section being empty at the source.
+_UNRETRIEVED_MARKER = "_(this section was NOT retrieved — treat as unknown, not as empty)_"
+
+
+async def _get_or_none(template: str, params: Mapping[str, str], *, gh: GitHubAPI) -> Any | None:
+    """GET `template`, or `None` when the call failed.
+
+    `None` means UNRETRIEVED and is never conflated with an empty result. The
+    caller decides whether that is fatal — for a supplementary section it is
+    not, but it is also never silent.
+    """
+    try:
+        return await gh.getitem(template, dict(params))
+    except gidgethub.GitHubException:
+        return None
+
+
+def _rows_or_unretrieved(loaded: Any | None, section: str, unretrieved: list[str]) -> list[Any]:
+    """Normalize a `_get_or_none` result to rows, recording an unretrieved section.
+
+    A non-list success (GitHub answering with an unexpected shape) counts as
+    unretrieved too — we did not get the section, whatever the reason.
+    """
+    if isinstance(loaded, list):
+        return loaded
+    unretrieved.append(section)
+    return []
+
+
+def _degradation_hint(unretrieved: list[str]) -> OperatorHint | None:
+    """One hint naming every unretrieved section, or `None` when all succeeded."""
+    return section_unretrieved_hint(unretrieved) if unretrieved else None
+
+
+# --------------------------------------------------------------------- #
 # Per-kind fetchers
 # --------------------------------------------------------------------- #
 
@@ -218,13 +269,18 @@ async def _fetch_repo(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierRe
     from ..tiers import Rendered, TierResult
 
     owner, repo = parts
+    unretrieved: list[str] = []
     repo_data = await gh.getitem("/repos/{owner}/{repo}", {"owner": owner, "repo": repo})
 
     readme_md = ""
-    try:
-        readme_payload = await gh.getitem("/repos/{owner}/{repo}/readme", {"owner": owner, "repo": repo})
-    except gidgethub.BadRequest:
-        readme_payload = None
+    # Caught `BadRequest` only until 2026-07-31, where four sibling guards catch
+    # `GitHubException` — so a RATE-LIMITED README (`RateLimitExceeded`) escaped
+    # to the handler's outer except and aborted the entire repo fetch. The
+    # opposite failure from the other five sites: over-failing where they
+    # under-fail, same family, same fix.
+    readme_payload = await _get_or_none("/repos/{owner}/{repo}/readme", {"owner": owner, "repo": repo}, gh=gh)
+    if readme_payload is None:
+        unretrieved.append("README")
     if isinstance(readme_payload, dict) and readme_payload.get("encoding") == "base64":
         import base64
 
@@ -233,9 +289,9 @@ async def _fetch_repo(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierRe
         except (ValueError, TypeError):
             readme_md = ""
 
-    next_links = await _fetch_repo_candidates(owner, repo, gh)
+    next_links = await _fetch_repo_candidates(owner, repo, gh, unretrieved)
 
-    rendered = _render_repo(repo_data, readme_md)
+    rendered = _render_repo(repo_data, readme_md, readme_unretrieved="README" in unretrieved)
     return TierResult(
         body=b"",
         content_type="application/json",
@@ -243,25 +299,35 @@ async def _fetch_repo(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierRe
         final_url=url,
         pre_rendered=Rendered.from_dict(rendered),
         next_links=next_links,
+        operator_hint=_degradation_hint(unretrieved),
         verdict=Verdict.ok,
     )
 
 
-async def _fetch_repo_candidates(owner: str, repo: str, gh: GitHubAPI) -> list[NextLink]:
+async def _fetch_repo_candidates(
+    owner: str,
+    repo: str,
+    gh: GitHubAPI,
+    unretrieved: list[str],
+) -> list[NextLink]:
     """Top 5 open issues + top 5 open PRs as `related` candidates.
 
-    Best-effort: any error returns what we have so far rather than failing.
+    Best-effort in the sense that a failure never sinks the fetch — but no
+    longer SILENT: a failed sub-fetch records its section in `unretrieved`, so
+    the caller can say "no open issues were retrieved" rather than presenting an
+    empty candidate list as "this repo has no open issues".
+
     GitHub's /issues endpoint returns BOTH issues and PRs — filter out items
     with `pull_request` to keep them disjoint.
     """
     out: list[NextLink] = []
-    try:
-        issues_data = await gh.getitem(
-            "/repos/{owner}/{repo}/issues{?state,per_page,sort,direction}",
-            {"owner": owner, "repo": repo, "state": "open", "per_page": "10", "sort": "comments", "direction": "desc"},
-        )
-    except gidgethub.GitHubException:
-        issues_data = None
+    issues_data = await _get_or_none(
+        "/repos/{owner}/{repo}/issues{?state,per_page,sort,direction}",
+        {"owner": owner, "repo": repo, "state": "open", "per_page": "10", "sort": "comments", "direction": "desc"},
+        gh=gh,
+    )
+    if issues_data is None:
+        unretrieved.append("open issues")
     issue_count = 0
     for it in issues_data if isinstance(issues_data, list) else []:
         if issue_count >= 5:
@@ -283,13 +349,13 @@ async def _fetch_repo_candidates(owner: str, repo: str, gh: GitHubAPI) -> list[N
         )
         issue_count += 1
 
-    try:
-        pulls_data = await gh.getitem(
-            "/repos/{owner}/{repo}/pulls{?state,per_page,sort,direction}",
-            {"owner": owner, "repo": repo, "state": "open", "per_page": "5", "sort": "popularity", "direction": "desc"},
-        )
-    except gidgethub.GitHubException:
-        pulls_data = None
+    pulls_data = await _get_or_none(
+        "/repos/{owner}/{repo}/pulls{?state,per_page,sort,direction}",
+        {"owner": owner, "repo": repo, "state": "open", "per_page": "5", "sort": "popularity", "direction": "desc"},
+        gh=gh,
+    )
+    if pulls_data is None:
+        unretrieved.append("open pull requests")
     pr_count = 0
     for pr in pulls_data if isinstance(pulls_data, list) else []:
         if pr_count >= 5:
@@ -318,26 +384,26 @@ async def _fetch_issue(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierR
     from ..tiers import Rendered, TierResult
 
     owner, repo, number = parts
+    unretrieved: list[str] = []
     issue_data = await gh.getitem(
         "/repos/{owner}/{repo}/issues/{number}",
         {"owner": owner, "repo": repo, "number": number},
     )
-    try:
-        loaded = await gh.getitem(
-            "/repos/{owner}/{repo}/issues/{number}/comments",
-            {"owner": owner, "repo": repo, "number": number},
-        )
-    except gidgethub.GitHubException:
-        loaded = None
-    comments: list[Any] = loaded if isinstance(loaded, list) else []
+    loaded = await _get_or_none(
+        "/repos/{owner}/{repo}/issues/{number}/comments",
+        {"owner": owner, "repo": repo, "number": number},
+        gh=gh,
+    )
+    comments: list[Any] = _rows_or_unretrieved(loaded, "comments", unretrieved)
 
-    rendered = _render_issue(issue_data, comments, kind="Issue")
+    rendered = _render_issue(issue_data, comments, kind="Issue", comments_unretrieved=bool(unretrieved))
     return TierResult(
         body=b"",
         content_type="application/json",
         status_code=200,
         final_url=url,
         pre_rendered=Rendered.from_dict(rendered),
+        operator_hint=_degradation_hint(unretrieved),
         verdict=Verdict.ok,
     )
 
@@ -346,35 +412,39 @@ async def _fetch_pull(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierRe
     from ..tiers import Rendered, TierResult
 
     owner, repo, number = parts
+    unretrieved: list[str] = []
     pr_data = await gh.getitem(
         "/repos/{owner}/{repo}/pulls/{number}",
         {"owner": owner, "repo": repo, "number": number},
     )
-    try:
-        loaded = await gh.getitem(
-            "/repos/{owner}/{repo}/pulls/{number}/reviews",
-            {"owner": owner, "repo": repo, "number": number},
-        )
-    except gidgethub.GitHubException:
-        loaded = None
-    reviews: list[Any] = loaded if isinstance(loaded, list) else []
+    loaded = await _get_or_none(
+        "/repos/{owner}/{repo}/pulls/{number}/reviews",
+        {"owner": owner, "repo": repo, "number": number},
+        gh=gh,
+    )
+    reviews: list[Any] = _rows_or_unretrieved(loaded, "reviews", unretrieved)
 
-    try:
-        loaded = await gh.getitem(
-            "/repos/{owner}/{repo}/issues/{number}/comments",
-            {"owner": owner, "repo": repo, "number": number},
-        )
-    except gidgethub.GitHubException:
-        loaded = None
-    comments: list[Any] = loaded if isinstance(loaded, list) else []
+    loaded = await _get_or_none(
+        "/repos/{owner}/{repo}/issues/{number}/comments",
+        {"owner": owner, "repo": repo, "number": number},
+        gh=gh,
+    )
+    comments: list[Any] = _rows_or_unretrieved(loaded, "comments", unretrieved)
 
-    rendered = _render_pull(pr_data, reviews, comments)
+    rendered = _render_pull(
+        pr_data,
+        reviews,
+        comments,
+        reviews_unretrieved="reviews" in unretrieved,
+        comments_unretrieved="comments" in unretrieved,
+    )
     return TierResult(
         body=b"",
         content_type="application/json",
         status_code=200,
         final_url=url,
         pre_rendered=Rendered.from_dict(rendered),
+        operator_hint=_degradation_hint(unretrieved),
         verdict=Verdict.ok,
     )
 
@@ -384,7 +454,7 @@ async def _fetch_pull(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierRe
 # --------------------------------------------------------------------- #
 
 
-def _render_repo(data: dict, readme_md: str) -> dict[str, object]:
+def _render_repo(data: dict, readme_md: str, *, readme_unretrieved: bool = False) -> dict[str, object]:
     full_name = data.get("full_name") or "unknown"
     description = data.get("description") or ""
     stars = data.get("stargazers_count", 0)
@@ -402,9 +472,14 @@ def _render_repo(data: dict, readme_md: str) -> dict[str, object]:
     if readme_md:
         parts.append("\n---\n\n## README\n\n")
         parts.append(readme_md)
+    elif readme_unretrieved:
+        # A repo with no README and a repo whose README we could not fetch are
+        # different facts. Only the first justifies silence.
+        parts.append("\n---\n\n## README\n\n")
+        parts.append(_UNRETRIEVED_MARKER + "\n")
 
     headings: list[Heading] = [Heading(level=1, text=full_name)]
-    if readme_md:
+    if readme_md or readme_unretrieved:
         headings.append(Heading(level=2, text="README"))
 
     return {
@@ -415,7 +490,13 @@ def _render_repo(data: dict, readme_md: str) -> dict[str, object]:
     }
 
 
-def _render_issue(data: dict, comments: list, *, kind: str) -> dict[str, object]:
+def _render_issue(
+    data: dict,
+    comments: list,
+    *,
+    kind: str,
+    comments_unretrieved: bool = False,
+) -> dict[str, object]:
     number = data.get("number")
     title = data.get("title") or "(untitled)"
     user_login = ""
@@ -433,6 +514,11 @@ def _render_issue(data: dict, comments: list, *, kind: str) -> dict[str, object]
     if body:
         parts.append(body + "\n\n")
     parts.append("---\n\n## Comments\n\n")
+    if comments_unretrieved:
+        # Without this line an empty `## Comments` section reads as "this issue
+        # has no comments" — which is exactly what a throttled sub-fetch used to
+        # look like.
+        parts.append(_UNRETRIEVED_MARKER + "\n\n")
     for c in comments:
         if not isinstance(c, dict):
             continue
@@ -451,10 +537,25 @@ def _render_issue(data: dict, comments: list, *, kind: str) -> dict[str, object]
     }
 
 
-def _render_pull(data: dict, reviews: list, comments: list) -> dict[str, object]:
-    rendered = _render_issue(data, comments, kind="Pull")
-    if not reviews:
+def _render_pull(
+    data: dict,
+    reviews: list,
+    comments: list,
+    *,
+    reviews_unretrieved: bool = False,
+    comments_unretrieved: bool = False,
+) -> dict[str, object]:
+    rendered = _render_issue(data, comments, kind="Pull", comments_unretrieved=comments_unretrieved)
+    if not reviews and not reviews_unretrieved:
         return rendered
+    if reviews_unretrieved:
+        base = [str(rendered["content_md"]), "\n## Reviews\n\n", _UNRETRIEVED_MARKER + "\n"]
+        headings = rendered["headings"]
+        return {
+            **rendered,
+            "content_md": "".join(base).strip() + "\n",
+            "headings": [*headings, Heading(level=2, text="Reviews")] if isinstance(headings, list) else headings,
+        }
 
     parts: list[str] = [str(rendered["content_md"]), "\n## Reviews\n\n"]
     for r in reviews:

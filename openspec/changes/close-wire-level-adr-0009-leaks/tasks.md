@@ -29,15 +29,18 @@ anything.
 
 ## 2. `github.py` launders degradation into ok
 
-- [ ] 2.1 Write a failing test: a supplementary GitHub call raises
+- [x] 2.1 Write a failing test: a supplementary GitHub call raises
       `GitHubException`, and assert the response does NOT present the section as
       empty-at-source.
-- [ ] 2.2 Add the unretrieved-section operator hint (decide single-code vs
-      per-section per design Open Questions).
-- [ ] 2.3 Apply it at all six degrade sites.
-- [ ] 2.4 Fix `github.py:226` — widen the README guard from `BadRequest` to
+- [x] 2.2 Add the unretrieved-section operator hint (decide single-code vs
+      per-section per design Open Questions). **Resolved: single code**
+      (`section_unretrieved`), sections named in the message. `TierResult.operator_hint`
+      is singular, so a code per section could not represent a PR whose reviews
+      AND comments both degraded — and it would grow the catalogue per handler.
+- [x] 2.3 Apply it at all six degrade sites.
+- [x] 2.4 Fix `github.py:226` — widen the README guard from `BadRequest` to
       `GitHubException` so a rate-limited README stops aborting the repo fetch.
-- [ ] 2.5 Assert a genuinely-empty section emits no hint.
+- [x] 2.5 Assert a genuinely-empty section emits no hint.
 
 ## 3. `_fetch_old_reddit` returns ok for an interstitial
 
