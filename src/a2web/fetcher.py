@@ -12,8 +12,11 @@ sequence of named phase functions that mutate fields on it; the top-level
 
 from __future__ import annotations
 
+import asyncio
 import re
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
 from dataclasses import dataclass as _dc
 from datetime import UTC, date, datetime
@@ -78,6 +81,7 @@ from .models import (
     content_empty_hint,
     content_not_found_hint,
     content_thin_hint,
+    fetch_deadline_hint,
     paid_auth_error_hint,
     try_user_browser_hint,
 )
@@ -439,6 +443,15 @@ class FetchContext:
     # Tool-param off-switch. When False, the final response forces [].
     next_links_enabled: bool = True
 
+    # Monotonic instant past which no further hop may be dispatched. `None`
+    # disables the deadline — which is what `fetch_deadline_s <= 0` selects, and
+    # also what a directly-constructed context (unit tests, the eval harness)
+    # gets. Defaulted rather than required because those callers construct this
+    # by hand; `fetch()` — the only production construction site — always sets
+    # it from settings. Monotonic, not wall clock: a clock step must never
+    # shorten or extend a fetch budget.
+    deadline_perf: float | None = None
+
     # reddit-via-zyte content-expectations: loaded/oracle comment counts a
     # handler measured (None unless the page carried the concept). Threaded onto
     # the response envelope by `build_response`.
@@ -555,6 +568,57 @@ class GateOutcomeProjection:
     escalation: EscalationSignal | None
 
 
+# --------------------------------------------------------------------- #
+# Per-fetch deadline
+# --------------------------------------------------------------------- #
+
+
+class DeadlineExceeded(Exception):
+    """Raised at a dispatch boundary when the fetch budget is spent."""
+
+
+def _remaining_budget(fc: FetchContext) -> float | None:
+    """Seconds left on the fetch deadline, or `None` when it is disabled."""
+    if fc.deadline_perf is None:
+        return None
+    return fc.deadline_perf - time.perf_counter()
+
+
+def _check_deadline(fc: FetchContext, *, about_to: str) -> None:
+    """Refuse to dispatch another hop once the budget is spent.
+
+    Checked BEFORE each dispatch rather than enforced by cancelling mid-flight:
+    a hop that is already running has usually already paid its network cost, and
+    killing it converts a slow-but-succeeding fetch into a failure. What must be
+    prevented is *starting* work there is no budget left to finish.
+    """
+    remaining = _remaining_budget(fc)
+    if remaining is not None and remaining <= 0:
+        raise DeadlineExceeded(about_to)
+
+
+@asynccontextmanager
+async def _within_budget(fc: FetchContext, *, about_to: str) -> AsyncIterator[None]:
+    """Bound one hop by `min(its own timeout, the remaining fetch budget)`.
+
+    The hop keeps its own timeout — this only caps it when less budget remains
+    than the hop would otherwise take. Applied at the dispatch site rather than
+    inside each tier deliberately: there are eight tiers plus the handlers, and
+    a bound that has to be re-implemented nine times is a bound that will be
+    missing from the tenth.
+    """
+    _check_deadline(fc, about_to=about_to)
+    remaining = _remaining_budget(fc)
+    if remaining is None:
+        yield
+        return
+    try:
+        async with asyncio.timeout(remaining):
+            yield
+    except TimeoutError as exc:
+        raise DeadlineExceeded(about_to) from exc
+
+
 async def fetch(
     url: str,
     *,
@@ -654,9 +718,11 @@ async def fetch(
         )
     )
 
+    deadline_s = state.settings.fetch_deadline_s
     fc = FetchContext(
         started_at=started_at,
         start_perf=start_perf,
+        deadline_perf=(start_perf + deadline_s) if deadline_s > 0 else None,
         profile_hash=profile_hash,
         sqlite=sqlite,
         bypass_cache=bypass_cache,
@@ -1126,14 +1192,15 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
 
             await a2web_log.info(TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
 
-            tier_result = await tier.fetch(
-                fc.url,
-                state=state,
-                proxy_url=handle.proxy_url,
-                conditional_extras=conditional_extras,
-                cookies=fc.cookies,
-                cookies_full=fc.cookies_full,
-            )
+            async with _within_budget(fc, about_to=f"tier:{tier_name}"):
+                tier_result = await tier.fetch(
+                    fc.url,
+                    state=state,
+                    proxy_url=handle.proxy_url,
+                    conditional_extras=conditional_extras,
+                    cookies=fc.cookies,
+                    cookies_full=fc.cookies_full,
+                )
 
             # Silent skip — no diagnostic row
             if tier_result.no_match or tier_result.skipped:
@@ -2159,7 +2226,8 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
         backend = None
     browser_tier = REGISTRY[rung]
     br_start_ms = await _emit_tier_started(step=rung, host=_host(fc.final_url), start_perf=fc.start_perf)
-    browser_result = await browser_tier.fetch(fc.final_url, state=state, backend=backend, scroll=scroll)
+    async with _within_budget(fc, about_to="tier:browser"):
+        browser_result = await browser_tier.fetch(fc.final_url, state=state, backend=backend, scroll=scroll)
     fc.browser_dispatches += 1
     br_dur_ms = await _emit_tier_ended(
         step=rung,
@@ -2265,7 +2333,8 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = Fa
         if tier is None:
             continue  # un-keyed at boot — not registered.
         paid_start_ms = await _emit_tier_started(step=tier_name, host=_host(fc.final_url), start_perf=fc.start_perf)
-        result = await tier.fetch(fc.final_url, state=state, scroll=scroll)
+        async with _within_budget(fc, about_to=f"tier:{tier.name}"):
+            result = await tier.fetch(fc.final_url, state=state, scroll=scroll)
         paid_dur_ms = await _emit_tier_ended(
             step=tier_name,
             engine=tier_name,
@@ -2378,6 +2447,41 @@ async def _run_pipeline(
     state: AppState,
 ) -> FetchResponse:
     """Run the cascade end-to-end; return the response built from the context."""
+    try:
+        await _run_phases(fc, state=state)
+    except DeadlineExceeded as exc:
+        # ADR-0009: a spent budget is an UNFINISHED JOB, never an outcome. Fall
+        # through to the same terminal machinery every other failure uses, so
+        # the caller gets `status: failed` + `retrieval_incomplete` + a loud
+        # hint rather than a truncated success or an exception.
+        await _record_deadline(fc, about_to=str(exc), state=state)
+    _apply_terminal(fc)
+    return build_response(fc)
+
+
+async def _record_deadline(fc: FetchContext, *, about_to: str, state: AppState) -> None:
+    """Log the expiry and attach the operator hint."""
+    seconds = state.settings.fetch_deadline_s
+    fc.observe(kind=ObservationKind.tier_outcome, source="deadline", verdict=Verdict.timeout)
+    if not _has_hint(fc, "fetch_deadline_exceeded"):
+        fc.operator_hints.append(fetch_deadline_hint(fc.final_url or fc.url, seconds=seconds, about_to=about_to))
+    await a2web_log.warning(
+        StageEnded(
+            t_ms=int((time.perf_counter() - fc.start_perf) * 1000),
+            step="deadline",
+            verdict=Verdict.timeout,
+            dur_ms=0,
+            extra={"budget_s": f"{seconds:g}", "stopped_before": about_to},
+        )
+    )
+
+
+async def _run_phases(
+    fc: FetchContext,
+    *,
+    state: AppState,
+) -> None:
+    """The phase sequence. Any hop may raise `DeadlineExceeded`."""
     await _phase_cache_check(fc)
     await _phase_tier_loop(fc, state=state)
     # Cache hits still go through extract+gate — the body came from cache, but
@@ -2413,12 +2517,9 @@ async def _run_pipeline(
     _phase_empty_promotion(fc)
     # v0.8: emit cookies_stale hint once per fetch when mirror is stale.
     await _phase_cookies_staleness(fc, state=state)
-    # never-silently-miss floor (ADR-0009): after EVERY escalation phase has run
-    # (so an obstacle/listing render that recovered the page to `ok` already
-    # counts), prescribe the caller's own browser on any non-ok terminal that is
-    # not genuinely gone. Single systematic emission — no per-verdict whitelist.
-    _apply_terminal(fc)
-    return build_response(fc)
+    # `_apply_terminal` is NOT called here — the coordinator owns it, so the
+    # never-silently-miss floor runs on the deadline path too. Calling it in
+    # both places would run it twice on every successful fetch.
 
 
 # Server-side ceiling on digest size — a circuit breaker on token cost, never a

@@ -216,6 +216,20 @@ class AppSettings(BaseSettings):
     # a long extraction over a large page on a slow gateway is legitimate, and a
     # timeout that fires on healthy work is its own defect. Set to 0 to disable.
     llm_timeout_s: float = 180.0
+    # Wall-clock bound on ONE `fetch()`, seconds — the ladder as a whole, not a
+    # single hop. Every hop is individually bounded, but nothing bounded their
+    # SUM: a fetch that walks handler → raw → jina → archive → browser → paid and
+    # then extracts could legitimately run past six minutes with the caller
+    # holding an open tool call the whole time.
+    #
+    # DERIVED, not guessed: summing the per-hop constants in the tree
+    # (github 15 + raw 10 + jina 15 + archive 12 + browser launch 45 + page 30 +
+    # zyte 60 + firecrawl 40 + llm 180) gives a 407s worst-case serial walk.
+    # 480 sits above it, so the deadline is a backstop against a pathological
+    # walk rather than a second, tighter budget that would cut healthy work
+    # short. Re-derive with `docs/findings/` if a hop constant changes.
+    # Set to 0 to disable.
+    fetch_deadline_s: float = 480.0
     # OpenAI-compatible backend — reads the OpenAI SDK's STANDARD env vars, not
     # custom a2web ones: `OPENAI_API_KEY` (key; presence gates availability and
     # derives the backend as the last-resort fallback), `OPENAI_BASE_URL`

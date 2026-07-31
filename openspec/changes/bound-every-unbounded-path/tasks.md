@@ -67,17 +67,30 @@ seam rests on, and the new doubles did not declare `DOUBLES_ARM`.
 
 ## 3. There is no per-fetch deadline
 
-- [ ] 3.1 Measure the current worst-case ladder walk, so the default is derived
+**SHIPPED 2026-08-01.** 3.1's measurement is recorded at the `fetch_deadline_s`
+setting so it sits next to the number it justifies. 3.4 is enforced at the
+DISPATCH SITE (`_within_budget`), not inside each tier: there are eight tiers
+plus the handlers, and a bound re-implemented nine times is the one that will be
+missing from the tenth. The check happens BEFORE a hop starts rather than by
+cancelling one mid-flight — a running hop has usually already paid its network
+cost, and killing it converts a slow-but-succeeding fetch into a failure.
+
+- [x] 3.1 Measure the current worst-case ladder walk, so the default is derived
       rather than guessed. Record the measurement.
-- [ ] 3.2 Add the deadline setting, defaulted above the measured worst case.
-- [ ] 3.3 Set a monotonic deadline at `fetch()` entry; carry it on
+- [x] 3.2 Add the deadline setting, defaulted above the measured worst case.
+- [x] 3.3 Set a monotonic deadline at `fetch()` entry; carry it on
       `FetchContext`.
-- [ ] 3.4 Bound each hop by `min(own timeout, remaining budget)`.
-- [ ] 3.5 On expiry, produce `status: failed` + `retrieval_incomplete: true` +
+- [x] 3.4 Bound each hop by `min(own timeout, remaining budget)`.
+- [x] 3.5 On expiry, produce `status: failed` + `retrieval_incomplete: true` +
       an operator hint naming the deadline.
-- [ ] 3.6 Test that no further tier or escalation is dispatched after expiry.
-- [ ] 3.7 Decide and implement whether `fetch_raw` gets its own lower default
-      (design Open Questions).
+- [x] 3.6 Test that no further tier or escalation is dispatched after expiry.
+- [x] 3.7 **Decided: NO separate default.** `fetch_raw` skips the LLM, so its
+      worst-case serial walk is 227s against `query`'s 407s — both comfortably
+      under the single 480s deadline. A second knob would have to be kept in
+      sync with the same per-hop constants for no protection the first one does
+      not already give, and a deadline nobody re-derives when a hop constant
+      changes is worse than none. One deadline, derived, documented at the
+      setting.
 
 ## 4. Request bounds become configuration
 

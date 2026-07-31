@@ -273,6 +273,38 @@ def comments_partial_hint(*, loaded: int, total: int) -> OperatorHint:
     )
 
 
+def fetch_deadline_hint(url: str, *, seconds: float, about_to: str) -> OperatorHint:
+    """The per-fetch budget was spent before the URL was retrieved.
+
+    `critical`, and worded as a2web's own decision. Every hop was individually
+    bounded, but until 2026-08-01 nothing bounded their SUM — a ladder walk of
+    handler → raw → jina → archive → browser → paid plus extraction can spend
+    over six minutes while the caller holds an open tool call. The deadline is a
+    backstop against a pathological walk; when it fires, the honest report is
+    that a2web ran out of budget, NOT that the site is slow or unreachable
+    (a2web has no evidence for either).
+
+    Names the stage that was about to start, because that is the actionable
+    part: a deadline spent before `tier:browser` and one spent before
+    `tier:zyte` point at very different problems.
+    """
+    return OperatorHint(
+        code="fetch_deadline_exceeded",
+        severity="critical",
+        message=(
+            f"This URL was NOT retrieved ({url}). a2web spent its whole "
+            f"{seconds:g}s per-fetch budget and stopped before starting "
+            f"`{about_to}`. This is a2web's own limit, not a statement about the "
+            "site — the page may well be reachable given more time."
+        ),
+        fix=(
+            "Raise A2WEB_FETCH_DEADLINE_S if this URL legitimately needs a long "
+            "ladder walk, or retry: a deadline is often spent on one slow hop "
+            "that succeeds on a second attempt."
+        ),
+    )
+
+
 def paid_auth_error_hint(url: str, *, tier: str) -> OperatorHint:
     """A keyed paid tier rejected its credential — an OPERATOR fault, loud.
 
