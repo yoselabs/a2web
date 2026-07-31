@@ -71,7 +71,7 @@ class V2EXHandler:
         request_headers = {"User-Agent": state.settings.default_ua}
 
         async def _load(key: str, endpoint: str) -> None:
-            results[key] = await _fetch_json(endpoint, request_headers)
+            results[key] = await _fetch_json(endpoint, request_headers, timeout_s=state.settings.request_timeout(_DEFAULT_TIMEOUT_S))
 
         async with anyio.create_task_group() as tg:
             tg.start_soon(_load, "topic", f"{_API_BASE}/topics/show.json?id={topic_id}")
@@ -96,14 +96,14 @@ class V2EXHandler:
         )
 
 
-async def _fetch_json(endpoint: str, headers: dict[str, str]) -> Any:
+async def _fetch_json(endpoint: str, headers: dict[str, str], *, timeout_s: float) -> Any:
     """GET `endpoint` via the shared primitive and return parsed JSON, or
     `None` on any routine failure.
 
     Never raises — a per-task failure must not cancel its sibling in the task
     group, so each fetch isolates its own errors.
     """
-    outcome = await fetch_bytes(endpoint, headers=headers, timeout_s=_DEFAULT_TIMEOUT_S)
+    outcome = await fetch_bytes(endpoint, headers=headers, timeout_s=timeout_s)
     if outcome.verdict is not FetchVerdict.ok or outcome.status_code != 200:
         return None
     try:

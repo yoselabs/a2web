@@ -94,16 +94,25 @@ cost, and killing it converts a slow-but-succeeding fetch into a failure.
 
 ## 4. Request bounds become configuration
 
-- [ ] 4.1 Inventory the 34 timeout sites; identify which are request bounds
+**SHIPPED 2026-08-01.** 4.1's inventory: 14 request bounds (5 tiers, 9
+handlers); `browser_idle_timeout_s` and `browser_reaper_interval_s` are idle/poll
+intervals and correctly out of scope. 4.2 routes them through a SCALE
+(`request_timeout_scale`) rather than 14 absolute overrides or one flat value —
+the constants are individually tuned and their ratios carry meaning, so 14 knobs
+would be a second copy of the table that drifts and one flat value would cap the
+paid render at the probe's budget. Four sites had no `state` in scope
+(archive/habr/v2ex/github) and thread the resolved value instead.
+
+- [x] 4.1 Inventory the 34 timeout sites; identify which are request bounds
       (versus idle/poll intervals, which are out of scope).
-- [ ] 4.2 Route the request bounds through settings.
-- [ ] 4.3 Test that an operator-set value reaches the call site.
+- [x] 4.2 Route the request bounds through settings.
+- [x] 4.3 Test that an operator-set value reaches the call site.
 
 ## 5. Close out
 
-- [ ] 5.1 `make check` green.
-- [ ] 5.2 Confirm each witness fails when its fix is reverted.
-- [ ] 5.3 Add a corpus entry for a deadline-exceeded fetch, per the
+- [x] 5.1 `make check` green.
+- [x] 5.2 Confirm each witness fails when its fix is reverted.
+- [x] 5.3 Add a corpus entry for a deadline-exceeded fetch, per the
       never-lose-a-case rule.
-- [ ] 5.4 Update `CLAUDE.md` — it documents no deadline today.
-- [ ] 5.5 Move the BACKLOG entries to `BACKLOG-CLOSED.md`.
+- [x] 5.4 Update `CLAUDE.md` — it documents no deadline today.
+- [x] 5.5 Move the BACKLOG entries to `BACKLOG-CLOSED.md`.

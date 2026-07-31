@@ -88,7 +88,9 @@ class HabrHandler:
         request_headers = {"User-Agent": state.settings.default_ua}
 
         async def _load(key: str, endpoint: str) -> None:
-            results[key] = await _fetch_json(endpoint, params, request_headers)
+            results[key] = await _fetch_json(
+                endpoint, params, request_headers, timeout_s=state.settings.request_timeout(_DEFAULT_TIMEOUT_S)
+            )
 
         async with anyio.create_task_group() as tg:
             tg.start_soon(_load, "article", f"{base}/")
@@ -112,7 +114,7 @@ class HabrHandler:
         )
 
 
-async def _fetch_json(endpoint: str, params: dict[str, str], headers: dict[str, str]) -> dict[str, Any] | None:
+async def _fetch_json(endpoint: str, params: dict[str, str], headers: dict[str, str], *, timeout_s: float) -> dict[str, Any] | None:
     """GET `endpoint?params` via the shared primitive and return parsed JSON,
     or `None` on any routine failure.
 
@@ -120,7 +122,7 @@ async def _fetch_json(endpoint: str, params: dict[str, str], headers: dict[str, 
     group, so each fetch isolates its own errors.
     """
     url = f"{endpoint}?{urlencode(params)}" if params else endpoint
-    outcome = await fetch_bytes(url, headers=headers, timeout_s=_DEFAULT_TIMEOUT_S)
+    outcome = await fetch_bytes(url, headers=headers, timeout_s=timeout_s)
     if outcome.verdict is not FetchVerdict.ok or outcome.status_code != 200:
         return None
     try:

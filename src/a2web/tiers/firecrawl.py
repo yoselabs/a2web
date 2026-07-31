@@ -57,7 +57,7 @@ class FirecrawlTier:
 
         headers = {"Authorization": f"Bearer {key}"}
         try:
-            async with httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True) as client:
+            async with httpx.AsyncClient(timeout=state.settings.request_timeout(_TIMEOUT_S), follow_redirects=True) as client:
                 resp = await client.post(_API_URL, json={"url": url, "formats": ["markdown"]}, headers=headers)
         except httpx.TimeoutException:
             return TierResult(body=b"", content_type="text/markdown", status_code=0, final_url=url, verdict=Verdict.timeout)

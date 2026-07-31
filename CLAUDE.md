@@ -220,6 +220,26 @@ Currently enforced:
 - **Never assert a wall on evidence-free thinness, and never promote an unverified empty to `ok`** (the first-class product invariant — empty-vs-wall-discrimination). A retrieved thin 200 (`length_floor`) is AMBIGUOUS between a genuine empty result and an unfingerprinted wall — the discriminator is NOT in the body text (a regex or LLM read is equally blind to the walled-API fake-empty: an SPA shell that 200s and renders an authentic "0 results" while its data API was 403'd). So a thin page with no wall evidence is `thin_unverified` (`content_thin` WARNING, worded AGNOSTICALLY, body attached — never the critical klaxon, never a "most likely empty" claim); an empty-result marker only sharpens it to `empty_unverified` (still failed). Promotion to an `ok` "no results" answer requires the pure `is_confirmed_empty` conjunction: an independent BROWSER render also read empty (the browser wins the tier loop so jina never runs on a thin 200 — the browser is the second retrieval, and it watches subresources) + an HTTP tier returned a body + NO 4xx/challenge status + NO `subresource_blocks` evidence + NO hard-wall evidence anywhere + a search-shaped URL. The browser's `subresource_blocks` observation (a challenged XHR/fetch during render) is a `wall` — the fake-empty catch no text reader can make. The promoted empty is wire-only, NEVER cached (a wrongly-cached empty is a repeating silent miss). The design's center of gravity is the false-positive asymmetry: a false-positive wall over-warns (cheap); a false-positive empty is a confident silent miss (the ADR-0009 harm), so every ambiguous case errors toward the wall side. Sibling to ADR-0009/0015.
 - **Never bill the metered Anthropic API in the dev/eval/bench loop** (the dev-loop invariant — ADR-0016). Expensive models only via subscription, never metered: `make bench` defaults `A2WEB_BENCH_PROVIDER=claude-code-sdk` and the provider is wrapped in the shelf's `anyllm.cost` guard (`with_cost_guard`), so every `complete()` asserts the resolved `(provider, model)` pair before the call — the two subscription backends (`claude-code-sdk` / `claude-code-cli`) allow any model, metered `anthropic-api` allows only Haiku-class, `openai-compatible` a conservative cheap allowlist, and any pair absent from the table raise `CostViolation` before spending (the $20 regression). Undetected subscription session → fail loud (`LLMNotAvailable`), never silent-fall-through to metered billing. Every run artifact stamps the `provider` + model used (the ADR-0016 "provenance" — provider stamping, NOT ADR-0014's URL provenance). Metered `anthropic-api` (cheap only) is explicit-opt-in via `A2WEB_BENCH_PROVIDER=anthropic-api`. **Provider ids are `anyllm.ProviderName` values** — the pre-rename spellings (`claude-code`, `anthropic`) are no longer valid and fail at resolution.
 - Never retry the whole flow — retries live at one of 5 specific layers (connection / HTTP / proxy / tier / handler) with circuit breakers.
+- **Never add an unbounded wait, and never bound it per-call-site.** Three
+  layers, each enforced at ONE seam: `settings.request_timeout(default)` scales
+  every per-request network bound (14 tier/handler constants — a SCALE, so the
+  deliberate 5s:60s ratios survive); `llm_resource.TimeoutProvider` bounds every
+  `complete()` at the provider seam (`anyllm` has none of its own); and
+  `fetcher._within_budget` bounds the whole fetch by `min(hop timeout, remaining
+  budget)` at the dispatch site. The per-site alternative was rejected for a
+  reason that has now cost real defects twice: a bound re-implemented N times is
+  the one missing from the N+1th. Pinned by
+  `test_request_bounds_are_configurable.py`,
+  `test_recursive_renderers_are_bounded.py`, and the deadline witnesses.
+  `fetch_deadline_s`'s default is DERIVED from summing the hop constants (407s
+  worst case → 480s) — re-derive it, don't nudge it, when a hop constant moves.
+- **Never let a recursive renderer walk untrusted remote input unbounded.** A
+  handler's comment/reply tree comes from the network; `hn._render_kid` had no
+  cap and a thread nested past CPython's frame limit raised `RecursionError` out
+  of the handler. Cap depth AND a shared node budget, because a branch that does
+  not advance `depth` (a deleted-comment chain) defeats a depth cap alone. Then
+  declare the truncation — a caller that cannot tell "the thread ends here" from
+  "a2web stopped rendering" will read the first into the second (ADR-0009).
 - Never add `print()` or sync I/O in async paths.
 - Never reintroduce `tier_extras: dict[str, Any]` — add a typed field on `TierResult` instead.
 - Never bypass `Lazy[T]` for heavy resources at the tool seam — `await components.browser_backend()` inside a tool body defeats lazy first-use for every caller. Pass the thunk down; unwrap once at the consuming phase. Pinned by `test_cold_start_laziness.py`.

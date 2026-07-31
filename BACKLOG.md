@@ -97,7 +97,7 @@ same as ready to start.
 | # | change | covers | status |
 |---|---|---|---|
 | 1 | `close-wire-level-adr-0009-leaks` | T3 + T7 live: TSV severity loss, github silent degrade, reddit interstitial, `paid_auth_error` hint, dead `a2effect` branch | **SHIPPED** 2026-07-31 → `BACKLOG-CLOSED.md` |
-| 2 | `bound-every-unbounded-path` | T3 + T7 live: no LLM timeout, no per-fetch deadline, `hn.py` unbounded recursion | **authored** |
+| 2 | `bound-every-unbounded-path` | T3 + T7 live: no LLM timeout, no per-fetch deadline, `hn.py` unbounded recursion | **SHIPPED** 2026-08-01 → `BACKLOG-CLOSED.md` |
 | 3 | `fix-cache-ttl-and-listing-sufficiency` | T3: 7-day TTL on live API data, dead `cache_ttl_live_m`, listing sufficiency OFF | **authored** |
 | 4 | `run-the-gate-on-every-push` | T4 CI — **do first**, everything else's guards are inert until it lands | **authored** |
 | 5 | `close-guards-that-read-green` | T4 remainder: markup funnel misses `re.search`/`re.sub`, two guards answer a different question, two cited guards don't exist, 22 doubleable constants, playbook 1.00 lockstep, partial eval loss exits 0, the corpus cannot see the envelope | **authored** |
@@ -267,8 +267,6 @@ Three recurring failures, in cost order:
 
 | finding | tier |
 |---|---|
-| [no per-fetch deadline; the LLM call has no timeout at all](docs/findings/2026-07-31-primitives-scan.md#no-per-fetch-deadline-anywhere--live) | M, correctness — LIVE |
-| [`hn.py:233` recurses on untrusted input with no depth cap](docs/findings/2026-07-31-primitives-scan.md#hnpy233-recurses-on-untrusted-input-with-no-depth-cap--live) | S, correctness — LIVE |
 | [`page-tsv` still ships all three encoder defects a2web fixed](docs/findings/2026-07-31-primitives-scan.md#the-largest-un-repaid-debt-page-tsv-still-ships-all-three-encoder-defects) | M, shelf promotion — affects `a2kay` |
 | [five more shelf gaps a2web has already paid for](docs/findings/2026-07-31-primitives-scan.md#five-more-shelf-gaps-a2web-paid-for) | M, shelf promotion |
 | [`prune_dict` imported, re-exported, never called](docs/findings/2026-07-31-primitives-scan.md#prune_dict--imported-re-exported-never-called) | S, structure |

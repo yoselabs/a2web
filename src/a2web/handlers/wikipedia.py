@@ -63,7 +63,7 @@ class WikipediaHandler:
         outcome = await fetch_bytes(
             api_url,
             headers={"User-Agent": state.settings.default_ua, "Accept": "text/html"},
-            timeout_s=_TIMEOUT_S,
+            timeout_s=state.settings.request_timeout(_TIMEOUT_S),
         )
 
         non_ok = map_non_ok(outcome, url=url)

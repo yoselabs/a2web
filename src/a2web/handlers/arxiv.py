@@ -84,7 +84,7 @@ class ArxivHandler:
         outcome = await fetch_bytes(
             f"{_API_URL}?{urlencode({'id_list': arxiv_id})}",
             headers={"User-Agent": state.settings.default_ua},
-            timeout_s=_TIMEOUT_S,
+            timeout_s=state.settings.request_timeout(_TIMEOUT_S),
         )
 
         non_ok = map_non_ok(outcome, url=url)
@@ -126,7 +126,7 @@ class ArxivHandler:
         outcome = await fetch_bytes(
             list_url,
             headers={"User-Agent": state.settings.default_ua},
-            timeout_s=_TIMEOUT_S,
+            timeout_s=state.settings.request_timeout(_TIMEOUT_S),
         )
 
         non_ok = map_non_ok(outcome, url=url)

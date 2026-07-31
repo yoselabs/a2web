@@ -356,7 +356,7 @@ async def _fetch_rss(rss_url: str, *, state: AppState, cookies: dict[str, str] |
     outcome = await fetch_bytes(
         rss_url,
         headers={"User-Agent": state.settings.default_ua},
-        timeout_s=_DEFAULT_TIMEOUT_S,
+        timeout_s=state.settings.request_timeout(_DEFAULT_TIMEOUT_S),
         cookies=cookies,
     )
     attempt = 0
@@ -368,7 +368,7 @@ async def _fetch_rss(rss_url: str, *, state: AppState, cookies: dict[str, str] |
         outcome = await fetch_bytes(
             rss_url,
             headers={"User-Agent": state.settings.default_ua},
-            timeout_s=_DEFAULT_TIMEOUT_S,
+            timeout_s=state.settings.request_timeout(_DEFAULT_TIMEOUT_S),
             cookies=cookies,
         )
         attempt += 1
@@ -837,7 +837,7 @@ async def _resolve_short_url(url: str, *, state: AppState) -> str | None:
     outcome = await fetch_bytes(
         url,
         headers={"User-Agent": state.settings.default_ua},
-        timeout_s=_DEFAULT_TIMEOUT_S,
+        timeout_s=state.settings.request_timeout(_DEFAULT_TIMEOUT_S),
     )
     if outcome.verdict is not FetchVerdict.ok:
         return None
@@ -869,7 +869,7 @@ async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str
     outcome = await fetch_bytes(
         old_url,
         headers={"User-Agent": state.settings.default_ua},
-        timeout_s=_DEFAULT_TIMEOUT_S,
+        timeout_s=state.settings.request_timeout(_DEFAULT_TIMEOUT_S),
         cookies=cookies,
     )
     if outcome.verdict is FetchVerdict.timeout:

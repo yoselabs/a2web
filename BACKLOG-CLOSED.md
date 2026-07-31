@@ -438,3 +438,49 @@ early return skipped the structured ladder that PRODUCES those candidates —
 `json_in_html` + `record_mine`, neither of which is the trafilatura pass the
 `pre_rendered` optimisation exists to avoid. Fixed in
 `narrow-the-pre-rendered-extraction-skip`. Do not reopen the gate.
+
+## 2026-08-01 — `bound-every-unbounded-path` (§1–§4)
+
+**Three unbounded waits and one unbounded recursion, all closed at a single seam
+each.** The recurring lesson across all four: a bound that has to be
+re-implemented at N sites is the bound that will be missing from the N+1th.
+
+- **`hn.py` recursed on untrusted remote input with no cap.** Reproduced as
+  `RecursionError` at depth 5000. Two shapes — plain nesting, and a chain of
+  DELETED comments that recurses with `depth` unchanged and so defeats a depth
+  cap entirely. `habr` and `discourse` had `_MAX_DEPTH` all along, which made
+  this drift rather than a design gap. The change's task list said to fix the
+  deleted path by advancing `depth`; that would re-indent every existing thread
+  containing a deleted comment, so the shared comment budget bounds it instead
+  with no rendering change. **The architecture guard's own first draft was
+  vacuous** — it matched the substring `budget` anywhere in the function,
+  including the parameter name, and stayed green with the bound deleted. Caught
+  only by running the fix-reverted check against the guard, not just the
+  witnesses.
+- **No LLM timeout.** `anyllm` has no per-request bound, so a provider that
+  never returns hung the fetch forever — the tool call never completes and the
+  caller has nothing to act on, which is worse than a loud failure. Bounded by
+  wrapping the PROVIDER at `select_provider`, covering all five `complete()`
+  call sites and any added later. `LLMTimeout` subclasses `AnyLLMError` so it
+  rides the existing degrade seam and keeps `packages/llm_extract/` free of a
+  domain import. Filed as a shelf promotion under T7 — every anyllm consumer
+  has this hole.
+- **No per-fetch deadline.** Hops were bounded; their SUM was not. Default
+  DERIVED (407s measured worst-case walk → 480s), not guessed, with the
+  measurement recorded at the setting. Enforced at the dispatch site by
+  `_within_budget`, checked BEFORE a hop starts rather than cancelling one
+  mid-flight — a running hop has already paid its network cost. Expiry takes
+  the ADR-0009 terminal path, and the hint says a2web ran out of budget, never
+  that the site is slow.
+- **Request bounds were frozen constants.** 14 of them, unreachable by any
+  operator. Now a SCALE (`request_timeout_scale`), not 14 overrides and not one
+  flat value: those numbers are individually tuned and their ratios carry the
+  meaning — a paid render legitimately needs 6x an nitter probe. The guard
+  immediately caught a github class-attribute default that would have silently
+  ignored the setting; removed rather than allowlisted.
+
+Two first-draft defects of my own, both caught by guards already in the suite
+rather than by review: wrapping the provider unconditionally produced a truthy
+`TimeoutProvider(inner=None)` that destroyed the `no provider → None` contract
+the whole `ResourceUnavailable` seam rests on, and the new LLM doubles did not
+declare `DOUBLES_ARM`.

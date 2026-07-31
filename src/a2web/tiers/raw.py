@@ -100,7 +100,7 @@ class RawTier:
         outcome = await fetch_bytes(
             url,
             headers=request_headers,
-            timeout_s=_DEFAULT_TIMEOUT_S,
+            timeout_s=state.settings.request_timeout(_DEFAULT_TIMEOUT_S),
             proxy_url=proxy_url,
             cookies=cookies,
             conditional_extras=primitive_extras,

@@ -128,11 +128,12 @@ class JinaTier:
             headers["Authorization"] = f"Bearer {state.settings.jina_key}"
 
         target = _BASE_URL + url
+        timeout_s = state.settings.request_timeout(_TIMEOUT_S)
         try:
             client = (
-                httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True, proxy=proxy_url)
+                httpx.AsyncClient(timeout=timeout_s, follow_redirects=True, proxy=proxy_url)
                 if proxy_url
-                else httpx.AsyncClient(timeout=_TIMEOUT_S, follow_redirects=True)
+                else httpx.AsyncClient(timeout=timeout_s, follow_redirects=True)
             )
             async with client:
                 resp = await client.get(target, headers=headers)

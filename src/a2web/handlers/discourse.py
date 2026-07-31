@@ -67,7 +67,7 @@ class DiscourseHandler:
         outcome = await fetch_bytes(
             json_url,
             headers={"User-Agent": state.settings.default_ua},
-            timeout_s=_DEFAULT_TIMEOUT_S,
+            timeout_s=state.settings.request_timeout(_DEFAULT_TIMEOUT_S),
         )
 
         non_ok = map_non_ok(outcome, url=url)

@@ -131,6 +131,14 @@ class _CurlCffiGitHubAPI(GitHubAPI):
     remaining as `RateLimitExceeded`, 404 as `BadRequest(404)`, etc.
     """
 
+    #: Resolved per-request bound, carried from settings at construction —
+    #: `_request` is a gidgethub transport hook with no `state` in scope.
+    #: Declared WITHOUT a default on purpose: a fallback to the bare `_TIMEOUT_S`
+    #: would be a path where an operator's `request_timeout_scale` silently does
+    #: not apply. `_make_api` is the only construction site and always sets it;
+    #: anything else fails loudly instead of quietly ignoring the setting.
+    timeout_s: float
+
     async def _request(
         self,
         method: str,
@@ -142,7 +150,7 @@ class _CurlCffiGitHubAPI(GitHubAPI):
         if method.upper() != "GET":
             msg = f"a2web GitHub handler is read-only; refusing {method}"
             raise gidgethub.GitHubException(msg)
-        outcome = await fetch_bytes(url, headers=dict(headers), timeout_s=_TIMEOUT_S)
+        outcome = await fetch_bytes(url, headers=dict(headers), timeout_s=self.timeout_s)
         if outcome.verdict is FetchVerdict.timeout:
             raise _TimeoutSentinel("transport timeout")
         if outcome.status_code == 0:
@@ -154,10 +162,12 @@ class _CurlCffiGitHubAPI(GitHubAPI):
 
 
 def _make_api(settings: AppSettings) -> _CurlCffiGitHubAPI:
-    return _CurlCffiGitHubAPI(
+    api = _CurlCffiGitHubAPI(
         _REQUESTER,
         oauth_token=settings.github_token or None,
     )
+    api.timeout_s = settings.request_timeout(_TIMEOUT_S)
+    return api
 
 
 # --------------------------------------------------------------------- #

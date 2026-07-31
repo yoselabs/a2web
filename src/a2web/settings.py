@@ -230,6 +230,25 @@ class AppSettings(BaseSettings):
     # short. Re-derive with `docs/findings/` if a hop constant changes.
     # Set to 0 to disable.
     fetch_deadline_s: float = 480.0
+    # Multiplier applied to every per-request network bound — the 14 tier and
+    # handler timeouts (`twitter` 5s … `zyte` 60s). 1.0 leaves them as tuned.
+    #
+    # A SCALE, not 14 absolute overrides and not one flat value. Those numbers
+    # are individually tuned and their RATIOS carry the meaning: a paid
+    # server-side render legitimately needs 6x what an nitter probe does.
+    # Fourteen knobs is not configuration, it is a second copy of the table that
+    # drifts from the first; a single flat value would erase the tuning and cap
+    # the paid render at the probe's budget. A scale moves them together and
+    # keeps the shape — raise it on a slow link or a distant region, lower it
+    # for an aggressive SLA.
+    #
+    # Bounded on both sides so a typo cannot disable the bounds (0) or push a
+    # hop past the fetch deadline (a 100x scale).
+    request_timeout_scale: float = Field(default=1.0, ge=0.1, le=10.0)
+
+    def request_timeout(self, default_s: float) -> float:
+        """Scale one site's tuned request bound. Call at the site, not at import."""
+        return default_s * self.request_timeout_scale
     # OpenAI-compatible backend — reads the OpenAI SDK's STANDARD env vars, not
     # custom a2web ones: `OPENAI_API_KEY` (key; presence gates availability and
     # derives the backend as the last-resort fallback), `OPENAI_BASE_URL`

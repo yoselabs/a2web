@@ -72,10 +72,10 @@ async def _extract(html: str, url: str) -> ExtractedContent:
     return await extract_markdown(html, url)
 
 
-async def _wayback_lookup(url: str) -> tuple[str, str] | None:
+async def _wayback_lookup(url: str, *, timeout_s: float) -> tuple[str, str] | None:
     """Return (timestamp, snapshot_html) or None."""
     cdx_qs = urlencode({"url": url, "output": "json", "limit": 1, "fl": "timestamp,original"})
-    cdx_outcome = await fetch_bytes(f"{_CDX_URL}?{cdx_qs}", timeout_s=_TIMEOUT_S)
+    cdx_outcome = await fetch_bytes(f"{_CDX_URL}?{cdx_qs}", timeout_s=timeout_s)
     if cdx_outcome.verdict is not FetchVerdict.ok or cdx_outcome.status_code != 200:
         return None
     try:
@@ -86,15 +86,15 @@ async def _wayback_lookup(url: str) -> tuple[str, str] | None:
     if not isinstance(rows, list) or len(rows) < 2:
         return None
     timestamp = rows[1][0]
-    snap_outcome = await fetch_bytes(_WAYBACK_SNAPSHOT.format(timestamp=timestamp, url=url), timeout_s=_TIMEOUT_S)
+    snap_outcome = await fetch_bytes(_WAYBACK_SNAPSHOT.format(timestamp=timestamp, url=url), timeout_s=timeout_s)
     if snap_outcome.verdict is not FetchVerdict.ok or snap_outcome.status_code != 200:
         return None
     return timestamp, snap_outcome.body.decode("utf-8", errors="replace")
 
 
-async def _archive_ph_lookup(url: str) -> str | None:
+async def _archive_ph_lookup(url: str, *, timeout_s: float) -> str | None:
     """Fetch the archive.ph mirror; returns the snapshot HTML or None."""
-    outcome = await fetch_bytes(_ARCHIVE_PH.format(url=url), timeout_s=_TIMEOUT_S)
+    outcome = await fetch_bytes(_ARCHIVE_PH.format(url=url), timeout_s=timeout_s)
     if outcome.verdict is not FetchVerdict.ok or outcome.status_code != 200:
         return None
     return outcome.body.decode("utf-8", errors="replace")
@@ -126,12 +126,15 @@ class ArchiveTier:
         del proxy_url, conditional_extras, kwargs  # Archive tier ignores all today.
         from . import TierResult  # local import — circular with package init
 
+        # Resolve the operator-scaled bound BEFORE dropping `state` — the two
+        # lookups below run in a task group and have no settings in scope.
+        timeout_s = state.settings.request_timeout(_TIMEOUT_S)
         del state  # archive tier needs no breakers in v0.1
         send, recv = anyio.create_memory_object_stream[_Winner | None](max_buffer_size=2)
         winner: _Winner | None = None
 
         async def _run_wayback() -> None:
-            result = await _wayback_lookup(url)
+            result = await _wayback_lookup(url, timeout_s=timeout_s)
             if result is None:
                 await send.send(None)
                 return
@@ -139,7 +142,7 @@ class ArchiveTier:
             await send.send(_Winner(source="wayback", html=html, timestamp=timestamp))
 
         async def _run_archive_ph() -> None:
-            html = await _archive_ph_lookup(url)
+            html = await _archive_ph_lookup(url, timeout_s=timeout_s)
             await send.send(_Winner(source="archive.ph", html=html) if html else None)
 
         try:

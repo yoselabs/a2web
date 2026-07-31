@@ -15,7 +15,7 @@ from http_fetch import FetchOutcome, FetchVerdict
 
 from a2web.models import Verdict
 from a2web.state import AppState
-from a2web.tiers.archive import ArchiveTier
+from a2web.tiers.archive import _TIMEOUT_S, ArchiveTier
 from tests.conftest import make_default_state
 
 
@@ -74,7 +74,7 @@ async def test_wayback_hit(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_fetch(monkeypatch, route)
 
     # Force archive.ph to lose by making it return None.
-    async def fake_archive_ph(url: str) -> str | None:
+    async def fake_archive_ph(url: str, *, timeout_s: float) -> str | None:
         del url
         return None
 
@@ -102,7 +102,7 @@ async def test_archive_ph_hit(monkeypatch: pytest.MonkeyPatch) -> None:
 
     mirror_html = "<html><body><article><h1>Mirror</h1><p>" + ("text " * 200) + "</p></article></body></html>"
 
-    async def fake_archive_ph(url: str) -> str | None:
+    async def fake_archive_ph(url: str, *, timeout_s: float) -> str | None:
         del url
         return mirror_html
 
@@ -124,7 +124,7 @@ async def test_both_miss(monkeypatch: pytest.MonkeyPatch) -> None:
 
     _patch_fetch(monkeypatch, route)
 
-    async def fake_archive_ph(url: str) -> str | None:
+    async def fake_archive_ph(url: str, *, timeout_s: float) -> str | None:
         del url
         return None
 
@@ -170,7 +170,7 @@ async def test_wayback_cdx_transport_error_returns_none(monkeypatch: pytest.Monk
     from a2web.tiers.archive import _wayback_lookup
 
     _patch_fetch(monkeypatch, lambda url: _fail(FetchVerdict.connection_error))
-    assert await _wayback_lookup("https://example.com/x") is None
+    assert await _wayback_lookup("https://example.com/x", timeout_s=_TIMEOUT_S) is None
 
 
 @pytest.mark.asyncio
@@ -181,7 +181,7 @@ async def test_wayback_cdx_non_200_returns_none(monkeypatch: pytest.MonkeyPatch)
     # never returns status_code >= 400 with verdict.ok; a non-200 maps to
     # connection_error. Verify the lookup tolerates both code paths.
     _patch_fetch(monkeypatch, lambda url: _fail(FetchVerdict.connection_error, status=503))
-    assert await _wayback_lookup("https://example.com/x") is None
+    assert await _wayback_lookup("https://example.com/x", timeout_s=_TIMEOUT_S) is None
 
 
 @pytest.mark.asyncio
@@ -189,7 +189,7 @@ async def test_wayback_cdx_invalid_json_returns_none(monkeypatch: pytest.MonkeyP
     from a2web.tiers.archive import _wayback_lookup
 
     _patch_fetch(monkeypatch, lambda url: _ok(b"not json at all", content_type="text/plain"))
-    assert await _wayback_lookup("https://example.com/x") is None
+    assert await _wayback_lookup("https://example.com/x", timeout_s=_TIMEOUT_S) is None
 
 
 @pytest.mark.asyncio
@@ -200,7 +200,7 @@ async def test_wayback_cdx_header_only_returns_none(monkeypatch: pytest.MonkeyPa
         monkeypatch,
         lambda url: _ok(b'[["timestamp", "original"]]', content_type="application/json"),
     )
-    assert await _wayback_lookup("https://example.com/x") is None
+    assert await _wayback_lookup("https://example.com/x", timeout_s=_TIMEOUT_S) is None
 
 
 @pytest.mark.asyncio
@@ -217,7 +217,7 @@ async def test_wayback_snapshot_transport_error_returns_none(monkeypatch: pytest
         return _fail(FetchVerdict.connection_error)
 
     _patch_fetch(monkeypatch, route)
-    assert await _wayback_lookup("https://example.com/x") is None
+    assert await _wayback_lookup("https://example.com/x", timeout_s=_TIMEOUT_S) is None
 
 
 @pytest.mark.asyncio
@@ -234,7 +234,7 @@ async def test_wayback_snapshot_non_200_returns_none(monkeypatch: pytest.MonkeyP
         return _fail(FetchVerdict.not_found, status=404)
 
     _patch_fetch(monkeypatch, route)
-    assert await _wayback_lookup("https://example.com/x") is None
+    assert await _wayback_lookup("https://example.com/x", timeout_s=_TIMEOUT_S) is None
 
 
 # --------------------------------------------------------------------- #
@@ -247,7 +247,7 @@ async def test_archive_ph_lookup_transport_error_returns_none(monkeypatch: pytes
     from a2web.tiers.archive import _archive_ph_lookup
 
     _patch_fetch(monkeypatch, lambda url: _fail(FetchVerdict.connection_error))
-    assert await _archive_ph_lookup("https://example.com/x") is None
+    assert await _archive_ph_lookup("https://example.com/x", timeout_s=_TIMEOUT_S) is None
 
 
 @pytest.mark.asyncio
@@ -255,7 +255,7 @@ async def test_archive_ph_lookup_non_200_returns_none(monkeypatch: pytest.Monkey
     from a2web.tiers.archive import _archive_ph_lookup
 
     _patch_fetch(monkeypatch, lambda url: _fail(FetchVerdict.not_found, status=404))
-    assert await _archive_ph_lookup("https://example.com/x") is None
+    assert await _archive_ph_lookup("https://example.com/x", timeout_s=_TIMEOUT_S) is None
 
 
 @pytest.mark.asyncio
@@ -263,4 +263,4 @@ async def test_archive_ph_lookup_200_returns_text(monkeypatch: pytest.MonkeyPatc
     from a2web.tiers.archive import _archive_ph_lookup
 
     _patch_fetch(monkeypatch, lambda url: _ok(b"<html>archived</html>"))
-    assert await _archive_ph_lookup("https://example.com/x") == "<html>archived</html>"
+    assert await _archive_ph_lookup("https://example.com/x", timeout_s=_TIMEOUT_S) == "<html>archived</html>"

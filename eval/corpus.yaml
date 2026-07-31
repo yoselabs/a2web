@@ -249,6 +249,27 @@ urls:
       - "Never guesses a reviews URL that is not present on the page (ADR-0014) — surfaces a reviews drilldown ONLY if one is genuinely in the fetched HTML"
       - "Never asserts the product has no reviews at all; distinguishes 'not on this page' from 'do not exist'"
 
+  - slug: fetch-deadline-reports-an-unfinished-job
+    # bound-every-unbounded-path, 2026-08-01. Every hop was individually bounded
+    # but nothing bounded their SUM: a walk of handler → raw → jina → archive →
+    # browser → paid plus extraction measures 407s worst-case from the constants
+    # in the tree, with the caller holding an open tool call throughout.
+    #
+    # Captured as a case because the FAILURE MODE is what must stay stable, not
+    # the timing: when a2web runs out of budget it must report an unfinished job
+    # (ADR-0009), never a truncated success and never a claim about the site.
+    # Exercise by setting A2WEB_FETCH_DEADLINE_S very low against any URL.
+    url: https://en.wikipedia.org/wiki/Web_scraping
+    class: affordance
+    task: "Summarize this page."
+    needs: [content]
+    criteria:
+      - "On a spent per-fetch budget, reports `status: failed` with `retrieval_incomplete: true` — never a partial answer presented as complete (ADR-0009)"
+      - "Emits a critical `fetch_deadline_exceeded` hint naming BOTH the budget that was spent and the stage it stopped before"
+      - "The message attributes the stop to a2web's own limit, never asserting the site is slow, down, or unreachable — a2web has no evidence for any of those"
+      - "Does not raise an exception out of the tool call; the deadline takes the same terminal path as every other miss"
+      - "With a normal budget the same URL fetches successfully — the deadline must not fire on healthy work"
+
   - slug: json-ld-itemlist-leaves-an-index
     # ADR-0015 hole, found + closed 2026-08-01. The JSON-LD path rendered an
     # `ItemList` into rich markdown (name/url/price/rating per item) and then

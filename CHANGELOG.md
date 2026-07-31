@@ -27,8 +27,28 @@ All notable changes to **a2web** are recorded here. The format follows
   **Operator action:** if you configured OAuth with bare `GOOGLE_*` variables,
   your endpoint has been serving anonymously. Rename them to `A2WEB_GOOGLE_*`.
 
+### Added
+
+- **Every unbounded wait is now bounded, each at a single seam.** A per-request
+  timeout scale (`A2WEB_REQUEST_TIMEOUT_SCALE`) over the 14 tier/handler bounds
+  — a scale rather than 14 overrides, so the deliberate 5s:60s ratios survive;
+  a per-completion bound on the LLM provider (`A2WEB_LLM_TIMEOUT_S`, default
+  180s), because `anyllm` has no per-request timeout and a provider that never
+  returns previously hung the fetch forever; and a per-fetch deadline
+  (`A2WEB_FETCH_DEADLINE_S`, default 480s) bounding the ladder as a whole. The
+  deadline default is derived from a 407s measured worst-case walk, not guessed.
+  An expired deadline reports `status: failed` + `retrieval_incomplete` + a
+  critical hint (ADR-0009), never a truncated success.
+
 ### Fixed
 
+- **`hn` could raise `RecursionError` on a deeply nested comment thread.** The
+  Algolia `children` tree is untrusted remote input and was walked with no cap
+  on either axis; a thread nested past CPython's frame limit raised out of the
+  handler. Now bounded by `_MAX_DEPTH`/`_MAX_COMMENTS` matching `habr`, with the
+  truncation declared in the render. The deleted-comment branch needed the
+  comment budget specifically — it recurses without advancing `depth`, so a
+  depth cap alone would not have bounded it.
 - **A JSON-LD listing left no index (ADR-0015).** `json_to_markdown_rows`
   rendered an embedded `ItemList` into rich markdown — name, url, price and
   rating per item — and then returned only the string, discarding the

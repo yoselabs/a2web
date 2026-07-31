@@ -181,7 +181,7 @@ async def _try_instance(
     outcome = await fetch_bytes(
         nitter_url,
         headers={"User-Agent": state.settings.default_ua},
-        timeout_s=_DEFAULT_TIMEOUT_S,
+        timeout_s=state.settings.request_timeout(_DEFAULT_TIMEOUT_S),
     )
 
     if outcome.verdict is FetchVerdict.timeout:
