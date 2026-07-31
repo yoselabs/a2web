@@ -90,8 +90,9 @@ ranking is unchanged, so nothing below is a migration artifact.
 ## 2026-07-31 — THE CHANGE SET: which tracks became OpenSpec proposals
 
 The tracks below are the *queue*. This is the *plan* — ten changes covering
-them, in dependency order. Four are authored; six are named and scoped but not
-yet written, deliberately (see the note at the end).
+them, in dependency order. **All ten are authored** (2026-07-31): 313 tasks,
+every one validating. See the ordering note at the end — authored is not the
+same as ready to start.
 
 | # | change | covers | status |
 |---|---|---|---|
@@ -99,24 +100,37 @@ yet written, deliberately (see the note at the end).
 | 2 | `bound-every-unbounded-path` | T3 + T7 live: no LLM timeout, no per-fetch deadline, `hn.py` unbounded recursion | **authored** |
 | 3 | `fix-cache-ttl-and-listing-sufficiency` | T3: 7-day TTL on live API data, dead `cache_ttl_live_m`, listing sufficiency OFF | **authored** |
 | 4 | `run-the-gate-on-every-push` | T4 CI — **do first**, everything else's guards are inert until it lands | **authored** |
-| 5 | `close-guards-that-read-green` | T4 remainder: markup funnel misses `re.search`/`re.sub`, two guards answer a different question, two cited guards don't exist, 22 doubleable constants, playbook 1.00 lockstep, partial eval loss exits 0, the corpus cannot see the envelope | named |
-| 6 | `unify-the-response-contract` | T2 — must absorb the 41 external `FetchContext` reads before #7 phase two | named |
-| 7 | `decompose-fetcher-into-files` | T1 — the 26-file tree, the retrieval→comprehension→sufficiency loop, `install()` | named |
-| 8 | `lift-the-item-set-and-renderer` | T5/T7: `domain.py`'s 360-line zero-coupling renderer (ledger Row 1), the item set (Row 2) — closes a LIVE ADR-0015 gap | named |
-| 9 | `repay-the-shelf-debt` | T7: `page-tsv`'s three encoder defects (**affects `a2kay` today**), five more shelf gaps, adopted-then-bypassed primitives | named |
-| 10 | `reconcile-docs-to-shipped-system` | T6 — last, because #6/#7 re-invalidate parts of it | named |
+| 5 | `close-guards-that-read-green` | T4 remainder: markup funnel misses `re.search`/`re.sub`, two guards answer a different question, two cited guards don't exist, 22 doubleable constants, playbook 1.00 lockstep, partial eval loss exits 0, the corpus cannot see the envelope | **authored** |
+| 6 | `unify-the-response-contract` | T2 — must absorb the 41 external `FetchContext` reads before #7 phase two | **authored** |
+| 7 | `decompose-fetcher-into-files` | T1 — the 26-file tree, the retrieval→comprehension→sufficiency loop, `install()` | **authored** |
+| 8 | `lift-the-item-set-and-renderer` | T5/T7: `domain.py`'s 360-line zero-coupling renderer (ledger Row 1), the item set (Row 2) — closes a LIVE ADR-0015 gap | **authored** |
+| 9 | `repay-the-shelf-debt` | T7: `page-tsv`'s three encoder defects (**affects `a2kay` today**), five more shelf gaps, adopted-then-bypassed primitives | **authored** |
+| 10 | `reconcile-docs-to-shipped-system` | T6 — last, because #6/#7 re-invalidate parts of it | **authored** |
 
-**Why 5–10 are not authored yet.** #6 and #7 are design jobs whose shape should
-be set by what #1–#3 find in the code; #10 documents a system #6/#7 will change
-again. Writing all ten now means six proposals resting on assumptions the first
-four are about to test. Author them as their predecessors land.
+**Ordering — authored is not ready.** #4 goes first: every guard the other nine
+add is inert until the gate runs on a push. #6 blocks #7 phase two (the 41
+external `FetchContext` reads must be absorbed before `context.py` can be
+sliced), and #7 phase one must not run concurrently with #6 — v0.23 is the
+demonstration of what a refactor that is also a bug fix costs. #10 goes last,
+because #6 and #7 re-invalidate parts of it. Where a later change rests on an
+assumption an earlier one will test, the design says so and names the tripwire.
 
-**Two live defects found by the round-2 ledger are NOT yet in any change** —
-both belong with #7 because they are the escalation-sequence problem:
-`fetcher.py:1058` (archive-post-gate never runs the extraction ladder — the
-documented four-consumer starvation, fifth copy, still live) and the JSON-LD
-`ItemList` path deriving neither `next_links` nor `options` while the DOM path
-derives both. If #7 slips, lift them out as their own change.
+**Three items are lifted out of their change and ship early**, because each is
+live harm rather than structure:
+
+- `endpoint-auth` (#10 §1) — an operator following the spec literally gets an
+  **UNAUTHENTICATED** endpoint. SECURITY.
+- `provider-selection` (#10 §1) — a live routing invariant documented inverted;
+  under ADR-0016 that is where a wrong belief costs money.
+- the JSON-LD `ItemList` deriving neither `next_links` nor `options` (#8 §1) —
+  a LIVE ADR-0015 hole, shipped as the first commit of that change so the lift
+  has a witness already in place.
+
+**The two round-2 ledger defects now have homes.** `fetcher.py:1058`
+(archive-post-gate never runs the extraction ladder — the documented
+four-consumer starvation, fifth copy, still live) is #7 §3.3, where the loop
+restructure makes it *unexpressible* rather than fixed a fifth time. The JSON-LD
+`ItemList` gap is #8 §1, above.
 
 ## 2026-07-31 — TRACKS: how the 2026-07-31 findings group, and what depends on what
 
