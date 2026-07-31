@@ -161,8 +161,70 @@ only as prompt English* → superseded by *45 of 86*. *2026-07-28
 regex-over-markup OUTSIDE `handlers/`* → superseded by *the markup-funnel guard
 misses `re.search`/`re.sub`*.
 
-**Recommended order:** T3 → T4's CI entry → T1 phase one → T2 → T1 phase two →
-T5 → T4 remainder → T6.
+**T7 · Substrate a2web hand-builds while already owning it.** Added by a second
+scan the same day (five agents: shelf adopt-gaps, stdlib hand-rolls,
+failure-handling vocabularies, concurrency/lifecycle, a rule-of-three ledger).
+Evidence: [`docs/findings/2026-07-31-primitives-scan.md`](docs/findings/2026-07-31-primitives-scan.md).
+Its live defects belong to T3; the rest is independent of T1/T2 and can run in
+parallel with them. Entries listed below.
+
+**Recommended order:** T3 (+ T7's live defects) → T4's CI entry → T1 phase one →
+T2 → T1 phase two → T5/T7 → T4 remainder → T6.
+
+## 2026-07-31 — T7: substrate a2web hand-builds while already owning it
+
+**Source:** primitives & elevation scan, 2026-07-31. Full evidence in
+[`docs/findings/2026-07-31-primitives-scan.md`](docs/findings/2026-07-31-primitives-scan.md).
+
+Three recurring failures, in cost order:
+
+1. **Adopted, then reimplemented by hand.** A shelf primitive is a declared
+   dependency — sometimes imported *and re-exported* — while its job is done
+   inline elsewhere anyway.
+2. **Named once, spelled N times.** The drift between copies is the promotion
+   signal: it proves nobody maintains them as one thing.
+3. **A bound present in some copies, absent in others.** The dangerous variant of
+   (2) — the missing bound is invisible next to N siblings that have it.
+
+| finding | tier |
+|---|---|
+| [`AppError` has no subclass, so `guard_tool`'s typed branch is dead](docs/findings/2026-07-31-primitives-scan.md#a2effect--adopted-at-one-boundary-taxonomy-unused) | S, correctness — LIVE wire defect |
+| [no per-fetch deadline; the LLM call has no timeout at all](docs/findings/2026-07-31-primitives-scan.md#no-per-fetch-deadline-anywhere--live) | M, correctness — LIVE |
+| [`github.py` degrades silently six times and still returns `ok`](docs/findings/2026-07-31-primitives-scan.md#githubpy-degrades-silently-six-times--adr-0009-leak-live) | S, correctness — ADR-0009 LIVE |
+| [`hn.py:233` recurses on untrusted input with no depth cap](docs/findings/2026-07-31-primitives-scan.md#hnpy233-recurses-on-untrusted-input-with-no-depth-cap--live) | S, correctness — LIVE |
+| [`page-tsv` still ships all three encoder defects a2web fixed](docs/findings/2026-07-31-primitives-scan.md#the-largest-un-repaid-debt-page-tsv-still-ships-all-three-encoder-defects) | M, shelf promotion — affects `a2kay` |
+| [five more shelf gaps a2web has already paid for](docs/findings/2026-07-31-primitives-scan.md#five-more-shelf-gaps-a2web-paid-for) | M, shelf promotion |
+| [`prune_dict` imported, re-exported, never called](docs/findings/2026-07-31-primitives-scan.md#prune_dict--imported-re-exported-never-called) | S, structure |
+| [`fmt_dur` adopted, then bypassed one import away](docs/findings/2026-07-31-primitives-scan.md#fmt_dur--adopted-then-bypassed-one-import-away) | XS, structure |
+| [`http_fetch` bypassed by jina and three tiers](docs/findings/2026-07-31-primitives-scan.md#http_fetch--bypassed-by-jina-and-by-three-tiers-generally) | S, structure |
+| [`lean-wire` unused where its whole reason applies](docs/findings/2026-07-31-primitives-scan.md#lean-wire--not-used-where-its-whole-reason-applies) | XS, structure |
+| [four unused `a2effect` surfaces a2web hand-rolls](docs/findings/2026-07-31-primitives-scan.md#a2effect--adopted-at-one-boundary-taxonomy-unused) | M, structure |
+| [ten failure vocabularies, ~21 hand-written conversion sites](docs/findings/2026-07-31-primitives-scan.md#the-failure-vocabulary-census) | L, structure |
+| [30 copies of elapsed-ms; three clocks disagree](docs/findings/2026-07-31-primitives-scan.md#elapsed-time-arithmetic--30-copies-3-clocks) | M, structure |
+| [four "how long ago" impls, four input units](docs/findings/2026-07-31-primitives-scan.md#how-long-ago--4-impls-4-input-units-3-renderings) | S, structure |
+| [upstream-API JSON has no owner; 5 copies of one bug](docs/findings/2026-07-31-primitives-scan.md#upstream-api-json--no-owner-and-5-copies-of-one-misunderstanding) | M, structure |
+| [the never-raises pattern: 7 claimed, 5 impls, all disagree](docs/findings/2026-07-31-primitives-scan.md#the-never-raises-pattern--7-claimed-5-impls-all-disagree) | M, structure |
+| [handler page-rendering — the largest un-elevated shape in `src/`](docs/findings/2026-07-31-primitives-scan.md#handler-page-rendering--the-largest-un-elevated-shape-in-src) | L, structure |
+| [truncate-to-cap: 6 impls, 4 markers](docs/findings/2026-07-31-primitives-scan.md#truncate-to-cap--6-impls-4-markers) | S, structure |
+| [host matching: 6 impls that disagree on case and `www.`](docs/findings/2026-07-31-primitives-scan.md#host-matching--6-impls-that-disagree-on-case-and-www) | S, structure |
+| [whitespace collapse: 6 impls, 2 mechanisms](docs/findings/2026-07-31-primitives-scan.md#whitespace-collapse--6-impls-2-mechanisms) | XS, structure |
+| [four double-checked-lock bodies for one idea](docs/findings/2026-07-31-primitives-scan.md#four-double-checked-lock-bodies-for-one-idea) | S, structure |
+| [45 caps, no declaration site; six ceilings on one wire field](docs/findings/2026-07-31-primitives-scan.md#45-caps-no-declaration-site) | M, structure |
+| [16 silent swallows, 11 on a retrieval path](docs/findings/2026-07-31-primitives-scan.md#silent-swallows--16-total-11-on-a-retrieval-path) | M, correctness |
+| [degrade-to-default that can mask a settings rename](docs/findings/2026-07-31-primitives-scan.md#degrade-to-default-that-can-mask-a-rename) | S, correctness |
+| [the documented 5 retry layers do not hold](docs/findings/2026-07-31-primitives-scan.md#retry-the-documented-5-layers-do-not-hold) | M, docs + structure |
+| [`ProxyPool` diverges from the resource pattern](docs/findings/2026-07-31-primitives-scan.md#lifecycle-the-one-thing-that-is-a-single-concept) | XS, structure |
+| [unpromoted a2web substrate with no shelf home](docs/findings/2026-07-31-primitives-scan.md#unpromoted-a2web-substrate-with-no-shelf-home) | S, shelf promotion |
+| [CLAUDE.md drift round 2 — browser cap, globals, `to_thread`](docs/findings/2026-07-31-primitives-scan.md#doc-drift-found-in-this-round-claudemd) | S, docs — joins T6 |
+
+**Explicitly NOT elevated, with reasons** (recorded so they are not re-proposed):
+reddit's retry loop — its comments encode a live-measured penalty-box model that
+`tenacity`/`stamina` would take the schedule from and lose the reason;
+hedged-race-first-wins (`tiers/archive.py:130-163`) — DEEP and STABLE but exactly
+one call site, so flag-when-second-caller-appears, not now; bounded-parallelism
+(`llm_eval/runner.py:333`) — n=1, and `asyncio.Semaphore` is already the named
+concept; enum↔string round trips and dataclass→dict flattening — scanned, came up
+empty.
 
 ## 2026-07-31 — decompose `fetcher.py` into single-purpose files (L, structure — T1 UMBRELLA)
 
@@ -309,42 +371,42 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 
 | finding | tier |
 |---|---|
-| [the response contract is one concept in three files](docs/findings/2026-07-31-structural-scan.md#the-response-contract-is-one-concept-in-three-files-l-structure-highest-t2-umbrella) | L, structure — HIGHEST, T2 UMBRELLA |
-| [listing sufficiency is OFF on the population it exists for](docs/findings/2026-07-31-structural-scan.md#listing-sufficiency-is-off-on-the-population-it-exists-for-m-correctness-live) | M, correctness — LIVE |
-| [the ADR-0009 floor is derived from the severity of an English sentence](docs/findings/2026-07-31-structural-scan.md#the-adr-0009-floor-is-derived-from-the-severity-of-an-english-sentence-m-structure-live) | M, structure — LIVE |
+| [the response contract is one concept in three files](docs/findings/2026-07-31-structural-scan.md#the-response-contract-is-one-concept-in-three-files-l-structure--highest-t2-umbrella) | L, structure — HIGHEST, T2 UMBRELLA |
+| [listing sufficiency is OFF on the population it exists for](docs/findings/2026-07-31-structural-scan.md#listing-sufficiency-is-off-on-the-population-it-exists-for-m-correctness--live) | M, correctness — LIVE |
+| [the ADR-0009 floor is derived from the severity of an English sentence](docs/findings/2026-07-31-structural-scan.md#the-adr-0009-floor-is-derived-from-the-severity-of-an-english-sentence-m-structure--live) | M, structure — LIVE |
 | [no "install a fetch result" type; six fields written six ways](docs/findings/2026-07-31-structural-scan.md#no-install-a-fetch-result-type-six-fields-written-six-ways-m-structure) | M, structure |
 | [`domain.py` is 69% an undocumented renderer](docs/findings/2026-07-31-structural-scan.md#domainpy-is-69-an-undocumented-renderer-m-structure) | M, structure |
 | [`models.py` is 25% prose and 12% wire projection](docs/findings/2026-07-31-structural-scan.md#modelspy-is-25-prose-and-12-wire-projection-m-structure) | M, structure |
-| [`fetcher_response.py` is 740 lines CLAUDE.md never mentions](docs/findings/2026-07-31-structural-scan.md#fetcher_responsepy-is-740-lines-claudemd-never-mentions-m-structure-docs) | M, structure + docs |
+| [`fetcher_response.py` is 740 lines CLAUDE.md never mentions](docs/findings/2026-07-31-structural-scan.md#fetcher_responsepy-is-740-lines-claudemd-never-mentions-m-structure--docs) | M, structure + docs |
 | [`routers.py` is one function with a hole in it](docs/findings/2026-07-31-structural-scan.md#routerspy-is-one-function-with-a-hole-in-it-s-structure) | S, structure |
 | [the Registry half of Strategy+Registry isolates nothing](docs/findings/2026-07-31-structural-scan.md#the-registry-half-of-strategyregistry-isolates-nothing-s-structure) | S, structure |
 | [`playbook.py` and its test are in 1.00/1.00 lockstep](docs/findings/2026-07-31-structural-scan.md#playbookpy-and-its-test-are-in-100100-lockstep-s-verification) | S, verification |
 | [a partial eval loss exits 0](docs/findings/2026-07-31-structural-scan.md#a-partial-eval-loss-exits-0-s-verification) | S, verification |
 | [`llm_eval/systems.py` carries a second fetch stack](docs/findings/2026-07-31-structural-scan.md#llm_evalsystemspy-carries-a-second-fetch-stack-s-structure) | S, structure |
 | [test files that have drifted from their subject](docs/findings/2026-07-31-structural-scan.md#test-files-that-have-drifted-from-their-subject-s-structure) | S, structure |
-| [the markup-funnel guard misses `re.search`/`re.sub`](docs/findings/2026-07-31-structural-scan.md#the-markup-funnel-guard-misses-researchresub-s-verification-live) | S, verification — LIVE |
-| [reddit's old.reddit channel can serve an interstitial as `ok`](docs/findings/2026-07-31-structural-scan.md#reddits-oldreddit-channel-can-serve-an-interstitial-as-ok-s-correctness-live) | S, correctness — LIVE |
+| [the markup-funnel guard misses `re.search`/`re.sub`](docs/findings/2026-07-31-structural-scan.md#the-markup-funnel-guard-misses-researchresub-s-verification--live) | S, verification — LIVE |
+| [reddit's old.reddit channel can serve an interstitial as `ok`](docs/findings/2026-07-31-structural-scan.md#reddits-oldreddit-channel-can-serve-an-interstitial-as-ok-s-correctness--live) | S, correctness — LIVE |
 | [reddit.py is four retrieval channels behind one `matches()`](docs/findings/2026-07-31-structural-scan.md#redditpy-is-four-retrieval-channels-behind-one-matches-m-structure) | M, structure |
 | [cross-handler duplication: seven shapes, partial adoption](docs/findings/2026-07-31-structural-scan.md#cross-handler-duplication-seven-shapes-partial-adoption-m-structure) | M, structure |
 | [45 of 86 prompt rules have neither code nor test](docs/findings/2026-07-31-structural-scan.md#45-of-86-prompt-rules-have-neither-code-nor-test-l-verification) | L, verification |
 | [`extractor.py` holds ~200 lines its siblings are named for](docs/findings/2026-07-31-structural-scan.md#extractorpy-holds-200-lines-its-siblings-are-named-for-m-structure) | M, structure |
 | [five escalation decisions live outside the "single policy function"](docs/findings/2026-07-31-structural-scan.md#five-escalation-decisions-live-outside-the-single-policy-function-m-structure) | M, structure |
 | [`endpoint-auth` spec yields an UNAUTHENTICATED endpoint if followed](docs/findings/2026-07-31-structural-scan.md#endpoint-auth-spec-yields-an-unauthenticated-endpoint-if-followed-s-security) | S, SECURITY |
-| [`_ttl_for` caches almost everything for 7 days](docs/findings/2026-07-31-structural-scan.md#_ttl_for-caches-almost-everything-for-7-days-s-correctness-live) | S, correctness — LIVE |
-| [`_MAX_RECORDS` × `DEFAULT_TOLERANCE` dead zone](docs/findings/2026-07-31-structural-scan.md#_max_records-default_tolerance-dead-zone-s-correctness-adr-0009-live) | S, correctness — ADR-0009 LIVE |
+| [`_ttl_for` caches almost everything for 7 days](docs/findings/2026-07-31-structural-scan.md#_ttl_for-caches-almost-everything-for-7-days-s-correctness--live) | S, correctness — LIVE |
+| [`_MAX_RECORDS` × `DEFAULT_TOLERANCE` dead zone](docs/findings/2026-07-31-structural-scan.md#_max_records--default_tolerance-dead-zone-s-correctness--adr-0009-live) | S, correctness — ADR-0009 LIVE |
 | [22 constants can be doubled with zero test failures](docs/findings/2026-07-31-structural-scan.md#22-constants-can-be-doubled-with-zero-test-failures-m-verification) | M, verification |
-| [there is no CI on push or PR](docs/findings/2026-07-31-structural-scan.md#there-is-no-ci-on-push-or-pr-s-to-fix-l-in-consequence-read-first) | S to fix, L in consequence — READ FIRST |
+| [there is no CI on push or PR](docs/findings/2026-07-31-structural-scan.md#there-is-no-ci-on-push-or-pr-s-to-fix-l-in-consequence--read-first) | S to fix, L in consequence — READ FIRST |
 | [two named guards answer a different question than advertised](docs/findings/2026-07-31-structural-scan.md#two-named-guards-answer-a-different-question-than-advertised-s-verification) | S, verification |
-| [openspec canonical specs contradict shipped code](docs/findings/2026-07-31-structural-scan.md#openspec-canonical-specs-contradict-shipped-code-m-docs-4-load-bearing) | M, docs — 4 load-bearing |
+| [openspec canonical specs contradict shipped code](docs/findings/2026-07-31-structural-scan.md#openspec-canonical-specs-contradict-shipped-code-m-docs--4-load-bearing) | M, docs — 4 load-bearing |
 | [CLAUDE.md describes a different system than the one shipped](docs/findings/2026-07-31-structural-scan.md#claudemd-describes-a-different-system-than-the-one-shipped-s-docs) | S, docs |
-| [stale provider ids break a documented boot](docs/findings/2026-07-31-structural-scan.md#stale-provider-ids-break-a-documented-boot-s-correctness-live) | S, correctness — LIVE |
+| [stale provider ids break a documented boot](docs/findings/2026-07-31-structural-scan.md#stale-provider-ids-break-a-documented-boot-s-correctness--live) | S, correctness — LIVE |
 | [two cited architecture guards do not exist](docs/findings/2026-07-31-structural-scan.md#two-cited-architecture-guards-do-not-exist-s-verification) | S, verification |
 | [naming rot: `_prescribe_browser_on_wall`](docs/findings/2026-07-31-structural-scan.md#naming-rot-_prescribe_browser_on_wall-xs-cosmetic) | XS, cosmetic |
-| [`paid_auth_error` has no operator hint](docs/findings/2026-07-31-structural-scan.md#paid_auth_error-has-no-operator-hint-s-correctness-live-defect) | S, correctness — LIVE DEFECT |
+| [`paid_auth_error` has no operator hint](docs/findings/2026-07-31-structural-scan.md#paid_auth_error-has-no-operator-hint-s-correctness--live-defect) | S, correctness — LIVE DEFECT |
 | [invariants with no code implementer](docs/findings/2026-07-31-structural-scan.md#invariants-with-no-code-implementer-m-l-structure) | M-L, structure |
-| [the corpus cannot see the envelope](docs/findings/2026-07-31-structural-scan.md#the-corpus-cannot-see-the-envelope-l-verification-highest-leverage) | L, verification — HIGHEST LEVERAGE |
+| [the corpus cannot see the envelope](docs/findings/2026-07-31-structural-scan.md#the-corpus-cannot-see-the-envelope-l-verification--highest-leverage) | L, verification — HIGHEST LEVERAGE |
 | [a wire regression on ADR-0009 is one re-bless from green](docs/findings/2026-07-31-structural-scan.md#a-wire-regression-on-adr-0009-is-one-re-bless-from-green-m-verification) | M, verification |
-| [the sufficiency question has no name](docs/findings/2026-07-31-structural-scan.md#the-sufficiency-question-has-no-name-m-structure-answered-by-t1) | M, structure — ANSWERED by T1 |
+| [the sufficiency question has no name](docs/findings/2026-07-31-structural-scan.md#the-sufficiency-question-has-no-name-m-structure--answered-by-t1) | M, structure — ANSWERED by T1 |
 
 ## 2026-07-28 — retire the twitter handler? (S, decision — REVISIT, do not act yet)
 
