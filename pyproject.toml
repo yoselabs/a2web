@@ -54,7 +54,7 @@ dependencies = [
     # point of a line-oriented format) tears one record into several. lean-wire
     # escapes `\`, `\t`, `\n`, `\r` instead, so one record is always exactly
     # one physical line, reversibly.
-    "lean-wire>=0.1,<1",
+    "lean-wire>=0.2,<1",
     # http + extraction
     # http-fetch: the shared HTTP GET primitive (browser TLS impersonation,
     # conditional GET, injected proxy + breaker, closed-verdict mapping) —
@@ -238,7 +238,7 @@ a2web-serve = "a2web.server:serve_http_main"
 
 [tool.uv.sources]
 a2effect = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/a2effect", tag = "a2effect-v0.1.0" }
-lean-wire = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/lean-wire", tag = "lean-wire-v0.1.0" }
+lean-wire = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/lean-wire", tag = "lean-wire-v0.2.0" }
 http-fetch = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-fetch", tag = "http-fetch-v0.2.0" }
 sqlite-resource = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/sqlite-resource", tag = "sqlite-resource-v0.1.0" }
 http-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-cache", tag = "http-cache-v0.1.0" }

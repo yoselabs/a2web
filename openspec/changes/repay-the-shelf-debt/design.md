@@ -145,10 +145,28 @@ guarantee and a promotion must not loosen it.
 
 ## Open Questions
 
-- After the guards land in `page-tsv`, can a2web's `wire.py` consume it? The
-  original rejection was about the defects; with them fixed, the remaining
-  question is whether a2web's literal `_TSV_FIELDS` policy fits the package's
-  shape. Re-evaluate, do not assume either way.
+- ~~After the guards land in `page-tsv`, can a2web's `wire.py` consume it?~~
+  **ANSWERED 2026-08-01: no, and the rejection is re-affirmed on its original
+  grounds.** With all four defects repaid, `page_tsv.encode_envelope` and
+  a2web's are now behaviourally equivalent, so the question came down to whether
+  the *rest* of the package fits. It does not, and the reason is unchanged from
+  the sunset design: page-tsv's centre of gravity is `inference.py` —
+  `build_encoding_plan` deriving an `EncodingPlan` from a return annotation —
+  which is precisely the mechanism D1 and `_TSV_FIELDS` exist to refuse. Taking
+  the dependency to reach one function means depending on the module a2web
+  deliberately does not use, and the accounting is poor even ignoring that:
+  a2web would delete ~55 lines of `encode_envelope` while keeping
+  `_TSV_FIELDS`, `tsv_fields_for`, `encode_rows`, `_encode_json` and
+  `EnvelopeContentMiddleware` — and `page-tsv` exports no `encode_rows`
+  equivalent, which `models.py`'s serializers need.
+
+  **What DID transfer is better than adoption would have been.** The fourth
+  defect showed three callers answering `encode_tsv`'s "what are the columns?"
+  and all three answering `rows[0]`. Rule of three on a defect: the rule moved
+  down to `lean_wire.derive_columns` (v0.2.0), a2web adopted it and deleted its
+  copy. So a2web shares the *mechanism* with page-tsv without sharing the
+  inference spine — which is what "reuse" should have meant here all along.
+  Recorded in shelf ledger 0075/0076.
 - Does `http_fetch` widen to POST, or do `zyte`/`firecrawl` stay exempt? Widening
   a GET-only primitive to carry a JSON POST may be the wrong shape for it.
 - Is `scope.py` promotable without loosening the cold-start guarantee that

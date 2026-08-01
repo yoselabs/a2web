@@ -112,7 +112,7 @@ requires-dist = [
     { name = "http-fetch", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.2.0" },
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "json-in-html", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.1.0" },
-    { name = "lean-wire", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.1.0" },
+    { name = "lean-wire", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.2.0" },
     { name = "llm-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-cache&tag=llm-cache-v0.1.2" },
     { name = "llm-wobble", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-wobble&tag=llm-wobble-v0.4.0" },
     { name = "markdownify", specifier = ">=0.13,<2" },
@@ -1635,8 +1635,8 @@ wheels = [
 
 [[package]]
 name = "lean-wire"
-version = "0.1.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.1.0#4d6fdb88afef10ac9451c6bece4517abb73517ae" }
+version = "0.2.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.2.0#bf332d85f6d9535c9d14e1fcac349d24bbea1765" }
 dependencies = [
     { name = "pydantic" },
 ]

@@ -1,10 +1,18 @@
 """TSV tables must not drop a field that only some rows carry.
 
-`_derive_columns` used to read the FIRST row's keys, while
+Column derivation used to read the FIRST row's keys, while
 `OperatorHint._omit_default_severity` drops `severity` when it is the default
 `info`. Together: an `info` hint followed by a `critical` one produced a table
 with no `severity` column, and the `critical` value was discarded on the way
 to the agent.
+
+The rule now lives one level down in `lean_wire.derive_columns` (adopted with
+lean-wire v0.2.0, 2026-08-01) — a2web was one of THREE callers that answered
+`encode_tsv`'s "what are the columns?" and all three answered `rows[0]`. These
+assertions stay here anyway, and deliberately: they are stated in a2web's own
+vocabulary (`try_user_browser`, ADR-0009 severity) against the `content[0].text`
+channel, so they would catch a downgrade or an upstream regression that a shelf
+test phrased in generic terms would not make loud.
 
 `try_user_browser` is ADR-0009's loudest signal — *a wall stopped us, go look
 yourself* — so the field that marks it critical is exactly the one that must

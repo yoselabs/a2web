@@ -9,6 +9,48 @@ Nothing here is actionable. If an entry looks live again, move it back rather
 than re-deriving it.
 
 ---
+## 2026-08-01 — `page-tsv` shipped the encoder defects a2web fixed locally (M, shelf promotion)
+
+**SHIPPED** as shelf `page-tsv-v0.2.0` + `lean-wire-v0.2.0` + `page-tsv-v0.2.1`
+(shelf ledger 0075/0076/0077). Kept because three things here are the kind that
+recur.
+
+**Routing around a defect is not fixing it.** a2web hit three encoder bugs while
+this code was a2kit's `packages/formatter`, filed two upstream as *"no a2web
+workaround exists — this must be fixed upstream"*, got no fix, and owned a local
+copy. `page-tsv` was promoted out of that same origin code and inherited all
+three, so the shelf carried them for ten days after a2web stopped paying. The
+sunset design read as though the rejection had settled it.
+
+**The entry's headline claim was false, and the check was cheap.** It said
+"affects `a2kay` today". a2kay imports `page_tsv.Page` as a TYPE in three routers
+and nothing else — its CLI renders compact JSON explicitly and its own docstring
+calls page-tsv routing *"a later enhancement"*. No a2kay path reached the
+encoder. Nothing shipped wrong; the urgency was invented. A grep across the
+consumer would have said so at any point.
+
+**A fourth defect turned out to matter more than the three.** The TSV header came
+from `rows[0]`, deleting every key that row happened to lack. Three separate
+callers — a2web's `wire.py`, `page_tsv.render`, `page_tsv.page` — had each
+answered `encode_tsv`'s "what are the columns?" and all three answered `rows[0]`.
+That is rule-of-three on a *defect* rather than a shape, and the right fix was to
+stop asking: `lean_wire.derive_columns`, since the encoder is the only party that
+sees every row at once. **When N callers implement the same helper wrong the same
+way, the signature is the bug.**
+
+**And the gate that declared it all green was not running it.** Found only
+because six new `lean-wire` tests did not move the root collection count: the
+shelf's `testpaths` is hand-maintained and pytest is silent about a package
+absent from it, so 8 of 26 package suites (174 tests, including `a2effect`'s 12
+files and `page-tsv` itself) ran in no gate at all. All 174 passed — the loss was
+that nothing would have said otherwise, over a third of the tree. Fixed and
+guarded in both directions; the shelf gate went 472 → 649 tests, its coverage
+base 2610 → 3544 statements. **Same shape as this repo's `tach.toml` finding: a
+hand-maintained list of what to check, where a missing entry means no contract
+rather than a failure.** Two instances now; a third would make it a pattern
+worth a general answer.
+
+---
 ## 2026-07-27 — strip ambient LLM availability from the whole test suite (S, CI correctness)
 
 Source: the v0.48.0 release build, which failed the gate on a bare runner after

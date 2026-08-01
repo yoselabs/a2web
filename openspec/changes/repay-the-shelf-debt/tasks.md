@@ -7,25 +7,48 @@ Resolve the shelf loop lazily at the first adopt/promote checkpoint, per
 CLAUDE.md: find the clone, read `<shelf>/docs/agent-loop.md`, `git pull` there.
 Never commit a local `path=`/editable shelf source.
 
-## 1. `page-tsv` — the only debt with a live cross-repo consumer
+## 1. `page-tsv` — DONE 2026-08-01 (shelf `page-tsv-v0.2.0`, `lean-wire-v0.2.0`)
 
-- [ ] 1.1 Promote the **presence guard** (`wire.py:124-133`) — a pruned field
-      must stay pruned, not be resurrected as an empty marker plus a
-      `_<name>_format` sidecar.
-- [ ] 1.2 Promote the **already-a-string guard** (`wire.py:135-153`) —
-      `render.py:98`'s `isinstance(raw, (list, tuple)) else []` overwrites
-      populated pre-encoded content.
-- [ ] 1.3 Promote the **shape guard** (`wire.py:155-175`) — `render.py:99` calls
-      `encode_tsv` unwrapped, so one unencodable field voids the whole envelope's
-      encode.
-- [ ] 1.4 **Notify `a2kay` before release.** Its output changes: a previously
-      resurrected field stops appearing, a previously blanked field starts
-      carrying content. Corrections, and still a live-wire change.
-- [ ] 1.5 Correct the rejection note in
-      `openspec/changes/archive/2026-07-26-sunset-a2kit-dependency/design.md:99-104`
-      — record that the defects were repaid, not only routed around.
-- [ ] 1.6 Re-evaluate whether a2web's `wire.py` can now consume `page-tsv`
-      (design Open Questions). Do not assume either answer.
+**The section title was wrong and is corrected below (1.4).** This was not "the
+only debt with a live cross-repo consumer" — it had no live consumer at all.
+
+- [x] 1.1 Promote the **presence guard** — a pruned field stays pruned.
+- [x] 1.2 Promote the **already-a-string guard** — pre-encoded content survives.
+- [x] 1.3 Promote the **shape guard** — one untabulatable field no longer voids
+      the whole envelope's encode.
+- [x] 1.3b **A FOURTH defect, not in the original list:** the header came from
+      `rows[0]`, deleting every key that row happened to lack. Found in a2web
+      2026-07-31, still live in `page-tsv` in two places. Fixed — and it turned
+      out to be the interesting one, see 1.6.
+- [x] 1.4 ~~Notify `a2kay` before release.~~ **The claim was false; verified.**
+      a2kay imports `page_tsv.Page` as a TYPE in three routers and nothing
+      else. Its CLI renders compact JSON explicitly and its own docstring says
+      *"Token-lean `page-tsv`/TSV type-routing is a later enhancement"* — no
+      a2kay code path reaches the encoder, so nothing shipped wrong and there is
+      no output change to notify anyone about. What was true: a2kay is *primed*
+      to turn it on, and these four are exactly what would have bitten then.
+      Recorded in shelf ledger 0075 rather than quietly dropped.
+- [x] 1.5 Correct the rejection note in
+      `openspec/changes/archive/2026-07-26-sunset-a2kit-dependency/design.md`.
+      Both rejections stand; the correction is that *"a2web routed around it"*
+      was never the same as *"it is fixed"*, and the document read as if it were.
+- [x] 1.6 Re-evaluate whether a2web's `wire.py` can consume `page-tsv`.
+      **Answer: no, re-affirmed on the original grounds** (design Open
+      Questions) — page-tsv's centre of gravity is the `EncodingPlan` inference
+      that `_TSV_FIELDS` exists to refuse, and it exports no `encode_rows`
+      equivalent. **But the fourth defect transferred something better:** three
+      callers had answered `encode_tsv`'s "what are the columns?" and all three
+      answered `rows[0]`. Rule of three on a *defect*. The rule moved down to
+      `lean_wire.derive_columns` (v0.2.0); a2web adopted it and deleted its copy,
+      so it shares the mechanism without the inference spine.
+- [x] 1.7 **Unplanned, found en route: the shelf's own gate was not running 8 of
+      26 package suites** — 174 tests, `a2effect` and `page-tsv` among them.
+      Surfaced only because six new `lean-wire` tests did not move the root
+      collection count. `testpaths` is hand-maintained and pytest is silent
+      about an absent package. Fixed and guarded in both directions
+      (`tests/test_gate_covers_every_package.py`); the shelf gate went 472 → 649
+      tests and its coverage base 2610 → 3544 statements. Shelf ledger 0077.
+      Same shape as a2web's `tach.toml` finding — worth watching for a third.
 
 ## 2. `record-mine` — the shipped detector contradicts a2web's own spec
 

@@ -115,34 +115,6 @@ def _encode_json(value: Any) -> str:
     return json.dumps(value, separators=(",", ":"), default=str, ensure_ascii=False)
 
 
-def _derive_columns(rows: list[Any]) -> list[str]:
-    """TSV header columns: the UNION of every row's keys, first-seen order.
-
-    Rows reaching here are already plain dicts — this runs after the model has
-    been dumped, so declared-field order survives as dict insertion order.
-
-    Rows are heterogeneous BY CONSTRUCTION: model serializers elide fields at
-    their default (`OperatorHint._omit_default_severity` drops an `info`
-    severity, `PruneEmpty` drops empties), so which keys a row carries is a
-    property of its data. Reading only `rows[0]` therefore DELETED data — an
-    `info` hint followed by a `critical` one produced a table with no
-    `severity` column and the ADR-0009 klaxon reached the agent unmarked.
-
-    This is not the inference `_TSV_FIELDS` exists to forbid. *Which fields
-    become tables* is a contract and stays literal; *which columns a table
-    has* is a property of the rows, and the three hand-rolled conditional
-    helpers in `models.py` were each approximating this rule already.
-
-    `encode_tsv` fills a missing key with an empty cell, so widening never
-    shifts a sparse row's values.
-    """
-    columns: dict[str, None] = {}  # dict, not set — insertion order is the contract
-    for row in rows:
-        if isinstance(row, dict):
-            columns.update(dict.fromkeys(str(k) for k in row))
-    return list(columns)
-
-
 def encode_rows(rows: list[Any]) -> str:
     """Render model or dict `rows` as a TSV block with union-derived columns.
 
@@ -152,9 +124,27 @@ def encode_rows(rows: list[Any]) -> str:
     three hand-rolled conditional-column helpers in `models.py`, each
     approximating this rule differently, while `encode_envelope` had no
     conditional at all and silently dropped the elided fields.
+
+    **The rule itself now lives in `lean_wire.derive_columns`** (adopted with
+    lean-wire v0.2.0, 2026-08-01), which is where it belongs: `encode_tsv` is
+    the only party that sees every row at once, and asking each caller for the
+    header produced the same bug in all THREE callers that answered — a2web's
+    copy here plus `page_tsv.render` and `page_tsv.page`, each reading `rows[0]`
+    as the schema. Omitting `columns=` takes the union.
+
+    Rows are heterogeneous BY CONSTRUCTION: model serializers elide fields at
+    their default (`OperatorHint._omit_default_severity` drops an `info`
+    severity, `PruneEmpty` drops empties), so which keys a row carries is a
+    property of its data. Reading only `rows[0]` therefore DELETED data — an
+    `info` hint followed by a `critical` one produced a table with no
+    `severity` column and the ADR-0009 klaxon reached the agent unmarked.
+
+    This is not the inference `_TSV_FIELDS` exists to forbid. *Which fields
+    become tables* is a contract and stays literal; *which columns a table has*
+    is a property of the rows.
     """
     dumped = [row.model_dump(mode="json") if isinstance(row, BaseModel) else row for row in rows]
-    return encode_tsv(dumped, columns=_derive_columns(dumped))
+    return encode_tsv(dumped)
 
 
 def _is_tsv_shaped(rows: list[Any]) -> bool:
@@ -223,7 +213,7 @@ def encode_envelope(payload: dict[str, Any], tsv_fields: tuple[str, ...]) -> str
             # rest of the envelope down with it. Pinned by
             # `test_headings_do_not_abort_the_envelope_encode`.
             continue
-        envelope[name] = encode_tsv(rows, columns=_derive_columns(rows))
+        envelope[name] = encode_tsv(rows)
         envelope[f"_{name}_format"] = "tsv"
     return _encode_json(envelope)
 

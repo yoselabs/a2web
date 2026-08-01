@@ -252,7 +252,7 @@ same as ready to start.
 | 6 | `unify-the-response-contract` | T2 — must absorb the 41 external `FetchContext` reads before #7 phase two | **authored** |
 | 7 | `decompose-fetcher-into-files` | T1 — the 26-file tree, the retrieval→comprehension→sufficiency loop, `install()` | **authored** |
 | 8 | `lift-the-item-set-and-renderer` | T5/T7: `domain.py`'s 360-line zero-coupling renderer (ledger Row 1), the item set (Row 2) — closes a LIVE ADR-0015 gap | **authored** |
-| 9 | `repay-the-shelf-debt` | T7: `page-tsv`'s three encoder defects (**affects `a2kay` today**), five more shelf gaps, adopted-then-bypassed primitives | **authored** |
+| 9 | `repay-the-shelf-debt` | T7: ~~`page-tsv`'s encoder defects~~ **§1 SHIPPED 2026-08-01**, five more shelf gaps, adopted-then-bypassed primitives | **in progress** |
 | 10 | `reconcile-docs-to-shipped-system` | T6 — last, because #6/#7 re-invalidate parts of it | **authored** |
 
 **Ordering — authored is not ready.** #4 goes first: every guard the other nine
@@ -454,7 +454,7 @@ Three recurring failures, in cost order:
 
 | finding | tier |
 |---|---|
-| [`page-tsv` still ships all three encoder defects a2web fixed](docs/findings/2026-07-31-primitives-scan.md#the-largest-un-repaid-debt-page-tsv-still-ships-all-three-encoder-defects) | M, shelf promotion — affects `a2kay` |
+| ~~[`page-tsv` still ships all three encoder defects a2web fixed](docs/findings/2026-07-31-primitives-scan.md#the-largest-un-repaid-debt-page-tsv-still-ships-all-three-encoder-defects)~~ **SHIPPED** — see below | closed |
 | [five more shelf gaps a2web has already paid for](docs/findings/2026-07-31-primitives-scan.md#five-more-shelf-gaps-a2web-paid-for) | M, shelf promotion |
 | [`prune_dict` imported, re-exported, never called](docs/findings/2026-07-31-primitives-scan.md#prune_dict--imported-re-exported-never-called) | S, structure |
 | [`fmt_dur` adopted, then bypassed one import away](docs/findings/2026-07-31-primitives-scan.md#fmt_dur--adopted-then-bypassed-one-import-away) | XS, structure |

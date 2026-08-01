@@ -107,6 +107,28 @@ a2kit middleware that today resurrects empty conditionals and destroys populated
 fix**; let plain FastMCP's `pydantic_core.to_json` serialize a2web's
 already-shaped model.
 
+> **Postscript, 2026-08-01 (`repay-the-shelf-debt` §1).** Both rejections above
+> stand, and both were only ever *half* the job. Routing around a defect leaves
+> it shipping: `page-tsv` was promoted out of the same a2kit `formatter` code and
+> inherited every one of these bugs, so the shelf carried them for ten days after
+> a2web stopped paying for them. They are now repaid at the source
+> (`page-tsv-v0.2.0`) — presence guard, already-a-string guard, shape guard, plus
+> a fourth found later: the header derived from `rows[0]`, which deleted every
+> key the first row happened to lack.
+>
+> The fourth turned out to be the interesting one. THREE callers had answered
+> `encode_tsv`'s "what are the columns?" — a2web's `wire.py`, `page_tsv.render`,
+> `page_tsv.page` — and all three answered `rows[0]`. That is a rule-of-three on
+> a *defect*, and the fix was to stop asking: `lean_wire.derive_columns`
+> (v0.2.0), since the encoder is the only party that sees every row at once.
+> a2web adopted it and deleted its copy.
+>
+> The `page-tsv` rejection itself was re-evaluated at the same time and
+> **re-affirmed** — see `repay-the-shelf-debt/design.md` for the reasoning. The
+> correction to record here is narrower and worth stating plainly: *"a2web
+> routed around it"* was never the same as *"it is fixed"*, and this document
+> read as though it were.
+
 ## D3 — Logging: sync, and wider than a shim
 
 a2kit's async `log.info` is async for **exactly one reason**: a 6-line MCP-wire
