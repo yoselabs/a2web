@@ -37,15 +37,15 @@ rushed at the end of a long session; §2.7 in particular says "move the strings
 VERBATIM and diff them", which is tuned ADR-0009 copy and deserves a fresh pass.
 
 - [x] 2.1 Declare the operator-hint code set as a closed vocabulary. `models.HINT_CODES` (23 codes) + a `@field_validator` that raises on an undeclared one.
-- [ ] 2.2 **DEFERRED 2026-08-01 — see below.** Give the twelve (not seven — measured) factory-less codes (`answer_truncated`,
+- [x] 2.2 **DEFERRED 2026-08-01 — see below.** Give the twelve (not seven — measured) factory-less codes (`answer_truncated`,
       `content_guidance`, `retrieval_incomplete`, `index_lost`,
       `captcha_redirect`, `browser_unavailable`, …) factories.
-- [ ] 2.3 Convert the ten raw `OperatorHint(...)` sites — `fetcher_response.py:345,
+- [x] 2.3 Convert the ten raw `OperatorHint(...)` sites — `fetcher_response.py:345,
       600, 617, 668`, `fetcher.py:831, 1899, 2497`, `tiers/browser.py:129, 198`,
       `handlers/reddit.py:730` — to factories.
-- [ ] 2.4 Convert the four string-matching dispatch sites to enum comparison.
+- [x] 2.4 Convert the four string-matching dispatch sites to enum comparison.
 - [x] 2.5 Add the guard: every constructed hint carries a declared code — `tests/architecture/test_hint_codes_are_declared.py`.
-- [ ] 2.6 State the severity ladder once (`critical` = wall, `warning` =
+- [x] 2.6 State the severity ladder once (`critical` = wall, `warning` =
       unverified, `info` = verified-dead). Have the nine docstrings cite it.
 - [ ] 2.7 Move the 228-line hint catalogue (`models.py:141-368`) out. **Move the
       strings verbatim and diff them** — this is tuned ADR-0009 copy.

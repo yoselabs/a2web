@@ -47,7 +47,17 @@ from http_fetch import FetchOutcome, FetchVerdict, fetch_bytes
 from selectolax.parser import HTMLParser
 
 from .. import content_expectations
-from ..models import NEXT_LINKS_CAP, Heading, NextLink, OperatorHint, Verdict, comments_partial_hint, try_user_browser_hint
+from ..models import (
+    NEXT_LINKS_CAP,
+    Heading,
+    NextLink,
+    OperatorHint,
+    Verdict,
+    comments_partial_hint,
+    reddit_deleted_hint,
+    reddit_forbidden_hint,
+    try_user_browser_hint,
+)
 from . import _reddit_html as rh
 from ._common import challenge_verdict, empty_result
 
@@ -237,8 +247,7 @@ class RedditHandler:
             # has a public capture from before the gate dropped.
             return _archive_escalation_signal(
                 url,
-                reason="reddit_forbidden_try_archive",
-                message="Reddit returned 403 (quarantined/NSFW/private); try archive snapshot.",
+                hint=reddit_forbidden_hint("Reddit returned 403 (quarantined/NSFW/private); try archive snapshot."),
             )
         if outcome.verdict is not FetchVerdict.ok:
             return empty_result(url, Verdict.connection_error)
@@ -760,8 +769,15 @@ def _walled_signal(url: str) -> TierResult:
     )
 
 
-def _archive_escalation_signal(url: str, *, reason: str, message: str) -> TierResult:
-    """Return a TierResult that asks the playbook to dispatch the archive tier."""
+def _archive_escalation_signal(url: str, *, hint: OperatorHint) -> TierResult:
+    """Return a TierResult that asks the playbook to dispatch the archive tier.
+
+    Takes the built hint rather than a `(reason, message)` pair. The old shape
+    reached `OperatorHint` through `code=reason`, so both Reddit codes were
+    invisible to any census of `code="..."` — which is exactly the shape the
+    closed vocabulary exists to surface, and why `HINT_CODES` had to name them
+    explicitly.
+    """
     from ..tiers import TierResult
 
     return TierResult(
@@ -770,7 +786,7 @@ def _archive_escalation_signal(url: str, *, reason: str, message: str) -> TierRe
         status_code=0,
         final_url=url,
         verdict=Verdict.not_found,
-        operator_hint=OperatorHint(code=reason, message=message),
+        operator_hint=hint,
     )
 
 
@@ -898,8 +914,7 @@ async def _fetch_old_reddit_or_archive_signal(url: str, *, state: AppState, cook
         return result
     return _archive_escalation_signal(
         url,
-        reason="reddit_deleted_try_archive",
-        message="Reddit thread returned empty/404 on both RSS and old.reddit; try archive snapshot.",
+        hint=reddit_deleted_hint("Reddit thread returned empty/404 on both RSS and old.reddit; try archive snapshot."),
     )
 
 

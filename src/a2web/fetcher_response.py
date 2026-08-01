@@ -39,11 +39,16 @@ from .models import (
     RouterPayload,
     TokenCounts,
     Verdict,
+    answer_truncated_hint,
     archive_snapshot_age_hint,
+    content_guidance_hint,
     extraction_empty_hint,
+    has_hint,
+    index_lost_hint,
     listing_more_hint,
     listing_partial_hint,
     llm_error_hint,
+    retrieval_incomplete_hint,
 )
 from .packages.llm_extract import RoutingOutcome
 
@@ -434,18 +439,7 @@ def _index_loss_hint(
         return []
     if also_here or other_pages or options:
         return []
-    return [
-        OperatorHint(
-            code="index_lost",
-            message=(
-                "The page body was withheld and the extractor's index of it did not survive "
-                "parsing, so this answer may omit content the page carried without saying so. "
-                "The answer itself is unaffected."
-            ),
-            fix="Call fetch_raw on this same URL to read the body — it is served from cache, so it costs no new fetch.",
-            severity="warning",
-        )
-    ]
+    return [index_lost_hint()]
 
 
 # --------------------------------------------------------------------- #
@@ -527,7 +521,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
     extraction_empty = (
         fc.extraction_meta is not None and not (fc.extracted_answer or "").strip() and (len(fc.content_md) > 500 or fc.structured_grounded)
     )
-    llm_unavailable = any(h.code == "llm_unavailable" for h in fc.operator_hints)
+    llm_unavailable = has_hint(fc.operator_hints, "llm_unavailable")
     provider_errored = bool(fc.extraction_provider_error)
     ask_unanswered = final_verdict == Verdict.ok and bool(fc.ask) and (extraction_empty or llm_unavailable)
     if ask_unanswered:
@@ -719,13 +713,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     # full `extraction` object is debug-only.
     op_hints = list(fr.operator_hints)
     if fr.extraction is not None and fr.extraction.truncated:
-        op_hints.append(
-            OperatorHint(
-                code="answer_truncated",
-                message="The page was truncated before extraction; the answer may be incomplete.",
-                fix="Re-run with a higher max_content_chars, or use fetch_raw to read the full page.",
-            ),
-        )
+        op_hints.append(answer_truncated_hint())
 
     routing = fr.routing
 
@@ -736,9 +724,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     if routing is not None:
         guidance = kind_guidance(routing.structural_form)
         if guidance is not None:
-            op_hints.append(
-                OperatorHint(code="content_guidance", message=guidance),
-            )
+            op_hints.append(content_guidance_hint(guidance))
 
     # The DOM record-miner (`_records_to_options`) is a pure structural heuristic
     # that fires on ANY repeated DOM — a listing's product grid (wanted) OR a
@@ -787,18 +773,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     small_page_answered = obstacle == "empty" and bool((fr.extracted_answer or "").strip()) and fr.small_page_confirmed
     if obstacle in _INCOMPLETE_OBSTACLES and not structured_grounded_empty and not small_page_answered:
         retrieval_incomplete = True
-        op_hints.append(
-            OperatorHint(
-                code="retrieval_incomplete",
-                message=(
-                    "The extractor flagged this page as not carrying the requested content "
-                    "(likely a single-page-app shell, or a stale/unrelated page); the answer "
-                    "may not reflect the requested resource. Do not answer as if it does."
-                ),
-                fix="Verify against the live URL in a browser, or try fetch_raw / an alternate source.",
-                severity="critical",
-            ),
-        )
+        op_hints.append(retrieval_incomplete_hint())
 
     # thin/empty attach (thin-not-wall + empty-vs-wall / ADR-0015): a retrieved thin
     # 200 carries a `content_thin` (ambiguous) or `content_empty` (corroborated
@@ -812,7 +787,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     # `content_thin` hint, which is genuinely a hint-presence question (was the
     # thin body flagged?), not a re-derived decision.
     empty_confirmed = fr.empty_confirmed
-    thin_content = fr.content_md if (empty_confirmed or any(h.code == "content_thin" for h in op_hints)) else None
+    thin_content = fr.content_md if (empty_confirmed or has_hint(op_hints, "content_thin")) else None
 
     # A promoted empty ran NO LLM extraction (the thin body was never distilled —
     # ADR-0017), so synthesize an honest "no results" answer that only asserts the

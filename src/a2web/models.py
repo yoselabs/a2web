@@ -11,6 +11,7 @@ serialization; the custom renderer ships in a later PR.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
@@ -201,6 +202,29 @@ class OperatorHint(BaseModel):
         if not data.get("fix"):
             data.pop("fix", None)
         return data
+
+
+def has_hint(hints: Iterable[OperatorHint], code: str) -> bool:
+    """True when `code` is present, with the code itself checked against the vocabulary.
+
+    The closed `HINT_CODES` set plus the `OperatorHint` validator already make a
+    bad code impossible to CONSTRUCT. The dispatch side had no such protection
+    and the failure is asymmetric: `any(h.code == "llm_unavailble" ...)` — or a
+    correctly-spelled code that was later renamed — does not raise, it silently
+    returns `False` forever, and the branch it guards quietly stops running.
+    That is the harder bug of the two, because nothing reports it.
+
+    So the lookup validates its own argument. A renamed or mistyped code fails
+    loudly at the call site instead of reading as "no such hint present".
+    """
+    if code not in HINT_CODES:
+        msg = (
+            f"operator-hint code {code!r} is not in the closed HINT_CODES "
+            "vocabulary, so this lookup could only ever return False. If the "
+            "code was renamed, update this call site; if it is new, declare it."
+        )
+        raise ValueError(msg)
+    return any(hint.code == code for hint in hints)
 
 
 def try_user_browser_hint(url: str) -> OperatorHint:
@@ -573,6 +597,193 @@ def llm_error_hint(*, message: str, retryable: bool) -> OperatorHint:
         ),
         severity="critical",
     )
+
+
+# --------------------------------------------------------------------------- #
+# The remaining eleven codes.
+#
+# Every code in `HINT_CODES` now has exactly one factory, and every factory
+# lives here. Before this, eleven codes were constructed inline at their single
+# call site — in `fetcher.py`, `fetcher_response.py`, `tiers/browser.py` and
+# `handlers/reddit.py` — so the catalogue a reader could see was the incomplete
+# half, and the wording of a failure message depended on which module happened
+# to build it.
+#
+# Every string below was MOVED VERBATIM from its call site, not rewritten. This
+# is tuned ADR-0009 operator copy: it is what an agent is told when a fetch
+# fails, and a reworded hint changes what that agent does next. The mechanical
+# move and any wording change are deliberately not the same commit.
+# --------------------------------------------------------------------------- #
+
+
+def answer_truncated_hint() -> OperatorHint:
+    """The extractor saw only part of an over-cap page.
+
+    Travels as a hint rather than inside the debug-only `extraction` object
+    because it is the ACTIONABLE half: a caller that cannot see `extraction`
+    still needs to know the answer was formed over a partial read.
+    """
+    return OperatorHint(
+        code="answer_truncated",
+        message="The page was truncated before extraction; the answer may be incomplete.",
+        fix="Re-run with a higher max_content_chars, or use fetch_raw to read the full page.",
+    )
+
+
+def content_guidance_hint(guidance: str) -> OperatorHint:
+    """One line of "what matters for this page kind", for the caller's model.
+
+    Keyed off the closed `structural_form` enum, never a site — the per-SITE
+    version is banned by `tests/architecture/test_content_guidance_no_site.py`.
+    Carries no `fix`: it is context, not a remediation, and the serializer drops
+    an empty `fix` rather than emitting a dead `""`.
+    """
+    return OperatorHint(code="content_guidance", message=guidance)
+
+
+def index_lost_hint() -> OperatorHint:
+    """The body was withheld AND the index of it did not survive parsing.
+
+    Deliberately `warning`, never `critical`: nothing here suggests the
+    retrieval failed. The page was fetched, the answer is real, and a re-fetch
+    would not repair a formatting artifact — status describes retrieval, hints
+    describe extraction degradation. This is the ADR-0015 floor failing softly:
+    the caller is blind to what was withheld, and is told so.
+    """
+    return OperatorHint(
+        code="index_lost",
+        message=(
+            "The page body was withheld and the extractor's index of it did not survive "
+            "parsing, so this answer may omit content the page carried without saying so. "
+            "The answer itself is unaffected."
+        ),
+        fix="Call fetch_raw on this same URL to read the body — it is served from cache, so it costs no new fetch.",
+        severity="warning",
+    )
+
+
+def retrieval_incomplete_hint() -> OperatorHint:
+    """The extractor says this page does not carry what was asked for.
+
+    `critical` because this is the ADR-0009 signal proper: the caller is holding
+    an answer that may describe a different resource entirely, and the one thing
+    they must not do is treat it as the requested content.
+    """
+    return OperatorHint(
+        code="retrieval_incomplete",
+        message=(
+            "The extractor flagged this page as not carrying the requested content "
+            "(likely a single-page-app shell, or a stale/unrelated page); the answer "
+            "may not reflect the requested resource. Do not answer as if it does."
+        ),
+        fix="Verify against the live URL in a browser, or try fetch_raw / an alternate source.",
+        severity="critical",
+    )
+
+
+def captcha_redirect_hint() -> OperatorHint:
+    """A Google/Bing captcha page slipped past the upfront `rewrite_captcha_host`.
+
+    The second half of a two-part policy whose halves cannot import each other
+    (one is in `domain.py`, the marker is in `packages/block_detector`); they are
+    held together only by `tests/capabilities/tier_pipeline/test_captcha_policy_halves.py`.
+    """
+    return OperatorHint(
+        code="captcha_redirect",
+        message="Search engine returned a captcha page; consider DDG/Brave directly.",
+        fix="https://duckduckgo.com/html/?q=<your-query>",
+    )
+
+
+def cookies_stale_hint(*, age: str, threshold_hours: int) -> OperatorHint:
+    """The local cookie mirror is past its staleness threshold.
+
+    Names both numbers rather than saying "stale": an operator deciding whether
+    to spend a Keychain prompt needs the gap, not the verdict.
+    """
+    return OperatorHint(
+        code="cookies_stale",
+        message=(
+            f"Browser cookies last refreshed {age} ago; threshold is {threshold_hours}h. Some sites may treat this session as logged-out."
+        ),
+        fix="Run `a2web cookies refresh`",
+    )
+
+
+def llm_unavailable_hint(*, reason: str, key_env: str) -> OperatorHint:
+    """No extraction provider could be resolved.
+
+    `critical` and never silent: under ADR-0016 the failure mode this guards
+    against is a caller assuming the absent answer means the page was empty. The
+    `fix` names the ACTUAL configured key env (`key_env`) rather than a hardcoded
+    `ANTHROPIC_API_KEY`, because that name is a settings field and telling an
+    operator to set a variable the code does not read is worse than silence.
+    """
+    return OperatorHint(
+        code="llm_unavailable",
+        message=reason,
+        fix=(
+            f"Set {key_env} (Anthropic) or OPENAI_API_KEY "
+            "(+ OPENAI_BASE_URL / OPENAI_MODEL) in the environment, or run inside "
+            "Claude Code. `fetch_raw` works without an LLM."
+        ),
+        severity="critical",
+    )
+
+
+#: Re-enable hint for an unavailable engine (missing extra / launch failure).
+#: The published image has carried a baked Chromium since 0.46.0, so "build with
+#: INSTALL_BROWSER=true" is no longer the container remedy — a container that
+#: still reports this is either running a pre-0.46 image or failing to LAUNCH the
+#: binary it already has. Name both, since the two need opposite actions.
+#:
+#: Moved here from `tiers/browser.py` with its two hints. Kept verbatim — it
+#: names a concrete version boundary and an env override, and both are the kind
+#: of detail that gets lost when a message is "tidied".
+BROWSER_UNAVAILABLE_FIX = (
+    "local: uv sync --extra browser && patchright install chromium. "
+    "container: the published image bakes Chromium in from 0.46.0 — pull a current tag "
+    "(pre-0.46 images have none). If already on 0.46+, the binary is present but failed to "
+    "launch: check the `detail` for the resolved path and the binary's own output, and "
+    "override with ANY_BROWSER_EXECUTABLE_PATH if it lives outside PLAYWRIGHT_BROWSERS_PATH."
+)
+
+#: Actionable next step for an internal driver/navigation failure. The driver
+#: (Playwright/Firefox) is upstream — a2web cannot patch it — so the operator's
+#: levers are retry or disabling the tier.
+BROWSER_INTERNAL_FIX = (
+    "transient browser-driver error — retry; if it persists the driver "
+    "(Playwright/Firefox) is at fault, not the target. Set "
+    "A2WEB_BROWSER_ENABLED=false to skip the browser tier."
+)
+
+
+def browser_unavailable_hint(message: str) -> OperatorHint:
+    """The browser rung could not start at all (no binary, failed launch)."""
+    return OperatorHint(code="browser_unavailable", message=message, fix=BROWSER_UNAVAILABLE_FIX)
+
+
+def browser_internal_error_hint(detail: str | None) -> OperatorHint:
+    """The browser started and the DRIVER failed — not the target site.
+
+    The distinction is the whole point: attributing a driver crash to the page
+    would send the caller chasing a wall that is not there.
+    """
+    return OperatorHint(
+        code="browser_internal_error",
+        message=detail or "browser internal error",
+        fix=BROWSER_INTERNAL_FIX,
+    )
+
+
+def reddit_forbidden_hint(message: str) -> OperatorHint:
+    """Reddit answered 403 on a shape that should have been public."""
+    return OperatorHint(code="reddit_forbidden_try_archive", message=message)
+
+
+def reddit_deleted_hint(message: str) -> OperatorHint:
+    """The Reddit post is deleted/removed; the archive may still hold it."""
+    return OperatorHint(code="reddit_deleted_try_archive", message=message)
 
 
 NextLinkKind = Literal["drilldown", "related", "source", "discussion"]

@@ -19,7 +19,13 @@ from urllib.parse import urlparse
 from any_browser import BackendCookie, RenderOutcome
 from content_extract import ExtractedContent, extract_markdown
 
-from ..models import Heading, Link, OperatorHint, Verdict
+from ..models import (
+    Heading,
+    Link,
+    Verdict,
+    browser_internal_error_hint,
+    browser_unavailable_hint,
+)
 from ..packages.block_detector import LENGTH_FLOOR
 
 if TYPE_CHECKING:
@@ -30,27 +36,9 @@ if TYPE_CHECKING:
     from . import TierResult
 
 
-# Re-enable hint for an unavailable engine (missing extra / launch failure).
-# The published image has carried a baked Chromium since 0.46.0, so "build with
-# INSTALL_BROWSER=true" is no longer the container remedy — a container that
-# still reports this is either running a pre-0.46 image or failing to LAUNCH the
-# binary it already has. Name both, since the two need opposite actions.
-_FIX_HINT = (
-    "local: uv sync --extra browser && patchright install chromium. "
-    "container: the published image bakes Chromium in from 0.46.0 — pull a current tag "
-    "(pre-0.46 images have none). If already on 0.46+, the binary is present but failed to "
-    "launch: check the `detail` for the resolved path and the binary's own output, and "
-    "override with ANY_BROWSER_EXECUTABLE_PATH if it lives outside PLAYWRIGHT_BROWSERS_PATH."
-)
-
-# Actionable next step for an internal driver/navigation failure. The driver
-# (Playwright/Firefox) is upstream — a2web cannot patch it — so the operator's
-# levers are retry or disabling the tier.
-_INTERNAL_FIX = (
-    "transient browser-driver error — retry; if it persists the driver "
-    "(Playwright/Firefox) is at fault, not the target. Set "
-    "A2WEB_BROWSER_ENABLED=false to skip the browser tier."
-)
+# The two browser-tier remediation strings moved to `models.py` alongside their
+# factories (`browser_unavailable_hint` / `browser_internal_error_hint`), so
+# every operator-hint string in a2web has exactly one home.
 
 
 def _cookie_to_backend(cookie: Cookie) -> BackendCookie:
@@ -126,7 +114,7 @@ def _unavailable_result(url: str, message: str) -> TierResult:
         status_code=0,
         final_url=url,
         from_browser=True,
-        operator_hint=OperatorHint(code="browser_unavailable", message=message, fix=_FIX_HINT),
+        operator_hint=browser_unavailable_hint(message),
         verdict=Verdict.connection_error,
     )
 
@@ -195,11 +183,7 @@ class BrowserTier:
                 from_browser=True,
                 js_executed=page.js_executed,
                 browser_wall_ms=page.wall_ms,
-                operator_hint=OperatorHint(
-                    code="browser_internal_error",
-                    message=page.detail or "browser internal error",
-                    fix=_INTERNAL_FIX,
-                ),
+                operator_hint=browser_internal_error_hint(page.detail),
                 verdict=Verdict.connection_error,
             )
 

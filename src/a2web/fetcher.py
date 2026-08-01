@@ -75,10 +75,14 @@ from .models import (
     NextLinkKind,
     OperatorHint,
     Verdict,
+    captcha_redirect_hint,
     content_empty_hint,
     content_not_found_hint,
     content_thin_hint,
+    cookies_stale_hint,
     fetch_deadline_hint,
+    has_hint,
+    llm_unavailable_hint,
     paid_auth_error_hint,
     try_user_browser_hint,
 )
@@ -924,16 +928,7 @@ async def _phase_cookies_staleness(fc: FetchContext, *, state: AppState) -> None
         return
     threshold_h = state.settings.cookie_stale_after_hours
     age_str = _format_age(info.age_hours)
-    fc.operator_hints.append(
-        OperatorHint(
-            code="cookies_stale",
-            message=(
-                f"Browser cookies last refreshed {age_str} ago; threshold is "
-                f"{threshold_h}h. Some sites may treat this session as logged-out."
-            ),
-            fix="Run `a2web cookies refresh`",
-        ),
-    )
+    fc.operator_hints.append(cookies_stale_hint(age=age_str, threshold_hours=threshold_h))
     t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     await a2web_log.info(
         CookiesStale(
@@ -2124,13 +2119,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
     # captcha page that slipped past `rewrite_captcha_host`. Surface an
     # actionable operator hint instead of just an opaque `block_page_detected`.
     if gate_result.subsystem == "captcha_redirect":
-        fc.operator_hints.append(
-            OperatorHint(
-                code="captcha_redirect",
-                message="Search engine returned a captcha page; consider DDG/Brave directly.",
-                fix="https://duckduckgo.com/html/?q=<your-query>",
-            )
-        )
+        fc.operator_hints.append(captcha_redirect_hint())
 
     # Planner-driven escalation. Consult `decide_next` over the decision log and
     # dispatch its action through the single unified executor, repeating until it
@@ -2150,11 +2139,17 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
 
 
 def _has_browser_hint(fc: FetchContext) -> bool:
-    return any(h.code == "try_user_browser" for h in fc.operator_hints)
+    return has_hint(fc.operator_hints, "try_user_browser")
 
 
 def _has_hint(fc: FetchContext, code: str) -> bool:
-    return any(h.code == code for h in fc.operator_hints)
+    """Thin `FetchContext` adapter over `models.has_hint`.
+
+    Was `any(h.code == code ...)` — an unvalidated twin of the shared helper,
+    which is how a lookup for a renamed code would have gone on answering
+    `False` here while the validated helper caught it everywhere else.
+    """
+    return has_hint(fc.operator_hints, code)
 
 
 def _phase_empty_promotion(fc: FetchContext) -> None:
@@ -2764,18 +2759,7 @@ async def _phase_extract_answer(
             link_digest=digest_text,
         )
     except ResourceUnavailable as exc:
-        fc.operator_hints.append(
-            OperatorHint(
-                code="llm_unavailable",
-                message=exc.reason,
-                fix=(
-                    f"Set {state.settings.llm_api_key_env} (Anthropic) or OPENAI_API_KEY "
-                    "(+ OPENAI_BASE_URL / OPENAI_MODEL) in the environment, or run inside "
-                    "Claude Code. `fetch_raw` works without an LLM."
-                ),
-                severity="critical",
-            )
-        )
+        fc.operator_hints.append(llm_unavailable_hint(reason=exc.reason, key_env=state.settings.llm_api_key_env))
         dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
         await a2web_log.info(
             StageEnded(
