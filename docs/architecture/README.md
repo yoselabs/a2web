@@ -126,6 +126,8 @@ guard's own docstring first line.
 - `tests/architecture/test_walk_is_not_vacuous.py` — The guard on the guards.
 - `tests/architecture/test_wobble_policies_match_prompts.py` — The wobble triage agrees with the prompt it claims to be reading.
 
+- `tests/architecture/test_hint_codes_are_declared.py` — Every operator-hint code is drawn from one closed vocabulary.
+
 ## Verification provenance — where CI's authority ends
 
 `verification-provenance.md` is the companion to this manual. This README covers
