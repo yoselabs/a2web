@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from json_in_html import JsonPayload
 
-from a2web.domain import json_to_markdown_rows
+from a2web.packages.structured_render import json_to_markdown_rows
 
 # A scalar key chosen to NOT be in any plausible "interesting keys" allowlist —
 # stable (not random, per the no-Math.random rule) but clearly unanticipated.

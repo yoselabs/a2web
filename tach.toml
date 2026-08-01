@@ -27,6 +27,7 @@ depends_on = [
     "a2web.packages.escalation",
     "a2web.packages.llm_extract",
     "a2web.packages.proxy_routing",
+    "a2web.packages.structured_render",
 ]
 
 # -- packages: in-tree microsofware -------------------------------------------
@@ -54,4 +55,8 @@ depends_on = []
 
 [[modules]]
 path = "a2web.packages.proxy_routing"
+depends_on = []
+
+[[modules]]
+path = "a2web.packages.structured_render"
 depends_on = []

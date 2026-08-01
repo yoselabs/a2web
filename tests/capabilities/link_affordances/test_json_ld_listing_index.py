@@ -152,7 +152,7 @@ def test_a_single_product_is_not_a_listing() -> None:
     """
     from json_in_html import extract_json_payloads
 
-    from a2web.domain import listing_rows
+    from a2web.packages.structured_render import listing_rows
 
     html = (
         "<html><body>"

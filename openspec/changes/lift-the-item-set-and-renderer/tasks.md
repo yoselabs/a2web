@@ -71,44 +71,44 @@ to. Two notes for the lift that follows:
 
 ## 5. Lift the renderer out of `domain.py`
 
-- [ ] 5.1 Confirm the Ask First gate — promoting to `packages/` is on the list,
+- [x] 5.1 Confirm the Ask First gate — promoting to `packages/` is on the list,
       and boundary types need design.
-- [ ] 5.2 Resolve divergence one **during** the move: delete
+- [x] 5.2 Resolve divergence one **during** the move: delete
       `_opengraph_to_markdown:531`'s hand-rolled table, use `_rows_to_md_table`.
       Pick one cap pair deliberately (200/50 vs 80/none) and record the choice.
-- [ ] 5.3 Resolve divergence two: `_single_entity_md:345` is default-keep and
+- [x] 5.3 Resolve divergence two: `_single_entity_md:345` is default-keep and
       argues an allowlist "silently loses an unanticipated answer-bearing field";
       `_recipe_md:316` is that allowlist. Decide which is right and record the
       reason — this decides what a recipe page silently drops.
-- [ ] 5.4 Resolve divergence three: name the three bare `50`s (`:285`, `:439`,
+- [x] 5.4 Resolve divergence three: name the three bare `50`s (`:285`, `:439`,
       `:548`), one of which carries a documented manual-sync comment. Do not
       carry a manual sync across a package boundary.
-- [ ] 5.5 Move `:188-551` + `json_response_fallback` to `packages/`. It has zero
+- [x] 5.5 Move `:188-551` + `json_response_fallback` to `packages/`. It has zero
       a2web imports and four test files already treat it as a unit.
-- [ ] 5.6 Update the two consumers: `fetcher.py:1346`, `:1689`.
+- [x] 5.6 Update the two consumers: `fetcher.py:1346`, `:1689`.
 
 ## 6. What stays behind
 
-- [ ] 6.1 Confirm `domain.py` is ~120 lines and its docstring is now true —
+- [x] 6.1 Confirm `domain.py` is ~120 lines and its docstring is now true —
       "pure functions reading `AppSettings` or models but too small to deserve
       their own module" currently describes 12 of 551 lines.
-- [ ] 6.2 **Do not move `is_search_shaped`.** `:36-37` states it gates
+- [x] 6.2 **Do not move `is_search_shaped`.** `:36-37` states it gates
       `actions.empty.is_confirmed_empty` (`empty.py:70`) — one clause of the
       ADR-level empty→ok conjunction.
-- [ ] 6.3 **Do not separate `_CAPTCHA_SEARCH_HOSTS` (`:77-84`) from
+- [x] 6.3 **Do not separate `_CAPTCHA_SEARCH_HOSTS` (`:77-84`) from
       `packages/block_detector.py:186-190, 305-307`.** Two halves of one
       Google/Bing policy, linked by comment only. Add the test over the pair —
       nothing tests it today and this is the moment.
-- [ ] 6.4 Fix `__all__`: drop `parse_query_params` (zero call sites in `src/`,
+- [x] 6.4 Fix `__all__`: drop `parse_query_params` (zero call sites in `src/`,
       6 tests, documented at length) or find it a caller; add
       `strip_reader_prefix`, which `fetcher.py:56` imports today.
 
 ## 7. Close out
 
-- [ ] 7.1 `make check` green. `tach check` must accept the new package.
+- [x] 7.1 `make check` green. `tach check` must accept the new package.
 - [ ] 7.2 `make bench` — this touches `next_links` and listing output, both
       stated triggers.
-- [ ] 7.3 Confirm `tests/architecture/test_tach_covers_every_package.py` sees the
+- [x] 7.3 Confirm `tests/architecture/test_tach_covers_every_package.py` sees the
       new package. An unlisted package silently gets no contract at all.
 - [ ] 7.4 Move the Row 1 / Row 2 entries and the discourse cap entry to
       `BACKLOG-CLOSED.md`. Leave handler page-rendering open — it is the larger

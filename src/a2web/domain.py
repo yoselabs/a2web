@@ -1,10 +1,19 @@
 """a2web domain-coupled glue.
 
-Functions that read `AppSettings` or domain models but are too small
-to deserve their own module. Lives at the top level of the package
-because the previous seam directories (`cache/`, `gate/`, `extract/`,
-`log/`, `proxy/`) have been deleted — there's no natural per-domain
-home for these.
+Functions that read `AppSettings` or domain models but are too small to deserve
+their own module. Lives at the top level of the package because the previous
+seam directories (`cache/`, `gate/`, `extract/`, `log/`, `proxy/`) have been
+deleted — there's no natural per-domain home for these.
+
+**This description became true on 2026-08-01.** It previously sat above 551
+lines of which 381 (69%) were a structured-data → markdown renderer that read
+neither settings nor models and had zero a2web imports. That renderer now lives
+at `packages/structured_render.py`; what remains is URL policy plus the twelve
+settings-coupled lines the docstring was always describing.
+
+**`is_search_shaped` cannot follow it.** It gates one clause of
+`actions.empty.is_confirmed_empty` — the ADR-level empty→ok conjunction — so it
+is domain policy wearing a URL predicate's clothes, and it stays here.
 
 Pure functions only. No I/O. No class state.
 """
@@ -12,23 +21,18 @@ Pure functions only. No I/O. No class state.
 from __future__ import annotations
 
 import hashlib
-import json
-from typing import TYPE_CHECKING, Any
-from urllib.parse import parse_qs, parse_qsl, quote, urlparse
+from typing import TYPE_CHECKING
+from urllib.parse import parse_qs, quote, urlparse
 
 if TYPE_CHECKING:
-    from json_in_html import JsonPayload
-
     from .settings import AppSettings
 
 __all__ = (
     "compute_profile_hash",
     "is_live_only",
     "is_search_shaped",
-    "json_response_fallback",
-    "json_to_markdown_rows",
-    "parse_query_params",
     "rewrite_captcha_host",
+    "strip_reader_prefix",
 )
 
 # Path segments that mark a search / listing surface — where an "empty result"
@@ -55,23 +59,6 @@ def is_search_shaped(url: str) -> bool:
 
 # Cap the never-lose JSON text fallback so an unbounded API dump can't blow the
 # response envelope (mirrors the synthetic-output caps elsewhere in this module).
-_JSON_FALLBACK_CAP = 20_000
-
-
-def json_response_fallback(data: dict | list) -> str:
-    """Render an unrecognized JSON response body as a readable, capped code fence.
-
-    The never-lose fallback for the JSON-response path: when
-    `json_to_markdown_rows` doesn't recognize the shape, a valid-but-unknown
-    payload still reaches the caller and the `ask` extractor as pretty-printed
-    JSON, instead of a silent empty miss. Pure — no I/O.
-    """
-    text = json.dumps(data, indent=2, ensure_ascii=False, default=str)
-    if len(text) > _JSON_FALLBACK_CAP:
-        text = text[:_JSON_FALLBACK_CAP] + "\n… (truncated)"
-    return f"```json\n{text}\n```"
-
-
 # Hosts that emit captcha pages on `/search` for unauth scrapers.
 # Pre-routed to DuckDuckGo's HTML endpoint before tier dispatch.
 _CAPTCHA_SEARCH_HOSTS = frozenset(
@@ -98,29 +85,6 @@ def is_live_only(url: str, settings: AppSettings) -> bool:
     """Return True if `url`'s host should bypass the cache entirely."""
     host = urlparse(url).hostname or ""
     return any(host == h or host.endswith(f".{h}") for h in settings.live_only_hosts)
-
-
-def parse_query_params(url: str) -> list[tuple[str, str]]:
-    """Parse a URL's query string into opaque `(key, value)` pairs.
-
-    Part of the content-aware refinement context bundle: the query string is a
-    filter/sort surface, but a2web must NOT interpret it — decoding
-    `siralama=artanFiyat` as "ascending price sort" would require per-site,
-    per-language knowledge (the exact scar tissue the constitution bans). This
-    returns the pairs verbatim; the reasoning model decodes their meaning.
-
-    Pure and total: a malformed or empty query yields `[]`, never raises. Order
-    is preserved; repeated keys yield multiple pairs.
-    """
-    try:
-        query = urlparse(url).query
-    except (ValueError, TypeError):
-        return []
-    if not query:
-        return []
-    # keep_blank_values so `?filter=` surfaces too; strict_parsing off so a
-    # malformed fragment degrades to what parsed rather than raising.
-    return [(k, v) for k, v in parse_qsl(query, keep_blank_values=True)]
 
 
 def rewrite_captcha_host(url: str) -> str | None:
@@ -183,420 +147,3 @@ def strip_reader_prefix(url: str) -> str | None:
                 return inner
             return None
     return None
-
-
-# --------------------------------------------------------------------- #
-# JSON synthesis (v0.10 — harsh-test-session-fixes)
-# --------------------------------------------------------------------- #
-
-
-def json_to_markdown_rows(payload: JsonPayload) -> str:
-    """Convert a `JsonPayload` to a synthetic markdown surface for the
-    extractor LLM.
-
-    Only known shapes are converted; unknown shapes return an empty string
-    (the caller will then fall back to the original trafilatura output).
-    Recognized shapes:
-
-    * LD-JSON `Product` / `NewsArticle` / `Article` (single or `@graph`)
-    * LD-JSON `ItemList` (`itemListElement`)
-    * Next.js `props.pageProps.products` / `props.pageProps.items`
-    * Generic `products` / `items` array at the root
-
-    The output is a markdown table when the data is row-shaped, or a
-    `**key:** value` list when it's a single entity. Empty input → empty
-    output (do-no-harm contract).
-    """
-    if payload is None:
-        return ""
-    data = payload.data
-    if payload.source == "ld_json":
-        return _ld_json_to_markdown(data)
-    if payload.source in ("next_data", "nuxt_data", "window_var", "generic"):
-        return _framework_state_to_markdown(data)
-    if payload.source == "microdata":
-        return _ld_json_to_markdown(_microdata_to_ld_shape(data))
-    if payload.source == "opengraph":
-        return _opengraph_to_markdown(data)
-    return ""
-
-
-def _ld_json_to_markdown(data: dict | list) -> str:
-    entries = _collect_ld_entries(data)
-    if not entries:
-        return ""
-    lines: list[str] = []
-    for entry in entries:
-        t = entry.get("@type")
-        if isinstance(t, list):
-            t = t[0] if t else None
-        if t == "Recipe":
-            lines.append(_recipe_md(entry))
-        elif t in ("Product", "Article", "NewsArticle", "LocalBusiness", "Organization", "ContactPoint", "Event"):
-            # Answer/entity schemas render by the same default-keep path — a
-            # contact page's LocalBusiness (telephone/email/address) is an answer,
-            # not chrome (structured-data-answers).
-            lines.append(_single_entity_md(entry, kind=str(t)))
-        elif t == "ItemList":
-            rows = _item_list_rows(entry)
-            if rows:
-                lines.append(_render_rows(rows, title="ItemList"))
-        elif t == "BreadcrumbList":
-            items = entry.get("itemListElement") or []
-            names = [it.get("name") for it in items if isinstance(it, dict) and it.get("name")]
-            if names:
-                lines.append("**Breadcrumbs:** " + " > ".join(names))
-    return "\n\n".join(s for s in lines if s)
-
-
-def _item_list_rows(entry: dict) -> list[dict]:
-    """The normalized rows of one JSON-LD `ItemList` entry.
-
-    Split out of `_ld_json_to_markdown` so the SAME rows can back both the
-    synthetic markdown and the wire index — see `listing_rows`.
-    """
-    items = entry.get("itemListElement") or []
-    raw_rows = [item.get("item", item) if isinstance(item, dict) else None for item in items]
-    return [_normalize_commerce_row(r) for r in raw_rows if isinstance(r, dict)]
-
-
-def _framework_state_rows(data: dict | list) -> list[dict]:
-    """The normalized rows behind a framework-state (Next/Nuxt/window-var) render."""
-    rows = _find_product_or_item_list(data)
-    return [_normalize_commerce_row(r) for r in rows] if rows else []
-
-
-def _framework_state_to_markdown(data: dict | list) -> str:
-    rows = _framework_state_rows(data)
-    if rows:
-        return _render_rows(rows, title="Listings")
-    return ""
-
-
-def listing_rows(payload: JsonPayload) -> list[dict]:
-    """The listing rows behind a payload's synthetic markdown, or `[]`.
-
-    **Why this exists (ADR-0015).** `json_to_markdown_rows` renders an embedded
-    `ItemList` into rich markdown — name, url, price, rating per item — and then
-    throws the structure away, returning a string. The DOM record-miner path
-    keeps its `RecordSet`, so it feeds `other_pages` and the `options` shelf; the
-    JSON-LD path fed neither. A catalog page whose items live in JSON-LD (the
-    common shape for commerce and for most SSR'd listings) therefore returned an
-    answer with NO index of what it withheld — every product URL sat in the
-    rendered markdown and reached the caller nowhere. That is the ADR-0015 harm
-    exactly: withholding the body without leaving the index.
-
-    Returns the same rows the markdown was rendered from, so the two cannot
-    describe different item sets. Non-listing payloads (a single `Product`, an
-    `Article`, OpenGraph) return `[]` — an entity is not an index.
-    """
-    if payload is None:
-        return []
-    data = payload.data
-    if payload.source == "microdata":
-        data = _microdata_to_ld_shape(data)
-    elif payload.source in ("next_data", "nuxt_data", "window_var", "generic"):
-        return _framework_state_rows(data)
-    elif payload.source != "ld_json":
-        return []
-
-    rows: list[dict] = []
-    for entry in _collect_ld_entries(data):
-        entry_type = entry.get("@type")
-        if isinstance(entry_type, list):
-            entry_type = entry_type[0] if entry_type else None
-        if entry_type == "ItemList":
-            rows.extend(_item_list_rows(entry))
-    return rows
-
-
-def _collect_ld_entries(data: dict | list) -> list[dict]:
-    out: list[dict] = []
-    if isinstance(data, dict):
-        graph = data.get("@graph")
-        if isinstance(graph, list):
-            out.extend(item for item in graph if isinstance(item, dict))
-        else:
-            out.append(data)
-    elif isinstance(data, list):
-        out.extend(item for item in data if isinstance(item, dict))
-    return out
-
-
-def _find_product_or_item_list(data: Any, depth: int = 0) -> list[dict]:
-    """Walk the JSON looking for a list of objects under a key like
-    `products`, `items`, `results`, `entities`. Capped at depth 6 so we
-    don't explore the entire app state."""
-    if depth > 6:
-        return []
-    if isinstance(data, dict):
-        for key in ("products", "items", "results", "entities", "list"):
-            v = data.get(key)
-            if isinstance(v, list) and v and all(isinstance(item, dict) for item in v):
-                return v[:50]  # cap synthetic output
-        for v in data.values():
-            found = _find_product_or_item_list(v, depth + 1)
-            if found:
-                return found
-    elif isinstance(data, list):
-        for item in data:
-            found = _find_product_or_item_list(item, depth + 1)
-            if found:
-                return found
-    return []
-
-
-# Known chrome dropped by the default-keep entity renderer — JSON-LD machinery
-# is handled by the `@`-prefix check; these are media/self-reference keys whose
-# values are never answer-bearing prose.
-_ENTITY_NOISE_KEYS = frozenset({"image", "thumbnail", "thumbnailurl", "logo", "mainentityofpage"})
-# Cap a single field's rendered value so a full `articleBody` (or similar) isn't
-# dumped into a key-value line; the prose candidate already carries long text.
-_ENTITY_VALUE_CAP = 500
-# Defensive cap on rendered array-of-dict entries (e.g. multiple `ContactPoint`s)
-# so a pathological page's oversized array can't bloat the extraction prompt.
-_ENTITY_ARRAY_CAP = 10
-
-
-def _scalar_kv(k: object, v: object) -> bool:
-    """A renderable answer-bearing key/value: a non-`@` string key with a
-    non-empty scalar value."""
-    return isinstance(k, str) and not k.startswith("@") and isinstance(v, (str, int, float)) and str(v) != ""
-
-
-def _recipe_md(entry: dict) -> str:
-    """Render a JSON-LD `Recipe` — incl. its answer-bearing `NutritionInformation`.
-
-    Content-agnostic: renders whichever nutrition fields are present (no
-    number/unit special-casing). Defensive against shape variance — omits any
-    field it cannot read, never raises.
-    """
-    name = entry.get("name") or "Recipe"
-    lines = [f"## Recipe: {name}"]
-    desc = entry.get("description")
-    if isinstance(desc, str) and desc:
-        lines.append(desc)
-    for label, key in (("Yield", "recipeYield"), ("Prep", "prepTime"), ("Cook", "cookTime"), ("Total", "totalTime")):
-        val = entry.get(key)
-        if isinstance(val, (str, int, float)) and str(val):
-            lines.append(f"- **{label}:** {val}")
-    ingredients = entry.get("recipeIngredient")
-    if isinstance(ingredients, list):
-        items = [str(i) for i in ingredients if isinstance(i, (str, int, float)) and str(i)]
-        if items:
-            lines.append("- **Ingredients:** " + "; ".join(items))
-    nutrition = entry.get("nutrition")
-    if isinstance(nutrition, dict):
-        parts = [f"{k} {v}" for k, v in nutrition.items() if _scalar_kv(k, v)]
-        if parts:
-            lines.append("- **Nutrition:** " + ", ".join(parts))
-    return "\n".join(lines)
-
-
-def _single_entity_md(entry: dict, *, kind: str) -> str:
-    """Render a single JSON-LD entity by **default-keep** (ADR-0004): surface
-    every answer-bearing scalar / shallow field in the entity's own order,
-    dropping only JSON-LD machinery (`@`-keys), media/self-reference keys, and
-    oversized values. No fixed `interesting_keys` allowlist — an unanticipated
-    answer-bearing field (a `gtin`, a `material`) is no longer silently lost.
-    A list-of-dicts field (e.g. `Organization.contactPoint` holding multiple
-    `ContactPoint` entries) renders each entry as its own sub-line rather than
-    silently vanishing, capped at `_ENTITY_ARRAY_CAP` entries."""
-    name = entry.get("name") or entry.get("headline") or "unnamed"
-    lines = [f"## {kind}: {name}"]
-    for key, val in entry.items():
-        if not isinstance(key, str) or key.startswith("@") or key.lower() in _ENTITY_NOISE_KEYS:
-            continue
-        if isinstance(val, dict):
-            inner = ", ".join(f"{k}={v}" for k, v in val.items() if _scalar_kv(k, v))
-            if inner:
-                lines.append(f"- **{key}:** {inner}")
-        elif isinstance(val, list):
-            dict_entries = [v for v in val if isinstance(v, dict)]
-            if dict_entries:
-                lines.append(f"- **{key}:**")
-                for sub in dict_entries[:_ENTITY_ARRAY_CAP]:
-                    sub_inner = ", ".join(f"{k}={v}" for k, v in sub.items() if _scalar_kv(k, v))
-                    if sub_inner:
-                        lines.append(f"  - {sub_inner}")
-            else:
-                scalars = [str(v) for v in val if isinstance(v, (str, int, float)) and str(v)]
-                joined = ", ".join(scalars)
-                if joined and len(joined) <= _ENTITY_VALUE_CAP:
-                    lines.append(f"- **{key}:** {joined}")
-        elif isinstance(val, (str, int, float)):
-            s = str(val)
-            if s and len(s) <= _ENTITY_VALUE_CAP:
-                lines.append(f"- **{key}:** {val}")
-    return "\n".join(lines)
-
-
-def _normalize_commerce_row(row: dict) -> dict:
-    """Promote nested schema.org commerce fields to top-level scalars so the
-    synth renderer can surface them: `offers.price` + `offers.priceCurrency`
-    → a combined `price` token (e.g. `3690 TRY`), `offers.url` → `url`, and
-    `aggregateRating.ratingValue` → `rating`. Flat-shaped rows (top-level
-    scalar `price`/`url`) and non-commerce rows pass through unchanged."""
-    if not isinstance(row, dict):
-        return row
-    out = dict(row)
-    offers = row.get("offers")
-    if isinstance(offers, dict):
-        price = offers.get("price")
-        if price is not None and out.get("price") is None:
-            currency = offers.get("priceCurrency")
-            out["price"] = f"{price} {currency}" if currency else str(price)
-        url = offers.get("url")
-        if url and not out.get("url"):
-            out["url"] = url
-    rating = row.get("aggregateRating")
-    if isinstance(rating, dict):
-        rv = rating.get("ratingValue")
-        if rv is not None and out.get("rating") is None:
-            out["rating"] = rv
-    return out
-
-
-def _is_commerce_shaped(rows: list[dict]) -> bool:
-    """A list is commerce-shaped when at least half its rows carry a (lifted)
-    `price` or `url` — the gate that routes to linked-record rendering."""
-    if not rows:
-        return False
-    hits = sum(1 for r in rows if isinstance(r, dict) and (r.get("price") is not None or r.get("url")))
-    return hits * 2 >= len(rows)
-
-
-def _render_rows(rows: list[dict], *, title: str) -> str:
-    """Render row-shaped data: linked records for commerce-shaped lists
-    (price/url preserved verbatim), the fixed-width table otherwise."""
-    if _is_commerce_shaped(rows):
-        return _rows_to_md_records(rows, title=title)
-    return _rows_to_md_table(rows, title=title)
-
-
-def _sanitize_link_text(text: str) -> str:
-    """Make a string safe as markdown link text: drop `[`/`]` (which would
-    terminate the link) and collapse any whitespace/newlines to single
-    spaces."""
-    return " ".join(str(text).replace("[", "").replace("]", "").split())
-
-
-def _rows_to_md_records(rows: list[dict], *, title: str) -> str:
-    """Render commerce rows as linked markdown records — one per item:
-    `- [name](url) — 3690 TRY ⭐ 4.7`. The url is never length-capped (unlike
-    the table's per-cell cap), so it stays verbatim for other_pages drilldowns.
-    Absent fields are omitted; `image` is intentionally not rendered."""
-    lines: list[str] = []
-    for row in rows[:50]:  # cap synthetic output, matching _find_product_or_item_list
-        if not isinstance(row, dict):
-            continue
-        name = row.get("name") or row.get("headline") or row.get("title")
-        url = row.get("url")
-        if not name and not url:
-            continue
-        if url and name:
-            head = f"[{_sanitize_link_text(name)}]({url})"
-        elif name:
-            head = _sanitize_link_text(name)
-        else:
-            head = str(url)
-        extras: list[str] = []
-        price = row.get("price")
-        if price is not None and str(price) != "":
-            extras.append(str(price))
-        rating = row.get("rating")
-        if rating is not None and str(rating) != "":
-            extras.append(f"⭐ {rating}")
-        line = f"- {head}"
-        if extras:
-            line += " — " + " ".join(extras)
-        lines.append(line)
-    if not lines:
-        return ""
-    return f"### {title}\n\n" + "\n".join(lines)
-
-
-def _rows_to_md_table(rows: list[dict], *, title: str) -> str:
-    # Choose columns from the first row's keys (capped to keep tables readable).
-    columns: list[str] = []
-    for row in rows[:5]:  # sample first 5 rows for column inference
-        for k, v in row.items():
-            if k.startswith("@") or isinstance(v, (dict, list)):
-                continue
-            if k not in columns:
-                columns.append(k)
-        if len(columns) >= 8:
-            break
-    columns = columns[:8]
-    if not columns:
-        return ""
-    header = "| " + " | ".join(columns) + " |"
-    sep = "| " + " | ".join("---" for _ in columns) + " |"
-    body_lines = []
-    for row in rows:
-        cells = []
-        for k in columns:
-            v = row.get(k, "")
-            if isinstance(v, (dict, list)):
-                v = ""
-            cells.append(str(v).replace("|", "/")[:80])
-        body_lines.append("| " + " | ".join(cells) + " |")
-    return f"### {title}\n\n" + "\n".join([header, sep, *body_lines])
-
-
-# --------------------------------------------------------------------- #
-# extruct adapters (v0.18)
-# --------------------------------------------------------------------- #
-
-
-def _microdata_to_ld_shape(data: dict | list) -> list[dict]:
-    """Flatten extruct's microdata output into LD-JSON shape so the existing
-    LD walker can consume it.
-
-    Extruct emits `{"type": ["https://schema.org/Product"], "properties":
-    {"name": "...", "offers": {...}, ...}}`. We map `type` → `@type` (last
-    URL segment, e.g. `Product`), promote `properties` to direct keys.
-    """
-    items: list[dict] = []
-    if isinstance(data, list):
-        items = [it for it in data if isinstance(it, dict)]
-    elif isinstance(data, dict):
-        items = [data]
-    out: list[dict] = []
-    for it in items:
-        raw_types = it.get("type") or it.get("@type")
-        type_value: str | list[str] | None = None
-        if isinstance(raw_types, str):
-            type_value = raw_types.rsplit("/", 1)[-1]
-        elif isinstance(raw_types, list):
-            type_value = [t.rsplit("/", 1)[-1] for t in raw_types if isinstance(t, str)]
-        raw_props = it.get("properties")
-        props: dict = raw_props if isinstance(raw_props, dict) else {}
-        entry: dict[str, Any] = {"@type": type_value} if type_value is not None else {}
-        for k, v in props.items():
-            entry[k] = v
-        out.append(entry)
-    return out
-
-
-def _opengraph_to_markdown(data: dict | list) -> str:
-    """Render the OpenGraph dict as a two-column markdown table. Cap at 50 rows.
-
-    The extractor emits a flat `{property: content}` dict for OG; this adapter
-    treats list input defensively in case a future producer chooses that shape.
-    """
-    flat: dict[str, str] = {}
-    if isinstance(data, dict):
-        flat = {str(k): str(v) for k, v in data.items() if isinstance(v, (str, int, float))}
-    elif isinstance(data, list):
-        for entry in data:
-            if isinstance(entry, dict):
-                for k, v in entry.items():
-                    if isinstance(v, (str, int, float)):
-                        flat[str(k)] = str(v)
-    if not flat:
-        return ""
-    rows = list(flat.items())[:50]
-    lines = ["### OpenGraph", "", "| property | value |", "| --- | --- |"]
-    lines.extend(f"| {k} | {v.replace('|', '/')[:200]} |" for k, v in rows)
-    return "\n".join(lines)

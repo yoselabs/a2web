@@ -1,25 +1,19 @@
 {
-  "answer": "Per serving: 268 calories and 24 grams of sugar. The recipe yields 8\u201310 slices.",
-  "completion_tokens": 146,
-  "cost_usd": 0.025965000000000002,
-  "latency_ms": 4352,
+  "answer": "Per serving (based on 8-10 slices): 268 calories and 24 grams of sugar. The nutrition values are stated per slice; a loaf yields 8-10 servings, so individual values depend on how many slices you cut.",
+  "completion_tokens": 95,
+  "cost_usd": 0.02670025,
+  "latency_ms": 7394,
   "model": "claude-haiku-4-5-20251001",
-  "prompt_tokens": 15334,
+  "prompt_tokens": 15675,
   "routing": {
-    "also_here": [
-      "full nutrition profile (fat, saturated fat, carbs, fiber, protein, sodium)",
-      "prep/cook/total time",
-      "complete ingredient list",
-      "baking instructions step-by-step",
-      "related recipes (almond butter, plum & raspberry jam, cappuccino)"
-    ],
-    "answer": "Per serving: 268 calories and 24 grams of sugar. The recipe yields 8\u201310 slices.",
+    "also_here": [],
+    "answer": "Per serving (based on 8-10 slices): 268 calories and 24 grams of sugar. The nutrition values are stated per slice; a loaf yields 8-10 servings, so individual values depend on how many slices you cut.",
     "item_total_seen": null,
     "obstacle": null,
     "other_pages": [],
     "refinement_axes": [],
     "shape": "key-value",
-    "structural_form": "article"
+    "structural_form": "recipe"
   },
   "template_name": "extract_router_v1"
 }

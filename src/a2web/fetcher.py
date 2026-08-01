@@ -53,9 +53,6 @@ from .decision_log import Observation, ObservationKind, resolve_verdict
 from .domain import (
     compute_profile_hash,
     is_live_only,
-    json_response_fallback,
-    json_to_markdown_rows,
-    listing_rows,
     rewrite_captcha_host,
     strip_reader_prefix,
 )
@@ -89,6 +86,7 @@ from .packages.block_detector import LENGTH_FLOOR, THIN_FALLTHROUGH, looks_like_
 from .packages.block_detector import evaluate as _package_evaluate
 from .packages.escalation import EscalationSignal
 from .packages.llm_extract import LlmNextLink, OtherPageBoundary, RouterPayload, RoutingOutcome
+from .packages.structured_render import json_response_fallback, json_to_markdown_rows, listing_rows
 from .settings import AppSettings
 from .state import AppState, ResourceUnavailable, unavailable_lazy
 from .tiers import REGISTRY, TIER_ORDER, Rendered, Tier, TierResult

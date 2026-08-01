@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from json_in_html import JsonPayload
 
-from a2web.domain import json_to_markdown_rows
+from a2web.packages.structured_render import json_to_markdown_rows
 
 
 def _ld(data: dict) -> JsonPayload:
