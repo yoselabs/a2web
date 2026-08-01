@@ -47,17 +47,8 @@ from http_fetch import FetchOutcome, FetchVerdict, fetch_bytes
 from selectolax.parser import HTMLParser
 
 from .. import content_expectations
-from ..models import (
-    NEXT_LINKS_CAP,
-    Heading,
-    NextLink,
-    OperatorHint,
-    Verdict,
-    comments_partial_hint,
-    reddit_deleted_hint,
-    reddit_forbidden_hint,
-    try_user_browser_hint,
-)
+from ..hints import OperatorHint, comments_partial_hint, reddit_deleted_hint, reddit_forbidden_hint, try_user_browser_hint
+from ..models import NEXT_LINKS_CAP, Heading, NextLink, Verdict
 from . import _reddit_html as rh
 from ._common import challenge_verdict, empty_result
 

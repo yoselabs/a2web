@@ -19,7 +19,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Literal, Protocol
 
-from ..models import Heading, Link, NextLink, OperatorHint, Verdict
+from ..hints import OperatorHint
+from ..models import Heading, Link, NextLink, Verdict
 from ..state import AppState
 
 

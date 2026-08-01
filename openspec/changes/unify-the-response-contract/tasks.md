@@ -47,7 +47,7 @@ VERBATIM and diff them", which is tuned ADR-0009 copy and deserves a fresh pass.
 - [x] 2.5 Add the guard: every constructed hint carries a declared code — `tests/architecture/test_hint_codes_are_declared.py`.
 - [x] 2.6 State the severity ladder once (`critical` = wall, `warning` =
       unverified, `info` = verified-dead). Have the nine docstrings cite it.
-- [ ] 2.7 Move the 228-line hint catalogue (`models.py:141-368`) out. **Move the
+- [x] 2.7 Move the 228-line hint catalogue (`models.py:141-368`) out. **Move the
       strings verbatim and diff them** — this is tuned ADR-0009 copy.
 
 ### Why §2.2-2.4 and §2.7 are deferred rather than rushed

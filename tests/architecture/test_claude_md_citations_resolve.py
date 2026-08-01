@@ -203,9 +203,7 @@ def test_every_navigational_doc_cites_only_live_paths() -> None:
     """
     broken: dict[str, list[str]] = {}
     for doc in _navigational_docs():
-        stale = sorted(
-            {path for path, is_historical in _citations_in(doc) if not is_historical and not _resolves(path)}
-        )
+        stale = sorted({path for path, is_historical in _citations_in(doc) if not is_historical and not _resolves(path)})
         if stale:
             broken[str(doc.relative_to(REPO_ROOT))] = stale
 

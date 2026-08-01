@@ -11,7 +11,8 @@ import pytest
 
 from a2web.decision_log import _verdict_rank
 from a2web.fetcher import fetch
-from a2web.models import FetchStatus, Verdict, try_user_browser_hint
+from a2web.hints import try_user_browser_hint
+from a2web.models import FetchStatus, Verdict
 from a2web.state import AppState
 from a2web.tiers import REGISTRY, TIER_ORDER, Rendered, TierResult
 from tests.conftest import make_default_state

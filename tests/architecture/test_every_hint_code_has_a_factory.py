@@ -28,8 +28,8 @@ import inspect
 
 import pytest
 
-import a2web.models as models
-from a2web.models import HINT_CODES, OperatorHint, has_hint
+import a2web.hints as hints
+from a2web.hints import HINT_CODES, OperatorHint, has_hint
 
 from ._walk import SRC_ROOT
 
@@ -40,19 +40,19 @@ _FACTORY_SUFFIX = "_hint"
 
 
 def _factories() -> dict[str, object]:
-    return {name: fn for name, fn in inspect.getmembers(models, inspect.isfunction) if name.endswith(_FACTORY_SUFFIX)}
+    return {name: fn for name, fn in inspect.getmembers(hints, inspect.isfunction) if name.endswith(_FACTORY_SUFFIX)}
 
 
 def test_the_census_is_not_vacuous() -> None:
     """A guard that found no factories would pass every assertion below."""
     found = _factories()
-    assert len(found) >= 20, f"found only {len(found)} hint factories in models.py — the census is not reading it"
+    assert len(found) >= 20, f"found only {len(found)} hint factories in hints.py — the census is not reading it"
     assert len(HINT_CODES) >= 20, f"HINT_CODES holds {len(HINT_CODES)} codes — the vocabulary is not being read"
 
 
-def test_every_declared_code_is_emitted_by_a_factory_in_models() -> None:
+def test_every_declared_code_is_emitted_by_a_factory() -> None:
     """THE regression. Eleven codes had no factory and were built at call sites."""
-    source = inspect.getsource(models)
+    source = inspect.getsource(hints)
     emitted = {
         node.value
         for node in ast.walk(ast.parse(source))
@@ -62,7 +62,7 @@ def test_every_declared_code_is_emitted_by_a_factory_in_models() -> None:
     }
     missing = sorted(HINT_CODES - emitted)
     assert not missing, (
-        "declared hint codes that no factory in models.py builds:\n"
+        "declared hint codes that no factory in hints.py builds:\n"
         + "".join(f"  {code}\n" for code in missing)
         + "\nA code with no factory gets constructed inline at its call site, so "
         "its wording lives wherever it happens to be built and the catalogue a "
@@ -70,7 +70,7 @@ def test_every_declared_code_is_emitted_by_a_factory_in_models() -> None:
     )
 
 
-def test_no_operator_hint_is_constructed_outside_models() -> None:
+def test_no_operator_hint_is_constructed_outside_the_catalogue() -> None:
     """The rule that keeps the catalogue complete once it is complete.
 
     Without this, the next hint gets written inline exactly like the last eleven
@@ -79,7 +79,7 @@ def test_no_operator_hint_is_constructed_outside_models() -> None:
     """
     offenders: list[str] = []
     for path in sorted(SRC_ROOT.rglob("*.py")):
-        if path.name == "models.py":
+        if path.name == "hints.py":
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -87,11 +87,11 @@ def test_no_operator_hint_is_constructed_outside_models() -> None:
                 offenders.append(f"{path.relative_to(SRC_ROOT)}:{node.lineno}")
 
     assert not offenders, (
-        "`OperatorHint(...)` constructed outside models.py:\n"
+        "`OperatorHint(...)` constructed outside hints.py:\n"
         + "".join(f"  {site}\n" for site in offenders)
         + "\nOperator-hint copy is what an agent is told when a fetch fails; it "
         "belongs in the one catalogue, not at the call site. Add a factory to "
-        "models.py and call it from here."
+        "hints.py and call it from here."
     )
 
 
@@ -129,9 +129,9 @@ def test_no_dispatch_site_compares_a_bare_code_string() -> None:
             if not (isinstance(left, ast.Attribute) and left.attr == "code"):
                 continue
             checked += 1
-            # `models.has_hint` IS the validated implementation; it is allowed
+            # `hints.has_hint` IS the validated implementation; it is allowed
             # to do the comparison everyone else must route through it.
-            if path.name == "models.py":
+            if path.name == "hints.py":
                 continue
             offenders.append(f"{path.relative_to(SRC_ROOT)}:{node.lineno}")
 

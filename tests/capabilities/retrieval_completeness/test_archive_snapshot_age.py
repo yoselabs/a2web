@@ -27,7 +27,7 @@ from datetime import date
 
 import pytest
 
-from a2web.models import _ARCHIVE_STALE_DAYS, HINT_CODES, archive_snapshot_age_hint
+from a2web.hints import _ARCHIVE_STALE_DAYS, HINT_CODES, archive_snapshot_age_hint
 
 
 def test_the_code_is_in_the_closed_vocabulary() -> None:

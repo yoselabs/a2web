@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import json
 
-from a2web.models import AskResponse, OperatorHint, OtherPage
+from a2web.hints import OperatorHint
+from a2web.models import AskResponse, OtherPage
 from a2web.wire import encode_envelope, tsv_fields_for
 
 

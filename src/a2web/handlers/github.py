@@ -27,7 +27,8 @@ import gidgethub
 from gidgethub.abc import GitHubAPI
 from http_fetch import FetchVerdict, fetch_bytes
 
-from ..models import Heading, NextLink, OperatorHint, Verdict, section_unretrieved_hint
+from ..hints import OperatorHint, section_unretrieved_hint
+from ..models import Heading, NextLink, Verdict
 from ._common import empty_result
 
 if TYPE_CHECKING:

@@ -20,6 +20,19 @@ from timefmt import fmt_dur
 from .actions.terminal import TerminalOutcome
 from .content_guidance import kind_guidance
 from .decision_log import resolve_verdict
+from .hints import (
+    OperatorHint,
+    answer_truncated_hint,
+    archive_snapshot_age_hint,
+    content_guidance_hint,
+    extraction_empty_hint,
+    has_hint,
+    index_lost_hint,
+    listing_more_hint,
+    listing_partial_hint,
+    llm_error_hint,
+    retrieval_incomplete_hint,
+)
 from .log import log_warning
 from .models import (
     NEXT_LINKS_CAP,
@@ -33,22 +46,11 @@ from .models import (
     FetchStatus,
     ListingOption,
     NextLink,
-    OperatorHint,
     OtherPage,
     OtherPageKind,
     RouterPayload,
     TokenCounts,
     Verdict,
-    answer_truncated_hint,
-    archive_snapshot_age_hint,
-    content_guidance_hint,
-    extraction_empty_hint,
-    has_hint,
-    index_lost_hint,
-    listing_more_hint,
-    listing_partial_hint,
-    llm_error_hint,
-    retrieval_incomplete_hint,
 )
 from .packages.llm_extract import RoutingOutcome
 

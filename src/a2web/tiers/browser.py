@@ -19,13 +19,8 @@ from urllib.parse import urlparse
 from any_browser import BackendCookie, RenderOutcome
 from content_extract import ExtractedContent, extract_markdown
 
-from ..models import (
-    Heading,
-    Link,
-    Verdict,
-    browser_internal_error_hint,
-    browser_unavailable_hint,
-)
+from ..hints import browser_internal_error_hint, browser_unavailable_hint
+from ..models import Heading, Link, Verdict
 from ..packages.block_detector import LENGTH_FLOOR
 
 if TYPE_CHECKING:

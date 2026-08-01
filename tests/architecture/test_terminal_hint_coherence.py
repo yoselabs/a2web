@@ -98,7 +98,7 @@ def test_operator_error_requires_a_hint_that_actually_exists() -> None:
     )
     assert codes == frozenset({_OPERATOR_HINT})
 
-    from a2web.models import paid_auth_error_hint
+    from a2web.hints import paid_auth_error_hint
 
     hint = paid_auth_error_hint("https://example.org/x", tier="zyte")
     assert hint.code == _OPERATOR_HINT, "the table names a code the factory does not produce"

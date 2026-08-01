@@ -59,22 +59,8 @@ from .domain import (
 from .events import StageEnded, StageStarted, TierEnded, TierStarted
 from .events.types import CookiesAttached, CookiesStale, CorrelatedWitnessRung
 from .fetcher_response import _INCOMPLETE_OBSTACLES, build_response
-from .lazy import Lazy
-from .link_digest import LinkDigest, build_digest
-from .listing_oracle import listing_has_more, listing_oracle
-from .llm_resource import LlmExtractorResource
-from .log import log_warning
-from .models import (
-    CacheState,
-    Diagnostic,
-    ExtractionMeta,
-    FetchResponse,
-    Heading,
-    Link,
-    NextLink,
-    NextLinkKind,
+from .hints import (
     OperatorHint,
-    Verdict,
     captcha_redirect_hint,
     content_empty_hint,
     content_not_found_hint,
@@ -86,6 +72,12 @@ from .models import (
     paid_auth_error_hint,
     try_user_browser_hint,
 )
+from .lazy import Lazy
+from .link_digest import LinkDigest, build_digest
+from .listing_oracle import listing_has_more, listing_oracle
+from .llm_resource import LlmExtractorResource
+from .log import log_warning
+from .models import CacheState, Diagnostic, ExtractionMeta, FetchResponse, Heading, Link, NextLink, NextLinkKind, Verdict
 from .packages.block_detector import LENGTH_FLOOR, THIN_FALLTHROUGH, looks_like_unrendered_spa
 from .packages.block_detector import evaluate as _package_evaluate
 from .packages.escalation import EscalationSignal

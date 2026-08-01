@@ -42,7 +42,8 @@ os.environ["A2WEB_CONFIG"] = "/nonexistent/a2web-hermetic-test-config.yaml"
 
 from a2web.cache import SqliteResource
 from a2web.components import Components, build_components
-from a2web.models import OperatorHint, Verdict
+from a2web.hints import OperatorHint
+from a2web.models import Verdict
 from a2web.settings import AppSettings
 from a2web.state import (
     AppState,

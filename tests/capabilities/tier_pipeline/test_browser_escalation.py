@@ -81,7 +81,7 @@ async def test_browser_unavailable_surfaces_operator_hint(monkeypatch: pytest.Mo
 @pytest.mark.asyncio
 async def test_browser_internal_error_hint_reaches_response(monkeypatch: pytest.MonkeyPatch) -> None:
     """A browser-tier internal error surfaces as a browser_internal_error hint."""
-    from a2web.models import OperatorHint
+    from a2web.hints import OperatorHint
 
     class _InternalErrorBrowserTier:
         name = "browser"

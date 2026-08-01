@@ -21,7 +21,7 @@ from __future__ import annotations
 import pytest
 
 from a2web.actions.terminal import TerminalOutcome
-from a2web.models import OperatorHint
+from a2web.hints import OperatorHint
 
 _INCOMPLETE = (
     TerminalOutcome.wall,
@@ -94,7 +94,7 @@ def test_a_hint_still_carries_its_own_severity() -> None:
     The severity ladder is still real and still on the wire — it just no longer
     drives control flow.
     """
-    from a2web.models import try_user_browser_hint
+    from a2web.hints import try_user_browser_hint
 
     hint = try_user_browser_hint("https://example.com/walled")
     assert isinstance(hint, OperatorHint)

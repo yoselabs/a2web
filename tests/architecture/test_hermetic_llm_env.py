@@ -96,13 +96,7 @@ def test_the_fixture_is_autouse() -> None:
     it — the tests would simply stop being protected, silently.
     """
     fixture = _find_fixture()
-    autouse = [
-        kw
-        for deco in fixture.decorator_list
-        if isinstance(deco, ast.Call)
-        for kw in deco.keywords
-        if kw.arg == "autouse"
-    ]
+    autouse = [kw for deco in fixture.decorator_list if isinstance(deco, ast.Call) for kw in deco.keywords if kw.arg == "autouse"]
     assert autouse, f"`{_FIXTURE}` is no longer declared `autouse=True`"
     assert all(isinstance(kw.value, ast.Constant) and kw.value.value is True for kw in autouse), (
         f"`{_FIXTURE}` declares autouse with a non-True value — it protects nothing"

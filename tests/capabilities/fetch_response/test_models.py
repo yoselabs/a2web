@@ -7,23 +7,25 @@ from datetime import UTC
 import pytest
 from pydantic import ValidationError
 
-from a2web.models import (
-    CacheState,
-    Confidence,
-    Diagnostic,
-    FetchResponse,
-    FetchStatus,
-    Heading,
-    Link,
-    NextLink,
-    OperatorHint,
-    TokenCounts,
-    Verdict,
-)
+from a2web.hints import OperatorHint
+from a2web.models import CacheState, Confidence, Diagnostic, FetchResponse, FetchStatus, Heading, Link, NextLink, TokenCounts, Verdict
 
 
 def test_all_types_module_scope_importable() -> None:
-    """Every public model is importable from `a2web.models` (antipattern #2)."""
+    """Every public model is defined at MODULE scope (a2kit antipattern #2).
+
+    Checked as `__qualname__ == __name__`, which is what the rule actually
+    forbids: a model nested inside a function or another class, so it cannot be
+    imported, referenced in a signature, or reused.
+
+    This previously asserted `__module__ == "a2web.models"`, which is a stricter
+    and different claim — that every model lives in ONE file. That was
+    incidental, not the rule, and it went red when the operator-hint catalogue
+    moved to `a2web.hints` even though every type stayed at module scope. Two
+    modules each holding module-scope types satisfies antipattern #2 exactly as
+    well as one; conflating "at module scope" with "in models.py" would have
+    made the file impossible to split.
+    """
     types = [
         Verdict,
         FetchStatus,
@@ -37,7 +39,8 @@ def test_all_types_module_scope_importable() -> None:
         FetchResponse,
     ]
     for t in types:
-        assert t.__module__ == "a2web.models"
+        assert t.__qualname__ == t.__name__, f"{t.__name__} is nested inside {t.__qualname__} — not at module scope"
+        assert t.__module__.startswith("a2web."), f"{t.__name__} is defined outside a2web ({t.__module__})"
 
 
 def test_verdict_enum_is_closed() -> None:

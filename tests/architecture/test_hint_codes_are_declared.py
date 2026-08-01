@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import ast
 
-from a2web.models import HINT_CODES
+from a2web.hints import HINT_CODES
 
 from ._walk import SRC_ROOT, walked_files
 
@@ -83,7 +83,7 @@ def test_an_undeclared_code_is_rejected_at_construction() -> None:
     import pytest
     from pydantic import ValidationError
 
-    from a2web.models import OperatorHint
+    from a2web.hints import OperatorHint
 
     with pytest.raises(ValidationError):
         OperatorHint(code="not_a_real_hint_code", message="x")
