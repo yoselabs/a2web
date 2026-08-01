@@ -9,6 +9,37 @@ Nothing here is actionable. If an entry looks live again, move it back rather
 than re-deriving it.
 
 ---
+## 2026-08-01 — `lift-the-item-set-and-renderer` (§1-§3, §5-§7; §4 deferred)
+
+The ADR-0015 JSON-LD index hole, one onward-link cap, truncation declared at
+three handlers, and the 381-line renderer lifted to
+`packages/structured_render.py` with its three divergences resolved in the move.
+`domain.py` 602 -> 149 lines and its docstring finally true.
+
+Kept for the incidents, which the surviving guards exist to prevent:
+
+- **`handler_probe.py` recorded a contract violation as health.** Discourse
+  emitted 50 onward links against a stated cap of 10, and the probe baseline
+  read `min_candidates=10, # observed 30` — the one mechanism positioned to
+  catch it certified it instead. A baseline that records an out-of-contract
+  observation as the expected one reads as a decision.
+- **The Recipe allowlist dropped `recipeInstructions`.** a2web served a
+  recipe's ingredients and silently dropped how to cook them, while
+  `_single_entity_md`'s docstring thirty lines below argued that an allowlist
+  "silently loses an unanticipated answer-bearing field".
+- **A cap was written six times** for one spec invariant, which is why the
+  sixth could say 50 and nobody noticed.
+- **Two rushed calls had to be undone within hours**, both in this change:
+  overriding a documented deferral (`hn` `nbHits`) without re-checking its
+  reasoning, which shipped a FALSE partial-view note on a complete listing; and
+  adding a `reddit` note that was structurally unreachable — the very defect
+  being fixed in `hn` in the same commit. A deferral that carries its reasoning
+  is evidence, not an obstacle.
+
+§4 (converge the item set) is open in `BACKLOG.md` with its blocker recorded:
+each handler's `reason` carries site-specific signal the shared derivation would
+flatten to a constant, and D2 rejects the polymorphic answer.
+
 ## 2026-08-01 — the `options` shelf is capped by count, not by bytes (S, token cost)
 
 Source: `eval/findings_2026-08-01.md` §3, run `eval/runs/2026-08-01_011025/`.
