@@ -27,6 +27,60 @@ All notable changes to **a2web** are recorded here. The format follows
   **Operator action:** if you configured OAuth with bare `GOOGLE_*` variables,
   your endpoint has been serving anonymously. Rename them to `A2WEB_GOOGLE_*`.
 
+### Fixed
+
+- **A recipe's steps never reached the caller.** The JSON-LD `Recipe` renderer
+  used a fixed key allowlist that omitted `recipeInstructions` — the single most
+  answer-bearing field on a recipe page — along with `recipeCuisine`,
+  `recipeCategory`, `aggregateRating` and `keywords`. a2web served a recipe's
+  ingredients and silently dropped how to cook them. `Recipe` now renders by the
+  same default-keep path as every other entity (ADR-0004), whose own docstring
+  had argued against exactly this ("an allowlist silently loses an unanticipated
+  answer-bearing field"); the allowlist survives as a LABEL table, so
+  "Yield"/"Ingredients"/"Instructions" stay readable and nothing gates. Recipe
+  envelopes are larger as a result — the blessed `recipe-nutrition-volume-gate`
+  case rose 2318 → 4113 tokens, which is the steps arriving.
+- **A structured-data field over the 500-character cap was DROPPED, not
+  truncated.** `_single_entity_md` had no `else` branch, so an over-long value
+  vanished with no marker — on a real recipe, the whole ingredient list. The
+  caller could not tell the field was absent from the page versus lost on the way
+  out (ADR-0009). Now capped visibly.
+- **A markdown table deleted every column absent from its first five rows.**
+  Column inference sampled `rows[:5]`; rows are heterogeneous by construction
+  (`_normalize_commerce_row` promotes `price`/`url`/`rating` only where the
+  source carries them), so a listing whose sixth row was the first to carry a
+  price rendered no price column at all. Columns are now the union over every
+  row — the same fix `wire.encode_rows` received on 2026-07-31, in the other
+  renderer.
+- **A generic-miner index overwrote a site handler's.** A pre-rendered tier runs
+  the extraction ladder too, and the install was unconditional, so on every page
+  a2web has a HANDLER for, the shape-guessing miner replaced the handler's
+  site-specific `next_links`. Measured on the arXiv listing: the wire carried
+  `anchor="arXiv:2607.28618"` — a string identical to its own URL — where the
+  handler had built paper titles and author lists. The handler wins; the miner
+  fills only when the handler supplied none.
+- **A catalog row was labelled `source · discussed page`.** That is the
+  aggregator vocabulary — a row pointing OFF-host at an article the page
+  discusses. The same miner runs on catalogs, where a row points ON-host at the
+  item's own page, so every commerce listing asserted it was "discussing" the
+  products it sells. Classified per record by off-host vs on-host now.
+- **Discourse emitted 50 onward links against a stated cap of 10**, because one
+  literal bounded both the rendered body and the link list. The
+  `link-discovery` spec's single "capped at 10" invariant now has a single
+  implementation (`models.NEXT_LINKS_CAP`). `handler_probe.py` had recorded the
+  violation as healthy (`min_candidates=10, # observed 30`) and is corrected.
+- **Three handlers truncated a listing silently.** `hn`'s partial-view note was
+  structurally unreachable — it compared what it rendered against what it had
+  ASKED Algolia for, the same number by construction — so a search matching 912
+  stories and one matching 30 produced identical, identically silent output.
+  `nbHits` is now read and declared, and carried as `items_advertised` so the
+  structured signal agrees with the prose. `reddit` and the markdown table
+  renderer likewise declare.
+- **The `options` shelf was capped by count and by nothing else**, reaching 17KB
+  against 255 bytes of `answer` on a listing page — ADR-0015's remedy defeating
+  its own token-economy premise. Now bounded in bytes too, thinning entries
+  rather than dropping them.
+
 ### Changed
 
 - **`other_pages[].kind` now carries the handler's real kind — a CORRECTION,

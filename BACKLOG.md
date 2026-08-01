@@ -21,6 +21,43 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-08-01 — converge the item set, once `reason` can survive the trip (M, structure)
+
+Source: `openspec/changes/lift-the-item-set-and-renderer/` §4, deferred with its
+evidence in that change's `design.md`.
+
+"A set of items on a page" still has seven-plus spellings (`fetcher.py`'s
+`RecordSet`, JSON-LD `ItemList`, and the per-handler renderers in `hn`,
+`discourse`, `arxiv`, `reddit`, plus GitHub/Wikipedia candidates-only), and the
+four operations over it — render · derive-next-links · cap-and-declare ·
+project-to-wire — are re-implemented at each.
+
+**Two reasons this did not ship with the rest of the change.**
+
+First, the shared derivation every handler would converge ONTO was itself wrong:
+`_records_to_next_links` labelled every catalog row `source · discussed page` —
+the aggregator vocabulary — so commerce listings announced they were
+"discussing" the products they sell. Fixed in `4628924`, found only by surveying
+the target before converging. Converging first would have generalised the defect
+to five more sites and called it unification.
+
+Second, and still open: each handler's `reason` carries site-specific signal —
+arXiv's author list, hn's `N points, M comments`, github's `issue · N comments`,
+discourse's `N replies`, reddit's post age. The shared function emits a fixed
+`"item page"` / `"discussed page"`. Converging as written replaces all of them
+with a constant, which is a real loss of caller-facing signal dressed as
+deduplication.
+
+D2 rejects the polymorphic answer (a protocol per site — that leaves four
+operations x N sites). So the convergent type needs to carry a producer-supplied
+`reason`/`anchor` through the shared operations. That is a design question the
+change never posed. Answer it first.
+
+Related: the same "a later stage must not discard a producer's own claim" rule
+was violated three separate times the week of 2026-07-28 (`other_pages[].kind`,
+`_compose_next_links`, and the whole handler index in `79d85e8`). Whatever §4
+converges on should make that structurally hard, not conventionally discouraged.
+
 ## 2026-08-01 — the `next_links` judge scores page content, not the envelope (S, eval correctness)
 
 Source: `eval/findings_2026-08-01.md` §2.

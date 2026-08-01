@@ -141,16 +141,55 @@ right moment to add it.
   resolves it is deciding what a recipe page silently drops. Do not resolve it
   by picking the shorter diff.
 
-## Open Questions
+## Open Questions — RESOLVED 2026-08-01
 
-- Which cap pair survives — 200/50 or 80/none? The 80 came first and the 200 has
-  no stated derivation, but neither is measured. Pick and record; do not average.
-- Is `_recipe_md`'s allowlist right for recipes specifically, or is it the
-  general default-keep rule wrongly narrowed? If the former it stays as a
-  documented exception with its reason; if the latter it goes.
-- `parse_query_params`: dead in `src/` with 6 tests and an `__all__` entry.
-  Delete it, or is there a caller intended? Deleting a documented public function
-  is the honest default when nothing calls it.
-- Does the item set type live in `packages/` with the renderer, or does it
-  straddle (the wire projection half is domain-coupled)? The renderer is pure;
-  `project-to-wire` may not be able to follow it.
+- **Which cap pair survives — 200/50 or 80/none?** 200/50. The cells that get
+  truncated are descriptions and titles; cutting one at 80 characters drops
+  answer-bearing prose the caller cannot recover without another fetch. The row
+  cap is new — the table renderer had NONE, so a 900-row table went to the LLM
+  whole — and it declares its truncation.
+- **Is `_recipe_md`'s allowlist right for recipes, or default-keep wrongly
+  narrowed?** Wrongly narrowed, and the evidence was decisive: the allowlist
+  omitted `recipeInstructions` — the STEPS. a2web served a recipe's ingredients
+  and silently dropped how to cook them. The allowlist survives as a LABEL table
+  (readable "Yield"/"Ingredients"), gating nothing.
+- **`parse_query_params`:** deleted. Six tests, an `__all__` entry, and a
+  docstring claiming membership in a "refinement context bundle" that never
+  called it.
+- **Does the item set type live in `packages/` or straddle?** Moot for §5 — the
+  renderer moved without it. Still open for §4, below.
+
+## §4 is deferred, and this is why
+
+**Do not run §4 as written.** Surveying it on 2026-08-01, before converging
+anything, found that the shared derivation every handler would converge ONTO was
+itself wrong (`_records_to_next_links` labelled every catalog row `source ·
+discussed page`, the aggregator vocabulary, so commerce listings announced they
+were "discussing" the products they sell). Fixed in `4628924`. That is the shape
+of the risk: converging first would have generalised the defect to five more
+sites and called it unification.
+
+The blocker that remains is `reason`. Each handler's is site-specific and
+carries real signal:
+
+| handler | `reason` |
+|---|---|
+| arxiv | the author list |
+| hn | `N points, M comments` |
+| github | `issue · N comments` |
+| discourse | `N replies` |
+| reddit | the post's age |
+| wikipedia | `related article` |
+
+The shared `_records_to_next_links` emits a fixed `"item page"` /
+`"discussed page"`. Converging as §4.3 describes ("write the four operations
+once") would replace every one of those with a constant — a real loss of
+caller-facing signal, dressed as deduplication.
+
+D2 explicitly rejects the polymorphic answer (a protocol each site implements),
+because that leaves four operations × N sites. So the convergent type needs a
+way to carry a producer-supplied `reason` and `anchor` THROUGH the shared
+operations — which is a design question this change never posed, not a coding
+step. Answer it before touching handlers.
+
+The rest of the change (§1, §2, §3, §5, §6, §7 bar the bench) shipped.

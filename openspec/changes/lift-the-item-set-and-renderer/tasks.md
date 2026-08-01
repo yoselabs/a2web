@@ -55,7 +55,13 @@ to. Two notes for the lift that follows:
       already hold it and discard it.
 - [x] 3.3 Confirm no capped set reaches the wire without declaring truncation.
 
-## 4. The item set converges
+## 4. The item set converges — DEFERRED 2026-08-01
+
+**Do not run as written.** Surveying it found the shared derivation it would
+converge onto was itself wrong (fixed in `4628924`), and the remaining blocker
+is that each handler's `reason` carries site-specific signal the shared function
+would flatten to a constant. See `design.md` "§4 is deferred, and this is why".
+Moved to `BACKLOG.md`.
 
 - [ ] 4.1 Choose the single representation. `record_mine.RecordSet` is the
       closest existing shape.
