@@ -20,6 +20,8 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from anyllm.errors import AnyLLMError
+
 from ..packages.llm_extract import JudgeParseError, ModelSpec, Provider
 from ..packages.llm_extract.wobble import (
     BENCH_CLARITY_POLICY,
@@ -61,6 +63,26 @@ _NEXT_LINKS_TEMPLATE = (
 )
 
 _OBJECT_RE = re.compile(r"\{[\s\S]*\}")
+
+
+def _degraded_note(axis: str, exc: AnyLLMError) -> str:
+    """Reasoning text for a cell whose judge could not be reached.
+
+    Scored 0 and SAID SO, rather than crashing the run or silently omitting the
+    cell. A bench that dies on one provider hiccup loses the other 41 entries;
+    a bench that quietly drops the cell reports a mean over a set nobody chose.
+
+    Neither existed before 2026-08-01: `bench_judge` was the one `complete()`
+    site with no `except AnyLLMError`, so the per-request timeout added the same
+    day propagated straight out of `asyncio.gather` and killed the whole run.
+    Its siblings (`Extractor.extract`, `Judge.score`) had the degrade seam all
+    along — wrapping the provider covered the CALL everywhere, which is not the
+    same as handling the FAILURE everywhere.
+    """
+    return (
+        f"JUDGE UNAVAILABLE ({axis}): {exc}. Scored 0 — this is a "
+        "bench-infrastructure failure, NOT a quality signal about the answer."
+    )
 
 
 @dataclass(slots=True)
@@ -109,15 +131,22 @@ class BenchJudge:
 
     async def score_clarity(self, *, task: str, answer: str) -> ClarityVerdict:
         """Score how cleanly an agent can act on `answer`. Raises
-        JudgeParseError on un-parseable output."""
+        JudgeParseError on un-parseable output.
+
+        A provider failure degrades THIS CELL rather than the run — see
+        `_degraded_note`.
+        """
         user = _CLARITY_TEMPLATE.format(task=task, answer=answer)
-        response = await self._provider.complete(
+        try:
+            response = await self._provider.complete(
             system=(),
             user=user,
-            model=self._model.model,
-            max_tokens=self._max_tokens,
-            thinking_disabled=True,
-        )
+                model=self._model.model,
+                max_tokens=self._max_tokens,
+                thinking_disabled=True,
+            )
+        except AnyLLMError as exc:
+            return ClarityVerdict(score=0, reasoning=_degraded_note("clarity", exc), model=self._model.model)
         wobbled = _funnel_two_field(
             response.text,
             score_field="clarity",
@@ -136,15 +165,21 @@ class BenchJudge:
 
     async def score_next_links(self, *, task: str, next_links: str) -> NextLinksVerdict:
         """Score whether `next_links` (a rendered block) is the right "what to
-        fetch next" set for `task`. Raises JudgeParseError on bad output."""
+        fetch next" set for `task`. Raises JudgeParseError on bad output.
+
+        A provider failure degrades THIS CELL rather than the run.
+        """
         user = _NEXT_LINKS_TEMPLATE.format(task=task, next_links=next_links)
-        response = await self._provider.complete(
-            system=(),
-            user=user,
-            model=self._model.model,
-            max_tokens=self._max_tokens,
-            thinking_disabled=True,
-        )
+        try:
+            response = await self._provider.complete(
+                system=(),
+                user=user,
+                model=self._model.model,
+                max_tokens=self._max_tokens,
+                thinking_disabled=True,
+            )
+        except AnyLLMError as exc:
+            return NextLinksVerdict(score=0, reasoning=_degraded_note("next_links", exc), model=self._model.model)
         wobbled = _funnel_two_field(
             response.text,
             score_field="next_links_score",

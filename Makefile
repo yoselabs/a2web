@@ -116,6 +116,17 @@ install-global:
 # instead of the next bench run.
 A2WEB_BENCH_PROVIDER ?= claude-code-sdk
 export A2WEB_BENCH_PROVIDER
+
+# The bench fans out `--concurrency` cells at once, and the subscription backend
+# SERIALIZES them through one Claude Code session — so a judge call's wall clock
+# includes everything queued ahead of it and scales with concurrency, not with
+# the work in that call. The production default (180s) is sized for ONE `query`
+# and is genuinely too tight here: the 2026-08-01 run died on it mid-suite.
+#
+# Raised rather than disabled: an unbounded bench can hang overnight, which is
+# how the missing bound got noticed in the first place. Env still wins (`?=`).
+A2WEB_LLM_TIMEOUT_S ?= 900
+export A2WEB_LLM_TIMEOUT_S
 bench:
 	uv run python eval/_prod_env.py python -m a2web.llm_eval $(ARGS)
 
