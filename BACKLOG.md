@@ -21,48 +21,6 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
-## 2026-08-01 — Shen env must migrate `A2WEB_LLM_PROVIDER` in lockstep with the next deploy (S, deploy hazard)
-
-Source: this session's provider-adoption push (`ee2452c` + `5779dc1`, now on
-`main`).
-
-The provider adoption renamed the `A2WEB_LLM_PROVIDER` values onto the shelf's
-`anyllm.ProviderName` ids and a compat shim was **deliberately rejected** — so
-there is zero grace. If the Shen container still pins a pre-v0.47 value
-(`anthropic` / `claude-code` / `openai_compatible`), the redeployed image fails
-pydantic validation *on boot* and the service does not come up.
-
-**Action, one-time, outside this repo:** before/with the next image swap, set the
-Shen `A2WEB_LLM_PROVIDER` env to `auto` (unset) or one of `anthropic-api` /
-`claude-code-sdk` / `openai-compatible`. Not code work — a deploy-coordination
-step that only lives in this session's memory until done. Removed from this
-backlog the moment the deploy lands clean.
-
-## 2026-08-01 — provider selection is unverified against a live LLM (S, verification gap)
-
-Source: this session; `make bench` and a live `query` smoke-test were both
-deferred, not run.
-
-The `resolve_provider` + `auto`-order + runtime-fallback path adopted this
-session is covered only by unit/arch tests with *fake* providers. It has never
-resolved a real model end-to-end. The Shen container drops the `[claude-code]`
-extra, so `auto` will fall through to whatever API key is configured — the first
-real proof of a working provider on the slimmed container will be the deploy
-itself. Confirm which provider Shen is meant to resolve, then either run
-`make bench` (live, spends quota) or a single `query` smoke-test against the
-redeployed container to close the gap.
-
-## 2026-08-01 — cut a proper release for the provider adoption (S, process)
-
-Source: this session; `ee2452c` (`feat`) + `5779dc1` (`docs`) shipped without a
-release commit.
-
-The two commits sit on `main` unversioned: CHANGELOG entries are still under
-`[Unreleased]`, no version bump, no image tag — unlike the `release: v0.47.x`
-history. A deploy from current `main` ships an unstamped state. Cut a
-`release:` commit (version bump + CHANGELOG roll) so the deployed image carries
-a version.
-
 ## 2026-08-01 — the bench cannot separate a real quality move from noise (S, eval correctness)
 
 Source: `eval/findings_2026-08-01-pm.md` §Headline.
