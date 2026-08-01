@@ -619,6 +619,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
         retrieval_incomplete=retrieval_incomplete,
         structured_grounded=fc.structured_grounded,
         small_page_confirmed=fc.small_page_confirmed,
+        empty_confirmed=fc.empty_confirmed,
         comments_loaded=fc.comments_loaded,
         comments_total=fc.comments_total,
         items_loaded=fc.items_loaded,
@@ -765,14 +766,20 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     # empty, promoted to ok) hint. Hand the tiny retrieved body to the blind caller
     # so it can confirm empty-vs-wall itself, regardless of `include_content`.
     # `fr.content_md` is already the (wrapped) sub-floor body; wire-only, never cached.
-    is_confirmed_empty = any(h.code == "content_empty" for h in op_hints)
-    thin_content = fr.content_md if (is_confirmed_empty or any(h.code == "content_thin" for h in op_hints)) else None
+    # Read the CARRIED decision, not the hint it produced. This was
+    # `any(h.code == "content_empty" ...)` under a local name that shadowed
+    # `actions.empty.is_confirmed_empty` — the real predicate — so the code read
+    # as though it were calling it. `thin_content` still keys on the
+    # `content_thin` hint, which is genuinely a hint-presence question (was the
+    # thin body flagged?), not a re-derived decision.
+    empty_confirmed = fr.empty_confirmed
+    thin_content = fr.content_md if (empty_confirmed or any(h.code == "content_thin" for h in op_hints)) else None
 
     # A promoted empty ran NO LLM extraction (the thin body was never distilled —
     # ADR-0017), so synthesize an honest "no results" answer that only asserts the
     # absence — never fabricated items (the attached body lets the caller verify).
     answer = fr.extracted_answer
-    if is_confirmed_empty and not (answer or "").strip():
+    if empty_confirmed and not (answer or "").strip():
         answer = _EMPTY_RESULT_ANSWER
 
     other_pages = _compose_other_pages(fr, routing)

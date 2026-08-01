@@ -49,7 +49,7 @@ CLAUDE.md's Ask First list covers them.
 
 ## 4. Stop the re-derivations
 
-- [ ] 4.1 Delete the `empty_confirmed` re-derivation at `fetcher_response.py:685`
+- [x] 4.1 Delete the `empty_confirmed` re-derivation at `fetcher_response.py:685`
       (which shadows the imported name of the real predicate). Read the field set
       at `fetcher.py:1946`, as `small_page_confirmed` already does.
 - [x] 4.2 Apply the `_compose_next_links` fix decided in 1.2.

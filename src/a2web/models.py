@@ -791,6 +791,16 @@ class FetchResponse(BaseModel):
     # (empty-vs-wall-discrimination).
     small_page_confirmed: bool = Field(default=False, exclude=True)
 
+    # Internal signal (never on the wire — `exclude=True`): a corroborated EMPTY
+    # result was promoted to ok by `actions.empty.is_confirmed_empty`. Carried
+    # for the same reason `small_page_confirmed` is: `build_ask_response`
+    # previously re-derived it as `any(h.code == "content_empty" for h in
+    # op_hints)` — reading the DECISION back out of the hint the decision
+    # produced, under a local name that shadowed the real predicate's. A hint
+    # rename would have silently turned the promoted "no results" answer back
+    # into a bare thin failure.
+    empty_confirmed: bool = Field(default=False, exclude=True)
+
     # reddit-via-zyte content-expectations: loaded vs authoritative-oracle
     # comment counts for a comment-bearing page. Both None (omitted from the
     # wire) unless a handler measured them. When `comments_total` exceeds
