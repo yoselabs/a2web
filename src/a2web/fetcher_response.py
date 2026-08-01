@@ -39,6 +39,7 @@ from .models import (
     RouterPayload,
     TokenCounts,
     Verdict,
+    archive_snapshot_age_hint,
     extraction_empty_hint,
     listing_more_hint,
     listing_partial_hint,
@@ -599,6 +600,13 @@ def build_response(fc: FetchContext) -> FetchResponse:
         op_hints.append(listing_partial_hint(loaded=fc.items_loaded, total=fc.items_total))
     elif fc.items_more and fc.items_loaded is not None:
         op_hints.append(listing_more_hint(loaded=fc.items_loaded))
+
+    # The answer came from a web-archive SNAPSHOT, not the live page. The
+    # archive tier fires precisely when the live site walled us, so the caller
+    # asked about a page a2web could not reach and is getting an answer anyway
+    # — `tier: archive` is on the wire, but a tier name is not a date.
+    if fc.snapshot_age_days is not None:
+        op_hints.append(archive_snapshot_age_hint(age_days=fc.snapshot_age_days))
 
     diagnostics_summary = _build_diagnostics_summary(
         tier_used=fc.tier_used,

@@ -29,6 +29,18 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ### Fixed
 
+- **An archived answer never said how old it was.** The archive tier fires
+  precisely when the live site walled us, so the caller asks about a page a2web
+  could not reach and gets an answer anyway — and `archive.py` had computed
+  `snapshot_age_days` since it was written, set it on `TierResult`, and NOTHING
+  read it. A 2019 snapshot and a yesterday snapshot produced byte-identical
+  envelopes. `tier: archive` was on the wire, but a tier name is not a date, and
+  for the questions that drive someone to a walled page (pricing, reviews,
+  availability) a stale answer is a wrong answer wearing a confident face. Now
+  emitted as `archive_snapshot_age` — `info` when fresh, `warning` past a year
+  with the time-sensitive fields named as unverified. Found by reading a bench
+  envelope that quoted product reviews from an undated Wayback snapshot.
+
 - **A recipe's steps never reached the caller.** The JSON-LD `Recipe` renderer
   used a fixed key allowlist that omitted `recipeInstructions` — the single most
   answer-bearing field on a recipe page — along with `recipeCuisine`,

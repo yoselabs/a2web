@@ -126,6 +126,7 @@ class Link(BaseModel):
 HINT_CODES: frozenset[str] = frozenset(
     {
         "answer_truncated",
+        "archive_snapshot_age",
         "browser_internal_error",
         "browser_unavailable",
         "captcha_redirect",
@@ -455,6 +456,12 @@ def listing_partial_hint(*, loaded: int, total: int) -> OperatorHint:
     )
 
 
+#: Above this, an archive snapshot is old enough that time-sensitive facts
+#: (price, availability, rating, "who works here") should be treated as
+#: unverified. One year: coarse on purpose — see `archive_snapshot_age_hint`.
+_ARCHIVE_STALE_DAYS = 365
+
+
 def listing_more_hint(*, loaded: int) -> OperatorHint:
     """Honest structural "more exists" signal — a listing with no numeric oracle.
 
@@ -474,6 +481,42 @@ def listing_more_hint(*, loaded: int) -> OperatorHint:
         ),
         fix="Narrow the search query for a smaller, complete set, or open the URL in a browser tool to scroll / paginate.",
         severity="info",
+    )
+
+
+def archive_snapshot_age_hint(*, age_days: int) -> OperatorHint:
+    """The content came from a web-archive SNAPSHOT, and here is how old it is.
+
+    `archive.py` has computed `snapshot_age_days` since the tier was written and
+    NOTHING read it — the number reached `TierResult` and stopped there, so a
+    2019 snapshot and a yesterday snapshot produced identical envelopes.
+
+    Why that is an ADR-0009 failure rather than a missing nicety: the archive
+    tier fires precisely when the live site walled us, so the caller asked about
+    a page a2web could not reach and got an answer anyway. `tier: archive` is on
+    the wire, but a tier name is not a date — and for the questions that drive
+    people to a walled page (pricing, reviews, availability, "is this still
+    true"), a stale answer is a WRONG answer wearing a confident face. The
+    caller cannot audit what it is not told.
+
+    Severity rises with age because the risk does. The thresholds are coarse on
+    purpose — this is a "how much should you trust this" signal, not a
+    measurement, and precision would imply a confidence a snapshot cannot carry.
+    """
+    if age_days >= _ARCHIVE_STALE_DAYS:
+        severity = "warning"
+        trust = "Treat time-sensitive details (prices, availability, ratings, staffing) as UNVERIFIED."
+    else:
+        severity = "info"
+        trust = "Recent, but still a snapshot — re-check anything that changes by the day."
+    return OperatorHint(
+        code="archive_snapshot_age",
+        message=(
+            f"This content is a WEB ARCHIVE SNAPSHOT about {age_days} day(s) old, not the live page — "
+            f"the live site did not serve us. {trust}"
+        ),
+        fix="Open the URL in a real browser tool if you need the current page.",
+        severity=severity,
     )
 
 

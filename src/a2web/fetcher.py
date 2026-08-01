@@ -390,6 +390,9 @@ class FetchContext:
     # Per-fetch escalation caps
     url_rewrites: int = 0
     archive_dispatches: int = 0
+    #: Age of the archive snapshot that answered, when one did (ADR-0009: the
+    #: caller must be able to tell a live page from a years-old copy).
+    snapshot_age_days: int | None = None
     browser_dispatches: int = 0
     paid_dispatches: int = 0
     # A handler asked for a direct paid site render (TierResult.escalate_to_render):
@@ -957,6 +960,9 @@ class _ArchiveOutcome:
     final_url: str = ""
     pre_rendered: Rendered | None = None
     status_code: int = 0
+    #: Age of the winning snapshot. The archive tier has computed this since it
+    #: was written and NOTHING carried it — see `archive_snapshot_age_hint`.
+    snapshot_age_days: int | None = None
 
 
 async def _dispatch_archive(
@@ -1007,6 +1013,7 @@ async def _dispatch_archive(
         final_url=archive_result.final_url,
         pre_rendered=archive_pre,
         status_code=archive_result.status_code,
+        snapshot_age_days=archive_result.snapshot_age_days,
     )
 
 
@@ -1078,6 +1085,7 @@ def _install_archive_payload(fc: FetchContext, outcome: _ArchiveOutcome) -> None
     fc.tier_used = "archive"
     fc.pre_rendered_payload = outcome.pre_rendered
     fc.status_code = outcome.status_code
+    fc.snapshot_age_days = outcome.snapshot_age_days
     fc.observe(kind=ObservationKind.tier_outcome, source="archive", verdict=Verdict.ok)
 
 
@@ -1095,6 +1103,7 @@ def _install_gate_archive(fc: FetchContext, outcome: _ArchiveOutcome) -> None:
     fc.content_type = outcome.content_type
     fc.final_url = outcome.final_url
     fc.tier_used = "archive"
+    fc.snapshot_age_days = outcome.snapshot_age_days
     fc.pre_rendered_payload = pre
 
 
