@@ -74,8 +74,7 @@ def test_the_vocabulary_has_no_fossils() -> None:
     found = set(_literal_hint_codes())
     live = found & HINT_CODES
     assert len(live) >= _MIN_CODES_FOUND, (
-        f"only {len(live)} of {len(HINT_CODES)} declared codes are constructed "
-        "literally — the census is not working"
+        f"only {len(live)} of {len(HINT_CODES)} declared codes are constructed literally — the census is not working"
     )
 
 

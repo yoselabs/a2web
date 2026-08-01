@@ -484,6 +484,11 @@ class FetchContext:
     # by `build_response`; the shortfall also appends a `listing_partial` hint.
     # Producer-declared cache volatility, carried from the winning TierResult.
     volatility: str | None = None
+    # The terminal classification `_apply_terminal` computed. CARRIED, not
+    # recomputed: `fetcher_response` used to re-derive it three times by reading
+    # hint CODES and SEVERITIES back out, so editing a hint's wording could
+    # silently change whether a fetch reported `retrieval_incomplete`.
+    terminal: TerminalOutcome | None = None
     record_count: int | None = None
     # The parsed record set itself (rank-don't-skip): retained so the ask
     # projection can surface the option shelf, instead of keeping only the count
@@ -2172,6 +2177,7 @@ def _apply_terminal(fc: FetchContext) -> None:
     if fc.small_page_promoted():
         return
     outcome = classify_terminal(fc.observations, fc.resolved_verdict())
+    fc.terminal = outcome  # carried to the response builder; never re-derived from hints
     if outcome is TerminalOutcome.wall:
         if not _has_browser_hint(fc):
             fc.operator_hints.append(try_user_browser_hint(fc.final_url))

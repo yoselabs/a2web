@@ -53,6 +53,7 @@ from a2web.server import build_mcp_server
 WIRE_DIR = Path(__file__).parent / "wire"
 DELTAS_PATH = Path(__file__).parent / "DELTAS.md"
 
+
 #: Set to a reason slug to accept a wire change. Writes the new golden AND
 #: appends the diff to DELTAS.md under that slug. A re-bless with no slug is
 #: rejected when goldens exist — that is the whole point of the two phases.

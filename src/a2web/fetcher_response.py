@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from timefmt import fmt_dur
 
+from .actions.terminal import TerminalOutcome
 from .content_guidance import kind_guidance
 from .decision_log import resolve_verdict
 from .log import log_warning
@@ -420,6 +421,23 @@ def _index_loss_hint(
 # --------------------------------------------------------------------- #
 
 
+#: Terminal outcomes that mean the URL was NOT retrieved.
+#:
+#: Module scope so it is one declaration a test can read, rather than a set
+#: rebuilt inside `build_response` on every call. `gone_confirmed` is
+#: deliberately absent — a corroborated dead URL is a confident fact, not a
+#: miss — as are `operator_error` and `unreachable`, which are honestly terminal
+#: and carry their own hints.
+_INCOMPLETE_TERMINALS: frozenset[TerminalOutcome] = frozenset(
+    {
+        TerminalOutcome.wall,
+        TerminalOutcome.gone_unverified,
+        TerminalOutcome.thin_unverified,
+        TerminalOutcome.empty_unverified,
+    }
+)
+
+
 def build_response(fc: FetchContext) -> FetchResponse:
     """Materialize the FetchResponse from accumulated FetchContext state."""
     total_ms = int((time.perf_counter() - fc.start_perf) * 1000)
@@ -489,30 +507,29 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # verdict (HN's Algolia 404 is not a "wall" verdict, but the miss is real).
     if fc.render_requested and status == FetchStatus.failed:
         retrieval_incomplete = True
-    # A failed fetch carrying the critical `try_user_browser` hint is definitionally
-    # a retrieval miss — the cascade exhausted its ladder and told the caller to use
-    # their own browser. This is the SINGLE source of truth for incompleteness: the
-    # systematic floor (`fetcher._prescribe_browser_on_wall`) attaches that hint to
-    # every non-ok terminal that is not genuinely gone (content walls, transport
-    # walls, AND the former fall-throughs `length_floor`/`proxy_unavailable`/`other`),
-    # so incompleteness follows it for free. Genuine-gone terminals (dns_error,
-    # authoritative not_found, content_type_mismatch) never emit the hint, so they
-    # stay complete-looking failures, not "behind a wall" misses.
-    if status == FetchStatus.failed and any(h.code == "try_user_browser" for h in fc.operator_hints):
-        retrieval_incomplete = True
-    # An UNVERIFIED not-found (`content_not_found` at `severity: warning` — a 404
-    # whose soft-404 check could not complete) is also a retrieval miss: the caller
-    # may still recover it in its own browser. A VERIFIED not-found (`severity:
-    # info` — a browser-corroborated or authoritative dead URL) is NOT incomplete;
-    # it is a confident fact, so it is deliberately excluded here.
-    if status == FetchStatus.failed and any(h.code == "content_not_found" and h.severity == "warning" for h in fc.operator_hints):
-        retrieval_incomplete = True
-    # A thin-but-retrieved 200 (`content_thin` — an empty result set or minimal
-    # page with no wall evidence) is a retrieval miss for completeness purposes:
-    # we did not get a substantive body, so the caller must not read it as a
-    # complete answer. The tiny retrieved body rides `thin_content` for the caller
-    # to judge (never `critical` — this is not a wall).
-    if status == FetchStatus.failed and any(h.code == "content_thin" for h in fc.operator_hints):
+    # Incompleteness reads the CARRIED terminal classification, not the hints.
+    #
+    # These were three separate reconstructions — "is there a `try_user_browser`
+    # hint", "is there a `content_not_found` at severity `warning`", "is there a
+    # `content_thin`" — each re-deriving what `classify_terminal` had already
+    # decided and `_apply_terminal` then discarded. Reading a classification back
+    # out of the artifact it produced means the hint's CODE and SEVERITY became
+    # load-bearing for a decision they were never meant to carry: rewording a
+    # hint, or re-tuning a severity, could silently flip whether a fetch reported
+    # `retrieval_incomplete`. `test_editing_hint_text_does_not_change_classification`
+    # pins that it no longer can.
+    #
+    # Which outcomes count as incomplete (unchanged behaviour, now stated once):
+    #   `wall`             — the ladder was exhausted and the caller was told to
+    #                        use their own browser. The canonical miss.
+    #   `gone_unverified`  — a 404 whose soft-404 check could not complete; the
+    #                        caller may still recover it.
+    #   `thin_unverified` / `empty_unverified` — a retrieved thin 200 with no wall
+    #                        evidence. Not a substantive body, so not complete.
+    # `gone_confirmed` is deliberately EXCLUDED: a corroborated dead URL is a
+    # confident fact, not a miss. So are `operator_error` and `unreachable`, which
+    # are honestly terminal and carry their own hints.
+    if status == FetchStatus.failed and fc.terminal in _INCOMPLETE_TERMINALS:
         retrieval_incomplete = True
     gate_outcome = fc.last_gate_outcome()
     gate_subsystem = gate_outcome.subsystem if gate_outcome else None

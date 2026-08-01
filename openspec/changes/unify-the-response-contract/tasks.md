@@ -38,13 +38,13 @@ CLAUDE.md's Ask First list covers them.
 
 ## 3. Carry the terminal classification
 
-- [ ] 3.1 Put `TerminalOutcome` on the response path — today `fetcher.py:2009`
+- [x] 3.1 Put `TerminalOutcome` on the response path — today `fetcher.py:2009`
       computes it and `:2010-2024` discards it.
-- [ ] 3.2 Delete the three reconstruction sites at `fetcher_response.py:435, 442,
+- [x] 3.2 Delete the three reconstruction sites at `fetcher_response.py:435, 442,
       449`.
-- [ ] 3.3 Delete `fetcher_response.py:427`'s claim that the hint is "the SINGLE
+- [x] 3.3 Delete `fetcher_response.py:427`'s claim that the hint is "the SINGLE
       source of truth for incompleteness".
-- [ ] 3.4 Verify: editing a hint's message text must not change any
+- [x] 3.4 Verify: editing a hint's message text must not change any
       classification.
 
 ## 4. Stop the re-derivations

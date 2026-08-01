@@ -79,10 +79,7 @@ def _degraded_note(axis: str, exc: AnyLLMError) -> str:
     along — wrapping the provider covered the CALL everywhere, which is not the
     same as handling the FAILURE everywhere.
     """
-    return (
-        f"JUDGE UNAVAILABLE ({axis}): {exc}. Scored 0 — this is a "
-        "bench-infrastructure failure, NOT a quality signal about the answer."
-    )
+    return f"JUDGE UNAVAILABLE ({axis}): {exc}. Scored 0 — this is a bench-infrastructure failure, NOT a quality signal about the answer."
 
 
 @dataclass(slots=True)
@@ -139,8 +136,8 @@ class BenchJudge:
         user = _CLARITY_TEMPLATE.format(task=task, answer=answer)
         try:
             response = await self._provider.complete(
-            system=(),
-            user=user,
+                system=(),
+                user=user,
                 model=self._model.model,
                 max_tokens=self._max_tokens,
                 thinking_disabled=True,

@@ -179,6 +179,7 @@ class OperatorHint(BaseModel):
             )
             raise ValueError(msg)
         return value
+
     message: str
     fix: str | None = None
     severity: Literal["info", "warning", "critical"] = "info"
