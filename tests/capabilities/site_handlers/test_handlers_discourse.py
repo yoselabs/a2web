@@ -8,7 +8,7 @@ import pytest
 
 from a2web.handlers import DiscourseHandler, match_handler
 from a2web.handlers.discourse import _render_index, _render_topic
-from a2web.models import Verdict
+from a2web.models import NEXT_LINKS_CAP, Verdict
 from a2web.settings import AppSettings
 from a2web.state import AppState
 from tests._helpers.fake_http import FakeCurlResp, patch_curl_session
@@ -185,3 +185,75 @@ def test_render_index_decodes_html_entities_in_fancy_title() -> None:
     assert rendered is not None
     assert "&rsquo;" not in rendered["content_md"]
     assert "Tom’s" in rendered["content_md"]  # noqa: RUF001
+
+
+# --------------------------------------------------------------------- #
+# The onward-link cap (link-discovery spec: "capped at 10 entries")
+# --------------------------------------------------------------------- #
+
+
+def test_the_index_fixture_cannot_see_the_cap() -> None:
+    """Why the test below needs its own payload, stated rather than assumed.
+
+    `discourse_latest.json` carries THREE topics. Every existing index test
+    asserts against it, so all of them pass identically whether the cap is 10,
+    50, or absent — which is how `_MAX_TOPICS = 50` emitted five times the
+    stated cap without a red test. A count-controlling synthetic payload is the
+    right instrument here; the shape is copied from the captured fixture.
+    """
+    import json
+
+    topics = json.loads((_FIX / "discourse_latest.json").read_text())["topic_list"]["topics"]
+    assert len(topics) < NEXT_LINKS_CAP, (
+        f"the fixture now has {len(topics)} topics and could exercise the cap directly — "
+        "fold this into the real fixture and delete the synthetic payload below"
+    )
+
+
+def _index_payload(count: int) -> dict[str, Any]:
+    """A `/latest.json` body with `count` topics, in the captured fixture's shape."""
+    return {
+        "topic_list": {
+            "topics": [
+                {
+                    "id": 100 + i,
+                    "title": f"Topic number {i}",
+                    "fancy_title": f"Topic number {i}",
+                    "slug": f"topic-number-{i}",
+                    "posts_count": 3,
+                    "reply_count": 2,
+                }
+                for i in range(count)
+            ],
+        },
+    }
+
+
+def test_the_onward_index_is_capped_while_the_body_is_not() -> None:
+    """THE regression, and the distinction that caused it.
+
+    `_MAX_TOPICS = 50` bounded the rendered body AND the link list from one
+    literal, so Discourse shipped 50 `next_links` against a spec that states 10.
+    `handler_probe.py` recorded `min_candidates=10, # observed 30` as healthy,
+    so the baseline positioned to catch it certified it instead.
+
+    The two bounds answer different questions — how much of the listing to SHOW
+    versus how many pages to point AT — so this asserts both halves: the link
+    index obeys `NEXT_LINKS_CAP`, and the body still renders past it.
+    """
+    rendered = _render_index(_index_payload(30), "https://linux.do/latest")
+    assert rendered is not None
+
+    links = rendered["next_links"]
+    assert len(links) == NEXT_LINKS_CAP, f"onward links must obey the declared cap, got {len(links)}"
+
+    # Anti-vacuity for the half above: a fix that simply truncated everything to
+    # 10 would also pass it, while silently deleting 20 rows of retrieved body.
+    assert rendered["content_md"].count("- **Topic number ") == 30, "the rendered body must not inherit the onward-link cap"
+
+
+def test_a_short_index_is_untouched() -> None:
+    """Anti-vacuity: the cap must bound, not rewrite. Under it, nothing changes."""
+    rendered = _render_index(_index_payload(4), "https://linux.do/latest")
+    assert rendered is not None
+    assert len(rendered["next_links"]) == 4

@@ -127,6 +127,7 @@ guard's own docstring first line.
 - `tests/architecture/test_wobble_policies_match_prompts.py` — The wobble triage agrees with the prompt it claims to be reading.
 
 - `tests/architecture/test_hint_codes_are_declared.py` — Every operator-hint code is drawn from one closed vocabulary.
+- `tests/architecture/test_next_links_cap_is_declared_once.py` — No site that builds a `NextLink` holds its own cap literal; the spec's single "capped at 10" invariant has a single implementation (`models.NEXT_LINKS_CAP`). Born when `discourse.py` was found emitting 50 with `handler_probe.py` recording "observed 30" as healthy.
 
 - `tests/architecture/test_tsv_declaration_is_single.py` — The TSV field set is declared once, and both encoders agree with it.
 

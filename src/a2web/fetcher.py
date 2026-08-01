@@ -1980,7 +1980,11 @@ def _records_to_next_links(record_set: RecordSet, *, page_url: str) -> list[Next
             if url in seen or _is_archive_mirror(url):
                 continue
             seen.add(url)
-            out.append(NextLink(anchor=anchor[:120] or url, url=url, reason=reason, kind=kind))
+            # No `anchor[:120]` here: `NextLink.anchor` declares `max_length=120`
+            # AND a truncating validator, so the hand-rolled slice was a second
+            # copy of the model's own bound — the same duplication this module's
+            # onward-link cap suffered, one field down.
+            out.append(NextLink(anchor=anchor or url, url=url, reason=reason, kind=kind))
     return out
 
 

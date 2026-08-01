@@ -531,6 +531,26 @@ def llm_error_hint(*, message: str, retryable: bool) -> OperatorHint:
 NextLinkKind = Literal["drilldown", "related", "source", "discussion"]
 
 
+#: The onward-link cap, declared ONCE.
+#:
+#: `openspec/specs/link-discovery/spec.md` states a single invariant — "capped at
+#: 10 entries" — which was implemented as five separate literals: `arxiv.py`,
+#: `hn.py`, `reddit.py`, `wikipedia._WIKILINK_CAP`, and
+#: `fetcher_response._NEXT_LINKS_CAP`. `discourse.py` held a sixth spelled `50`,
+#: emitting five times the stated cap for a year, and `handler_probe.py` recorded
+#: "observed 30" as HEALTHY — the baseline pinned the violation green.
+#:
+#: A cap re-implemented at N sites is the one missing from the N+1th. It lives
+#: here, beside the model whose field it bounds, so the spec's single invariant
+#: has a single implementation. `test_next_links_cap_is_declared_once` forbids a
+#: new literal at any emitting site.
+#:
+#: This bounds ONLY the onward-link index. Markdown render caps (arXiv 25,
+#: Discourse 50, …) are a different question about how much BODY to show and are
+#: deliberately not folded in here.
+NEXT_LINKS_CAP = 10
+
+
 class NextLink(BaseModel):
     """One curated "what to fetch next" candidate.
 

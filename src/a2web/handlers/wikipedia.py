@@ -16,7 +16,7 @@ from dom_schema import Field as DomField
 from dom_schema import Schema, extract
 from http_fetch import fetch_bytes
 
-from ..models import Heading, Link, NextLink, Verdict
+from ..models import NEXT_LINKS_CAP, Heading, Link, NextLink, Verdict
 from ._common import challenge_verdict, empty_result, map_non_ok
 
 if TYPE_CHECKING:
@@ -146,11 +146,9 @@ _WIKILINK_SCHEMA = Schema(
     },
 )
 
-_WIKILINK_CAP = 10
-
 
 def _wikilink_candidates(html: str, *, lang: str) -> list[NextLink]:
-    """Pull up to 10 outbound article wikilinks from Parsoid HTML.
+    """Pull up to `NEXT_LINKS_CAP` outbound article wikilinks from Parsoid HTML.
 
     Parsoid marks internal article links with `rel="mw:WikiLink"` and a relative
     `./Target` href. Namespaced links (File:, Category:, Help:, …) carry a `:` in
@@ -161,7 +159,7 @@ def _wikilink_candidates(html: str, *, lang: str) -> list[NextLink]:
     seen: set[str] = set()
     out: list[NextLink] = []
     for row in extract(html, _WIKILINK_SCHEMA).rows:
-        if len(out) >= _WIKILINK_CAP:
+        if len(out) >= NEXT_LINKS_CAP:
             break
         target = row["target"].removeprefix("./").split("#")[0]
         anchor = row.get("anchor", "").strip()

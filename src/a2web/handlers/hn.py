@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from html_fragment import to_markdown
 from http_fetch import fetch_bytes
 
-from ..models import Heading, NextLink, Verdict
+from ..models import NEXT_LINKS_CAP, Heading, NextLink, Verdict
 from ._common import empty_result, map_non_ok, truncation_note
 
 if TYPE_CHECKING:
@@ -163,7 +163,7 @@ def _render_front_page(payload: Any) -> dict[str, Any]:
 
 
 def _front_page_candidates(payload: Any) -> list[NextLink]:
-    """Build up to 10 NextLink entries from the front-page hits.
+    """Build up to `NEXT_LINKS_CAP` NextLink entries from the front-page hits.
 
     External-link stories → drilldown to the external URL. Text-only stories
     → drilldown to the discussion page on news.ycombinator.com.
@@ -171,7 +171,7 @@ def _front_page_candidates(payload: Any) -> list[NextLink]:
     hits = payload.get("hits", []) if isinstance(payload, dict) else []
     out: list[NextLink] = []
     for hit in hits:
-        if len(out) >= 10:
+        if len(out) >= NEXT_LINKS_CAP:
             break
         if not isinstance(hit, dict):
             continue

@@ -20,7 +20,7 @@ from http_fetch import fetch_bytes
 
 from ..listing_oracle import listing_oracle
 from ..log import log_warning
-from ..models import Heading, NextLink, Verdict
+from ..models import NEXT_LINKS_CAP, Heading, NextLink, Verdict
 from ._common import empty_result, map_non_ok
 
 if TYPE_CHECKING:
@@ -321,12 +321,12 @@ def _render_listing(
 
 
 def _listing_candidates(entries: tuple[dict[str, str], ...]) -> list[NextLink]:
-    """Build up to 10 NextLink entries from listing entries.
+    """Build up to `NEXT_LINKS_CAP` NextLink entries from listing entries.
 
     `reason` is the comma-joined first authors (truncated to the model's 80-char cap).
     """
     out: list[NextLink] = []
-    for entry in entries[:10]:
+    for entry in entries[:NEXT_LINKS_CAP]:
         out.append(
             NextLink(
                 anchor=entry["title"],

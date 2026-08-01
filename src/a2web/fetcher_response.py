@@ -22,6 +22,7 @@ from .content_guidance import kind_guidance
 from .decision_log import resolve_verdict
 from .log import log_warning
 from .models import (
+    NEXT_LINKS_CAP,
     AskExtraction,
     AskResponse,
     CacheState,
@@ -214,9 +215,6 @@ def _build_diagnostics_summary(
 # Link discovery — composition rule (v0.7)
 # --------------------------------------------------------------------- #
 
-_NEXT_LINKS_CAP = 10
-
-
 # rank-don't-skip: the retained option shelf. Capped so a pathological first
 # batch cannot balloon the envelope; the cap is a no-skip-within-fetched bound,
 # NOT a completeness claim (listing_partial still owns completeness). `detail`
@@ -294,12 +292,12 @@ def _compose_next_links(fc: FetchContext) -> list[NextLink]:
     if not fc.next_links_enabled:
         return []
     if not fc.next_links_llm:
-        return list(fc.next_links_handler[:_NEXT_LINKS_CAP]) if fc.next_links_handler else []
+        return list(fc.next_links_handler[:NEXT_LINKS_CAP]) if fc.next_links_handler else []
 
     composed = list(fc.next_links_llm)
     seen = {nl.url for nl in composed}
     composed.extend(nl for nl in fc.next_links_handler if nl.url not in seen)
-    return composed[:_NEXT_LINKS_CAP]
+    return composed[:NEXT_LINKS_CAP]
 
 
 #: `NextLinkKind` → `OtherPageKind`. The two vocabularies are not the same size
@@ -357,7 +355,7 @@ def _compose_other_pages(fr: FetchResponse, routing: RouterPayload | None) -> li
     llm_structural = [p for p in llm if p.kind == "structural"]
     llm_drill = [p for p in llm if p.kind == "drilldown"]
     merged = structural + llm_structural + llm_drill
-    return merged[:_NEXT_LINKS_CAP]
+    return merged[:NEXT_LINKS_CAP]
 
 
 #: The routing arms on which an empty index is a LOSS rather than a finding.

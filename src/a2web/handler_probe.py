@@ -174,7 +174,13 @@ _PROBE_CASES: dict[str, tuple[ProbeCase, ...]] = {
             url="https://meta.discourse.org/latest",
             shape="listing",
             min_chars=1000,  # observed 4237
-            min_candidates=10,  # observed 30
+            # Was `min_candidates=10, # observed 30`. Thirty is THREE TIMES the
+            # stated cap (`link-discovery` spec: "capped at 10 entries"), and
+            # this baseline recorded it as healthy — so the probe pinned the
+            # violation green rather than catching it. A baseline that records
+            # an out-of-contract observation as the expected one is worse than
+            # no baseline: it reads as a decision.
+            min_candidates=10,  # observed 10 (== NEXT_LINKS_CAP)
             checks="/latest.json topic list yields topic drilldown candidates",
         ),
         ProbeCase(

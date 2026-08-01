@@ -24,7 +24,7 @@ from urllib.parse import urlparse, urlunparse
 from html_fragment import to_markdown, to_text
 from http_fetch import fetch_bytes
 
-from ..models import Heading, NextLink, Verdict
+from ..models import NEXT_LINKS_CAP, Heading, NextLink, Verdict
 from ..settings import DEFAULT_DISCOURSE_HOSTS
 from ._common import empty_result, map_non_ok, truncation_note
 
@@ -228,9 +228,15 @@ def _render_index(payload: Any, url: str) -> dict[str, Any] | None:
         reply_count = topic.get("reply_count", 0) or 0
         topic_url = f"{scheme}://{host}/t/{slug}/{topic_id}" if slug else f"{scheme}://{host}/t/{topic_id}"
         parts.append(f"- **{title}** ({posts_count} posts)\n  <{topic_url}>")
-        next_links.append(
-            NextLink(anchor=title, url=topic_url, reason=f"{reply_count} replies", kind="discussion"),
-        )
+        # The rendered body shows up to `_MAX_TOPICS`; the onward-link index is
+        # bounded separately by `NEXT_LINKS_CAP`. These are different questions —
+        # how much of the listing to SHOW versus how many pages to point AT — and
+        # collapsing them is how this site came to emit 50 against a stated cap
+        # of 10. Body rows keep accumulating past the link cap.
+        if len(next_links) < NEXT_LINKS_CAP:
+            next_links.append(
+                NextLink(anchor=title, url=topic_url, reason=f"{reply_count} replies", kind="discussion"),
+            )
     if not next_links:
         return None
 

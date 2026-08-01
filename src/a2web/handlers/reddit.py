@@ -47,7 +47,7 @@ from http_fetch import FetchOutcome, FetchVerdict, fetch_bytes
 from selectolax.parser import HTMLParser
 
 from .. import content_expectations
-from ..models import Heading, NextLink, OperatorHint, Verdict, comments_partial_hint, try_user_browser_hint
+from ..models import NEXT_LINKS_CAP, Heading, NextLink, OperatorHint, Verdict, comments_partial_hint, try_user_browser_hint
 from . import _reddit_html as rh
 from ._common import challenge_verdict, empty_result
 
@@ -625,7 +625,7 @@ def _render_listing_atom(feed: _AtomFeed, *, subreddit: str, sort: str, time_win
     headings = [Heading(level=1, text=title_text), Heading(level=2, text=f"Posts ({len(lines)})")]
     next_links = [
         NextLink(anchor=(e.title or "").strip(), url=e.link, reason=human_age(now - e.epoch) if e.epoch else "", kind="drilldown")
-        for e in entries[:10]
+        for e in entries[:NEXT_LINKS_CAP]
         if e.link and e.title
     ]
     return _RenderResult(content_md="\n".join(parts).strip() + "\n", title=title_text, headings=headings, next_links=next_links)

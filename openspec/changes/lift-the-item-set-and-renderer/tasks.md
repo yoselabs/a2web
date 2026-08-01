@@ -38,14 +38,14 @@ to. Two notes for the lift that follows:
 
 ## 2. One cap, and the baseline that pins the violation
 
-- [ ] 2.1 Declare the onward-link cap once. `openspec/specs/link-discovery/spec.md:37`
+- [x] 2.1 Declare the onward-link cap once. `openspec/specs/link-discovery/spec.md:37`
       states one invariant; `arxiv.py:317`, `hn.py:169`, `reddit.py:612` and
       `wikipedia._WIKILINK_CAP` implement it four times.
-- [ ] 2.2 Correct `discourse.py:227` from 50 to the declared cap.
-- [ ] 2.3 Correct `handler_probe.py:177` in the **same commit** — it records
+- [x] 2.2 Correct `discourse.py:227` from 50 to the declared cap.
+- [x] 2.3 Correct `handler_probe.py:177` in the **same commit** — it records
       "observed 30" as healthy and currently pins the violation green. Say in the
       commit message that the baseline was recording a defect as health.
-- [ ] 2.4 Add the guard: no emitting site holds its own literal.
+- [x] 2.4 Add the guard: no emitting site holds its own literal.
 
 ## 3. Cap-and-declare
 
