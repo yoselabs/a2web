@@ -205,3 +205,21 @@ than a co-scheduled task. Everything else is a move.
   always in browser `:2105` / paid `:2210` / tier loop `:1183`. Unify to
   always-append as part of the loop, or leave as-is and record? Leaning unify —
   it is the same divergence class as the install sequence.
+
+## Phase two: unblocked 2026-08-01
+
+`unify-the-response-contract` §7 derived and froze the response builder's slice
+of `FetchContext`: **42 of 72 fields**, listed in
+`tests/architecture/test_response_context_slice.py`. That ledger is what phase
+two needed — the set is now stated and cannot grow silently, so `context.py` can
+be sliced per node against a known boundary instead of a hand re-derivation.
+
+Two caveats for whoever picks it up:
+
+- The ledger is a LEDGER, not a Protocol. Adding a read is expected; the guard
+  just makes it visible. A real `Protocol` was deliberately deferred — declaring
+  42 members with live annotations pulls every one of their types into
+  `fetcher_response.py`'s namespace, which is worth doing when the slice has an
+  actual consumer, not before.
+- 42 of 72 is high. The response builder reads well over half the context, so
+  "slice per node" will not be a clean partition — expect a shared core.

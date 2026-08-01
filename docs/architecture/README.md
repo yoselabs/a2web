@@ -130,6 +130,8 @@ guard's own docstring first line.
 
 - `tests/architecture/test_tsv_declaration_is_single.py` — The TSV field set is declared once, and both encoders agree with it.
 
+- `tests/architecture/test_response_context_slice.py` — The response builder's slice of `FetchContext` is explicit and bounded.
+
 ## Verification provenance — where CI's authority ends
 
 `verification-provenance.md` is the companion to this manual. This README covers

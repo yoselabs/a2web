@@ -100,11 +100,11 @@ re-blessed goldens for any line not mentioning `structural`/`drilldown`/`anchor`
 
 ## 7. Absorb the context reads
 
-- [ ] 7.1 Inventory the 41 `FetchContext` fields read externally by
+- [x] 7.1 Inventory the 41 `FetchContext` fields read externally by
       `fetcher_response.py` (of 69 total).
-- [ ] 7.2 Turn those reads into the response contract's interface, so
+- [x] 7.2 Turn those reads into the response contract's interface, so
       `context.py` can later be sliced per node.
-- [ ] 7.3 Confirm `decompose-fetcher-into-files` phase two is unblocked, and say
+- [x] 7.3 Confirm `decompose-fetcher-into-files` phase two is unblocked, and say
       so in that change's design.
 
 ## 8. Close out
