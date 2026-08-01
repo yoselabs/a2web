@@ -112,7 +112,7 @@ class HNHandler:
         items_rendered: int | None = None
         items_advertised: int | None = None
         if is_hit_list:
-            rendered = _render_front_page(payload)
+            rendered = _render_front_page(payload, is_search=query is not None)
             next_links = _front_page_candidates(payload)
             # Declared for the same reason arXiv declares them: the prose says
             # "Showing 30 of 912" and the structured sufficiency signal must
@@ -120,7 +120,7 @@ class HNHandler:
             # caller different stories.
             hits = payload.get("hits", []) if isinstance(payload, dict) else []
             items_rendered = min(len(hits), _FRONT_PAGE_CAP)
-            items_advertised = _source_total(payload)
+            items_advertised = _source_total(payload, is_search=query is not None)
         else:
             rendered = _render_item(payload)
             next_links = []
@@ -140,30 +140,43 @@ class HNHandler:
         )
 
 
-def _source_total(payload: Any) -> int | None:
-    """Algolia's `nbHits` — the total matching the query, not the page returned.
+def _source_total(payload: Any, *, is_search: bool) -> int | None:
+    """Algolia's `nbHits` — but ONLY for a real search. Returns `None` otherwise.
 
     a2web asks for `hitsPerPage=30`, so `len(hits)` can never exceed 30 and a
     note comparing rendered-against-fetched is STRUCTURALLY UNREACHABLE: `shown`
     and `total` are the same number by construction. The declaration existed and
-    could not fire.
+    could not fire. On a SEARCH that is the ADR-0015 harm — a query matching 900
+    stories and one matching 30 produced identical, identically silent output,
+    and the caller never sees the body.
 
-    That is the ADR-0015 harm with a truncation note bolted on top. A search
-    returning 900 stories and a search returning 30 produced the identical body,
-    identically silent, and the caller — which never sees the body — had nothing
-    to distinguish them. `nbHits` is the number the source itself reports.
+    **`is_search` is not a nicety.** Measured against the live API 2026-08-01:
+
+        tags=front_page&hitsPerPage=30  → nbHits 171, hits 30
+        query=rust&tags=story           → nbHits 59173, hits 30
+
+    For the search, 59173 is the real match count and "30 of 59173" is true and
+    useful. For the front page it is NOT: `front_page` tags a rolling window of
+    recently-front-paged stories, while THE front page is the 30 currently on
+    it. Declaring "30 of 171" tells the caller it is missing 141 front-page
+    stories that do not exist as such — a false `listing_partial`.
+
+    A false "incomplete" is worse than none: it teaches the caller to ignore the
+    signal, which costs every TRUE partial that follows. This is why
+    `fix-cache-ttl-and-listing-sufficiency` §4.7 left hn open rather than guess,
+    and the guess was made anyway before the numbers above were measured.
     """
-    if not isinstance(payload, dict):
+    if not is_search or not isinstance(payload, dict):
         return None
     total = payload.get("nbHits")
     return total if isinstance(total, int) else None
 
 
-def _render_front_page(payload: Any) -> dict[str, Any]:
-    """Render the HN front page (Algolia `tags=front_page` search) as a list."""
+def _render_front_page(payload: Any, *, is_search: bool = False) -> dict[str, Any]:
+    """Render an Algolia hit-list (the front page, or a search) as a list."""
     hits = payload.get("hits", []) if isinstance(payload, dict) else []
     parts: list[str] = ["# Hacker News\n", f"## Front page ({min(len(hits), _FRONT_PAGE_CAP)})\n"]
-    note = truncation_note(min(len(hits), _FRONT_PAGE_CAP), _source_total(payload), noun="stories")
+    note = truncation_note(min(len(hits), _FRONT_PAGE_CAP), _source_total(payload, is_search=is_search), noun="stories")
     if note:
         parts.append(note)
     count = 0

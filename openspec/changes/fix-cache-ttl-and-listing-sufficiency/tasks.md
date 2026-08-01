@@ -45,16 +45,21 @@
       matching the prose.
 - [x] 4.5 Assert a complete listing emits no hint.
 - [x] 4.6 Add the prose/hint agreement test — the anti-drift clause.
-- [ ] 4.7 **NOT DONE — deliberately, see below.** Only `arxiv` actually holds an
-      advertised total, verified against the committed capture (408 advertised,
-      25 rendered). `discourse` and `v2ex` compute no total at all, so there is
-      nothing to declare. `reddit`'s total is a COMMENT count, already wired via
-      `comments_loaded`/`comments_total`. `hn` has `nbHits` in the Algolia
-      payload, but its semantics on a `tags=front_page` query are unverified —
-      the front page IS 30 items, so a larger `nbHits` would emit a FALSE
-      `listing_partial`. A false "incomplete" is worse than none: it teaches the
-      caller to ignore the signal. Needs a captured HN fixture first; left open
-      rather than guessed.
+- [x] 4.7 **DONE 2026-08-01, and this task's caution was VINDICATED.** It read:
+      *"`hn` has `nbHits` in the Algolia payload, but its semantics on a
+      `tags=front_page` query are unverified — the front page IS 30 items, so a
+      larger `nbHits` would emit a FALSE `listing_partial`."* That guess was
+      made anyway during `lift-the-item-set-and-renderer`, and measuring the
+      live API afterwards proved the warning exactly right:
+
+          tags=front_page&hitsPerPage=30  -> nbHits 171, hits 30
+          query=rust&tags=story           -> nbHits 59173, hits 30
+
+      So the wiring is now SCOPED to a real search, where 59173 is a true match
+      count, and the bare front page declares nothing. `discourse` and `v2ex`
+      still compute no total; `reddit`'s is a comment count already wired via
+      `comments_loaded`/`comments_total`, and its listing note declares against
+      what the feed handed back rather than a source total it does not have.
 
 ## 5. Close out
 

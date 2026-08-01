@@ -64,22 +64,39 @@ def _payload(*, hits: int, nb_hits: int) -> dict[str, Any]:
     }
 
 
-def test_a_full_page_over_a_far_larger_total_declares_the_shortfall() -> None:
+def test_a_search_over_a_far_larger_total_declares_the_shortfall() -> None:
     """THE regression. Pre-fix this rendered 30 of 912 in total silence."""
-    rendered = _render_front_page(_payload(hits=_FRONT_PAGE_CAP, nb_hits=912))
+    rendered = _render_front_page(_payload(hits=_FRONT_PAGE_CAP, nb_hits=912), is_search=True)
     body = rendered["content_md"]
 
     assert f"{_FRONT_PAGE_CAP} of 912" in body, f"no partial-view declaration in:\n{body[:400]}"
     assert "partial view" in body
 
 
-def test_a_total_equal_to_what_was_rendered_stays_silent() -> None:
+def test_the_bare_front_page_never_declares_a_shortfall() -> None:
+    """The false-positive this nearly shipped, measured against the live API.
+
+        tags=front_page&hitsPerPage=30  -> nbHits 171, hits 30   (2026-08-01)
+
+    `front_page` tags a rolling window of recently-front-paged stories; THE
+    front page is the 30 currently on it. "Showing 30 of 171" would tell the
+    caller it is missing 141 front-page stories that do not exist as such.
+
+    A false "incomplete" is worse than none — it teaches the caller to ignore
+    the signal, costing every TRUE partial that follows. This is precisely why
+    `fix-cache-ttl-and-listing-sufficiency` §4.7 left hn open rather than guess.
+    """
+    rendered = _render_front_page(_payload(hits=_FRONT_PAGE_CAP, nb_hits=171), is_search=False)
+    assert "partial view" not in rendered["content_md"]
+
+
+def test_a_search_total_equal_to_what_was_rendered_stays_silent() -> None:
     """Anti-vacuity: a note that always fires is not a note.
 
     If every listing carried a partial-view warning the signal would be worth
     nothing, and "25 of 25" is noise at best.
     """
-    rendered = _render_front_page(_payload(hits=12, nb_hits=12))
+    rendered = _render_front_page(_payload(hits=12, nb_hits=12), is_search=True)
     assert "partial view" not in rendered["content_md"]
 
 
@@ -90,7 +107,7 @@ def test_a_missing_or_malformed_total_is_absence_not_zero(payload: object) -> No
     `truncation_note` treats `None` as "unknown" and stays silent; reading a
     malformed total as `0` would instead claim a shortfall of everything.
     """
-    assert _source_total(payload) is None
+    assert _source_total(payload, is_search=True) is None
 
 
 def test_the_render_bound_and_the_requested_page_size_are_one_constant() -> None:

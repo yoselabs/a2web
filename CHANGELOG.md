@@ -73,8 +73,13 @@ All notable changes to **a2web** are recorded here. The format follows
   structurally unreachable — it compared what it rendered against what it had
   ASKED Algolia for, the same number by construction — so a search matching 912
   stories and one matching 30 produced identical, identically silent output.
-  `nbHits` is now read and declared, and carried as `items_advertised` so the
-  structured signal agrees with the prose. `reddit` and the markdown table
+  `nbHits` is now read and declared for a SEARCH, and carried as
+  `items_advertised` so the structured signal agrees with the prose. It is
+  deliberately NOT declared for the bare front page: measured against the live
+  API, `tags=front_page` reports `nbHits=171` against 30 hits, because the tag
+  covers a rolling window of recently-front-paged stories while THE front page
+  is the 30 currently on it — "showing 30 of 171" would be a false shortfall,
+  and a false "incomplete" is worse than none. `reddit` and the markdown table
   renderer likewise declare.
 - **The `options` shelf was capped by count and by nothing else**, reaching 17KB
   against 255 bytes of `answer` on a listing page — ADR-0015's remedy defeating
