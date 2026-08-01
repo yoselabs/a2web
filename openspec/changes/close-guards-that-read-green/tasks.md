@@ -125,6 +125,14 @@ result.
 - [ ] 6.5 Invert `_NEXT_LINKS_TEMPLATE`'s *"never penalize an entry for being
       unfamiliar or assume it is fabricated"*. That instruction exists because
       the judge could not verify; once it can, it disarms ADR-0014.
+      **NOT DONE 2026-08-01, deliberately — the premise does not hold.** The
+      judge receives the task string and the rendered block and nothing else,
+      so it still cannot verify; telling a blind judge to suspect fabrication
+      buys guesses, not verification. ADR-0014 is a DETERMINISTIC property
+      (every emitted URL traceable to an anchor on the fetched page) and belongs
+      in a check that can read the page, not in an LLM opinion. The prompt WAS
+      rewritten in the same pass for a different, measured defect — it was
+      penalising faithfully-relayed items and so rewarding ADR-0012 violations.
 - [ ] 6.6 Produce the invariant → catching-cell mapping and record the gaps. Nine
       of twelve currently have zero cells.
 

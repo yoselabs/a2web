@@ -125,6 +125,24 @@ and take that as a go-ahead.
 
 ## 2026-08-01 — the `next_links` judge scores page content, not the envelope (S, eval correctness)
 
+**PROMPT FIXED 2026-08-01; the axis is not yet re-measured.** The rewrite is in
+`bench_judge._NEXT_LINKS_TEMPLATE`, pinned by
+`tests/capabilities/output_benchmark/test_next_links_judge_respects_adr_0012.py`.
+Root cause was worse than "scores the wrong thing": the judge was penalising
+entries a2web relayed faithfully — "an internship list, not a repo to adopt" —
+which is exactly what ADR-0012 REQUIRES a2web to do. The axis rewarded editorial
+filtering the product forbids, so an a2web obeying its own invariant could not
+score full marks. An eval that rewards violating the spec applies steady pressure
+in the wrong direction on every run.
+
+Still open: nothing has re-measured the axis under the new prompt, and per the
+noise-floor entry a single run cannot settle it — that needs a run PAIR. Also
+unresolved is §6.5's ADR-0014 question, deliberately left rather than guessed:
+the judge is blind (task string + rendered block, no page), so "stop assuming
+good faith about fabrication" cannot be honoured by a prompt change. URL
+traceability is deterministic and belongs in a check that can read the page.
+
+
 Source: `eval/findings_2026-08-01.md` §2.
 
 The axis fell 3.44 → 2.56 (`a2web_extract`) across runs whose envelopes differ

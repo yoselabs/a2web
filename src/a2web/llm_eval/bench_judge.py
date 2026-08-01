@@ -45,20 +45,65 @@ _CLARITY_TEMPLATE = (
     '{{"clarity":<int 0-5>, "reasoning":"<one sentence>"}}'
 )
 
+#: Scores the SET's shape, never the merit of the individual items.
+#:
+#: The previous wording said "reward relevance and coverage; penalize chrome and
+#: omissions", and in practice the judge read that as an invitation to grade each
+#: entry on whether it was a worthwhile thing to have linked. Measured on
+#: 2026-08-01 (`eval/runs/2026-08-01_152218`), `gh-trending-best` was marked down
+#: to 3 for "pollut[ing] coverage with clearly off-topic entries like
+#: SimplifyJobs/Summer2027-Internships (an internship list, not a repo to adopt)
+#: and paperswithbacktest/awesome-systematic-trading (a curated list, not a
+#: project)".
+#:
+#: Both of those were on GitHub trending that day. a2web relayed them, which is
+#: exactly what ADR-0012 requires — a2web shapes and relays, it never ranks,
+#: filters, hides, or crowns by a criterion of its own. **So the axis was
+#: rewarding editorial filtering that the product forbids**, and a system that
+#: obeyed ADR-0012 could not score full marks. The scores also moved with
+#: whatever happened to trend overnight rather than with any change to a2web.
+#:
+#: On verification, and why the "do not assume fabrication" clause SURVIVES the
+#: rewrite rather than being inverted as `close-guards-that-read-green` §6.5
+#: proposed. That task's premise is "once it can verify" — but the judge is
+#: handed the task string and the rendered block, and nothing else. It has no
+#: page, so it genuinely cannot check whether a URL was on it. Telling a blind
+#: judge to suspect fabrication buys guesses, not verification.
+#:
+#: ADR-0014 is a DETERMINISTIC property — every emitted URL traceable to an
+#: anchor on the fetched page — and belongs in a check that can actually read the
+#: page, not in an LLM's opinion. Left for that decision rather than papered over
+#: here; §6.5 stays open with this reasoning attached.
 _NEXT_LINKS_TEMPLATE = (
     "You are a strict, blind judge assessing whether a set of suggested "
-    '"what to fetch next" links is the RIGHT set for a research task on a '
+    '"what to fetch next" links is the RIGHT SET for a research task on a '
     "listing / index page. You do NOT know which system produced them.\n\n"
-    "Good next_links point to the items a researcher would actually drill "
-    "into for the task — not navigation, ads, login links, or unrelated "
-    "pages. Reward relevance and coverage; penalize chrome and omissions. "
-    "You cannot verify external facts and neither can the harness — judge "
-    "the set's structure, relevance, and coverage for the task; never "
-    "penalize an entry for being unfamiliar or assume it is fabricated.\n\n"
+    "WHAT YOU ARE JUDGING — the composition of the set:\n"
+    "- Are these the page's drill-down targets (the items the listing lists), "
+    "rather than chrome: navigation, ads, login, footer, share links, "
+    "pagination?\n"
+    "- Is the coverage sensible for the task — enough of the page's items to "
+    "work from, without obvious duplication?\n"
+    "- Do the `kind`, `reason` and `anchor` columns describe each entry "
+    "honestly and informatively?\n\n"
+    "WHAT YOU ARE NOT JUDGING — read this carefully, it is the common mistake:\n"
+    "- NOT whether each linked item is individually worthwhile, on-trend, "
+    "high-quality, or the one you would pick. The system is REQUIRED to relay "
+    "what the page listed, faithfully and without filtering or ranking. An "
+    "entry you consider uninteresting, off-topic, or a poor choice is NOT a "
+    "defect if the page listed it — penalising it would reward editorial "
+    "filtering the system is forbidden to do.\n"
+    "- NOT whether the set matches what that page shows TODAY. You cannot see "
+    "the page, and its contents change.\n"
+    "- NOT whether a URL exists. You cannot verify external facts and neither "
+    "can this prompt. Never penalise an entry for being unfamiliar and never "
+    "assume it is fabricated; existence is checked elsewhere.\n\n"
     "TASK: {task}\n\n"
     "SUGGESTED NEXT LINKS:\n{next_links}\n\n"
-    "Score 0-5 (0=wrong/empty set, 3=partially right, 5=exactly the set a "
-    "researcher wants). Respond with STRICT JSON ONLY, no prose, no fence:\n"
+    "Score 0-5 on the SET's composition (0 = wrong or empty set, or mostly "
+    "chrome; 3 = the right kind of set with real gaps or noticeable chrome; "
+    "5 = cleanly the page's drill-down targets, well described, well covered). "
+    "Respond with STRICT JSON ONLY, no prose, no fence:\n"
     '{{"next_links_score":<int 0-5>, "reasoning":"<one sentence>"}}'
 )
 
