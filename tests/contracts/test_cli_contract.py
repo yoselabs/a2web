@@ -112,12 +112,21 @@ def _pinned(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     Stubbing `Extractor.extract` only takes effect once a provider was selected
     at all: with `auto` and no credentials, `select_provider` returns None and
     every `web query` golden degrades to an `llm_unavailable` payload instead.
-    That made the gate pass on a developer laptop with a Claude Code session and
-    fail on a bare CI runner — the same ambient-availability class that broke the
-    0.47.0/0.47.1 releases. Pinning an OpenAI-compatible gateway with fake
-    credentials makes selection succeed by construction (nothing is ever called;
-    the stub intercepts before any request), so the gate now measures the CLI and
-    nothing about the machine it runs on.
+    Pinning an OpenAI-compatible gateway with fake credentials makes selection
+    succeed by construction — nothing is ever called, because the stub intercepts
+    before any request — so these goldens exercise the CLI's rendering of a
+    successful extraction, which is what they were captured to measure.
+
+    **This is an ordinary explicit configuration, not a workaround.** It was
+    written as one in 0.48.1, when the gate passed on a developer laptop with a
+    Claude Code session and failed on a bare runner. That general defect now has
+    a general mechanism — `tests/conftest.py::_hermetic_llm_env` makes the host's
+    providers invisible to every test — so this pin no longer carries the weight
+    of defending the suite; it only says which provider THESE goldens want.
+    Keeping it is still correct and is not redundant with the fixture: the
+    fixture guarantees no provider is ambiently available, which is exactly the
+    state in which these goldens would degrade. The fixture removes the accident;
+    this line supplies the intent.
     """
     monkeypatch.setenv("A2WEB_CACHE_DIR", str(tmp_path))
     monkeypatch.setenv("A2WEB_LLM_PROVIDER", ProviderName.OPENAI_COMPATIBLE.value)

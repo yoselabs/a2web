@@ -104,6 +104,44 @@ library's own behavior, a genuinely foreign consumer, and production telemetry.
    to* own this, now this module does") and trains docstrings to lie fluently.
    Semantic staleness is not lintable.
 
+4. **Your machine is not an oracle.** *(Added 2026-08-01. The heading above says
+   "three" and is now wrong by one; left as written because renumbering a
+   document about drift, in the commit that adds the fourth item, is funnier
+   than it is useful — the count is corrected here.)*
+
+   A test may not read a capability of the **host** and treat the answer as
+   evidence about the code. Three releases died on exactly this: the suite
+   probed whether the developer's machine had an LLM available, so a test was
+   green on a laptop with a Claude Code session and red on a bare runner with no
+   code difference between the runs. This is the endogeneity failure with the
+   environment as the endogenous oracle — the machine that authored the code is
+   also the machine that certifies it.
+
+   Mechanism: `tests/conftest.py::_hermetic_llm_env` (autouse; scrubs the
+   credential env and forces the subscription backends unavailable) plus
+   `tests/architecture/test_hermetic_llm_env.py` (asserts the fixture exists, is
+   autouse, and covers the named set — verified sensitive in both directions).
+   The `ambient_llm` marker is the declared opt-out, and is exercised by a test
+   rather than merely registered, because an escape hatch nobody runs rots.
+
+   **CI is not made redundant by this — it is made agreeable with.** The runner
+   remains the exogenous witness (§"Where CI's authority ends" still applies in
+   full). What the fixture buys is that a green local run now means roughly what
+   a green CI run means, so the local gate stops being decorative. It does NOT
+   establish that no test reaches the host by an unanticipated route: a new
+   provider adapter with its own probe, or a library reading a config file
+   outside the environment, would both pass straight through.
+
+   **Measured, and it cuts against the obvious reading.** When this shipped, the
+   credential-stripped suite was ALREADY green — 1441 passed, identical to the
+   keyed run. The fixture revealed no broken test. The suite had been patched to
+   hermeticity one release at a time, and the property held only until someone
+   wrote the next host-reading test. So the guard's value is entirely
+   preventive, and its non-vacuity is asymmetric by nature: the behavioural
+   assertion is a real witness on a keyed developer machine and trivially
+   satisfied on a bare runner. That asymmetry is stated at the guard rather than
+   papered over, per this document's own rule.
+
 ## Promotion to the shelf — the boundary invariants
 
 Promoting to a shared registry means our blind spots propagate to consumers we

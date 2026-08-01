@@ -222,3 +222,66 @@ class _UnavailableBrowserTier:
 def _stub_archive_tier(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(REGISTRY, "archive", _NotFoundArchiveTier())
     monkeypatch.setitem(REGISTRY, "browser", _UnavailableBrowserTier())
+
+
+# --- Your machine is not an oracle ----------------------------------------- #
+# The A2WEB_* scrub at the top of this file runs ONCE, at import, and covers
+# a2web's own settings. It does not cover the LLM environment, and that gap cost
+# three releases: 0.47.0 and 0.47.1 died on provider-selection tests, 0.48.0 on
+# the CLI-contract goldens. In every case a test read whether the DEVELOPER'S
+# MACHINE had a provider — green on a laptop with a Claude Code session, red on
+# a bare runner, with no code difference between the two runs.
+#
+# Each was fixed one test at a time, and none of the fixes made the next
+# occurrence impossible. As of 2026-08-01 a credential-stripped `pytest` is
+# green (measured: 1441 passed, identical to the keyed run, with the strip
+# verified non-vacuous — `ClaudeCodeSdkAdapter().available()` goes True → False
+# under it). So this fixture reveals nothing today. That is the point: it holds
+# a property the suite currently has BY ACCIDENT of having been patched
+# repeatedly, and converts it into one the suite has by construction.
+#
+# Autouse rather than opt-in, deliberately. An opt-in version defends only the
+# authors who already know the defect exists, which is precisely the set that
+# would not have written it.
+_SCRUBBED_LLM_ENV = (
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "OPENAI_BASE_URL",
+    "OPENAI_MODEL",
+    "A2WEB_LLM_PROVIDER",
+    "CLAUDE_CODE_OAUTH_TOKEN",
+)
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_llm_env(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make the host's LLM availability invisible; a test SHALL configure its own.
+
+    **Reach, stated so it is not over-read.** This establishes that the named
+    variables are absent and that the two subscription backends report
+    unavailable. It does NOT establish that no test reaches the host by some
+    unanticipated route — a new provider adapter with its own probe, or a
+    library reading a config file, would both pass straight through. The CI
+    runner remains the exogenous witness; this fixture makes the local run agree
+    with it more often, not redundant with it.
+    """
+    if request.node.get_closest_marker("ambient_llm") is not None:
+        return
+
+    for name in _SCRUBBED_LLM_ENV:
+        monkeypatch.delenv(name, raising=False)
+
+    # The key-env NAMES are themselves configurable, so a settings change that
+    # renamed them would route around a hardcoded list without failing anything.
+    defaults = AppSettings()
+    for configured in (defaults.llm_api_key_env, defaults.llm_openai_api_key_env):
+        monkeypatch.delenv(configured, raising=False)
+
+    # `raising=True` (the default) on purpose: if anyllm renames or drops either
+    # adapter, this fails loudly rather than silently reopening the hole it was
+    # written to close.
+    from anyllm.providers.claude_code_cli import ClaudeCodeCliAdapter
+    from anyllm.providers.claude_code_sdk import ClaudeCodeSdkAdapter
+
+    monkeypatch.setattr(ClaudeCodeSdkAdapter, "available", lambda self: False)
+    monkeypatch.setattr(ClaudeCodeCliAdapter, "available", lambda self: False)

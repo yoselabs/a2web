@@ -9,6 +9,51 @@ Nothing here is actionable. If an entry looks live again, move it back rather
 than re-deriving it.
 
 ---
+## 2026-07-27 — strip ambient LLM availability from the whole test suite (S, CI correctness)
+
+Source: the v0.48.0 release build, which failed the gate on a bare runner after
+passing locally. Three releases have now died to the same class: the suite reads
+whether the DEVELOPER'S MACHINE has an LLM (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
+a live Claude Code session), so a test can be green on a laptop and red in CI with
+no code difference. 0.47.0/0.47.1 died on provider-selection tests; 0.48.0 died on
+`tests/contracts/test_cli_contract.py`, where the `Extractor.extract` stub is only
+reached once `select_provider` returned something, so the `web query` goldens
+silently degraded to `llm_unavailable` payloads. Each was fixed one test at a time;
+none of the fixes made the next one impossible.
+
+The structural fix is an autouse `conftest.py` fixture that strips the credential
+env vars and forces `claude-code-sdk` unavailable for EVERY test, with an explicit
+opt-in marker (e.g. `@pytest.mark.ambient_llm`) for the few that genuinely want the
+host's providers. Then "green because my laptop has a session" stops being
+writable, and the laptop and the runner are the same environment by construction.
+Lint cannot catch this class (both states are type-correct and style-clean) and a
+green local run cannot either, which is why it needs a fixture rather than a rule.
+Scope: S.
+
+Trigger: pick up before the next release, or immediately if a fourth release build
+fails on provider availability.
+
+**CLOSED 2026-08-01** by `openspec/changes/harden-test-env-isolation/`.
+`tests/conftest.py::_hermetic_llm_env` is the autouse fixture; the `ambient_llm`
+marker is the opt-out and is exercised by a test rather than merely registered;
+`tests/architecture/test_hermetic_llm_env.py` is the guard, verified sensitive in
+both directions (dropping one name fails and NAMES it; renaming the fixture fails).
+
+**The measured surprise, recorded because it changes how the entry reads.** The
+credential-stripped suite was ALREADY green when this was picked up — 1441
+passed, identical to the keyed run, with the strip verified non-vacuous
+(`ClaudeCodeSdkAdapter().available()` goes True → False under it). So the fixture
+revealed nothing and fixed no test. The suite had been patched to hermeticity one
+release at a time, exactly as this entry describes, and the property held only for
+as long as nobody wrote the next host-reading test. What shipped converts a
+property the suite had BY ACCIDENT into one it has by construction. An entry that
+had been read as "N tests are broken" was really "nothing is broken today and
+nothing stops it breaking tomorrow" — worth distinguishing, because the first
+framing makes the work look urgent and the second makes it look skippable, and
+neither is right.
+
+---
+
 ## 2026-08-01 — `lift-the-item-set-and-renderer` (§1-§3, §5-§7; §4 deferred)
 
 The ADR-0015 JSON-LD index hole, one onward-link cap, truncation declared at

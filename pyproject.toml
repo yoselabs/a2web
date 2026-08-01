@@ -313,6 +313,7 @@ asyncio_mode = "auto"
 addopts = ["-m", "not browser"]
 markers = [
     "browser: real-browser test that launches patchright + zendriver (opt-in; excluded from the default run and `make check`; the release `browser-gate` job runs these with A2WEB_REQUIRE_BROWSER=1, where a missing engine FAILS instead of skipping)",
+    "ambient_llm: test that deliberately observes the HOST's real LLM availability, opting out of the `_hermetic_llm_env` scrub. Its result depends on the machine it ran on and is therefore evidence about that machine, not about the code under test. Deliberately NOT excluded from the default run: an escape hatch nobody exercises rots into one that no longer works, and this one is only correct while the fixture it opts out of still exists.",
 ]
 # NB (ADR-0008): `filterwarnings = ["error::pytest.PytestUnhandledThreadExceptionWarning"]`
 # was tried as a leak backstop and REMOVED — it promotes a rare, benign aiosqlite
