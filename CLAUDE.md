@@ -133,7 +133,7 @@ immediately.** Not: the merge is blocked. Do not write or imply otherwise.
 Before 2026-07-31 the only workflow was `release.yml` (`on: push: tags: v*`), so
 every architecture guard ran at tag time and at no other time — a violation
 landed, survived, and surfaced in a batch attributed to whoever tagged. Fixed by
-`openspec/changes/run-the-gate-on-every-push/`.
+`openspec/changes/archive/2026-08-01-run-the-gate-on-every-push/`.
 
 ## Deployment — remote-first
 

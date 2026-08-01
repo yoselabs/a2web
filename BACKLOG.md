@@ -258,8 +258,8 @@ test* · *the corpus cannot see the envelope* (**HIGHEST LEVERAGE** in this
 track) · *invariants with no code implementer*.
 
 **T5 · Module-purpose drift — same shape as T1, different files.** Each is "one
-file, several purposes", and each is independently shippable: *`domain.py` is
-69% an undocumented renderer* · *`extractor.py` holds ~200 lines its siblings
+file, several purposes", and each is independently shippable: ~~*`domain.py` is
+69% an undocumented renderer*~~ (SHIPPED 2026-08-01 — `packages/structured_render.py`; `domain.py` is 149 lines) · *`extractor.py` holds ~200 lines its siblings
 are named for* · *`reddit.py` is four retrieval channels behind one `matches()`*
 · *cross-handler duplication: seven shapes, partial adoption* ·
 *`llm_eval/systems.py` carries a second fetch stack* · *`routers.py` is one
