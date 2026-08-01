@@ -222,12 +222,40 @@ def _build_diagnostics_summary(
 _OPTIONS_CAP = 50
 _OPTION_DETAIL_CAP = 240
 
+# The shelf's TOTAL detail budget, in characters.
+#
+# `_OPTIONS_CAP` bounds the COUNT and nothing bounded the size, so 50 options x
+# 240 chars is 12K of `detail` alone. Measured on `arxiv-listing-partial`
+# (bench 2026-08-01): the shelf reached 17KB against 255 bytes of `answer` and
+# 819 of `other_pages`, taking that cell from 460 to 4730 envelope tokens.
+#
+# That is ADR-0015's remedy defeating its own premise. `query` withholds the
+# page body FOR TOKEN ECONOMY and owes the caller an index of what it withheld;
+# an index carrying most of the body back is not a cheaper answer, it is the
+# same answer with an extra hop.
+#
+# Coverage wins over depth when they conflict: the shelf's job is to name
+# everything the answer skipped, so it thins each entry rather than dropping
+# entries. A dropped option is invisible to a caller that never saw the body; a
+# shorter `detail` is visibly shorter. `_OPTION_DETAIL_FLOOR` stops the thinning
+# before an entry stops distinguishing anything — past that the count cap is the
+# honest bound, not a `detail` of six characters.
+_OPTIONS_DETAIL_BUDGET = 4000
+_OPTION_DETAIL_FLOOR = 60
 
-def _normalize_detail(text: str) -> str:
+
+def _detail_cap_for(count: int) -> int:
+    """Per-option `detail` cap that keeps the whole shelf inside its budget."""
+    if count <= 0:
+        return _OPTION_DETAIL_CAP
+    return max(_OPTION_DETAIL_FLOOR, min(_OPTION_DETAIL_CAP, _OPTIONS_DETAIL_BUDGET // count))
+
+
+def _normalize_detail(text: str, *, cap: int = _OPTION_DETAIL_CAP) -> str:
     """Collapse whitespace and cap length — wire-compact, no semantic change."""
     collapsed = " ".join(text.split())
-    if len(collapsed) > _OPTION_DETAIL_CAP:
-        return collapsed[: _OPTION_DETAIL_CAP - 1].rstrip() + "…"
+    if len(collapsed) > cap:
+        return collapsed[: cap - 1].rstrip() + "…"
     return collapsed
 
 
@@ -237,13 +265,18 @@ def _records_to_options(record_set: RecordSet | None) -> list[ListingOption]:
     Title from the record heading (text-lead fallback), url from the heading
     link, detail from the record's own text. Page order is preserved — a2web
     does not re-rank. Records with neither a title nor detail are skipped
-    (nothing to show); the set is capped at `_OPTIONS_CAP`.
+    (nothing to show); the set is capped at `_OPTIONS_CAP` entries AND at
+    `_OPTIONS_DETAIL_BUDGET` characters of `detail` across all of them — a count
+    cap alone let 50 entries carry 12K of text into an envelope whose whole
+    purpose is to be cheaper than the body it stands in for.
     """
     if record_set is None:
         return []
     options: list[ListingOption] = []
-    for record in record_set.records[:_OPTIONS_CAP]:
-        detail = _normalize_detail(record.text)
+    shown = record_set.records[:_OPTIONS_CAP]
+    detail_cap = _detail_cap_for(len(shown))
+    for record in shown:
+        detail = _normalize_detail(record.text, cap=detail_cap)
         # The record text usually leads with the title; strip that duplicated
         # prefix so `detail` carries the distinguishing signal (price / rating)
         # and the length cap does not eat it on a long title.

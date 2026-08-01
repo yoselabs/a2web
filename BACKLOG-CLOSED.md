@@ -9,6 +9,33 @@ Nothing here is actionable. If an entry looks live again, move it back rather
 than re-deriving it.
 
 ---
+## 2026-08-01 — the `options` shelf is capped by count, not by bytes (S, token cost)
+
+Source: `eval/findings_2026-08-01.md` §3, run `eval/runs/2026-08-01_011025/`.
+
+`_OPTIONS_CAP = 50` in `fetcher_response.py` bounds how many options reach the
+wire and nothing bounds the size of each. Per-option `detail` is untruncated, so
+on `arxiv-listing-partial` the shelf is 50 × ~350 chars = 17KB — against 819
+bytes of `other_pages` and 255 bytes of `answer`. Measured envelope cost on that
+cell went 460 → 4730 tokens, and on `listing-answer-always-leaves-an-index`
+546 → 5007. Those two cells are ~90% of the mean `a2web_extract` envelope
+increase (475 → 731 over the 38 slugs common to the 07-28 run).
+
+The trigger was `24c1a01` (JSON-LD → `RecordSet`), which correctly fills the
+shelf on pages that previously shipped no index at all — the ADR-0015 hole it
+was written to close. The direction is right; the budget is missing.
+
+Why it matters rather than being mere bloat: `query` withholds the page body by
+default *for token economy*, and ADR-0015 requires an index of what was withheld.
+A shelf that re-emits most of the body is the remedy defeating its own premise.
+The shelf is an index, not a second copy.
+
+Fix: a byte budget alongside the count, and truncate `detail`. Needs a decision
+on which bound wins when they disagree (fewer full options vs more thin ones) —
+probably more-thin, since the shelf's job is *coverage* of what was skipped.
+
+**CLOSED 2026-08-01** by `_OPTIONS_DETAIL_BUDGET` (4000 chars) + `_OPTION_DETAIL_FLOOR` (60), applied as an adaptive per-option cap in `_records_to_options`. The trade was resolved toward COVERAGE — thin every entry rather than drop entries — because a dropped option is invisible to a caller that never saw the body while a shorter `detail` is visibly shorter. Witness: `tests/capabilities/link_affordances/test_option_shelf_byte_budget.py`; verified by reversion at 11,250 chars.
+
 ## SHIPPED 2026-07-31 — five wire-level ADR-0009 leaks (was: T3 + T7 live defects)
 
 **Closed by `openspec/changes/close-wire-level-adr-0009-leaks/`, commits

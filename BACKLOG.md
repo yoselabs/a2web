@@ -21,31 +21,6 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
-## 2026-08-01 — the `options` shelf is capped by count, not by bytes (S, token cost)
-
-Source: `eval/findings_2026-08-01.md` §3, run `eval/runs/2026-08-01_011025/`.
-
-`_OPTIONS_CAP = 50` in `fetcher_response.py` bounds how many options reach the
-wire and nothing bounds the size of each. Per-option `detail` is untruncated, so
-on `arxiv-listing-partial` the shelf is 50 × ~350 chars = 17KB — against 819
-bytes of `other_pages` and 255 bytes of `answer`. Measured envelope cost on that
-cell went 460 → 4730 tokens, and on `listing-answer-always-leaves-an-index`
-546 → 5007. Those two cells are ~90% of the mean `a2web_extract` envelope
-increase (475 → 731 over the 38 slugs common to the 07-28 run).
-
-The trigger was `24c1a01` (JSON-LD → `RecordSet`), which correctly fills the
-shelf on pages that previously shipped no index at all — the ADR-0015 hole it
-was written to close. The direction is right; the budget is missing.
-
-Why it matters rather than being mere bloat: `query` withholds the page body by
-default *for token economy*, and ADR-0015 requires an index of what was withheld.
-A shelf that re-emits most of the body is the remedy defeating its own premise.
-The shelf is an index, not a second copy.
-
-Fix: a byte budget alongside the count, and truncate `detail`. Needs a decision
-on which bound wins when they disagree (fewer full options vs more thin ones) —
-probably more-thin, since the shelf's job is *coverage* of what was skipped.
-
 ## 2026-08-01 — the `next_links` judge scores page content, not the envelope (S, eval correctness)
 
 Source: `eval/findings_2026-08-01.md` §2.
