@@ -137,6 +137,39 @@ def _curate_ask_meta(meta: dict[str, str]) -> dict[str, str]:
     return {k: v for k, v in meta.items() if k in _ASK_META_ALLOWLIST}
 
 
+# ── `retrieval_incomplete` is decided in TWO NAMED PHASES ────────────────────
+#
+# The two-phase shape is deliberate and stays (this change's §4.3 says name the
+# phases, do NOT merge the sites). They are named here so both sites can point
+# at one statement instead of each restating half of it — an unnamed second
+# phase reads as a stray re-derivation of the first, which is exactly the
+# mistake this module has made three times for other decisions.
+#
+#   PHASE 1 — the RETRIEVAL phase, in `build_response`.
+#     What the fetch ladder itself knows: the final verdict, the carried
+#     `TerminalOutcome`, `paid_auth_error`, an `ask` that ran extraction and
+#     produced nothing. Everything here is decidable without an LLM opinion.
+#     Its answer is what `FetchResponse.retrieval_incomplete` carries, and it
+#     is the ONLY phase `fetch_raw` runs — `fetch_raw` has no extractor, so it
+#     has no phase 2.
+#
+#   PHASE 2 — the COMPREHENSION phase, in `build_ask_response`.
+#     What only the extractor can report: `routing.obstacle`. The model read
+#     the page and said it was looking at a wall (`blocked`) or at nothing
+#     (`empty`). That is a witness phase 1 structurally cannot have — a
+#     rendered SPA shell fetches, extracts, and gates perfectly well.
+#
+# **Phase 2 is SET-ONLY.** It starts from phase 1's answer (`retrieval_incomplete
+# = fr.retrieval_incomplete`) and may only raise it to True; it never clears it.
+# That monotonicity is the whole safety property: an LLM that fails to notice a
+# wall cannot talk a2web out of one the ladder already proved (the ADR-0009
+# false-positive asymmetry — over-warning is cheap, a confident silent miss is
+# the harm). The two carve-outs in phase 2 (`structured_grounded_empty`,
+# `small_page_answered`) are not exceptions to this: they suppress phase 2 from
+# RAISING the flag on a known-false-positive `obstacle: empty`, and a page whose
+# phase 1 already said incomplete stays incomplete through both.
+
+
 # Extractor `obstacle` values (Obstacle enum) that cap ask confidence to `low`.
 # All four are page-level failure modes the model itself reported — none should
 # ride out as a confident answer.
@@ -502,6 +535,10 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # while a bad key produced `failed` + `retrieval_incomplete` and NOTHING
     # naming the fix. `paid_auth_error_hint` is now emitted at the paid tier, and
     # the coherence guard asserts its presence rather than allowlisting silence.
+    # PHASE 1 of `retrieval_incomplete` — the RETRIEVAL phase. See the two-phase
+    # note above `_CONFIDENCE_CAPPING_OBSTACLES`. Everything below this line to
+    # the `_INCOMPLETE_TERMINALS` check is decidable without an extractor
+    # opinion; `fetch_raw` runs this phase and only this phase.
     retrieval_incomplete = final_verdict == Verdict.paid_auth_error
     # never-silently-miss at extraction granularity (ADR-0009): an `ask` that
     # fetched real content (verdict ok) but delivered NO answer is a failure the
@@ -757,6 +794,10 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     # extraction_empty guard leaves open for a NON-empty confabulated answer.
     obstacle = routing.obstacle if routing is not None else None
     confidence = fr.confidence
+    # PHASE 2 of `retrieval_incomplete` — the COMPREHENSION phase. See the
+    # two-phase note above `_CONFIDENCE_CAPPING_OBSTACLES`. It STARTS from phase
+    # 1's answer and is set-only: the `if` below can raise the flag, nothing here
+    # lowers it.
     retrieval_incomplete = fr.retrieval_incomplete
     if obstacle in _CONFIDENCE_CAPPING_OBSTACLES:
         confidence = Confidence.low

@@ -9,6 +9,80 @@ Nothing here is actionable. If an entry looks live again, move it back rather
 than re-deriving it.
 
 ---
+## 2026-08-01 — T2: the response contract was one concept in three files (L, structure — T2 UMBRELLA)
+
+**SHIPPED** as `unify-the-response-contract` (34 of 36 tasks; the two open ones
+are named below and are ergonomics, not safety). Closes the T2 umbrella finding
+and three it subsumed: *the ADR-0009 floor is derived from the severity of an
+English sentence*, *`models.py` is 25% prose and 12% wire projection*, and
+*`fetcher_response.py` is 740 lines CLAUDE.md never mentions*.
+
+**The shape of the defect, because it is the one that recurs here.** Five of the
+six instances were live behaviour, not tidiness: a relabelled link kind, a
+dropped anchor, a dropped handler candidate set, a field that meant two things
+depending on which tool you called, and an ADR-0009 floor recovered by
+string-matching English prose. Every one came from the same move — **a later
+stage re-deriving a decision from the artifact that decision produced.** Reading
+a classification back out of a hint's CODE and SEVERITY made the hint's wording
+load-bearing for a decision it was never meant to carry: rewording an operator
+message could flip whether a fetch reported `retrieval_incomplete`. Fixed by
+carrying `TerminalOutcome` on the response path and deleting the three
+reconstructions; pinned by
+`test_editing_hint_text_does_not_change_classification`.
+
+**Two decisions worth keeping, both of which reversed the design's own lean.**
+
+*The response module stays in `fetcher_response.py`; the directory was wrong.*
+The census's "four purposes" were already four labelled bands in one file, with
+no second consumer and no import cycle — a directory would have renamed bands to
+filenames. Against it: this module's whole interface to the orchestrator is the
+42-field `FetchContext` slice, and `decompose-fetcher-into-files` phase two moves
+`FetchContext` itself. A boundary drawn before the thing it bounds settles gets
+redrawn, and the redraw is what makes a refactor collide with a behaviour change
+— the v0.23 failure this change opened by citing. **The directory was the shape;
+absorbing the external context reads was the goal, and that shipped.**
+
+*`retrieval_incomplete` stays ONE field with two named phases, not two fields.*
+RETRIEVAL (in `build_response`: verdict, terminal classification, unanswered
+ask — the only phase `fetch_raw` runs) and COMPREHENSION (in
+`build_ask_response`: the extractor's `obstacle`, a witness the fetch ladder
+structurally cannot have, since a rendered SPA shell fetches, extracts, and
+gates perfectly well). Two fields would have exposed an internal sequencing
+detail the caller cannot act on; both phases prescribe the same thing. What the
+caller actually needs is that **the answer never gets quieter** — so phase 2 is
+SET-ONLY: it starts from phase 1's answer and may only raise it. That is the
+ADR-0009 false-positive asymmetry expressed structurally rather than as a
+comment, and an extractor that reads a challenge page as ordinary prose cannot
+clear a miss the ladder already proved. Pinned by
+`test_phase_two_never_clears_phase_one_incompleteness`, swept across every
+`obstacle` value *including* both carve-outs — a carve-out that suppresses a
+raise must not be readable as licence to clear.
+
+**The TSV question resolved into a guard rather than the refactor it asked for.**
+The task said "have both halves consume one declaration". They cannot, and
+finding out why was the value: a model-side `encode_rows` branch is **not**
+redundant with membership in `_TSV_FIELDS` — it decides *which channel* carries
+TSV. Measured: `links`/`next_links`/`other_pages` pre-encode model-side and
+reach BOTH `structured_content` and `content[0].text` as TSV;
+`operator_hints`/`refinement_axes`/`options`/`content_candidates` reach machine
+consumers as JSON arrays and only the agent as TSV. Both intended, neither
+pinned — and deleting one `encode_rows` line silently moved a field between them
+while the ~1350 field-PRESENCE assertions stayed green, because the field is
+present either way, just a different type. Now asserted against both real
+envelopes in `test_tsv_declaration_is_single.py`; reversion-verified. Same
+lesson as the TSV column-union defect one day earlier: **when the question is
+what the agent receives, presence is not the assertion.**
+
+**What stayed open, deliberately.** §2.2/2.3/2.4/2.7's remainder — twelve
+factory-less hint codes (measured; the task said seven), ten raw
+`OperatorHint(...)` call sites, four string dispatches. The SAFETY half shipped:
+`HINT_CODES` is closed and a validator raises on an undeclared code. The rest is
+ergonomics over tuned ADR-0009 operator copy, where §2.7 says *"move the strings
+verbatim and diff them"* — deferred rather than rushed at the tail of a long
+session, after two rushed calls that same day both had to be undone within
+hours.
+
+---
 ## 2026-08-01 — `page-tsv` shipped the encoder defects a2web fixed locally (M, shelf promotion)
 
 **SHIPPED** as shelf `page-tsv-v0.2.0` + `lean-wire-v0.2.0` + `page-tsv-v0.2.1`

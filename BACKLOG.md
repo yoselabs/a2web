@@ -249,7 +249,7 @@ same as ready to start.
 | 3 | `fix-cache-ttl-and-listing-sufficiency` | T3: 7-day TTL on live API data, dead `cache_ttl_live_m`, listing sufficiency OFF | **SHIPPED** 2026-08-01 (4.7/5.3 open, see tasks) → `BACKLOG-CLOSED.md` |
 | 4 | `run-the-gate-on-every-push` | T4 CI — **do first**, everything else's guards are inert until it lands | **authored** |
 | 5 | `close-guards-that-read-green` | T4 remainder: markup funnel misses `re.search`/`re.sub`, two guards answer a different question, two cited guards don't exist, 22 doubleable constants, playbook 1.00 lockstep, partial eval loss exits 0, the corpus cannot see the envelope | **authored** |
-| 6 | `unify-the-response-contract` | T2 — must absorb the 41 external `FetchContext` reads before #7 phase two | **authored** |
+| 6 | `unify-the-response-contract` | T2 — absorbs the 41 external `FetchContext` reads, unblocking #7 phase two | **SHIPPED** 2026-08-01 (34/36; §2.2-2.4/2.7 remainder deferred, see tasks) → `BACKLOG-CLOSED.md` |
 | 7 | `decompose-fetcher-into-files` | T1 — the 26-file tree, the retrieval→comprehension→sufficiency loop, `install()` | **authored** |
 | 8 | `lift-the-item-set-and-renderer` | T5/T7: `domain.py`'s 360-line zero-coupling renderer (ledger Row 1), the item set (Row 2) — closes a LIVE ADR-0015 gap | **authored** |
 | 9 | `repay-the-shelf-debt` | T7: ~~`page-tsv`'s encoder defects~~ **§1 SHIPPED 2026-08-01**, five more shelf gaps, adopted-then-bypassed primitives | **in progress** |
@@ -311,13 +311,13 @@ tree), *five escalation decisions live outside the "single policy function"*
 (2026-07-31, prior scan — answered by `sufficiency/` being a directory).
 Structurally closes *listing sufficiency is OFF*. Blocked on nothing.
 
-**T2 · The response contract** — *the response contract is one concept in three
-files* is the umbrella. Subsumes: *the ADR-0009 floor is derived from the
-severity of an English sentence* (the six erase-and-re-derive instances),
-*`models.py` is 25% prose and 12% wire projection*, *`fetcher_response.py` is
-740 lines CLAUDE.md never mentions*. **Ordering: T2 must absorb the 41 external
-`FetchContext` reads before T1 can slice `context.py` per-node.** T1 phase one
-(the tree + the loop) does not need it; T1 phase two does.
+**T2 · The response contract — SHIPPED 2026-08-01**, umbrella and all three
+subsumed findings closed (`BACKLOG-CLOSED.md`). **T1 phase two is unblocked**:
+the 41 external `FetchContext` reads are absorbed into the response contract's
+own interface, which was the ordering constraint. Note for whoever runs T1: the
+response module deliberately stayed in `fetcher_response.py` rather than moving
+to `src/a2web/response/` — that split waits on phase two, because its boundary
+is the `FetchContext` slice phase two redraws.
 
 **T3 · Live defects — independent, ship first.** *listing sufficiency is OFF* ·
 *reddit's old.reddit channel can serve an interstitial as `ok`* · *`_ttl_for`
@@ -657,13 +657,9 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 
 | finding | tier |
 |---|---|
-| [the response contract is one concept in three files](docs/findings/2026-07-31-structural-scan.md#the-response-contract-is-one-concept-in-three-files-l-structure--highest-t2-umbrella) | L, structure — HIGHEST, T2 UMBRELLA |
 | [listing sufficiency is OFF on the population it exists for](docs/findings/2026-07-31-structural-scan.md#listing-sufficiency-is-off-on-the-population-it-exists-for-m-correctness--live) | M, correctness — LIVE |
-| [the ADR-0009 floor is derived from the severity of an English sentence](docs/findings/2026-07-31-structural-scan.md#the-adr-0009-floor-is-derived-from-the-severity-of-an-english-sentence-m-structure--live) | M, structure — LIVE |
 | [no "install a fetch result" type; six fields written six ways](docs/findings/2026-07-31-structural-scan.md#no-install-a-fetch-result-type-six-fields-written-six-ways-m-structure) | M, structure |
 | [`domain.py` is 69% an undocumented renderer](docs/findings/2026-07-31-structural-scan.md#domainpy-is-69-an-undocumented-renderer-m-structure) | M, structure |
-| [`models.py` is 25% prose and 12% wire projection](docs/findings/2026-07-31-structural-scan.md#modelspy-is-25-prose-and-12-wire-projection-m-structure) | M, structure |
-| [`fetcher_response.py` is 740 lines CLAUDE.md never mentions](docs/findings/2026-07-31-structural-scan.md#fetcher_responsepy-is-740-lines-claudemd-never-mentions-m-structure--docs) | M, structure + docs |
 | [`routers.py` is one function with a hole in it](docs/findings/2026-07-31-structural-scan.md#routerspy-is-one-function-with-a-hole-in-it-s-structure) | S, structure |
 | [the Registry half of Strategy+Registry isolates nothing](docs/findings/2026-07-31-structural-scan.md#the-registry-half-of-strategyregistry-isolates-nothing-s-structure) | S, structure |
 | [`playbook.py` and its test are in 1.00/1.00 lockstep](docs/findings/2026-07-31-structural-scan.md#playbookpy-and-its-test-are-in-100100-lockstep-s-verification) | S, verification |

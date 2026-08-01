@@ -149,3 +149,40 @@ def test_non_grounded_empty_obstacle_still_flagged() -> None:
     ask = build_ask_response(fr, include_content=False, debug=False)
     assert ask.retrieval_incomplete is True
     assert "retrieval_incomplete" in _hint_codes(ask)
+
+
+def test_phase_two_never_clears_phase_one_incompleteness() -> None:
+    """The COMPREHENSION phase is set-only — it cannot talk a2web out of a miss.
+
+    `retrieval_incomplete` is decided in two named phases (see the note above
+    `_CONFIDENCE_CAPPING_OBSTACLES`): the RETRIEVAL phase in `build_response`,
+    from the verdict and the carried terminal classification, and the
+    COMPREHENSION phase here, from the extractor's `obstacle`.
+
+    Phase 2 must only ever RAISE the flag. If it could lower it, an extractor
+    that failed to notice a wall — or one that read a rendered challenge page as
+    ordinary prose, which is exactly what an SPA shell looks like — would
+    override a miss the ladder had already proved, and the caller would receive
+    a confident silent miss. That is the ADR-0009 harm, arrived at from the one
+    direction the fetch machinery cannot see.
+
+    Swept across every obstacle value INCLUDING the two carve-outs
+    (`structured_grounded_empty`, `small_page_answered`), which suppress phase 2
+    from raising the flag on a known false positive and must not be readable as
+    licence to clear it.
+    """
+    obstacles: list[Obstacle | None] = [None, "empty", "blocked", "paywalled", "error"]
+    for obstacle in obstacles:
+        for grounded, small in ((False, False), (True, False), (False, True)):
+            fr = _fr(obstacle=obstacle)
+            fr.retrieval_incomplete = True
+            fr.structured_grounded = grounded
+            fr.small_page_confirmed = small
+
+            ask = build_ask_response(fr, include_content=False, debug=False)
+
+            assert ask.retrieval_incomplete, (
+                f"phase 2 cleared phase 1's incompleteness (obstacle={obstacle!r}, "
+                f"structured_grounded={grounded}, small_page_confirmed={small}). "
+                "The comprehension phase is set-only: it may raise the flag, never lower it."
+            )

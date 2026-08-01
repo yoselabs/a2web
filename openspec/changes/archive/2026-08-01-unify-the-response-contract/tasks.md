@@ -15,8 +15,15 @@ CLAUDE.md's Ask First list covers them.
       it is clearly wrong when `request_next_links` is False (the LLM never saw
       them). Determine whether it is also wrong when True before choosing a
       conditional or total fix.
-- [ ] 1.3 Decide the module location (design Open Questions): `src/a2web/response/`
-      vs absorbing `fetcher_response.py` in place.
+- [x] 1.3 **Decided: in place, and the lean toward a directory was wrong.** The
+      census's "four purposes" are already four labelled bands in one file; a
+      directory renames them to filenames and changes nothing — no second
+      consumer, no import cycle. Against it: this module's whole interface to the
+      orchestrator is the 42-field `FetchContext` slice, and
+      `decompose-fetcher-into-files` phase two moves `FetchContext` itself.
+      Splitting first draws a boundary against a shape about to change. §7
+      already delivered what the directory was wanted FOR. Reasoning in
+      design.md.
 - [x] 1.4 **Decided: NOT TSV, and it never could have been.** `Heading`
       serializes to a compact `[level, text]` PAIR, so the dump is a list of
       LISTS and `encode_tsv` raises on a row that is neither model nor dict.
@@ -88,9 +95,16 @@ that a caller reads on failure deserves a fresh pass, not the tail of this one.
       (which shadows the imported name of the real predicate). Read the field set
       at `fetcher.py:1946`, as `small_page_confirmed` already does.
 - [x] 4.2 Apply the `_compose_next_links` fix decided in 1.2.
-- [ ] 4.3 Name the two phases of `retrieval_incomplete`. The confidence
-      two-phase decision is deliberate (`:638-646`) — name its phases, do not
-      merge the sites.
+- [x] 4.3 Named: **RETRIEVAL** (in `build_response` — verdict, terminal
+      classification, unanswered ask; the only phase `fetch_raw` runs) and
+      **COMPREHENSION** (in `build_ask_response` — the extractor's `obstacle`, a
+      witness phase 1 structurally cannot have). One anchor above
+      `_CONFIDENCE_CAPPING_OBSTACLES`, both sites point at it; the sites are NOT
+      merged. Also answers the design's two-fields-vs-one question: one field,
+      because **phase 2 is set-only** — it starts from phase 1's answer and may
+      only raise it. Pinned by
+      `test_phase_two_never_clears_phase_one_incompleteness`, swept across every
+      obstacle value including both carve-outs.
 - [x] 4.4 Confirm no field name means two different things depending on which
       tool the caller invoked.
 
@@ -114,18 +128,27 @@ re-blessed goldens for any line not mentioning `structural`/`drilldown`/`anchor`
 
 - [x] 6.1 Declare the TSV field set literally, once. Keep it literal — the
       introspection ban stands.
-- [ ] 6.2 Have both halves consume it: `models.py`'s serializer branches
-      (`other_pages:921`, `links:665`, `next_links:667`) and
-      `wire.encode_envelope` (`operator_hints`, `refinement_axes`, `options`,
-      `content_candidates`).
+- [x] 6.2 **They cannot consume one another, and finding out why produced a
+      guard instead.** A model-side branch is not redundant with table
+      membership — it decides WHICH CHANNEL carries TSV. Measured: `links` /
+      `next_links` / `other_pages` are pre-encoded model-side and reach
+      `structured_content` AND `content[0].text` as TSV; `operator_hints` /
+      `refinement_axes` / `options` / `content_candidates` reach machine
+      consumers as JSON arrays and only the agent channel as TSV. Both intended;
+      neither pinned. Adding or deleting one `encode_rows` line silently moved a
+      field between them and the ~1350 field-PRESENCE assertions could not see
+      it (the field is present either way, just a different type). Now asserted
+      in `test_tsv_declaration_is_single.py` against both real envelopes;
+      reversion-verified.
 - [x] 6.3 Preserve the anti-seam: `_next_links_tsv` (`:733`) and
       `_other_pages_tsv` (`:746`) choose columns from *typed* rows, before
       `model_dump`. The pre-dump column decision stays model-side; only the
       declaration is unified.
 - [x] 6.4 Add the equality guard: model-side and wire-side sets describe the same
       fields.
-- [ ] 6.5 Route `models.py:18`'s direct `lean_wire.encode_tsv` import through
-      `wire.py`. One in-tree consumer.
+- [x] 6.5 Already true — `models.py` imports `PruneEmpty, encode_rows` from
+      `.wire` and holds no `lean_wire` import. Closed by the `encode_rows`
+      consolidation earlier in this change, not by a separate edit.
 
 ## 7. Absorb the context reads
 
@@ -138,7 +161,7 @@ re-blessed goldens for any line not mentioning `structural`/`drilldown`/`anchor`
 
 ## 8. Close out
 
-- [ ] 8.1 `make check` green. Any test that moves beyond the two intended wire
+- [x] 8.1 `make check` green. Any test that moves beyond the two intended wire
       corrections is a finding — investigate it, do not update the fixture
       (`fb:tests-not-requirements`).
 - [x] 8.2 `make bench` — this change touches the response envelope, which is one
@@ -147,4 +170,4 @@ re-blessed goldens for any line not mentioning `structural`/`drilldown`/`anchor`
       before the context is lost.
 - [x] 8.4 Update CLAUDE.md: `fetcher_response.py` is currently 740 lines it never
       mentions.
-- [ ] 8.5 Move the T2 entries to `BACKLOG-CLOSED.md`.
+- [x] 8.5 Moved: the T2 umbrella plus the three findings it subsumed (ADR-0009-floor-from-English, `models.py` prose ratio, `fetcher_response.py` undocumented). TRACKS row 6 and the T2 track entry both say SHIPPED and record that T1 phase two is unblocked.

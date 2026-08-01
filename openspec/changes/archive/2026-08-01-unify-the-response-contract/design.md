@@ -159,15 +159,54 @@ lesson from v0.23.
 
 ## Open Questions
 
-- Does the response module live at `src/a2web/response/` or absorb
+- ~~Does the response module live at `src/a2web/response/` or absorb
   `fetcher_response.py` in place? Leaning a directory, because the census says
-  four purposes.
+  four purposes.~~ **ANSWERED 2026-08-01: in place, and the lean was wrong.**
+
+  The census's "four purposes" are already four *labelled bands* in one 887-line
+  file (helpers · link-and-index composition · `build_response` · the ask
+  projection), each with its own banner comment. A directory would rename those
+  bands to filenames and change nothing else — there is no second consumer, no
+  import cycle, and no test that has to reach past the module boundary.
+
+  The argument against is stronger than the argument for is weak. This module's
+  entire interface to the orchestrator is the 42-field `FetchContext` slice
+  frozen by `tests/architecture/test_response_context_slice.py` — and
+  `decompose-fetcher-into-files` phase two exists to move `FetchContext` itself.
+  Splitting this file first fixes package boundaries against a context shape
+  that is about to change, which is the expensive ordering: a boundary drawn
+  before the thing it bounds settles gets redrawn, and the redraw is what makes
+  a refactor collide with a behaviour change (the v0.23 lesson this change's
+  tasks open by citing).
+
+  So: revisit after `decompose-fetcher-into-files` phase two, when the slice is
+  final and the split is a mechanical move rather than a guess. §7 already
+  delivered what the directory was wanted FOR — the external context reads are
+  absorbed into the contract's own interface, which is the property that
+  unblocks phase two. The directory was the shape; the absorption was the goal.
 - Is `headings` TSV? Nothing encodes it today and nothing appears to want it.
   Recording "not TSV" in the table is a legitimate answer; leaving it undecided
   is not.
-- Should `retrieval_incomplete`'s two phases be two fields, or one field with a
+- ~~Should `retrieval_incomplete`'s two phases be two fields, or one field with a
   documented finalization point? Two fields is honest but widens the envelope.
-  Needs a call.
+  Needs a call.~~ **ANSWERED 2026-08-01: one field, two NAMED phases, and the
+  finalization point is a monotonicity property rather than a comment.**
+
+  Two fields would widen the envelope to expose an internal sequencing detail
+  the caller cannot act on — "incomplete according to the ladder" and
+  "incomplete according to the extractor" prescribe the same thing. What the
+  caller needs is that the answer never gets quieter.
+
+  So the phases are named at one anchor in `fetcher_response.py` (RETRIEVAL, in
+  `build_response`; COMPREHENSION, in `build_ask_response`) with both sites
+  pointing at it, and the finalization rule is stated as: **phase 2 is
+  set-only.** It starts from phase 1's answer and may only raise it. That is the
+  ADR-0009 asymmetry expressed structurally — an extractor that reads a rendered
+  challenge page as ordinary prose cannot clear a miss the ladder proved.
+
+  Pinned by `test_phase_two_never_clears_phase_one_incompleteness`, swept across
+  every `obstacle` value *including* both carve-outs, because a carve-out that
+  suppresses a raise must not be readable as licence to clear.
 - `_compose_next_links`' drop is wrong when `request_next_links` is False — but
   is it *also* wrong when True? The stated justification ("the LLM re-ranked
   handler candidates") is sound in that case. Verify before deciding whether the
