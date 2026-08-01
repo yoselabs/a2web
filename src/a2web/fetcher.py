@@ -1531,10 +1531,22 @@ async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None
 
     fc.content_candidates = candidates
     fc.content_md = _wire_content_md(candidates)
-    for cand in candidates:
-        if cand.next_links:
-            fc.next_links_handler = cand.next_links
-            break
+    # The SITE HANDLER's links win. A pre-rendered tier runs this ladder too
+    # (see `_phase_extract`), so an unconditional assignment here replaced a
+    # handler's site-specific index with the generic miner's — measured on the
+    # arXiv listing (bench 2026-08-01): the wire carried `anchor="arXiv:2607.28618"`,
+    # a string identical to its own URL, and `reason="discussed page"`, while the
+    # handler's paper TITLES and AUTHOR lists were built and discarded.
+    #
+    # Same rule as the JSON-LD fallback immediately below, and the same rule
+    # `_compose_next_links` needed: a later stage may ADD to a producer's index,
+    # never silently replace it. The handler knows the site; the miner is
+    # guessing from shape.
+    if not fc.next_links_handler:
+        for cand in candidates:
+            if cand.next_links:
+                fc.next_links_handler = cand.next_links
+                break
 
     # ADR-0015 — the JSON-LD listing index, as a FALLBACK to the DOM miner.
     # Both `record_set` (the `options` shelf) and `next_links` (`other_pages`)

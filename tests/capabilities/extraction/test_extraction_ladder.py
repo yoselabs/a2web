@@ -164,3 +164,69 @@ async def test_good_article_not_clobbered_by_record_cluster() -> None:
     await _run_extraction_escalation(fc, raw_html=html)
     assert fc.content_md == article_text
     assert fc.next_links_handler == []
+
+
+# --------------------------------------------------------------------- #
+# A site handler's index outranks the generic miner's
+# --------------------------------------------------------------------- #
+
+
+def _handler_links() -> list[NextLink]:
+    """What a site handler builds: real titles, site-specific reasons."""
+    return [
+        NextLink(
+            anchor="Sample Efficiency in Repeated Reasoning",
+            url="https://example.com/item/0",
+            reason="I. Mirzaei, K. Cho",
+            kind="drilldown",
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_a_site_handlers_links_survive_the_extraction_ladder() -> None:
+    """THE regression, measured on the wire before it was reproduced here.
+
+    A pre-rendered tier runs this ladder too (see `_phase_extract`), and the
+    install was unconditional — so the generic miner replaced whatever the site
+    handler had built. The arXiv listing shipped `anchor="arXiv:2607.28618"`, a
+    string identical to its own URL, and `reason="discussed page"`, while the
+    handler's paper titles and author lists were computed and thrown away
+    (bench 2026-08-01, `eval/runs/2026-08-01_011025/`).
+
+    Same rule as `_compose_next_links` and the JSON-LD fallback: a later stage
+    may ADD to a producer's index, never silently replace it. The handler knows
+    the site; the miner is guessing from shape.
+    """
+    fc = _FakeFc(content_md="Home Login", final_url="https://example.com/list", next_links_handler=_handler_links())
+    await _run_extraction_escalation(fc, raw_html=_LISTING_HTML)
+
+    assert [nl.anchor for nl in fc.next_links_handler] == ["Sample Efficiency in Repeated Reasoning"]
+    assert fc.next_links_handler[0].reason == "I. Mirzaei, K. Cho"
+
+
+@pytest.mark.asyncio
+async def test_the_miner_still_fills_when_the_handler_supplied_nothing() -> None:
+    """Anti-vacuity: precedence must not become suppression.
+
+    Most pages have no site handler at all. If the guard blocked the miner
+    outright, `other_pages` would empty on every generic listing — the ADR-0015
+    hole this ladder exists to close.
+    """
+    fc = _FakeFc(content_md="Home Login", final_url="https://example.com/list")
+    await _run_extraction_escalation(fc, raw_html=_LISTING_HTML)
+    assert len(fc.next_links_handler) == 12
+
+
+@pytest.mark.asyncio
+async def test_the_miner_would_otherwise_have_produced_a_different_index() -> None:
+    """Non-vacuity for the precedence test: the two indexes must actually differ.
+
+    If the miner produced nothing on `_LISTING_HTML`, the survival assertion
+    above would hold for the wrong reason and keep holding after a revert.
+    """
+    fc = _FakeFc(content_md="Home Login", final_url="https://example.com/list")
+    await _run_extraction_escalation(fc, raw_html=_LISTING_HTML)
+    mined = {nl.anchor for nl in fc.next_links_handler}
+    assert mined, "the miner produced no index — this fixture cannot witness precedence"
+    assert "Sample Efficiency in Repeated Reasoning" not in mined
