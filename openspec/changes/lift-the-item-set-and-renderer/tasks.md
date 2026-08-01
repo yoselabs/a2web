@@ -49,11 +49,11 @@ to. Two notes for the lift that follows:
 
 ## 3. Cap-and-declare
 
-- [ ] 3.1 Port `arxiv.py:297`'s `N of M` + partial-view note to `hn.py`,
+- [x] 3.1 Port `arxiv.py:297`'s `N of M` + partial-view note to `hn.py`,
       `discourse.py`, and `reddit.py` listings, which truncate silently today.
-- [ ] 3.2 Carry the source-reported total where one exists — `hn` and `v2ex`
+- [x] 3.2 Carry the source-reported total where one exists — `hn` and `v2ex`
       already hold it and discard it.
-- [ ] 3.3 Confirm no capped set reaches the wire without declaring truncation.
+- [x] 3.3 Confirm no capped set reaches the wire without declaring truncation.
 
 ## 4. The item set converges
 

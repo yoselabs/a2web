@@ -29,6 +29,11 @@ _ALGOLIA_HOST = "hn.algolia.com"
 _ID_RE = re.compile(r"^\d+$")
 _FRONT_PAGE_PATHS = frozenset({"/", "/news", "/news/"})
 _ALGOLIA_SEARCH_HITS_PER_PAGE = 30
+# How many hit-list rows the body renders. Requested from Algolia AND used as
+# the render bound, so the two cannot drift — a request for 30 rendered at 25
+# would drop five stories with no note, since Algolia's `nbHits` is the only
+# total the truncation declaration reads.
+_FRONT_PAGE_CAP = 30
 
 
 def _algolia_query(url: str) -> str | None:
@@ -76,7 +81,7 @@ class HNHandler:
                 {"query": query, "tags": "story", "hitsPerPage": _ALGOLIA_SEARCH_HITS_PER_PAGE},
             )
         elif path in _FRONT_PAGE_PATHS:
-            api_url = "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30"
+            api_url = f"https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage={_FRONT_PAGE_CAP}"
         else:
             item_id = parse_qs(parsed.query).get("id", [""])[0]
             if not item_id:
@@ -104,9 +109,18 @@ class HNHandler:
             fallback.escalate_to_render = True  # unparseable API body → render the site instead
             return fallback
 
+        items_rendered: int | None = None
+        items_advertised: int | None = None
         if is_hit_list:
             rendered = _render_front_page(payload)
             next_links = _front_page_candidates(payload)
+            # Declared for the same reason arXiv declares them: the prose says
+            # "Showing 30 of 912" and the structured sufficiency signal must
+            # reach the same conclusion, or the body and the wire tell the
+            # caller different stories.
+            hits = payload.get("hits", []) if isinstance(payload, dict) else []
+            items_rendered = min(len(hits), _FRONT_PAGE_CAP)
+            items_advertised = _source_total(payload)
         else:
             rendered = _render_item(payload)
             next_links = []
@@ -121,18 +135,39 @@ class HNHandler:
             next_links=next_links,
             verdict=Verdict.ok,
             volatility="live",
+            items_rendered=items_rendered,
+            items_advertised=items_advertised,
         )
+
+
+def _source_total(payload: Any) -> int | None:
+    """Algolia's `nbHits` — the total matching the query, not the page returned.
+
+    a2web asks for `hitsPerPage=30`, so `len(hits)` can never exceed 30 and a
+    note comparing rendered-against-fetched is STRUCTURALLY UNREACHABLE: `shown`
+    and `total` are the same number by construction. The declaration existed and
+    could not fire.
+
+    That is the ADR-0015 harm with a truncation note bolted on top. A search
+    returning 900 stories and a search returning 30 produced the identical body,
+    identically silent, and the caller — which never sees the body — had nothing
+    to distinguish them. `nbHits` is the number the source itself reports.
+    """
+    if not isinstance(payload, dict):
+        return None
+    total = payload.get("nbHits")
+    return total if isinstance(total, int) else None
 
 
 def _render_front_page(payload: Any) -> dict[str, Any]:
     """Render the HN front page (Algolia `tags=front_page` search) as a list."""
     hits = payload.get("hits", []) if isinstance(payload, dict) else []
-    parts: list[str] = ["# Hacker News\n", f"## Front page ({min(len(hits), 30)})\n"]
-    note = truncation_note(min(len(hits), 30), len(hits), noun="stories")
+    parts: list[str] = ["# Hacker News\n", f"## Front page ({min(len(hits), _FRONT_PAGE_CAP)})\n"]
+    note = truncation_note(min(len(hits), _FRONT_PAGE_CAP), _source_total(payload), noun="stories")
     if note:
         parts.append(note)
     count = 0
-    for hit in hits[:30]:
+    for hit in hits[:_FRONT_PAGE_CAP]:
         if not isinstance(hit, dict):
             continue
         title = (hit.get("title") or "").strip()
