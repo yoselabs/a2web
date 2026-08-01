@@ -101,6 +101,22 @@ _MIN_CITATIONS = 25
 #: because it cited a nonexistent test TWICE while codifying the rule that
 #: load-bearing claims need a foreign witness — the document was an endogenous
 #: oracle about its own coverage, and nothing in the loop could disagree.
+#:
+#: `openspec/specs/` and `docs/adr/` joined on 2026-08-01. They were outside the
+#: guard's window for its whole life, and the cost was measured, not guessed: 17
+#: dead citations survived there — ten in `openspec/specs/` alone, including
+#: eleven sites naming `tests/test_packages_independence.py` as the enforcer of
+#: the packages boundary. That is the SAME dead path this guard's docstring
+#: opens by describing, still being cited as live, in the documents that define
+#: the capabilities, while the guard reported green.
+#:
+#: The lesson, recorded because it generalises: **a guard's scope is not the
+#: fix's scope.** `close-silent-enforcement-loss` found a class of defect
+#: (citations of things that no longer exist), built a guard, and pointed it at
+#: the one file where the defect had been noticed. The class lived on
+#: everywhere else. When a guard is built for a class, the repair covers the
+#: class — otherwise the guard's window becomes the new definition of the
+#: problem.
 _DOCS = (
     _CLAUDE_MD,
     REPO_ROOT / "docs" / "architecture" / "README.md",
@@ -108,10 +124,32 @@ _DOCS = (
 )
 
 
+def _navigational_docs() -> list[pathlib.Path]:
+    """Every doc a reader navigates the CURRENT system by.
+
+    Deliberately excludes `docs/history/` and `docs/findings/`. Those are dated
+    records: `A2KIT_FEEDBACK_v0.39.md` cites `a2kit/packages/testing/fixtures.py`
+    — a path in a DIFFERENT repository that was correct when written and is not
+    a2web's to fix. Demanding those resolve would either force a marker onto
+    every sentence of a finished record or, worse, invite someone to edit the
+    record so a test passes. A record describes the past; only a map has to be
+    right about the present.
+    """
+    docs = [*_DOCS]
+    docs += sorted((REPO_ROOT / "docs" / "adr").glob("*.md"))
+    docs += sorted((REPO_ROOT / "openspec" / "specs").glob("*/spec.md"))
+    return [d for d in docs if d.exists()]
+
+
+def _citations_in(doc: pathlib.Path) -> list[tuple[str, bool]]:
+    """Every cited path in one doc, paired with whether it opted out."""
+    text = doc.read_text(encoding="utf-8")
+    return [(path, trailing.startswith(_GONE_MARKER)) for path, trailing in _CITATION.findall(text)]
+
+
 def _citations() -> list[tuple[str, bool]]:
-    """Every cited path, paired with whether it opted out as historical."""
-    text = _CLAUDE_MD.read_text(encoding="utf-8")
-    found = [(path, trailing.startswith(_GONE_MARKER)) for path, trailing in _CITATION.findall(text)]
+    """Every cited path in CLAUDE.md, paired with whether it opted out."""
+    found = _citations_in(_CLAUDE_MD)
     assert len(found) >= _MIN_CITATIONS, (
         f"extracted {len(found)} path citation(s) from CLAUDE.md, expected at least "
         f"{_MIN_CITATIONS}. The file's markup changed and this guard is no longer "
@@ -127,10 +165,61 @@ def test_the_extraction_is_not_vacuous() -> None:
 
 def test_every_current_citation_resolves() -> None:
     missing = sorted({path for path, is_historical in _citations() if not is_historical and not _resolves(path)})
-    assert not missing, (
-        "CLAUDE.md cites paths that do not exist:\n"
+    assert not missing, _stale_message("CLAUDE.md", missing)
+
+
+#: Floor for the widened walk. Measured population on 2026-08-01 was 109 across
+#: `docs/architecture/`, `docs/adr/` and `openspec/specs/`. Set well below it so
+#: ordinary editing does not trip the floor, but far enough above zero that a
+#: glob returning nothing — a renamed directory, a changed layout — fails loudly
+#: instead of reporting green over an empty set.
+_MIN_NAVIGATIONAL_CITATIONS = 60
+
+
+def test_the_widened_walk_is_not_vacuous() -> None:
+    """The floor that makes the test below mean something.
+
+    Without it, `openspec/specs/*/spec.md` matching nothing (a layout change, a
+    move to nested capabilities) reads exactly like a clean tree.
+    """
+    docs = _navigational_docs()
+    assert len(docs) >= 10, f"expected the navigational set to span many docs, walked {len(docs)}"
+
+    total = sum(len(_citations_in(doc)) for doc in docs)
+    assert total >= _MIN_NAVIGATIONAL_CITATIONS, (
+        f"extracted {total} path citation(s) across {len(docs)} navigational doc(s), "
+        f"expected at least {_MIN_NAVIGATIONAL_CITATIONS} — the pattern or the "
+        "layout changed and this guard is reading far less than it thinks. Fix "
+        "the walk, do not lower the floor."
+    )
+
+
+def test_every_navigational_doc_cites_only_live_paths() -> None:
+    """The specs and ADRs, held to the same bar as CLAUDE.md.
+
+    An `openspec/specs/` requirement naming a module that no longer exists is
+    worse than the same mistake in prose: the spec is what a change is validated
+    AGAINST, so the stale path is load-bearing on the next change's design.
+    """
+    broken: dict[str, list[str]] = {}
+    for doc in _navigational_docs():
+        stale = sorted(
+            {path for path, is_historical in _citations_in(doc) if not is_historical and not _resolves(path)}
+        )
+        if stale:
+            broken[str(doc.relative_to(REPO_ROOT))] = stale
+
+    assert not broken, _stale_message(
+        "navigational docs",
+        [f"{doc}: {path}" for doc, paths in sorted(broken.items()) for path in paths],
+    )
+
+
+def _stale_message(where: str, missing: list[str]) -> str:
+    return (
+        f"{where} cite path(s) that do not exist:\n"
         + "".join(f"  {path}\n" for path in missing)
-        + "\nAgents navigate by this file, so a stale citation is a wrong answer "
+        + "\nAgents navigate by these files, so a stale citation is a wrong answer "
         "delivered with authority. Either:\n"
         "  * correct the path (a promoted module usually moved to the shelf — check "
         "what the promotion renamed it to), or\n"

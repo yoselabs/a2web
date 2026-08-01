@@ -97,9 +97,9 @@ When both a handler produced `TierResult.next_links` AND the user passed `ask=`,
 
 ### Requirement: link-discovery does not import from packages
 
-The `link-discovery` capability SHALL be implemented entirely under `src/a2web/` domain modules (`models.py`, `fetcher.py`, `routers.py`, and the LLM extractor's existing wiring at `llm_resource.py`). It SHALL NOT introduce any new imports from `src/a2web/packages/` into domain modules beyond those already present, and SHALL NOT introduce any imports from `src/a2web/<domain>` into `src/a2web/packages/`. The `test_packages_independence` invariant SHALL remain green.
+The `link-discovery` capability SHALL be implemented entirely under `src/a2web/` domain modules (`models.py`, `fetcher.py`, `routers.py`, and the LLM extractor's existing wiring at `llm_resource.py`). It SHALL NOT introduce any new imports from `src/a2web/packages/` into domain modules beyond those already present, and SHALL NOT introduce any imports from `src/a2web/<domain>` into `src/a2web/packages/`. The package-independence invariant — `tach.toml`, checked by `uv run tach check` in `make arch` — SHALL remain green.
 
 #### Scenario: Independence test stays green
 
-- **WHEN** the `test_packages_independence` invariant runs after the change is merged
+- **WHEN** `uv run tach check` runs after the change is merged
 - **THEN** the test passes (no `packages/` module imports anything under `a2web.<domain>`)

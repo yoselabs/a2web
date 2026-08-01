@@ -72,7 +72,7 @@ library's own behavior, a genuinely foreign consumer, and production telemetry.
 
    > **Reference withdrawn 2026-08-01.** This entry cited
    > `test_fake_config_matches_real_add_argument` in
-   > `tests/packages/test_zendriver_backend.py`. **Neither the file nor the
+   > `tests/packages/test_zendriver_backend.py`<!-- gone -->. **Neither the file nor the
    > function exists** — the zendriver backend moved to the shelf's
    > `any_browser` and the test went with it. The pattern above is still the
    > right one; what is gone is a2web's instance of it. **The failure it was

@@ -5,11 +5,11 @@ TBD - created by archiving change pr3-raw-tier. Update Purpose after archive.
 ## Requirements
 ### Requirement: Trafilatura markdown extraction
 
-The system SHALL provide `async extract_markdown(html: str, url: str) -> ExtractResult` in `src/a2web/extract/trafilatura_ext.py`. The implementation SHALL call trafilatura's `extract` with markdown output and run synchronously inside `asyncio.to_thread`. `ExtractResult` SHALL be a `@dataclass(slots=True)` carrying `content_md: str`, `title: str | None`, `byline: str | None`, `headings: list[Heading]`, `links: list[Link]`, `score: float | None`. Trafilatura blocking calls SHALL NOT appear outside this module's `_extract_sync` helper.
+The system SHALL provide `async extract_markdown(html: str, url: str) -> ExtractResult`, consumed from the shelf `content_extract` package. The implementation SHALL call trafilatura's `extract` with markdown output and run synchronously inside `asyncio.to_thread`. `ExtractResult` SHALL be a `@dataclass(slots=True)` carrying `content_md: str`, `title: str | None`, `byline: str | None`, `headings: list[Heading]`, `links: list[Link]`, `score: float | None`. Trafilatura blocking calls SHALL NOT appear in a2web at all — the funnel is enforced by `tests/architecture/test_trafilatura_funnel.py`.
 
 #### Scenario: Sync chokepoint per ASYNC lint
 
-- **WHEN** ruff scans `src/a2web/extract/trafilatura_ext.py`
+- **WHEN** ruff scans the shelf `content_extract` call sites
 - **THEN** ASYNC100/210/230 emits zero diagnostics
 
 #### Scenario: Markdown output for a well-formed article fixture
@@ -19,7 +19,7 @@ The system SHALL provide `async extract_markdown(html: str, url: str) -> Extract
 
 ### Requirement: htmldate publication and update dates
 
-The system SHALL provide `async find_published(html: str, url: str) -> date | None` and `async find_updated(html: str, url: str) -> date | None` in `src/a2web/extract/htmldate_ext.py`. Both SHALL wrap htmldate sync calls via `asyncio.to_thread`. Returning `None` (no detectable date) SHALL be a normal outcome, never an exception.
+The system SHALL provide `async find_published(html: str, url: str) -> date | None` and `async find_updated(html: str, url: str) -> date | None`. Both SHALL wrap htmldate sync calls via `asyncio.to_thread`. Returning `None` (no detectable date) SHALL be a normal outcome, never an exception.
 
 #### Scenario: Date present
 
@@ -33,7 +33,7 @@ The system SHALL provide `async find_published(html: str, url: str) -> date | No
 
 ### Requirement: OpenGraph + Twitter + JSON-LD metadata
 
-The system SHALL provide `parse_metadata(html: str) -> dict[str, str]` in `src/a2web/extract/metadata.py` as a pure synchronous function. It SHALL extract `og:*`, `twitter:*` meta tags and the first JSON-LD block (`<script type="application/ld+json">`), flattened with dot-keys: `og.type`, `og.image`, `twitter.card`, `jsonld[0].author`, `jsonld[0].datePublished`, etc. Missing fields SHALL be omitted from the dict (no `None` values).
+The system SHALL provide `parse_metadata(html: str) -> dict[str, str]`, consumed from the shelf `content_extract` package as a pure synchronous function. It SHALL extract `og:*`, `twitter:*` meta tags and the first JSON-LD block (`<script type="application/ld+json">`), flattened with dot-keys: `og.type`, `og.image`, `twitter.card`, `jsonld[0].author`, `jsonld[0].datePublished`, etc. Missing fields SHALL be omitted from the dict (no `None` values).
 
 #### Scenario: OG type and image extraction
 
@@ -271,7 +271,7 @@ The router-shape system prompt SHALL:
 
 `NextUrlBoundary` SHALL be a frozen dataclass carrying `url: str` and `reason: str`.
 
-The module SHALL NOT import from `a2web.<domain>` (enforced by `tests/test_packages_independence.py`). Boundary-to-pydantic projection happens at the domain seam in `src/a2web/fetcher_response.py`.
+The module SHALL NOT import from `a2web.<domain>` (enforced by `tach.toml`, checked by `uv run tach check` in `make arch`). Boundary-to-pydantic projection happens at the domain seam in `src/a2web/fetcher_response.py`.
 
 #### Scenario: RouterPayload is frozen dataclass with slots
 
@@ -280,7 +280,7 @@ The module SHALL NOT import from `a2web.<domain>` (enforced by `tests/test_packa
 
 #### Scenario: Package independence preserved
 
-- **WHEN** `tests/test_packages_independence.py` walks `src/a2web/packages/llm_extract/router_payload.py`
+- **WHEN** `uv run tach check` evaluates `src/a2web/packages/llm_extract/router_payload.py`
 - **THEN** zero imports from `a2web.<domain>` modules are detected
 
 ### Requirement: Router-shape parsing tolerates malformed JSON and omitted optional fields
@@ -424,7 +424,7 @@ The migration sites SHALL adopt the discipline per the policy table documented i
 
 #### Scenario: Discipline module respects packages-independence
 
-- **WHEN** `tests/test_packages_independence.py` walks the wobble discipline module
+- **WHEN** `uv run tach check` evaluates the wobble discipline module
 - **THEN** zero imports from `a2web.<domain>` modules are detected
 
 ### Requirement: JSON-LD Recipe synthesis

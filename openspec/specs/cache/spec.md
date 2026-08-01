@@ -5,7 +5,7 @@ TBD - created by archiving change pr3-raw-tier. Update Purpose after archive.
 ## Requirements
 ### Requirement: Cache schema
 
-The system SHALL define a single sqlite table `cache` in `src/a2web/cache/sqlite_cache.py` with columns `(url, profile_hash, etag, last_modified, fetched_at, expires_at, status_code, content_type, content_hash, body)`. PRIMARY KEY is `(url, profile_hash)`. `body` SHALL be gzip-compressed. A secondary index on `content_hash` SHALL exist for dedup queries.
+The system SHALL define a single sqlite table `cache` in `src/a2web/cache.py` with columns `(url, profile_hash, etag, last_modified, fetched_at, expires_at, status_code, content_type, content_hash, body)`. PRIMARY KEY is `(url, profile_hash)`. `body` SHALL be gzip-compressed. A secondary index on `content_hash` SHALL exist for dedup queries.
 
 #### Scenario: Schema exists after sqlite open
 

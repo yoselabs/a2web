@@ -405,7 +405,7 @@ The system SHALL provide `V2EXHandler` matching V2EX topic URLs — `https?://(w
 
 #### Scenario: Unknown topic id falls through
 
-- **WHEN** `api/topics/show.json` returns an empty list for an unknown id
+- **WHEN** `https://www.v2ex.com/api/topics/show.json` returns an empty list for an unknown id
 - **THEN** the handler returns `verdict == Verdict.not_found` so the orchestrator falls through to the generic path
 
 ### Requirement: Handlers fetch via the shared handler-transport primitive

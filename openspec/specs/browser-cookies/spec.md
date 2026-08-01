@@ -72,7 +72,7 @@ The system SHALL place all browser-specific cookie reading and decryption under 
 
 #### Scenario: Packages-independence invariant holds
 
-- **WHEN** `tests/test_packages_independence.py` walks every `.py` under `packages/`
+- **WHEN** `uv run tach check` evaluates the `tach.toml` contract over every module under `packages/`
 - **THEN** no file under `packages/cookie_store/` imports from `a2web.<domain>` modules (settings, state, models, fetcher, tiers, handlers, routers, server, cookie_jar)
 
 #### Scenario: CookieRow is a typed dataclass
@@ -139,11 +139,11 @@ The system SHALL NOT emit decrypted cookie values into any LDD event payload or 
 
 ### Requirement: Browser cookies are extracted via browser-cookie3 adapter
 
-The system SHALL extract browser cookies through a thin adapter (`src/a2web/packages/cookie_store/store.py`) that delegates to `browser_cookie3.<source>(cookie_file=..., domain_name=...)` based on `settings.cookie_source`. The adapter SHALL convert the returned `http.cookiejar.CookieJar` into `list[Cookie]` using the existing `Cookie` boundary dataclass in `packages/cookie_store/models.py`.
+The system SHALL extract browser cookies through a thin adapter (the shelf `browser_cookies.store` module) that delegates to `browser_cookie3.<source>(cookie_file=..., domain_name=...)` based on `settings.cookie_source`. The adapter SHALL convert the returned `http.cookiejar.CookieJar` into `list[Cookie]` using the existing `Cookie` boundary dataclass in the shelf `browser_cookies.models` module.
 
 The adapter SHALL raise a single typed exception (`CookieAccessError`) when the browser profile is missing, when the OS-keystore unlock fails (user denied prompt, keychain locked, item not found), or when `browser-cookie3` raises any underlying error. The exception message SHALL NOT contain any decrypted cookie value or any key material; the original library exception SHALL be attached via `__cause__` for debugging.
 
-The adapter SHALL be a domain-pure module — zero imports from `a2web.<domain>`. The `tests/test_packages_independence.py` invariant continues to enforce this.
+The adapter SHALL be a domain-pure module — zero imports from `a2web.<domain>`. The `tach.toml` contract, checked by `uv run tach check` in `make arch`, continues to enforce this.
 
 #### Scenario: Chrome source on macOS produces cookies
 
@@ -168,7 +168,7 @@ The adapter SHALL be a domain-pure module — zero imports from `a2web.<domain>`
 #### Scenario: Adapter does not import a2web domain modules
 
 - **WHEN** `python -c "import ast; from pathlib import Path; ..."` walks `src/a2web/packages/cookie_store/` for AST `Import` / `ImportFrom` nodes
-- **THEN** zero imports of any `a2web.<domain>` module are found (matches `tests/test_packages_independence.py`)
+- **THEN** zero imports of any `a2web.<domain>` module are found (matches the `tach.toml` contract)
 
 ### Requirement: Keychain prompt fires only on cookies_refresh
 
@@ -187,7 +187,7 @@ The system SHALL invoke `browser-cookie3` exclusively from within the `cookies_r
 #### Scenario: cookies_refresh is the only invocation site
 
 - **WHEN** `grep -rn "browser_cookie3" src/a2web/` runs over the source tree
-- **THEN** all matches are inside the adapter (`packages/cookie_store/store.py`) and the adapter is only called from the `cookies_refresh` code path in `cookie_jar.py::refresh()`
+- **THEN** all matches are inside the adapter (the shelf `browser_cookies.store` module) and the adapter is only called from the `cookies_refresh` code path in `cookie_jar.py::refresh()`
 
 ### Requirement: CookieJarResource mirrors a browser profile into the shared SqliteResource
 

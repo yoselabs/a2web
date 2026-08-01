@@ -13,7 +13,7 @@ alone is insufficient.
 
 ### Layer 1 — fetch: the browser tier can't pass the challenge
 
-`packages/browser_pool.py` launches Camoufox `headless=True`
+The browser tier (now the shelf `any_browser` package) launches Camoufox `headless=True`
 (`AsyncCamoufox(headless=True)`, ~line 79). Empirically:
 
 | Camoufox config | Result against akakce |
@@ -57,7 +57,7 @@ gate's `_decide_gate_browser_signal` rule (requires `escalation.next_tier ==
    default `headless="virtual"` on Linux so the deployed MCP server can run the
    challenge JS without a display), and decide a policy for *interactive*
    Turnstile (out of scope for in-house: delegate to the env-gated Firecrawl
-   paid tier `tiers/paid.py`, or a Turnstile-solving service). Tradeoffs:
+   paid tier `tiers/_paid.py`, or a Turnstile-solving service). Tradeoffs:
    virtual/headful is slower + heavier; CF is a moving arms race.
 
 Architecturally honest default: keep the ladder (raw → jina → browser → paid)
@@ -82,5 +82,5 @@ price / not buyable" and does **not** echo a history number as the price.
   page it couldn't fetch).
 - ADR-0002 (real surface is ground truth) — the principle that motivates
   passing CF at all; bounded by the honest "report the wall" fallback.
-- `tiers/paid.py` (Firecrawl, env-gated) — the existing escape hatch for
+- `tiers/_paid.py` (Firecrawl, env-gated) — the existing escape hatch for
   bot-walled pages.

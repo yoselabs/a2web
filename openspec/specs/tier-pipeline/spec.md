@@ -47,7 +47,7 @@ The system SHALL run the quality gate after extraction and before any cache writ
 
 ### Requirement: Adaptive duration formatter
 
-The system SHALL define `fmt_dur(ms: int) -> str` in `src/a2web/utils/time.py`. Output rules:
+The system SHALL define `fmt_dur(ms: int) -> str`, consumed from the shelf `timefmt` package. Output rules:
 
 - `ms < 1000` → `"{ms}ms"` (integer)
 - `1000 ≤ ms < 7000` → `"{s:.1f}s"` (one decimal)

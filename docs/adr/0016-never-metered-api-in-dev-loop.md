@@ -30,7 +30,7 @@ Per the ADR-0009 / ADR-0012 / ADR-0014 precedent: a single project's dev-loop in
 
 ## Consequences
 
-- New substrate-indifferent primitive `packages/llm_cost_guard.py` (`assert_within_budget` + `CostPolicy` + `CostViolation` + `with_cost_guard`), shelf-bound (promote to `llm-cost-guard` once a second project consumes it — rule-of-three).
+- New substrate-indifferent primitive `packages/llm_cost_guard.py`<!-- gone --> (`assert_within_budget` + `CostPolicy` + `CostViolation` + `with_cost_guard`), shelf-bound (promote to `llm-cost-guard` once a second project consumes it — rule-of-three).
 - `EvalReport`/`EvalRow` carry `provider`; the manifest + `results.json` stamp it.
 - Per-item (`--slug`) and per-axis (`--axis`) isolation so a spike is a handful of guarded, stamped calls, not the full ~80-Sonnet matrix.
 

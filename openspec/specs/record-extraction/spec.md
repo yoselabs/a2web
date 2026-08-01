@@ -106,7 +106,7 @@ The `record_extract` package SHALL live under `src/a2web/packages/` and SHALL NO
 
 #### Scenario: Static import check passes
 
-- **WHEN** `tests/test_packages_independence.py` walks every `.py` under `packages/`
+- **WHEN** `uv run tach check` evaluates the `tach.toml` contract over every module under `packages/`
 - **THEN** `record_extract` contributes zero imports from `a2web.<domain>`
 
 ### Requirement: The record text projection preserves node boundaries

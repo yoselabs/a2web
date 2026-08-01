@@ -83,6 +83,14 @@ was violated three separate times the week of 2026-07-28 (`other_pages[].kind`,
 `_compose_next_links`, and the whole handler index in `79d85e8`). Whatever §4
 converges on should make that structurally hard, not conventionally discouraged.
 
+**HELD 2026-08-01, deliberately, with an answer already on the table.** The
+producer-supplied-`reason` shape above was proposed and was NOT adopted — the
+maintainer has further input on what the convergent type should be and wants to
+supply it before anyone writes the design amendment. Do not start §4 on the
+strength of the proposal in this entry; it is a candidate, not a decision. This
+paragraph exists so a future session does not read "the answer is nearly forced"
+and take that as a go-ahead.
+
 ## 2026-08-01 — the `next_links` judge scores page content, not the envelope (S, eval correctness)
 
 Source: `eval/findings_2026-08-01.md` §2.

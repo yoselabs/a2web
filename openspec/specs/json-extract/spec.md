@@ -109,12 +109,12 @@ The strong `@type` set (`_PREFERRED_LD_TYPES`) SHALL cover both the commerce/edi
 
 ### Requirement: Package independence preserved
 
-The `json_in_script` module SHALL live under `src/a2web/packages/`. It SHALL NOT import from any `a2web.<domain>` module. Boundary types (`JsonPayload`, `JsonSource`) are package-owned. Only the existing third-party imports (selectolax) are used; no library beyond what's already in the dep tree. The existing `tests/test_packages_independence.py` invariant continues to apply.
+The `json_in_script` module SHALL live under `src/a2web/packages/`. It SHALL NOT import from any `a2web.<domain>` module. Boundary types (`JsonPayload`, `JsonSource`) are package-owned. Only the existing third-party imports (selectolax) are used; no library beyond what's already in the dep tree. The package-independence invariant — `tach.toml`, checked by `uv run tach check` in `make arch` — continues to apply.
 
 #### Scenario: Static import check passes
 
-- **WHEN** `tests/test_packages_independence.py` walks every `.py` under `packages/`
-- **THEN** zero imports from `a2web.<domain>` are found in `packages/json_in_script.py`; selectolax remains the only third-party HTML dependency
+- **WHEN** `uv run tach check` evaluates the `tach.toml` contract over every module under `packages/`
+- **THEN** zero imports from `a2web.<domain>` are found in the shelf `json_in_html` call sites; selectolax remains the only third-party HTML dependency
 
 ### Requirement: Detect a whole-response JSON body
 

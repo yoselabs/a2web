@@ -11,7 +11,7 @@ The 2026-05-26 explore session (transcript in conversation memory; spike artefac
 
 1. **Discipline bypass.** Rules declared in `CLAUDE.md` ("Four canonical sites today" go through `wobble.apply_policy`) are silently violated. The biggest LLM-JSON parse site in the codebase — `extractor._split_answer_and_routing` (78 LoC) — hand-rolls `json.loads` + `isinstance` checks and never emits the `llm_wobble` event the discipline mandates.
 
-2. **Plugin-surface drift.** Six "extension point" surfaces (tiers, handlers, LLM providers, LDD sinks, wobble policies, eval systems) drifted into three different shapes for *registration*, *configuration delivery*, and *unavailability handling*. Each new surface re-discovers the pattern. Concrete cost: `llm_resource.py:78` reaches past `providers/__init__.py` to import concrete provider classes directly; `cookie_jar.py:37` reaches past `cookie_store/__init__.py` likewise.
+2. **Plugin-surface drift.** Six "extension point" surfaces (tiers, handlers, LLM providers, LDD sinks, wobble policies, eval systems) drifted into three different shapes for *registration*, *configuration delivery*, and *unavailability handling*. Each new surface re-discovers the pattern. Concrete cost: `llm_resource.py:78` reaches past `providers/__init__.py`<!-- gone --> to import concrete provider classes directly; `cookie_jar.py:37` reaches past `cookie_store/__init__.py`<!-- gone --> likewise.
 
 3. **Doc rot.** `CLAUDE.md` claims "Four canonical sites today" — in reality two go through the discipline, two hand-roll. Rules expressed as English prose rot the moment the next contributor's edits diverge.
 
@@ -58,7 +58,7 @@ Adopt a **three-pattern stack** that targets each class structurally:
 - **Tach** for declarative package-boundary + public-interface enforcement (`[[interfaces]]` per package; everything not exposed is private).
 - **AST-level / call-site rules** (originally proposed as `pytest-archon`; shipped as plain pytest + `ast` under `tests/architecture/`, and `pytest-archon` was removed 2026-08-01 having never been imported) (e.g. "only `wobble/` may call `json.loads` inside `packages/llm_extract/`"; "no `dict[str, Any]` field on internal dataclasses"; "tools must return pydantic, not `str`").
 
-Existing hand-rolled `tests/test_packages_independence.py` is the template; it becomes one of several archon rules. The Packwerk-style ratchet (snapshot today's violations, fail CI on new violations) is provided by `tach sync` for boundary rules and by `pytest-archon`'s standard pytest skip/xfail mechanisms for AST rules.
+Existing hand-rolled `tests/test_packages_independence.py`<!-- gone --> is the template; it becomes one of several archon rules. The Packwerk-style ratchet (snapshot today's violations, fail CI on new violations) is provided by `tach sync` for boundary rules and by `pytest-archon`'s standard pytest skip/xfail mechanisms for AST rules.
 
 ## Consequences
 
