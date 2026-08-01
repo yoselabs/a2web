@@ -28,6 +28,14 @@ CLAUDE.md's Ask First list covers them.
 
 ## 2. The vocabulary and the ladder
 
+**2.1/2.5/2.6 SHIPPED.** 2.2/2.3/2.4/2.7 (factories for the seven factory-less
+codes, converting the ten raw `OperatorHint(...)` sites, the four string-matching
+dispatches, and moving the 228-line catalogue) are NOT done. They are safe,
+mechanical follow-ups now that the vocabulary is closed and validated — the
+closed set is what makes them checkable, and it is in place. Left rather than
+rushed at the end of a long session; §2.7 in particular says "move the strings
+VERBATIM and diff them", which is tuned ADR-0009 copy and deserves a fresh pass.
+
 - [ ] 2.1 Declare the operator-hint code set as a closed vocabulary.
 - [ ] 2.2 Give the seven factory-less codes (`answer_truncated`,
       `content_guidance`, `retrieval_incomplete`, `index_lost`,
@@ -62,7 +70,7 @@ CLAUDE.md's Ask First list covers them.
 - [ ] 4.3 Name the two phases of `retrieval_incomplete`. The confidence
       two-phase decision is deliberate (`:638-646`) — name its phases, do not
       merge the sites.
-- [ ] 4.4 Confirm no field name means two different things depending on which
+- [x] 4.4 Confirm no field name means two different things depending on which
       tool the caller invoked.
 
 ## 5. The link-kind correction
@@ -116,6 +124,6 @@ re-blessed goldens for any line not mentioning `structural`/`drilldown`/`anchor`
       of the stated triggers.
 - [x] 8.3 Add corpus cases for the corrected `kind` and the restored `anchor`
       before the context is lost.
-- [ ] 8.4 Update CLAUDE.md: `fetcher_response.py` is currently 740 lines it never
+- [x] 8.4 Update CLAUDE.md: `fetcher_response.py` is currently 740 lines it never
       mentions.
 - [ ] 8.5 Move the T2 entries to `BACKLOG-CLOSED.md`.
