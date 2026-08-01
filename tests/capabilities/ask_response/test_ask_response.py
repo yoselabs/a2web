@@ -218,7 +218,9 @@ async def test_ask_includes_populated_optionals(monkeypatch: pytest.MonkeyPatch)
     # other_pages is a TSV string, not a JSON array; handler links are structural
     assert isinstance(data["other_pages"], str)
     assert "https://example.org/related" in data["other_pages"]
-    assert "structural" in data["other_pages"]
+    # Corrected 2026-08-01: a `related` handler link is a distinct page, so it
+    # folds in as `drilldown`. It used to be relabelled `structural`.
+    assert "drilldown" in data["other_pages"]
 
 
 # --------------------------------------------------------------------- #
@@ -236,10 +238,28 @@ async def test_ask_status_is_failure_only(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 @pytest.mark.asyncio
-async def test_ask_other_pages_tsv_from_handler_links_are_structural(monkeypatch: pytest.MonkeyPatch) -> None:
-    # ADR-0015: handler continuation links fold into `other_pages` as
-    # kind=structural (the former next_links anchor is dropped; columns are
-    # url / reason / kind).
+async def test_ask_other_pages_tsv_carries_the_handlers_own_kind(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A handler-assigned kind must survive the fold into `other_pages`.
+
+    **This test previously asserted the defect**, down to its name
+    (`..._are_structural`): it required every handler link to arrive as
+    `kind="structural"` whatever the handler said. Measured across the tree, 7
+    of 7 handler-constructed `NextLink`s carry `discussion`, `drilldown` or
+    `related` — never `structural` — so the wire value was false for all of
+    them, and a handler that explicitly said `drilldown` had it rewritten to
+    the opposite claim.
+
+    `structural` means "more of the SAME listing" (pagination). None of the four
+    `NextLinkKind` values means that, so all four map to `drilldown`, and
+    `structural` is now produced only by the LLM's own routing — the only place
+    that can actually see a pagination affordance.
+
+    `anchor` is carried too. It used to be dropped on the same line that
+    relabelled the kind, so a caller reading `other_pages` got a URL and a
+    machine-written `reason` with no trace of what the page CALLED the link —
+    on a listing, the item's title, which is the most useful thing for deciding
+    whether to spend a fetch on it.
+    """
     from a2web.models import NextLink
 
     links = [
@@ -250,10 +270,12 @@ async def test_ask_other_pages_tsv_from_handler_links_are_structural(monkeypatch
     tsv = data["other_pages"]
     assert isinstance(tsv, str)
     lines = tsv.splitlines()
-    assert lines[0] == "url\treason\tkind"
+    assert lines[0] == "url\treason\tkind\tanchor"
     assert len(lines) == 3  # header + 2 rows
-    assert all(row.endswith("\tstructural") for row in lines[1:])
-    assert "\tOne\t" not in tsv and "\tTwo\t" not in tsv  # anchor dropped
+    assert all("\tdrilldown\t" in row for row in lines[1:]), f"handler kind did not survive the fold:\n{tsv}"
+    assert "\tstructural" not in tsv, "a handler link must not be relabelled a pagination continuation"
+    # The page's own link text now reaches the caller.
+    assert lines[1].endswith("\tOne") and lines[2].endswith("\tTwo"), f"anchor did not survive the fold:\n{tsv}"
 
 
 # --------------------------------------------------------------------- #

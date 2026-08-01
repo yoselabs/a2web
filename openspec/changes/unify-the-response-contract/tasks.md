@@ -8,7 +8,7 @@ CLAUDE.md's Ask First list covers them.
 
 ## 1. Confirm the shape before moving anything
 
-- [ ] 1.1 Confirm the Ask First gate for the breaking envelope change:
+- [x] 1.1 Confirm the Ask First gate for the breaking envelope change:
       `other_pages[].kind` values change for handler-derived rows, and
       `NextLink.anchor` starts appearing.
 - [ ] 1.2 Verify `_compose_next_links`' drop (`fetcher_response.py:274-281`) —
@@ -61,13 +61,18 @@ CLAUDE.md's Ask First list covers them.
 
 ## 5. The link-kind correction
 
-- [ ] 5.1 Carry each handler's assigned kind through the fold at
+**SHIPPED 2026-08-01, gate confirmed with the maintainer first** (1.1). The wire
+delta is exactly two changes and nothing else — verified by diffing the
+re-blessed goldens for any line not mentioning `structural`/`drilldown`/`anchor`
+(none). Re-blessed as `other-pages-kind-and-anchor-correction`.
+
+- [x] 5.1 Carry each handler's assigned kind through the fold at
       `fetcher_response.py:294`, instead of relabelling to `structural`.
-- [ ] 5.2 Carry `NextLink.anchor` instead of dropping it on the same line.
-- [ ] 5.3 Reconcile `models.py:729-734` — the note about dropping the `kind`
+- [x] 5.2 Carry `NextLink.anchor` instead of dropping it on the same line.
+- [x] 5.3 Reconcile `models.py:729-734` — the note about dropping the `kind`
       column "when every row is `drilldown` (the common handler-derived case)" —
       with the fold that was calling them all structural.
-- [ ] 5.4 Update the CHANGELOG to present this as a **correction**, not a neutral
+- [x] 5.4 Update the CHANGELOG to present this as a **correction**, not a neutral
       refactor: consumers today receive a kind that is false for the common case.
 
 ## 6. One TSV table
@@ -103,7 +108,7 @@ CLAUDE.md's Ask First list covers them.
       (`fb:tests-not-requirements`).
 - [ ] 8.2 `make bench` — this change touches the response envelope, which is one
       of the stated triggers.
-- [ ] 8.3 Add corpus cases for the corrected `kind` and the restored `anchor`
+- [x] 8.3 Add corpus cases for the corrected `kind` and the restored `anchor`
       before the context is lost.
 - [ ] 8.4 Update CLAUDE.md: `fetcher_response.py` is currently 740 lines it never
       mentions.

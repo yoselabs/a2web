@@ -27,6 +27,26 @@ All notable changes to **a2web** are recorded here. The format follows
   **Operator action:** if you configured OAuth with bare `GOOGLE_*` variables,
   your endpoint has been serving anonymously. Rename them to `A2WEB_GOOGLE_*`.
 
+### Changed
+
+- **`other_pages[].kind` now carries the handler's real kind — a CORRECTION,
+  not a refactor.** The handler→`other_pages` fold relabelled every entry
+  `kind="structural"` regardless of what the handler assigned. Measured across
+  the tree: 7 of 7 handler-constructed `NextLink`s carry `discussion`,
+  `drilldown` or `related` — never `structural` — so the wire value was false
+  for all of them, and a handler that explicitly said `drilldown` had it
+  rewritten to the opposite claim with no way for the caller to tell.
+  `structural` means "more of the SAME listing" (pagination), which only the
+  model's own routing can identify; it is now produced there and nowhere else.
+  **Consumers branching on `kind` for handler-derived rows were branching on a
+  false value and should re-check that logic.**
+- **`other_pages[].anchor` is restored.** The same line that relabelled the kind
+  dropped the link's visible text, leaving the caller a URL and a
+  machine-written `reason` with no trace of what the page called it — on a
+  listing, the item's title. Additive and omitted when empty. It is page-authored
+  text and, on an off-domain row, attacker-controlled (the D11 hazard
+  `off_domain` flags): relay it as a label, never as a claim about the target.
+
 ### Added
 
 - **Every unbounded wait is now bounded, each at a single seam.** A per-request

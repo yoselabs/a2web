@@ -33,6 +33,7 @@ from .models import (
     NextLink,
     OperatorHint,
     OtherPage,
+    OtherPageKind,
     RouterPayload,
     TokenCounts,
     Verdict,
@@ -282,16 +283,57 @@ def _compose_next_links(fc: FetchContext) -> list[NextLink]:
     return list(composed[:_NEXT_LINKS_CAP])
 
 
+#: `NextLinkKind` → `OtherPageKind`. The two vocabularies are not the same size
+#: and the fold has to choose; it used to choose `"structural"` for everything.
+#:
+#: `structural` means "more of the SAME page/listing" — pagination, a next page.
+#: None of the four `NextLinkKind` values means that: `drilldown` is an item,
+#: `source` is the page under discussion, `discussion` is its comment thread,
+#: `related` is a sibling page. Every one is a DISTINCT page the caller would
+#: open, which is `drilldown`. So the honest map sends all four there, and
+#: `structural` is produced only by the LLM's own routing — which is the only
+#: place that can see a pagination affordance.
+#:
+#: `drilldown` appears in BOTH vocabularies, which is what made the old
+#: behaviour worse than a merely coarse label: a handler that explicitly said
+#: `drilldown` had it rewritten to `structural`, the opposite claim, and the
+#: caller had no way to tell.
+_NEXT_LINK_KIND_TO_OTHER_PAGE: dict[str, OtherPageKind] = {
+    "drilldown": "drilldown",
+    "source": "drilldown",
+    "discussion": "drilldown",
+    "related": "drilldown",
+}
+
+
 def _compose_other_pages(fr: FetchResponse, routing: RouterPayload | None) -> list[OtherPage]:
     """Merge handler continuation + LLM drilldowns into the unified `other_pages`.
 
     ADR-0015 / link-discovery: the former `next_links` (handler/LLM
-    continuation) fold in as `kind="structural"`; the former `try_url`
+    continuation) fold in carrying THEIR OWN kind (see
+    `_NEXT_LINK_KIND_TO_OTHER_PAGE`); the former `try_url`
     (question-conditioned) ride `routing.other_pages`, already kind-tagged.
     Structural entries lead in page-order; drilldowns follow in priority order.
     Capped consistently with the pre-merge `next_links` cap.
+
+    **Corrected 2026-08-01.** This relabelled every handler link
+    `kind="structural"` regardless of what the handler assigned. Measured: 7 of
+    7 handler-constructed `NextLink`s carry `discussion`, `drilldown` or
+    `related` — so the wire value was false for all of them, and for the
+    `drilldown` ones it asserted the opposite of the truth.
     """
-    structural: list[OtherPage] = [OtherPage(url=nl.url, reason=nl.reason, kind="structural") for nl in fr.next_links]
+    structural: list[OtherPage] = [
+        OtherPage(
+            url=nl.url,
+            reason=nl.reason,
+            kind=_NEXT_LINK_KIND_TO_OTHER_PAGE.get(nl.kind, "drilldown"),
+            # The page's own words for the link. Dropped here until 2026-08-01,
+            # which left the caller a URL and a machine-written reason with no
+            # trace of what the page called it.
+            anchor=nl.anchor or "",
+        )
+        for nl in fr.next_links
+    ]
     llm = list(routing.other_pages) if routing is not None else []
     llm_structural = [p for p in llm if p.kind == "structural"]
     llm_drill = [p for p in llm if p.kind == "drilldown"]

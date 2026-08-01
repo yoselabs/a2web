@@ -270,6 +270,34 @@ urls:
       - "Does not raise an exception out of the tool call; the deadline takes the same terminal path as every other miss"
       - "With a normal budget the same URL fetches successfully — the deadline must not fire on healthy work"
 
+  - slug: other-pages-carries-the-real-kind-and-anchor
+    # unify-the-response-contract §5, 2026-08-01. Two wire corrections on the
+    # SAME line of the handler→other_pages fold:
+    #
+    # 1. Every handler link was relabelled `kind="structural"` regardless of
+    #    what the handler assigned. Measured: 7 of 7 handler-constructed
+    #    NextLinks carry `discussion`/`drilldown`/`related` — never structural —
+    #    so the value was false for all of them, and a handler that explicitly
+    #    said `drilldown` had it rewritten to the opposite claim. `structural`
+    #    means "more of the SAME listing" (pagination); only the LLM's routing
+    #    can see that affordance.
+    # 2. `anchor` — the page's own words for the link — was dropped, leaving the
+    #    caller a URL and a machine-written reason with no trace of what the
+    #    page called it. On a listing that is the item title.
+    #
+    # Criteria are structural: a HN thread's links are a discussion permalink
+    # and a source article, which is a stable fact about the page shape.
+    url: https://news.ycombinator.com/item?id=44444444
+    class: affordance
+    task: "What is this thread discussing, and where can I read the original?"
+    needs: [content+links]
+    criteria:
+      - "`other_pages` entries carry `kind: drilldown` for handler-derived links — never `structural`, which would claim they are pagination of this same page"
+      - "Each entry carries an `anchor` holding the page's own link text, so the caller can tell what a URL is without fetching it"
+      - "`structural` appears only when the model's own routing identified a pagination affordance"
+      - "The anchor is relayed verbatim as a label and never restated as a claim about the target (ADR-0014 / D11 — anchor text is page-authored and, off-domain, attacker-controlled)"
+      - "Every emitted URL is traceable to the fetched page"
+
   - slug: json-ld-itemlist-leaves-an-index
     # ADR-0015 hole, found + closed 2026-08-01. The JSON-LD path rendered an
     # `ItemList` into rich markdown (name/url/price/rating per item) and then

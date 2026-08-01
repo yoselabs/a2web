@@ -556,17 +556,33 @@ class OtherPage(BaseModel):
     `off_domain` marks a target on a different registrable domain than the
     fetched page: its anchor text is attacker-controllable, so the caller treats
     it with caution (design D11). Omitted from the wire when False.
+
+    `anchor` is the link's visible text as it appeared on the page (restored
+    2026-08-01). The handler fold used to drop it, so a caller reading
+    `other_pages` saw a URL and a machine-written `reason` with no trace of what
+    the page actually called the link. On a listing that is the item's title —
+    the single most useful thing for deciding whether to spend a fetch on it.
+
+    **It is page-authored text, and on an off-domain row it is
+    attacker-controlled** (the same D11 hazard `off_domain` exists to flag), so
+    it is relayed verbatim as a label and must never be read as a claim about
+    the target. Omitted from the wire when empty, so a link with no anchor text
+    costs nothing.
     """
 
     url: str
     reason: str
     kind: OtherPageKind = "drilldown"
     off_domain: bool = False
+    anchor: str = ""
 
     @model_serializer
     def _wire(self) -> dict[str, object]:
-        """Omit `off_domain` when False — absence carries "same-domain"."""
+        """Omit `off_domain` when False and `anchor` when empty — absence carries
+        "same-domain" and "the page gave no link text"."""
         out: dict[str, object] = {"url": self.url, "reason": self.reason, "kind": self.kind}
+        if self.anchor:
+            out["anchor"] = self.anchor
         if self.off_domain:
             out["off_domain"] = True
         return out
