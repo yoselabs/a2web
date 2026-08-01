@@ -11,7 +11,7 @@ CLAUDE.md's Ask First list covers them.
 - [x] 1.1 Confirm the Ask First gate for the breaking envelope change:
       `other_pages[].kind` values change for handler-derived rows, and
       `NextLink.anchor` starts appearing.
-- [ ] 1.2 Verify `_compose_next_links`' drop (`fetcher_response.py:274-281`) —
+- [x] 1.2 Verify `_compose_next_links`' drop (`fetcher_response.py:274-281`) —
       it is clearly wrong when `request_next_links` is False (the LLM never saw
       them). Determine whether it is also wrong when True before choosing a
       conditional or total fix.
@@ -52,7 +52,7 @@ CLAUDE.md's Ask First list covers them.
 - [ ] 4.1 Delete the `empty_confirmed` re-derivation at `fetcher_response.py:685`
       (which shadows the imported name of the real predicate). Read the field set
       at `fetcher.py:1946`, as `small_page_confirmed` already does.
-- [ ] 4.2 Apply the `_compose_next_links` fix decided in 1.2.
+- [x] 4.2 Apply the `_compose_next_links` fix decided in 1.2.
 - [ ] 4.3 Name the two phases of `retrieval_incomplete`. The confidence
       two-phase decision is deliberate (`:638-646`) — name its phases, do not
       merge the sites.

@@ -59,12 +59,41 @@ def test_compose_llm_only_returns_llm_list() -> None:
     assert _compose_next_links(fc) == llm
 
 
-def test_compose_both_present_returns_llm_list() -> None:
-    """Cell 4: both present → LLM list (the LLM already re-ranked the handler set)."""
+def test_compose_both_present_leads_with_llm_and_keeps_the_rest() -> None:
+    """Cell 4, CORRECTED 2026-08-01.
+
+    This asserted `== llm` — the LLM list ALONE — on the reasoning that "the LLM
+    already re-ranked the handler set". Re-ranking reorders; that dropped. A
+    handler link the model simply did not repeat left the envelope entirely,
+    including a `drilldown` the handler had positively identified on the page.
+
+    `query` withholds the body, so `other_pages` is the caller's only record of
+    what exists elsewhere (ADR-0015). A page the handler FOUND, silently absent
+    from that record, is both unreachable and unmentioned — and the omission is
+    a2web's own component filtering, not the caller choosing (ADR-0012).
+
+    The LLM still LEADS: its ordering is the question-conditioned judgement and
+    that is the part worth keeping.
+    """
     handler = [_nl("a", "https://e.com/a")]
     llm = [_nl("b", "https://e.com/b")]
     fc = _fc(handler=handler, llm=llm)
-    assert _compose_next_links(fc) == llm
+
+    composed = _compose_next_links(fc)
+
+    assert composed[0] == llm[0], "the LLM's judgement must lead"
+    assert {nl.url for nl in handler} <= {nl.url for nl in composed}, "a handler-found page was dropped from the index"
+
+
+def test_compose_both_present_does_not_duplicate_a_shared_url() -> None:
+    """The common case: the model kept a handler candidate. It must appear once."""
+    shared = "https://e.com/a"
+    fc = _fc(handler=[_nl("a", shared)], llm=[_nl("a-reranked", shared)])
+
+    composed = _compose_next_links(fc)
+
+    assert len(composed) == 1, f"the same URL appeared {len(composed)} times"
+    assert composed[0].anchor == "a-reranked", "the LLM's version of a shared link wins"
 
 
 def test_compose_cap_at_10_enforced() -> None:

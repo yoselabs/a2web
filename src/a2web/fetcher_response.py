@@ -267,20 +267,38 @@ def _compose_next_links(fc: FetchContext) -> list[NextLink]:
     - both empty → []
     - handler only (no ask=) → handler list
     - ask= only → LLM list (already validated against markdown)
-    - both → LLM list (LLM re-ranked handler candidates in the extract call)
+    - both → LLM list FIRST (its ordering is the question-conditioned
+      judgement), then any handler link the LLM did not repeat
 
     The tool-param off-switch suppresses the whole field regardless.
     Cap=10 enforced as the last step.
+
+    **Corrected 2026-08-01.** The both-populated case returned the LLM list
+    ALONE, justified as "the LLM re-ranked handler candidates in the extract
+    call". Re-ranking reorders; this deleted. Measured: a handler link the model
+    simply did not repeat was dropped from the envelope entirely — including a
+    `drilldown` the handler had positively identified on the page.
+
+    That is the ADR-0015 harm on the index axis. `query` withholds the body, so
+    `other_pages` is the caller's only record of what exists elsewhere; a page
+    the handler FOUND, silently absent from it, is unreachable and unmentioned.
+    It is also a2web ranking by a criterion of its own (ADR-0012) — the omission
+    is a2web's component filtering, not the caller choosing.
+
+    The LLM's list still leads, because its ordering IS the question-conditioned
+    judgement and that is worth keeping. The remainder is appended rather than
+    interleaved, and the existing cap still bounds the total, so the token cost
+    is bounded by the same number as before.
     """
     if not fc.next_links_enabled:
         return []
-    if fc.next_links_llm:
-        composed = fc.next_links_llm
-    elif fc.next_links_handler:
-        composed = fc.next_links_handler
-    else:
-        return []
-    return list(composed[:_NEXT_LINKS_CAP])
+    if not fc.next_links_llm:
+        return list(fc.next_links_handler[:_NEXT_LINKS_CAP]) if fc.next_links_handler else []
+
+    composed = list(fc.next_links_llm)
+    seen = {nl.url for nl in composed}
+    composed.extend(nl for nl in fc.next_links_handler if nl.url not in seen)
+    return composed[:_NEXT_LINKS_CAP]
 
 
 #: `NextLinkKind` → `OtherPageKind`. The two vocabularies are not the same size

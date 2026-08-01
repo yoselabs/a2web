@@ -47,6 +47,18 @@ All notable changes to **a2web** are recorded here. The format follows
   text and, on an off-domain row, attacker-controlled (the D11 hazard
   `off_domain` flags): relay it as a label, never as a claim about the target.
 
+- **A handler-found link the model did not repeat is no longer deleted.** When
+  both the handler and the LLM produced candidates, `_compose_next_links`
+  returned the LLM list ALONE, justified as "the LLM re-ranked the handler
+  candidates". Re-ranking reorders; this deleted — measured, a `drilldown` the
+  handler positively identified on the page left the envelope entirely. `query`
+  withholds the body, so `other_pages` is the caller's only record of what
+  exists elsewhere (ADR-0015), and the omission was a2web's own component
+  filtering rather than the caller choosing (ADR-0012). The LLM's list still
+  leads, since its ordering is the question-conditioned judgement; unrepeated
+  handler links follow. The existing cap of 10 still bounds the total, so token
+  cost is unchanged.
+
 ### Added
 
 - **Every unbounded wait is now bounded, each at a single seam.** A per-request
