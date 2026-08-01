@@ -112,10 +112,10 @@ Moved to `BACKLOG.md`.
 ## 7. Close out
 
 - [x] 7.1 `make check` green. `tach check` must accept the new package.
-- [ ] 7.2 `make bench` — this touches `next_links` and listing output, both
+- [x] 7.2 `make bench` — this touches `next_links` and listing output, both
       stated triggers.
 - [x] 7.3 Confirm `tests/architecture/test_tach_covers_every_package.py` sees the
       new package. An unlisted package silently gets no contract at all.
-- [ ] 7.4 Move the Row 1 / Row 2 entries and the discourse cap entry to
+- [x] 7.4 Move the Row 1 / Row 2 entries and the discourse cap entry to
       `BACKLOG-CLOSED.md`. Leave handler page-rendering open — it is the larger
       shape and wants the item set to exist first.

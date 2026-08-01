@@ -21,6 +21,31 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-08-01 — the bench cannot separate a real quality move from noise (S, eval correctness)
+
+Source: `eval/findings_2026-08-01-pm.md` §Headline.
+
+Two bench runs twelve hours apart over the SAME 42 slugs, across a change that
+touched neither answer selection nor extraction, moved `a2web_extract` quality
+3.52 → 3.33 and `a2web_detail` 3.27 → 3.40. Those are the sizes of move someone
+would plausibly attribute to a prompt or pipeline change — and here they are
+pure judge/live-page variance.
+
+There is no repeat-run baseline, so the harness cannot say what ±X means. Any
+future claim of the form "this change improved quality by 0.2" is currently
+unfalsifiable, in both directions: a real regression of that size is equally
+invisible.
+
+Cheapest fix: run the bench twice against an unchanged tree and record the
+spread in the axes report, so a delta can be read against it. Roughly $18 and
+40 minutes, once. Alternatively pin the corpus to captured pages for the quality
+axis (the replay harness already does this for deterministic axes) so live
+content rotation stops being a variable.
+
+Related and separate: the `next_links` judge scores page content rather than set
+structure (entry above), which is a defect in what is measured rather than in
+how noisy it is.
+
 ## 2026-08-01 — converge the item set, once `reason` can survive the trip (M, structure)
 
 Source: `openspec/changes/lift-the-item-set-and-renderer/` §4, deferred with its

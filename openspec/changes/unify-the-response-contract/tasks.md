@@ -36,19 +36,40 @@ closed set is what makes them checkable, and it is in place. Left rather than
 rushed at the end of a long session; §2.7 in particular says "move the strings
 VERBATIM and diff them", which is tuned ADR-0009 copy and deserves a fresh pass.
 
-- [ ] 2.1 Declare the operator-hint code set as a closed vocabulary.
-- [ ] 2.2 Give the seven factory-less codes (`answer_truncated`,
+- [x] 2.1 Declare the operator-hint code set as a closed vocabulary. `models.HINT_CODES` (23 codes) + a `@field_validator` that raises on an undeclared one.
+- [ ] 2.2 **DEFERRED 2026-08-01 — see below.** Give the twelve (not seven — measured) factory-less codes (`answer_truncated`,
       `content_guidance`, `retrieval_incomplete`, `index_lost`,
       `captcha_redirect`, `browser_unavailable`, …) factories.
 - [ ] 2.3 Convert the ten raw `OperatorHint(...)` sites — `fetcher_response.py:345,
       600, 617, 668`, `fetcher.py:831, 1899, 2497`, `tiers/browser.py:129, 198`,
       `handlers/reddit.py:730` — to factories.
 - [ ] 2.4 Convert the four string-matching dispatch sites to enum comparison.
-- [ ] 2.5 Add the guard: every constructed hint carries a declared code.
+- [x] 2.5 Add the guard: every constructed hint carries a declared code — `tests/architecture/test_hint_codes_are_declared.py`.
 - [ ] 2.6 State the severity ladder once (`critical` = wall, `warning` =
       unverified, `info` = verified-dead). Have the nine docstrings cite it.
 - [ ] 2.7 Move the 228-line hint catalogue (`models.py:141-368`) out. **Move the
       strings verbatim and diff them** — this is tuned ADR-0009 copy.
+
+### Why §2.2-2.4 and §2.7 are deferred rather than rushed
+
+The SAFETY half shipped: `HINT_CODES` is closed and a validator enforces it, so
+an undeclared code now raises at construction. What remains — twelve factories,
+ten raw call-site conversions, four string dispatches, and moving a 228-line
+catalogue — is ergonomics and message consistency, and §2.7 says explicitly
+*"move the strings verbatim and diff them"*. That is tuned ADR-0009 operator
+copy, where a reworded hint changes what an agent is told when a fetch fails.
+
+Measured rather than assumed: twelve codes lack a factory (`answer_truncated`,
+`browser_internal_error`, `browser_unavailable`, `captcha_redirect`,
+`content_guidance`, `cookies_stale`, `fetch_deadline_exceeded`, `index_lost`,
+`llm_unavailable`, `reddit_deleted_try_archive`, `reddit_forbidden_try_archive`,
+`retrieval_incomplete`), not the seven the task states.
+
+Deferred at the end of a long session on purpose. Two rushed calls today both
+had to be undone within hours: overriding a documented deferral without
+re-checking its reasoning (`hn` `nbHits`, which shipped a FALSE partial-view
+note), and adding a note to `reddit` that was structurally unreachable. Prose
+that a caller reads on failure deserves a fresh pass, not the tail of this one.
 
 ## 3. Carry the terminal classification
 
@@ -120,7 +141,7 @@ re-blessed goldens for any line not mentioning `structural`/`drilldown`/`anchor`
 - [ ] 8.1 `make check` green. Any test that moves beyond the two intended wire
       corrections is a finding — investigate it, do not update the fixture
       (`fb:tests-not-requirements`).
-- [ ] 8.2 `make bench` — this change touches the response envelope, which is one
+- [x] 8.2 `make bench` — this change touches the response envelope, which is one
       of the stated triggers.
 - [x] 8.3 Add corpus cases for the corrected `kind` and the restored `anchor`
       before the context is lost.

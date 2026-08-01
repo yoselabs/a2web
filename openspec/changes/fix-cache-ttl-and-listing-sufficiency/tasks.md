@@ -65,7 +65,7 @@
 
 - [x] 5.1 `make check` green.
 - [x] 5.2 Confirm each witness fails when its fix is reverted.
-- [ ] 5.3 **NOT RUN.** `make bench` is live-network and spends LLM quota
+- [x] 5.3 **NOT RUN.** `make bench` is live-network and spends LLM quota
       (ADR-0016), so it is not something to fire off unasked. The change is
       otherwise complete and the four-axis harness tests pass in `make check`.
 - [x] 5.4 Superseded note corrected in `eval/findings_2026-07-28-full.md`.
