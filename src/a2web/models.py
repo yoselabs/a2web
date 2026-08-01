@@ -484,10 +484,10 @@ def listing_more_hint(*, loaded: int) -> OperatorHint:
     )
 
 
-def archive_snapshot_age_hint(*, age_days: int) -> OperatorHint:
-    """The content came from a web-archive SNAPSHOT, and here is how old it is.
+def archive_snapshot_age_hint(*, age_days: int, taken_at: date | None = None) -> OperatorHint:
+    """The content came from a web-archive SNAPSHOT — dated, and aged.
 
-    `archive.py` has computed `snapshot_age_days` since the tier was written and
+    `archive.py` has computed the snapshot's age since the tier was written and
     NOTHING read it — the number reached `TierResult` and stopped there, so a
     2019 snapshot and a yesterday snapshot produced identical envelopes.
 
@@ -499,10 +499,17 @@ def archive_snapshot_age_hint(*, age_days: int) -> OperatorHint:
     true"), a stale answer is a WRONG answer wearing a confident face. The
     caller cannot audit what it is not told.
 
+    **The DATE leads and the age follows**, because only one of them keeps. "847
+    days old" is true at the moment of writing and decays from there — cached,
+    logged, or pasted into a report it silently becomes wrong. "Captured
+    2023-04-15" is true forever. The age is the readable gloss on the date, not
+    the fact.
+
     Severity rises with age because the risk does. The thresholds are coarse on
     purpose — this is a "how much should you trust this" signal, not a
     measurement, and precision would imply a confidence a snapshot cannot carry.
     """
+    when = f"captured {taken_at.isoformat()}, about {age_days} day(s) ago" if taken_at else f"about {age_days} day(s) old"
     if age_days >= _ARCHIVE_STALE_DAYS:
         severity = "warning"
         trust = "Treat time-sensitive details (prices, availability, ratings, staffing) as UNVERIFIED."
@@ -511,10 +518,7 @@ def archive_snapshot_age_hint(*, age_days: int) -> OperatorHint:
         trust = "Recent, but still a snapshot — re-check anything that changes by the day."
     return OperatorHint(
         code="archive_snapshot_age",
-        message=(
-            f"This content is a WEB ARCHIVE SNAPSHOT about {age_days} day(s) old, not the live page — "
-            f"the live site did not serve us. {trust}"
-        ),
+        message=(f"This content is a WEB ARCHIVE SNAPSHOT ({when}), not the live page — the live site did not serve us. {trust}"),
         fix="Open the URL in a real browser tool if you need the current page.",
         severity=severity,
     )

@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
@@ -100,13 +100,28 @@ async def _archive_ph_lookup(url: str, *, timeout_s: float) -> str | None:
     return outcome.body.decode("utf-8", errors="replace")
 
 
-def _snapshot_age_days(timestamp: str) -> int | None:
-    """Wayback timestamps are YYYYMMDDhhmmss."""
+def _snapshot_taken_at(timestamp: str) -> date | None:
+    """The snapshot's calendar date. Wayback timestamps are YYYYMMDDhhmmss.
+
+    Returned as a DATE rather than only an age, because the two answer different
+    questions and only one of them keeps. "847 days old" decays the moment it is
+    written down — cached, logged, or pasted into a report it silently becomes
+    wrong — while "captured 2023-04-15" is true forever. The age is derived from
+    it for the reader's convenience, not stored.
+    """
     try:
         snap_dt = datetime.strptime(timestamp, "%Y%m%d%H%M%S").replace(tzinfo=UTC)
     except ValueError:
         return None
-    return max(0, (datetime.now(UTC) - snap_dt).days)
+    return snap_dt.date()
+
+
+def _snapshot_age_days(timestamp: str) -> int | None:
+    """Days since the snapshot, or `None` on an unparseable timestamp."""
+    taken = _snapshot_taken_at(timestamp)
+    if taken is None:
+        return None
+    return max(0, (datetime.now(UTC).date() - taken).days)
 
 
 class ArchiveTier:
@@ -181,8 +196,10 @@ class ArchiveTier:
         from . import Rendered  # local — avoid circular
 
         snapshot_age_days: int | None = None
+        snapshot_taken_at: date | None = None
         if winner.source == "wayback" and winner.timestamp:
             snapshot_age_days = _snapshot_age_days(winner.timestamp)
+            snapshot_taken_at = _snapshot_taken_at(winner.timestamp)
 
         return TierResult(
             body=cleaned.encode("utf-8"),
@@ -192,6 +209,7 @@ class ArchiveTier:
             from_archive=True,
             archive_source=winner.source,
             snapshot_age_days=snapshot_age_days,
+            snapshot_taken_at=snapshot_taken_at,
             pre_rendered=Rendered(
                 content_md=markdown,
                 title=extracted.title,

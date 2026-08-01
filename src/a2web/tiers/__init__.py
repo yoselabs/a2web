@@ -16,6 +16,7 @@ or after-tier actions.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any, Literal, Protocol
 
 from ..models import Heading, Link, NextLink, OperatorHint, Verdict
@@ -68,6 +69,8 @@ class TierResult:
     pre_rendered: Rendered | None = None
     from_archive: bool = False
     snapshot_age_days: int | None = None
+    #: The snapshot's calendar date — true forever, unlike an age in days.
+    snapshot_taken_at: date | None = None
     from_browser: bool = False
     js_executed: bool = False
     browser_wall_ms: int | None = None

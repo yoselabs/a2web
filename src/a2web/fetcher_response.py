@@ -606,7 +606,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # asked about a page a2web could not reach and is getting an answer anyway
     # — `tier: archive` is on the wire, but a tier name is not a date.
     if fc.snapshot_age_days is not None:
-        op_hints.append(archive_snapshot_age_hint(age_days=fc.snapshot_age_days))
+        op_hints.append(archive_snapshot_age_hint(age_days=fc.snapshot_age_days, taken_at=fc.snapshot_taken_at))
 
     diagnostics_summary = _build_diagnostics_summary(
         tier_used=fc.tier_used,

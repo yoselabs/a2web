@@ -1,6 +1,6 @@
 """The response builder's slice of `FetchContext` is explicit and bounded.
 
-`fetcher_response.py` reads 43 of `FetchContext`'s 73 fields. That
+`fetcher_response.py` reads 44 of `FetchContext`'s 74 fields. That
 coupling was implicit — nothing stated which fields the response contract
 depends on, so `decompose-fetcher-into-files` phase two could not slice
 `context.py` per node without first re-deriving the set by hand.
@@ -11,7 +11,7 @@ set growing silently until "the response builder reads a bit of the context"
 quietly means "the response builder reads most of it", which is the state that
 makes decomposition impossible to do safely.
 
-**A Protocol was the other option and was not taken.** Declaring 43 members with
+**A Protocol was the other option and was not taken.** Declaring 44 members with
 real annotations pulls every one of their types into this module's namespace,
 which is a large import surface added at the end of a long change for a
 property this ledger already gives: the set is stated, and it cannot move
@@ -59,9 +59,10 @@ _READS: frozenset[str] = frozenset(
         "operator_hints",
         "published",
         "record_set",
-    # ADR-0009: the caller must be able to tell a live page from an archived
-    # copy, so `build_response` reads the snapshot age to emit its hint.
-    "snapshot_age_days",
+        # ADR-0009: the caller must be able to tell a live page from an archived
+        # copy, so `build_response` reads the snapshot age to emit its hint.
+        "snapshot_age_days",
+        "snapshot_taken_at",
         "render_requested",
         "requested_url",
         "routing",

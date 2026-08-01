@@ -23,6 +23,8 @@ Same "computed, then discarded" shape as arXiv's listing counts and the handler
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from a2web.models import _ARCHIVE_STALE_DAYS, HINT_CODES, archive_snapshot_age_hint
@@ -35,9 +37,10 @@ def test_the_code_is_in_the_closed_vocabulary() -> None:
 
 def test_an_old_snapshot_warns_and_names_the_risk() -> None:
     """THE regression. Pre-fix this envelope was identical to a fresh one."""
-    hint = archive_snapshot_age_hint(age_days=847)
+    hint = archive_snapshot_age_hint(age_days=847, taken_at=date(2023, 4, 15))
 
     assert hint.severity == "warning"
+    assert "2023-04-15" in hint.message, "the capture DATE must be stated"
     assert "847" in hint.message, "the age must be stated, not merely implied by a severity"
     assert "ARCHIVE SNAPSHOT" in hint.message
     assert "UNVERIFIED" in hint.message, "an old snapshot must name what not to trust"
@@ -51,10 +54,11 @@ def test_a_fresh_snapshot_is_informational_not_alarming() -> None:
     the caller to skip the hint, which costs every genuinely stale one that
     follows — the same false-positive economics as the `hn` partial-view note.
     """
-    hint = archive_snapshot_age_hint(age_days=2)
+    hint = archive_snapshot_age_hint(age_days=2, taken_at=date(2026, 7, 30))
 
     assert hint.severity == "info"
     assert "2 day" in hint.message
+    assert "2026-07-30" in hint.message
     assert "UNVERIFIED" not in hint.message
 
 
@@ -99,3 +103,40 @@ def test_a_non_archive_fetch_emits_nothing() -> None:
 
     field = next(f for f in dataclasses.fields(FetchContext) if f.name == "snapshot_age_days")
     assert field.default is None, "the archive hint would fire on every fetch"
+
+
+def test_the_date_leads_because_only_the_date_keeps() -> None:
+    """An age decays the moment it is written; a date does not.
+
+    "847 days old" is true when emitted and wrong thereafter — cached, logged,
+    or pasted into a report it silently drifts. The calendar date stays true
+    forever, so it is the fact and the age is the gloss. Wayback hands over
+    `YYYYMMDDhhmmss` and a2web previously kept only the subtraction.
+    """
+    dated = archive_snapshot_age_hint(age_days=847, taken_at=date(2023, 4, 15))
+    assert dated.message.index("2023-04-15") < dated.message.index("847")
+
+
+def test_an_undatable_snapshot_still_reports_its_age() -> None:
+    """archive.ph gives no timestamp, and a partial signal beats silence.
+
+    Degrading to "about N days old" is honest; suppressing the hint because one
+    field is missing would hide the fact that the answer is archived at all.
+    """
+    hint = archive_snapshot_age_hint(age_days=500, taken_at=None)
+    assert "500 day" in hint.message
+    assert hint.severity == "warning"
+
+
+def test_the_snapshot_date_reaches_the_response_builder() -> None:
+    """The wiring for the date, same reason as the age: storage is not delivery."""
+    import dataclasses
+
+    from a2web.fetcher import FetchContext
+
+    names = {f.name for f in dataclasses.fields(FetchContext)}
+    assert "snapshot_taken_at" in names
+
+    from tests.architecture.test_response_context_slice import _READS
+
+    assert "snapshot_taken_at" in _READS
