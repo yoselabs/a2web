@@ -102,19 +102,83 @@ class Link(BaseModel):
     role: str = "primary"  # "primary" | "nav" | "meta" | "footer"
 
 
+#: The CLOSED set of operator-hint codes (change `unify-the-response-contract`).
+#:
+#: `code` is the field agents branch on, which makes it a wire contract — but it
+#: was a bare `str`, so a typo produced a hint nothing could match and nothing
+#: would report. Four dispatch sites compared it against string literals; a
+#: rename on one side alone would have silently stopped matching.
+#:
+#: Declared LITERALLY, in one place, for the same reason `wire._TSV_FIELDS` is
+#: literal: the set IS the contract. Two of these (`reddit_forbidden_try_archive`,
+#: `reddit_deleted_try_archive`) were invisible in any census of `code="..."` —
+#: they reach `OperatorHint` through a `code=reason` parameter, which is exactly
+#: the shape a closed vocabulary exists to surface.
+#:
+#: Severity ladder, stated once and cited by the factories (§2.6):
+#:   `critical` — a WALL. The URL was not retrieved and the caller must act
+#:                (`try_user_browser`, `paid_auth_error`, `fetch_deadline_exceeded`).
+#:   `warning`  — UNVERIFIED. Something is probably wrong but a2web cannot
+#:                corroborate it (`content_thin`, an unverified 404).
+#:   `info`     — VERIFIED and merely worth knowing (a corroborated dead URL,
+#:                a partial listing whose totals are known).
+#: A 404 is never `critical`: confidence, not disappointment, sets severity.
+HINT_CODES: frozenset[str] = frozenset(
+    {
+        "answer_truncated",
+        "browser_internal_error",
+        "browser_unavailable",
+        "captcha_redirect",
+        "comments_partial",
+        "content_empty",
+        "content_guidance",
+        "content_not_found",
+        "content_thin",
+        "cookies_stale",
+        "extraction_empty",
+        "fetch_deadline_exceeded",
+        "index_lost",
+        "listing_more",
+        "listing_partial",
+        "llm_error",
+        "llm_unavailable",
+        "paid_auth_error",
+        "reddit_deleted_try_archive",
+        "reddit_forbidden_try_archive",
+        "retrieval_incomplete",
+        "section_unretrieved",
+        "try_user_browser",
+    }
+)
+
+
 class OperatorHint(BaseModel):
     """Structured hint about how the fetch could be improved.
 
-    `code` is a stable agent-readable identifier (e.g. `llm_unavailable`,
-    `browser_unavailable`, `browser_internal_error`, `captcha_redirect`,
-    `cookies_stale`). Agents may
-    branch on `code` to take a next action; humans read `message` and `fix`
-    for context and remediation. Both audiences are first-class — the field
-    landed under the "operator" name historically, not because agents
-    shouldn't read it.
+    `code` is a stable agent-readable identifier drawn from the closed
+    `HINT_CODES` vocabulary above. Agents may branch on `code` to take a next
+    action; humans read `message` and `fix` for context and remediation. Both
+    audiences are first-class — the field landed under the "operator" name
+    historically, not because agents shouldn't read it.
+
+    An unknown code raises at construction rather than reaching the wire. A code
+    nothing can match is a hint that cannot be acted on, which for the ADR-0009
+    signals is the difference between a loud miss and a silent one.
     """
 
     code: str
+
+    @field_validator("code")
+    @classmethod
+    def _code_is_declared(cls, value: str) -> str:
+        if value not in HINT_CODES:
+            msg = (
+                f"operator-hint code {value!r} is not in the closed HINT_CODES "
+                "vocabulary. Add it there — the set is the wire contract agents "
+                "branch on."
+            )
+            raise ValueError(msg)
+        return value
     message: str
     fix: str | None = None
     severity: Literal["info", "warning", "critical"] = "info"
