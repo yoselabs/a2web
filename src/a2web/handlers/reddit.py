@@ -49,7 +49,7 @@ from selectolax.parser import HTMLParser
 from .. import content_expectations
 from ..models import NEXT_LINKS_CAP, Heading, NextLink, OperatorHint, Verdict, comments_partial_hint, try_user_browser_hint
 from . import _reddit_html as rh
-from ._common import challenge_verdict, empty_result, truncation_note
+from ._common import challenge_verdict, empty_result
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -580,15 +580,23 @@ def _post_entries(feed: _AtomFeed) -> list[_AtomEntry]:
 
 
 def _all_post_entries(feed: _AtomFeed) -> list[_AtomEntry]:
-    """Every renderable post entry, UNCAPPED — the denominator for the note.
+    """Every renderable post entry, UNCAPPED.
 
-    Reddit's Atom feed reports no total, so unlike HN's `nbHits` there is no
-    source-stated figure to declare against. What the handler does know is how
-    many entries the feed actually handed it, and the cap applies AFTER that —
-    so a feed returning more than `_LISTING_CAP` silently lost the tail. That is
-    a weaker claim than arXiv's or HN's ("of what we received", not "of what
-    exists") and it is the honest one: better a floor on the shortfall than
-    silence about it."""
+    **Reddit declares no partial-view note, and that is deliberate.** A note was
+    added here on 2026-08-01 and REMOVED the same day: Reddit's `.rss` listing
+    feeds carry exactly 25 entries (verified against the captured
+    `listing.rss` / `search.rss`) and `_LISTING_CAP` is 25, so
+    `len(_post_entries(feed)) == len(_all_post_entries(feed))` for every input
+    that can arrive. The note was structurally unreachable — the identical
+    defect diagnosed in `hn._source_total` and fixed in the same commit that
+    introduced this one.
+
+    There is genuinely nothing to declare: Reddit reports no total, and within
+    what the feed handed back nothing was dropped. Inventing a denominator to
+    have something to say would be a fabricated claim, which is worse than
+    silence. `test_reddit_cap_and_page_size_still_coincide` fails if Reddit's
+    page size ever moves, which is the moment to revisit.
+    """
     return [e for e in feed.entries if e.kind == "t3" and e.title]
 
 
@@ -611,9 +619,6 @@ def _render_search_atom(feed: _AtomFeed, *, query: str) -> _RenderResult:
         for e in entries
     ]
     parts = [f"# {title_text}\n", f"## Results ({len(lines)})\n"]
-    note = truncation_note(len(entries), len(_all_post_entries(feed)), noun="posts")
-    if note:
-        parts.append(note)
     parts.extend(lines)
     headings = [Heading(level=1, text=title_text), Heading(level=2, text=f"Results ({len(lines)})")]
     return _RenderResult(content_md="\n".join(parts).strip() + "\n", title=title_text, headings=headings)
@@ -643,9 +648,6 @@ def _render_listing_atom(feed: _AtomFeed, *, subreddit: str, sort: str, time_win
         for e in entries
     ]
     parts = [f"# {title_text}\n", f"## Posts ({len(lines)})\n"]
-    note = truncation_note(len(entries), len(_all_post_entries(feed)), noun="posts")
-    if note:
-        parts.append(note)
     parts.extend(lines)
     headings = [Heading(level=1, text=title_text), Heading(level=2, text=f"Posts ({len(lines)})")]
     next_links = [

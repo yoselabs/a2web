@@ -80,7 +80,12 @@ All notable changes to **a2web** are recorded here. The format follows
   covers a rolling window of recently-front-paged stories while THE front page
   is the 30 currently on it — "showing 30 of 171" would be a false shortfall,
   and a false "incomplete" is worse than none. `reddit` and the markdown table
-  renderer likewise declare.
+  renderer likewise declare. **Reddit deliberately declares nothing**: its
+  `.rss` listing feeds carry exactly 25 entries and the render cap is 25, so any
+  note would be structurally unreachable for the same reason hn's was, and it
+  has no total to report. Nothing is dropped, so there is nothing to say;
+  `test_reddit_cap_and_page_size_still_coincide` guards the precondition and
+  fails if Reddit's page size ever moves.
 - **The `options` shelf was capped by count and by nothing else**, reaching 17KB
   against 255 bytes of `answer` on a listing page — ADR-0015's remedy defeating
   its own token-economy premise. Now bounded in bytes too, thinning entries
