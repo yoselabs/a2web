@@ -46,6 +46,38 @@ Related and separate: the `next_links` judge scores page content rather than set
 structure (entry above), which is a defect in what is measured rather than in
 how noisy it is.
 
+**MEASURED 2026-08-01 — `eval/findings_2026-08-01-noise-floor.md`.** The run pair
+was done (two full runs, byte-identical `src/`, ~30 min apart). Cost was ~30 min
+of subscription quota per run, not the $18 estimated above — the bench runs on
+`claude-code-sdk` under ADR-0016, so it never bills the metered API and the
+estimate was wrong in kind, not just in size.
+
+Result: **system-mean floor is ±0.2 on quality and ±0.2 on clarity.** The two
+moves this entry was opened over (0.19 and 0.13) are both inside it — they were
+not small real effects, they were not effects.
+
+Two things the measurement found that the entry did not anticipate, and which
+are why this stays OPEN rather than closing here:
+
+1. **The mean and the cell need different thresholds.** 102 of 124 quality cells
+   were identical, but 21 cells moved ≥2 points and the max swing was the full
+   5.00. The system mean is calm only because 42 cells average the swings out. A
+   per-slug claim is currently worth nothing without repeats; the bench answers
+   "did the system move", never "did this page get better".
+2. **The noise is retrieval luck, not judge mood.** The swings cluster on walled
+   pages. `walled-page-with-preceding-info-hint` scored quality 5 / clarity 0 in
+   one run (jina `length_floor`, wall correctly declared) and quality 1 / clarity
+   5 in the other (archive tier happened to hit, answer stale). The cell measures
+   whether a Wayback snapshot was reachable that minute. Worse, the two axes
+   reward opposite branches, so any change touching wall handling or archive
+   dispatch will show quality movement confounded with luck.
+
+What remains, and it is a corpus decision rather than a harness one: either the
+adversarial slugs' criteria score the **envelope's honesty** — deterministic, and
+what ADR-0009 actually requires — instead of the answer's content, or those slugs
+get pinned to captured pages. Until then the noisiest cells in the corpus are
+measuring the network.
+
 ## 2026-08-01 — converge the item set, once `reason` can survive the trip (M, structure)
 
 Source: `openspec/changes/lift-the-item-set-and-renderer/` §4, deferred with its
