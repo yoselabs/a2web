@@ -1953,15 +1953,45 @@ def _record_discussion_link(record: Record, page_host: str) -> tuple[str, str] |
     return None
 
 
+def _heading_link_kind(link: tuple[str, str] | None, *, page_host: str) -> tuple[NextLinkKind, str]:
+    """Classify a record's heading link by where it points.
+
+    On-host — the row leads deeper into the same site, so it is the item's own
+    page: a `drilldown`. Off-host — the row leads away, which is what an
+    aggregator row is for: a `source`, the page it discusses.
+
+    A record with no host (a relative href the miner did not resolve) is read as
+    on-host, since a relative link cannot leave the site.
+    """
+    if link is None:
+        return "source", "discussed page"
+    link_host = (urlparse(link[1]).hostname or "").lower()
+    if not link_host or link_host == page_host or link_host.removeprefix("www.") == page_host.removeprefix("www."):
+        return "drilldown", "item page"
+    return "source", "discussed page"
+
+
 def _records_to_next_links(record_set: RecordSet, *, page_url: str) -> list[NextLink]:
     """Domain seam — convert detected records into `NextLink` candidates.
 
     Catalog-only: a threaded record set is a conversation already inline on
     the page, not a set of drilldown targets, so it emits nothing. Each flat
-    record emits up to two candidates — a `source` link (its heading link, the
-    discussed page) and a `discussion` link (a same-host comment-count
-    permalink). Candidates are deduplicated by URL and archive-mirror hosts
-    are skipped.
+    record emits up to two candidates — its heading link and a `discussion`
+    link (a same-host comment-count permalink). Candidates are deduplicated by
+    URL and archive-mirror hosts are skipped.
+
+    **The heading link's kind is decided per record, not fixed.** It was
+    hardcoded `("source", "discussed page")` — the aggregator vocabulary, where
+    a row points OFF-host at an article the page discusses. The same miner runs
+    on catalogs, where a row points ON-host at the item's own detail page: that
+    is a `drilldown`, and calling it a source asserts the page is discussing
+    something it is in fact selling. Every commerce listing said "source ·
+    discussed page", and the JSON-LD `ItemList` path routed straight into it, so
+    the mislabel arrived on every `ItemList` catalog too.
+
+    Off-host vs on-host is the discriminator because it is what actually
+    separates the two shapes: an aggregator row's whole purpose is to leave the
+    host, a catalog row's is to go deeper into it.
     """
     if record_set.is_threaded:
         return []
@@ -1969,8 +1999,9 @@ def _records_to_next_links(record_set: RecordSet, *, page_url: str) -> list[Next
     out: list[NextLink] = []
     seen: set[str] = set()
     for record in record_set.records:
+        heading_kind, heading_reason = _heading_link_kind(record.heading_link, page_host=page_host)
         candidates: tuple[tuple[tuple[str, str] | None, NextLinkKind, str], ...] = (
-            (record.heading_link, "source", "discussed page"),
+            (record.heading_link, heading_kind, heading_reason),
             (_record_discussion_link(record, page_host), "discussion", "discussion thread"),
         )
         for link, kind, reason in candidates:

@@ -97,13 +97,20 @@ async def test_flat_catalog_replaces_on_length() -> None:
 
 
 @pytest.mark.asyncio
-async def test_listing_emits_source_next_links() -> None:
-    """A catalog whose records carry only a heading link emits one `source`
-    candidate per record."""
+async def test_listing_emits_drilldown_next_links() -> None:
+    """A catalog row points ON-host at the item's own page: a `drilldown`.
+
+    **Corrected 2026-08-01.** This asserted `source` for every record, and was
+    named `test_listing_emits_source_next_links` — the miner hardcoded the
+    aggregator vocabulary, so a shop listing announced that it was "discussing"
+    the products it sells. `test_aggregator_record_emits_source_and_discussion`
+    below is the other half and is unchanged: an off-host row IS a source.
+    """
     fc = _FakeFc(content_md="Home Login", final_url="https://example.com/list")
     await _run_extraction_escalation(fc, raw_html=_LISTING_HTML)
     assert len(fc.next_links_handler) == 12
-    assert all(nl.kind == "source" for nl in fc.next_links_handler)
+    assert all(nl.kind == "drilldown" for nl in fc.next_links_handler)
+    assert all(nl.reason == "item page" for nl in fc.next_links_handler)
     assert fc.next_links_handler[0].url == "https://example.com/item/0"
 
 
