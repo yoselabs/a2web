@@ -128,6 +128,8 @@ guard's own docstring first line.
 
 - `tests/architecture/test_hint_codes_are_declared.py` — Every operator-hint code is drawn from one closed vocabulary.
 
+- `tests/architecture/test_tsv_declaration_is_single.py` — The TSV field set is declared once, and both encoders agree with it.
+
 ## Verification provenance — where CI's authority ends
 
 `verification-provenance.md` is the companion to this manual. This README covers

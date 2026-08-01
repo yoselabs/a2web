@@ -17,8 +17,14 @@ CLAUDE.md's Ask First list covers them.
       conditional or total fix.
 - [ ] 1.3 Decide the module location (design Open Questions): `src/a2web/response/`
       vs absorbing `fetcher_response.py` in place.
-- [ ] 1.4 Decide whether `headings` is TSV. Nothing encodes it today; "not TSV"
-      is a legitimate answer, "undecided" is not.
+- [x] 1.4 **Decided: NOT TSV, and it never could have been.** `Heading`
+      serializes to a compact `[level, text]` PAIR, so the dump is a list of
+      LISTS and `encode_tsv` raises on a row that is neither model nor dict.
+      The shape guard caught it every time; the field stayed a JSON array.
+      Removed from `_TSV_FIELDS` — verified zero byte change, since no
+      `_headings_format` was ever emitted. Its presence is precisely why the
+      shape guard exists: under a2kit the raise was swallowed, so this ONE
+      unencodable field voided the encode for the whole envelope.
 
 ## 2. The vocabulary and the ladder
 
@@ -77,17 +83,17 @@ re-blessed goldens for any line not mentioning `structural`/`drilldown`/`anchor`
 
 ## 6. One TSV table
 
-- [ ] 6.1 Declare the TSV field set literally, once. Keep it literal — the
+- [x] 6.1 Declare the TSV field set literally, once. Keep it literal — the
       introspection ban stands.
 - [ ] 6.2 Have both halves consume it: `models.py`'s serializer branches
       (`other_pages:921`, `links:665`, `next_links:667`) and
       `wire.encode_envelope` (`operator_hints`, `refinement_axes`, `options`,
       `content_candidates`).
-- [ ] 6.3 Preserve the anti-seam: `_next_links_tsv` (`:733`) and
+- [x] 6.3 Preserve the anti-seam: `_next_links_tsv` (`:733`) and
       `_other_pages_tsv` (`:746`) choose columns from *typed* rows, before
       `model_dump`. The pre-dump column decision stays model-side; only the
       declaration is unified.
-- [ ] 6.4 Add the equality guard: model-side and wire-side sets describe the same
+- [x] 6.4 Add the equality guard: model-side and wire-side sets describe the same
       fields.
 - [ ] 6.5 Route `models.py:18`'s direct `lean_wire.encode_tsv` import through
       `wire.py`. One in-tree consumer.

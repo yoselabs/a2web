@@ -79,9 +79,24 @@ __all__ = [
 
 #: Per-tool TSV field order. Transcribed from a2kit's `build_encoding_plan`
 #: output at v0.49.2 — see the module docstring for why this is a literal.
+#: **`headings` is deliberately NOT here (decided 2026-08-01).**
+#:
+#: It was in both tuples, transcribed from a2kit's 2026-07-22 inference, and it
+#: never rendered as TSV in either. It cannot: `Heading` serializes to a compact
+#: `[level, text]` PAIR, so the dump is a list of LISTS, and `encode_tsv` raises
+#: `TypeError` on a row that is neither a model nor a dict. The shape guard
+#: caught it every time and the field stayed a JSON array.
+#:
+#: That is the whole reason the shape guard exists — under a2kit the raise was
+#: swallowed, so this ONE unencodable field voided the encode for the entire
+#: envelope and `fetch_raw` shipped no `_<field>_format` discriminator at all.
+#: Removing `headings` from the table changes NO bytes (verified: no
+#: `_headings_format` was ever emitted); it stops the declaration claiming
+#: something the encoder structurally cannot do. The guard stays, as the
+#: backstop for the next unencodable field.
 _TSV_FIELDS: dict[str, tuple[str, ...]] = {
-    "query": ("operator_hints", "headings", "other_pages", "refinement_axes", "options"),
-    "fetch_raw": ("links", "headings", "operator_hints", "next_links", "content_candidates"),
+    "query": ("operator_hints", "other_pages", "refinement_axes", "options"),
+    "fetch_raw": ("links", "operator_hints", "next_links", "content_candidates"),
 }
 
 
