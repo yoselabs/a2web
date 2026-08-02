@@ -166,9 +166,58 @@ result.
       the one projection field not deterministic from frozen bytes — caught
       immediately by `test_selftest_replay_is_reproducible` and scrubbed via
       `_DURATION_RE`, the same treatment `fetched_at` already had.
-- [ ] 6.4 Walk the 33 unread criteria. Each becomes a deterministic assertion, or
-      is deleted as decorative. Do not bulk-convert — telling them apart requires
-      reading each.
+- [x] 6.4 Walked all 142 criteria across 44 cases. **Done 2026-08-02.**
+
+      Four outcomes, not two — the task said "assertion or deleted" and the
+      reading produced a third and fourth that matter more:
+
+      **Converted (23 criteria → 16 cases carrying a `contract:` block).**
+      Needed 15 new vocabulary keys; §6.2 shipped only the eight replay already
+      had, and none of them can say what most dead criteria are about. Sharpest:
+      `operator_hints_exclude` — *"never fire `try_user_browser` on a 404"* is
+      ADR-0009's most specific negative claim, appears in three cases, and had
+      no expression at all.
+
+      **Kept as prose (~20).** Anti-fabrication criteria ("does not invent a
+      review quote", ADR-0014 traceability) need the FETCHED PAGE, which no
+      harness passes to any reader. They are not convertible and not decorative
+      — they are §6.1's blocked scope, and deleting them would erase the record
+      of what is unguarded. Recorded, not converted.
+
+      **Deleted as decorative (3).** Each asserted a property of a2web's CODE
+      rather than of this cell's output: "fence tolerance is never removed",
+      "a degraded run should score worse", "wall detection does not depend on
+      Cloudflare markers". A judge reading one answer cannot evaluate any of
+      them, and no run ever could.
+
+      **RETARGETED (1) — and this is the finding.**
+      `fetch-deadline-reports-an-unfinished-job` asserts expired-budget
+      behaviour (`status: failed`, a critical `fetch_deadline_exceeded` hint)
+      against a bench run using the NORMAL budget on a Wikipedia article that
+      fetches healthily. Four of its five criteria were scored against the
+      opposite of what the bench produces — on every system, on every run,
+      since the case landed. Not a weak signal: a wrong one, dragging the
+      quality mean down. Its own comment conceded it ("exercise by setting
+      A2WEB_FETCH_DEADLINE_S very low") and the corpus has no per-case env.
+      The expiry half is genuinely covered by
+      `tests/capabilities/tier_pipeline/test_fetch_deadline.py`; the case now
+      asserts the half no unit test does — that the deadline must NOT fire on
+      healthy work.
+
+      **Comparability cost, stated rather than absorbed:** converting means
+      DELETING the criterion, which changes those cases' quality scores against
+      the 2026-08-02 baseline. Correct here — an unreadable criterion produced
+      a noise score, not a signal — but it is the same objection raised against
+      6.1, so it is named, not hidden.
+
+      Two guards close the loop offline, both reversion-probed:
+      `test_every_shipped_contract_key_is_in_the_vocabulary` (a typo used to
+      cost a $10 run to discover) and
+      `test_shipped_per_row_keys_are_paired_with_a_floor` (a per-row predicate
+      is vacuously true over an index that vanished — the exact shape this
+      change exists to close, reproduced inside it).
+
+      Not verified by a live run. `make check`: 1572 passed.
 - [ ] 6.5 Invert `_NEXT_LINKS_TEMPLATE`'s *"never penalize an entry for being
       unfamiliar or assume it is fabricated"*. That instruction exists because
       the judge could not verify; once it can, it disarms ADR-0014.

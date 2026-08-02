@@ -312,3 +312,62 @@ class _FakeResponse:
     operator_hints: list = []  # noqa: RUF012
     narrative = "raw → ok"
     retrieval_incomplete = False
+
+
+# --------------------------------------------------------------------- #
+# The shipped corpus, checked offline
+# --------------------------------------------------------------------- #
+
+
+def test_every_shipped_contract_key_is_in_the_vocabulary() -> None:
+    """A typo in `eval/corpus.yaml` fails the cell — but only during a live
+    run, which costs network and LLM quota. Catch it here for free.
+
+    Without this, the loop is: write `stauts: ok`, spend $10, read a violation
+    that says the key is unknown. The bench should be where a case is measured,
+    not where it is spellchecked.
+    """
+    from pathlib import Path
+
+    from a2web.llm_eval.corpus import load_corpus
+
+    supported = CONTRACT_KEYS - REPLAY_ONLY_KEYS
+    checked = 0
+    for entry in load_corpus(Path("eval/corpus.yaml")).entries:
+        contract = entry.extra.get("contract")
+        if not contract:
+            continue
+        checked += 1
+        assert isinstance(contract, dict), f"{entry.slug}: `contract:` must be a mapping"
+        unknown = sorted(set(contract) - supported)
+        assert not unknown, f"{entry.slug}: contract key(s) {unknown} are not in the vocabulary"
+    # Non-vacuity: this walk found contracts, not an empty corpus.
+    assert checked >= 10, f"only {checked} corpus entries carry a contract — did the loader change?"
+
+
+def test_shipped_per_row_keys_are_paired_with_a_floor() -> None:
+    """The vacuity rule the vocabulary's docstring states, enforced on the
+    corpus rather than left to whoever writes the next case.
+
+    `other_pages_kinds: [drilldown]` is satisfied by an index that vanished
+    entirely — zero rows, zero violations. Pinning it without
+    `other_pages_min` is a guard that reads green precisely when ADR-0015's
+    index went missing.
+    """
+    from pathlib import Path
+
+    from a2web.llm_eval.corpus import load_corpus
+
+    pairing = {
+        "other_pages_kinds": "other_pages_min",
+        "other_pages_all_have_anchor": "other_pages_min",
+        "options_all_have_url": "options_min",
+    }
+    for entry in load_corpus(Path("eval/corpus.yaml")).entries:
+        contract = entry.extra.get("contract") or {}
+        for per_row, floor in pairing.items():
+            if per_row in contract:
+                assert floor in contract, (
+                    f"{entry.slug}: `{per_row}` is vacuously true over an empty index — "
+                    f"pair it with `{floor}`"
+                )

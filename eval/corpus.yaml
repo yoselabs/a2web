@@ -30,16 +30,31 @@
 #   contract            — OPTIONAL deterministic expectations, checked per-cell
 #                         with NO LLM. Same vocabulary as the offline replay
 #                         corpus (`eval/corpus/*/*/baseline/contract.json`), so a
-#                         key means the same thing in both harnesses:
-#                           status, tier, has_content, answer_present,
-#                           retrieval_incomplete, narrative_present,
-#                           answer_contains, tokens_full_max, next_links_min,
-#                           operator_hints, content_includes/excludes,
-#                           narrative_includes
+#                         key means the same thing in both harnesses.
+#                         Canonical list: `a2web.llm_eval.case_contract`.
+#                           envelope   status, tier, has_content, answer_present,
+#                                      retrieval_incomplete, narrative_present,
+#                                      confidence_max
+#                           text       answer_contains, answer_excludes,
+#                                      content_includes/excludes,
+#                                      narrative_includes
+#                           hints      operator_hints (exact list),
+#                                      operator_hints_include/exclude,
+#                                      hint_severity {code: severity}
+#                           index      index_non_empty, other_pages_min,
+#                                      other_pages_kinds,
+#                                      other_pages_all_have_anchor,
+#                                      options_min/_max, options_all_have_url,
+#                                      also_here_min, next_links_min,
+#                                      tokens_full_max
 #                         An unknown key FAILS the cell — a typo must never read
 #                         as a silently-skipped assertion. `steps` and
 #                         `input_menu_*` need the cassette spy and are reported
 #                         UNOBSERVABLE here, never as a pass.
+#                         A per-row key (other_pages_kinds, *_all_have_*) is
+#                         vacuously true over an EMPTY index — pair it with the
+#                         matching `*_min`, or an index that vanished entirely
+#                         satisfies it.
 #                         Prefer this over a `criteria` line whenever the fact is
 #                         deterministic: prose criteria cost an LLM call and
 #                         return a probabilistic answer to a binary question.
@@ -279,12 +294,30 @@ urls:
     class: affordance
     task: "Summarize this page."
     needs: [content]
+    # RETARGETED 2026-08-02 (close-guards §6.4). This entry used to assert the
+    # EXPIRED-budget behaviour — `status: failed`, a critical
+    # `fetch_deadline_exceeded` hint — against a bench run that uses the normal
+    # budget, on a Wikipedia article that fetches healthily in a second. So four
+    # of its five criteria were scored against the opposite of what the bench
+    # produces, on every system, on every run: not a weak signal, a wrong one
+    # dragging the quality mean down. Its own comment conceded it ("exercise by
+    # setting A2WEB_FETCH_DEADLINE_S very low"), and the corpus has no per-case
+    # env.
+    #
+    # The expiry behaviour is genuinely covered, deterministically, by
+    # `tests/capabilities/tier_pipeline/test_fetch_deadline.py` — including
+    # `test_expiry_reports_an_unfinished_job` and `test_no_tier_is_dispatched_
+    # after_expiry`. What the BENCH can witness, and what no unit test does, is
+    # the other half of the invariant: the deadline must not fire on healthy
+    # work. That is what this case asserts now.
+    contract:
+      status: ok
+      retrieval_incomplete: false
+      answer_present: true
+      operator_hints_exclude: [fetch_deadline_exceeded]
     criteria:
-      - "On a spent per-fetch budget, reports `status: failed` with `retrieval_incomplete: true` — never a partial answer presented as complete (ADR-0009)"
-      - "Emits a critical `fetch_deadline_exceeded` hint naming BOTH the budget that was spent and the stage it stopped before"
-      - "The message attributes the stop to a2web's own limit, never asserting the site is slow, down, or unreachable — a2web has no evidence for any of those"
-      - "Does not raise an exception out of the tool call; the deadline takes the same terminal path as every other miss"
-      - "With a normal budget the same URL fetches successfully — the deadline must not fire on healthy work"
+      - "Summarizes the article's actual subject (automated extraction of data from websites) from its body"
+      - "Reports no timeout, budget, or 'took too long' condition — a healthy fetch must not narrate a limit it never hit"
 
   - slug: other-pages-carries-the-real-kind-and-anchor
     # unify-the-response-contract §5, 2026-08-01. Two wire corrections on the
@@ -307,10 +340,13 @@ urls:
     class: affordance
     task: "What is this thread discussing, and where can I read the original?"
     needs: [content+links]
+    contract:
+      # `kinds` is paired with `_min` deliberately: a per-row predicate is
+      # vacuously true over an index that vanished entirely.
+      other_pages_min: 1
+      other_pages_kinds: [drilldown]
+      other_pages_all_have_anchor: true
     criteria:
-      - "`other_pages` entries carry `kind: drilldown` for handler-derived links — never `structural`, which would claim they are pagination of this same page"
-      - "Each entry carries an `anchor` holding the page's own link text, so the caller can tell what a URL is without fetching it"
-      - "`structural` appears only when the model's own routing identified a pagination affordance"
       - "The anchor is relayed verbatim as a label and never restated as a claim about the target (ADR-0014 / D11 — anchor text is page-authored and, off-domain, attacker-controlled)"
       - "Every emitted URL is traceable to the fetched page"
 
@@ -330,12 +366,13 @@ urls:
     class: affordance
     task: "What options are on this page? I want to compare them."
     needs: [content+links]
+    contract:
+      index_non_empty: true
+      other_pages_min: 1
+      options_min: 1
     criteria:
-      - "Ships a populated `other_pages` — the per-item product pages are drilldowns, and a listing answer that names items without linking any of them fails ADR-0015"
       - "Every emitted URL is traceable to the fetched page (ADR-0014) — no URL pattern-guessed from a product name or slug"
-      - "Ships a populated `options` shelf carrying each item's distinguishing signal (price / rating), not titles alone"
       - "Preserves page order and does not crown a 'best' pick (ADR-0012) — the answer presents the option space"
-      - "The index is non-empty even when the page carries no mineable DOM record region (items only in ItemList JSON-LD)"
 
   - slug: hepsiburada-product-no-footer-options
     # Output-hygiene regression (2026-07-11): the DOM record-miner fires on the
@@ -349,10 +386,12 @@ urls:
     class: clean
     task: "What is the price of this product, its currency, and is it in stock?"
     needs: [content+links]
+    contract:
+      # A product page has no listing options at all, so `options_max: 0`
+      # subsumes the never-a-null-URL claim — there is nothing to carry one.
+      options_max: 0
     criteria:
       - "Answer states the price, its currency, and the in-stock status"
-      - "Does NOT emit an `options` list of site navigation / footer categories — this is a product page, not a listing"
-      - "Emits no option/menu entries with a null or missing URL (page chrome is never surfaced as a selectable option)"
 
   - slug: hepsiburada-reviews-drilldown-on-page
     # Positive counterpart to hepsiburada-product-reviews (honest-absence): on a
@@ -412,9 +451,10 @@ urls:
     class: clean
     task: "Who created Rust and in what year did it first appear?"
     needs: [content]
+    contract:
+      also_here_min: 1
     criteria:
       - "Answer names the creator (Graydon Hoare) and the first-appeared year (2012)"
-      - "also_here is NON-EMPTY — the narrow ask did not 'cover' the rich article; also_here indexes unsurfaced sections (memory-safety model, ecosystem/tooling, adoption timeline) as terse query-grammar strings, NOT full questions"
       - "also_here entries drop the verb frame and the page entity (e.g. `memory safety mechanism`, not `What is Rust's memory safety mechanism?`)"
 
   - slug: trendyol-listing-which-best
@@ -434,9 +474,10 @@ urls:
     class: affordance
     task: "What are the currently open issues people are reporting for this project?"
     needs: [content+links]
+    contract:
+      other_pages_min: 1
     criteria:
       - "Recognizes the repo landing page does not itself list the open issues in detail"
-      - "Surfaces the issues page as a followable link rather than inventing issue titles"
       - "Does not fabricate specific issue numbers or titles absent from the fetched page"
 
   - slug: contact-page-channels
@@ -464,9 +505,10 @@ urls:
     class: gated
     task: "DeepCool CH160 PLUS case price and stock status."
     needs: [content+links]
+    contract:
+      operator_hints_exclude: [try_user_browser]
     criteria:
       - "Reports the content as NOT FOUND / a likely dead-or-wrong URL — the origin returns HTTP 404 for this path"
-      - "Does NOT emit the critical `try_user_browser` anti-bot-wall hint (a 404 is not an anti-bot wall; commanding a browser on a nonexistent page is wrong)"
       - "Does NOT fabricate a price, stock status, or product detail — nothing was retrieved"
 
   - slug: trendyol-200-soft-404-empty-results
@@ -484,9 +526,10 @@ urls:
     class: gated
     task: "List the products matching this search and their prices."
     needs: [content+links]
+    contract:
+      operator_hints_exclude: [try_user_browser]
     criteria:
       - "Does NOT fabricate products or prices — the search returns no real product records"
-      - "Does NOT fire the critical `try_user_browser` anti-bot klaxon on a thin page whose only evidence is thinness (no anti-bot / block-page / paywall markers)"
       - "Surfaces the emptiness honestly — EITHER a promoted `ok` 'no results' answer (with `content_empty` info + the body attached) when the empty was corroborated, OR a `content_thin` warning that attaches the body and does not assert 'blocked'"
       - "Never presents an empty result as if it were fabricated matches, and never asserts a wall it did not evidence"
 
@@ -541,9 +584,13 @@ urls:
     class: clean
     task: "What is this page about?"
     needs: [content_only]
+    contract:
+      status: ok
+      retrieval_incomplete: false
+      answer_present: true
+      operator_hints_exclude: [try_user_browser, content_thin]
     criteria:
       - "Answers that this is a reserved / example domain for use in documentation, from the page's own body"
-      - "Returns `status: ok` with a populated answer — NOT `failed` / `retrieval_incomplete` / a `content_thin` wall hedge (a tiny complete page is not a miss)"
       - "Does NOT claim the page is blocked, walled, or empty; does NOT fabricate content beyond the small body"
 
   - slug: hard-anti-bot-robust-escalation
@@ -563,7 +610,6 @@ urls:
     criteria:
       - "Either retrieves the product (name + price from the page) via browser escalation, OR reports an honest WALL (`retrieval_incomplete` + critical `try_user_browser`) — never a fabricated answer"
       - "Does NOT silently present an empty or partial shell as complete when the render was blocked"
-      - "A degraded run (same-engine robust rung) should score WORSE (walled) here, not pass silently — the escalation path must stay observable"
 
   - slug: dead-product-url-fat-404
     # fix-routing-fence-and-jina-404-launder (2026-07-27): a LIVE case where a
@@ -591,10 +637,12 @@ urls:
     class: gated
     task: "What is the price, stock status, airflow and noise level of this fan?"
     needs: [content+links]
+    contract:
+      status: failed
+      operator_hints_include: [content_not_found]
+      operator_hints_exclude: [try_user_browser]
+      confidence_max: medium
     criteria:
-      - "If the URL is genuinely 404, the response is `status: failed` with a `content_not_found` hint — NEVER `ok` with no `status` (ADR-0009 tier-truthfulness)"
-      - "Never reports `confidence: high` for a page it simultaneously describes as missing, absent, or a 404 — the envelope must not contradict its own prose"
-      - "Never carries the critical `try_user_browser` klaxon for a 404 (a dead URL is not an anti-bot wall)"
       - "Does NOT present the site's nav bar as helpful `other_pages` drilldowns implying progress on a dead URL"
       - "Does NOT fabricate price / airflow / dB / duct-diameter values that are not on the fetched page"
 
@@ -612,8 +660,9 @@ urls:
     class: listing
     task: "What are the top stories right now, and where would I go to read more?"
     needs: [content+links]
+    contract:
+      answer_excludes: ["```"]
     criteria:
-      - "`answer` is prose only — contains no ```next_links fence, no ```json fence, and no raw JSON array of {anchor,url,reason,kind} objects"
       - "Link suggestions arrive in the structured `other_pages` field, never inlined into the answer text as a code block"
       - "A parse failure degrades to clean prose rather than dumping the raw model response into `answer`"
     next_links_expected: true
@@ -634,8 +683,9 @@ urls:
     class: listing
     task: "What are the recent NLP papers?"
     needs: [content+links]
+    contract:
+      index_non_empty: true
     criteria:
-      - "With the body withheld (`include_content` unset), the response carries a NON-EMPTY index: at least one of `other_pages`, `options`, `also_here`, or `refinement_axes` (ADR-0015)"
       - "On a listing of N entries, the caller can reach individual entries — the answer is not a dead-end summary of a page full of links"
       - "Never substitutes prose mention of items for a structured index the caller can act on"
     next_links_expected: true
@@ -654,10 +704,10 @@ urls:
     class: article
     task: "What is multi-head attention?"
     needs: [content]
+    contract:
+      answer_excludes: ["```json"]
     criteria:
-      - "`answer` is clean prose with no ```json fence and no envelope keys leaked as literal text"
       - "The routing payload is recovered even when the model wraps the envelope in a markdown fence"
-      - "Fence tolerance is never removed on the assumption the model obeys 'output strict JSON only' — it does not"
 
   # ─── Handlers with zero corpus coverage until 2026-07-28 ───────────────
   # Four of the nine site handlers had no corpus cell at all. A handler with
@@ -676,9 +726,10 @@ urls:
     next_links_expected: true
     task: "What is being discussed on this forum right now? Give the 5 most prominent topics."
     needs: [content+links]
+    contract:
+      index_non_empty: true
     criteria:
       - "Identifies at least 5 distinct topic titles that read like real forum threads, not navigation chrome"
-      - "With the body withheld, the response carries a non-empty index the caller can drill into (ADR-0015)"
       - "Topic links point at /t/ topic paths on the same host, never invented (ADR-0014)"
 
   - slug: habr-article
@@ -776,6 +827,8 @@ urls:
     next_links_expected: true
     task: "What technology stories are indexed on this page? Give me the headlines and where to read each one."
     needs: [content+links]
+    contract:
+      other_pages_min: 1
     criteria:
       - "If the live page is walled and a snapshot was recovered, the answer is built from the SNAPSHOT's index — not from a one-item collapse of whatever the tier pre-rendered"
       - "A recovered listing surfaces per-story pointers in `other_pages` (kind `drilldown`); an index recovered but not relayed is ADR-0015's withheld-body harm"
@@ -810,8 +863,7 @@ urls:
       retrieval_incomplete: true
       narrative_present: true
       answer_present: false
+      hint_severity: {try_user_browser: critical}
     criteria:
-      - "The miss is LOUD — retrieval incomplete, a diagnostic, and a critical try-your-own-browser hint (ADR-0009)"
       - "NO price and NO availability claim is produced; a wall is 'couldn't see it', never 'no price' or 'out of stock'"
       - "Does NOT read a number or a stock state out of the challenge markup"
-      - "Wall detection does not depend on Cloudflare-specific markers — this vendor emits none of them"
