@@ -181,7 +181,7 @@ async def test_scroll_completes_listing_and_clears_signal(monkeypatch: pytest.Mo
     stub = _ScrollZyteStub(records=40)
     monkeypatch.setitem(REGISTRY, "raw", _PartialListingRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", stub)
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     state = make_default_state(settings=_settings())
 
     result = await _ask_fetch(state)
@@ -200,7 +200,7 @@ async def test_scroll_still_short_keeps_signal(monkeypatch: pytest.MonkeyPatch) 
     stub = _ScrollZyteStub(records=34)
     monkeypatch.setitem(REGISTRY, "raw", _PartialListingRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", stub)
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     state = make_default_state(settings=_settings())
 
     result = await _ask_fetch(state)
@@ -215,7 +215,7 @@ async def test_no_paid_tier_keeps_signal(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setitem(REGISTRY, "raw", _PartialListingRawTier())
     monkeypatch.delitem(REGISTRY, "zyte", raising=False)
     monkeypatch.delitem(REGISTRY, "firecrawl", raising=False)
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     state = make_default_state(settings=_settings())
 
     result = await _ask_fetch(state)
@@ -258,7 +258,7 @@ async def test_free_browser_scroll_completes_and_skips_paid(monkeypatch: pytest.
     monkeypatch.setitem(REGISTRY, "raw", _PartialListingRawTier())
     monkeypatch.setitem(REGISTRY, "browser", browser)
     monkeypatch.setitem(REGISTRY, "zyte", zyte)
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     state = make_default_state(settings=_settings(browser_enabled=True))
 
     result = await _ask_fetch(state)
@@ -278,7 +278,7 @@ async def test_free_browser_unavailable_falls_to_paid(monkeypatch: pytest.Monkey
     zyte = _ScrollZyteStub(records=40)
     monkeypatch.setitem(REGISTRY, "raw", _PartialListingRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", zyte)
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     state = make_default_state(settings=_settings(browser_enabled=True))
 
     result = await _ask_fetch(state)
@@ -293,7 +293,7 @@ async def test_disabled_does_not_scroll(monkeypatch: pytest.MonkeyPatch) -> None
     stub = _ScrollZyteStub(records=40)
     monkeypatch.setitem(REGISTRY, "raw", _PartialListingRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", stub)
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     state = make_default_state(settings=AppSettings())  # complete_listings defaults off
 
     result = await _ask_fetch(state)

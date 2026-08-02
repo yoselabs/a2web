@@ -61,7 +61,7 @@ def _make_state() -> AppState:
 async def test_paywall_escalates_to_archive(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(REGISTRY, "raw", _BlockedTier())
     monkeypatch.setitem(REGISTRY, "archive", _RecoveringArchiveTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     # debug=True — `cache` is debug-only on the envelope (v0.13).
     result = await fetch("https://nyt.com/article", state=_make_state(), debug=True)
@@ -86,7 +86,7 @@ async def test_archive_failure_keeps_original_verdict(monkeypatch: pytest.Monkey
             return TierResult(body=_BLOCK_HTML, content_type="text/html", status_code=200, final_url=url)
 
     monkeypatch.setitem(REGISTRY, "raw", _RealBlockedTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     # debug=True — inspect diagnostics trace (v0.3 wire-default omits it).
     result = await fetch("https://blocked.example/", state=_make_state(), debug=True)

@@ -111,7 +111,7 @@ async def test_corroborated_small_page_promotes_and_answers(monkeypatch: pytest.
     """raw retrieves a tiny complete body, the browser render agrees it is small (no
     wall), and the extractor answers from it → status ok, extraction ran, confidence
     low. The example.com case — a complete tiny page must answer, not fail."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw"))
     _install_small_browser(monkeypatch)
     state = make_default_state()
@@ -143,7 +143,7 @@ async def test_corroborated_small_page_promotes_and_answers(monkeypatch: pytest.
 async def test_small_page_burns_exactly_one_browser_render(monkeypatch: pytest.MonkeyPatch) -> None:
     """A bare thin fallthrough gets exactly ONE browser render (the corroborating
     witness), not two — the second would only re-confirm the page is small."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw"))
 
     renders = {"n": 0}
@@ -171,7 +171,7 @@ async def test_thin_page_with_subresource_wall_is_not_promoted(monkeypatch: pyte
     """The browser rendered the same thin body BUT watched a data-API XHR get 403'd
     (subresource-block evidence) → a wall, never a promoted small page. The
     false-positive asymmetry: an ambiguous thin page errs toward the wall."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw"))
     _install_small_browser(monkeypatch, subresource_blocks=1)
     state = make_default_state()
@@ -189,7 +189,7 @@ async def test_thin_page_with_subresource_wall_is_not_promoted(monkeypatch: pyte
 async def test_no_browser_corroboration_is_not_promoted(monkeypatch: pytest.MonkeyPatch) -> None:
     """No browser render corroborated the thinness (browser unavailable) → the HTTP
     read alone does not promote; it stays a loud thin miss (content_thin)."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw"))
     # No browser installed → the real browser tier is unavailable → no thin regate.
     state = make_default_state()
@@ -213,7 +213,7 @@ async def test_js_required_spa_underrendered_is_not_promoted(monkeypatch: pytest
     be promoted as a 'complete small page' — a JS shell that failed to render is a
     wall-shaped miss, not a genuinely tiny page. The gate fingerprint (`js_required`)
     disqualifies it even though the browser regate is thin."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw", body=_SPA_SHELL_HTML))
     _install_small_browser(monkeypatch)  # browser renders the same tiny body (under-render)
     state = make_default_state()
@@ -230,7 +230,7 @@ async def test_promoted_small_page_is_never_cached(monkeypatch: pytest.MonkeyPat
     """A promoted small page keeps verdict `length_floor` (only the caller-facing
     status is ok), so cache_write declines it (design decision 1: wire-only). Proof:
     a second fetch of the same URL is still a cache MISS."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw"))
     _install_small_browser(monkeypatch)
 

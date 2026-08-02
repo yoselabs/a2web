@@ -106,7 +106,7 @@ async def test_paid_tier_dispatched_on_wall_and_installs(monkeypatch: pytest.Mon
     """A walled free ladder escalates to the paid tier, which wins the fetch."""
     monkeypatch.setitem(REGISTRY, "raw", _BlockedRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", _OkPaidTier("zyte"))
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://walled.example/article", state=make_default_state(), debug=True)
 
@@ -139,7 +139,7 @@ async def test_js_required_spa_shell_escalates_to_paid_render(monkeypatch: pytes
     to the paid render tier, which wins the fetch — search-…-guard P1."""
     monkeypatch.setitem(REGISTRY, "raw", _SpaShellRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", _OkPaidTier("zyte"))
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://spa.example/?q=claude", state=make_default_state(), debug=True)
 
@@ -169,7 +169,7 @@ async def test_paid_not_dispatched_when_ladder_succeeds(monkeypatch: pytest.Monk
 
     monkeypatch.setitem(REGISTRY, "raw", _OkRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", _OkPaidTier("zyte"))
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://fine.example/", state=make_default_state(), debug=True)
 
@@ -186,7 +186,7 @@ async def test_bad_paid_key_fails_loud_and_stops(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setitem(REGISTRY, "zyte", _BadKeyPaidTier("zyte"))
     # firecrawl would succeed — proving STOP means it must NOT run.
     monkeypatch.setitem(REGISTRY, "firecrawl", _OkPaidTier("firecrawl"))
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://walled.example/article", state=make_default_state(), debug=True)
 
@@ -217,7 +217,7 @@ async def test_bad_paid_key_names_the_fix_in_an_operator_hint(monkeypatch: pytes
     """
     monkeypatch.setitem(REGISTRY, "raw", _BlockedRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", _BadKeyPaidTier("zyte"))
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://walled.example/article", state=make_default_state(), debug=True)
 

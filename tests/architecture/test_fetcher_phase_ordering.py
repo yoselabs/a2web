@@ -52,10 +52,20 @@ def _index_functions() -> dict[str, ast.FunctionDef | ast.AsyncFunctionDef]:
 
 
 def _call_lines(node: ast.AST, name: str) -> list[int]:
-    """Lines at which `name(...)` is called inside `node`."""
+    """Lines at which `name(...)` is called inside `node`, by bare name OR through a module.
+
+    `mod._escalate_browser(...)` counts. After the tree landed, the escalation
+    seam calls its rungs through the MODULE rather than an imported name — a
+    `from .browser import _escalate_browser` freezes the reference at import
+    time and silently defeats a test that fakes the rung. A guard matching only
+    bare names would have read that rewrite as "the seam stopped dispatching".
+    """
     lines: list[int] = []
     for sub in ast.walk(node):
-        if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name) and sub.func.id == name:
+        if not isinstance(sub, ast.Call):
+            continue
+        fn = sub.func
+        if (isinstance(fn, ast.Name) and fn.id == name) or (isinstance(fn, ast.Attribute) and fn.attr == name):
             lines.append(sub.lineno)
     return lines
 

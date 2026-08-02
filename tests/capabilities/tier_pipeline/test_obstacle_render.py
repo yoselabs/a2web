@@ -193,7 +193,7 @@ def _install(monkeypatch: pytest.MonkeyPatch, *, with_paid: bool) -> None:
     else:
         monkeypatch.delitem(REGISTRY, "zyte", raising=False)
         monkeypatch.delitem(REGISTRY, "firecrawl", raising=False)
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
 
 @pytest.mark.asyncio
@@ -277,7 +277,7 @@ async def test_render_that_adds_nothing_keeps_obstacle(monkeypatch: pytest.Monke
 
     monkeypatch.setitem(REGISTRY, "raw", _ShellRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", _NoOpPaidTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     state = make_default_state(settings=AppSettings())
     provider = _SequencedProvider([_OBSTACLE_EMPTY])
 
@@ -313,7 +313,7 @@ async def test_static_page_obstacle_does_not_render(monkeypatch: pytest.MonkeyPa
     genuinely isn't there and a render can't add it."""
     monkeypatch.setitem(REGISTRY, "raw", _StaticRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", _RenderPaidTier("zyte"))
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     state = make_default_state(settings=AppSettings())
     provider = _SequencedProvider([_OBSTACLE_EMPTY])
 
@@ -349,7 +349,7 @@ async def test_ssr_page_with_markers_but_full_content_does_not_render(monkeypatc
     there) must NOT trigger a render — the content ceiling suppresses it."""
     monkeypatch.setitem(REGISTRY, "raw", _SsrRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", _RenderPaidTier("zyte"))
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     state = make_default_state(settings=AppSettings())
     provider = _SequencedProvider([_OBSTACLE_EMPTY])
 

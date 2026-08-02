@@ -42,7 +42,7 @@ def _html_tier(name: str, *, body: bytes, verdict: Verdict = Verdict.ok, status_
 async def test_thin_200_is_thin_unverified_not_walled(monkeypatch: pytest.MonkeyPatch) -> None:
     """A clean thin 200 → status failed, `content_thin` WARNING, retrieval
     incomplete, and crucially NO critical `try_user_browser`."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw", "jina"))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
     monkeypatch.setitem(REGISTRY, "raw", _html_tier("raw", body=_EMPTY_RESULTS_HTML))
     monkeypatch.setitem(REGISTRY, "jina", _html_tier("jina", body=_EMPTY_RESULTS_HTML))
 
@@ -60,7 +60,7 @@ async def test_thin_200_is_thin_unverified_not_walled(monkeypatch: pytest.Monkey
 async def test_thin_200_attaches_body_to_ask_envelope(monkeypatch: pytest.MonkeyPatch) -> None:
     """The retrieved thin body rides `thin_content` on the ask envelope so the
     blind caller can read it (ADR-0015) — even without include_content."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw", "jina"))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
     monkeypatch.setitem(REGISTRY, "raw", _html_tier("raw", body=_EMPTY_RESULTS_HTML))
     monkeypatch.setitem(REGISTRY, "jina", _html_tier("jina", body=_EMPTY_RESULTS_HTML))
 
@@ -75,7 +75,7 @@ async def test_thin_200_attaches_body_to_ask_envelope(monkeypatch: pytest.Monkey
 async def test_thin_downstream_of_wall_stays_walled(monkeypatch: pytest.MonkeyPatch) -> None:
     """A thin body that lands AFTER positive wall evidence (an anti-bot render
     that came back thin) stays a wall → critical `try_user_browser`."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw", "jina"))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
 
     # raw fingerprints an anti-bot wall (Turnstile marker in the body) → hard-wall
     # gate evidence enters the log.

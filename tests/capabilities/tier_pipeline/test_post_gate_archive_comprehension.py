@@ -27,9 +27,15 @@ from datetime import UTC, datetime
 
 import pytest
 
-from a2web import fetcher
 from a2web.actions import RetryViaArchive
 from a2web.fetcher import FetchContext, Rung, _ArchiveOutcome, _dispatch_action, escalate
+
+# Patched on the OWNING module, not on `a2web.fetcher`. The package re-exports
+# every name for compatibility, but a re-export is a second binding: setting it
+# leaves the definition — and every caller's view of it — untouched. The seam
+# moved with the tree (`decompose-fetcher-into-files` §4); the fake has to move
+# with the seam.
+from a2web.fetcher.retrieval.escalate import archive as archive_mod
 from a2web.state import AppState
 from a2web.tiers import Rendered
 from tests.conftest import make_default_state
@@ -80,7 +86,7 @@ def archive_returns_a_listing(monkeypatch: pytest.MonkeyPatch) -> None:
         del url, kwargs
         return _archive_outcome()
 
-    monkeypatch.setattr(fetcher, "_dispatch_archive", _fake_dispatch)
+    monkeypatch.setattr(archive_mod, "_dispatch_archive", _fake_dispatch)
 
 
 def _state() -> AppState:
@@ -151,7 +157,7 @@ async def test_a_failed_archive_dispatch_installs_and_comprehends_nothing(monkey
         del url, kwargs
         return _ArchiveOutcome(success=False)
 
-    monkeypatch.setattr(fetcher, "_dispatch_archive", _fake_dispatch)
+    monkeypatch.setattr(archive_mod, "_dispatch_archive", _fake_dispatch)
     fc = _fc()
 
     installed = await escalate(fc, Rung.archive, state=_state())

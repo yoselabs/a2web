@@ -63,7 +63,7 @@ def test_ttl_for_reads_settings_directly_not_through_getattr() -> None:
     default and would have kept serving the literal through a rename — the
     setting would look wired while being dead.
     """
-    source = (Path(__file__).resolve().parents[3] / "src" / "a2web" / "fetcher.py").read_text(encoding="utf-8")
+    source = (Path(__file__).resolve().parents[3] / "src" / "a2web" / "fetcher" / "retrieval" / "cache.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     func = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "_ttl_for")
 

@@ -19,6 +19,15 @@ import pytest
 from a2web import fetcher
 from a2web.actions import Continue, EscalateBrowser, EscalatePaid, RetryViaArchive, RewriteUrl
 from a2web.fetcher import FetchContext, _ArchiveOutcome, _dispatch_action, _Exec
+
+# Patched on the OWNING module, not on `a2web.fetcher`. The package re-exports
+# every name for compatibility, but a re-export is a second binding: setting it
+# leaves the definition — and every caller's view of it — untouched. The seam
+# moved with the tree (`decompose-fetcher-into-files` §4); the fake has to move
+# with the seam.
+from a2web.fetcher.retrieval.escalate import archive as archive_mod
+from a2web.fetcher.retrieval.escalate import browser as browser_mod
+from a2web.fetcher.retrieval.escalate import paid as paid_mod
 from a2web.state import AppState
 from tests.conftest import make_default_state
 
@@ -66,7 +75,7 @@ async def test_escalate_browser_is_dispatched_by_the_single_executor(monkeypatch
         del fc, state, scroll
         called.append("browser")
 
-    monkeypatch.setattr(fetcher, "_escalate_browser", _fake_browser)
+    monkeypatch.setattr(browser_mod, "_escalate_browser", _fake_browser)
     fc = _fc()
     result = await _dispatch_action(fc, EscalateBrowser(), state=_state(), post_gate=True)
     assert called == ["browser"]
@@ -81,7 +90,7 @@ async def test_escalate_paid_is_dispatched_by_the_single_executor(monkeypatch: p
         del fc, state, scroll
         called.append("paid")
 
-    monkeypatch.setattr(fetcher, "_escalate_paid", _fake_paid)
+    monkeypatch.setattr(paid_mod, "_escalate_paid", _fake_paid)
     fc = _fc()
     result = await _dispatch_action(fc, EscalatePaid(), state=_state(), post_gate=True)
     assert called == ["paid"]
@@ -95,7 +104,7 @@ async def test_retry_via_archive_tier_walk_variant_stops_on_success(monkeypatch:
         del url, kwargs
         return _ArchiveOutcome(success=True, body=b"<html>archived</html>", content_type="text/html", final_url="u", status_code=200)
 
-    monkeypatch.setattr(fetcher, "_dispatch_archive", _fake_archive)
+    monkeypatch.setattr(archive_mod, "_dispatch_archive", _fake_archive)
     fc = _fc()
     result = await _dispatch_action(fc, RetryViaArchive(url="https://example.com/"), state=_state(), post_gate=False)
     assert result is _Exec.STOP
@@ -117,7 +126,7 @@ async def test_retry_via_archive_post_gate_variant_regates_and_continues(monkeyp
             pre_rendered=fetcher.Rendered(content_md="archived markdown content " * 40),
         )
 
-    monkeypatch.setattr(fetcher, "_dispatch_archive", _fake_archive)
+    monkeypatch.setattr(archive_mod, "_dispatch_archive", _fake_archive)
     fc = _fc()
     before = len(fc.observations)
     result = await _dispatch_action(fc, RetryViaArchive(url="https://example.com/"), state=_state(), post_gate=True)

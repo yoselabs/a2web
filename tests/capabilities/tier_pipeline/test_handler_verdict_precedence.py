@@ -92,7 +92,7 @@ async def test_handler_not_found_survives_downstream_length_floor(monkeypatch: p
     """Deleted page — the handler's `not_found` outranks the raw tier's `length_floor`."""
     monkeypatch.setitem(REGISTRY, "site_handler", _NotFoundHandlerTier())
     monkeypatch.setitem(REGISTRY, "raw", _ThinRawTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     # debug=True — `diagnostics` is debug-only on the wire; the attribute is
     # always populated, but keeping the run in debug mode mirrors real probes.
@@ -109,7 +109,7 @@ async def test_downstream_recovery_wins_over_handler_not_found(monkeypatch: pyte
     body = (FIXTURES_DIR / "blog.html").read_bytes()
     monkeypatch.setitem(REGISTRY, "site_handler", _NotFoundHandlerTier())
     monkeypatch.setitem(REGISTRY, "raw", _RichRawTier(body))
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://reddit.com/r/programming/comments/live/", state=make_default_state())
 
@@ -121,7 +121,7 @@ async def test_downstream_recovery_wins_over_handler_not_found(monkeypatch: pyte
 async def test_no_handler_not_found_leaves_length_floor_untouched(monkeypatch: pytest.MonkeyPatch) -> None:
     """With no handler `not_found` in the fetch, a `length_floor` failure stands as-is."""
     monkeypatch.setitem(REGISTRY, "raw", _ThinRawTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     # No site_handler stub — the real SiteHandlerTier returns no_match for this
     # generic host and is silently skipped, so `handler_not_found` stays False.

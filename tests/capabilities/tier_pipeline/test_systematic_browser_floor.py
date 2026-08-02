@@ -67,7 +67,7 @@ async def test_bare_length_floor_is_thin_unverified_not_walled(monkeypatch: pyte
     """A thin page that ends `length_floor` with NO wall evidence anywhere is an
     honest thin miss (thin-not-wall), not the anti-bot klaxon: status=failed +
     retrieval_incomplete + a WARNING `content_thin`, NEVER critical `try_user_browser`."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _thin_pre_rendered_tier("raw"))
 
     result = await fetch("https://thin.example/x", state=make_default_state(), debug=True)
@@ -88,7 +88,7 @@ async def test_length_floor_after_bare_403_is_thin_unverified(monkeypatch: pytes
     marker anywhere, this is `thin_unverified` (a loud thin miss with the body
     attached), not the critical klaxon. The reliable wall signal is gate markers
     (see `test_thin_downstream_of_wall_stays_walled`), not a status code."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw", "jina"))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
     monkeypatch.setitem(REGISTRY, "raw", _verdict_tier("raw", verdict=Verdict.connection_error, status_code=403))
     monkeypatch.setitem(REGISTRY, "jina", _thin_pre_rendered_tier("jina"))
 
@@ -105,7 +105,7 @@ async def test_length_floor_after_bare_403_is_thin_unverified(monkeypatch: pytes
 async def test_fallthrough_verdicts_prescribe_browser(monkeypatch: pytest.MonkeyPatch, verdict: Verdict) -> None:
     """`proxy_unavailable` and `other` fell through both retired whitelists; the
     systematic floor now covers them — the caller's own browser bypasses our proxy."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _verdict_tier("raw", verdict=verdict, status_code=0))
 
     result = await fetch("https://blocked.example/x", state=make_default_state(), debug=True)
@@ -120,7 +120,7 @@ async def test_content_type_mismatch_is_genuine_gone(monkeypatch: pytest.MonkeyP
     """A retrieved non-HTML resource (`content_type_mismatch`) is NOT a wall — a
     browser won't extract it better — so it carries no `try_user_browser` and is
     not `retrieval_incomplete`."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _verdict_tier("raw", verdict=Verdict.content_type_mismatch, status_code=200))
 
     result = await fetch("https://files.example/report.pdf", state=make_default_state(), debug=True)
@@ -134,7 +134,7 @@ async def test_content_type_mismatch_is_genuine_gone(monkeypatch: pytest.MonkeyP
 async def test_hint_emitted_exactly_once(monkeypatch: pytest.MonkeyPatch) -> None:
     """The floor is a single emission — a persistent wall carries exactly one
     `try_user_browser` hint, never a duplicate."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _verdict_tier("raw", verdict=Verdict.connection_error, status_code=403))
 
     result = await fetch("https://walled.example/x", state=make_default_state(), debug=True)

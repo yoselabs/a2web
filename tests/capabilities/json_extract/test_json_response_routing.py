@@ -47,7 +47,7 @@ class _ExplodingJinaTier:
 def _stub_tiers(monkeypatch: pytest.MonkeyPatch, raw: _JsonApiRawTier) -> None:
     monkeypatch.setitem(REGISTRY, "raw", raw)
     monkeypatch.setitem(REGISTRY, "jina", _ExplodingJinaTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
 
 @pytest.mark.asyncio

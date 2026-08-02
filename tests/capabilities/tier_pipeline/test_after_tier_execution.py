@@ -45,7 +45,7 @@ async def test_arxiv_pdf_rewritten_to_abs(monkeypatch: pytest.MonkeyPatch) -> No
     """
     raw = _CountingRawTier()
     monkeypatch.setitem(REGISTRY, "raw", raw)
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     # Disable arxiv handler so the rewritten /abs/ URL falls through to raw.
     from a2web.handlers import ArxivHandler, _registry, _reset_registry
 
@@ -68,7 +68,7 @@ async def test_rewrite_capped_at_one(monkeypatch: pytest.MonkeyPatch) -> None:
 
     raw = _CountingRawTier()
     monkeypatch.setitem(REGISTRY, "raw", raw)
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
     from a2web.handlers import ArxivHandler, _registry, _reset_registry
 
     _reset_registry()
@@ -118,7 +118,7 @@ class _RecoveringArchiveTier:
 async def test_after_tier_cloudflare_403_dispatches_archive(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(REGISTRY, "raw", _CloudflareBlockedRawTier())
     monkeypatch.setitem(REGISTRY, "archive", _RecoveringArchiveTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://blocked.example/", state=_make_state())
 

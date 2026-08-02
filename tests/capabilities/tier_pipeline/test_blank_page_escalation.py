@@ -66,7 +66,7 @@ class _BlankBrowserTier:
 
 
 def _only_raw(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
 
 
 @pytest.mark.asyncio

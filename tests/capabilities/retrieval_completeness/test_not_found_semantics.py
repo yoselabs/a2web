@@ -31,7 +31,7 @@ def _status_tier(name: str, *, verdict: Verdict, status_code: int) -> object:
 async def test_corroborated_404_is_gone_confirmed_not_walled(monkeypatch: pytest.MonkeyPatch) -> None:
     """raw:404 + jina:404 (both independent) → gone_confirmed: honest not-found,
     INFO hint, NOT retrieval_incomplete, and NO anti-bot `try_user_browser`."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw", "jina"))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
     monkeypatch.setitem(REGISTRY, "raw", _status_tier("raw", verdict=Verdict.not_found, status_code=404))
     monkeypatch.setitem(REGISTRY, "jina", _status_tier("jina", verdict=Verdict.not_found, status_code=404))
 
@@ -49,7 +49,7 @@ async def test_corroborated_404_is_gone_confirmed_not_walled(monkeypatch: pytest
 async def test_uncorroborated_404_is_gone_unverified_with_caveat(monkeypatch: pytest.MonkeyPatch) -> None:
     """A single 404 (jina returns a different failure) → gone_unverified: WARNING
     with the soft-404 caveat, retrieval_incomplete, still NO `try_user_browser`."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw", "jina"))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
     monkeypatch.setitem(REGISTRY, "raw", _status_tier("raw", verdict=Verdict.not_found, status_code=404))
     monkeypatch.setitem(REGISTRY, "jina", _status_tier("jina", verdict=Verdict.rate_limited, status_code=429))
 
@@ -83,7 +83,7 @@ async def test_authoritative_not_found_stays_silent(monkeypatch: pytest.MonkeyPa
                 verdict=Verdict.not_found,
             )
 
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("site_handler",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("site_handler",))
     monkeypatch.setitem(REGISTRY, "site_handler", _AuthoritativeGoneHandler())
 
     result = await fetch("https://www.reddit.com/r/x/comments/deleted/", state=make_default_state(), debug=True)

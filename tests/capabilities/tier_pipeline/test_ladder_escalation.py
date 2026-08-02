@@ -75,7 +75,7 @@ async def test_escalate_to_render_dispatches_paid_and_skips_free_tiers(monkeypat
     monkeypatch.setitem(REGISTRY, "site_handler", _EscalatingSiteTier())
     monkeypatch.setitem(REGISTRY, "raw", _ShellRawTier())
     monkeypatch.setitem(REGISTRY, "zyte", _OkPaidTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://hn.algolia.com/?q=claude", state=make_default_state(), debug=True)
 
@@ -152,7 +152,7 @@ async def test_escalate_to_render_falls_to_browser_when_no_paid_key(monkeypatch:
     monkeypatch.delitem(REGISTRY, "zyte", raising=False)
     monkeypatch.delitem(REGISTRY, "firecrawl", raising=False)
     monkeypatch.setitem(REGISTRY, "browser", _OkBrowserTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://hn.algolia.com/?q=claude", state=make_default_state(), debug=True)
 
@@ -172,7 +172,7 @@ async def test_escalate_to_render_without_paid_or_browser_fails_loud(monkeypatch
     monkeypatch.delitem(REGISTRY, "zyte", raising=False)
     monkeypatch.delitem(REGISTRY, "firecrawl", raising=False)
     monkeypatch.setitem(REGISTRY, "browser", _UnavailableBrowserTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://hn.algolia.com/?q=claude", state=make_default_state(), debug=True)
 
@@ -212,7 +212,7 @@ async def test_bare_length_floor_jina_recovers_via_own_browser(monkeypatch: pyte
     `length_floor` with no fingerprint. a2web must try its OWN browser before
     conceding, not merely prescribe the caller's. The browser render recovers the
     page to `ok` (ADR-0009: a wall is an unfinished job)."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("jina",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("jina",))
     monkeypatch.setitem(REGISTRY, "jina", _ThinJinaTier())
     monkeypatch.setitem(REGISTRY, "browser", _OkBrowserTier())
 
@@ -234,7 +234,7 @@ async def test_bare_length_floor_jina_no_browser_fails_loud(monkeypatch: pytest.
     """A bare-length_floor jina terminal (no wall markers) is still a LOUD miss —
     the browser was attempted, then the caller is told — but as an honest thin
     hedge (`content_thin` warning + attached body), not the anti-bot klaxon."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("jina",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("jina",))
     monkeypatch.setitem(REGISTRY, "jina", _ThinJinaTier())
     monkeypatch.setitem(REGISTRY, "browser", _UnavailableBrowserTier())
 
@@ -261,7 +261,7 @@ async def test_escalate_to_render_browser_walled_still_hints(monkeypatch: pytest
     monkeypatch.delitem(REGISTRY, "zyte", raising=False)
     monkeypatch.delitem(REGISTRY, "firecrawl", raising=False)
     monkeypatch.setitem(REGISTRY, "browser", _WalledBrowserTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://www.reddit.com/r/x/", state=make_default_state(), debug=True)
 

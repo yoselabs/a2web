@@ -62,7 +62,7 @@ def _thin_browser(name: str) -> object:
 
 
 def _install(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _spa_raw())
     monkeypatch.setitem(REGISTRY, "browser", _thin_browser("browser"))
     monkeypatch.setitem(REGISTRY, "browser_robust", _thin_browser("browser_robust"))

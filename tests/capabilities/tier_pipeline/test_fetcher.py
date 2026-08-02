@@ -59,7 +59,7 @@ async def _make_state_with_sqlite(*, settings: AppSettings | None = None) -> App
 def _swap_tier(monkeypatch: pytest.MonkeyPatch, tier: object) -> None:
     """Replace the raw tier in the registry for a single test."""
     monkeypatch.setitem(REGISTRY, "raw", tier)
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
 
 @pytest.mark.asyncio

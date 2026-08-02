@@ -60,7 +60,7 @@ class _RecoveringBrowserTier:
 
 def _only_raw(monkeypatch: pytest.MonkeyPatch) -> None:
     """Isolate the raw→browser path — no site_handler, no jina noise."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
 
 
 @pytest.mark.parametrize(
@@ -141,7 +141,7 @@ async def test_authoritative_not_found_stays_terminal_without_browser(monkeypatc
                 verdict=Verdict.not_found,
             )
 
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("site_handler",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("site_handler",))
     monkeypatch.setitem(REGISTRY, "site_handler", _GoneSiteTier())
     monkeypatch.setitem(REGISTRY, "browser", _RecoveringBrowserTier())
 

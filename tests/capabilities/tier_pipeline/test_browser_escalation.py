@@ -52,7 +52,7 @@ def _make_state() -> AppState:
 async def test_anubis_triggers_browser_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(REGISTRY, "raw", _AnubisRawTier())
     monkeypatch.setitem(REGISTRY, "browser", _RecoveringBrowserTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     # debug=True — inspect diagnostics trace (v0.3 wire-default omits it).
     result = await fetch("https://anubis.example/", state=_make_state(), debug=True)
@@ -69,7 +69,7 @@ async def test_browser_unavailable_surfaces_operator_hint(monkeypatch: pytest.Mo
     """When browser tier is unavailable, original verdict stands + hint surfaces."""
     monkeypatch.setitem(REGISTRY, "raw", _AnubisRawTier())
     # conftest's _UnavailableBrowserTier is in place
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://anubis.example/", state=_make_state())
 
@@ -105,7 +105,7 @@ async def test_browser_internal_error_hint_reaches_response(monkeypatch: pytest.
 
     monkeypatch.setitem(REGISTRY, "raw", _AnubisRawTier())
     monkeypatch.setitem(REGISTRY, "browser", _InternalErrorBrowserTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://anubis.example/", state=_make_state())
 
@@ -149,7 +149,7 @@ async def test_fast_rung_thin_escalates_to_robust(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setitem(REGISTRY, "raw", _AnubisRawTier())
     monkeypatch.setitem(REGISTRY, "browser", _StillBlockedBrowserTier("browser", counter))
     monkeypatch.setitem(REGISTRY, "browser_robust", _RecoveringBrowserTier())  # robust recovers
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://anubis.example/", state=_make_state(), debug=True)
 
@@ -167,7 +167,7 @@ async def test_browser_dispatch_capped_at_two_rungs(monkeypatch: pytest.MonkeyPa
     monkeypatch.setitem(REGISTRY, "raw", _AnubisRawTier())
     monkeypatch.setitem(REGISTRY, "browser", _StillBlockedBrowserTier("browser", counter))
     monkeypatch.setitem(REGISTRY, "browser_robust", _StillBlockedBrowserTier("browser_robust", counter))
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://anubis.example/", state=_make_state())
 

@@ -25,7 +25,10 @@ import ast
 from pathlib import Path
 
 _RESPONSE = Path(__file__).resolve().parents[2] / "src" / "a2web" / "fetcher_response.py"
-_FETCHER = Path(__file__).resolve().parents[2] / "src" / "a2web" / "fetcher.py"
+#: `FetchContext` lives in the tree now (`decompose-fetcher-into-files` §4). Its
+#: own module, not the package: this guard parses a class definition, and the
+#: package `__init__` only re-exports it.
+_FETCHER = Path(__file__).resolve().parents[2] / "src" / "a2web" / "fetcher" / "context.py"
 
 #: Every `fc.<name>` the response builder reads. Frozen 2026-08-01.
 _READS: frozenset[str] = frozenset(

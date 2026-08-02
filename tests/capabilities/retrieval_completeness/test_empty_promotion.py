@@ -77,7 +77,7 @@ def _install_empty_browser(monkeypatch: pytest.MonkeyPatch, *, subresource_block
 async def test_corroborated_empty_promotes_to_ok(monkeypatch: pytest.MonkeyPatch) -> None:
     """raw retrieves the empty body and the browser render corroborates it on a
     search URL, no wall evidence → promoted ok with a synthetic 'no results'."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw"))
     _install_empty_browser(monkeypatch)
 
@@ -101,7 +101,7 @@ async def test_corroborated_empty_promotes_to_ok(monkeypatch: pytest.MonkeyPatch
 async def test_no_browser_corroboration_is_not_promoted(monkeypatch: pytest.MonkeyPatch) -> None:
     """No browser render corroborated the empty (browser unavailable) → the HTTP
     read alone does not promote; it stays a loud thin miss (empty_unverified)."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw"))
     # No browser installed → the real browser tier is unavailable → no regate-empty.
 
@@ -117,7 +117,7 @@ async def test_no_browser_corroboration_is_not_promoted(monkeypatch: pytest.Monk
 async def test_empty_behind_403_is_not_promoted(monkeypatch: pytest.MonkeyPatch) -> None:
     """A 403 anywhere blocks promotion — an empty reading is not credible behind a
     refusal, even if the browser then renders empty."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw", body=b"", verdict=Verdict.connection_error, status_code=403))
     _install_empty_browser(monkeypatch)
 
@@ -130,7 +130,7 @@ async def test_empty_behind_403_is_not_promoted(monkeypatch: pytest.MonkeyPatch)
 @pytest.mark.asyncio
 async def test_non_search_url_is_not_promoted(monkeypatch: pytest.MonkeyPatch) -> None:
     """An empty reading of a non-search route is suspicious — not promoted."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw"))
     _install_empty_browser(monkeypatch)
 
@@ -147,7 +147,7 @@ async def test_promoted_empty_is_never_cached(monkeypatch: pytest.MonkeyPatch) -
     is ok), so cache_write declines it — a wrongly-promoted empty served from cache
     would be a REPEATING silent miss (ADR-0009). Proof: a second fetch of the same
     URL is still a cache MISS (nothing was stored the first time)."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw"))
     _install_empty_browser(monkeypatch)
 
@@ -168,7 +168,7 @@ async def test_walled_api_fake_empty_stays_a_wall(monkeypatch: pytest.MonkeyPatc
     """The browser rendered a benign '0 results' body BUT watched its data API get
     403'd (subresource-block evidence) → a wall, never a promoted empty. The case no
     text reader can catch."""
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", ("raw",))
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw",))
     monkeypatch.setitem(REGISTRY, "raw", _http_tier("raw"))
     _install_empty_browser(monkeypatch, subresource_blocks=1)
 

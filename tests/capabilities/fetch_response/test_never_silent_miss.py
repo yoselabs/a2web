@@ -75,7 +75,7 @@ def test_paid_auth_error_ranks_as_hardest_failure() -> None:
 @pytest.mark.asyncio
 async def test_success_omits_retrieval_incomplete_from_wire(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(REGISTRY, "raw", _OkRawTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://fine.example/", state=make_default_state())
 
@@ -95,7 +95,7 @@ async def test_unknown_walled_host_fails_loud_with_late_hint(monkeypatch: pytest
     """A non-Reddit host that walls after the full ladder emits the late critical
     hint + sets retrieval_incomplete — the miss can never look like success."""
     monkeypatch.setitem(REGISTRY, "raw", _BlockedRawTier())
-    monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
 
     result = await fetch("https://unknown-walled.example/article", state=make_default_state())
 
