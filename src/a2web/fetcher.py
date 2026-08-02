@@ -1028,6 +1028,51 @@ class _Exec(Enum):
     STOP = "stop"  # cascade done — a tier won or archive content installed
 
 
+@dataclass(frozen=True, slots=True)
+class TierInstall:
+    """The transport half of a retrieval result — the six fields every path writes.
+
+    Written by five sites before this type existed, in four different orders and
+    with two of them silently omitting a field. `_install_rendered_fields` already
+    collapsed the CONTENT half after a live bug (`links` added to one of four
+    copies, so `other_pages` was unreachable on the common escalation path) and
+    explicitly left the transport half alone. This is that half.
+
+    What is deliberately NOT here: `etag`/`last_modified` (the tier loop only —
+    they come off response headers no escalation has), the archive snapshot
+    dates, and the handler's measured counts. Those are genuinely per-source, and
+    folding them in would force `install` to invent a clearing semantics — write
+    `etag=None` from the browser path and a conditional-request token acquired
+    upstream disappears. A chokepoint for the duplicated set; not a god-setter.
+    """
+
+    body: bytes
+    content_type: str
+    final_url: str
+    tier_used: str
+    status_code: int
+    pre_rendered: Rendered | None = None
+    #: True when this install lands AFTER `_phase_extract` has run — the
+    #: pipeline-region divergence (design D6), stated rather than implied by
+    #: which function you happened to call. Pre-extract installs put the body
+    #: down and let extraction fill the content half; post-extract installs have
+    #: nothing downstream to fill it, so they must install it here.
+    post_extract: bool = False
+
+
+def install(fc: FetchContext, ti: TierInstall) -> None:
+    """The single write site for the transport half of a retrieval result."""
+    if ti.post_extract:
+        assert ti.pre_rendered is not None  # noqa: S101 — a post-extract install with no content installs nothing
+        _install_rendered_fields(fc, ti.pre_rendered)
+    fc.body = ti.body
+    fc.content_type = ti.content_type
+    fc.final_url = ti.final_url
+    fc.tier_used = ti.tier_used
+    fc.status_code = ti.status_code
+    fc.pre_rendered_payload = ti.pre_rendered
+
+
 def _install_won_tier(
     fc: FetchContext,
     tier_result: TierResult,
@@ -1039,14 +1084,19 @@ def _install_won_tier(
     The tier observation is appended separately by the caller before the
     planner is consulted — this function only installs the content payload.
     """
-    fc.body = tier_result.body
-    fc.content_type = tier_result.content_type
-    fc.status_code = tier_result.status_code
-    fc.final_url = tier_result.final_url
-    fc.tier_used = tier_result.handler_name or (tier.name if hasattr(tier, "name") else tier_name)
+    install(
+        fc,
+        TierInstall(
+            body=tier_result.body,
+            content_type=tier_result.content_type,
+            final_url=tier_result.final_url,
+            tier_used=tier_result.handler_name or (tier.name if hasattr(tier, "name") else tier_name),
+            status_code=tier_result.status_code,
+            pre_rendered=tier_result.pre_rendered,
+        ),
+    )
     fc.etag = tier_result.headers.get("etag")
     fc.last_modified = tier_result.headers.get("last-modified")
-    fc.pre_rendered_payload = tier_result.pre_rendered
     # v0.7 link-discovery: thread Tier-1 candidates from the handler into fc.
     fc.next_links_handler = list(tier_result.next_links)
     # reddit-via-zyte content-expectations: carry a handler's measured counts.
@@ -1071,12 +1121,17 @@ def _install_archive_payload(fc: FetchContext, outcome: _ArchiveOutcome) -> None
     fills `content_md` from `pre_rendered_payload`. Appends the archive's
     winning observation.
     """
-    fc.body = outcome.body
-    fc.content_type = outcome.content_type
-    fc.final_url = outcome.final_url
-    fc.tier_used = "archive"
-    fc.pre_rendered_payload = outcome.pre_rendered
-    fc.status_code = outcome.status_code
+    install(
+        fc,
+        TierInstall(
+            body=outcome.body,
+            content_type=outcome.content_type,
+            final_url=outcome.final_url,
+            tier_used="archive",
+            status_code=outcome.status_code,
+            pre_rendered=outcome.pre_rendered,
+        ),
+    )
     fc.snapshot_age_days = outcome.snapshot_age_days
     fc.snapshot_taken_at = outcome.snapshot_taken_at
     fc.observe(kind=ObservationKind.tier_outcome, source="archive", verdict=Verdict.ok)
@@ -1091,14 +1146,26 @@ def _install_gate_archive(fc: FetchContext, outcome: _ArchiveOutcome) -> None:
     """
     pre = outcome.pre_rendered
     assert pre is not None  # noqa: S101 — narrowed by the caller
-    _install_rendered_fields(fc, pre)
-    fc.body = outcome.body
-    fc.content_type = outcome.content_type
-    fc.final_url = outcome.final_url
-    fc.tier_used = "archive"
+    install(
+        fc,
+        TierInstall(
+            body=outcome.body,
+            content_type=outcome.content_type,
+            final_url=outcome.final_url,
+            tier_used="archive",
+            # NOT set before the chokepoint existed, while the pre-gate sibling
+            # above always set it. Inert today (`fc.status_code` has exactly one
+            # reader, `_phase_cache_write`, which declines archive results
+            # outright) — so this is a trap disarmed, not a behaviour change: the
+            # path was one cacheable-archive decision away from writing a foreign
+            # tier's status into the cache row.
+            status_code=outcome.status_code,
+            pre_rendered=pre,
+            post_extract=True,
+        ),
+    )
     fc.snapshot_age_days = outcome.snapshot_age_days
     fc.snapshot_taken_at = outcome.snapshot_taken_at
-    fc.pre_rendered_payload = pre
 
 
 def _planner_caps(fc: FetchContext) -> PlannerCaps:
@@ -1382,9 +1449,14 @@ def _install_rendered_fields(fc: FetchContext, pre: Rendered) -> None:
     not the install. One copy is what makes a guard's coverage honest: there is
     now a single line to get wrong.
 
-    Transport fields (`body`, `content_type`, `final_url`, `tier_used`,
-    `status_code`) are deliberately NOT here. The escalation paths set them from
-    their tier result; `_phase_extract` must not touch them.
+    The transport half used to be excluded from here with the note that "the
+    escalation paths set them from their tier result". That was true and was the
+    problem: five paths set them, in four orders, one of them omitting
+    `status_code`. `TierInstall` + `install` is now that half's single site, and
+    `install(post_extract=True)` calls THIS function — so a post-extract path
+    gets both halves from one call. `_phase_extract` still calls this one alone,
+    which is the reason the split exists: on the pre-extract path the transport
+    fields are already down and extraction only fills the content.
     """
     fc.content_md = pre.content_md
     fc.title = pre.title
@@ -2353,13 +2425,18 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
         )
     browser_pre = browser_result.pre_rendered
     if browser_result.verdict == Verdict.ok and browser_pre is not None:
-        _install_rendered_fields(fc, browser_pre)
-        fc.body = browser_result.body
-        fc.content_type = browser_result.content_type
-        fc.final_url = browser_result.final_url
-        fc.tier_used = rung
-        fc.pre_rendered_payload = browser_pre
-        fc.status_code = browser_result.status_code
+        install(
+            fc,
+            TierInstall(
+                body=browser_result.body,
+                content_type=browser_result.content_type,
+                final_url=browser_result.final_url,
+                tier_used=rung,
+                status_code=browser_result.status_code,
+                pre_rendered=browser_pre,
+                post_extract=True,
+            ),
+        )
         # When browser-rendered markdown is under-extracted (Trendyol pattern —
         # __NEXT_DATA__ exposed post-hydration, or a server-rendered listing
         # trafilatura guts), run the extraction-escalation ladder against the
@@ -2459,13 +2536,18 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = Fa
 
         pre = result.pre_rendered
         if result.verdict is Verdict.ok and pre is not None:
-            _install_rendered_fields(fc, pre)
-            fc.body = result.body
-            fc.content_type = result.content_type
-            fc.final_url = result.final_url
-            fc.tier_used = tier_name
-            fc.pre_rendered_payload = pre
-            fc.status_code = result.status_code
+            install(
+                fc,
+                TierInstall(
+                    body=result.body,
+                    content_type=result.content_type,
+                    final_url=result.final_url,
+                    tier_used=tier_name,
+                    status_code=result.status_code,
+                    pre_rendered=pre,
+                    post_extract=True,
+                ),
+            )
             fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.ok)
             # An HTML-returning paid tier (Zyte `browserHtml`) hands back a full
             # rendered page — a straight markdown conversion carries SPA nav +

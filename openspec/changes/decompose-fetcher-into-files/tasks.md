@@ -114,19 +114,63 @@ sufficiency) are the same table read down two columns — which is the proposal'
 claim, now measured against the current file rather than the one it was written
 against.
 
-## 2. Phase one — the install chokepoint
+## 2. Phase one — the install chokepoint — DONE 2026-08-02
 
-- [ ] 2.1 Define `TierInstall` carrying all six transport fields (`body`,
-      `content_type`, `final_url`, `tier_used`, `pre_rendered_payload`,
-      `status_code`).
-- [ ] 2.2 Write `install(ctx, TierInstall)` as the single write site.
-- [ ] 2.3 Convert all five install sites (`:1254`, `:1062`, `:1058`,
-      `:2136-2151`, `:2236-2253`) to it.
-- [ ] 2.4 Verify `_install_gate_archive` now sets `status_code` — it does not
-      today.
-- [ ] 2.5 Retire `_install_rendered_fields`' exclusion of the transport half
-      (`:1279-1281`) and update its docstring, which currently confesses the
-      content-half history.
+- [x] 2.1 `TierInstall` is a frozen slotted dataclass carrying the six transport
+      fields plus one flag. **Deliberately NOT carrying the rest.** `etag` /
+      `last_modified` (tier loop only — response headers no escalation has), the
+      archive snapshot dates, and a handler's measured counts stay at their
+      sites, because folding them in would force `install` to invent a CLEARING
+      semantics: `TierInstall(etag=None)` from the browser path would erase a
+      conditional-request token acquired upstream. A chokepoint for the
+      duplicated set is a chokepoint; a chokepoint for every field a tier
+      touches is a god-setter that must then re-grow presence guards.
+      The flag is `post_extract: bool`, and it makes design D6's
+      "pipeline-region divergence" a stated field instead of a property of which
+      function you happened to call. Pre-extract installs put the body down and
+      let extraction fill the content half; post-extract installs have nothing
+      downstream to fill it, so `install` calls `_install_rendered_fields`
+      itself. The two halves come from one call at the three post-extract sites.
+- [x] 2.2 `install(fc, ti)` is the single write site.
+- [x] 2.3 All five converted. Line numbers re-derived (the cited ones were from
+      the 2771-line file): `_install_won_tier`, `_install_archive_payload`,
+      `_install_gate_archive`, `_escalate_browser`, `_escalate_paid`.
+      One dead write fell out: `_install_won_tier` was assigning
+      `pre_rendered_payload` twice.
+- [x] 2.4 **It does now — and the honest report is that the omission was INERT.**
+      `fc.status_code` has exactly ONE reader in the whole tree
+      (`_phase_cache_write`'s cache-row column), and cache_write declines archive
+      results outright, so the missing write could not be observed today. This is
+      a trap disarmed, not a bug fixed: the path was one cacheable-archive
+      decision away from writing a foreign tier's status into the cache row, and
+      its pre-gate sibling `_install_archive_payload` always set it — two archive
+      paths disagreeing for no reason anybody chose.
+      Said plainly because the alternative is to bank an unearned bug fix: the
+      chokepoint's value here is that the divergence is now unexpressible, not
+      that a live defect was repaired.
+- [x] 2.5 Retired. The docstring no longer says the transport fields are
+      "deliberately NOT here" — it says WHY the split survives at all, which is
+      that `_phase_extract` still calls `_install_rendered_fields` alone: on the
+      pre-extract path the transport fields are already down and extraction only
+      fills the content.
+- [x] 2.6 **Added, unplanned: `tests/architecture/test_transport_install_chokepoint.py`.**
+      The collapse is worth nothing if a sixth writer can appear — that is
+      exactly how the content half got four copies, and its guard could not see
+      it because it tested the extraction seam rather than the install.
+      Three tests: only `install` writes the set; `install` writes EVERY field
+      `TierInstall` declares (a declared-but-unassigned field is worse than an
+      absent one — the caller passes it, reads the type as the contract, and the
+      value goes nowhere); and every exemption still writes something, so a
+      stale entry cannot silently pre-authorise the next function to take that
+      name. Both behavioural tests reversion-verified.
+      **The guard found a sixth writer on its first run**, which is the argument
+      for having it: `_dispatch_action`'s `RewriteUrl` branch writes `final_url`
+      — legitimately, because there it means "where we are about to look" rather
+      than "where a tier landed" — and nothing named it. Three exemptions total,
+      each with its reason: the URL rewrite, the conditional-304 cache reuse (no
+      tier result exists to install, and `status_code = 200` is a logical hit
+      rather than anything a server said), and `_phase_extract`'s JSON-body
+      synthesis.
 
 ## 3. Phase one — the loop
 
