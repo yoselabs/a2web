@@ -154,6 +154,37 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
 - [ ] 7.1 Route `tiers/jina.py:18, 133-155` through `http_fetch` — it gains
       impersonation, conditional GET, the circuit breaker, and the `FetchVerdict`
       closed enum, none of which it has today.
+      **BLOCKED ON — no, PRECEDED BY — a defect this task's own premise
+      surfaced.** Verifying what jina "gains" found that one of the four gains
+      did not exist: `http_fetch`'s injected circuit breaker NEVER OPENED. It
+      runs its work inside `async with breaker`, and a breaker counts what
+      RAISES in its context; `_do` never raises, because mapping every transport
+      failure to a `FetchVerdict` and returning normally is its whole contract.
+      Measured against a real `purgatory` breaker rather than reasoned about:
+      five consecutive connection failures at `default_threshold=2` left it
+      `state=closed`, `failure_count=0`. Every consumer passing `breaker=` —
+      a2web's raw tier and every handler — was carrying a decoration, and
+      CLAUDE.md's "`purgatory` for circuit breakers (per-host, per-proxy,
+      global)" was false with zero enforcement in either repo.
+      Fixed in the shelf as `http-fetch-v0.3.0` (ledger 0081) and adopted; the
+      a2web floor is now `>=0.3` with the reason inline in `pyproject.toml`.
+      Witnessed from BOTH sides deliberately: http-fetch pins the mechanism with
+      a counting fake (the package must not depend on one breaker library),
+      a2web pins the claim with REAL purgatory driven through `RawTier`
+      (`tests/capabilities/raw_tier/test_breaker_opens.py`) — a fake breaker
+      encodes the same assumption as the code, which is exactly how the
+      pre-existing `_FakeBreaker` asserting `entered is True` passed for the
+      defect's entire life. Reversion-verified on both sides.
+      Also decided while probing, to be applied when 7.1 lands: jina must
+      breaker on `r.jina.ai`, NOT the target host. A target-host breaker would
+      be SHARED with the raw tier, so a host that failed on raw would
+      short-circuit jina before it was tried — the ladder's second rung disabled
+      by the first rung's failure. And jina must keep DELETING
+      `conditional_extras`: a2web's cache is keyed `(url, profile_hash)` with no
+      record of which tier produced the entry, so forwarding a raw-origin ETag
+      to `r.jina.ai` would be a conditional request about a different resource.
+      The task line's "it gains conditional GET" is wrong and must not be
+      implemented.
 - [ ] 7.2 Decide the `zyte`/`firecrawl` question: widen `http_fetch` to POST, or
       record them as an explicit exception (design Open Questions). They POST to
       JSON APIs; `http_fetch` is GET-only.

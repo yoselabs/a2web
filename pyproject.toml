@@ -59,7 +59,17 @@ dependencies = [
     # http-fetch: the shared HTTP GET primitive (browser TLS impersonation,
     # conditional GET, injected proxy + breaker, closed-verdict mapping) —
     # promoted to the shelf and adopted back (was src/a2web/packages/http_fetch).
-    "http-fetch>=0.1,<1",
+    #
+    # The >=0.3 floor is load-bearing, not hygiene. Before v0.3.0 the injected
+    # breaker NEVER OPENED — `fetch_bytes` ran its work inside `async with
+    # breaker`, but the work never raised, so the breaker exited cleanly on
+    # every call and could not accumulate a failure. a2web passes `breaker=`
+    # from `state.breakers` on the raw tier and in every handler, and CLAUDE.md
+    # states "`purgatory` for circuit breakers (per-host, per-proxy, global)":
+    # on <0.3 all of that is a decoration. Pinned from this side by
+    # `tests/capabilities/raw_tier/test_breaker_opens.py`, which drives a REAL
+    # purgatory breaker rather than a fake.
+    "http-fetch>=0.3,<1",
     # sqlite-resource + http-cache: the shared sqlite connection lifecycle and the
     # conditional-GET cache mechanics — promoted to the shelf and adopted back (was
     # src/a2web/packages/http_cache). a2web composes them at the src/a2web/cache.py
@@ -242,7 +252,7 @@ a2web-serve = "a2web.server:serve_http_main"
 [tool.uv.sources]
 a2effect = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/a2effect", tag = "a2effect-v0.1.0" }
 lean-wire = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/lean-wire", tag = "lean-wire-v0.3.0" }
-http-fetch = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-fetch", tag = "http-fetch-v0.2.0" }
+http-fetch = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-fetch", tag = "http-fetch-v0.3.0" }
 sqlite-resource = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/sqlite-resource", tag = "sqlite-resource-v0.1.0" }
 http-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/http-cache", tag = "http-cache-v0.1.0" }
 json-in-html = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/json-in-html", tag = "json-in-html-v0.1.0" }

@@ -108,7 +108,7 @@ requires-dist = [
     { name = "gidgethub", specifier = ">=5.4,<6" },
     { name = "html-fragment", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhtml-fragment&tag=html-fragment-v0.1.0" },
     { name = "http-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-cache&tag=http-cache-v0.1.0" },
-    { name = "http-fetch", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.2.0" },
+    { name = "http-fetch", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.3.0" },
     { name = "httpx", specifier = ">=0.27,<1" },
     { name = "json-in-html", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.1.0" },
     { name = "lean-wire", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.3.0" },
@@ -1290,8 +1290,8 @@ dependencies = [
 
 [[package]]
 name = "http-fetch"
-version = "0.2.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.2.0#28ed06738ea3a5cdc21ab295d95c9fe026264c3a" }
+version = "0.3.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.3.0#1fcaf98cbc5464e37d0a7c1160fa19e4b7ac781b" }
 dependencies = [
     { name = "curl-cffi" },
 ]
