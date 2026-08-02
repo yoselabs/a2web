@@ -110,6 +110,42 @@ ADR-0016):
 Cost, stated honestly: the entity block adds **~+132 completion tokens per call
 (~+85%)**, which are not cached.
 
+### Counter-evidence — the `_ENTITY_TYPES` ceiling is CHEAP today
+
+`eval/spikes/entity_type_ceiling_probe.py` counted what live pages actually
+publish, over 26 corpus URLs, with no LLM involved:
+
+```
+  pages fetched            : 26
+  pages publishing JSON-LD :  5
+  pages losing >=1 type    :  2      <- the measured cost of the ceiling
+  KEPT    : Article x2, Product x2
+  DROPPED : Review x1, WebSite x1
+```
+
+**This does not support the strong form of the complaint.** `I0269` (and the
+first draft of this ADR) implied the eight-name allowlist is discarding a lot.
+On a2web's own corpus it discards **two types across twenty-six pages**, one of
+which (`WebSite`) is arguably chrome. The `Person` / `JobPosting` / `Course` /
+`Dataset` pages the argument leans on **do not appear in this corpus at all**.
+
+Two caveats that cut in opposite directions and are both real: the corpus is
+a2web's regression set (commerce, forums, wikipedia), not a sample of the web,
+so it under-represents job boards, course catalogues, and profile pages; and
+only 5 of 26 pages exposed JSON-LD to the `raw` tier at all, because many are
+walled or render it client-side.
+
+**So the case for demoting the allowlist rests on the principle and the
+asymmetry, NOT on a measured pile of losses.** Removing a gate that currently
+gates almost nothing costs almost nothing; keeping it means the next
+`JobPosting` page is lost silently, with no signal that anything was dropped.
+That is a good trade, and it is a *weaker* argument than "we are losing content
+today" — which is not true, and should not be claimed.
+
+One concrete loss did occur and is worth naming: a `Review` block on a commerce
+product page was dropped, on a corpus entry whose whole purpose is
+review-related questions.
+
 ## Placement — CLAUDE.md + this ADR, NOT CONSTITUTION.md
 
 Per the ADR-0009 / 0012 / 0014 / 0015 precedent: a single project's product

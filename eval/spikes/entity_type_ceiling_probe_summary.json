@@ -1,0 +1,249 @@
+{
+  "allowlist": [
+    "Article",
+    "ContactPoint",
+    "Event",
+    "LocalBusiness",
+    "NewsArticle",
+    "Organization",
+    "Product",
+    "Recipe"
+  ],
+  "n_pages": 26,
+  "n_with_ld_json": 5,
+  "n_with_a_dropped_type": 2,
+  "kept_types": {
+    "Article": 2,
+    "Product": 2
+  },
+  "dropped_types": {
+    "Review": 1,
+    "WebSite": 1
+  },
+  "handled_elsewhere": {},
+  "rows": [
+    {
+      "slug": "hn-front",
+      "url": "https://news.ycombinator.com/",
+      "class": "listing",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "reddit-listing",
+      "url": "https://www.reddit.com/r/LocalLLaMA/",
+      "class": "listing",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "arxiv-listing-partial",
+      "url": "https://arxiv.org/list/cs.CL/recent",
+      "class": "listing",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "pypi-httpx",
+      "url": "https://pypi.org/project/httpx/",
+      "class": "listing",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "gh-trending",
+      "url": "https://github.com/trending/python?since=daily",
+      "class": "listing",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "lobste-active",
+      "url": "https://lobste.rs/active",
+      "class": "listing",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "reddit-comments",
+      "url": "https://www.reddit.com/r/programming/comments/ddlc78/comments_should_be_sentences/",
+      "class": "comments",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "reddit-iem-compare",
+      "url": "https://www.reddit.com/r/inearfidelity/comments/1egsngc/confused_between_moondrop_starfield_2_and_the/",
+      "class": "comments",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "hn-item",
+      "url": "https://news.ycombinator.com/item?id=9224",
+      "class": "comments",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "wikipedia-rust",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "class": "clean",
+      "verdict": "ok",
+      "types": [
+        "Article"
+      ],
+      "dropped": []
+    },
+    {
+      "slug": "arxiv-abstract",
+      "url": "https://arxiv.org/abs/2401.05566",
+      "class": "clean",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "medium-tag",
+      "url": "https://medium.com/tag/programming",
+      "class": "gated",
+      "verdict": "connection_error",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "g2-crm-wall",
+      "url": "https://www.g2.com/categories/crm",
+      "class": "gated",
+      "verdict": "connection_error",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "spa-react-dev",
+      "url": "https://react.dev/",
+      "class": "spa",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "hepsiburada-product-reviews",
+      "url": "https://www.hepsiburada.com/wilkinson-sword-wilkinson-swrod-hydro-5-ultimate-erkek-tiras-bicagi-sap-baslik-pm-HBC0000FWLZQH",
+      "class": "affordance",
+      "verdict": "ok",
+      "types": [
+        "Product"
+      ],
+      "dropped": []
+    },
+    {
+      "slug": "fetch-deadline-reports-an-unfinished-job",
+      "url": "https://en.wikipedia.org/wiki/Web_scraping",
+      "class": "affordance",
+      "verdict": "ok",
+      "types": [
+        "Article"
+      ],
+      "dropped": []
+    },
+    {
+      "slug": "other-pages-carries-the-real-kind-and-anchor",
+      "url": "https://news.ycombinator.com/item?id=44444444",
+      "class": "affordance",
+      "verdict": "rate_limited",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "json-ld-itemlist-leaves-an-index",
+      "url": "https://www.hepsiburada.com/ara?q=bluetooth+kulaklik",
+      "class": "affordance",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "hepsiburada-reviews-drilldown-on-page",
+      "url": "https://www.hepsiburada.com/bic-flex-5-tiras-bicagi-6-yedek-tiras-bicagi-canta-p-HBCV00001XNOZN",
+      "class": "affordance",
+      "verdict": "ok",
+      "types": [
+        "Product",
+        "Review"
+      ],
+      "dropped": [
+        "Review"
+      ]
+    },
+    {
+      "slug": "amazon-product-reviews-elsewhere",
+      "url": "https://www.amazon.com/dp/B0CHX1W1XY",
+      "class": "affordance",
+      "verdict": "not_found",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "koctas-product-spa-thin-fetch",
+      "url": "https://www.koctas.com.tr/einhell-te-cd-18-48-li-i-darbeli-matkap-125-ah-starter-kit/p/5001125801",
+      "class": "spa",
+      "verdict": "connection_error",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "trendyol-listing-which-best",
+      "url": "https://www.trendyol.com/sr?q=bluetooth+kulaklik",
+      "class": "affordance",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "github-repo-issues-affordance",
+      "url": "https://github.com/astral-sh/ruff",
+      "class": "affordance",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "contact-page-channels",
+      "url": "https://www.python.org/about/help/",
+      "class": "affordance",
+      "verdict": "ok",
+      "types": [
+        "WebSite"
+      ],
+      "dropped": [
+        "WebSite"
+      ]
+    },
+    {
+      "slug": "incehesap-404-dead-search-url",
+      "url": "https://www.incehesap.com/arama/?kelime=deepcool+ch160+plus",
+      "class": "gated",
+      "verdict": "not_found",
+      "types": [],
+      "dropped": []
+    },
+    {
+      "slug": "trendyol-200-soft-404-empty-results",
+      "url": "https://www.trendyol.com/sr?q=zzzqqxnonexistentproduct12345",
+      "class": "gated",
+      "verdict": "ok",
+      "types": [],
+      "dropped": []
+    }
+  ]
+}

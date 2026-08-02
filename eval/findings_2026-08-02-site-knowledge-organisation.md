@@ -179,7 +179,7 @@ imports and the boundary holds.
 
 | site | what it is | verdict |
 |---|---|---|
-| `_ENTITY_TYPES` `:96` | 8-name schema.org allowlist; `Person`/`JobPosting`/`Course`/`Dataset` render as **nothing** | **the ceiling** — demote to a label table (ADR-0018) |
+| `_ENTITY_TYPES` `:96` | 8-name schema.org allowlist; `Person`/`JobPosting`/`Course`/`Dataset` render as **nothing** | the ceiling — demote to a label table (ADR-0018). **But measured cost is small: 2 dropped types over 26 pages** (`entity_type_ceiling_probe`). Do it on principle + asymmetry, not on a claimed pile of losses |
 | `_normalize_commerce_row` `:346` | lifts `offers.price` + `priceCurrency` → `"3690 TRY"`, `aggregateRating.ratingValue` → `rating` | domain logic in a generic package. **Useful — relocate, never delete** |
 | `_is_commerce_shaped` `:372` | ≥½ rows carry `price`/`url` → route to record rendering | same |
 | `_RECIPE_LABELS` `:277` | label table, already demoted to gating nothing (2026-08-01) | **already correct** — this is the model the other two should follow |
