@@ -261,11 +261,15 @@ against.
       call became indirect. The constraint had not changed, so the guard
       followed the indirection rather than being deleted — which is the whole
       reason it was written before any cutting.
-- [ ] 3.6 Confirm the `retrieval → comprehension` import cycle is gone. The cycle
-      was the loop; if it survives, the loop was not modelled.
-      **Deferred to §4** — there are no files yet for a cycle to exist between.
-      The loop is modelled (`escalate` → `_comprehend`, one direction), so the
-      prediction is that the split is now possible; §4 is the test of it.
+- [x] 3.6 **Confirmed after §4, and the prediction held: zero cycles.** A DFS
+      over every relative import in the tree finds no cycle at file granularity —
+      the first measurement, taken before the loop was modelled, found one
+      (`install` ↔ `escalate.archive`), which is what §3.6 predicted the loop
+      WAS. At GROUP granularity `retrieval` and `comprehension` still name each
+      other, and that is not a residual cycle: `comprehension/extract.py` imports
+      `retrieval/install.py`, a leaf that imports nothing back. The direction that
+      mattered — comprehension reaching back INTO escalation — is gone, and
+      `escalate → _comprehend` is one-way.
 - [x] 3.7 **Partly. The cap is now single-sited and the four claimants share one
       predicate; the PRECEDENCE is stated rather than changed — and saying so is
       the honest half.**
@@ -286,47 +290,141 @@ against.
       (an obstacle render arguably beats a listing scroll on value per dollar)
       is a behaviour change and belongs to its own change.
 
-## 4. Phase one — the tree
+## 4. Phase one — the tree — DONE 2026-08-02
 
-- [ ] 4.1 `fetcher.py` → `fetcher/` per the design's tree. `FetchContext` stays
-      whole in `context.py`.
-- [ ] 4.2 Split `retrieval/`: `cache`, `conditional` (the 304 path, out of
-      tier_walk), `cookies`, `proxy_lease` (out of tier_walk), `tier_walk`,
-      `install`, `escalate/`.
-- [ ] 4.3 Split `comprehension/`: `prerendered` and `json_synth` out of the
-      ladder; `ladder`, `gate`, `menu`.
-- [ ] 4.4 Create `sufficiency/completeness.py` — the question has no name today.
-- [ ] 4.5 Split `answer/`: `digest`, `prompt_call` and `obstacle` out of extract,
-      `links`.
-- [ ] 4.6 Create `verdict/` with the promotion chain and terminal **together** —
-      they are mutually exclusive by early return and must not be separated.
-- [ ] 4.7 Confirm no file exceeds 300 lines. Largest expected is `context.py` at
-      281, then `menu.py` at 191.
+Cut by line range rather than by re-authoring, so every comment travelled with
+the node it explains. 3018 lines → 24 modules under five groups named for the
+question each answers.
 
-## 5. Phase one — the residual-ordering guard
+- [x] 4.1 Done. `FetchContext` stays whole in `context.py` — phase two.
+- [x] 4.2 **Five of seven.** `cache`, `cookies`, `tier_walk`, `install`,
+      `escalate/` (five modules: `archive`, `browser`, `paid`, `seam`, `loop`).
+      `conditional` and `proxy_lease` were NOT split out of `tier_walk`, and the
+      honest reason is that neither is a unit: the 304 path is four lines inside
+      the tier loop's body that read a cache row the same function already holds,
+      and the proxy lease is a `with` block wrapping the dispatch. Extracting
+      either means inventing a parameter object to carry the loop state across
+      the seam — the god-setter shape §2.1 refused. Recorded as a deliberate
+      shortfall, not an oversight; `tier_walk.py` is the largest non-context
+      module at 348 lines because of it.
+- [x] 4.3 **Three of five, same reason.** `ladder`, `gate`, `menu`, plus
+      `extract`. `prerendered` and `json_synth` stayed inside the ladder: they
+      are the ladder's two rungs and each is a single function that writes the
+      candidate list the ladder owns.
+- [x] 4.4 Done — `sufficiency/completeness.py`. The question ADR-0015 exists to
+      answer now has a directory with its name on it.
+- [x] 4.5 Done — `answer/{links,digest,prompt_call,obstacle}.py`.
+- [x] 4.6 Done — `verdict/{promotions,terminal}.py`, in one directory. They are
+      mutually exclusive by early return, so the group is the unit.
+- [x] 4.7 **Not met, and the estimate was wrong in a way worth stating.** Three
+      files exceed 300 lines: `__init__.py` at 499, `context.py` at 425, and
+      `tier_walk.py` at 348. Two of the three are explained above (context is
+      phase two; tier_walk is 4.2's shortfall). The third is the compat surface:
+      `__init__.py` re-exports 98 names so `from a2web.fetcher import X` keeps
+      working, and 98 of its 499 lines are an `__all__` declaring that surface
+      rather than logic. The design's "281 lines" for `context.py` was measured
+      against the 2771-line file; it is 425 today for the same reason the whole
+      file was 3018 — it grew in the interval.
+      Median module is 136 lines. `fetch` itself, the entry point, is 30.
 
-- [ ] 5.1 Write the **one architecture test** covering the hazards the rejected
-      Stage protocol would have made unexpressible: the paid budget resolved by
-      call order, `fc.record_count` never resetting (`:1725-1732`, no
-      `else: None`), `_install_gate_archive` not setting `status_code`.
-- [ ] 5.2 Assert it is non-vacuous — it must be observed failing.
-- [ ] 5.3 **If this test proves hard to write, reopen the Stage-protocol
-      decision** rather than skipping the test and living with the convention.
-      That is the tripwire the design committed to.
+## 5. Phase one — the residual-ordering guard — DONE 2026-08-02
+
+- [x] 5.1 `tests/architecture/test_fetcher_residual_ordering.py`, registered in
+      `docs/architecture/README.md`. Three tests, one per hazard.
+      **The paid budget** — no function reads `fc.paid_dispatches` outside the
+      predicate, and every claimant the precedence docstring names must exist AND
+      still ask. The table records HOW each asks, because they do not all ask the
+      same way: `_decide_paid_last_resort` lives in `actions/playbook.py`, the
+      pure module both sides import, so it can see `PAID_DISPATCH_CAP` but not
+      the fetcher-side predicate. Writing the guard is what surfaced that — the
+      first version assumed one spelling and named `_dispatch_action`, which
+      dispatches the action the planner already decided.
+      **Re-comprehension staleness** — a ledger of every field the second
+      comprehension pass can leave holding the first pass's value. The
+      discrimination is "written, and never re-derived": a field assigned
+      unconditionally, or assigned a clearing constant on some path, is
+      recomputed each pass; anything else is carried. Four fields, two intended
+      (`next_links_handler`, `record_set` — producer-claim precedence) and two
+      **not**, which is a finding the task did not predict: `record_count` (the
+      one §5.1 named) plus **`regex_oracle_total`**, which is worse in a small
+      way — `_apply_llm_listing_oracle` stands down on exactly that field, so a
+      stale total from a replaced body silently disables the language-agnostic
+      LLM superset. Filed in `BACKLOG.md`; both are behaviour changes.
+      **The archive install pair** — subsumed by §2's chokepoint, asserted by
+      name so §5.1's third hazard is closed rather than assumed.
+- [x] 5.2 All three reversion-verified: swapping `paid_budget_available(fc)` back
+      to a `< 1` literal in `_obstacle_wants_render`; deleting §3.4's symmetric
+      clear (`items_loaded`/`items_total` appear as undeclared sticky fields —
+      the guard catches the exact regression §3.4 fixed); hand-writing
+      `_install_gate_archive`'s fields instead of calling `install`. Each observed
+      failing, each reverted. Both walks also carry their own floors: the field
+      walk asserts it found writes AND found re-derived writes, because if the
+      renewal discrimination matched nothing every field would read as sticky and
+      the ledger would be measuring the wrong thing.
+- [x] 5.3 **Tripwire not tripped — the Stage-protocol decision stands.** The test
+      was not hard to write; it took one file and three walks. Stated plainly
+      because the tripwire only means something if it could have fired: what made
+      it easy is that §2 and §3 had already collapsed two of the three hazards
+      into chokepoints, so the guard mostly had to assert that the chokepoints are
+      the only path. A Stage protocol would have bought the third (field
+      staleness) structurally, by handing each pass a fresh output object; the
+      substitute here is that the set is closed and named.
 
 ## 6. Phase one — close out
 
-- [ ] 6.1 `make check` green. Any behaviour change other than the ladder-skip fix
-      is a defect in the move.
-- [ ] 6.2 `make bench` — tier routing and escalation are stated triggers.
-- [ ] 6.3 Add a corpus case for the archive-post-gate path producing
-      `content_candidates` / `other_pages` / `record_count`, which it does not
-      today.
-- [ ] 6.4 Update CLAUDE.md's pipeline description — it says `_run_pipeline` is "a
-      12-line coordinator calling six named phases"; it is 47 lines calling
-      twelve, and `_phase_cache_write` is not terminal.
-- [ ] 6.5 Confirm the growth curve claim can now be tested: record the line
-      counts so a future scan can tell whether the seam held.
+- [x] 6.1 Green: **1520 passed, 2 deselected, 1 xfailed, 91.84% coverage, 152
+      tach tests.** The only behaviour change is D7's ladder skip.
+      Landing it cost seven full-suite rounds and ~30 tool calls against a
+      ~3-minute task, which is itself a finding: the breakage was greppable
+      before the first run. Two classes, both about test SEAMS rather than
+      behaviour. **Patch targets on the package instead of the owning module** —
+      a re-export is a second binding, so `monkeypatch.setattr(fetcher, name,
+      fake)` leaves the definition and every caller's view untouched. And
+      **`monkeypatch.setattr("a2web.fetcher.TIER_ORDER", TIER_ORDER)`**, of which
+      most instances were patching a value back to itself; the split only made
+      two of them visibly inert, and those two were asserting *the browser is NOT
+      dispatched* and had been passing for the wrong reason the whole time.
+- [ ] 6.2 **NOT run — operator's call.** `make bench` is live-network and spends
+      LLM quota, so it is deliberately outside `make check`. Tier routing and
+      escalation ARE stated triggers and this change touched both, so the honest
+      status is "owed", not "not applicable". The four-axis harness tests under
+      `tests/capabilities/output_benchmark/` ran green in 6.1, which keeps the
+      harness from rotting but says nothing about output quality.
+- [x] 6.3 `walled-listing-recovered-via-archive` — a walled news ARCHIVE INDEX,
+      recovered from Wayback. Both structural facts verified before writing the
+      entry rather than assumed: the live URL 401s to server-side clients (which
+      is what forces the planner's `RetryViaArchive`), and the CDX API returns
+      200-status snapshots back to 2007 (which is what makes recovery possible).
+      A listing is the right shape for this cell because the starved consumers
+      are all index consumers — an uncomprehended snapshot cannot emit
+      `other_pages` at all, so the failure is visible in the wire rather than
+      only in the prose.
+- [x] 6.4 Done during §4 — CLAUDE.md's `src/a2web/fetcher.py` line is now a
+      description of `src/a2web/fetcher/` naming the two load-bearing seams
+      (`install`, `escalate`) and the module-not-name rule. The "12-line
+      coordinator" sentence it was supposed to correct is gone with it.
+- [x] 6.5 Baseline recorded, 2026-08-02, immediately post-split:
+
+      | module | lines |
+      |---|---|
+      | `fetcher/__init__.py` | 499 |
+      | `fetcher/context.py` | 425 |
+      | `fetcher/retrieval/tier_walk.py` | 348 |
+      | `fetcher/comprehension/ladder.py` | 237 |
+      | `fetcher/answer/prompt_call.py` | 198 |
+      | *(19 more)* | ≤ 168 |
+      | **total** | **3893** |
+
+      Median 136. The pre-split file was 3018 lines in one module; the tree is
+      3893 across 24, and the +875 is the split's own cost — per-module
+      docstrings, the import headers each module needs, and the 98-name
+      `__all__` compat surface in `__init__.py`.
+      **What a future scan should ask is not "did the total grow".** The
+      proposal's claim was that a single file grows monotonically because there
+      is no cost to adding to it. The test of the seam is whether the growth is
+      DISTRIBUTED: if `tier_walk.py` is 600 lines in six months while the median
+      holds, the group boundaries worked and one module needs cutting; if every
+      module grew evenly, they did not.
 
 ## 7. Phase two — BLOCKED on `unify-the-response-contract`
 

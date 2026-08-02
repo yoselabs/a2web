@@ -731,3 +731,38 @@ urls:
       - "If the wall was not passed, the miss is LOUD — retrieval incomplete plus a critical try-your-own-browser hint (ADR-0009)"
       - "The critical severity is legible in the agent-facing output, not only in the machine channel — a hint's severity must never be dropped because another hint omitted it"
       - "Does NOT fabricate reviewer quotes or pricing figures"
+
+  - slug: walled-listing-recovered-via-archive
+    # The archive-post-gate comprehension gap, cased
+    # (`decompose-fetcher-into-files` §6.3, 2026-08-02). This is the FIFTH copy
+    # of the ladder skip and the only one that ran NO comprehension at all: the
+    # post-gate archive path installed a snapshot, skipped both the extraction
+    # ladder and the sufficiency check, and then re-gated anyway — reporting a
+    # verdict over content nothing had read.
+    #
+    # What that starved, measured in eval/findings_2026-07-28.md: the ADR-0005
+    # candidate menu collapses to one item, json/record synthesis never runs so
+    # `_build_link_digest`'s gate is unsatisfiable and `other_pages` can NEVER be
+    # emitted, `record_count` is never derived so `listing_partial` cannot fire,
+    # and the option shelf stays empty. On a LISTING recovered from archive, that
+    # is ADR-0015's index withheld in full — the caller gets a distilled answer
+    # over a page it cannot see, with no pointers to what was skipped.
+    #
+    # Structural facts (survive rotation, both verified 2026-08-02): the live URL
+    # is walled to server-side clients (401), which is what forces the planner's
+    # RetryViaArchive; and Wayback carries 200-status snapshots of it going back
+    # to 2007, which is what makes the recovery possible at all. The page is a
+    # news ARCHIVE INDEX — headline rows linking to per-article pages — so a
+    # comprehended snapshot must yield records and drilldown pointers, and an
+    # uncomprehended one cannot.
+    url: https://www.reuters.com/news/archive/technologyNews
+    class: affordance
+    next_links_expected: true
+    task: "What technology stories are indexed on this page? Give me the headlines and where to read each one."
+    needs: [content+links]
+    criteria:
+      - "If the live page is walled and a snapshot was recovered, the answer is built from the SNAPSHOT's index — not from a one-item collapse of whatever the tier pre-rendered"
+      - "A recovered listing surfaces per-story pointers in `other_pages` (kind `drilldown`); an index recovered but not relayed is ADR-0015's withheld-body harm"
+      - "Every URL emitted is traceable to the snapshot's own anchors — an archived page is exactly where guessing a plausible article URL is easiest and most wrong (ADR-0014)"
+      - "Snapshot provenance is legible: the caller can tell the content is archived rather than current, and roughly how old"
+      - "If NEITHER live nor archive yields the page, the miss is loud — retrieval incomplete with a diagnostic, never an `ok` empty answer (ADR-0009)"

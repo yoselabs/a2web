@@ -510,6 +510,38 @@ that a second extraction returning no links CLEARS the first one's.
 Both are pinned open by `test_the_answer_stage_has_exactly_one_caller`, which
 keeps the re-entry visible at a single site while they are unfixed.
 
+## 2026-08-02 — two sufficiency fields survive a re-comprehension that should retract them (S, ADR-0015 truthfulness)
+
+**Same shape as the `next_links_llm` staleness above, on the sufficiency axis
+instead of the link axis** — and found by writing `decompose-fetcher-into-files`
+§5's guard rather than by a failure, which is the argument for having written it.
+
+The escalation loop (§3.2) made a SECOND comprehension pass routine: `escalate`
+re-runs the ladder, sufficiency and the gate over the newly installed body. Two
+fields have no clearing write on any path, so the second pass can leave the
+first body's value in place:
+
+- **`fc.record_count`** is written only inside `if record_set is not None:` /
+  `if json_record_set is not None:`. A re-comprehension over a body that yields
+  no records keeps the OLD count, and `_phase_listing_completeness` then assesses
+  that count against the NEW page's oracle total — two pages' numbers in one
+  verdict.
+- **`fc.regex_oracle_total`** is written only when the numeric oracle matched.
+  A second pass over a page with no oracle keeps the first total, and
+  `_apply_llm_listing_oracle` stands down on exactly that field
+  (`if fc.regex_oracle_total is not None: return`) — so the language-agnostic LLM
+  superset silently declines to fire because of a number from a body that is
+  gone.
+
+The fix in both cases is what §3.4 already did for `items_loaded`/`items_total`/
+`items_more`: make the assessment symmetric, so a pass that finds nothing
+RETRACTS rather than leaving the previous claim standing. That is a behaviour
+change, hence filed.
+
+Pinned open by `test_fetcher_residual_ordering.py`'s
+`_SURVIVES_RECOMPREHENSION` ledger, which will not let a third sticky field
+appear without naming itself.
+
 ## 2026-08-02 — a failed archive dispatch leaves no diagnostic row (S, ADR-0009 visibility)
 
 **Decided in `decompose-fetcher-into-files` §1.3, deliberately not applied there**
