@@ -127,10 +127,39 @@ listing `archive/` gets a wrong answer with authority.
       trigger condition is a Camoufox import. The shipped engines are
       patchright / zendriver via the shelf `any_browser`; Camoufox is
       manifest-gated OFF. Re-point the spec at the `BrowserBackend` interface.
-- [ ] 3.2 `extraction:103-152` and `content-expectations:48` contradict each
-      other on candidate selection, and both contradict `fetcher.py:1541-1586`.
-      **This one needs a product decision**, not a transcription — decide which
-      is intended.
+- [x] 3.2 **Decided by the maintainer 2026-08-02: concatenate, with two
+      carve-outs. Relative length now selects nothing.**
+
+      The task's citation was stale — `fetcher.py:1541-1586` has not existed
+      since the fetcher became a package. The code is
+      `fetcher/comprehension/menu.py::_wire_content_md`.
+
+      All three positions were genuinely different: `extraction:103-152` said
+      pick by KIND and that "rendered length SHALL NOT be the selector";
+      `content-expectations:48` said prose and JSON-LD concatenate, never
+      replace; the code said *the longer one wins*, which is neither. Neither
+      spec could be adopted verbatim — `extraction` would drop a short
+      structured payload, and `content-expectations` named no carve-outs and so
+      would re-introduce a measured regression.
+
+      Shipped: a record set wins outright (on a listing trafilatura's prose is
+      the same rows again, so concatenating duplicates them); sub-floor prose
+      loses to the structured candidate (below `LENGTH_FLOOR` we have ALREADY
+      classified it as not-content, and gluing it back would make the floor
+      meaningless); above-floor prose concatenates with the JSON-LD render,
+      subset-suppressed, except an `Article`/`NewsArticle` metadata echo.
+
+      Rationale is the asymmetry used throughout this system: dropping is a
+      SILENT loss (`fetch_raw` returns `content_md` alone, so the caller cannot
+      tell a price was discarded, and recovering it costs a proxy fetch) while
+      extra text costs tokens, which are cheap and visible. **Measured, not
+      asserted:** +987 full-content tokens on `akakce-no-current-price`
+      (2642 → 3629, +37%); the other regression baselines did not move.
+
+      `_pick_display_candidate` is deleted — it was the length rule's only home.
+      Two tests asserted the retired rule in two different files and were
+      REVERSED with the reason recorded, not repaired.
+
 - [x] 3.3 **The citation was wrong — there are ZERO such sites in
       `openspec/specs/`.** Measured 2026-08-02: 79 repo-wide occurrences, none
       under `openspec/specs/`. They were fixed by

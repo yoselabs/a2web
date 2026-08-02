@@ -45,7 +45,12 @@ The extractor SHALL be given the page's real anchor links — including chrome (
 
 ### Requirement: Content concatenates prose and JSON-LD, never replaces
 
-When both trafilatura prose and JSON-LD synthesized content are available, the content SHALL concatenate both rather than selecting one and discarding the other. This applies to the extractor input (already concatenated) and SHALL be extended to the caller-facing `content_md` so page prose is not made invisible when JSON-LD wins a display pick.
+When both trafilatura prose and JSON-LD synthesized content are available, the content SHALL concatenate both rather than selecting one and discarding the other. This applies to the extractor input (already concatenated) and to the caller-facing `content_md`, so page prose is not made invisible when JSON-LD wins a display pick — and, equally, so a short JSON-LD payload is not made invisible by longer prose.
+
+**Two carve-outs, both required — this requirement could not be adopted as written because it named neither** (resolved 2026-08-02; the composition rule and its rationale live in `extraction`):
+
+- An `Article`/`NewsArticle` metadata echo is headline/author/date and SHALL NOT be appended to the article it describes.
+- A `record_synth` candidate SHALL replace rather than concatenate: on a listing, trafilatura's prose is the same rows again, so concatenating duplicates them.
 
 #### Scenario: Prose survives alongside JSON-LD
 

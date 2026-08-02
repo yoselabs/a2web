@@ -150,7 +150,41 @@ class _TeeExtractor:
         return result
 
 
-def _curate_contract(response: Any) -> dict[str, Any]:
+#: Hand-authored *intent* keys — assertions about the projection rather than
+#: observed values. Both curators carry them forward verbatim so a re-bless can
+#: never silently drop a case's acceptance gate. Defined HERE, not in
+#: `tests/eval_replay/bless.py`, because `eval/` must not import from `tests/`.
+_INTENT_KEYS = (
+    "content_includes",
+    "content_excludes",
+    "answer_contains",
+    "input_menu_includes",
+    "input_menu_excludes",
+    "narrative_includes",
+)
+
+
+def _curate_contract(response: Any, *, prior: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Curate the asserted contract from a live capture.
+
+    **This is the SECOND curator, and until 2026-08-02 it silently disagreed
+    with the first.** `tests/eval_replay/bless.py::curate_contract` blesses
+    `steps` unconditionally, blesses `retrieval_incomplete` / `narrative_present`
+    on a non-ok status, and carries hand-authored intent keys forward — each with
+    a comment explaining that a truthy-gated key would vanish from the baseline
+    exactly when it stopped holding. None of that was here, and `make
+    eval-refresh` — the command the mismatch message tells you to run — uses
+    THIS one. So the documented way to re-bless a baseline stripped every one of
+    those assertions.
+
+    That is not hypothetical: it is why two of eight regression baselines
+    carried no `steps` while the change that introduced them recorded the work
+    as done. The bless code was correct — but only one of the two bless codes,
+    and the other was the one operators actually ran.
+
+    `prior` is the existing blessed contract, so hand-authored intent keys
+    survive a re-bless.
+    """
     contract: dict[str, Any] = {
         "tier": response.tier,
         "status": getattr(response.status, "value", response.status),
@@ -165,6 +199,13 @@ def _curate_contract(response: Any) -> dict[str, Any]:
     hints = sorted(h.code for h in response.operator_hints)
     if hints:
         contract["operator_hints"] = hints
+    contract["steps"] = [f"{d.step}:{getattr(d.verdict, 'value', d.verdict)}" for d in response.diagnostics]
+    if contract["status"] != "ok":
+        contract["retrieval_incomplete"] = bool(getattr(response, "retrieval_incomplete", False))
+        contract["narrative_present"] = bool(getattr(response, "narrative", None))
+    for key in _INTENT_KEYS:
+        if prior and key in prior:
+            contract[key] = prior[key]
     return contract
 
 

@@ -99,6 +99,7 @@ guard's own docstring first line.
 
 - `tests/architecture/test_claude_md_citations_resolve.py` — Every path `CLAUDE.md` cites as current actually exists.
 - `tests/architecture/test_claude_md_inventory_counts.py` — Every count `CLAUDE.md` states matches the tree, and every handler / tier manifest is named, not merely counted.
+- `tests/architecture/test_bless_curators_agree.py` — The replay-bless and live-capture contract curators emit the same key set, so `make eval-refresh` cannot silently delete assertions the replay bless guarantees.
 - `tests/architecture/test_cold_start_laziness.py` — Cold start: a cheap `query` must construct neither a browser nor an LLM.
 - `tests/architecture/test_content_guidance_no_site.py` — Architectural invariant: content guidance is per-KIND, never per-SITE.
 - `tests/architecture/test_documented_env_is_real.py` — Configuration the README documents must actually work.

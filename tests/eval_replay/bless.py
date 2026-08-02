@@ -17,6 +17,10 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from eval._capture.corpus import ReplayCase
 
+# The intent keys live in `eval._capture.capture` so the two curators cannot
+# drift — they did, and `make eval-refresh` was the one operators ran.
+from eval._capture.capture import _INTENT_KEYS
+
 BLESS_EVAL = os.environ.get("A2WEB_BLESS_EVAL") == "1"
 
 
@@ -49,19 +53,6 @@ def curate_contract(observed: dict[str, Any]) -> dict[str, Any]:
         contract["retrieval_incomplete"] = bool(observed.get("retrieval_incomplete"))
         contract["narrative_present"] = bool(observed.get("narrative_present"))
     return contract
-
-
-# Hand-authored *intent* keys — assertions about the projection, not observed
-# values. Bless carries them forward verbatim so a re-bless never silently
-# drops a case's acceptance gate.
-_INTENT_KEYS = (
-    "content_includes",
-    "content_excludes",
-    "answer_contains",
-    "input_menu_includes",
-    "input_menu_excludes",
-    "narrative_includes",
-)
 
 
 def bless_contract(case: ReplayCase, observed: dict[str, Any]) -> None:

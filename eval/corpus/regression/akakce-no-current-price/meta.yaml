@@ -1,4 +1,4 @@
-captured_at: '2026-08-02T13:16:49.755918+00:00'
+captured_at: '2026-08-02T19:29:23.326068+00:00'
 source_url: https://www.akakce.com/vantilator/en-ucuz-smartmi-fan-3-kablosuz-fiyati,24576507.html
 layers:
   raw:
@@ -9,4 +9,4 @@ layers:
     bytes: 27669
   llm:
     frozen: true
-content_sha256: e85805f279451e70216a52534b94ba43d2089e2e2698f9c12f8a7af772753952
+content_sha256: 993ad800343389e52970e7e463dd8fac54992fd1296147472ee8c52de9534c08

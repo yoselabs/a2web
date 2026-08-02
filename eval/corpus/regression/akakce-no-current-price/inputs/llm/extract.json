@@ -1,16 +1,17 @@
 {
-  "answer": "The page shows \"Fiyat Yok\" (no price) for the Smartmi Fan 3 Kablosuz Vantilat\u00f6r in the structured data section (`offerCount=0, lowPrice=0, highPrice=0`). The product page lists specifications (25W power, 4-speed, 7-blade, remote control, oscillation, timer, wind mode, digital panel) but contains no active seller listings or pricing information. The product is not currently available to purchase through this price comparison site.",
-  "completion_tokens": 190,
-  "cost_usd": 0.010649,
-  "latency_ms": 5650,
+  "answer": "The page shows no current price or seller listings for the Smartmi Fan 3 Kablosuz Vantilat\u00f6r. The structured data states `offerCount=0` and `lowPrice=0, highPrice=0`, indicating the product is not presently available for purchase through Akak\u00e7e's price aggregator. The page displays specs (25W, 4-speed, 7-blade, 3.5kg, remote control, oscillating) and comparison data against related Xiaomi models, but no vendors or pricing.",
+  "completion_tokens": 212,
+  "cost_usd": 0.0107639,
+  "latency_ms": 5842,
   "model": "claude-haiku-4-5-20251001",
-  "prompt_tokens": 17442,
+  "prompt_tokens": 17491,
   "routing": {
     "also_here": [
-      "comparison table vs Smartmi Fan 2S / Mi Standing 2 / Standing 1C",
-      "related products in popular fans listing"
+      "specs / power wattage, blade count, weight, control type",
+      "related products / Smartmi Fan 2S, Xiaomi Smart Standing fans",
+      "popular fans category"
     ],
-    "answer": "The page shows \"Fiyat Yok\" (no price) for the Smartmi Fan 3 Kablosuz Vantilat\u00f6r in the structured data section (`offerCount=0, lowPrice=0, highPrice=0`). The product page lists specifications (25W power, 4-speed, 7-blade, remote control, oscillation, timer, wind mode, digital panel) but contains no active seller listings or pricing information. The product is not currently available to purchase through this price comparison site.",
+    "answer": "The page shows no current price or seller listings for the Smartmi Fan 3 Kablosuz Vantilat\u00f6r. The structured data states `offerCount=0` and `lowPrice=0, highPrice=0`, indicating the product is not presently available for purchase through Akak\u00e7e's price aggregator. The page displays specs (25W, 4-speed, 7-blade, 3.5kg, remote control, oscillating) and comparison data against related Xiaomi models, but no vendors or pricing.",
     "item_total_seen": null,
     "obstacle": null,
     "other_pages": [],

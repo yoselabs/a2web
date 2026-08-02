@@ -50,11 +50,45 @@ def test_article_metadata_json_never_appended_to_prose() -> None:
     assert out == _PROSE  # prose only — metadata echo suppressed
 
 
-def test_json_shorter_than_prose_leaves_prose_unchanged() -> None:
-    # Legacy already displayed prose here (json did not win) — no behavior change.
+def test_a_short_json_block_is_kept_not_dropped_for_being_short() -> None:
+    """The 2026-08-02 decision, and the case that motivated it.
+
+    This test previously asserted the OPPOSITE — that a json render shorter than
+    the prose was discarded — because the shipped rule was "the longer one wins".
+    That rule silently lost exactly the payload most worth keeping: a price, a
+    phone number and a rating are SHORT, and the boilerplate they lose to is
+    long. `fetch_raw` returns `content_md` and nothing else, so the caller could
+    not tell anything had been dropped, and recovering it costs a new fetch.
+
+    Reversed deliberately, not repaired. The old assertion was a faithful
+    statement of a rule that has been retired.
+    """
     prose = ContentCandidate(source="trafilatura", content_md=_PROSE)
-    short_json = ContentCandidate(source="json_synth", content_md="name: Widget")
-    assert _wire_content_md([prose, short_json]) == _PROSE
+    price = ContentCandidate(source="json_synth", content_md="price: 299 TRY")
+
+    out = _wire_content_md([prose, price])
+
+    assert _PROSE in out
+    assert "price: 299 TRY" in out
+
+
+def test_relative_length_selects_nothing() -> None:
+    """The same two candidates, character counts inverted — same outcome.
+
+    The retired rule flipped its answer when the counts flipped, which is what
+    made it a rule about the rendering rather than about the content. Both
+    orderings must now agree.
+    """
+    long_prose = ContentCandidate(source="trafilatura", content_md=_PROSE)
+    long_json = ContentCandidate(source="json_synth", content_md="spec: value\n" * 200)
+
+    short_case = _wire_content_md(
+        [long_prose, ContentCandidate(source="json_synth", content_md="price: 299 TRY")]
+    )
+    long_case = _wire_content_md([long_prose, long_json])
+
+    assert "price: 299 TRY" in short_case and _PROSE in short_case
+    assert "spec: value" in long_case and _PROSE in long_case
 
 
 def test_subfloor_prose_defers_to_legacy_single_pick() -> None:

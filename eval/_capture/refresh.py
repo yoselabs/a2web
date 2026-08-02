@@ -67,7 +67,7 @@ async def _run_refresh(case_ref: str) -> int:
     old_answer = case.baseline.answer or ""
     new_answer = (artifacts.response.extracted_answer or "").rstrip() + "\n" if artifacts.response.extracted_answer else ""
     old_contract = json.dumps(case.baseline.contract, indent=2, sort_keys=True) + "\n"
-    new_contract = json.dumps(_curate_contract(artifacts.response), indent=2, sort_keys=True) + "\n"
+    new_contract = json.dumps(_curate_contract(artifacts.response, prior=case.baseline.contract), indent=2, sort_keys=True) + "\n"
 
     answer_diff = _diff("answer.md", old_answer, new_answer)
     contract_diff = _diff("contract.json", old_contract, new_contract)

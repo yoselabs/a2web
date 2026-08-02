@@ -106,7 +106,19 @@ The single-source, length-proxy replace rule is **retired**. The extractor SHALL
 
 **Extractor input (the menu).** When `ask=` is set, `_phase_extract_answer` SHALL assemble `fc.content_candidates` into one deterministic menu string and pass it as `extract(content=menu)`. Assembly SHALL be a **pure function of the candidate list**: fixed source ordering, static content-free section labels, and no timestamps, counts, object identity, or dict-iteration-order dependence — so the menu for a given fetched page is byte-identical across repeated asks (preserving the `cache_prefix = {content}` prompt-cache invariant). Before assembly, the deterministic side SHALL apply **coarse subset-suppression only** — a candidate whose normalized text is a strict substring of another's is dropped; finer (semantic) dedup is the LLM's responsibility. When the assembled menu exceeds `max_content_chars`, trimming SHALL be **priority-ordered** (prose and `json_synth` trimmed last, `record_synth` first), never a blind uniform truncation.
 
-**Wire default (`content_md`).** `fc.content_md` SHALL be set to a single candidate chosen by quality: the trafilatura prose candidate when non-empty, else the first structured candidate, else (when a handler/archive/browser produced `fc.pre_rendered_payload`) that pre-rendered payload. Rendered length SHALL NOT be the selector. The wire *shape* of `content_md` is unchanged (a single markdown string).
+**Wire default (`content_md`).** Relative rendered length SHALL NOT select between candidates — decided 2026-08-02, resolving a three-way contradiction in which this spec said "pick by kind", `content-expectations` said "concatenate, never replace", and the shipped code said "the longer one wins".
+
+`fc.content_md` SHALL be composed as follows, and none of the three cases is a comparison:
+
+1. **A record set exists** → it wins outright. The record detector's guards reject articles, so a record set at all means the page IS a listing: the rows are the content. Concatenation is wrong here specifically because trafilatura often extracts the row text too, which would hand the caller the same rows twice.
+2. **Prose is absent or below `LENGTH_FLOOR`** → the structured candidate wins, preferring an `answer_bearing` payload. Sub-floor prose has already been classified as not-content; concatenating a fragment so classified would make the floor mean nothing.
+3. **Above-floor prose** → prose AND the JSON-LD render, subset-suppressed — except an `Article`/`NewsArticle` metadata echo (`is_prose_metadata`), which is headline/author/date and adds nothing to the article it describes. That carve-out is a measured regression (`blog.html`, 2026-07-09), not a preference.
+
+The reason for preferring concatenation is the asymmetry applied elsewhere in this system: **dropping a candidate is a SILENT loss.** `fetch_raw` returns `content_md` and nothing else, so a caller handed the prose cannot tell that a price, phone number or rating was extracted and then discarded, and recovering it costs a whole new proxy fetch. Extra text costs tokens, which are cheap and visible. Measured cost of the change on the `akakce-no-current-price` regression case: 2642 → 3629 full-content tokens; the other regression baselines were unaffected.
+
+`LENGTH_FLOOR` survives and does not contradict the above: it answers "is this prose at all", a property of a single candidate. What is retired is `len(a) > len(b)`, which claimed to answer "which candidate is better" — a question character counts cannot see, and which inverted its verdict when the counts inverted.
+
+The wire *shape* of `content_md` is unchanged (a single markdown string).
 
 **Answer-bearing structured beats sub-floor prose for display.** When the quality-picked prose candidate is present but **below `LENGTH_FLOOR`** AND an `answer_bearing` structured candidate exists, `fc.content_md` SHALL surface the answer-bearing structured candidate instead of the sub-floor prose. This ensures `fetch_raw` (which returns only `content_md`, not the menu) carries the structured answer rather than a thin nav/footer fragment. Above-floor prose is unaffected — it remains the display pick. The menu fed to the extractor is unchanged (it always carried every candidate).
 
@@ -130,10 +142,20 @@ The single-source, length-proxy replace rule is **retired**. The extractor SHALL
 - **WHEN** one candidate's normalized text is a strict substring of another candidate's text
 - **THEN** the subset candidate is dropped from the menu, guarding against the same payload duplicated across microdata / og / ld_json / records
 
-#### Scenario: Wire content_md is prose-preferred, not longest
+#### Scenario: A short structured payload is not dropped for being short
 
-- **WHEN** a page yields a trafilatura prose candidate and a longer `record_synth` candidate
-- **THEN** the wire `content_md` surfaces the prose candidate (quality pick), while the menu fed to the extractor still carries both
+- **WHEN** a page yields above-floor prose and a JSON-LD render shorter than it (a price, a phone number)
+- **THEN** the wire `content_md` carries BOTH — the payload most worth keeping is routinely the shortest
+
+#### Scenario: Inverting the character counts does not invert the outcome
+
+- **WHEN** the same two candidates are presented with their lengths reversed
+- **THEN** the wire `content_md` composition is unchanged, because relative length selects nothing
+
+#### Scenario: A record set replaces rather than concatenates
+
+- **WHEN** a page yields a `record_synth` candidate
+- **THEN** the wire `content_md` is the rendered record set, since trafilatura's prose on a listing is the same rows again
 
 #### Scenario: A good article is never clobbered
 

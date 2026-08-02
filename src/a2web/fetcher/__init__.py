@@ -121,7 +121,7 @@ from .comprehension.ladder import (
     _rows_to_record_set,
     _run_extraction_escalation,
 )
-from .comprehension.menu import _MENU_LABELS, _normalize_ws, _pick_display_candidate, _suppress_subsets, _wire_content_md, assemble_menu
+from .comprehension.menu import _MENU_LABELS, _normalize_ws, _suppress_subsets, _wire_content_md, assemble_menu
 from .context import (
     ContentCandidate,
     DeadlineExceeded,
@@ -420,7 +420,6 @@ __all__ = [
     "_phase_obstacle_render",
     "_phase_resolve_cookies",
     "_phase_tier_loop",
-    "_pick_display_candidate",
     "_planner_caps",
     "_record_deadline",
     "_record_discussion_link",

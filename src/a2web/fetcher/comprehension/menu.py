@@ -7,78 +7,74 @@ from ..context import ContentCandidate
 
 
 def _wire_content_md(candidates: list[ContentCandidate]) -> str:
-    """Caller-facing `content_md` — concatenate prose + JSON-LD instead of replacing (task 7.2).
+    """Caller-facing `content_md`. **Relative length no longer selects anything.**
 
-    Narrow, surgical reversal of the 2026-06-07 pick-one decision: the ONLY change
-    is the json_synth-wins branch. When above-floor prose coexists with a JSON-LD
-    render that would otherwise REPLACE it (json longer than prose — the legacy
-    `_pick_display_candidate` rule), surface BOTH, subset-suppressed via the same
-    coarse dedup the extractor menu uses. So a product page's specs no longer blind
-    the caller to its prose (and vice versa).
+    Decided 2026-08-02, resolving a three-way contradiction in which the two
+    specs and the shipped code each stated a different rule:
 
-    Everything else defers byte-identically to the legacy single-pick:
-    - sub-floor / absent prose — the structured answer is what the caller needs;
-    - threaded / longer RECORD sets — they RENDER structure prose lost, so they
-      genuinely replace (not additive); their contract is untouched;
-    - Article/NewsArticle JSON-LD (`is_prose_metadata`) — a metadata echo, never
-      concatenated onto prose (the historical blog.html regression).
+    - `extraction` said pick by KIND and that "rendered length SHALL NOT be the
+      selector";
+    - `content-expectations` said prose and JSON-LD concatenate, never replace;
+    - this function said *the longer one wins*, which is neither.
+
+    The resolution is concatenate-with-carve-outs, and the reason is the
+    asymmetry this project applies everywhere else: **dropping a candidate is a
+    SILENT loss.** `fetch_raw` returns `content_md` and nothing else, so a caller
+    handed the prose cannot tell that a price, a phone number or a rating was
+    extracted and then discarded — and recovering it costs a whole new proxy
+    fetch. Extra text costs tokens, which are cheap and visible. Length cannot
+    know which candidate carries the answer: a 200-char JSON-LD block holding the
+    price lost to 800 chars of boilerplate, and inverting the character counts
+    inverted the verdict, which is the definition of a rule that is not about
+    the content.
+
+    Three cases, none of them a comparison:
+
+    1. **A record set exists → it wins outright.** The record detector's guards
+       reject articles, so a record set at all means the page IS a listing: the
+       rendered rows are the content and the prose is nav or a blurb. Gluing is
+       wrong here specifically because trafilatura often extracts the row text
+       too, so the caller would receive the same rows twice.
+    2. **Prose is absent or sub-floor → the structured candidate wins.** A thin
+       nav/footer fragment is not an article; an `answer_bearing` payload is
+       preferred, else any JSON-LD render.
+    3. **Real prose → prose + JSON-LD, subset-suppressed.** Except an
+       `Article`/`NewsArticle` metadata echo (`is_prose_metadata`), which is
+       headline + author + date and adds nothing to an article it is describing.
+       Stapling it on was a measured regression (`blog.html`, 2026-07-09), so it
+       stays a carve-out.
+
+    `LENGTH_FLOOR` survives and is not a contradiction of the above: it answers
+    "is this prose at all", a property of one candidate. What was removed is
+    `len(a) > len(b)`, which claimed to answer "which candidate is better" — a
+    question character counts cannot see.
 
     The extractor menu is untouched — `assemble_menu` still sees every candidate.
     """
     prose = next((c for c in candidates if c.source == "trafilatura"), None)
     prose_md = prose.content_md if prose is not None else ""
-    if prose is None or len(prose_md) < LENGTH_FLOOR:
-        return _pick_display_candidate(candidates)
+
+    records = next((c for c in candidates if c.source == "record_synth"), None)
+    if records is not None and records.content_md:
+        return records.content_md
+
     json_c = next((c for c in candidates if c.source == "json_synth"), None)
-    json_would_replace = json_c is not None and len(json_c.content_md) > len(prose_md)
-    if json_c is not None and json_would_replace:
-        # A metadata echo (Article/NewsArticle) never displaces real above-floor
-        # prose: return prose alone — no replace (7.2 intent), no bloat concat.
-        if json_c.is_prose_metadata:
+
+    if prose is None or len(prose_md) < LENGTH_FLOOR:
+        answer_c = next((c for c in candidates if c.answer_bearing), None)
+        if answer_c is not None and answer_c.content_md:
+            return answer_c.content_md
+        if json_c is not None and json_c.content_md:
+            return json_c.content_md
+        if prose_md:
             return prose_md
+        other = next((c for c in candidates if c.content_md), None)
+        return other.content_md if other is not None else ""
+
+    if json_c is not None and json_c.content_md and not json_c.is_prose_metadata:
         kept = _suppress_subsets([prose, json_c])
         return "\n\n".join(c.content_md for c in kept if c.content_md)
-    return _pick_display_candidate(candidates)
-
-
-def _pick_display_candidate(candidates: list[ContentCandidate]) -> str:
-    """Wire `content_md` default — preserves the pre-ADR-0005 selection.
-
-    The envelope decision (signed off 2026-06-07) is that the DEFAULT wire is
-    unchanged: only the extractor's *input* becomes the menu. So this keeps the
-    legacy rule byte-for-byte — `json_synth` replaces prose when longer; else a
-    record set replaces when threaded OR longer; else prose — so parsers and
-    change #2's record-projection wire gate see no change. The full menu still
-    reaches Haiku via `assemble_menu`; the retired length proxy lives ONLY here
-    now (a display heuristic), no longer gating what the extractor sees.
-    """
-    prose = next((c for c in candidates if c.source == "trafilatura"), None)
-    prose_md = prose.content_md if prose is not None else ""
-    # Sub-floor prose is a thin nav/footer fragment. When a strong structured
-    # candidate carries the answer, surface it for display — so `fetch_raw`
-    # (which returns only `content_md`, not the extractor menu) yields the
-    # answer, not the fragment. Above-floor prose keeps the legacy length pick
-    # — `answer_bearing` alone is NOT a safe unconditional override here: e.g.
-    # `Article`/`NewsArticle` JSON-LD (headline/author/date) is `answer_bearing`
-    # by design (see `json_in_html._PREFERRED_LD_TYPES`) yet routinely
-    # accompanies genuine, substantial article prose that trafilatura already
-    # extracts correctly — swapping it for the metadata stub would be a
-    # regression, not a fix (see `answer-bearing-gate-exemption` design notes,
-    # 2026-07-09 `make check` finding on the `blog.html` fixture).
-    if len(prose_md) < LENGTH_FLOOR:
-        answer_c = next((c for c in candidates if c.answer_bearing), None)
-        if answer_c is not None:
-            return answer_c.content_md
-    json_c = next((c for c in candidates if c.source == "json_synth"), None)
-    if json_c is not None and len(json_c.content_md) > len(prose_md):
-        return json_c.content_md
-    rec = next((c for c in candidates if c.source == "record_synth"), None)
-    if rec is not None and (rec.is_threaded or len(rec.content_md) > len(prose_md)):
-        return rec.content_md
-    if prose_md:
-        return prose_md
-    other = next((c for c in candidates if c.content_md), None)
-    return other.content_md if other is not None else ""
+    return prose_md
 
 
 # Static, content-free section labels. Byte-stable so the assembled menu —

@@ -78,18 +78,31 @@ async def test_no_source_helps_falls_through_unchanged() -> None:
 
 @pytest.mark.asyncio
 async def test_json_candidate_shorter_than_original_is_kept() -> None:
-    """Quality-aware replace: a JSON synth shorter than the (under-extracted)
-    original does not win."""
+    """Sub-floor prose loses to a structured candidate, regardless of length.
+
+    Reversed 2026-08-02 with the retirement of relative-length selection. This
+    previously asserted that a short JSON synth "does not win" against a longer
+    original — the same length rule retired in `menu._wire_content_md`, stated
+    here in a second file.
+
+    The surviving line is the FLOOR, not a comparison: 300 chars is below
+    `LENGTH_FLOOR`, which is the project-wide way of saying "this is not content"
+    (a nav/footer fragment). Gluing a fragment already classified as non-content
+    onto the answer would make the floor mean nothing, so sub-floor prose is
+    still dropped. What no longer happens is dropping ABOVE-floor prose, or
+    dropping a short structured payload, because one rendered longer.
+    """
     html = (
         "<html><body>"
         '<script type="application/ld+json">{"@type":"Product","name":"P"}</script>'
         "<p>" + ("word " * 2000) + "</p>"
         "</body></html>"
     )
-    original = "x" * 300  # low recall vs the big <p>, but longer than the tiny synth
+    original = "x" * 300  # BELOW LENGTH_FLOOR — a fragment, not an article
     fc = _FakeFc(content_md=original)
     await _run_extraction_escalation(fc, raw_html=html)
-    assert fc.content_md == original
+    assert fc.content_md == "## Product: P\n- **name:** P"
+    assert original not in fc.content_md
 
 
 @pytest.mark.asyncio
