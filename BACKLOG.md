@@ -46,6 +46,38 @@ and the natural companion to the floor.
 Related: the judge-wobble entry above. If ~3% recovery-on-retry lands, the floor
 can rise and this may collapse into it.
 
+## 2026-08-02 — the quality judge never sees the page it is judging (M, eval)
+
+**Source:** `close-guards-that-read-green` §6.1 and §6.5, carried out of that
+change on archive. Neither is an unmet SHALL — the delta specs were amended to
+state what shipped — but the work is real and the record must not die with the
+change.
+
+`JUDGE_V1` has three slots: `{ask}`, `{content}` (which is the *criteria list*,
+not the page) and `{answer}`. **The fetched page is never in the prompt.** So
+every criterion whose subject is the page rather than the answer is scored by a
+model that cannot see its subject — it can only ever pass. §6.4 converted the
+ones that admit a deterministic form and recorded the rest as ∅ in
+`docs/findings/2026-08-02-invariant-cell-mapping.md`; the residue is what needs
+this.
+
+§6.5 is downstream and stays blocked on it. `bench_judge._NEXT_LINKS_TEMPLATE`
+instructs the judge to *"never penalize an entry for being unfamiliar or assume
+it is fabricated"* — an instruction that exists **because** the judge cannot
+verify. Inverting it while the judge is still blind buys guesses, not
+verification, which is why it was deliberately not done. Once the page is in the
+prompt the instruction is actively harmful and must go.
+
+**The cost, stated plainly, because it is the reason this is not trivial:**
+changing the prompt changes the score for every system on every case, so it
+breaks comparability with every baseline captured to date. It also needs a live
+`make bench` to verify (network + LLM quota under ADR-0016). Plan it as a
+re-baseline, not an edit.
+
+Note the scope limit: ADR-0014 (every emitted URL traceable to the page) is
+NOT waiting on this. It is a deterministic membership test and shipped as
+`answer_urls_traceable` in `case_contract.py`, with no model in the loop.
+
 ## 2026-08-02 — shelf: `record_mine`'s two detection thresholds are unwitnessed (S, shelf)
 
 **Source:** `close-guards-that-read-green` §5.1/§5.2, re-examined 2026-08-02.
