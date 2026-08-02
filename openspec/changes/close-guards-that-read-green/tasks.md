@@ -122,10 +122,41 @@ result.
 
 - [ ] 6.1 Pass the fetched page to the quality judge. `JUDGE_V1`'s three slots
       (`{ask}`, `{content}` = criteria, `{answer}`) do not include it.
-- [ ] 6.2 Wire `replay.py::assert_contract`'s vocabulary (`status`,
+- [x] 6.2 Wire `replay.py::assert_contract`'s vocabulary (`status`,
       `operator_hints`, `tier`, `next_links_min`, `content_includes/excludes`,
       `input_menu_includes/excludes`) into the live bench as a per-cell
-      deterministic block.
+      deterministic block. **Done 2026-08-02.**
+
+      The checker moved to `src/a2web/llm_eval/case_contract.py` and BOTH
+      harnesses now call it — `replay.assert_contract` was rewritten to consume
+      it, so there is one implementation rather than a copy that would drift.
+      (`src/` importing from `tests/` was the alternative and is backwards.)
+      Corpus entries take an optional `contract:` block in the same vocabulary;
+      `datadome-wall-commerce` is pinned as the first case, converting four
+      facts it already KNEW (`status: failed`, `retrieval_incomplete`,
+      `narrative_present`, `answer_present: false`) from prose criteria a judge
+      scored probabilistically into deterministic per-cell assertions.
+
+      **The load-bearing decision is the third outcome.** The live bench cannot
+      observe `steps` or `input_menu_*` — those come from the cassette spy — so
+      `check_contract_keys` returns `(failures, unsupported)` and the bench
+      records an UNOBSERVABLE reason rather than a pass. Collapsing "I could not
+      check this" into "this passed" is the precise failure this whole change
+      exists to close, and it would have been the easy implementation.
+
+      An unknown key is a FAILURE, not a skip: a typo must not read as a
+      silently-absent assertion.
+
+      Tested at the seam, not just the comparisons: every key is exercised in
+      its FAILING direction (a vocabulary only ever tested passing is
+      indistinguishable from one wired to nothing), the replay-only split is
+      asserted to be a real non-empty proper subset, and the two projections are
+      asserted to use the same key names — if one renames a key its assertions
+      silently stop running, and that test is what notices.
+
+      Not verified by a live bench run: the axis is deterministic and offline-
+      testable, and a $10 run to watch one boolean is not the way to check it.
+      `make check`: 1550 passed.
 - [x] 6.3 Both in the projection, plus `narrative_present` and a
       `narrative_includes` intent key; blessed unconditionally on any non-ok
       status (a truthy gate would drop the key from the baseline exactly when the

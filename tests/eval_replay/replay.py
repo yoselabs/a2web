@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 from async_scope import lazy as lazy_value
 
 from a2web import fetcher
+from a2web.llm_eval.case_contract import check_contract_keys
 from tests.conftest import make_default_state
 
 from .harness import CassetteBrowserPool, CassetteLlm, patch_fetch_bytes
@@ -159,61 +160,11 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
     if not contract:
         raise ContractMismatch(f"case {case.slug!r} has no blessed baseline/contract.json — capture/bless it first")
 
-    failures: list[str] = []
-    for key, expected in contract.items():
-        if key in {"tier", "status"}:
-            if observed.get(key) != expected:
-                failures.append(f"{key}: expected {expected!r}, got {observed.get(key)!r}")
-        elif key in {"has_content", "answer_present", "retrieval_incomplete", "narrative_present"}:
-            if bool(observed.get(key)) != bool(expected):
-                failures.append(f"{key}: expected {bool(expected)}, got {bool(observed.get(key))}")
-        elif key == "answer_contains":
-            answer = observed.get("answer") or ""
-            if str(expected) not in answer:
-                failures.append(f"answer_contains: {expected!r} not in answer {answer[:120]!r}")
-        elif key == "tokens_full_max":
-            if observed.get("tokens_full", 0) > expected:
-                failures.append(f"tokens_full_max: {observed.get('tokens_full')} > {expected}")
-        elif key == "next_links_min":
-            if observed.get("next_links_count", 0) < expected:
-                failures.append(f"next_links_min: {observed.get('next_links_count')} < {expected}")
-        elif key == "operator_hints":
-            if observed.get("operator_hints") != list(expected):
-                failures.append(f"operator_hints: expected {expected!r}, got {observed.get('operator_hints')!r}")
-        elif key == "steps":
-            if observed.get("steps") != list(expected):
-                failures.append(
-                    f"steps: the tier dispatch sequence changed — expected {expected!r}, got {observed.get('steps')!r}. "
-                    "This is the planner's outcome-level witness: a routing rule fired differently. "
-                    "Confirm the new sequence is intended before re-blessing."
-                )
-        elif key == "content_includes":
-            content = observed.get("content_md") or ""
-            for needle in expected:
-                if str(needle) not in content:
-                    failures.append(f"content_includes: {needle!r} not in projected content")
-        elif key == "content_excludes":
-            content = observed.get("content_md") or ""
-            for needle in expected:
-                if str(needle) in content:
-                    failures.append(f"content_excludes: fused/forbidden token {needle!r} present in projected content")
-        elif key == "input_menu_includes":
-            menu = observed.get("input_menu") or ""
-            for needle in expected:
-                if str(needle) not in menu:
-                    failures.append(f"input_menu_includes: {needle!r} not in the content fed to the extractor")
-        elif key == "narrative_includes":
-            narrative = observed.get("narrative") or ""
-            for needle in expected:
-                if str(needle) not in narrative:
-                    failures.append(f"narrative_includes: {needle!r} not in narrative {narrative[:160]!r}")
-        elif key == "input_menu_excludes":
-            menu = observed.get("input_menu") or ""
-            for needle in expected:
-                if str(needle) in menu:
-                    failures.append(f"input_menu_excludes: forbidden token {needle!r} present in extractor input")
-        else:
-            failures.append(f"unknown contract key {key!r}")
+    failures, unsupported = check_contract_keys(contract, observed)
+    # The replay harness supports the WHOLE vocabulary (it owns the cassette
+    # spy), so an unsupported key here means the vocabulary and this harness
+    # disagree — a bug in the pair, not in a case.
+    assert not unsupported, f"replay cannot evaluate {unsupported!r} — vocabulary/harness mismatch"
 
     if failures:
         ref = f"{case.corpus}/{case.slug}" if case.corpus else case.slug

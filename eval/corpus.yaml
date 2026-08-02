@@ -27,6 +27,22 @@
 #                         page-content rotation
 #   next_links_expected — true on listing pages; marks the cell for the
 #                         next_links_picked_correctly axis
+#   contract            — OPTIONAL deterministic expectations, checked per-cell
+#                         with NO LLM. Same vocabulary as the offline replay
+#                         corpus (`eval/corpus/*/*/baseline/contract.json`), so a
+#                         key means the same thing in both harnesses:
+#                           status, tier, has_content, answer_present,
+#                           retrieval_incomplete, narrative_present,
+#                           answer_contains, tokens_full_max, next_links_min,
+#                           operator_hints, content_includes/excludes,
+#                           narrative_includes
+#                         An unknown key FAILS the cell — a typo must never read
+#                         as a silently-skipped assertion. `steps` and
+#                         `input_menu_*` need the cassette spy and are reported
+#                         UNOBSERVABLE here, never as a pass.
+#                         Prefer this over a `criteria` line whenever the fact is
+#                         deterministic: prose criteria cost an LLM call and
+#                         return a probabilistic answer to a binary question.
 
 urls:
   # ─── Listing / index pages — drilldown layer, next_links axis ──────────
@@ -788,6 +804,12 @@ urls:
     class: gated
     task: "What is the lowest price for this fan, and is it available to buy right now?"
     needs: [content+links]
+    contract:
+      # The case already knows these; they were being judged probabilistically.
+      status: failed
+      retrieval_incomplete: true
+      narrative_present: true
+      answer_present: false
     criteria:
       - "The miss is LOUD — retrieval incomplete, a diagnostic, and a critical try-your-own-browser hint (ADR-0009)"
       - "NO price and NO availability claim is produced; a wall is 'couldn't see it', never 'no price' or 'out of stock'"

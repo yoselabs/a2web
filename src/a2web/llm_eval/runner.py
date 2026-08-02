@@ -36,6 +36,7 @@ from typing import Any
 from .. import log as a2web_log
 from ..packages.llm_extract import Judge, JudgeParseError, JudgeVerdict
 from .bench_judge import BenchJudge
+from .case_contract import CONTRACT_KEYS, REPLAY_ONLY_KEYS, check_contract_keys
 from .contract import check_envelope_contract
 from .corpus import Corpus, CorpusEntry
 from .events import CellEnded, CellStarted, FailureReason
@@ -177,6 +178,7 @@ class EvalRow:
     tokens: TokenAxis = field(default_factory=TokenAxis)
     contract: ContractAxis = field(default_factory=ContractAxis)
     contract_debug: ContractAxis = field(default_factory=ContractAxis)
+    case_contract: ContractAxis = field(default_factory=ContractAxis)
     clarity: ScoreAxis = field(default_factory=ScoreAxis)
     next_links: ScoreAxis = field(default_factory=ScoreAxis)
     # Provenance (ADR-0016) — which provider actually served this cell's calls.
@@ -196,6 +198,7 @@ _AXIS_ATTR = {
     "tokens": "tokens",
     "contract": "contract",
     "contract_debug": "contract_debug",
+    "case_contract": "case_contract",
     "clarity": "clarity",
     "next_links": "next_links",
 }
@@ -430,6 +433,7 @@ class EvalSuite:
         row.fetch_metadata = fetch_result.metadata
         _apply_token_axis(row, fetch_result)
         _apply_contract_axis(row, fetch_result, entry.url)
+        _apply_case_contract_axis(row, entry, fetch_result)
 
         # 3) No answer → judges skipped (judging an empty string is noise).
         if not fetch_result.answer:
@@ -646,6 +650,81 @@ def _apply_contract_axis(row: EvalRow, fetch_result: SystemResult, requested_url
         axis.violations = result.violations
 
 
+#: The live bench cannot observe what the cassette spy sees, so the per-case
+#: vocabulary runs minus those keys — and a case that uses one is reported as
+#: UNSCORED with the key named, never as a pass.
+_BENCH_CONTRACT_KEYS = CONTRACT_KEYS - REPLAY_ONLY_KEYS
+
+
+def _observe_for_contract(fetch_result: SystemResult) -> dict[str, Any]:
+    """Project a live `SystemResult` into the `case_contract` vocabulary's keys.
+
+    Deliberately the SAME key names `replay.observe` produces — that identity is
+    what makes one `contract:` block mean the same thing offline and live. The
+    two projections differ only in their source (a `FetchResponse` there, the
+    recorded envelope here), never in their vocabulary.
+    """
+    env = fetch_result.metadata.get("envelope")
+    env = env if isinstance(env, dict) else {}
+    hints = env.get("operator_hints") or []
+    content = env.get("content_md") or ""
+    return {
+        # `tier`/`status` are deviation-only on the wire: absent means the
+        # boring default, so re-supply it rather than reporting None and
+        # failing every case that pins the common path.
+        "tier": env.get("tier", fetch_result.metadata.get("tier") or "raw"),
+        "status": env.get("status", "ok"),
+        "has_content": bool(content),
+        "content_md": content,
+        "answer": env.get("answer") or fetch_result.answer or "",
+        "answer_present": bool(env.get("answer") or fetch_result.answer),
+        "narrative": env.get("narrative") or "",
+        "narrative_present": bool(env.get("narrative")),
+        "retrieval_incomplete": bool(env.get("retrieval_incomplete")),
+        "tokens_full": int(fetch_result.metadata.get("envelope_tokens_total") or 0),
+        "next_links_count": _candidate_count(fetch_result),
+        "operator_hints": sorted(h.get("code", "") for h in hints if isinstance(h, dict)),
+    }
+
+
+def _apply_case_contract_axis(row: EvalRow, entry: CorpusEntry, fetch_result: SystemResult) -> None:
+    """Check the corpus entry's own deterministic expectations, if it states any.
+
+    This is the half `make bench` was missing. A case knew perfectly well that
+    its URL is a wall — that `status` must be `failed` and `try_user_browser`
+    must fire — and had nowhere to say so except `criteria` prose handed to an
+    LLM judge. So a deterministic fact was being scored probabilistically, at
+    cost, or not at all. The offline replay corpus has asserted exactly these
+    keys for months; this makes the live corpus able to state them too, in the
+    same words.
+    """
+    axis = row.case_contract
+    contract = entry.extra.get("contract")
+    if not contract:
+        axis.reason = "case states no deterministic contract"
+        return
+    if not isinstance(contract, dict):
+        axis.disposition = AxisDisposition.SCORED
+        axis.conformant = False
+        axis.violations = [f"`contract:` must be a mapping, got {type(contract).__name__}"]
+        return
+    if fetch_result.metadata.get("envelope") is None:
+        axis.reason = "system records no structured envelope (e.g. WebFetch)"
+        return
+
+    failures, unsupported = check_contract_keys(
+        contract, _observe_for_contract(fetch_result), supported=_BENCH_CONTRACT_KEYS
+    )
+    if unsupported:
+        # Not a failure and NOT a pass: the bench genuinely cannot see these.
+        axis.reason = f"replay-only keys, not observable live: {sorted(unsupported)}"
+        if not failures:
+            return
+    axis.disposition = AxisDisposition.SCORED
+    axis.conformant = not failures
+    axis.violations = failures
+
+
 #: System name -> the envelope field carrying its "what to fetch next" set.
 #:
 #: LITERAL on purpose, in the spirit of `wire._TSV_FIELDS`. ADR-0015 folded
@@ -691,6 +770,23 @@ def _candidate_block(fetch_result: SystemResult, *, system: str) -> str | None:
     return None
 
 
+def _candidate_count(fetch_result: SystemResult) -> int:
+    """Rows in the system's candidate block — the live analogue of replay's
+    `next_links_count`.
+
+    The block is TSV with a header line (`wire` renders the list that way), so
+    the count is lines-minus-header. Systems with no structured candidate set
+    return 0, which is why `next_links_min` should only be pinned on a case
+    whose system has one — the vocabulary cannot tell "no candidates" from "no
+    such field" and must not pretend to.
+    """
+    block = _candidate_block(fetch_result, system=fetch_result.system)
+    if not block:
+        return 0
+    lines = [ln for ln in block.splitlines() if ln.strip()]
+    return max(0, len(lines) - 1)
+
+
 def row_as_flat_dict(row: EvalRow) -> dict[str, Any]:
     """The flat per-cell record written to `row.json`, `results.json`, and TSV.
 
@@ -720,6 +816,10 @@ def row_as_flat_dict(row: EvalRow) -> dict[str, Any]:
         "tokens_disposition": str(row.tokens.disposition),
         "envelope_tokens_total": row.tokens.total,
         "envelope_tokens_by_field": row.tokens.by_field,
+        "case_contract_disposition": str(row.case_contract.disposition),
+        "case_contract_conformant": row.case_contract.conformant,
+        "case_contract_violations": row.case_contract.violations,
+        "case_contract_reason": row.case_contract.reason,
         "contract_disposition": str(row.contract.disposition),
         "contract_conformant": row.contract.conformant,
         "contract_violations": row.contract.violations,
