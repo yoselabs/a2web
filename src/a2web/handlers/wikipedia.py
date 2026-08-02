@@ -16,6 +16,7 @@ from dom_schema import Field as DomField
 from dom_schema import Schema, extract
 from http_fetch import fetch_bytes
 
+from ..log import log_warning
 from ..models import NEXT_LINKS_CAP, Heading, Link, NextLink, Verdict
 from ._common import challenge_verdict, empty_result, map_non_ok
 
@@ -126,11 +127,28 @@ class WikipediaHandler:
 #: Parsoid's internal-article-link shape, declared rather than pattern-matched.
 #:
 #: The container is the document body because wikilinks are scattered through
-#: prose — there is no listing region to scope to. That means `ROT` is NOT
-#: separable here the way it is for a listing: `<body>` always matches, so a
-#: rotted row selector reads as `EMPTY`. Wikipedia's yield is therefore guarded
-#: by the captured-fixture test and the probe's declared expectation, NOT by a
-#: verdict. See `openspec/changes/` for the two-shapes design.
+#: prose — there is no listing region to scope to. But it is `body`
+#: **qualified by a class**, and the qualifier is what buys back half the
+#: verdict: Parsoid's REST output makes the body itself the parser output
+#: (`class="… mw-parser-output parsoid-body"`), which the ordinary rendered
+#: article page does NOT — there `mw-parser-output` sits on an inner `div`.
+#: Measured on both shapes, 2026-08-02.
+#:
+#: So the two failures are now separable in the way each can be:
+#:
+#: - **fed a document that is not Parsoid REST output** — a redirect, an error
+#:   page, a REST shape change — the container misses and the verdict is `ROT`,
+#:   a fact about this schema. A bare `body` container would have called that
+#:   `EMPTY`, blaming the page.
+#: - **a rotted ROW selector** — `EMPTY`, and INHERENTLY so: "an article with no
+#:   wikilinks" is a legitimate page state, so no verdict can distinguish it.
+#:   That half is guarded by the captured-density floor in
+#:   `test_wikipedia_captured_page_is_link_dense_enough_to_exercise_the_cap`
+#:   and by the probe's `min_candidates`, which is why neither may be zeroed.
+#:
+#: Note which half the 2026-07-28 incident was: the ROW half. Tightening the
+#: container does not catch that class, and claiming it does would be the same
+#: error as the guard this docstring used to disclaim.
 #:
 #: This replaced a regex requiring `href="/wiki/X"` that returned ZERO links
 #: against a live article carrying 1066 (measured 2026-07-28). Parsoid serves
@@ -138,7 +156,7 @@ class WikipediaHandler:
 #: asserted the absolute form as fact, and its three tests were green against a
 #: hand-written fixture in that same stale shape.
 _WIKILINK_SCHEMA = Schema(
-    container="body",
+    container="body.mw-parser-output",
     row="a[rel='mw:WikiLink']",
     fields={
         "target": DomField(css=".", attr="href", required=True),
@@ -155,10 +173,22 @@ def _wikilink_candidates(html: str, *, lang: str) -> list[NextLink]:
     the target and are filtered out — we want article-to-article links only.
     Deduplicates on target. External citations live elsewhere and are not in
     scope (deferred per spec).
+
+    On `ROT` the index is dropped and the fetch is NOT failed — unlike arXiv's
+    listing, wikilinks are the index, not the content, and the article body
+    still rendered. But a rotted index and an article that genuinely links
+    nowhere must not look alike to an operator (the same collapse that made a
+    rate-limited GitHub comments call read as "no comments"), so the miss is
+    logged rather than returned as a bare `[]`.
     """
+    parsed = extract(html, _WIKILINK_SCHEMA)
+    if parsed.is_rot:
+        log_warning("handler_schema_rot", handler="wikipedia", missing=sorted(parsed.missing))
+        return []
+
     seen: set[str] = set()
     out: list[NextLink] = []
-    for row in extract(html, _WIKILINK_SCHEMA).rows:
+    for row in parsed.rows:
         if len(out) >= NEXT_LINKS_CAP:
             break
         target = row["target"].removeprefix("./").split("#")[0]

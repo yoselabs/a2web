@@ -110,11 +110,13 @@ def test_wikipedia_wikilinks_from_a_captured_parsoid_page() -> None:
     RELATIVE `./Target` href. The fixture and the regex shared one stale
     assumption, so the suite could never contradict it.
 
-    Unlike the arXiv listing, this yield is NOT verdict-guarded: wikilinks are
-    scattered through prose, so the schema's container is `<body>`, which always
-    matches — a rotted row selector reads as EMPTY, not ROT. This test and the
-    probe's declared expectation are therefore the ONLY things standing between
-    a stale selector and a silently index-free article.
+    Wikilinks are scattered through prose, so there is no listing region to
+    scope to and a rotted ROW selector still reads as EMPTY — inherently, since
+    "an article that links nowhere" is a legitimate page state. This test and
+    the probe's declared expectation are therefore the only things standing
+    between a stale ROW selector and a silently index-free article. (The other
+    half — being fed a document that is not Parsoid REST output — IS verdict-
+    guarded since 2026-08-02; see the ROT test below.)
     """
     from a2web.handlers.wikipedia import _wikilink_candidates
 
@@ -144,14 +146,65 @@ def test_wikipedia_captured_page_is_link_dense_enough_to_exercise_the_cap() -> N
     assert len(got.rows) >= _CAPTURED_WIKILINKS_MIN, f"capture carries only {len(got.rows)} wikilinks — re-capture a denser article"
 
 
+def test_wikipedia_non_parsoid_html_is_rot_not_empty() -> None:
+    """The offline rot witness — CAPTURED, both sides.
+
+    Until 2026-08-02 the schema's container was a bare `body`, which always
+    matches, so `dom_schema`'s headline distinction was silently forfeited: any
+    failure at all came back `EMPTY`, a fact about the PAGE, and the live probe's
+    `min_candidates` floor was the only detector anywhere.
+
+    Wikipedia's ordinary rendered article is exactly the shape a REST change or
+    a redirect would deliver, and it discriminates: Parsoid's REST output makes
+    the BODY the parser output, the rendered page puts `mw-parser-output` on an
+    inner `div`. Both captured, both asserted here, so the pair cannot silently
+    become the same document.
+
+    Note what this does NOT claim. The rendered capture still carries 65
+    `rel="mw:WikiLink"` anchors — the ROW selector would have matched it fine.
+    That is the point: the verdict is about the container, and it is honest
+    about which half it covers.
+    """
+    from dom_schema import Yield, extract
+
+    from a2web.handlers.wikipedia import _WIKILINK_SCHEMA
+
+    rendered = _captured("wikipedia_rendered_article_not_parsoid.html")
+    parsoid = _captured("wikipedia_parsoid_octopus_disambig.html")
+
+    assert extract(rendered, _WIKILINK_SCHEMA).verdict is Yield.ROT
+    assert extract(parsoid, _WIKILINK_SCHEMA).verdict is Yield.OK
+    # Non-vacuity: the rot verdict must come from the CONTAINER, not from the
+    # capture happening to hold no wikilinks.
+    assert 'rel="mw:WikiLink"' in rendered
+
+
+def test_wikipedia_rot_drops_the_index_without_failing_the_article() -> None:
+    """A rotted index yields no candidates and says so — never a bare `[]`.
+
+    Same collapse the GitHub comments defect made: retrieved-and-empty and
+    not-retrieved are different outcomes, and an operator must be able to tell
+    them apart.
+    """
+    from a2web.handlers.wikipedia import _wikilink_candidates
+
+    assert _wikilink_candidates(_captured("wikipedia_rendered_article_not_parsoid.html"), lang="en") == []
+
+
 def test_wikipedia_wikilink_candidates_stay_on_source_language() -> None:
     """Wikilinks generated for a `ru.wikipedia.org` article all carry ru host."""
     from a2web.handlers.wikipedia import _wikilink_candidates
 
     # Synthetic is legitimate HERE: this controls the LANGUAGE variable, it is
     # not the oracle for whether the parser matches Parsoid (that is the
-    # captured-fixture test above). Written in the real `./Target` shape.
-    html = '<p>See <a rel="mw:WikiLink" href="./Москва">Moscow</a> and <a rel="mw:WikiLink" href="./Россия">Russia</a></p>'
+    # captured-fixture test above). Written in the real `./Target` shape, and
+    # inside the real BODY shape — Parsoid's REST output puts the parser output
+    # on the body itself, which is now the schema's container.
+    html = (
+        '<body class="mw-content-ltr mw-parser-output parsoid-body">'
+        '<p>See <a rel="mw:WikiLink" href="./Москва">Moscow</a> and '
+        '<a rel="mw:WikiLink" href="./Россия">Russia</a></p></body>'
+    )
     cands = _wikilink_candidates(html, lang="ru")
     assert len(cands) == 2
     assert all(c.url.startswith("https://ru.wikipedia.org/wiki/") for c in cands)
@@ -163,7 +216,11 @@ def test_wikipedia_wikilink_candidates_capped_at_10() -> None:
 
     # Synthetic is legitimate HERE too: it controls the COUNT to exercise the
     # cap. Real Parsoid shape, so it cannot drift from what the parser accepts.
-    html = "".join(f'<a rel="mw:WikiLink" href="./Article_{i}">Article {i}</a>' for i in range(15))
+    html = (
+        '<body class="mw-content-ltr mw-parser-output parsoid-body">'
+        + "".join(f'<a rel="mw:WikiLink" href="./Article_{i}">Article {i}</a>' for i in range(15))
+        + "</body>"
+    )
     assert len(_wikilink_candidates(html, lang="en")) == 10
 
 

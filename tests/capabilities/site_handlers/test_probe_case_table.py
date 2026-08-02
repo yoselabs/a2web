@@ -95,11 +95,12 @@ def test_every_case_says_what_it_checks() -> None:
 def test_candidate_populating_handlers_declare_a_nonzero_floor() -> None:
     """A handler that builds an index must probe that it still does.
 
-    Wikipedia is the case that motivates this. Its wikilink parse has no verdict
-    guard and structurally cannot get one — the `dom_schema` container is
-    `<body>`, which always matches, so a rotted selector reads as EMPTY rather
-    than ROT. The probe's candidate floor is the ONLY live check that the parse
-    still works. Zeroing it removes the last one.
+    Wikipedia is the case that motivates this. Half its wikilink parse gained a
+    verdict guard on 2026-08-02 — the container is `body.mw-parser-output`, so
+    non-Parsoid input is ROT rather than a page-blaming EMPTY. The other half
+    structurally cannot get one: a rotted ROW selector is indistinguishable from
+    an article that legitimately links nowhere. The probe's candidate floor is
+    the ONLY live check on that half. Zeroing it removes the last one.
     """
     registered = {h.name for h in _registry(None)}
     offenders: list[str] = []

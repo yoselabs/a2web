@@ -135,10 +135,12 @@ _PROBE_CASES: dict[str, tuple[ProbeCase, ...]] = {
             url="https://en.wikipedia.org/wiki/Python_(programming_language)",
             shape="detail",
             min_chars=10000,  # observed 49121
-            # The wikilink parse has NO verdict guard and cannot get one: its
-            # dom_schema container is <body>, which always matches, so a rotted
-            # selector reads as EMPTY rather than ROT. This floor is the only
-            # LIVE check that the parse still works. Do not zero it.
+            # Half the wikilink parse is verdict-guarded since 2026-08-02 (the
+            # container is `body.mw-parser-output`, so non-Parsoid input is
+            # ROT), but the ROW selector cannot be: "an article that links
+            # nowhere" is a legitimate page state, so a rotted row selector
+            # still reads as EMPTY. This floor is the only LIVE check on that
+            # half. Do not zero it.
             min_candidates=5,  # observed 10 (the cap); was 0 while the parser was dead
             checks="article body renders AND rel=mw:WikiLink anchors yield candidates",
         ),

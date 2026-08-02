@@ -122,11 +122,50 @@ real is the inverse, and worse: the capability was entirely unwitnessed.
 
 ## 4. `dom-schema` — rot vs empty
 
-- [ ] 4.1 Promote ROT reporting under a universal container.
-      `handler_probe.py:136-140` uses `<body>`, which always matches, so a rotted
-      selector reads as EMPTY.
-- [ ] 4.2 Make rot detectable offline against captured markup — today the live
-      `min_candidates=5` network probe is the only detector.
+- [x] 4.1 **Nothing to promote — the universal container was not forced, it was
+      a2web's choice.** Done 2026-08-02 as an a2web fix.
+
+      The task asked to "promote ROT reporting under a universal container",
+      which is not a thing that can exist: with `container="body"`, a row
+      selector matching nothing is the SAME observation for an empty page and a
+      dead selector, and no amount of shelf code invents the distinction.
+
+      What was actually available is a discriminating container. Measured both
+      shapes live: Parsoid's REST output makes the BODY the parser output
+      (`class="… mw-parser-output parsoid-body"`); the ordinary rendered article
+      puts `mw-parser-output` on an inner `div`. So
+      `container="body.mw-parser-output"` separates the half that can be
+      separated — fed a non-Parsoid document (a redirect, an error page, a REST
+      shape change) is now `ROT`, a fact about the schema, where it used to be
+      `EMPTY`, blaming the page.
+
+      **Stated with its limit, because overstating it would repeat the error
+      this change exists to close:** a rotted ROW selector still reads `EMPTY`,
+      and INHERENTLY so — "an article that links nowhere" is a legitimate page
+      state. That is the half the 2026-07-28 incident actually was. It stays
+      guarded by the captured-density floor and the probe's `min_candidates`,
+      and both docstrings that used to disclaim the whole thing now say which
+      half they cover.
+
+      Also made the verdict load-bearing rather than decorative:
+      `_wikilink_candidates` now logs `handler_schema_rot` and drops the index
+      instead of returning a bare `[]`. Unlike arXiv's listing the fetch is NOT
+      failed — wikilinks are the index, not the content — but a rotted index and
+      an article that genuinely links nowhere must not look alike to an
+      operator (the GitHub-comments collapse).
+- [x] 4.2 **Half done before this change, and the task did not know it.** The
+      claim that "the live `min_candidates=5` network probe is the only
+      detector" was false for arXiv, which has had offline `ROT` *and* `EMPTY`
+      assertions since 2026-07-28 (`test_handlers_arxiv.py:105,113`). It was
+      true only for wikipedia, and only because of 4.1's container.
+
+      Now closed with a CAPTURED witness on both sides: the rendered article
+      (`wikipedia_rendered_article_not_parsoid.html`, new) asserts `ROT`, the
+      Parsoid capture asserts `OK`, so the pair cannot silently become the same
+      document. Non-vacuity is explicit — the rendered capture still carries 65
+      `rel="mw:WikiLink"` anchors, so the row selector WOULD have matched it;
+      the verdict is about the container and the test says so. Reversion-
+      verified: restoring `container="body"` fails both new tests.
 - [ ] 4.3 Consider widening `dom-schema` adoption past 2 of 9 handlers.
       `handlers/_reddit_html.py:28,126` hand-rolls 294 lines of
       `selectolax.parser.HTMLParser` + CSS traversal with **no ROT verdict** —
