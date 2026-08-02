@@ -69,7 +69,7 @@ _TOOL_GROUPS: dict[str, tuple[str, str]] = {
     # tool name -> (group, command name)
     "query": ("web", "query"),
     "fetch_raw": ("web", "fetch_raw"),
-    "refresh": ("cookies", "refresh"),
+    "cookies_refresh": ("cookies", "refresh"),
 }
 
 _GROUP_HELP: dict[str, str] = {

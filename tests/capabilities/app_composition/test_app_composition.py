@@ -50,12 +50,12 @@ async def test_cookies_tool_gated_off_by_default() -> None:
     """`expose_cookies_tool` defaults False — a served a2web has no local
     browser to mirror cookies from, so the tool is absent, not
     present-and-failing."""
-    assert "refresh" not in await _tool_names()
+    assert "cookies_refresh" not in await _tool_names()
 
 
 @pytest.mark.asyncio
 async def test_cookies_tool_exposed_when_toggled_on() -> None:
-    assert "refresh" in await _tool_names(expose_cookies_tool=True)
+    assert "cookies_refresh" in await _tool_names(expose_cookies_tool=True)
 
 
 def test_main_entrypoint_exists_and_callable() -> None:

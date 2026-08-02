@@ -109,6 +109,19 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ### Changed
 
+- **BREAKING (MCP wire): the cookies tool is now `cookies_refresh`, was
+  `refresh`.** It registered on the wire as bare `refresh` while
+  `settings.py`, `README.md`, `CLAUDE.md` and the CLI grouping all called it
+  `cookies_refresh` — so every document described a tool name that did not
+  exist. Bare `refresh` also sat in the same flat MCP namespace as `query` and
+  `fetch_raw` and told a calling agent nothing about what it refreshed.
+
+  Blast radius is near-zero by construction: the tool is default-OFF
+  (`expose_cookies_tool`), local-only, and absent from the published container,
+  so no served deployment exposed it. The CLI surface is unchanged —
+  `a2web cookies refresh` still works, because `_TOOL_GROUPS` maps the wire
+  name to its `(group, command)` pair.
+
 - **`other_pages[].kind` now carries the handler's real kind — a CORRECTION,
   not a refactor.** The handler→`other_pages` fold relabelled every entry
   `kind="structural"` regardless of what the handler assigned. Measured across

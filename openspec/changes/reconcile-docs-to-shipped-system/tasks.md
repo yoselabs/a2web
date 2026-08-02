@@ -243,19 +243,28 @@ symbols named, three have zero occurrences anywhere and needed nothing.
 - [x] 6.4 **Nothing to do — `ExtractionCache` has ZERO occurrences repo-wide.**
       Renamed to `LlmCache` when the extraction cache was promoted to the shelf;
       this task outlived the work.
-- [ ] 6.5 **Raised, not decided — this is an Ask First item.** The tool is
-      registered on the wire as bare `refresh` (`routers.py:299`) while
-      `settings.py:282,296`, `README.md:374-375` and `CLAUDE.md:148` all call it
-      `cookies_refresh`, and the CLI already groups it as
-      `a2web cookies refresh` (`cli.py:72`).
+- [x] 6.5 **Decided by the maintainer 2026-08-02: rename the WIRE name.** The
+      tool registered as bare `refresh` (`routers.py:299`) while
+      `settings.py:282,296`, `README.md:374-375`, `CLAUDE.md:148` and the CLI
+      grouping (`cli.py:72`) all called it `cookies_refresh` — every document
+      described a tool name that did not exist.
 
-      Recommend renaming the WIRE name to `cookies_refresh`: bare `refresh`
-      sits in the same flat MCP namespace as `query` and `fetch_raw` and tells
-      an agent nothing about what it refreshes. Blast radius is near-zero — the
-      tool is default-OFF (`expose_cookies_tool`), local-only, and absent from
-      the published container. But it IS a tool-signature change, which CLAUDE.md
-      lists under Ask First, so it waits for a human rather than being decided
-      by whoever happened to be editing docs.
+      Renamed rather than the cheaper alternative of rewriting four documents to
+      match the code, because bare `refresh` sits in the same flat MCP namespace
+      as `query` and `fetch_raw` and tells a calling agent nothing about what it
+      refreshes. Standardising on it would have made the docs correct and the
+      surface worse.
+
+      It is a breaking wire change and is recorded as one in `CHANGELOG.md`,
+      but the blast radius is near-zero by construction: default-OFF
+      (`expose_cookies_tool`), local-only, absent from the published container,
+      so no served deployment exposed it. The CLI surface is unchanged —
+      `_TOOL_GROUPS` maps the wire name to its `(group, command)` pair, so
+      `a2web cookies refresh` still works (verified by running it).
+
+      The wire contract goldens were unaffected and that is not luck:
+      `test_wire_contract.py:153` builds a server that drops the cookies tool
+      entirely, so it was never in `list_tools.json`.
 
 ## 7. The citation guard
 

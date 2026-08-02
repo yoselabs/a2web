@@ -293,10 +293,10 @@ def register_web_tools(mcp: FastMCP, components: Components) -> None:
 
 
 def register_cookies_tools(mcp: FastMCP, components: Components) -> None:
-    """Register `refresh` on `mcp`. Local-only — see `expose_cookies_tool`."""
+    """Register `cookies_refresh` on `mcp`. Local-only — see `expose_cookies_tool`."""
 
     @mcp.tool(
-        name="refresh",
+        name="cookies_refresh",
         annotations=ToolAnnotations(
             title="Refresh Browser Cookies",
             readOnlyHint=False,

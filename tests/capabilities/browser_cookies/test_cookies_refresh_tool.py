@@ -26,7 +26,7 @@ async def _refresh(settings: AppSettings, jar: object) -> CookiesRefreshResult:
 
     parts = dataclasses.replace(build_components(settings=settings), cookie_jar=lazy(jar))
     async with mcp_client(settings=settings, components=parts) as client:
-        result = await client.call_tool("refresh", {})
+        result = await client.call_tool("cookies_refresh", {})
     return CookiesRefreshResult.model_validate(result.structured_content)
 
 

@@ -64,8 +64,11 @@ the code is product-shaped today, even if it looks generic.
 1. Which products (named) need this?
 2. If only one — does it have an obvious second consumer? If no,
    keep it in product/domain.
-3. If two or more — start it under `<product>/packages/` with a
-   `test_packages_independence`-style import-isolation test.
+3. If two or more — start it under `<product>/packages/` with an
+   import-isolation check that fails when the package reaches back into
+   product/domain code. A hand-rolled test is one way; a boundary tool
+   (a2web uses `tach`) is another, and is preferable because it also
+   catches a package that was never registered.
 
 **Example:**
 - `a2web/fetcher.py` (tier cascade orchestration) — product. Only
@@ -424,7 +427,7 @@ check is built.
 
 | Article | Mechanical check | Skill | Status |
 |---|---|---|---|
-| **I** Substrate/Product | `test_packages_independence` import-isolation test per package; `REGO-PACKAGE-BOUNDARY` | `classify-change` | `[pending]` (a2web has the test; a2kit-wide rollout pending) |
+| **I** Substrate/Product | An import-isolation check per package; `REGO-PACKAGE-BOUNDARY` | `classify-change` | `[pending]` (a2web enforces it via `tach.toml` + `test_tach_covers_every_package.py`; a2kit-wide rollout pending) |
 | **II** Placement Hierarchy | `REGO-TIER-PROMOTION` — file move between tiers requires linked ADR; pre-commit detects moves | `promotion-detector` | `[pending]` |
 | **III** Adopt Before Build | New `packages/<X>/` requires `_adoption_research.md`; `REGO-ADOPTION-RESEARCH` | `adoption-research` (auto web-search + draft) | `[pending]` |
 | **IV** Promotion Triggers | ADR template requires "trigger evidence" field; `REGO-PROMOTION-TRIGGER` validates ADR shape | `promotion-validator` | `[pending]` |
