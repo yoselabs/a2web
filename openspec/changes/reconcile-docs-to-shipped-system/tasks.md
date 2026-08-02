@@ -169,26 +169,46 @@ listing `archive/` gets a wrong answer with authority.
 
 ## 5. CLAUDE.md — inventory and structure
 
-- [ ] 5.1 Pipeline: `_run_pipeline` is documented as "a 12-line coordinator
-      calling six named phases" (`:72`). It is **47 lines calling twelve**, and
-      `_phase_cache_write` is **not terminal** — three promotion/terminal steps
-      run after it.
-- [ ] 5.2 Handlers: 9 documented as 5 (`:69`).
-- [ ] 5.3 Tiers: the zyte tier and the `browser_robust` rung are absent
-      entirely, while `_PAID_TIER_ORDER = ("zyte", "firecrawl")` puts zyte
-      **first**. The files are `_paid.py`, `firecrawl.py`, `zyte.py`.
-- [ ] 5.4 Tier manifests: 8 documented as 5.
-- [ ] 5.5 Browser cap: `:73` says "capped at 1/fetch"; `playbook.py:156,172,260`
-      caps at `< 2` (fast → robust rungs).
-- [ ] 5.6 `domain.py`: described as "pure functions too small for their own
-      files" (`:75`) when ~370 of 551 lines are a renderer. **Coordinate with
-      `lift-the-item-set-and-renderer`**, which changes this.
-- [ ] 5.7 Add `fetcher_response.py` — 740 lines CLAUDE.md never mentions.
-- [ ] 5.8 `_manifests/llm_providers/` is listed as a live plugin surface (`:85`)
-      but holds only `__pycache__`. **Verify the loader cannot resurrect it**
-      before deleting the directory.
-- [ ] 5.9 Consider asserting the inventory counts mechanically rather than
-      restating numbers that rot (design Open Questions).
+**Four of nine were already fixed by earlier changes; four were real; one became
+a guard.** Censused before editing.
+
+- [x] 5.1 **Stale — CLAUDE.md contains no `_run_pipeline` or "coordinator"
+      claim.** The fetcher section was rewritten when the module became a
+      package (`decompose-fetcher-into-files`). Nothing to correct.
+- [x] 5.2 **Real.** Five handlers named, nine on disk — and the four unnamed
+      (`discourse`, `habr`, `twitter`, `v2ex`) were invisible to any reader who
+      counted the names and found them self-consistent. All nine now listed.
+- [x] 5.3 **Real, and worse than stated.** The tiers line named `paid.py`
+      (the file is `_paid.py`), never mentioned `zyte.py` or `firecrawl.py` as
+      separate tiers, never mentioned `site_handler.py`, and omitted the
+      `browser_robust` rung entirely. `_PAID_TIER_ORDER = ("zyte", "firecrawl")`
+      — zyte FIRST — is now stated, because "Firecrawl env-gated" implied
+      Firecrawl was the paid tier.
+- [x] 5.4 **Real.** `tiers/ (5 tiers)` → 8, now enumerated rather than counted,
+      so the omission cannot recur silently.
+- [x] 5.5 **Real.** "capped at 1/fetch" → `playbook.BROWSER_DISPATCH_CAP = 2`,
+      with what the two dispatches ARE (fast Chromium, then robust CDP) — the
+      number alone reads as a typo; the reason is the fast→robust ladder.
+- [x] 5.6 Already done — CLAUDE.md documents `domain.py` at 149 lines and
+      records that the 381-line renderer moved to `packages/structured_render.py`.
+      `lift-the-item-set-and-renderer` shipped.
+- [x] 5.7 Already done — `fetcher_response.py` has its own CLAUDE.md entry,
+      including the note that it was undocumented until 2026-08-01.
+- [x] 5.8 Already done — `_manifests/llm_providers/` is marked GONE with the
+      reason (promoted to shelf `anyllm`; `select_provider` calls
+      `resolve_provider` directly).
+- [x] 5.9 **Done — and this is the part that stops §5 recurring.**
+      `tests/architecture/test_claude_md_inventory_counts.py` asserts the two
+      stated counts against the tree AND that every handler / tier manifest is
+      NAMED, since a correct count beside an incomplete list is the worse half
+      of the defect: a reader who counts the names and finds them consistent has
+      no signal that four are missing.
+
+      Mutation-verified in four directions, and the fourth is why the guard is
+      trustworthy: dropping `browser_robust` from the manifest list initially
+      **PASSED**, because the name also appears in the tiers paragraph and in
+      `browser_robust_backend`. A whole-document substring search is satisfied by
+      any incidental mention. Scoped to the parenthesised list; now fails.
 
 ## 6. Dead and renamed symbols
 
