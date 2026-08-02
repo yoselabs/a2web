@@ -46,7 +46,10 @@ argument is that the handler's `reason` carries signal the generic layer cannot
 reconstruct. That claim is checkable here rather than assumed.
 
 **Non-vacuity.** The ablation asserts it actually bit: with handlers off, no
-round may report `tier_used == "site_handler"`. `site_handler.py` binds
+round may report `tier == "site_handler"`, AND every handlers-ON round must.
+A one-directional check is not enough: the first draft asserted only the OFF
+side and read a field (`tier_used`) that does not exist on the model, so it
+returned None on both arms and could never fire. `site_handler.py` binds
 `match_handler` as an imported NAME, so patching `a2web.handlers.match_handler`
 would silently do nothing and this spike would report a confident "handlers make
 no difference" while having tested nothing. That is the exact failure CLAUDE.md
@@ -147,6 +150,14 @@ class _Ablation:
         site_handler.match_handler = self._saved  # type: ignore[assignment]
 
 
+def _claims(url: str) -> bool:
+    """Does a handler claim this URL? Asked at the same seam the tier uses, so
+    the answer tracks whatever the ablation is currently doing to it."""
+    from a2web.tiers import site_handler
+
+    return site_handler.match_handler(url, AppSettings()) is not None
+
+
 async def _run(parts: Any, url: str, ask: str) -> dict[str, Any]:
     response = await fetch(
         url,
@@ -161,8 +172,13 @@ async def _run(parts: Any, url: str, ask: str) -> dict[str, Any]:
     pages = list(view.other_pages or ())
     return {
         "status": view.status or "ok",
-        "tier_used": getattr(response, "tier_used", None),
-        "handler_name": getattr(response, "handler_name", None),
+        # `FetchResponse.tier`, NOT `tier_used`. The first draft of this spike
+        # read `tier_used` via getattr-with-default, which does not exist on the
+        # model, so it silently returned None on BOTH arms and the non-vacuity
+        # assertion below could never fire. It read as coverage while providing
+        # none — caught by noticing `tier_used=None` on the handler-ON arm,
+        # where a handler had demonstrably run.
+        "tier": response.tier,
         "content_chars": len(response.content_md or ""),
         # Carried so the judge inventory can be built from whichever arm
         # actually retrieved the page, without a third fetch.
@@ -208,14 +224,43 @@ async def main() -> None:
                     with _Ablation():
                         off = await _run(parts, url, ask)
 
-                    # Non-vacuity: prove the knob bit. A silent no-op here would
-                    # produce a confident "handlers do not matter".
-                    if off["tier_used"] == "site_handler" or off["handler_name"]:
+                    # Non-vacuity, in BOTH directions — a one-sided check here is
+                    # what failed the first time. The ON arm must show the
+                    # handler ran, and the OFF arm must show it did not; an
+                    # assertion that can only fire in one direction cannot tell
+                    # "the ablation worked" from "the probe reads nothing".
+                    # `tier` is `site_handler:<name>` (e.g. `site_handler:wikipedia`),
+                    # NOT a bare `site_handler` — an equality check made BOTH
+                    # sides false and fired on every case for the wrong reason.
+                    #
+                    # And `tier` answers "which tier supplied the body", NOT
+                    # "did the handler run": reddit's handler matches, runs,
+                    # fails, and the walk escalates to `browser`, so `tier` says
+                    # `browser` while the handler ran fine. Whether the handler
+                    # CLAIMS the URL is a static fact — ask `match_handler`
+                    # directly rather than inferring it from an outcome.
+                    claims = _claims(url)
+                    off_ran = off["tier"].startswith("site_handler")
+                    superseded = claims and not on["tier"].startswith("site_handler")
+                    # Two different situations, deliberately NOT collapsed.
+                    if off_ran:
+                        # The patch did not take. Nothing this spike prints can
+                        # be trusted, including the other sites — abort loudly.
                         raise SystemExit(
-                            f"handler_ablation_v1: ablation did not take effect for {handler} "
-                            f"(tier_used={off['tier_used']!r}, handler_name={off['handler_name']!r}). "
+                            f"handler_ablation_v1: the ablation did not take effect for {handler} "
+                            f"(OFF tier={off['tier']!r}). "
                             "The patched seam is wrong; every number this spike prints would be meaningless."
                         )
+                    if not claims:
+                        # The handler does not claim this URL at all, so there
+                        # is no ablation to measure. A RESULT about the corpus
+                        # entry, not a harness fault — reporting a 0.0 delta
+                        # would read as "the handler adds nothing" when the
+                        # truth is "it was never asked".
+                        row["verdict_override"] = f"NOT CLAIMED — handler does not match this URL (tier={on['tier']!r})"
+                        print(f"      -> NO ABLATION: handler does not claim this URL", flush=True)
+                        break
+                    on["superseded"] = superseded
 
                     # The inventory comes from whichever arm actually retrieved
                     # MORE body, so a failed arm cannot shrink the target it is
@@ -247,8 +292,8 @@ async def main() -> None:
                         arm.pop("content_md", None)
                     row["reps"].append({"on": on, "off": off, "recall": rec, "inventory_from": body_owner})
                     print(
-                        f"      rep{rep + 1} ON[{on['status']}/{on['tier_used']}/{on['content_chars']}c "
-                        f"np={on['other_pages']}] OFF[{off['status']}/{off['tier_used']}/{off['content_chars']}c "
+                        f"      rep{rep + 1} ON[{on['status']}/{on['tier']}/{on['content_chars']}c "
+                        f"np={on['other_pages']}] OFF[{off['status']}/{off['tier']}/{off['content_chars']}c "
                         f"np={off['other_pages']}] recall={rec}",
                         flush=True,
                     )
@@ -270,11 +315,18 @@ async def main() -> None:
         renderer, and collapsing the two is how a handler's real job gets
         misfiled.
         """
+        if row.get("verdict_override"):
+            return row["verdict_override"]
         reps_ = [r for r in row.get("reps", []) if r]
         if not reps_:
             return "unmeasured"
         on_ok = sum(1 for r in reps_ if r["on"]["status"] == "ok")
         off_ok = sum(1 for r in reps_ if r["off"]["status"] == "ok")
+        if all(r["on"].get("superseded") for r in reps_):
+            # The handler claimed the URL, ran, and was overtaken by escalation.
+            # Whatever the deltas say, they are not measuring the handler's
+            # output — they are measuring two non-handler tiers.
+            return f"SUPERSEDED — handler ran but escalation overtook it (tier={reps_[0]['on']['tier']!r})"
         if on_ok > off_ok:
             return "RETRIEVAL — handler is the only way in"
         if off_ok > on_ok:
