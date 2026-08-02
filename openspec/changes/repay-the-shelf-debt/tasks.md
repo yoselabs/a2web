@@ -185,6 +185,39 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
       to `r.jina.ai` would be a conditional request about a different resource.
       The task line's "it gains conditional GET" is wrong and must not be
       implemented.
+      **DONE 2026-08-02.** jina now calls `fetch_bytes` (impersonation, the
+      `FetchVerdict` closed enum, a working breaker); `httpx` is gone from the
+      tier. Both decisions above are implemented and each has its own test:
+      the breaker is keyed on `r.jina.ai` (asserted by opening the TARGET's
+      breaker and checking jina still dials, plus an anti-vacuity half proving
+      jina HAS a breaker — otherwise `breaker=None` would pass), and
+      `conditional_extras` are asserted absent from the request.
+      One verdict is deliberately NOT passed through: `FetchVerdict.dns_error`
+      maps to `Verdict.connection_error` here, where `raw.py` maps it straight
+      through. `Verdict.dns_error` is TERMINAL by design (the planner leaves it
+      alone — a real browser cannot resolve a nonexistent domain either), and on
+      this tier the unresolvable name is `r.jina.ai`, never the target. Passing
+      it through would report a dead TARGET on evidence about the READER: an
+      ADR-0009 laundering in the direction that silences the fetch.
+      **What this surfaced, which is larger than the task.** The eval replay
+      corpus was hitting the live network. `patch_fetch_bytes` intercepts the
+      primitive; jina's hand-rolled `httpx.AsyncClient` was invisible to it, so
+      every replay of a case whose ladder reached jina made a live HTTPS request
+      to `r.jina.ai` — in CI, on every push, for the corpus's whole life. The
+      blessed `jina:paywall` step in `regression/akakce-cloudflare-bot-wall` was
+      a LIVE response, not frozen bytes, so `CassetteMiss`'s "replay refuses to
+      hit the network" was false for that tier. Measured with a
+      `socket.getaddrinfo` spy before being believed: one lookup, `r.jina.ai`.
+      Fixed at the CLASS, not the instance — `tests/eval_replay/conftest.py`
+      now fails any live DNS lookup during a replay, so the next un-frozen
+      egress is loud instead of silent.
+      **One case is left xfail(strict) and needs an operator decision.**
+      `akakce-cloudflare-bot-wall` cannot reproduce its baseline (the jina step
+      was never frozen). A live refresh shows akakce NO LONGER WALLS: raw
+      returns the page in one hop and the fresh answer is a real
+      "Fiyat Yok / offerCount 0" reading. Blessing that would retire a bot-wall
+      regression guard by accident while looking like an update — so it was not
+      blessed. Re-point the case at a currently-walled URL, or split it in two.
 - [ ] 7.2 Decide the `zyte`/`firecrawl` question: widen `http_fetch` to POST, or
       record them as an explicit exception (design Open Questions). They POST to
       JSON APIs; `http_fetch` is GET-only.

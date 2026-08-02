@@ -23,9 +23,38 @@ _REGRESSION = Path(__file__).resolve().parents[2] / "eval" / "corpus" / "regress
 _CASES = load_corpus(_REGRESSION)
 
 
+#: Cases whose frozen `inputs/` cannot reproduce their blessed baseline, with the
+#: reason. `strict=True` on purpose — an entry that starts passing FAILS, so this
+#: table cannot quietly become a list of cases nobody re-examines.
+#:
+#: `akakce-cloudflare-bot-wall` (2026-08-02): its blessed `steps` end
+#: `jina:paywall`, and that step was never frozen. The jina tier hand-rolled an
+#: `httpx.AsyncClient`, which `patch_fetch_bytes` does not intercept, so the
+#: capture recorded no jina exchange and every replay re-fetched `r.jina.ai`
+#: LIVE (measured with a `getaddrinfo` spy: one lookup, `r.jina.ai`). Routing
+#: jina through the primitive made the gap visible as the `CassetteMiss` it
+#: always was.
+#:
+#: **Re-capture is not the fix, and that is the operator's call.** A live refresh
+#: on 2026-08-02 shows akakce no longer walls: raw now returns the page in one
+#: hop, and the fresh answer is a real "Fiyat Yok / offerCount 0" reading. That
+#: is a DIFFERENT case — arguably the "genuine no-current-price specimen" this
+#: case's own notes say akakce could not provide — and blessing it would retire
+#: a bot-wall regression guard by accident while appearing to update it. Decide
+#: deliberately: re-point this case at a currently-walled URL, or split it.
+_UNREPRODUCIBLE = {
+    "akakce-cloudflare-bot-wall": (
+        "blessed `jina:paywall` step was never frozen; site no longer walls "
+        "— needs a deliberate re-capture decision"
+    ),
+}
+
+
 @pytest.mark.skipif(not _CASES, reason="no regression cases captured yet")
 @pytest.mark.parametrize("case", _CASES, ids=[c.slug for c in _CASES])
-async def test_regression_replay(monkeypatch: pytest.MonkeyPatch, case) -> None:
+async def test_regression_replay(monkeypatch: pytest.MonkeyPatch, case, request: pytest.FixtureRequest) -> None:
+    if case.slug in _UNREPRODUCIBLE:
+        request.applymarker(pytest.mark.xfail(reason=_UNREPRODUCIBLE[case.slug], strict=True))
     observed = await replay_case(monkeypatch, case)
     if BLESS_EVAL:
         bless_contract(case, observed)

@@ -1,51 +1,127 @@
-"""JinaTier tests — auth header, deny-list, pre_rendered payload."""
+"""JinaTier tests — auth header, deny-list, wrapper unwrap, pre_rendered payload.
+
+The transport seam moved on 2026-08-02: jina used to hand-roll an
+`httpx.AsyncClient`, and these tests patched `httpx.AsyncClient`. It now goes
+through the shared `http_fetch.fetch_bytes` primitive (browser TLS
+impersonation, the `FetchVerdict` closed enum, and a real circuit breaker), so
+the fake is installed one layer down at `http_fetch.fetch.cr.AsyncSession` —
+the same seam `tests/capabilities/raw_tier/test_raw_tier.py` uses. Everything
+above the transport is the tier's own code, unchanged and still under test.
+"""
 
 from __future__ import annotations
 
-import httpx
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any
+
 import pytest
+from curl_cffi.requests import exceptions as ce
+from purgatory import AsyncCircuitBreakerFactory
 
 from a2web.models import Verdict
 from a2web.settings import AppSettings
-from a2web.state import AppState
 from a2web.tiers.jina import JinaTier
 from tests.conftest import make_default_state
+
+if TYPE_CHECKING:
+    from a2web.state import AppState
 
 
 def _state(**kwargs: object) -> AppState:
     return make_default_state(settings=AppSettings(**kwargs))
 
 
-@pytest.mark.asyncio
+class _FakeSession:
+    """Stands in for `curl_cffi.requests.AsyncSession` inside `fetch_bytes`."""
+
+    def __init__(self, payload: SimpleNamespace | BaseException) -> None:
+        self._payload = payload
+        self.requests: list[dict[str, Any]] = []
+
+    async def __aenter__(self) -> _FakeSession:
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        return None
+
+    async def get(self, url: str, **kwargs: Any) -> SimpleNamespace:
+        self.requests.append({"url": url, **kwargs})
+        if isinstance(self._payload, BaseException):
+            raise self._payload
+        return self._payload
+
+
+def _response(*, text: str = "md", status: int = 200) -> SimpleNamespace:
+    return SimpleNamespace(
+        status_code=status,
+        content=text.encode("utf-8"),
+        url="https://r.jina.ai/x",
+        headers={"content-type": "text/markdown"},
+    )
+
+
+def _mock_jina(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    text: str = "md",
+    status: int = 200,
+    raises: BaseException | None = None,
+) -> _FakeSession:
+    fake = _FakeSession(raises if raises is not None else _response(text=text, status=status))
+    monkeypatch.setattr("http_fetch.fetch.cr.AsyncSession", lambda **_: fake)
+    return fake
+
+
+# --- transport plumbing ---
+
+
 async def test_free_tier_omits_auth(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured: dict[str, dict[str, str]] = {}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        captured["headers"] = dict(request.headers)
-        return httpx.Response(200, text="# Hello\n\nbody")
-
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    fake = _mock_jina(monkeypatch, text="# Hello\n\nbody")
 
     result = await JinaTier().fetch("https://example.com/", state=_state(jina_key=""))
 
-    assert "authorization" not in {k.lower() for k in captured["headers"]}
+    sent = fake.requests[0]["headers"]
+    assert "authorization" not in {k.lower() for k in sent}
     assert result.verdict == Verdict.ok
+    assert result.pre_rendered is not None
     assert result.pre_rendered.content_md == "# Hello\n\nbody"
 
 
-@pytest.mark.asyncio
-async def test_final_url_is_target_not_jina_wrapper(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`final_url` must be the requested TARGET, never the r.jina.ai proxy wrapper.
+async def test_authorized_tier_sends_bearer(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake = _mock_jina(monkeypatch)
 
-    Regression guard: leaking `https://r.jina.ai/<url>` as final_url both surfaced
-    the wrapper on the response `url` and misdirected browser escalation onto
-    r.jina.ai instead of the real page.
+    await JinaTier().fetch("https://example.com/", state=_state(jina_key="secret123"))
+
+    assert fake.requests[0]["headers"]["Authorization"] == "Bearer secret123"
+
+
+async def test_the_reader_is_asked_for_markdown(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The `X-Return-Format` header survived the transport swap.
+
+    Not decoration: this header is what inflates a wrapper-stub body past any
+    fixed size, which is how the retired `_STUB_MAX_BODY` ceiling came to disarm
+    the unwrap. Losing it silently would change what the unwrap tests below are
+    even testing.
     """
-    transport = httpx.MockTransport(lambda req: httpx.Response(200, text="thin"))
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    fake = _mock_jina(monkeypatch)
+
+    await JinaTier().fetch("https://example.com/page", state=_state())
+
+    request = fake.requests[0]
+    assert request["url"] == "https://r.jina.ai/https://example.com/page"
+    assert request["headers"]["X-Return-Format"] == "markdown"
+
+
+async def test_final_url_is_target_not_jina_wrapper(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`final_url` must be the requested TARGET, never the r.jina.ai wrapper.
+
+    Regression guard: leaking `https://r.jina.ai/<url>` as final_url both
+    surfaced the wrapper on the response `url` and misdirected browser
+    escalation onto r.jina.ai instead of the real page. The primitive returns
+    its own `final_url` (always the wrapper), so the tier must keep overriding
+    it — the swap made this MORE load-bearing, not less.
+    """
+    _mock_jina(monkeypatch, text="thin")
 
     target = "https://www.incehesap.com/arama/?kelime=deepcool"
     result = await JinaTier().fetch(target, state=_state())
@@ -54,19 +130,88 @@ async def test_final_url_is_target_not_jina_wrapper(monkeypatch: pytest.MonkeyPa
     assert "r.jina.ai" not in result.final_url
 
 
-def _mock_jina(monkeypatch: pytest.MonkeyPatch, *, text: str, status: int = 200) -> None:
-    transport = httpx.MockTransport(lambda req: httpx.Response(status, text=text))
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+async def test_deny_list_short_circuits(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Denied host must NOT issue an HTTP call."""
+    fake = _mock_jina(monkeypatch)
+
+    state = _state(jina_deny_hosts=["intranet.example.com"])
+    result = await JinaTier().fetch("https://wiki.intranet.example.com/page", state=state)
+
+    assert fake.requests == []
+    assert result.skipped is True
+    assert result.verdict == Verdict.other
 
 
-# --- Reader-wrapper unwrap: jina 200 masking an upstream error (moved from the gate) ---
+# --- the breaker is the READER's, not the target's ---
 
 
-@pytest.mark.asyncio
+async def test_the_breaker_is_keyed_on_the_reader_not_the_target(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A target-host breaker would be the SAME one the raw tier trips.
+
+    A host that just failed on raw would then short-circuit jina before it was
+    tried — the ladder's second rung disabled by the first rung's failure, which
+    is the opposite of what a fallback tier is for. Asserted by making the
+    TARGET's breaker already open and checking jina still dials.
+    """
+    fake = _mock_jina(monkeypatch, text="body")
+    state = _state()
+    state.breakers = AsyncCircuitBreakerFactory(default_threshold=1, default_ttl=300.0)
+
+    target_breaker = await state.breakers.get_breaker("example.com")
+    with pytest.raises(RuntimeError):
+        async with target_breaker:
+            msg = "the raw tier failed this host"
+            raise RuntimeError(msg)
+    assert target_breaker.context.state == "opened"
+
+    result = await JinaTier().fetch("https://example.com/page", state=state)
+
+    assert len(fake.requests) == 1, "jina was blocked by the TARGET's breaker"
+    assert result.verdict == Verdict.ok
+
+
+async def test_reader_failures_open_the_reader_breaker(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The anti-vacuity half — jina must still HAVE a breaker, on `r.jina.ai`.
+
+    Without this, "pass `breaker=None`" would satisfy the test above.
+    """
+    _mock_jina(monkeypatch, raises=ce.ConnectionError("reader down"))
+    state = _state()
+    state.breakers = AsyncCircuitBreakerFactory(default_threshold=2, default_ttl=300.0)
+
+    for _ in range(2):
+        result = await JinaTier().fetch("https://example.com/page", state=state)
+        assert result.verdict == Verdict.connection_error
+
+    reader_breaker = await state.breakers.get_breaker("r.jina.ai")
+    assert reader_breaker.context.state == "opened"
+
+
+async def test_conditional_extras_are_never_forwarded(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The cache is keyed `(url, profile_hash)` with no record of which tier
+    produced the entry, so an `etag` in hand may have come from a RAW fetch of
+    the origin. Sending it to `r.jina.ai` asks a conditional question about a
+    different resource. This is not an improvement waiting to be made.
+    """
+    fake = _mock_jina(monkeypatch)
+
+    await JinaTier().fetch(
+        "https://example.com/",
+        state=_state(),
+        conditional_extras={"etag": '"from-a-raw-fetch"', "last_modified": "Wed, 21 Oct"},
+    )
+
+    sent = {k.lower(): v for k, v in fake.requests[0]["headers"].items()}
+    assert "if-none-match" not in sent
+    assert "if-modified-since" not in sent
+
+
+# --- Reader-wrapper unwrap: jina 200 masking an upstream error ---
+
+
 async def test_wrapped_404_surfaces_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A jina 200 whose body is an upstream-404 stub → tier reports not_found/404,
-    does NOT win the loop (no pre_rendered)."""
+    """A jina 200 whose body is an upstream-404 stub → tier reports
+    not_found/404, does NOT win the loop (no pre_rendered)."""
     body = "Title: x\n\nURL Source: https://x.com/gone\n\nWarning: Target URL returned error 404: Not Found\n\nMarkdown Content:\n# x\n"
     _mock_jina(monkeypatch, text=body)
     result = await JinaTier().fetch("https://x.com/gone", state=_state())
@@ -75,7 +220,6 @@ async def test_wrapped_404_surfaces_not_found(monkeypatch: pytest.MonkeyPatch) -
     assert result.pre_rendered is None
 
 
-@pytest.mark.asyncio
 async def test_verbose_wrapped_404_is_still_decoded(monkeypatch: pytest.MonkeyPatch) -> None:
     """A wrapped upstream 404 is decoded at ANY body length.
 
@@ -100,7 +244,6 @@ async def test_verbose_wrapped_404_is_still_decoded(monkeypatch: pytest.MonkeyPa
     assert result.pre_rendered is None
 
 
-@pytest.mark.asyncio
 async def test_wrapped_403_maps_to_paywall(monkeypatch: pytest.MonkeyPatch) -> None:
     """Wrapped 401/403 → paywall, preserving the archive-on-paywall routing."""
     body = "Title: nyt\n\nWarning: Target URL returned error 403: Forbidden\n\nMarkdown Content:\n# nyt\n"
@@ -110,7 +253,6 @@ async def test_wrapped_403_maps_to_paywall(monkeypatch: pytest.MonkeyPatch) -> N
     assert result.status_code == 403
 
 
-@pytest.mark.asyncio
 async def test_wrapped_401_maps_to_paywall(monkeypatch: pytest.MonkeyPatch) -> None:
     body = "Title: wsj\n\nWarning: Target URL returned error 401: Unauthorized\n\nMarkdown Content:\n# wsj\n"
     _mock_jina(monkeypatch, text=body)
@@ -119,7 +261,6 @@ async def test_wrapped_401_maps_to_paywall(monkeypatch: pytest.MonkeyPatch) -> N
     assert result.status_code == 401
 
 
-@pytest.mark.asyncio
 async def test_long_body_quoting_error_string_is_not_unwrapped(monkeypatch: pytest.MonkeyPatch) -> None:
     """An article that merely QUOTES the stub string is not misread as a wrapper.
 
@@ -129,56 +270,18 @@ async def test_long_body_quoting_error_string_is_not_unwrapped(monkeypatch: pyte
     not on any length ceiling.
     """
     body = "Markdown Content:\n" + ("Lorem ipsum dolor sit amet. " * 200) + "\nThe paper cited `Target URL returned error 403`.\n"
-    _mock_jina(monkeypatch, text=body)
     assert len(body) > 2048, "The false-positive guard must hold at large body sizes"
+    _mock_jina(monkeypatch, text=body)
     result = await JinaTier().fetch("https://blog.example/post", state=_state())
     assert result.verdict == Verdict.ok
     assert result.pre_rendered is not None
 
 
-@pytest.mark.asyncio
-async def test_authorized_tier_sends_bearer(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured: dict[str, dict[str, str]] = {}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        captured["headers"] = dict(request.headers)
-        return httpx.Response(200, text="md")
-
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
-
-    await JinaTier().fetch("https://example.com/", state=_state(jina_key="secret123"))
-
-    assert captured["headers"]["authorization"] == "Bearer secret123"
+# --- transport verdict mapping ---
 
 
-@pytest.mark.asyncio
-async def test_deny_list_short_circuits(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Denied host must NOT issue an HTTP call."""
-    called = {"hit": False}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        called["hit"] = True
-        return httpx.Response(200)
-
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
-
-    state = _state(jina_deny_hosts=["intranet.example.com"])
-    result = await JinaTier().fetch("https://wiki.intranet.example.com/page", state=state)
-
-    assert called["hit"] is False
-    assert result.skipped is True
-    assert result.verdict == Verdict.other
-
-
-@pytest.mark.asyncio
 async def test_429_maps_to_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None:
-    transport = httpx.MockTransport(lambda req: httpx.Response(429, text="rate"))
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    _mock_jina(monkeypatch, text="rate", status=429)
 
     result = await JinaTier().fetch("https://example.com/", state=_state())
 
@@ -186,66 +289,39 @@ async def test_429_maps_to_rate_limited(monkeypatch: pytest.MonkeyPatch) -> None
     assert result.pre_rendered is None
 
 
-@pytest.mark.asyncio
-async def test_timeout_maps_to_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        raise httpx.TimeoutException("slow", request=request)
-
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
-
-    result = await JinaTier().fetch("https://example.com/", state=_state())
-
-    assert result.verdict == Verdict.timeout
-
-
-@pytest.mark.asyncio
 async def test_404_maps_to_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
-    transport = httpx.MockTransport(lambda req: httpx.Response(404))
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
-
+    _mock_jina(monkeypatch, text="", status=404)
     result = await JinaTier().fetch("https://example.com/", state=_state())
     assert result.verdict == Verdict.not_found
 
 
-@pytest.mark.asyncio
 async def test_500_maps_to_connection_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    transport = httpx.MockTransport(lambda req: httpx.Response(503))
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
-
+    _mock_jina(monkeypatch, text="", status=503)
     result = await JinaTier().fetch("https://example.com/", state=_state())
     assert result.verdict == Verdict.connection_error
 
 
-@pytest.mark.asyncio
 async def test_other_4xx_maps_to_connection_error(monkeypatch: pytest.MonkeyPatch) -> None:
     """403/401/410 etc — only 404 and 429 are special-cased."""
-    transport = httpx.MockTransport(lambda req: httpx.Response(403))
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
-
+    _mock_jina(monkeypatch, text="", status=403)
     result = await JinaTier().fetch("https://example.com/", state=_state())
     assert result.verdict == Verdict.connection_error
 
 
-@pytest.mark.asyncio
+async def test_timeout_maps_to_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock_jina(monkeypatch, raises=ce.Timeout("slow"))
+    result = await JinaTier().fetch("https://example.com/", state=_state())
+    assert result.verdict == Verdict.timeout
+
+
+async def test_generic_connection_error_maps_to_connection_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    _mock_jina(monkeypatch, raises=ce.ConnectionError("refused"))
+    result = await JinaTier().fetch("https://example.com/", state=_state())
+    assert result.verdict == Verdict.connection_error
+
+
 async def test_proxy_error_maps_to_proxy_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        raise httpx.ProxyError("upstream proxy refused", request=request)
-
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-
-    def _factory(**kw: object) -> httpx.AsyncClient:
-        # AsyncClient rejects `transport` + `proxy` together — drop proxy.
-        kw.pop("proxy", None)
-        return real_cls(transport=transport, **kw)  # type: ignore[arg-type]
-
-    monkeypatch.setattr(httpx, "AsyncClient", _factory)
-
+    _mock_jina(monkeypatch, raises=ce.RequestException("proxy tunnel refused"))
     result = await JinaTier().fetch(
         "https://example.com/",
         state=_state(),
@@ -254,17 +330,26 @@ async def test_proxy_error_maps_to_proxy_unavailable(monkeypatch: pytest.MonkeyP
     assert result.verdict == Verdict.proxy_unavailable
 
 
-@pytest.mark.asyncio
-async def test_generic_http_error_maps_to_connection_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        raise httpx.ConnectError("DNS failure")
+async def test_reader_dns_failure_is_not_reported_as_a_dead_target(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The verdict this tier must NOT pass through.
 
-    transport = httpx.MockTransport(handler)
-    real_cls = httpx.AsyncClient
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real_cls(transport=transport, **kw))
+    `FetchVerdict.dns_error` means the name being dialled did not resolve — and
+    on this tier that name is `r.jina.ai`, never the target. `Verdict.dns_error`
+    is TERMINAL by design (the planner leaves it alone: a real browser cannot
+    resolve a nonexistent domain either), so passing it through would tell the
+    planner the target does not exist, on evidence that says nothing about the
+    target. The reader being unreachable is a connection failure of this tier,
+    and the ladder must be free to continue past it.
+
+    `raw.py` maps the same verdict straight through, correctly — there the
+    unresolvable name IS the target. The two tables differ on purpose.
+    """
+    _mock_jina(monkeypatch, raises=ce.DNSError("r.jina.ai does not resolve"))
 
     result = await JinaTier().fetch("https://example.com/", state=_state())
+
     assert result.verdict == Verdict.connection_error
+    assert result.verdict is not Verdict.dns_error
 
 
 def test_is_denied_handles_url_without_hostname() -> None:

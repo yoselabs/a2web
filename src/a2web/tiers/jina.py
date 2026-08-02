@@ -15,7 +15,7 @@ import re
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-import httpx
+from http_fetch import FetchVerdict, fetch_bytes
 
 from ..models import Verdict
 
@@ -25,7 +25,30 @@ if TYPE_CHECKING:
 
 
 _BASE_URL = "https://r.jina.ai/"
+_READER_HOST = "r.jina.ai"
 _TIMEOUT_S = 15.0
+
+# Map the primitive's transport verdict to a domain Verdict — and note that
+# EVERY signal on this path is about `r.jina.ai`, not about the target. That is
+# the whole reason this table is not `raw.py`'s.
+#
+# `dns_error` is the one that matters. `raw.py` maps it straight through because
+# there the unresolvable name IS the target, and `Verdict.dns_error` is terminal
+# by design (the planner leaves it alone — a real browser cannot resolve a
+# nonexistent domain either). Here the unresolvable name is the READER. Passing
+# it through would tell the planner the target does not exist, terminally, on
+# evidence that says nothing about the target at all — an ADR-0009 laundering,
+# in the direction that silences the fetch. The reader being unreachable is a
+# connection failure of this tier, and the ladder must be free to continue.
+_TRANSPORT_TO_DOMAIN: dict[FetchVerdict, Verdict] = {
+    FetchVerdict.ok: Verdict.ok,
+    FetchVerdict.not_found: Verdict.not_found,
+    FetchVerdict.rate_limited: Verdict.rate_limited,
+    FetchVerdict.connection_error: Verdict.connection_error,
+    FetchVerdict.dns_error: Verdict.connection_error,
+    FetchVerdict.timeout: Verdict.timeout,
+    FetchVerdict.proxy_unavailable: Verdict.proxy_unavailable,
+}
 
 # jina wraps an upstream error as its OWN HTTP 200 with a body stub of the shape
 # `Target URL returned error <status>: <reason>`. Decode the real upstream status
@@ -110,7 +133,15 @@ class JinaTier:
         conditional_extras: dict[str, str] | None = None,
         **kwargs: Any,
     ) -> TierResult:
-        del conditional_extras, kwargs  # Jina doesn't use conditional GET — always fresh fetch.
+        del conditional_extras, kwargs
+        # `conditional_extras` is DROPPED, deliberately and permanently. a2web's
+        # cache is keyed `(url, profile_hash)` and records nothing about which
+        # tier produced the entry, so an `etag` in hand may well have come from
+        # a raw fetch of the ORIGIN. Sending it to `r.jina.ai` asks a
+        # conditional question about a different resource, and a `304` on that
+        # question means "the reader's rendering is unchanged", which is not
+        # what the caller would reuse. Forwarding these is not an improvement
+        # waiting to be made; it is a correctness bug waiting to be introduced.
         from . import TierResult  # local import — avoid circular at module load
 
         if _is_denied(url, state.settings.jina_deny_hosts):
@@ -127,44 +158,36 @@ class JinaTier:
         if state.settings.jina_key:
             headers["Authorization"] = f"Bearer {state.settings.jina_key}"
 
-        target = _BASE_URL + url
-        timeout_s = state.settings.request_timeout(_TIMEOUT_S)
-        try:
-            client = (
-                httpx.AsyncClient(timeout=timeout_s, follow_redirects=True, proxy=proxy_url)
-                if proxy_url
-                else httpx.AsyncClient(timeout=timeout_s, follow_redirects=True)
-            )
-            async with client:
-                resp = await client.get(target, headers=headers)
-        except httpx.ProxyError:
+        # The breaker is keyed on `r.jina.ai`, NOT the target host — this tier
+        # only ever dials the reader. A target-host breaker would be the SAME
+        # breaker the raw tier trips, so a host that just failed on raw would
+        # short-circuit jina before it was tried: the ladder's second rung
+        # disabled by the first rung's failure, which is the opposite of what a
+        # fallback tier is for.
+        breaker = await state.breakers.get_breaker(_READER_HOST) if state.breakers is not None else None
+
+        outcome = await fetch_bytes(
+            _BASE_URL + url,
+            headers=headers,
+            timeout_s=state.settings.request_timeout(_TIMEOUT_S),
+            proxy_url=proxy_url,
+            breaker=breaker,
+        )
+
+        if outcome.verdict is not FetchVerdict.ok:
             return TierResult(
                 body=b"",
                 content_type="text/markdown",
-                status_code=0,
+                status_code=outcome.status_code,
                 final_url=url,
-                verdict=Verdict.proxy_unavailable,
-            )
-        except httpx.TimeoutException:
-            return TierResult(
-                body=b"",
-                content_type="text/markdown",
-                status_code=0,
-                final_url=url,
-                verdict=Verdict.timeout,
-            )
-        except httpx.HTTPError:
-            return TierResult(
-                body=b"",
-                content_type="text/markdown",
-                status_code=0,
-                final_url=url,
-                verdict=Verdict.connection_error,
+                verdict=_TRANSPORT_TO_DOMAIN[outcome.verdict],
             )
 
-        verdict = _verdict_for_status(resp.status_code)
-        markdown = resp.text if verdict == Verdict.ok else ""
-        status_code = resp.status_code
+        verdict = _verdict_for_status(outcome.status_code)
+        # jina serves UTF-8 markdown; `errors="replace"` so a byte-level oddity
+        # degrades one character rather than voiding the whole tier.
+        markdown = outcome.body.decode("utf-8", errors="replace") if verdict == Verdict.ok else ""
+        status_code = outcome.status_code
         from . import Rendered  # local — avoid circular
 
         # Tier-truthfulness: a jina 200 whose body is a wrapper stub is an
@@ -193,7 +216,7 @@ class JinaTier:
             content_type="text/markdown",
             status_code=status_code,
             final_url=url,
-            headers={k.lower(): v for k, v in resp.headers.items()},
+            headers={k.lower(): v for k, v in outcome.headers.items()},
             pre_rendered=pre_rendered,
             verdict=verdict,
         )
