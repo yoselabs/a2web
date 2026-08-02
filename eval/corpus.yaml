@@ -41,6 +41,13 @@
 #                           hints      operator_hints (exact list),
 #                                      operator_hints_include/exclude,
 #                                      hint_severity {code: severity}
+#                           urls       answer_urls_traceable — every http(s)
+#                                      URL in the answer prose must appear in
+#                                      the retrieved body, the emitted index,
+#                                      or the page's own address (ADR-0014).
+#                                      Vacuously true on an answer citing
+#                                      nothing: pin it on cases whose answers
+#                                      are EXPECTED to carry links.
 #                           index      index_non_empty, other_pages_min,
 #                                      other_pages_kinds,
 #                                      other_pages_all_have_anchor,
@@ -107,6 +114,14 @@ urls:
     next_links_expected: true
     task: "What is httpx, what is its current version, and what project links (docs, source) does the page expose?"
     needs: [content+links]
+    contract:
+      # THE ADR-0014 specimen. `findings_2026-07-11-answer-inline-links.md`
+      # measured this exact cell writing `python-httpx.org` into the answer
+      # from training rather than from an anchor — the memory-URL that the
+      # closed-set handle digest cannot stop, because the prose is its
+      # backdoor. Asserted deterministically since 2026-08-02; before that the
+      # only reader was a judge that never saw the page.
+      answer_urls_traceable: true
     criteria:
       - "Describes httpx as a Python HTTP client"
       - "States a version number"
@@ -346,9 +361,9 @@ urls:
       other_pages_min: 1
       other_pages_kinds: [drilldown]
       other_pages_all_have_anchor: true
+      answer_urls_traceable: true
     criteria:
       - "The anchor is relayed verbatim as a label and never restated as a claim about the target (ADR-0014 / D11 — anchor text is page-authored and, off-domain, attacker-controlled)"
-      - "Every emitted URL is traceable to the fetched page"
 
   - slug: json-ld-itemlist-leaves-an-index
     # ADR-0015 hole, found + closed 2026-08-01. The JSON-LD path rendered an
@@ -370,8 +385,8 @@ urls:
       index_non_empty: true
       other_pages_min: 1
       options_min: 1
+      answer_urls_traceable: true
     criteria:
-      - "Every emitted URL is traceable to the fetched page (ADR-0014) — no URL pattern-guessed from a product name or slug"
       - "Preserves page order and does not crown a 'best' pick (ADR-0012) — the answer presents the option space"
 
   - slug: hepsiburada-product-no-footer-options
@@ -407,9 +422,10 @@ urls:
     class: affordance
     task: "Summarize the customer reviews for this product — what do buyers say?"
     needs: [content+links]
+    contract:
+      answer_urls_traceable: true
     criteria:
       - "Surfaces a reviews drilldown pointing at the on-page `-yorumlari` anchor when that anchor is genuinely in the fetched HTML"
-      - "The surfaced reviews URL is traceable to a real href on the page, never fabricated by appending `-yorumlari` to the product slug (ADR-0014)"
       - "Does NOT fabricate specific review quotes / per-review ratings not present on the fetched page"
       - "Distinguishes the aggregate rating shown on-page from the individual review content that lives on the drilldown page"
 
@@ -485,6 +501,8 @@ urls:
     class: affordance
     task: "How can I contact them — is there an email or a specific channel?"
     needs: [content+links]
+    contract:
+      answer_urls_traceable: true
     criteria:
       - "Returns the actual contact channels present on the page (mailing lists, IRC/Discord, etc.)"
       - "If a mailto:/tel: link is present, reports its literal value (address / number), not just the label"
@@ -728,6 +746,7 @@ urls:
     needs: [content+links]
     contract:
       index_non_empty: true
+      answer_urls_traceable: true
     criteria:
       - "Identifies at least 5 distinct topic titles that read like real forum threads, not navigation chrome"
       - "Topic links point at /t/ topic paths on the same host, never invented (ADR-0014)"
@@ -829,10 +848,13 @@ urls:
     needs: [content+links]
     contract:
       other_pages_min: 1
+      # An archived page is exactly where guessing a plausible article URL is
+      # easiest and most wrong: the snapshot's anchors are the only ground
+      # truth, and the model knows the live site's URL shape from training.
+      answer_urls_traceable: true
     criteria:
       - "If the live page is walled and a snapshot was recovered, the answer is built from the SNAPSHOT's index — not from a one-item collapse of whatever the tier pre-rendered"
       - "A recovered listing surfaces per-story pointers in `other_pages` (kind `drilldown`); an index recovered but not relayed is ADR-0015's withheld-body harm"
-      - "Every URL emitted is traceable to the snapshot's own anchors — an archived page is exactly where guessing a plausible article URL is easiest and most wrong (ADR-0014)"
       - "Snapshot provenance is legible: the caller can tell the content is archived rather than current, and roughly how old"
       - "If NEITHER live nor archive yields the page, the miss is loud — retrieval incomplete with a diagnostic, never an `ok` empty answer (ADR-0009)"
 

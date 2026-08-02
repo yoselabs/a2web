@@ -667,7 +667,11 @@ def _observe_for_contract(fetch_result: SystemResult) -> dict[str, Any]:
     env = fetch_result.metadata.get("envelope")
     env = env if isinstance(env, dict) else {}
     hints = env.get("operator_hints") or []
-    content = env.get("content_md") or ""
+    # The `query` envelope withholds the body by default (ADR-0015), so
+    # `env["content_md"]` is empty for `a2web_extract` — which would make
+    # `has_content` and `content_includes` read a blank page and quietly mean
+    # nothing. The system records the retrieved body alongside; prefer it.
+    content = env.get("content_md") or fetch_result.metadata.get("content_md") or ""
     return {
         # `tier`/`status` are deviation-only on the wire: absent means the
         # boring default, so re-supply it rather than reporting None and
@@ -693,6 +697,9 @@ def _observe_for_contract(fetch_result: SystemResult) -> dict[str, Any]:
             h.get("code", ""): h.get("severity", "info") for h in hints if isinstance(h, dict)
         },
         "confidence": env.get("confidence"),
+        # The page's own address — a legitimate thing for the answer to cite,
+        # and deviation-only on the wire, so fall back to what was requested.
+        "page_url": env.get("url") or fetch_result.metadata.get("requested_url") or "",
         # The ADR-0015 index, structured — see `systems._index_projection` for
         # why this cannot be read off `envelope` (the wire renders it as TSV).
         "index": fetch_result.metadata.get("index") or {},

@@ -123,6 +123,11 @@ def observe(response: Any, *, input_menu: str | None = None) -> dict[str, Any]:
         "retrieval_incomplete": bool(response.retrieval_incomplete),
         "narrative": narrative,
         "narrative_present": bool((response.narrative or "").strip()),
+        # ADR-0014 traceability needs the page's own address as an allowed
+        # citation target. Deterministic from frozen bytes, and never blessed
+        # as an assertion — it is an INPUT to `answer_urls_traceable`, not a
+        # value to pin, so `bless.py` does not write it and no baseline moves.
+        "page_url": response.url or "",
     }
 
 

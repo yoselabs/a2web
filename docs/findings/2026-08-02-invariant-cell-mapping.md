@@ -36,7 +36,7 @@ exists to expose.
 | 1 | **ADR-0009** wire half (failed ⇒ `retrieval_incomplete` + `narrative` + diagnostics + critical hint) | **4** | 3 | 2 | offline `zoro-datadome-bot-wall` (all four signals, as of this session); bench `datadome-wall-commerce` (`status`/`retrieval_incomplete`/`narrative_present`/`answer_present` + `hint_severity`) |
 | 2 | **ADR-0012** never manufacture a selection | 0 | **4** | 0 | `gh-trending-best`, `trendyol-listing-which-best`, `reddit-iem-compare`, `v2ex-topic` — all judged, and legitimately so: neutrality is a property of prose |
 | 3 | **ADR-0013** closed-set `{{n}}` handles | 0 | 0 | **2** | none. `discourse-topic-list` and `walled-listing-recovered-via-archive` state it; neither reader can check a handle |
-| 4 | **ADR-0014** every URL traceable to the page | 0 | 0 | **7** | **none.** Seven criteria across six cases, every one ∅ |
+| 4 | **ADR-0014** every URL traceable to the page | **7** | 0 | 4 | `answer_urls_traceable` on `pypi-httpx` (the historical specimen), `other-pages-carries-the-real-kind-and-anchor`, `json-ld-itemlist-leaves-an-index`, `hepsiburada-reviews-drilldown-on-page`, `contact-page-channels`, `discourse-topic-list`, `walled-listing-recovered-via-archive`. **Was zero when this table was first written, later the same day — see below.** |
 | 5 | **ADR-0015** withheld body leaves an index | **7** | 2 | 0 | `listing-answer-always-leaves-an-index`, `discourse-topic-list`, `json-ld-itemlist-leaves-an-index` (×3 keys), `wikipedia-narrow-ask-indexes`, `github-repo-issues-affordance`, `other-pages-carries-the-real-kind-and-anchor`, `walled-listing-recovered-via-archive` |
 | 6 | **ADR-0016** never bill the metered API | n/a | n/a | n/a | not a corpus question — enforced before the call by `anyllm.cost` (`CostViolation`), which is the right layer |
 | 7 | **ADR-0017** effort/confidence ∝ evidence | **1** | 2 | 1 | `dead-product-url-fat-404` (`confidence_max`, `content_not_found`, no `try_user_browser`) — one cell, and it arrived this session |
@@ -48,9 +48,11 @@ exists to expose.
 
 ## What moved, and what did not
 
-**Before this change: 9 of 12 had zero catching cells. Now 4 do** — #3
-(ADR-0013), #4 (ADR-0014), #11 (never-cache-below-the-gate), and #2 is
-judged-only by design rather than by neglect.
+**Before this change: 9 of 12 had zero catching cells. Now 2 do** — #3
+(ADR-0013) and #11 (never-cache-below-the-gate). #2 is judged-only by design
+rather than by neglect. #4 was a third until `answer_urls_traceable` closed it
+hours after this table was first written; the before/after is left visible
+because the reason it looked unclosable is the interesting part.
 
 The four that gained deterministic cells (#1, #5, #7, #9) plus #10 and #12 are
 the §6.2/§6.4 return. #5 went from zero to seven, which is the single largest
@@ -58,20 +60,35 @@ move: ADR-0015 is an invariant about a STRUCTURE (`other_pages` / `options` /
 `also_here` non-empty), and a structure is exactly what a deterministic key can
 assert and a prose judge cannot.
 
-### #4 (ADR-0014) is the honest zero
+### #4 (ADR-0014) was the honest zero, and then it was closed
 
-Seven criteria, six cases, and not one can fail. The invariant is *"every URL
-a2web emits is traceable to the fetched page"* — checkable only by a reader
-holding both the emitted URLs and the page's anchors. No harness passes the page
-to anything.
+As first measured: seven criteria, six cases, not one able to fail. The
+invariant is *"every URL a2web emits is traceable to the fetched page"* —
+checkable only by a reader holding both the emitted URLs and the page. No
+harness passed the page to anything.
 
-This is §6.1's scope, and §6.1 is open for a reason worth restating: passing the
-page to the QUALITY judge changes every quality score and breaks comparability
-with the current baseline. But ADR-0014 does not need a judge at all. It is a
-**deterministic set-membership question** — is every emitted URL in the page's
-anchor set? — and it belongs in a contract key, not an LLM opinion. That is a
-different, cheaper piece of work than §6.1, and it is now the highest-value one
-left in this change.
+That reads as §6.1's scope, and §6.1 is open for a reason worth restating:
+passing the page to the QUALITY judge changes every quality score and breaks
+comparability with the current baseline. **But ADR-0014 never needed a judge.**
+The ADR's own wording is a membership test — *"a URL literally present in the
+page content"* — so the check is: does each URL in the answer appear in the body
+we retrieved, in the index we emitted, or as the page's own address? Closed the
+same day as `answer_urls_traceable`, on seven cases.
+
+Scope, stated so nobody reads more into it than it does:
+
+- It checks the **answer prose**, which is the hole the ADR names. `other_pages`
+  is already structurally safe — the model emits `{{n}}` handles and closed-set
+  rehydration drops any the digest does not know.
+- It is **vacuously true on an answer citing nothing**, so it is pinned on cases
+  whose answers are expected to carry links, `pypi-httpx` first: that exact cell
+  is where the memory-URL was measured (`python-httpx.org`, written from
+  training rather than read from an anchor).
+- **Known false-positive mode:** an anchor whose href never survives extraction
+  into `content_md` reads as untraceable. Acceptable for a bench axis in a way
+  it would not be in production — a URL in the answer that is absent from the
+  body we captured is worth a look whichever way it resolves. It must not be
+  ported into the fetch path as a filter.
 
 ### #11 has no cell and no plan
 

@@ -204,6 +204,7 @@ _IMPOSSIBLE: dict = {
     "options_all_have_url": False,
     "also_here_min": 1,
     "index_non_empty": True,
+    "answer_urls_traceable": False,
 }
 
 #: Keys an EMPTY observation cannot falsify, with an observation that can. An
@@ -298,6 +299,43 @@ def test_live_projection_uses_the_same_key_names_as_replay() -> None:
 _BENCH_ONLY_PROJECTION = {"hint_severities", "confidence", "index"}
 
 
+def test_answer_urls_traceable_accepts_a_url_from_the_page() -> None:
+    observed = dict(_OK, answer="See https://x/a for details.", content_md="body [A](https://x/a)")
+    failures, _ = check_contract_keys({"answer_urls_traceable": True}, observed)
+    assert failures == []
+
+
+def test_answer_urls_traceable_catches_a_memory_url() -> None:
+    """ADR-0014's measured failure: the model writes a plausible URL from
+    training into the answer prose, around the closed-set handle guarantee."""
+    observed = dict(_OK, answer="Docs are at https://python-httpx.org.", content_md="body [A](https://x/a)")
+    failures, _ = check_contract_keys({"answer_urls_traceable": True}, observed)
+    assert failures and "python-httpx.org" in failures[0]
+    assert "python-httpx.org." not in failures[0], "sentence punctuation leaked into the URL"
+
+
+def test_answer_urls_traceable_allows_the_pages_own_address() -> None:
+    observed = dict(_OK, answer="This page is https://x/here", content_md="", page_url="https://x/here")
+    failures, _ = check_contract_keys({"answer_urls_traceable": True}, observed)
+    assert failures == []
+
+
+def test_answer_urls_traceable_allows_a_url_the_index_emitted() -> None:
+    """`other_pages` is closed-set rehydrated, so a URL it carries is already
+    page-grounded — citing it in the prose is not a fabrication."""
+    observed = dict(_OK, answer="Try https://x/b", content_md="", page_url="")
+    failures, _ = check_contract_keys({"answer_urls_traceable": True}, observed)
+    assert failures == []
+
+
+def test_answer_with_no_urls_is_vacuously_traceable_and_that_is_known() -> None:
+    """Stated as a property, not discovered later: an answer citing nothing
+    passes. Pair the key with a case whose answer is EXPECTED to carry links."""
+    observed = dict(_OK, answer="No links here at all.", content_md="")
+    failures, _ = check_contract_keys({"answer_urls_traceable": True}, observed)
+    assert failures == []
+
+
 class _FakeResponse:
     """Minimal `FetchResponse` stand-in — `replay.observe` reads attributes, and
     building a real one here would couple this seam test to the response model."""
@@ -312,6 +350,7 @@ class _FakeResponse:
     operator_hints: list = []  # noqa: RUF012
     narrative = "raw → ok"
     retrieval_incomplete = False
+    url = "https://x/here"
 
 
 # --------------------------------------------------------------------- #

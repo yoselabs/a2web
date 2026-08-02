@@ -30,6 +30,7 @@ decides.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -68,6 +69,7 @@ CONTRACT_KEYS: frozenset[str] = frozenset(
         "options_all_have_url",
         "also_here_min",
         "index_non_empty",
+        "answer_urls_traceable",
     }
 )
 
@@ -109,6 +111,12 @@ _BOOL = ("has_content", "answer_present", "retrieval_incomplete", "narrative_pre
 
 #: `confidence` is an ordered enum on the wire; `confidence_max` needs the order.
 _CONFIDENCE_RANK = {"low": 0, "medium": 1, "high": 2}
+
+#: An http(s) URL inside prose. Trailing sentence punctuation is excluded from
+#: the match rather than stripped afterwards, so `see https://x/a.` yields
+#: `https://x/a` and not a URL that exists nowhere.
+_URL_IN_PROSE = re.compile(r"https?://[^\s<>\)\]\"'`]+")
+_URL_TRAILING = ".,;:!?"
 
 
 def check_contract_keys(
@@ -196,6 +204,8 @@ def check_contract_keys(
             failures.extend(_check_severity(observed, expected))
         elif key == "confidence_max":
             failures.extend(_check_confidence_max(observed, expected))
+        elif key == "answer_urls_traceable":
+            failures.extend(_check_answer_urls(observed, expected))
         else:
             failures.extend(_check_index(key, expected, observed))
 
@@ -232,6 +242,55 @@ def _check_confidence_max(observed: Mapping[str, Any], expected: Any) -> list[st
     if _CONFIDENCE_RANK[got] > _CONFIDENCE_RANK[expected]:
         return [f"confidence_max: envelope claims {got!r}, ceiling is {expected!r}"]
     return []
+
+
+def _check_answer_urls(observed: Mapping[str, Any], expected: Any) -> list[str]:
+    """**ADR-0014, deterministically — the invariant with the honest zero.**
+
+    Every URL a2web emits must be traceable to the fetched page. `other_pages`
+    is already structurally safe: the model emits `{{n}}` handles and closed-set
+    rehydration drops any handle the digest does not know. The hole ADR-0014
+    names is the ANSWER PROSE — the model writing a plausible URL from training
+    (`python-httpx.org`, `…/reviews`, `…-yorumlari`), which is the closed-set
+    guarantee's backdoor and was measured happening live
+    (`findings_2026-07-11-answer-inline-links.md`).
+
+    Nine of twelve invariants had zero catching cells and this one still did
+    after §6.4: seven criteria across six cases, every one addressed to a judge
+    that never receives the page. But it does not NEED a judge. The ADR's own
+    wording is a membership test — "a URL literally present in the page
+    content" — so the check is: does each URL in the answer appear in the body
+    we retrieved, in the index we emitted, or as the page's own address?
+
+    **Known false-positive mode, stated rather than papered over:** an anchor
+    whose href never survives extraction into `content_md` would read as
+    untraceable. That is a wrong red, and acceptable here in a way it would not
+    be in production — a URL in the answer that is absent from the body we
+    captured is worth a human look whichever way it resolves. Do not port this
+    into the fetch path as a filter.
+    """
+    if expected is not True:
+        return [f"answer_urls_traceable: only `true` is meaningful, got {expected!r}"]
+
+    index = observed.get("index") or {}
+    haystack = " ".join(
+        [
+            str(observed.get("content_md") or ""),
+            str(observed.get("page_url") or ""),
+            *[str(r.get("url") or "") for r in index.get("other_pages") or ()],
+            *[str(r.get("url") or "") for r in index.get("options") or ()],
+        ]
+    )
+    out: list[str] = []
+    for raw in _URL_IN_PROSE.findall(str(observed.get("answer") or "")):
+        url = raw.rstrip(_URL_TRAILING)
+        if url and url not in haystack:
+            out.append(
+                f"answer_urls_traceable: {url!r} appears in the answer but nowhere in the "
+                "fetched page, the emitted index, or the page's own address — ADR-0014: a "
+                "URL a2web could not have read is a manufactured hit"
+            )
+    return out
 
 
 def _check_index(key: str, expected: Any, observed: Mapping[str, Any]) -> list[str]:

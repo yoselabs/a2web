@@ -312,6 +312,11 @@ class A2WebExtract:
                 "envelope_debug": envelope_debug,
                 "envelope_tokens": {"total": tokens.total, "per_field": tokens.per_field},
                 "index": _index_projection(ask_response),
+                "requested_url": url,
+                # The retrieved body — NOT on the `query` wire (include_content
+                # is False), but the ADR-0014 traceability check needs the page
+                # a2web actually read, which is exactly what the wire withholds.
+                "content_md": response.content_md or "",
             },
         )
 
