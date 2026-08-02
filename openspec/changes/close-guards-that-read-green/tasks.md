@@ -90,14 +90,28 @@ those fixtures by hand would reproduce the exact defect the tasks exist to fix:
 a fixture authored beside the constant cannot falsify it. Recorded in BACKLOG
 per 5.6 rather than faked.
 
-- [ ] 5.1 `_HEADING_FRAC_MIN` (`detector.py:62`) — add a captured listing page
-      whose item titles are `<div>`/`<span>`, asserting records are still
-      detected. It must fail at 1.00.
-- [ ] 5.2 `_CONSISTENCY_MIN` — same shape; a listing with mixed card types
-      (sponsored/promoted rows) must still detect.
-- [ ] 5.3 `LENGTH_FLOOR` — delete `tests/capabilities/extraction/test_wire_content_md.py:17`
-      (`assert len(_PROSE) >= LENGTH_FLOOR`, a fixture sized from the constant)
-      and replace with a captured-page behavioural witness.
+- [~] 5.1 `_HEADING_FRAC_MIN` — **NOT a2web's to fix, as of 2026-08-02.**
+      `record_extract` was promoted to the shelf, so the constant now lives at
+      `shelf/packages/record-mine/src/record_mine/detector.py:62`. Verified the
+      same session: the shelf's own tests reference `heading_frac` ZERO times,
+      so it is unwitnessed there too — the promotion carried the constant and
+      left the gap. Adding a fixture here would test a dependency's internals
+      through the wrong seam. Filed as shelf work in `BACKLOG.md`.
+- [~] 5.2 `_CONSISTENCY_MIN` — same, `record_mine/detector.py:60`. Same reason,
+      same filing.
+- [x] 5.3 `tests/capabilities/extraction/test_length_floor_witness.py`. **Done
+      2026-08-02.** Two pages captured off the live web BRACKET the constant —
+      `example.com` (113 extracted chars) below, `iana.org/help/example-domains`
+      (740) above — so raising `LENGTH_FLOOR` past 740 or lowering it past 113
+      flips a real page's classification. Verified by mutation: at 1000 and at
+      100, two of three tests go red. The old assertion could not fail in the
+      DOWNWARD direction at all, and its upward failure was an import-time
+      fixture error, not a behavioural one.
+
+      Both pages are RFC 2606 / IANA reserved documentation domains — chosen
+      for durability, not convenience. A third test asserts the bracket is
+      still real, so a re-capture that drifts a page across the line fails
+      loudly rather than quietly leaving the constant unwitnessed again.
 - [x] 5.4 Port arXiv's `N of M` shortfall declaration (`arxiv.py:297`) to
       `habr._MAX_COMMENTS`, `hn._ALGOLIA_SEARCH_HITS_PER_PAGE` (Algolia returns
       `nbHits`, currently ignored), `v2ex._MAX_REPLIES`, `discourse._MAX_TOPICS`.

@@ -21,6 +21,34 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-08-02 — shelf: `record_mine`'s two detection thresholds are unwitnessed (S, shelf)
+
+**Source:** `close-guards-that-read-green` §5.1/§5.2, re-examined 2026-08-02.
+
+Both constants live in
+`shelf/packages/record-mine/src/record_mine/detector.py` — `_CONSISTENCY_MIN =
+0.70` (`:60`) and `_HEADING_FRAC_MIN = 0.50` (`:62`) — and gate whether a
+repeated DOM region is recognised as a record set at all
+(`detector.py:320`).
+
+They were a2web's when the tasks were written; `record_extract` was promoted to
+the shelf since. **Checked in the shelf clone: its tests reference
+`heading_frac` zero times.** The promotion carried the constant and left the
+gap, so the number is unwitnessed on both sides of the boundary.
+
+Why it matters, unchanged from the original finding: at `_HEADING_FRAC_MIN =
+1.00` record detection dies on any listing whose item titles are not `<hN>` —
+which silently removes ADR-0015's index and ADR-0009's completeness signal at
+once, in a2web, from a shelf-side edit.
+
+What it needs is what a2web's §5.3 got: a CAPTURED listing page with the
+awkward property (titles in `<div>`/`<span>` for 5.1; mixed sponsored/promoted
+card types for 5.2), asserted to still detect. A hand-written fixture cannot
+falsify either — it would encode the same assumption as the detector.
+
+Do it as shelf work at the next `record-mine` touch, not by reaching across the
+boundary from here.
+
 ## 2026-08-02 — the comment-thread handlers extract links they cannot carry (S, structure)
 
 Surfaced by `repay-the-shelf-debt` §3.4. Now that `handlers/reddit.py` and

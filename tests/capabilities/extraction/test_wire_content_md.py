@@ -10,11 +10,21 @@ the legacy single-pick. Deterministic, no LLM, no network.
 from __future__ import annotations
 
 from a2web.fetcher import ContentCandidate, _wire_content_md
-from a2web.packages.block_detector import LENGTH_FLOOR
 
-# Above the 500-char display floor — substantial prose, not a nav fragment.
+# Substantial prose, not a nav fragment — 720 chars, comfortably over the
+# 500-char display floor.
+#
+# This block used to carry `assert len(_PROSE) >= LENGTH_FLOOR`, and that
+# assertion was retired 2026-08-02 (close-guards §5.3). It was the ONLY
+# reference to `LENGTH_FLOOR` that looked like a check on it, and it could not
+# be one: a fixture sized from a constant moves when the constant moves, so it
+# agrees with any value. It read as a deliberate guard on the most load-bearing
+# number in the product while witnessing nothing.
+#
+# The real witness is `test_length_floor_witness.py` — two CAPTURED pages
+# (113 and 740 extracted chars) that bracket the constant, so moving it in
+# either direction flips a real page's classification.
 _PROSE = "This is a substantial article body. " * 20
-assert len(_PROSE) >= LENGTH_FLOOR
 
 
 def test_prose_and_longer_json_are_concatenated() -> None:
