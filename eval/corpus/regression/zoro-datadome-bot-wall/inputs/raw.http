@@ -1,0 +1,61 @@
+>>> GET https://www.zoro.com/dayton-air-circulator-20-in-3-speed-fan-1vcj7/i/G0180417/
+status: 403
+verdict: connection_error
+content-type: text/html;charset=utf-8
+final-url: https://www.zoro.com/dayton-air-circulator-20-in-3-speed-fan-1vcj7/i/G0180417/
+conditional-hit: false
+body-encoding: utf-8
+--- headers ---
+content-type: text/html;charset=utf-8
+access-control-allow-origin: *
+access-control-expose-headers: x-dd-b, x-set-cookie
+accept-ch: Sec-CH-UA,Sec-CH-UA-Mobile,Sec-CH-UA-Platform,Sec-CH-UA-Arch,Sec-CH-UA-Full-Version-List,Sec-CH-UA-Model,Sec-CH-Device-Memory
+x-dd-b: 1
+x-datadome-cid: AHrlqAAAAAMAMGPLXx2vZ5sAsCgjoA==
+pragma: no-cache
+charset: utf-8
+x-datadome: protected
+access-control-allow-credentials: true
+content-length: 768
+cache-control: private, no-cache, no-store, must-revalidate
+expires: Sun, 02 Aug 2026 13:05:42 GMT
+date: Sun, 02 Aug 2026 13:05:42 GMT
+server-timing: cdn-cache; desc=HIT, edge; dur=1
+strict-transport-security: max-age=31536000; includeSubDomains
+set-cookie: datadome=Tkebz9ISaDJwHV6gilyFCaXNLzNc6p4v9Qgh6YJ5Vmn~S3WXbENvxNYDf~bMXMsDXjoLezr5g0PQ4ImenJTrKgZVcJlCdL_Azr1DEIbnFN13ZvYyK~8h_TqUi2wt_2tR; Max-Age=31536000; Domain=.zoro.com; Path=/; Secure; SameSite=Lax, ak_bmsc=3576C847EF3DF8AF21B815A8AE6085B2~000000000000000000000000000000~YAAQtHYHQP3oPMOfAQAAl4uUwgBjo7PsLY+fAHT69C/D5Tus7qkNyrsB6fSFOurfSrjUhc8oKa00SN9L5lRcHCugd5mZHjiR6FWcFLphxHHVJSbbniFSN4E1qbGUlP/NNNWU7mU4PQ0iyp0Vv4KgrEJC2weSosbuMEg/k0d75/UYyYtZ1NX59gtPeG0Te55keNT8DFXuFNaF8k1kBRH4uzbmRPZNbeikKgeWNi0lL/lXYIoN5GD5lDGEcUnFRte/qbW1yHd53BFhK7Ndq8qJYfKBd7TFSsE5mvgbLs0tBzy+BSqYC0IeXnNz0+6b7IbdfXfFw9io5JLpKc6R6Xxy2GowQOVv5bKhlmszsXhcNLAwui8OKPn4H9BVS7vjmQWdrs2Ib+q/Xufp/fh5F6Ei/xoY; Domain=.zoro.com; Path=/; Expires=Sun, 02 Aug 2026 15:05:42 GMT; Max-Age=7200; SameSite=None; Secure; HttpOnly
+x-datadome-log: 
+--- body ---
+<html lang="en"><head><title>zoro.com</title><style>#cmsg{animation: A 1.5s;}@keyframes A{0%{opacity:0;}99%{opacity:0;}100%{opacity:1;}}</style></head><body style="margin:0"><p id="cmsg">Please enable JS and disable any ad blocker</p><script data-cfasync="false">var dd={'rt':'c','cid':'AHrlqAAAAAMAMGPLXx2vZ5sAsCgjoA==','hsh':'EC0821C4BE8472E4FC47F57189D825','t':'fe','qp':'','s':49913,'e':'99670eb0b580ee7f70ba7effb31d53b7f1130eec6cb6036960f55bbb41671a6ce6acf6204c600a226e2056ccb4d05fd3','host':'geo.captcha-delivery.com','cookie':'Tkebz9ISaDJwHV6gilyFCaXNLzNc6p4v9Qgh6YJ5Vmn~S3WXbENvxNYDf~bMXMsDXjoLezr5g0PQ4ImenJTrKgZVcJlCdL_Azr1DEIbnFN13ZvYyK~8h_TqUi2wt_2tR'}</script><script data-cfasync="false" src="https://ct.captcha-delivery.com/c.js"></script></body></html>
+===== a2web-cassette-exchange =====
+>>> GET https://r.jina.ai/https://www.zoro.com/dayton-air-circulator-20-in-3-speed-fan-1vcj7/i/G0180417/
+status: 403
+verdict: connection_error
+content-type: text/html; charset=UTF-8
+final-url: https://r.jina.ai/https://www.zoro.com/dayton-air-circulator-20-in-3-speed-fan-1vcj7/i/G0180417/
+conditional-hit: false
+body-encoding: utf-8
+--- headers ---
+date: Sun, 02 Aug 2026 13:05:45 GMT
+content-type: text/html; charset=UTF-8
+accept-ch: Sec-CH-UA-Bitness, Sec-CH-UA-Arch, Sec-CH-UA-Full-Version, Sec-CH-UA-Mobile, Sec-CH-UA-Model, Sec-CH-UA-Platform-Version, Sec-CH-UA-Full-Version-List, Sec-CH-UA-Platform, Sec-CH-UA, UA-Bitness, UA-Arch, UA-Full-Version, UA-Mobile, UA-Model, UA-Platform-Version, UA-Platform, UA
+cf-mitigated: challenge
+content-security-policy: default-src 'none'; script-src 'nonce-GPK97hBgs6COTOrmSVPNOo' 'unsafe-eval' https://challenges.cloudflare.com; script-src-attr 'none'; style-src 'unsafe-inline'; img-src 'self' https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com; frame-src 'self' https://challenges.cloudflare.com blob:; child-src 'self' https://challenges.cloudflare.com blob:; worker-src blob:; form-action http: https:; base-uri 'self'
+server: cloudflare
+critical-ch: Sec-CH-UA-Bitness, Sec-CH-UA-Arch, Sec-CH-UA-Full-Version, Sec-CH-UA-Mobile, Sec-CH-UA-Model, Sec-CH-UA-Platform-Version, Sec-CH-UA-Full-Version-List, Sec-CH-UA-Platform, Sec-CH-UA, UA-Bitness, UA-Arch, UA-Full-Version, UA-Mobile, UA-Model, UA-Platform-Version, UA-Platform, UA
+cross-origin-embedder-policy: require-corp
+cross-origin-opener-policy: same-origin
+cross-origin-resource-policy: same-origin
+origin-agent-cluster: ?1
+permissions-policy: accelerometer=(),camera=(),clipboard-read=(),clipboard-write=(),geolocation=(),gyroscope=(),hid=(),magnetometer=(),microphone=(),payment=(),publickey-credentials-get=(),screen-wake-lock=(),serial=(),sync-xhr=(),usb=(),xr-spatial-tracking=*
+referrer-policy: same-origin
+server-timing: chlray;desc="a24d4bc39ccce858"
+x-content-type-options: nosniff
+x-frame-options: SAMEORIGIN
+vary: accept-encoding
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Po8%2BeL9bvJPz%2BpiDFCaMMbySV3l7qrMLiTWo6Lc%2FWNcvE8LB%2Fj0BgnqAZ77ATCrMB%2BSa%2FHSOOiHj2JEQfNrHl2Cmj34PGrWQa4aCCssRuiFyviMxqv7fZeeJOQ%3D%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+content-encoding: br
+cf-ray: a24d4bc39ccce858-FRA
+alt-svc: h3=":443"; ma=86400
+--- body ---
+<!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=Edge"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="content-security-policy" content="default-src &#39;none&#39;; script-src &#39;nonce-GPK97hBgs6COTOrmSVPNOo&#39; &#39;unsafe-eval&#39; https://challenges.cloudflare.com; script-src-attr &#39;none&#39;; style-src &#39;unsafe-inline&#39;; img-src &#39;self&#39; https://challenges.cloudflare.com; connect-src &#39;self&#39; https://challenges.cloudflare.com; frame-src &#39;self&#39; https://challenges.cloudflare.com blob:; child-src &#39;self&#39; https://challenges.cloudflare.com blob:; worker-src blob:; form-action http: https:; base-uri &#39;self&#39;"><style>*{box-sizing:border-box;margin:0;padding:0}html{line-height:1.15;-webkit-text-size-adjust:100%;color:#313131;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji"}body{display:flex;flex-direction:column;height:100vh;min-height:100vh}.main-content{margin:8rem auto;padding-left:1.5rem;max-width:60rem}@media (width <= 720px){.main-content{margin-top:4rem}}#challenge-error-text{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgZmlsbD0ibm9uZSI+PHBhdGggZmlsbD0iI0IyMEYwMyIgZD0iTTE2IDNhMTMgMTMgMCAxIDAgMTMgMTNBMTMuMDE1IDEzLjAxNSAwIDAgMCAxNiAzbTAgMjRhMTEgMTEgMCAxIDEgMTEtMTEgMTEuMDEgMTEuMDEgMCAwIDEtMTEgMTEiLz48cGF0aCBmaWxsPSIjQjIwRjAzIiBkPSJNMTcuMDM4IDE4LjYxNUgxNC44N0wxNC41NjMgOS41aDIuNzgzem0tMS4wODQgMS40MjdxLjY2IDAgMS4wNTcuMzg4LjQwNy4zODkuNDA3Ljk5NCAwIC41OTYtLjQwNy45ODQtLjM5Ny4zOS0xLjA1Ny4zODktLjY1IDAtMS4wNTYtLjM4OS0uMzk4LS4zODktLjM5OC0uOTg0IDAtLjU5Ny4zOTgtLjk4NS40MDYtLjM5NyAxLjA1Ni0uMzk3Ii8+PC9zdmc+");background-repeat:no-repeat;background-size:contain;padding-left:34px}</style><meta http-equiv="refresh" content="360"></head><body><div class="main-wrapper" role="main"><div class="main-content"><noscript><div class="h2"><span id="challenge-error-text">Enable JavaScript and cookies to continue</span></div></noscript></div></div><script nonce="GPK97hBgs6COTOrmSVPNOo">(function(){window._cf_chl_opt = {cFPWv: 'g',cH: 'qtvKXb3a_Sof8YheSl.elPuEeS7g6LA52RNKh6lHt.E-1785675945-1.2.1.1-M979JXq7afK4vh.2vYyJGozkYP3IGV3ypkB7w4sS1GgZkkhQZGC1SGLHRM8ihOl_',cITimeS: '1785675945',cN: 'GPK97hBgs6COTOrmSVPNOo',cRay: 'a24d4bc39ccce858',cTplB: '0',cTplC:0,cTplO:0,cTplV:5,cType: 'managed',cUPMDTk:"/https://www.zoro.com/dayton-air-circulator-20-in-3-speed-fan-1vcj7/i/G0180417/?__cf_chl_tk=H0QCCOYNqHI53ABuSURc3Le0lI.lCdZ6F4sMJMbyT0w-1785675945-1.0.1.1-4bIldyTi6K76l5y0l5_eIBkP1k__qy7NafHo0kdmq7M",cvId: '3',cZone: 'r.jina.ai',fa:"/https://www.zoro.com/dayton-air-circulator-20-in-3-speed-fan-1vcj7/i/G0180417/?__cf_chl_f_tk=H0QCCOYNqHI53ABuSURc3Le0lI.lCdZ6F4sMJMbyT0w-1785675945-1.0.1.1-4bIldyTi6K76l5y0l5_eIBkP1k__qy7NafHo0kdmq7M",md: 'nRkJcei2UMQOmp2EGpan4h04ycxeuv_oDqJQQ4QcNTI-1785675945-1.2.1.1-BZEP0PYCdONyWMU8YZYgdd5TPMHXDNw2NF3PebXfLQW5Kb4q_KbIHQcUt8H7dlVkXyd_eURpL9JcwXVLfagD.uYg.6LocrUZCwdxzyny6fBYaxoADd3uIy1Q7KQyJPQsx9gqKZkOnuwPlN8belZ5HHzFdaqwhz9Wf7rSgLwKt0sgveB4HkURg0LIz0tjpGmb.5wXIoUZCuja3dlLJviTQxxFUmXTgwiV98Yebr_Xpj4uiGdZOBURiFBwpFKHLfmeH.VQ4QrbR5Ni0a73y0ZM.XS3jgZihfibTzyR2xULw6UX_yXR64REMJefT8PFClKVZLumhTC_RHBRZ7vhtCIwJ71.iOMt9Dn4T_oQf5mN7JbKN_u.E1SmvLly9tHDBB4spB1rxsoTdR6Xak6t2RsB.2r8CEYDN.2AgP_EXrTC5b.Gi6TNhlB1qDwpnaS2Z1bddorH2b8K_5cdvpqDRLTC2Vnsajpudg6aARbdwoByaCIWKvjsX22IDTB7XBvpqV0p3o0q4EdJpA_lFnwXbZTYcXlz6IfJ6t9GOJelajLiLvSShCLReePB.BTMXcbIKIRzNyRM_QIsBOvVQ8SwMMgF7q4IbsRKHPD3ZswdxIGV7MPJFQc3kzLtlFtVqHFFu8qdAuIINrkqVAUxPaFn7teXn3NcNDGlqkguYNpS9B9WCRv2GyH5xK1FyN0DeprSZ8VwzyCWbInlxWr8uVOuZ3gdaykCj52qn3TWH8oL4QPZgbzRNupOkxw73_KkcSjB1_zn15.2BQAUJ3vMUqATS6ljbyCC6nWnSim8K0uRNB6eb5PfCAGTyS9bYV7SD4gP0O3.BhNhGiTZYCA8jLqVcT.A48yHecuctivA1r07uqCW36ipcSTFylBna95.a1uyYG3LpdfGcthk1sx9Tl6va53B_32Q9ZkRsEcTT_n1Y6loJTMmJuj.qeqU8OsyBLhJ3AwCrYcDlAKpGsRg4s9SQ9jHWiKqtRpQn.vcaID6ga65U_5Qk6qyKl_.0edCRwWYvY85cO1xWRlsvJ5jdksu7nkq6B6gcZzc6v.8uZdkQQZUD1Kg.aCpNtKAlYBSiAdCU7bpobONNEKYxUdbirLkTJdW4yyMS8YVHXxtNw93KBq2Ft6PiZhqLnXgAlYG8Cr3spENppuGoruKFP0aOrA8HMopdUVJOticow6X_14UpSKj09WnLnAqXphyowcKXo7hFoSOUOORwKKEKfNXyeChfmAMZ7TQ8napUnfFiQw5OFzMh2f0DKLBdD0V2AxCgNa1tzau',mdrd: 'O3O75VSOms0n3NnvcrXmHo8IVsO9QahyDY3dcFXaxQ0-1785675945-1.2.1.1-XFFjhwMg4WBX8Rxrp29lVAzxHjce27eEIcXNFlq7V.ER73CXKhorqWVWnihVBtWKY7vJTXP.gLC783LvrNlrMc_2lEz.DXopfxNhBmhpOQTc8pRSH_L7_tC.xQROy.UBmt1N9Z.AxqDB_vaPcH6j7rzhXnhjUPXI.GjeouVmTIoHSkcmbLN3Q16J6wDQKwPxF6dqFlNqRzGMlHmTm9CcezYp0ItVAmqCfXKPx4jyDFPDKlZu7mW9GQt1uhWFAiz8qZe8p7XVMQjjpnCFhr1yDdpL_GEj5A40PFL1bDn2W01irkzDqyBb.uRf15UV6_pHkUQ20GQGnZ4ARWI_qtTE2i572_zottV9uCjQE.hO9DXHPho3PDC6Bp6JVqPJ3aYbRQ4uqcVlnCu1pdkWTn248N3ke1iD4z2N63kZoK0CeMnieNuv.p88QX060ixo04B237Bg.FOOpdWTOtzUBevR5ytjMn7jrX0gJRuQrRqP7pM2H7Rg8PdfkE3flvI9Edxfzr6Qcl7fj8WNR2CSdXX5ogJLUlLF2fvquvBVUGFLyAASa__0gw7Pxqitq2ZS0USlTaJ4IsnR0pnl4.eVQarHGRakuCAKpmOETwyvuFm3X6ChtDLYMyM0T1cQJUbbiwCl',};var a = document.createElement('script');a.nonce = 'GPK97hBgs6COTOrmSVPNOo';a.src = '/cdn-cgi/challenge-platform/h/g/orchestrate/chl_page/v1?ray=a24d4bc39ccce858';window._cf_chl_opt.cOgUHash = location.hash === '' && location.href.indexOf('#') !== -1 ? '#' : location.hash;window._cf_chl_opt.cOgUQuery = location.search === '' && location.href.slice(0, location.href.length - window._cf_chl_opt.cOgUHash.length).indexOf('?') !== -1 ? '?' : location.search;if (window.history && window.history.replaceState) {var ogU = location.pathname + window._cf_chl_opt.cOgUQuery + window._cf_chl_opt.cOgUHash;history.replaceState(null, null,"/https://www.zoro.com/dayton-air-circulator-20-in-3-speed-fan-1vcj7/i/G0180417/?__cf_chl_rt_tk=H0QCCOYNqHI53ABuSURc3Le0lI.lCdZ6F4sMJMbyT0w-1785675945-1.0.1.1-4bIldyTi6K76l5y0l5_eIBkP1k__qy7NafHo0kdmq7M"+ window._cf_chl_opt.cOgUHash);a.onload = function() {history.replaceState(null, null, ogU);}}document.getElementsByTagName('head')[0].appendChild(a);}());</script></body></html>

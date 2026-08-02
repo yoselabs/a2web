@@ -90,8 +90,9 @@ def observe(response: Any, *, input_menu: str | None = None) -> dict[str, Any]:
         "next_links_count": len(response.next_links),
         "operator_hints": sorted(h.code for h in response.operator_hints),
         # ADR-0009's two prose-independent failure signals. Absent from this
-        # projection until 2026-08-02, which meant the akakce wall baseline —
-        # the corpus's canonical "a2web was stopped and said so" case — could
+        # projection until 2026-08-02, which meant the wall baseline —
+        # the corpus's canonical "a2web was stopped and said so" case, akakce then,
+        # `zoro-datadome-bot-wall` since 2026-08-02 — could
         # not regress on either. A wall that quietly stopped setting
         # `retrieval_incomplete`, or stopped explaining itself, replayed green:
         # `status: failed` + the `try_user_browser` hint were the only things

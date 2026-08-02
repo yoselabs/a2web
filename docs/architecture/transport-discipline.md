@@ -21,8 +21,9 @@ client, so the patch could not see it, and **every replay of a case whose ladder
 reached jina made a live HTTPS request to `r.jina.ai`** — in CI, on every push,
 for as long as the corpus had existed. `CassetteMiss`'s promise that "replay
 refuses to hit the network" was false for that tier, and the blessed
-`jina:paywall` step in `regression/akakce-cloudflare-bot-wall` was a live
-response rather than frozen bytes.
+`jina:paywall` step in the case since split into
+`regression/akakce-no-current-price` and `regression/zoro-datadome-bot-wall` was
+a live response rather than frozen bytes.
 
 Measured before being believed: a `socket.getaddrinfo` spy over one replay run
 reported exactly one lookup, `r.jina.ai`.

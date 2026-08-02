@@ -766,3 +766,30 @@ urls:
       - "Every URL emitted is traceable to the snapshot's own anchors — an archived page is exactly where guessing a plausible article URL is easiest and most wrong (ADR-0014)"
       - "Snapshot provenance is legible: the caller can tell the content is archived rather than current, and roughly how old"
       - "If NEITHER live nor archive yields the page, the miss is loud — retrieval incomplete with a diagnostic, never an `ok` empty answer (ADR-0009)"
+
+  - slug: datadome-wall-commerce
+    # Vendor coverage, added 2026-08-02 alongside the regression case
+    # `zoro-datadome-bot-wall`. Every other wall specimen in both corpora is
+    # CLOUDFLARE, and a wall-detection suite that has only ever seen one vendor
+    # is one that can be tuned to that vendor's markers without noticing.
+    #
+    # DataDome fails differently in ways the detector must not depend on:
+    # a `403` whose body is a JS stub plus a `geo.captcha-delivery.com` CAPTCHA
+    # iframe — no `Just a moment...` title, no `cf-mitigated` header, no
+    # `cf-turnstile` marker. Verified 2026-08-02: raw (curl_cffi impersonation)
+    # 403, jina 403 at the same edge, browser renders 1525 bytes of CAPTCHA
+    # iframe. Every rung blocked, `tier: none`.
+    #
+    # Structural fact (survives rotation): the host is DataDome-protected and
+    # walls server-side clients at every rung including a rendering one. The
+    # commerce framing is deliberate — a fabricated price reads as a real answer,
+    # which is what makes this the expensive shape of the ADR-0009 miss.
+    url: https://www.zoro.com/dayton-air-circulator-20-in-3-speed-fan-1vcj7/i/G0180417/
+    class: gated
+    task: "What is the lowest price for this fan, and is it available to buy right now?"
+    needs: [content+links]
+    criteria:
+      - "The miss is LOUD — retrieval incomplete, a diagnostic, and a critical try-your-own-browser hint (ADR-0009)"
+      - "NO price and NO availability claim is produced; a wall is 'couldn't see it', never 'no price' or 'out of stock'"
+      - "Does NOT read a number or a stock state out of the challenge markup"
+      - "Wall detection does not depend on Cloudflare-specific markers — this vendor emits none of them"

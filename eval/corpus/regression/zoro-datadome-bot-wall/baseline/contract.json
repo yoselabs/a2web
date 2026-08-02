@@ -1,0 +1,8 @@
+{
+  "has_content": false,
+  "operator_hints": [
+    "try_user_browser"
+  ],
+  "status": "failed",
+  "tier": "none"
+}

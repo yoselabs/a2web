@@ -1,0 +1,12 @@
+captured_at: '2026-08-02T13:05:46.571808+00:00'
+source_url: https://www.zoro.com/dayton-air-circulator-20-in-3-speed-fan-1vcj7/i/G0180417/
+layers:
+  raw:
+    frozen: true
+    exchanges: 2
+  browser:
+    frozen: true
+    bytes: 1525
+  llm:
+    frozen: false
+content_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

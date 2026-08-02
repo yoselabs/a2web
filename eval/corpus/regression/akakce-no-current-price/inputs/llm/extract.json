@@ -1,0 +1,22 @@
+{
+  "answer": "The page shows \"Fiyat Yok\" (no price) for the Smartmi Fan 3 Kablosuz Vantilat\u00f6r in the structured data section (`offerCount=0, lowPrice=0, highPrice=0`). The product page lists specifications (25W power, 4-speed, 7-blade, remote control, oscillation, timer, wind mode, digital panel) but contains no active seller listings or pricing information. The product is not currently available to purchase through this price comparison site.",
+  "completion_tokens": 190,
+  "cost_usd": 0.010649,
+  "latency_ms": 5650,
+  "model": "claude-haiku-4-5-20251001",
+  "prompt_tokens": 17442,
+  "routing": {
+    "also_here": [
+      "comparison table vs Smartmi Fan 2S / Mi Standing 2 / Standing 1C",
+      "related products in popular fans listing"
+    ],
+    "answer": "The page shows \"Fiyat Yok\" (no price) for the Smartmi Fan 3 Kablosuz Vantilat\u00f6r in the structured data section (`offerCount=0, lowPrice=0, highPrice=0`). The product page lists specifications (25W power, 4-speed, 7-blade, remote control, oscillation, timer, wind mode, digital panel) but contains no active seller listings or pricing information. The product is not currently available to purchase through this price comparison site.",
+    "item_total_seen": null,
+    "obstacle": null,
+    "other_pages": [],
+    "refinement_axes": [],
+    "shape": "key-value",
+    "structural_form": "product"
+  },
+  "template_name": "extract_router_v1"
+}

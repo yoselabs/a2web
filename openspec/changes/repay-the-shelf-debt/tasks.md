@@ -442,6 +442,14 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
       coverage, 141 tach tests. The one xfail is `akakce-cloudflare-bot-wall`,
       `strict=True` with its reason inline, and it is an OPEN OPERATOR DECISION
       (7.1), not a tolerated red.
+      **Resolved 2026-08-02** — the decision was taken and the case SPLIT rather
+      than re-captured, because a re-capture alone would have retired a bot-wall
+      guard by accident: akakce still walls a naive client but a2web's curl_cffi
+      impersonation now passes it in one hop. It is `akakce-no-current-price`
+      (the fabrication-trap specimen its own notes said it could not provide) and
+      `zoro-datadome-bot-wall` (a DataDome wall that blocks every rung including
+      the browser, which akakce's `rate_limited`-classified 429 never reached).
+      `_UNREPRODUCIBLE` is empty; there are no xfails in the replay suite.
 
 - [x] 10.2 **The ledger. Three of six repaid, one repaid-and-declined, two open
       — and four shelf releases nobody planned.**

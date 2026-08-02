@@ -59,7 +59,7 @@ a case needs more than one LLM call; none does today. The key never has to
 coexist with the production `EXTRACT_*` cache prefix because the cassette
 replaces the extractor egress wholesale (the cache is never consulted in
 replay). A bot-walled / honest-failure case records **no** LLM file at all — the
-extractor is never invoked (e.g. `regression/akakce-cloudflare-bot-wall`).
+extractor is never invoked (e.g. `regression/zoro-datadome-bot-wall`).
 
 **The record includes the routing payload (`routing`), and the key is ALWAYS
 written.** Recording only post-parse fields (`answer`, tokens, cost, latency,

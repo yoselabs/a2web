@@ -5,7 +5,8 @@ routed through `fetch_bytes` that was true. The jina tier was not: it hand-rolle
 an `httpx.AsyncClient`, so `patch_fetch_bytes` never saw it and every replay of a
 case whose ladder reached jina made a **live HTTPS request to `r.jina.ai`** — in
 CI, on every push, for as long as the corpus has existed. The blessed
-`jina:paywall` step in `regression/akakce-cloudflare-bot-wall` was a live
+`jina:paywall` step in the case now split into `regression/akakce-no-current-price`
+and `regression/zoro-datadome-bot-wall` was a live
 response, not frozen bytes, so that baseline was never reproducible in the sense
 the harness advertised.
 
@@ -25,6 +26,8 @@ import socket
 from typing import TYPE_CHECKING, Any
 
 import pytest
+
+from a2web.tiers import REGISTRY, BrowserTier
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -59,3 +62,29 @@ def no_network(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
     monkeypatch.setattr(socket, "getaddrinfo", _blocked)
     yield
+
+
+@pytest.fixture(autouse=True)
+def real_browser_tier_under_replay(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Undo the root conftest's browser stub — replay serves the browser from the cassette.
+
+    `tests/conftest.py` swaps `REGISTRY["browser"]` for a stub that returns
+    `browser_unavailable`, so a unit test can never launch Chromium. Correct
+    there, and **wrong here**: replay injects `CassetteBrowserPool`, which
+    cannot launch anything and serves the frozen `inputs/rendered.html`. With
+    the stub in place the FAST browser rung of every replay never reached the
+    cassette at all — it returned the stub's `connection_error` and an extra
+    `browser_unavailable` hint, while the ROBUST rung (which the root fixture
+    does not stub) served the frozen DOM correctly.
+
+    So the harness advertised "the browser egress is frozen" and delivered that
+    for one of the two rungs. No case noticed, because until 2026-08-02 no case
+    had a frozen `rendered.html` whose fast-rung result changed the contract;
+    `zoro-datadome-bot-wall` is the first, and it failed on the extra hint,
+    which is how this was found.
+
+    The cassette pool raises `CassetteMiss` when a case has no frozen DOM, so
+    restoring the real tier keeps the no-launch guarantee: a browser dispatch
+    with nothing frozen is still loud, just loud about the right thing.
+    """
+    monkeypatch.setitem(REGISTRY, "browser", BrowserTier())

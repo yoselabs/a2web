@@ -27,26 +27,22 @@ _CASES = load_corpus(_REGRESSION)
 #: reason. `strict=True` on purpose — an entry that starts passing FAILS, so this
 #: table cannot quietly become a list of cases nobody re-examines.
 #:
-#: `akakce-cloudflare-bot-wall` (2026-08-02): its blessed `steps` end
-#: `jina:paywall`, and that step was never frozen. The jina tier hand-rolled an
-#: `httpx.AsyncClient`, which `patch_fetch_bytes` does not intercept, so the
-#: capture recorded no jina exchange and every replay re-fetched `r.jina.ai`
-#: LIVE (measured with a `getaddrinfo` spy: one lookup, `r.jina.ai`). Routing
-#: jina through the primitive made the gap visible as the `CassetteMiss` it
-#: always was.
+#: **Empty since 2026-08-02, and the emptying is the point.** Its one entry was
+#: `akakce-cloudflare-bot-wall`, parked here because its blessed `jina:paywall`
+#: step was never frozen: the jina tier hand-rolled an `httpx.AsyncClient` the
+#: capture harness did not intercept, so every replay re-fetched `r.jina.ai` LIVE
+#: (measured with a `getaddrinfo` spy). Routing jina through the fetch primitive
+#: made the gap visible as the `CassetteMiss` it always was.
 #:
-#: **Re-capture is not the fix, and that is the operator's call.** A live refresh
-#: on 2026-08-02 shows akakce no longer walls: raw now returns the page in one
-#: hop, and the fresh answer is a real "Fiyat Yok / offerCount 0" reading. That
-#: is a DIFFERENT case — arguably the "genuine no-current-price specimen" this
-#: case's own notes say akakce could not provide — and blessing it would retire
-#: a bot-wall regression guard by accident while appearing to update it. Decide
-#: deliberately: re-point this case at a currently-walled URL, or split it.
-_UNREPRODUCIBLE = {
-    "akakce-cloudflare-bot-wall": (
-        "blessed `jina:paywall` step was never frozen; site no longer walls — needs a deliberate re-capture decision"
-    ),
-}
+#: The deliberate decision that entry was waiting on has been taken and the case
+#: was SPLIT, because a re-capture alone would have retired a bot-wall guard by
+#: accident: akakce still walls a naive client, but a2web's curl_cffi
+#: impersonation now passes it in one hop, so the case measured a success while
+#: claiming to guard a failure. It is `akakce-no-current-price` now — the
+#: fabrication-trap specimen its own notes said it could not provide — and the
+#: bot-wall half is `zoro-datadome-bot-wall`, which reaches the browser rung that
+#: akakce's `rate_limited`-classified 429 never did.
+_UNREPRODUCIBLE: dict[str, str] = {}
 
 
 @pytest.mark.skipif(not _CASES, reason="no regression cases captured yet")
@@ -62,7 +58,7 @@ async def test_regression_replay(monkeypatch: pytest.MonkeyPatch, case, request:
 
 
 # Cases with a recorded LLM egress — bot-wall / honest-failure cases (e.g.
-# akakce-cloudflare-bot-wall) never call the extractor, so they have no
+# zoro-datadome-bot-wall) never call the extractor, so they have no
 # `inputs/llm/` to reproduce; this byte-for-byte assertion is about the LLM
 # egress specifically and must run on a case that actually has one.
 _LLM_CASES = [c for c in _CASES if c.inputs.llm]

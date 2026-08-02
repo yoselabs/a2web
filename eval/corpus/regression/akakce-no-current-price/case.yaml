@@ -1,0 +1,32 @@
+slug: akakce-no-current-price
+url: https://www.akakce.com/vantilator/en-ucuz-smartmi-fan-3-kablosuz-fiyati,24576507.html
+question: What is the lowest price for the Smartmi Fan 3, and is it available to buy
+  right now?
+failure_class: B
+tags:
+- commerce
+notes: |
+  Re-blessed 2026-08-02 from `akakce-cloudflare-bot-wall`, deliberately, because
+  it had stopped guarding what its name claimed.
+
+  akakce still walls a NAIVE client — a plain-UA request gets Cloudflare
+  `403 cf-mitigated: challenge` with the `Just a moment...` body, verified the
+  same day. But a2web's raw tier passes that challenge in ONE hop with curl_cffi
+  impersonation, so for a2web the URL is no longer a wall. The case was measuring
+  a success while claiming to guard a failure, and its frozen `inputs/` could no
+  longer reproduce its blessed baseline at all (the `jina:paywall` step was never
+  frozen, because the jina tier hand-rolled an httpx client the capture harness
+  did not intercept). It sat `xfail(strict=True)` from 2026-08-02 until this.
+
+  What it guards now is what the OLD case's own notes said akakce could not
+  provide: the genuine no-current-price specimen. The page carries
+  `AggregateOffer` with `offerCount=0, lowPrice=0, highPrice=0` and renders
+  "Fiyat Yok" — while ALSO carrying price-HISTORY figures in TL. That pair is the
+  fabrication trap: the honest answer is "no current price and not buyable here",
+  and the tempting wrong answer is any number lifted out of the history chart and
+  presented as a current price. Same failure class B as before (never invent a
+  commerce fact), reached through a retrieved page instead of a walled one.
+
+  The bot-wall half moved to `zoro-datadome-bot-wall`, which is a stronger guard
+  on the axis this case conceded: it reaches the browser rung, which akakce's
+  `rate_limited`-classified 429 never did. See that case's `answer.md`.
