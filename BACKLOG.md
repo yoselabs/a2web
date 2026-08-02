@@ -651,6 +651,44 @@ The shelf-side half is filed separately as
 **"T7 promotion candidate: `llm_wobble` runs a DERIVE callable unguarded"**
 below — item 3 here is a2web's containment, that entry is the upstream fix.
 
+## 2026-08-02 — shelf: `record_mine.render_record` de-dups the heading link only (XS, output quality)
+
+**Measured, small, and filed mainly so nobody re-discovers it and over-estimates
+it the way the bench judge did.**
+
+`record_mine/render.py::render_record` already implements the right rule twice —
+it peels `heading_text` off the body smush, and drops `heading_link`'s href from
+the links line — and applies it to exactly ONE link. The remaining N are left
+alone, so every non-heading anchor label appears once inside the body (which is
+the record's collapsed own-scope text, anchors included) and again in the ` · `
+link line. `lobste-active` renders:
+
+```
+- [Where's your website?](…)
+  0 culture arscyni.cc authored by arsCynic … caches Archive.org Ghostarchive | 1 comment 1
+  [0](…) · [culture](…) · [arscyni.cc](…) · [arsCynic](…) · [Archive.org](…) · [Ghostarchive](…) · [1 comment](…) · [1](…)
+```
+
+Every body token except the timestamp and the words "authored by" / "caches" is
+a repeated anchor label. Two smaller defects ride along: duplicate links to the
+same href under different labels (`[1 comment]` and `[1]`), and a raw URL used
+as its own label.
+
+**Size it before acting.** The 2026-08-02 bench judge called this *"10x the
+necessary tokens"* and *"each entry appears twice"* across four cases.
+Measured across six affected cases: **~2,455 of 190,916 body chars — 1%**, worst
+case `lobste-active` at 8%, `gh-trending-best` at 4%, and three of the six named
+cases at exactly **0%**. It is real and worth fixing as hygiene; it is not a
+token driver and will not move `a2web_detail`'s 4,494-token envelope, which is
+the page itself.
+
+Shelf-owned (`record_mine`), so it is a shelf fix, not an a2web one. The rule to
+extend is already written — only its scope is wrong.
+
+**Standing lesson, recorded in `eval/findings_2026-08-02.md` too:** a judge's
+quantitative prose is not a measurement. Promoting one into a defect report
+without measuring is how a bench finding becomes a wild-goose refactor.
+
 ## 2026-08-02 — T7 promotion candidate: `llm_wobble` runs a DERIVE callable unguarded
 
 **Filed after a live bench died at cell 24 of 132.** `llm_wobble._apply_field`
