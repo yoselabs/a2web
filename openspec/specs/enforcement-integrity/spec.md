@@ -196,3 +196,45 @@ an omitted argument cannot rewrite every golden in one run.
 
 - **WHEN** a bless operation is invoked with an unrecognised target
 - **THEN** it fails rather than rewriting every golden
+
+### Requirement: A task's cited evidence is verified at the citation before it is acted on
+
+A planning task that cites a `file:line`, a constant, or a shipped behaviour as
+its justification SHALL have that citation checked at the cited location before
+the task is implemented. Where the citation does not hold, the task SHALL be
+closed as disproved with the measurement recorded — never silently reworded into
+whatever turned out to be true, and never implemented anyway on the strength of
+its general shape.
+
+This is a measured failure rate, not a caution. Across `close-guards-that-read-
+green` and `repay-the-shelf-debt`, five tasks were found to cite evidence that
+did not hold: two described the *code* that blesses a baseline while the
+*baselines* were the stale thing; one cited a constant's declaration line and
+read it as the gate, when the gate two hundred lines away had always been
+correct; one asserted a capability was undetected offline when a sibling handler
+had detected it offline for a month; one requested a distinction that is
+logically unavailable under the design it assumed. In each case the task named
+the shape of a real problem and got the specifics wrong, because it was authored
+from a scan without opening the call site.
+
+The consequence of skipping the check is not a wasted task. It is a change that
+implements a defence against a defect that does not exist, leaving the defect
+that does — and a delta spec asserting a SHALL the system cannot satisfy.
+
+A delta spec SHALL state what shipped rather than what was hoped. Where
+implementation proves a requirement unmeetable as written, the requirement SHALL
+be amended before archive; archiving an unmet SHALL converts a known gap into a
+false record of enforcement.
+
+#### Scenario: A cited line is checked before the task is implemented
+
+- **WHEN** a task justifies itself by citing a location in the source
+- **THEN** that location is read, and a citation that does not hold closes the
+  task as disproved with the finding recorded
+
+#### Scenario: A requirement proved unmeetable is amended, not archived
+
+- **WHEN** implementation shows a delta requirement asserts a distinction the
+  design cannot provide
+- **THEN** the requirement is rewritten to state the separable part and to name
+  the inseparable part explicitly, before the change is archived
