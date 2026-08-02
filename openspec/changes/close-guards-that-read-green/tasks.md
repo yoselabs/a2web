@@ -305,3 +305,26 @@ result.
       bench-side), *invariants with no code implementer* (§6.6), plus two T4
       findings this change never scoped — *a partial eval loss exits 0* and *45
       of 86 prompt rules have neither code nor test*.
+- [x] 8.5 **Delta specs checked against what shipped, 2026-08-02.** Archiving
+      syncs these into `openspec/specs/`, so an ADDED requirement the system
+      does not meet would become a spec that lies — the exact debt
+      `reconcile-docs-to-shipped-system` exists to pay down. Two were unmet:
+
+      - `eval-measurement-integrity` was **entirely unimplemented** —
+        `broken_axes()` gates at ZERO coverage, which is what that spec's own
+        text criticises. Shipped as `thin_axes()` +
+        `AXIS_COVERAGE_FLOOR = 0.90`, per axis PER SYSTEM, stated in the
+        artifact. Both its scenarios now hold.
+      - `eval-corpus`'s *"The quality judge can verify against the source"*
+        scenario is **NOT met and will not be by this change** — that is §6.1,
+        left open deliberately. The requirement's own text offers the
+        alternative ("or such criteria SHALL be reformulated as deterministic
+        assertions over the envelope"), which is what §6.2/§6.4/ADR-0014's
+        `answer_urls_traceable` did for the criteria that could be. The
+        remaining ~20 anti-fabrication criteria cannot be, and the §6.6 map
+        records them as the ∅ tier.
+
+      **Do not archive without deciding that scenario's fate** — either drop it
+      from the delta (the deterministic branch is the one taken) or leave the
+      change open. Archiving as-is publishes a requirement the tree does not
+      satisfy.
