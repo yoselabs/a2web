@@ -91,8 +91,12 @@ dependencies = [
     # packages/content_extract). v0.2.0 (link-affordances EVOLVE): extract_markdown gained
     # an `include_links=` passthrough (in-body anchors as markdown, off by default — a2web
     # flip gated on bench) and now retains label-less mailto:/tel: with an href-derived
-    # label (live). Pulls convert-md v0.8.0 BASE (trafilatura + html2text only, + its
-    # include_links param) — the heavy document engines (docling/pandoc/office) stay behind
+    # label (live). v0.3.0 (funnel-exemption PROMOTE, 2026-08-02): `include_comments=` and
+    # `include_tables=` passthroughs — the knobs `handlers/reddit.py` and `handlers/twitter.py`
+    # bypassed the funnel to reach. Both defaults preserve the old behaviour, so the adoption
+    # changes no bytes for any other caller. Pulls convert-md v0.9.0 BASE (trafilatura +
+    # html2text only, + its include_links/comments/tables params) — the heavy document engines
+    # (docling/pandoc/office) stay behind
     # convert-md's [documents] extra, which a2web does NOT install, so cold-start stays slim
     # and docling's typer<0.13 pin never collides with a2kit's Typer CLI.
     "content-extract>=0.1,<1",
@@ -140,7 +144,6 @@ dependencies = [
     # `pycryptodome` transitively. Absent → `cookies_refresh` returns a loud
     # "install a2web[cookies]" note; normal fetches read the sqlite mirror and are
     # unaffected. `make install-global` installs it; the container never does.
-    "trafilatura>=1.12,<2",
     "selectolax>=0.3,<1",
     # async + observability
     "anyio>=4,<5",
@@ -247,7 +250,7 @@ html-fragment = { git = "https://github.com/yoselabs/shelf", subdirectory = "pac
 record-mine = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/record-mine", tag = "record-mine-v0.2.0" }
 dom-schema = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/dom-schema", tag = "dom-schema-v0.1.0" }
 browser-cookies = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/browser-cookies", tag = "browser-cookies-v0.1.0" }
-content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/content-extract", tag = "content-extract-v0.2.0" }
+content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/content-extract", tag = "content-extract-v0.3.0" }
 # anyllm is intentionally NOT pinned here. The shelf's workspace root force-sources
 # anyllm (its dev group depends on it), and that source LEAKS to git consumers: a
 # direct `anyllm = { ... tag = "anyllm-v0.5.0" }` pin here collides with the anyllm

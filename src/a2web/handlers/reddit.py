@@ -910,8 +910,8 @@ async def _fetch_old_reddit_or_archive_signal(url: str, *, state: AppState, cook
 
 
 async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str] | None = None) -> TierResult:
-    """Fallback: GET old.reddit.com<path> and extract HTML via trafilatura."""
-    import trafilatura
+    """Fallback: GET old.reddit.com<path> and extract HTML via the funnel."""
+    from content_extract import extract_markdown
 
     from ..tiers import Rendered, TierResult
 
@@ -935,16 +935,19 @@ async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str
     if not html:
         return empty_result(url, Verdict.length_floor)
 
-    markdown = (
-        trafilatura.extract(
-            html,
-            url=old_url,
-            output_format="markdown",
-            include_comments=True,
-            include_tables=False,
-        )
-        or ""
+    # Canonical extractor (NOT a bare `trafilatura.extract`) — see
+    # `test_trafilatura_funnel.py`. `include_comments=True` because on a reddit
+    # thread the comments ARE the content; without it this returns the original
+    # post alone, which a caller cannot distinguish from a thread with no
+    # replies. The knob reached the shelf in content-extract v0.3.0, which is
+    # what retired this module's funnel exemption.
+    extracted = await extract_markdown(
+        html,
+        old_url,
+        include_comments=True,
+        include_tables=False,
     )
+    markdown = extracted.content_md
     if not markdown:
         return empty_result(url, Verdict.length_floor)
 
@@ -957,9 +960,11 @@ async def _fetch_old_reddit(url: str, *, state: AppState, cookies: dict[str, str
     if walled is not None:
         return empty_result(url, walled)
 
-    metadata = trafilatura.extract_metadata(html)
-    title = (metadata.title if metadata else None) or None
-    author = (metadata.author if metadata else None) or None
+    # Same parse — `extract_markdown` already returned the metadata, so the
+    # second `trafilatura.extract_metadata(html)` call this replaced was both a
+    # funnel bypass and a redundant re-parse of the same document.
+    title = extracted.title or None
+    author = extracted.byline or None
     byline = author if author else None
 
     headings: list[Heading] = []

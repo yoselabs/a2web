@@ -41,26 +41,27 @@ import ast
 from ._walk import SRC_ROOT, walked_files
 
 #: Modules allowed to reach the library directly, and WHY. A table rather than a
-#: scattering of `# noqa`, so an exemption is a visible reviewed edit and the
+#: scattering of per-line suppressions, so an exemption is a visible reviewed edit and the
 #: reason is re-readable by the next person who audits this.
 #:
-#: Both entries exist for ONE reason: the shelf's
-#: `content_extract.extract_markdown(html, url, *, include_links=False)` exposes
-#: no `include_comments` knob, and these two handlers pass
+#: **EMPTY as of 2026-08-02, and that is the point.** It held `handlers.reddit`
+#: and `handlers.twitter` for ONE reason, stated here at the time as *"a SHELF
+#: GAP, not a permanent a2web exception"*: the shelf's `extract_markdown`
+#: exposed no `include_comments` knob, and both handlers pass
 #: `include_comments=True` because on a comment thread the comments ARE the
-#: content. Routing them through the shelf today would silently drop the page's
-#: substance — a worse regression than the missing links this funnel exists to
-#: prevent.
+#: content. Routing them through the funnel would have returned the original
+#: post alone — indistinguishable, to a caller, from a thread with no replies.
 #:
-#: This is a SHELF GAP, not a permanent a2web exception. The fix is to promote
-#: the knob into `content_extract` and then delete these entries. Tracked in
-#: BACKLOG.md. Do not add to this table for any other reason.
-_FUNNEL_EXEMPT: frozenset[str] = frozenset(
-    {
-        "handlers.reddit",
-        "handlers.twitter",
-    }
-)
+#: The knob was promoted (shelf `content-extract-v0.3.0` / `convert-md-v0.9.0`)
+#: and both handlers now go through the funnel. Retiring the entries also
+#: deleted two redundant `trafilatura.extract_metadata(html)` calls: the funnel
+#: returns title/byline from the SAME parse, so each handler had been parsing
+#: the document twice.
+#:
+#: An exemption recorded with its reason is what made this closable — the entry
+#: named the gap, so it could be checked and shut rather than becoming
+#: permanent. Do not add to this table for any other reason.
+_FUNNEL_EXEMPT: frozenset[str] = frozenset()
 
 #: Population floor. `src/a2web/` is ~70 modules; the floor exists so a moved
 #: source root fails loudly instead of finding nothing to object to and

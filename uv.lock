@@ -55,7 +55,6 @@ dependencies = [
     { name = "settings-base" },
     { name = "sqlite-resource" },
     { name = "timefmt" },
-    { name = "trafilatura" },
     { name = "typer" },
 ]
 
@@ -100,7 +99,7 @@ requires-dist = [
     { name = "browser-cookie3", marker = "extra == 'cookies'", specifier = ">=0.20,<1" },
     { name = "browser-cookies", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fbrowser-cookies&tag=browser-cookies-v0.1.0" },
     { name = "claude-agent-sdk", marker = "extra == 'claude-code'", specifier = ">=0.1.80,<1" },
-    { name = "content-extract", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fcontent-extract&tag=content-extract-v0.2.0" },
+    { name = "content-extract", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fcontent-extract&tag=content-extract-v0.3.0" },
     { name = "cryptography", specifier = ">=43,<46" },
     { name = "curl-cffi", specifier = ">=0.7,<1" },
     { name = "dom-schema", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fdom-schema&tag=dom-schema-v0.1.0" },
@@ -129,7 +128,6 @@ requires-dist = [
     { name = "settings-base", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fsettings-base&tag=settings-base-v0.1.0" },
     { name = "sqlite-resource", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fsqlite-resource&tag=sqlite-resource-v0.1.0" },
     { name = "timefmt", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Ftimefmt&tag=timefmt-v0.1.0" },
-    { name = "trafilatura", specifier = ">=1.12,<2" },
     { name = "typer", specifier = ">=0.13,<1" },
 ]
 provides-extras = ["paid", "browser", "claude-code", "cookies"]
@@ -678,8 +676,8 @@ wheels = [
 
 [[package]]
 name = "content-extract"
-version = "0.2.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fcontent-extract&tag=content-extract-v0.2.0#873f55749c9b9ef8f8524eafb6e401ffb7efa42a" }
+version = "0.3.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fcontent-extract&tag=content-extract-v0.3.0#4769a73f4cfcbf55b6819f0972f0d06e0a442af6" }
 dependencies = [
     { name = "convert-md" },
     { name = "selectolax" },
@@ -688,8 +686,8 @@ dependencies = [
 
 [[package]]
 name = "convert-md"
-version = "0.8.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fconvert-md&tag=content-extract-v0.2.0#873f55749c9b9ef8f8524eafb6e401ffb7efa42a" }
+version = "0.9.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fconvert-md&tag=content-extract-v0.3.0#4769a73f4cfcbf55b6819f0972f0d06e0a442af6" }
 dependencies = [
     { name = "html2text" },
     { name = "trafilatura" },

@@ -20,7 +20,7 @@ import re
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-import trafilatura
+from content_extract import extract_markdown
 from http_fetch import FetchVerdict, fetch_bytes
 
 from .. import log as a2web_log
@@ -198,16 +198,18 @@ async def _try_instance(
     if not html:
         return Verdict.length_floor, None
 
-    markdown = (
-        trafilatura.extract(
-            html,
-            url=nitter_url,
-            output_format="markdown",
-            include_comments=True,
-            include_tables=False,
-        )
-        or ""
+    # Canonical extractor (NOT a bare `trafilatura.extract`) — see
+    # `test_trafilatura_funnel.py`. `include_comments=True` because a tweet's
+    # reply chain IS the content here; without it the extractor returns the
+    # root tweet alone. The knob reached the shelf in content-extract v0.3.0,
+    # which is what retired this module's funnel exemption.
+    extracted = await extract_markdown(
+        html,
+        nitter_url,
+        include_comments=True,
+        include_tables=False,
     )
+    markdown = extracted.content_md
     if not markdown:
         return Verdict.length_floor, None
 
@@ -222,9 +224,11 @@ async def _try_instance(
     if walled is not None:
         return walled, None
 
-    metadata = trafilatura.extract_metadata(html)
-    title = (metadata.title if metadata else None) or f"@{user}"
-    author = (metadata.author if metadata else None) or user
+    # Same parse — `extract_markdown` already returned the metadata, so the
+    # second `trafilatura.extract_metadata(html)` call this replaced was both a
+    # funnel bypass and a redundant re-parse of the same document.
+    title = extracted.title or f"@{user}"
+    author = extracted.byline or user
     byline = author if author else None
 
     headings: list[Heading] = []

@@ -59,17 +59,39 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
 - [ ] 2.3 Add the test asserting the delegated selector set matches the normative
       one, so the two cannot diverge again silently.
 
-## 3. `content-extract` — retire two funnel exemptions
+## 3. `content-extract` — DONE 2026-08-02 (shelf `content-extract-v0.3.0`, `convert-md-v0.9.0`)
 
-- [ ] 3.1 Promote `include_comments` and `include_tables`. The shelf signature is
-      `extract_markdown(html, url, *, include_links=False)`.
-- [ ] 3.2 Retire the two exemptions in
-      `tests/architecture/test_trafilatura_funnel.py:47-64`, whose own comment
-      says *"This is a SHELF GAP, not a permanent a2web exception."* **Not
-      before** the knobs ship — the exemptions are honest today.
-- [ ] 3.3 Remove the direct `trafilatura>=1.12,<2` dep (`pyproject.toml:143`).
-- [ ] 3.4 Confirm the two comment-thread handlers regain links and headings from
-      the same parse.
+- [x] 3.1 Promoted both knobs, as a two-package chain: `convert_md.convert_html`
+      gained them (they are trafilatura's own, previously hardcoded at
+      `include_tables=True, include_comments=False`) and
+      `content_extract.extract_markdown` plumbs them through `_extract_sync`.
+      Defaults unchanged in both — strictly additive. Verified by reversion at
+      BOTH layers, because "accepted but not plumbed" is the exact defect shape:
+      hardcoding back in `convert_md` fails 2 tests, dropping them from the
+      `partial(...)` in the async door fails 2 more.
+- [x] 3.2 Retired — `_FUNNEL_EXEMPT` is now `frozenset()`. The docstring records
+      what it held and why, because an exemption written WITH its reason is what
+      made this closable rather than permanent. Guard re-verified non-vacuous by
+      reintroducing a direct `trafilatura.extract` in `reddit.py` and watching it
+      fail.
+- [x] 3.3 Removed. No `trafilatura` reference survives in `src/` outside
+      comments and the `ContentCandidate.source` string label.
+- [x] 3.4 **Confirmed, and the answer is half no — measured, not assumed.**
+      Against the captured `oldreddit_thread.html`:
+      **links: yes, 6** from the same parse where the old path extracted none.
+      **headings: nothing to regain — the page has ZERO `h1`-`h6`.** old.reddit
+      renders the thread without them, so the synthesized
+      `Heading(level=1, text=title)` remains the only heading available and
+      switching to `extracted.headings` would have emptied the list. The links
+      are available but not yet plumbed: `tiers.Rendered` has no `links` field,
+      which is a wider change than this section. Recorded in `BACKLOG.md`.
+      Also verified NO metadata regression: `content_extract` calls the same
+      `trafilatura.extract_metadata` internally and returns byte-identical
+      title/byline on that fixture. The knob itself is live on the real shape —
+      `include_comments=True` yields 354 chars vs 225 by default.
+      **Bonus, unplanned:** each handler had been parsing the document TWICE (an
+      `extract` plus a separate `extract_metadata`); the funnel returns both from
+      one parse, so routing them deleted the second call.
 
 ## 4. `dom-schema` — rot vs empty
 

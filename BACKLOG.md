@@ -21,6 +21,30 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-08-02 — the comment-thread handlers extract links they cannot carry (S, structure)
+
+Surfaced by `repay-the-shelf-debt` §3.4. Now that `handlers/reddit.py` and
+`handlers/twitter.py` go through `content_extract.extract_markdown` instead of
+calling `trafilatura.extract` directly, each parse returns **links and headings
+alongside the markdown** — measured against the captured `oldreddit_thread.html`:
+**6 links**, where the old direct call extracted none.
+
+They are dropped on the floor. `tiers.Rendered` carries `content_md`, `title`,
+`byline`, `headings` and no `links` field, so the handler has nowhere to put
+them. Threading them through means widening that boundary type and deciding what
+the orchestrator does with handler-supplied links — which interacts with
+`_compose_next_links` and the ADR-0015 index, so it is not a field addition.
+
+**Headings are a different answer: there is nothing to regain.** The same
+measurement found old.reddit renders the thread with ZERO `h1`-`h6` elements, so
+the synthesized `Heading(level=1, text=title)` both handlers build is the only
+heading available, and switching to `extracted.headings` would have emptied the
+list. Do not "fix" that on the assumption the funnel must be richer.
+
+Worth doing because the alternative source is worse: these links come from the
+page's own anchors on a real parse, which is exactly the provenance ADR-0014
+requires, and the generic miner is guessing from shape by comparison.
+
 ## 2026-08-02 — the planner's foreign witness covers one rule of fourteen (S, verification)
 
 `close-guards-that-read-green` §4.1 asked for an outcome-level witness for
