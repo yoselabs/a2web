@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 from async_scope import lazy as lazy_value
 
 from a2web import fetcher
-from a2web.llm_eval.case_contract import check_contract_keys
+from a2web.llm_eval.case_contract import BENCH_ONLY_KEYS, CONTRACT_KEYS, check_contract_keys
 from tests.conftest import make_default_state
 
 from .harness import CassetteBrowserPool, CassetteLlm, patch_fetch_bytes
@@ -160,11 +160,19 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
     if not contract:
         raise ContractMismatch(f"case {case.slug!r} has no blessed baseline/contract.json — capture/bless it first")
 
-    failures, unsupported = check_contract_keys(contract, observed)
-    # The replay harness supports the WHOLE vocabulary (it owns the cassette
-    # spy), so an unsupported key here means the vocabulary and this harness
-    # disagree — a bug in the pair, not in a case.
-    assert not unsupported, f"replay cannot evaluate {unsupported!r} — vocabulary/harness mismatch"
+    failures, unsupported = check_contract_keys(
+        contract, observed, supported=CONTRACT_KEYS - BENCH_ONLY_KEYS
+    )
+    # Replay owns the cassette spy but drives `fetch_raw`'s page-shaped
+    # `FetchResponse`, which has no `other_pages` / `options` / `also_here` —
+    # those live on the `AskResponse` the live bench measures. So an unsupported
+    # key here means a BASELINE names a bench-only key, which is a blessing
+    # mistake, not a harness bug. Either way it is loud, never a silent pass.
+    assert not unsupported, (
+        f"replay cannot evaluate {unsupported!r} — these are BENCH_ONLY_KEYS "
+        "(AskResponse index / severity / confidence) and belong in eval/corpus.yaml, "
+        "not in a replay baseline"
+    )
 
     if failures:
         ref = f"{case.corpus}/{case.slug}" if case.corpus else case.slug

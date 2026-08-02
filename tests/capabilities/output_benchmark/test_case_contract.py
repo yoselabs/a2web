@@ -10,7 +10,12 @@ from __future__ import annotations
 
 import pytest
 
-from a2web.llm_eval.case_contract import CONTRACT_KEYS, REPLAY_ONLY_KEYS, check_contract_keys
+from a2web.llm_eval.case_contract import (
+    BENCH_ONLY_KEYS,
+    CONTRACT_KEYS,
+    REPLAY_ONLY_KEYS,
+    check_contract_keys,
+)
 from a2web.llm_eval.runner import _observe_for_contract
 from a2web.llm_eval.systems import SystemResult
 
@@ -27,6 +32,17 @@ _OK = {
     "tokens_full": 100,
     "next_links_count": 3,
     "operator_hints": ["cookies_stale"],
+    "hint_severities": {"cookies_stale": "info"},
+    "confidence": "medium",
+    "index": {
+        "other_pages": [
+            {"kind": "drilldown", "url": "https://x/a", "anchor": "Item A"},
+            {"kind": "drilldown", "url": "https://x/b", "anchor": "Item B"},
+        ],
+        "options": [{"title": "A", "url": "https://x/a", "detail": "₺10"}],
+        "also_here": ["shipping terms"],
+        "refinement_axes": [],
+    },
 }
 
 
@@ -52,6 +68,18 @@ def test_a_satisfied_contract_produces_no_failures() -> None:
         ({"content_excludes": ["hello"]}, "content_excludes"),
         ({"narrative_includes": ["absent"]}, "narrative_includes"),
         ({"retrieval_incomplete": True}, "retrieval_incomplete"),
+        ({"answer_excludes": ["the answer"]}, "answer_excludes"),
+        ({"operator_hints_include": ["try_user_browser"]}, "operator_hints_include"),
+        ({"operator_hints_exclude": ["cookies_stale"]}, "operator_hints_exclude"),
+        ({"hint_severity": {"cookies_stale": "critical"}}, "hint_severity"),
+        ({"hint_severity": {"try_user_browser": "critical"}}, "hint_severity"),
+        ({"confidence_max": "low"}, "confidence_max"),
+        ({"other_pages_min": 5}, "other_pages_min"),
+        ({"other_pages_kinds": ["structural"]}, "other_pages_kinds"),
+        ({"options_min": 3}, "options_min"),
+        ({"options_max": 0}, "options_max"),
+        ({"also_here_min": 4}, "also_here_min"),
+        ({"index_non_empty": False}, "index_non_empty"),
     ],
 )
 def test_every_key_can_actually_fail(contract: dict, needle: str) -> None:
@@ -64,6 +92,144 @@ def test_every_key_can_actually_fail(contract: dict, needle: str) -> None:
     failures, _ = check_contract_keys(contract, _OK)
     assert failures, f"{needle} accepted a violating observation"
     assert needle in failures[0]
+
+
+def test_a_satisfied_index_contract_produces_no_failures() -> None:
+    """The passing direction for the whole ADR-0015 index group, so the failing
+    parametrization above is read against a known-good baseline."""
+    failures, unsupported = check_contract_keys(
+        {
+            "other_pages_min": 2,
+            "other_pages_kinds": ["drilldown", "structural"],
+            "other_pages_all_have_anchor": True,
+            "options_min": 1,
+            "options_max": 2,
+            "options_all_have_url": True,
+            "also_here_min": 1,
+            "index_non_empty": True,
+            "confidence_max": "high",
+            "hint_severity": {"cookies_stale": "info"},
+            "operator_hints_include": ["cookies_stale"],
+            "operator_hints_exclude": ["try_user_browser"],
+            "answer_excludes": ["```"],
+        },
+        _OK,
+    )
+    assert failures == []
+    assert unsupported == []
+
+
+def test_an_anchorless_other_page_fails() -> None:
+    observed = dict(_OK)
+    observed["index"] = dict(_OK["index"], other_pages=[{"kind": "drilldown", "url": "https://x/a"}])
+    failures, _ = check_contract_keys({"other_pages_all_have_anchor": True}, observed)
+    assert failures and "carry no anchor" in failures[0]
+
+
+def test_other_pages_all_have_anchor_rejects_false_rather_than_no_opping() -> None:
+    """A bool key whose `false` branch asserts nothing is a case's own off
+    switch. Reject it instead."""
+    failures, _ = check_contract_keys({"other_pages_all_have_anchor": False}, _OK)
+    assert failures and "only `true` is meaningful" in failures[0]
+
+
+def test_a_urlless_option_fails() -> None:
+    """Page chrome surfaced as a selectable option carries no URL — the defect
+    `hepsiburada-product-no-footer-options` exists to catch."""
+    observed = dict(_OK)
+    observed["index"] = dict(_OK["index"], options=[{"title": "Kurumsal", "url": None}])
+    failures, _ = check_contract_keys({"options_all_have_url": True}, observed)
+    assert failures and "carry no URL" in failures[0]
+
+
+def test_hint_severity_fails_when_the_hint_never_fired() -> None:
+    """Distinct from a severity mismatch: 'the klaxon is quiet' and 'the klaxon
+    never sounded' are different regressions and must read differently."""
+    failures, _ = check_contract_keys({"hint_severity": {"try_user_browser": "critical"}}, _OK)
+    assert failures and "did not fire at all" in failures[0]
+
+
+def test_confidence_max_is_a_ceiling_not_an_equality() -> None:
+    """`medium` observed under a `high` ceiling passes — the key exists to stop
+    an envelope OVER-claiming, not to pin a value."""
+    failures, _ = check_contract_keys({"confidence_max": "high"}, _OK)
+    assert failures == []
+
+
+def test_every_declared_key_is_implemented() -> None:
+    """Non-vacuity for the vocabulary itself.
+
+    `check_contract_keys` routes anything it does not handle inline to
+    `_check_index`, so a key added to `CONTRACT_KEYS` and nowhere else would
+    return no failures — a declared assertion that checks nothing, which is the
+    whole subject of this change. Every key is driven here with a value that
+    must fail against an empty observation.
+    """
+    for key in sorted(CONTRACT_KEYS - REPLAY_ONLY_KEYS):
+        probe = _IMPOSSIBLE[key]
+        observed = _IMPOSSIBLE_AGAINST.get(key, {})
+        failures, unsupported = check_contract_keys({key: probe}, observed)
+        assert not unsupported, key
+        assert failures, f"{key} produced no failure against {observed!r} — it is unimplemented"
+        assert "no implementation" not in failures[0], failures[0]
+
+
+#: For each key, a value that CANNOT be satisfied by the observation it is
+#: driven against. Literal per key rather than derived: a generated probe would
+#: be as likely to be vacuous as the thing it is checking.
+_IMPOSSIBLE: dict = {
+    "tier": "browser",
+    "status": "failed",
+    "has_content": True,
+    "answer_present": True,
+    "retrieval_incomplete": True,
+    "narrative_present": True,
+    "answer_contains": "nope",
+    "tokens_full_max": -1,
+    "next_links_min": 1,
+    "operator_hints": ["x"],
+    "content_includes": ["nope"],
+    "content_excludes": [""],
+    "narrative_includes": ["nope"],
+    "answer_excludes": [""],
+    "operator_hints_include": ["x"],
+    "operator_hints_exclude": [""],
+    "hint_severity": {"x": "critical"},
+    "confidence_max": "high",
+    "other_pages_min": 1,
+    "other_pages_kinds": [],
+    "other_pages_all_have_anchor": False,
+    "options_min": 1,
+    "options_max": -1,
+    "options_all_have_url": False,
+    "also_here_min": 1,
+    "index_non_empty": True,
+}
+
+#: Keys an EMPTY observation cannot falsify, with an observation that can. An
+#: exclusion key is satisfied by absence by construction, so driving it against
+#: nothing would prove only that nothing is absent.
+_IMPOSSIBLE_AGAINST: dict = {
+    "operator_hints_exclude": {"operator_hints": [""]},
+    # A per-row predicate is vacuously true over zero rows. That is a real
+    # property of the key, not a gap: a case pinning `other_pages_kinds` must
+    # ALSO pin `other_pages_min`, or an index that vanished entirely would
+    # satisfy it. Said in the vocabulary's docstring too.
+    "other_pages_kinds": {"index": {"other_pages": [{"kind": "structural", "url": "u"}]}},
+}
+
+
+def test_bench_only_keys_are_unsupported_offline() -> None:
+    """The mirror of the replay-only split: the offline harness drives
+    `fetch_raw`'s `FetchResponse`, which has no ADR-0015 index at all."""
+    assert BENCH_ONLY_KEYS
+    assert BENCH_ONLY_KEYS < CONTRACT_KEYS
+    assert not (BENCH_ONLY_KEYS & REPLAY_ONLY_KEYS)
+    failures, unsupported = check_contract_keys(
+        {"other_pages_min": 99, "status": "ok"}, _OK, supported=CONTRACT_KEYS - BENCH_ONLY_KEYS
+    )
+    assert unsupported == ["other_pages_min"]
+    assert failures == []
 
 
 def test_an_unknown_key_is_a_failure_not_a_skip() -> None:
@@ -117,10 +283,19 @@ def test_live_projection_uses_the_same_key_names_as_replay() -> None:
     live = set(_observe_for_contract(result))
     offline = set(replay.observe(_FakeResponse()))
     shared = live & offline
-    # Everything the live side projects must be a name the offline side also
-    # uses; the offline side is allowed extras (the spy-only fields).
-    assert live <= offline, f"live projection invented key(s) {sorted(live - offline)}"
+    # Each side may project fields the other cannot — but ONLY the declared
+    # ones. An undeclared divergence is a rename, and a renamed key stops its
+    # assertions running without failing anything.
+    assert live - offline == _BENCH_ONLY_PROJECTION, (
+        f"live projection invented key(s) {sorted(live - offline - _BENCH_ONLY_PROJECTION)}"
+    )
     assert len(shared) >= 10
+
+
+#: The projection fields that back `BENCH_ONLY_KEYS`. Named here so the identity
+#: test above can be exact rather than a subset check — a subset check would
+#: have absorbed a rename silently, which is the failure it exists to catch.
+_BENCH_ONLY_PROJECTION = {"hint_severities", "confidence", "index"}
 
 
 class _FakeResponse:

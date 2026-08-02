@@ -33,7 +33,7 @@ from .tokens import envelope_token_breakdown, estimate_tokens
 
 if TYPE_CHECKING:
     from ..components import Components
-    from ..models import FetchResponse
+    from ..models import AskResponse, FetchResponse
     from ..state import AppState
 
 
@@ -311,8 +311,30 @@ class A2WebExtract:
                 "envelope": envelope,
                 "envelope_debug": envelope_debug,
                 "envelope_tokens": {"total": tokens.total, "per_field": tokens.per_field},
+                "index": _index_projection(ask_response),
             },
         )
+
+
+def _index_projection(response: AskResponse) -> dict[str, Any]:
+    """The ADR-0015 withheld-body index, read off the MODEL, not the wire.
+
+    `envelope` above is `model_dump()`, which runs the wire serializer — so
+    `other_pages` and `options` arrive there as rendered TSV blocks. A contract
+    key that wanted a row's `kind` or an option's `url` would have to parse
+    those blocks back, which would make the assertion depend on the encoder it
+    is not testing. Attribute access is unaffected by the wire serializer (that
+    is the documented split), so read the objects.
+    """
+    return {
+        "other_pages": [
+            {"kind": p.kind, "url": p.url, "anchor": p.anchor, "off_domain": p.off_domain}
+            for p in response.other_pages
+        ],
+        "options": [{"title": o.title, "url": o.url, "detail": o.detail} for o in response.options],
+        "also_here": list(response.also_here),
+        "refinement_axes": [a.dimension for a in response.refinement_axes],
+    }
 
 
 # --------------------------------------------------------------------- #

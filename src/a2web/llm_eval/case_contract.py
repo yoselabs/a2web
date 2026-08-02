@@ -55,6 +55,19 @@ CONTRACT_KEYS: frozenset[str] = frozenset(
         "input_menu_includes",
         "input_menu_excludes",
         "narrative_includes",
+        "answer_excludes",
+        "operator_hints_include",
+        "operator_hints_exclude",
+        "hint_severity",
+        "confidence_max",
+        "other_pages_min",
+        "other_pages_kinds",
+        "other_pages_all_have_anchor",
+        "options_min",
+        "options_max",
+        "options_all_have_url",
+        "also_here_min",
+        "index_non_empty",
     }
 )
 
@@ -62,8 +75,40 @@ CONTRACT_KEYS: frozenset[str] = frozenset(
 #: them. `make bench` fetches live and has neither.
 REPLAY_ONLY_KEYS: frozenset[str] = frozenset({"steps", "input_menu_includes", "input_menu_excludes"})
 
+#: The mirror set: keys only the LIVE bench can check.
+#:
+#: Offline replay drives `fetch()` and projects a `FetchResponse` — the
+#: page-shaped `fetch_raw` envelope, which has `next_links` and no
+#: `other_pages` / `options` / `also_here` at all. Those are `AskResponse`
+#: fields, and `AskResponse` is what `a2web_extract` puts on the bench.
+#: `hint_severity` and `confidence_max` are here for a smaller reason: the live
+#: envelope already carries both, and adding them to `replay.observe` would
+#: require re-blessing every baseline — a real cost, and not one this group
+#: needs to pay to convert the criteria that are actually dead.
+#:
+#: Declared as a set rather than left implicit for the same reason
+#: `REPLAY_ONLY_KEYS` is: a key one harness cannot evaluate must come back
+#: `unsupported`, never silently pass.
+BENCH_ONLY_KEYS: frozenset[str] = frozenset(
+    {
+        "hint_severity",
+        "confidence_max",
+        "other_pages_min",
+        "other_pages_kinds",
+        "other_pages_all_have_anchor",
+        "options_min",
+        "options_max",
+        "options_all_have_url",
+        "also_here_min",
+        "index_non_empty",
+    }
+)
+
 _EXACT = ("tier", "status")
 _BOOL = ("has_content", "answer_present", "retrieval_incomplete", "narrative_present")
+
+#: `confidence` is an ordered enum on the wire; `confidence_max` needs the order.
+_CONFIDENCE_RANK = {"low": 0, "medium": 1, "high": 2}
 
 
 def check_contract_keys(
@@ -133,8 +178,143 @@ def check_contract_keys(
             failures.extend(_substrings(observed.get("input_menu") or "", key, expected, "the content fed to the extractor"))
         elif key == "narrative_includes":
             failures.extend(_substrings(observed.get("narrative") or "", key, expected, "narrative"))
+        elif key == "answer_excludes":
+            failures.extend(_substrings(observed.get("answer") or "", key, expected, "answer"))
+        elif key == "operator_hints_include":
+            fired = set(observed.get("operator_hints") or ())
+            failures.extend(
+                f"operator_hints_include: {code!r} did not fire (fired: {sorted(fired)})"
+                for code in expected
+                if code not in fired
+            )
+        elif key == "operator_hints_exclude":
+            fired = set(observed.get("operator_hints") or ())
+            failures.extend(
+                f"operator_hints_exclude: {code!r} fired and must not" for code in expected if code in fired
+            )
+        elif key == "hint_severity":
+            failures.extend(_check_severity(observed, expected))
+        elif key == "confidence_max":
+            failures.extend(_check_confidence_max(observed, expected))
+        else:
+            failures.extend(_check_index(key, expected, observed))
 
     return failures, unsupported
+
+
+def _check_severity(observed: Mapping[str, Any], expected: Any) -> list[str]:
+    """`{code: severity}` — the hint fired AND carries that severity.
+
+    Both halves matter and the second is the one that has actually broken:
+    ADR-0009's `try_user_browser` reached the agent unmarked for weeks because a
+    quieter hint preceded it in the TSV table. A case that pins only the code
+    would have stayed green through that.
+    """
+    severities = observed.get("hint_severities") or {}
+    out: list[str] = []
+    for code, want in expected.items():
+        if code not in severities:
+            out.append(f"hint_severity: {code!r} did not fire at all (fired: {sorted(severities)})")
+        elif severities[code] != want:
+            out.append(f"hint_severity: {code!r} is {severities[code]!r}, expected {want!r}")
+    return out
+
+
+def _check_confidence_max(observed: Mapping[str, Any], expected: Any) -> list[str]:
+    """A ceiling, not equality — the envelope must not claim MORE confidence
+    than the case allows. `dead-product-url-fat-404` is the shape: a response
+    describing a page as missing must not simultaneously report `high`."""
+    got = observed.get("confidence")
+    if got not in _CONFIDENCE_RANK:
+        return [f"confidence_max: cannot read confidence from the envelope (got {got!r})"]
+    if expected not in _CONFIDENCE_RANK:
+        return [f"confidence_max: {expected!r} is not one of {sorted(_CONFIDENCE_RANK)}"]
+    if _CONFIDENCE_RANK[got] > _CONFIDENCE_RANK[expected]:
+        return [f"confidence_max: envelope claims {got!r}, ceiling is {expected!r}"]
+    return []
+
+
+def _check_index(key: str, expected: Any, observed: Mapping[str, Any]) -> list[str]:
+    """The ADR-0015 withheld-body index: `other_pages` / `options` / `also_here`
+    / `refinement_axes`.
+
+    **The per-row keys (`other_pages_kinds`, `other_pages_all_have_anchor`,
+    `options_all_have_url`) are vacuously true over an EMPTY index.** A case
+    that pins one must also pin the matching `*_min`, or an index that vanished
+    entirely satisfies it — a guard that reads green because there is nothing
+    left to check. Nothing enforces the pairing; it is a rule for whoever
+    writes the case, stated here because it is the failure this whole change is
+    about.
+
+    Read off a structured projection (`observed["index"]`), never off the wire
+    string. `AskResponse` renders `other_pages` and `options` as TSV blocks, and
+    a checker that parsed those blocks back into rows would be asserting the
+    encoder as much as the index — the thing under test would be sharing a
+    failure mode with the thing testing it.
+    """
+    index = observed.get("index") or {}
+    other = list(index.get("other_pages") or ())
+    options = list(index.get("options") or ())
+    out: list[str] = []
+
+    if key == "other_pages_min":
+        if len(other) < expected:
+            out.append(f"other_pages_min: {len(other)} < {expected}")
+    elif key == "other_pages_kinds":
+        allowed = set(expected)
+        out.extend(
+            f"other_pages_kinds: entry {row.get('anchor') or row.get('url')!r} has kind "
+            f"{row.get('kind')!r}, allowed {sorted(allowed)}"
+            for row in other
+            if row.get("kind") not in allowed
+        )
+    elif key == "other_pages_all_have_anchor":
+        # Only `true` is meaningful — "some rows must LACK an anchor" is not an
+        # invariant anyone wants. `false` is rejected rather than treated as a
+        # no-op, so a case cannot disarm its own assertion by flipping a bool.
+        if expected is not True:
+            out.append(f"other_pages_all_have_anchor: only `true` is meaningful, got {expected!r}")
+        else:
+            missing = [row.get("url") for row in other if not (row.get("anchor") or "").strip()]
+            if missing:
+                out.append(f"other_pages_all_have_anchor: {len(missing)} row(s) carry no anchor: {missing}")
+    elif key == "options_min":
+        if len(options) < expected:
+            out.append(f"options_min: {len(options)} < {expected}")
+    elif key == "options_max":
+        if len(options) > expected:
+            out.append(f"options_max: {len(options)} > {expected}")
+    elif key == "options_all_have_url":
+        # `true`-only for the same reason as `other_pages_all_have_anchor`: a
+        # `false` branch that asserts nothing is a case's own off switch.
+        if expected is not True:
+            out.append(f"options_all_have_url: only `true` is meaningful, got {expected!r}")
+        else:
+            missing = [row.get("title") for row in options if not (row.get("url") or "").strip()]
+            if missing:
+                out.append(f"options_all_have_url: {len(missing)} option(s) carry no URL: {missing}")
+    elif key == "index_non_empty":
+        populated = any(
+            index.get(name) for name in ("other_pages", "options", "also_here", "refinement_axes")
+        )
+        if populated is not bool(expected):
+            out.append(
+                f"index_non_empty: expected {bool(expected)}, but other_pages/options/also_here/"
+                f"refinement_axes are {'all empty' if not populated else 'populated'} — "
+                "ADR-0015: withholding the body without leaving an index is a silent miss"
+            )
+    elif key == "also_here_min":
+        if len(list(index.get("also_here") or ())) < expected:
+            out.append(f"also_here_min: {len(list(index.get('also_here') or ()))} < {expected}")
+    else:
+        # This branch is the reason the function ends in `else` rather than
+        # falling off the end. `check_contract_keys` routes everything it did
+        # not handle itself here, so a key added to `CONTRACT_KEYS` and nowhere
+        # else would return no failures — a declared assertion that checks
+        # nothing, which is precisely this change's subject. Pinned by
+        # `test_every_declared_key_is_implemented`.
+        out.append(f"contract key {key!r} is declared but has no implementation")
+    return out
 
 
 def _substrings(haystack: str, key: str, expected: Any, what: str) -> list[str]:
@@ -151,4 +331,4 @@ def _substrings(haystack: str, key: str, expected: Any, what: str) -> list[str]:
     return out
 
 
-__all__ = ["CONTRACT_KEYS", "REPLAY_ONLY_KEYS", "check_contract_keys"]
+__all__ = ["BENCH_ONLY_KEYS", "CONTRACT_KEYS", "REPLAY_ONLY_KEYS", "check_contract_keys"]

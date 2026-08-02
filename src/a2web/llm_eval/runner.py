@@ -684,6 +684,18 @@ def _observe_for_contract(fetch_result: SystemResult) -> dict[str, Any]:
         "tokens_full": int(fetch_result.metadata.get("envelope_tokens_total") or 0),
         "next_links_count": _candidate_count(fetch_result),
         "operator_hints": sorted(h.get("code", "") for h in hints if isinstance(h, dict)),
+        # Severity is carried SEPARATELY from the code list rather than folded
+        # into it. ADR-0009's loudest signal is a severity, and a case that
+        # could only pin the code would stay green through the exact regression
+        # that shipped once already (a `critical` hint reaching the agent
+        # unmarked because a quieter hint preceded it in the TSV table).
+        "hint_severities": {
+            h.get("code", ""): h.get("severity", "info") for h in hints if isinstance(h, dict)
+        },
+        "confidence": env.get("confidence"),
+        # The ADR-0015 index, structured — see `systems._index_projection` for
+        # why this cannot be read off `envelope` (the wire renders it as TSV).
+        "index": fetch_result.metadata.get("index") or {},
     }
 
 
