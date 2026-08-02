@@ -1,9 +1,10 @@
 # browser-tier Specification
 
 ## Purpose
-TBD - created by archiving change pr7c-browser-tier. Update Purpose after archive.
+
+The browser tier is the rendering rung of the fetch ladder: the escalation reached when a page's content exists only after JavaScript runs. It owns the engine-agnostic tail — extraction, quality gate, `TierResult` assembly, the operator hints — and delegates every engine mechanic to a `BrowserBackend` (the shelf `any_browser` package). This capability governs that split, the two-rung fast→robust escalation, lazy construction, and the honest-degradation path when no engine is available.
 ## Requirements
-### Requirement: Browser tier executes JS via Camoufox pool
+### Requirement: Browser tier executes JS via the selected backend
 
 The system SHALL define `BrowserTier` in `src/a2web/tiers/browser.py` implementing the `Tier` protocol with `name = "browser"`. `BrowserTier.fetch` SHALL delegate rendering to the **selected `BrowserBackend`** (`backend.render(url, cookies=..., budget_s=..., js_heavy=...)`) rather than driving a Playwright `Page` directly. The tier SHALL own only the engine-agnostic tail: run trafilatura over the returned `RenderedPage.html`, populate `pre_rendered` (typed `Rendered`: `content_md`, `title`, `byline`, `headings`), set `from_browser = True` and `js_executed = RenderedPage.js_executed`, run the quality gate, and assemble the `TierResult`. The `TierResult` shape and every field it carries SHALL be unchanged from the pre-refactor tier (the response envelope is frozen).
 
@@ -22,23 +23,29 @@ The Playwright-specific mechanics the tier previously performed inline — per-h
 #### Scenario: Tier holds no Playwright reference
 
 - **WHEN** `tiers/browser.py` is imported
-- **THEN** it imports no Playwright/Camoufox symbol and references no `BrowserPool` — it depends only on the `BrowserBackend` interface and `RenderedPage`
+- **THEN** it imports no engine symbol (Playwright, patchright, zendriver, Camoufox) and no pool type — it depends only on the `BrowserBackend` interface and `RenderedPage`
 
-### Requirement: Browser pool is lazy and atexit-cleaned
+### Requirement: The browser is never constructed until a fetch needs it
 
-The system SHALL NOT launch any Camoufox process at startup. `state.browser_pool` SHALL remain `None` until the first browser-tier dispatch calls `ensure_browser_pool(state)`, which SHALL open the pool under an `asyncio.Lock` and cache it on `state.browser_pool`. A process-level `atexit` hook SHALL close the pool on a fresh event loop. Test fixtures SHALL close the pool explicitly via `teardown_state_for_test` to prevent the atexit hook from firing on a closed test loop.
+The system SHALL NOT launch a browser process at startup, and SHALL NOT construct the backend on a fetch that never dispatches the browser tier.
 
-#### Scenario: No Camoufox process when browser tier never dispatched
+The backend SHALL be reached as a `Lazy[BrowserBackend]` thunk on `Components`, passed to the orchestrator UNAWAITED and resolved exactly once at the consuming phase. Resolution SHALL be lock-guarded so that concurrent cold fetches launch one browser rather than one each, and the resolved resource SHALL be entered into the request `ResourceScope` and unwound LIFO from the server lifespan's exit.
 
-- **WHEN** a fetch completes via raw or jina with no gate signal
-- **THEN** no Camoufox process exists and `state.browser_pool is None`
+**This requirement described `state.browser_pool`, `ensure_browser_pool(state)`, a process-level `atexit` hook and a `teardown_state_for_test` fixture until 2026-08-02. None of those symbols exist** — the pool moved to the shelf `any_browser` backend, and the lifecycle moved to `Components` + `async_scope.ResourceScope` when the framework spine was replaced. A reader implementing this requirement literally would have built a second, parallel lifecycle beside the real one.
 
-#### Scenario: First browser dispatch initializes pool exactly once
+#### Scenario: No browser process when the browser tier never dispatched
 
-- **WHEN** two concurrent fetches both trigger browser dispatch
-- **THEN** `ensure_browser_pool` initializes the pool exactly once (lock-guarded) and both fetches receive pages from it
+- **WHEN** a fetch completes via cache, raw or jina with no gate signal
+- **THEN** no browser process exists and the backend thunk was never awaited
+
+#### Scenario: Concurrent cold fetches launch one browser
+
+- **WHEN** many fetches trigger browser dispatch simultaneously from cold
+- **THEN** the thunk resolves once under its lock and every fetch receives that one backend
 
 ### Requirement: Browser pool persists per-host contexts with LRU eviction
+
+The pooling behaviour below is implemented by the shelf `any_browser` `PlaywrightBackend`, not by a2web; a2web owns the two settings that configure it (`settings.browser_max_pool` → `max_pool`, `settings.browser_idle_timeout_s` → `idle_timeout_s`) and the obligation to keep passing them. It is stated here because a2web depends on it, and named as delegated so nobody looks for it in this repository.
 
 The pool SHALL keep at most `settings.browser_max_pool` contexts (default 4), keyed by host. Contexts SHALL be reused across same-host fetches to preserve cookies. When a new host arrives at cap, the least-recently-used context SHALL be closed and evicted. Idle contexts SHALL be evicted after `settings.browser_idle_timeout_s` seconds.
 
@@ -52,14 +59,21 @@ The pool SHALL keep at most `settings.browser_max_pool` contexts (default 4), ke
 - **WHEN** `max_pool == 4` and 4 distinct hosts have warm contexts, then a 5th host arrives
 - **THEN** the least-recently-used context is closed and the 5th host gets a fresh context
 
-### Requirement: Browser tier degrades gracefully without Camoufox
+### Requirement: Browser tier degrades gracefully when no engine is available
 
-When `from camoufox.async_api import AsyncCamoufox` raises `ImportError`, the tier SHALL return `verdict == Verdict.connection_error` with `operator_hints` containing a hint with `code == "browser_unavailable"` and a `fix` field describing the install command. The orchestrator SHALL NOT crash.
+When the selected backend cannot be built — the `[browser]` extras are absent, the configured engine is not registered, or its manifest reports `Unavailable` — resolving the backend thunk SHALL raise `ResourceUnavailable`, and the tier SHALL return `verdict == Verdict.connection_error` carrying `browser_unavailable_hint(...)` (`code == "browser_unavailable"`, with a `fix` naming the install). The orchestrator SHALL NOT crash and SHALL record the dispatch as failed.
 
-#### Scenario: Camoufox not installed
+**The trigger SHALL NOT be named as a specific engine's import.** This requirement was written as "`from camoufox.async_api import AsyncCamoufox` raises `ImportError`" — an import a2web no longer performs, of a package it no longer depends on, for an engine that is manifest-gated OFF. The degradation is real and shipped; only its stated cause was fiction, and a reader could have concluded the whole path was dead.
+
+#### Scenario: No engine installed
 
 - **WHEN** the `[browser]` extras are not installed and the gate dispatches the browser tier
 - **THEN** the result is `verdict == Verdict.connection_error` with `operator_hints[code=browser_unavailable]` and the orchestrator records the dispatch as failed without crashing
+
+#### Scenario: A gated engine is selected
+
+- **WHEN** `settings.browser_backend` names an engine whose manifest returns `Unavailable` (Camoufox is gated today)
+- **THEN** the registry drops it and selection raises `ResourceUnavailable` rather than crashing on a version-skewed driver
 
 ### Requirement: Browser tier is in REGISTRY but not in TIER_ORDER
 
@@ -72,18 +86,20 @@ The system SHALL register two browser-class tiers in `REGISTRY` — `"browser"` 
 
 ### Requirement: Browser tier seeds context with per-fetch cookies
 
-`BrowserTier.fetch` SHALL accept an optional `cookies_full: list[Cookie] | None = None` keyword carrying full Cookie objects (name, value, host_key, path, expires_utc, is_secure, is_httponly, samesite). When set and non-empty, the tier SHALL call `context.add_cookies([...])` on the per-host `BrowserContext` BEFORE navigation, converting each `Cookie` to Playwright's shape:
+`BrowserTier.fetch` SHALL accept an optional `cookies_full: list[Cookie] | None = None` keyword carrying full Cookie objects (name, value, host_key, path, expires_utc, is_secure, is_httponly, samesite). When set and non-empty, the tier SHALL convert each domain `Cookie` to the engine-neutral `BackendCookie` and pass them to `backend.render(url, cookies=..., ...)`, which seeds them before navigation:
 
 - `name` → `name`
 - `value` → `value`
 - `host_key` → `domain`
 - `path` → `path`
-- `expires_utc` (unix seconds, None → -1 for session) → `expires`
+- `expires_utc` (unix seconds) → `expires` (float; `None` stays `None` for a session cookie)
 - `is_secure` (0/1) → `secure` (bool)
-- `is_httponly` (0/1) → `httpOnly` (bool)
-- `samesite` (`"lax"|"strict"|"none"|None`) → `sameSite` (`"Lax"|"Strict"|"None"`); None omitted
+- `is_httponly` (0/1) → `http_only` (bool)
+- `samesite` (`"lax"|"strict"|"none"|None`) → `samesite`, passed through
 
-When unset or empty, no `add_cookies` call SHALL be made (current behavior unchanged).
+When unset or empty, no cookies SHALL be passed.
+
+**This requirement specified `context.add_cookies([...])` on a per-host `BrowserContext` and Playwright's exact key spellings (`httpOnly`, `sameSite`, `-1` for a session cookie) until 2026-08-02.** The tier does none of that: it drives no Playwright object, and the engine-shape mapping is the backend's business behind `BrowserBackend`. Writing an engine's key names into a2web's spec is what made the boundary look optional — the whole point of the interface is that a2web states cookies in ITS OWN vocabulary and never learns the engine's.
 
 The seeded cookies SHALL augment any cookies already in the warm context — `add_cookies` overwrites by `(name, domain, path)` triple, which is the desired semantic when a refreshed mirror provides a newer value for an existing cookie.
 
@@ -144,7 +160,7 @@ The tier SHALL emit `StageStarted("browser_scroll_retry")` and `StageEnded("brow
 
 ### Requirement: Browser driver subprocess stderr is captured, not leaked
 
-The browser tier SHALL capture stderr emitted by Camoufox's underlying Playwright Node.js driver process so that no driver/JS stack trace reaches the operator's terminal. The tier SHALL NOT let the driver subprocess inherit the Python parent's stderr (fd 2) uncaptured. Each non-empty captured line SHALL be routed through the current logging substrate via `await a2web.log.info(...)` as a typed event (defined in `src/a2web/events/types.py`), carrying the trimmed line in its fields. When the driver emits an internal error (e.g. the `FFPage._onUncaughtError` TypeError seen on JS-heavy SPAs), the captured trace SHALL appear only in the logging substrate and the operator's terminal SHALL see no raw Node.js output. A clean render SHALL emit zero such events.
+The browser tier SHALL capture stderr emitted by a Playwright-family driver subprocess (patchright today; Camoufox when its gate lifts) so that no driver/JS stack trace reaches the operator's terminal. The tier SHALL NOT let the driver subprocess inherit the Python parent's stderr (fd 2) uncaptured. Each non-empty captured line SHALL be routed through the current logging substrate via `await a2web.log.info(...)` as a typed event (defined in `src/a2web/events/types.py`), carrying the trimmed line in its fields. When the driver emits an internal error (e.g. the `FFPage._onUncaughtError` TypeError seen on JS-heavy SPAs), the captured trace SHALL appear only in the logging substrate and the operator's terminal SHALL see no raw Node.js output. A clean render SHALL emit zero such events.
 
 #### Scenario: Driver internal error is captured, not leaked to the terminal
 

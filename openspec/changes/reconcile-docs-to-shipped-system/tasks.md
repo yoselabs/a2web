@@ -122,43 +122,29 @@ listing `archive/` gets a wrong answer with authority.
       That is a bigger correction than §3.1 and is filed as 3.1b rather than
       folded in, because quietly widening a task is how its verification stops
       being checkable.
-- [ ] 3.1b `browser-tier` is written against Camoufox throughout — 8 sites
-      beyond the smoke check, including two requirement titles and one whose
-      trigger condition is a Camoufox import. The shipped engines are
-      patchright / zendriver via the shelf `any_browser`; Camoufox is
-      manifest-gated OFF. Re-point the spec at the `BrowserBackend` interface.
-- [x] 3.2 **Decided by the maintainer 2026-08-02: concatenate, with two
-      carve-outs. Relative length now selects nothing.**
+- [x] 3.1b **Done 2026-08-02 — and it was not eight naming sites, it was three
+      requirements describing an architecture that no longer exists.**
 
-      The task's citation was stale — `fetcher.py:1541-1586` has not existed
-      since the fetcher became a package. The code is
-      `fetcher/comprehension/menu.py::_wire_content_md`.
+      | requirement | what it said | reality |
+      |---|---|---|
+      | "executes JS via Camoufox pool" | title names a gated engine | body already correct; title + one scenario de-named |
+      | "Browser pool is lazy and atexit-cleaned" | `state.browser_pool`, `ensure_browser_pool(state)`, a process `atexit` hook, `teardown_state_for_test` | **ZERO of those symbols exist.** Rewritten to the shipped mechanism: a `Lazy[BrowserBackend]` thunk on `Components`, resolved once under its lock, entered into the `ResourceScope` and unwound LIFO from the lifespan |
+      | "degrades gracefully without Camoufox" | triggered by `from camoufox.async_api import AsyncCamoufox` raising `ImportError` | an import a2web does not perform, of a package it does not depend on, for an engine that is gated OFF. The degradation is REAL and shipped (`ResourceUnavailable` → `browser_unavailable_hint`); only its stated cause was fiction |
+      | "seeds context with per-fetch cookies" | `context.add_cookies([...])` on a per-host `BrowserContext`, with Playwright's exact key spellings (`httpOnly`, `sameSite`, `-1` for session) | the tier drives no Playwright object; it maps `Cookie` → `BackendCookie` and passes `cookies=` to `backend.render`. Writing an engine's key names into a2web's spec is what made the boundary look optional |
+      | LRU context pool | stated as a2web's | implemented by the shelf `any_browser` `PlaywrightBackend`. Kept, and now labelled as delegated, with the two settings a2web still owns named — so nobody looks for it in this repository |
+      | driver-stderr capture | "Camoufox's underlying Playwright Node.js driver" | de-named to the Playwright family (patchright today) |
 
-      All three positions were genuinely different: `extraction:103-152` said
-      pick by KIND and that "rendered length SHALL NOT be the selector";
-      `content-expectations:48` said prose and JSON-LD concatenate, never
-      replace; the code said *the longer one wins*, which is neither. Neither
-      spec could be adopted verbatim — `extraction` would drop a short
-      structured payload, and `content-expectations` named no carve-outs and so
-      would re-introduce a measured regression.
+      Also replaced the `Purpose`, which had been the scaffold's literal
+      `TBD - created by archiving change pr7c-browser-tier` since the capability
+      was created.
 
-      Shipped: a record set wins outright (on a listing trafilatura's prose is
-      the same rows again, so concatenating duplicates them); sub-floor prose
-      loses to the structured candidate (below `LENGTH_FLOOR` we have ALREADY
-      classified it as not-content, and gluing it back would make the floor
-      meaningless); above-floor prose concatenates with the JSON-LD render,
-      subset-suppressed, except an `Article`/`NewsArticle` metadata echo.
+      Five Camoufox mentions survive and all five are deliberate: naming it as
+      the gated engine, or recording what the text used to claim.
 
-      Rationale is the asymmetry used throughout this system: dropping is a
-      SILENT loss (`fetch_raw` returns `content_md` alone, so the caller cannot
-      tell a price was discarded, and recovering it costs a proxy fetch) while
-      extra text costs tokens, which are cheap and visible. **Measured, not
-      asserted:** +987 full-content tokens on `akakce-no-current-price`
-      (2642 → 3629, +37%); the other regression baselines did not move.
-
-      `_pick_display_candidate` is deleted — it was the length rule's only home.
-      Two tests asserted the retired rule in two different files and were
-      REVERSED with the reason recorded, not repaired.
+      **`test_no_a2kit_in_specs` failed on my own replacement text** — the
+      rewrite explained the lifecycle move with the words "when a2kit was
+      retired". Reworded. Worth noting that the guard fired on the person
+      fixing the spec, which is the correct direction for it to fire.
 
 - [x] 3.3 **The citation was wrong — there are ZERO such sites in
       `openspec/specs/`.** Measured 2026-08-02: 79 repo-wide occurrences, none
