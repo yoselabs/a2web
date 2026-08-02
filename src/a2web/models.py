@@ -15,6 +15,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
 
+from lean_wire import is_empty
 from pydantic import (
     BaseModel,
     Field,
@@ -563,14 +564,21 @@ def _prune_wire(
     out: dict[str, object] = {}
     debug: dict[str, object] = {}
     for key, value in data.items():
-        is_empty = value is None or value == "" or value == [] or value == {}
+        # `lean_wire.is_empty`, not a fourth inline restatement. `_prune_wire`
+        # cannot use `prune_dict` (it regroups debug keys and scopes an
+        # omit-when-False), so it needs the PREDICATE — which is why that was
+        # promoted public in lean-wire v0.3.0 rather than copied again. The old
+        # inline test agreed with it on a2web's types and was never the same
+        # test (`value == []` is equality against a literal; `is_empty` is
+        # isinstance-plus-length), and nothing compared them.
+        empty = is_empty(value)
         # Scoped omit-when-False: `retrieval_incomplete` is a bool whose `False`
         # (retrieval complete) is the boring default and must not leak onto the
         # wire. Kept field-scoped so other `False` bools are unaffected.
         if key == "retrieval_incomplete" and value is False:
-            is_empty = True
+            empty = True
         if key in debug_fields:
-            if not is_empty:
+            if not empty:
                 debug[key] = value
         elif key in required:
             out[key] = value
@@ -578,7 +586,7 @@ def _prune_wire(
             continue
         elif key in failure_only and is_ok:
             continue
-        elif is_empty:
+        elif empty:
             continue
         elif key in tsv:
             out[key] = tsv[key]

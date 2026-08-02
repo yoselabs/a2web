@@ -116,18 +116,38 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
       robust rung silently collapses to the same engine. `correlated_witness`
       makes it observable; it is not fixed.
 
-## 6. Use what is already adopted
+## 6. Use what is already adopted — DONE 2026-08-02
 
-- [ ] 6.1 One omit-empty predicate. Today: `models.py:786` inline,
-      `models.py:678` via inherited `PruneEmpty`, and `prune_dict` imported at
-      `wire.py:64`, re-exported at `:74`, **called nowhere**.
-- [ ] 6.2 `cli.py:134` — use `lean_wire.dump_model_for_wire`, documented as the
-      *"single substrate helper for wire dumps"*.
-- [ ] 6.3 `llm_eval/live_sink.py:176` — use `fmt_dur`. It currently renders
-      `f"{total_ms/1000:.1f}s"`, which disagrees for every value ≥ 7s.
-- [ ] 6.4 `llm_eval/report.py:135-136` — write `results.tsv` through `lean-wire`,
-      not `csv.DictWriter(delimiter="\t")`. That is exactly the QUOTE_MINIMAL
-      behaviour `pyproject.toml:50-56` cites as lean-wire's reason to exist.
+- [x] 6.1 One predicate. `_prune_wire` could not use `prune_dict` (it regroups
+      debug keys and scopes an omit-when-False to `retrieval_incomplete`), so it
+      needed the PREDICATE — promoted public as `lean_wire.is_empty`
+      (lean-wire v0.3.0) rather than copied a fourth time. The dead
+      `prune_dict` re-export in `wire.py` is deleted: **zero callers in `src/`
+      OR `tests/`**. Note the old inline test AGREED with the shelf's on a2web's
+      types — that is the finding, not a reprieve: nothing compared them, and
+      they were never the same test (`value == []` is equality against a
+      literal, `is_empty` is isinstance-plus-length; they diverge on any custom
+      `__eq__`).
+- [x] 6.2 `cli.py` uses `dump_model_for_wire`. CLI contract gate byte-identical
+      (17 passed) — which is the point: it produces the same bytes TODAY, so
+      nothing would have failed on the day the shelf's wire-dump seam changed
+      and a2web's private `model_dump` did not.
+- [x] 6.3 `live_sink.py` uses `fmt_dur`. **The task understated the divergence:**
+      they disagree BELOW one second too (`800ms` vs `0.8s`), not only at ≥7s
+      where `fmt_dur` drops the decimal (`12s` vs `12.4s`) and switches to
+      `1m01s` past a minute against `61.0s`. Verified by running both over eight
+      magnitudes.
+- [x] 6.4 `results.tsv` goes through `lean_wire.encode_tsv`. **This was a live
+      hazard, not a tidiness item.** Four columns are LLM-authored prose
+      (`quality_reason`, `clarity_reason`, `next_links_reason`, `fetch_error`);
+      `csv.DictWriter(delimiter="\t")`'s QUOTE_MINIMAL emits a newline-bearing
+      cell QUOTED with the newline still literal inside, so one logical row
+      spans several physical lines and every `awk`/`cut` pipeline over the file
+      misparses silently. `columns=` is passed, not derived — `_RESULTS_FIELDS`
+      is a declared contract and a column must survive a run where every row
+      elides it. Pinned by
+      `test_results_tsv_stays_one_row_per_line.py`; reversion-verified (the old
+      writer fails 2 of the 3).
 
 ## 7. jina through `http_fetch`
 

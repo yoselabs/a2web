@@ -46,6 +46,7 @@ import json
 from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
 
 import typer
+from lean_wire import dump_model_for_wire
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
@@ -131,7 +132,13 @@ def _emit(result: object) -> None:
     matches a2kit's observed behaviour (`headings` came out as a JSON array,
     never TSV).
     """
-    payload = result.model_dump(mode="json") if isinstance(result, BaseModel) else result
+    # `dump_model_for_wire`, not a bare `model_dump` — the shelf documents it as
+    # the "single substrate helper for wire dumps", and its whole reason to
+    # exist is that future wire-shaping lands in ONE place. A caller that keeps
+    # its own `model_dump` beside the import does not receive that change, and
+    # the divergence is invisible: both produce identical bytes today, which is
+    # exactly why nothing would fail when they stop.
+    payload = dump_model_for_wire(result) if isinstance(result, BaseModel) else result
     typer.echo(json.dumps(payload, separators=(",", ":"), default=str, ensure_ascii=False))
 
 

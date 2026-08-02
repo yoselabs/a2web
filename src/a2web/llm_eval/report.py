@@ -14,7 +14,6 @@ Pure functions: no network, no model calls.
 
 from __future__ import annotations
 
-import csv
 import json
 import shutil
 import statistics
@@ -22,6 +21,8 @@ from collections import defaultdict
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+
+from lean_wire import encode_tsv
 
 from .runner import _AXIS_ATTR, AxisDisposition, EvalReport, EvalRow, row_as_flat_dict
 
@@ -131,16 +132,37 @@ def _tsv_cell(value: object) -> object:
 
 
 def _write_results_tsv(report: EvalReport) -> None:
+    """Write `results.tsv` through `lean_wire.encode_tsv`, not `csv.DictWriter`.
+
+    This file is piped into `awk` / `cut` / `jq`, which all assume one row per
+    line. `csv.DictWriter(delimiter="\t")` uses QUOTE_MINIMAL: a cell containing
+    a newline is emitted QUOTED, with the newline still literal inside it — so
+    one logical row spans several physical lines and every such tool
+    misparses, silently.
+
+    Four of these columns are LLM-authored prose (`quality_reason`,
+    `clarity_reason`, `next_links_reason`, `fetch_error`), so the hazard is not
+    hypothetical: a judge that returns a two-sentence rationale on separate
+    lines is enough. `lean_wire` escapes instead of quoting — the newline
+    becomes a literal `\\n` and the row stays on one line. Reproducing exactly
+    that QUOTE_MINIMAL behaviour is the reason `pyproject.toml` gives for
+    lean-wire existing, and this was the one place still hand-rolling it.
+
+    `columns=` is passed rather than derived: `_RESULTS_FIELDS` is the report's
+    declared column contract, and a column must appear even when every row
+    elides it (a run where no cell errored still needs a `fetch_error` column).
+    That is the case `lean_wire.derive_columns` deliberately kept the explicit
+    parameter for.
+    """
     path = report.output_dir / "results.tsv"
-    with path.open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=_RESULTS_FIELDS, delimiter="\t")
-        w.writeheader()
-        for row in report.rows:
-            flat = row_as_flat_dict(row)
-            flat["fetch_cost_usd"] = f"{row.fetch_cost_usd:.6f}"
-            flat["judge_cost_usd"] = f"{row.quality.cost_usd:.6f}"
-            flat["judge_scores"] = ",".join(str(s) for s in (row.quality.scores or []))
-            w.writerow({name: _tsv_cell(flat.get(name)) for name in _RESULTS_FIELDS})
+    rows: list[dict[str, object]] = []
+    for row in report.rows:
+        flat = row_as_flat_dict(row)
+        flat["fetch_cost_usd"] = f"{row.fetch_cost_usd:.6f}"
+        flat["judge_cost_usd"] = f"{row.quality.cost_usd:.6f}"
+        flat["judge_scores"] = ",".join(str(s) for s in (row.quality.scores or []))
+        rows.append({name: _tsv_cell(flat.get(name)) for name in _RESULTS_FIELDS})
+    path.write_text(encode_tsv(rows, columns=list(_RESULTS_FIELDS)), encoding="utf-8")
 
 
 def _write_manifest(report: EvalReport) -> None:

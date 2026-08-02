@@ -61,7 +61,7 @@ import logging
 from typing import Any
 
 from fastmcp.server.middleware import Middleware
-from lean_wire import PruneEmpty, encode_tsv, prune_dict
+from lean_wire import PruneEmpty, encode_tsv
 from mcp.types import TextContent
 from pydantic import BaseModel
 
@@ -73,7 +73,6 @@ __all__ = [
     "PruneEmpty",
     "encode_envelope",
     "encode_rows",
-    "prune_dict",
     "tsv_fields_for",
 ]
 

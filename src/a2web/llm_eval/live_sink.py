@@ -15,6 +15,8 @@ import logging
 import sys
 from typing import TYPE_CHECKING, TextIO
 
+from timefmt import fmt_dur
+
 from ..log import IsolatingHandler
 
 if TYPE_CHECKING:
@@ -173,7 +175,14 @@ class LiveSink(IsolatingHandler):
             marker = f"{color}{marker}{_COLOR_RESET}"
         counter_str = f"[{counter}/{self._total}]"
         verdict_text = "ok" if ok else (failure_reason or "fail")
-        dur = f"{total_ms / 1000:.1f}s"
+        # `fmt_dur`, not a local format — a2web has ONE duration rendering and
+        # this line was the exception. They disagreed in two ranges, not one:
+        # below a second (`800ms` vs `0.8s`) and at seven seconds and up, where
+        # `fmt_dur` drops the decimal (`12s` vs `12.4s`) and switches to
+        # `1m01s` past a minute while this printed `61.0s`. A bench operator
+        # comparing a cell's live line against the same duration anywhere else
+        # in a2web was reading two different renderings of one number.
+        dur = fmt_dur(int(total_ms))
         cost_str = f"${cost:.3f}"
         trailers: list[str] = []
         trailers.append(f"cache={'hit' if cache_hit else 'miss'}")
