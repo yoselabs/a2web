@@ -166,11 +166,33 @@ real is the inverse, and worse: the capability was entirely unwitnessed.
       `rel="mw:WikiLink"` anchors, so the row selector WOULD have matched it;
       the verdict is about the container and the test says so. Reversion-
       verified: restoring `container="body"` fails both new tests.
-- [ ] 4.3 Consider widening `dom-schema` adoption past 2 of 9 handlers.
-      `handlers/_reddit_html.py:28,126` hand-rolls 294 lines of
-      `selectolax.parser.HTMLParser` + CSS traversal with **no ROT verdict** —
-      note this interacts with `close-guards-that-read-green` §1, which replaces
-      two reddit regexes.
+- [x] 4.3 **Considered, and declined for the bulk — 2026-08-02.** The verb was
+      "consider"; the answer is no for the migration and yes for one guard.
+
+      **Declined:** `Schema` is FLAT — container / row / fields, plus
+      `pair_with`. `_reddit_html.parse_thread` carries per-comment depth read
+      from DOM NESTING, markdown rendered from subtrees, and an OP/comments
+      split. None of the three is expressible, so "widen adoption" means making
+      `Schema` recursive to serve one caller. That is the inference spine
+      `wire._TSV_FIELDS` refuses by design and that §1.6 already refused for
+      `page-tsv` — a package earns generality from three callers, not from one
+      awkward one.
+
+      **Taken:** the part of the verdict that was genuinely missing. The
+      structural guard (`op is None and not comment_nodes → None`) already
+      covered the both-anchors-gone case, so honest absence was handled. What
+      was silent is `dom_schema`'s OTHER rot shape — the post node matched and
+      every field selector under it missed, which is what a class rename looks
+      like. It returned a titleless `RedditThread` and the fetch rendered as a
+      comments-only success: a silent miss (ADR-0009). Now logs
+      `handler_schema_rot` and falls through to RSS like any other parse miss.
+      There is no page state that produces it — an old.reddit post always has a
+      title and an author.
+
+      Witnessed by mutating the CAPTURED thread (three class names moved,
+      structure untouched), with an explicit non-vacuity assertion that
+      `div.thing.link` still matches — otherwise it would only be re-testing
+      the existing not-a-thread case. Reversion-verified.
 
 ## 5. `json-in-html` and `any-browser`
 

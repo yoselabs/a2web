@@ -27,6 +27,8 @@ from urllib.parse import urlencode, urlparse, urlunparse
 from html_fragment import to_markdown
 from selectolax.parser import HTMLParser, Node
 
+from ..log import log_warning
+
 Channel = Literal["thread", "listing"]
 
 # `/r/<sub>/comments/<id>[/<slug>[/<focused-comment>]]` — the thread shape.
@@ -122,6 +124,22 @@ def parse_thread(html: str) -> RedditThread | None:
     comment node — i.e. the parser's structural anchors are absent (old.reddit
     changed, or the page is not a thread). The caller treats None as a parse
     miss and falls through, never silently returning empty content.
+
+    It ALSO returns None on the subtler shape `dom_schema` names `ROT`: the
+    post node matched but every field selector under it came back empty. That
+    is not a page state — an old.reddit post always carries a title and an
+    author — so it can only mean the class names moved. Without this the parser
+    returned a titleless thread and the fetch rendered as a comments-only
+    success, which is the silent miss ADR-0009 forbids.
+
+    This is the ONE piece of `dom_schema`'s verdict worth having here.
+    `repay-the-shelf-debt` §4.3 asked whether the whole 294 lines should move
+    onto `Schema`, and the answer is no: `Schema` is flat (container / row /
+    fields, plus `pair_with`), while this parse carries per-comment depth read
+    from DOM NESTING, markdown rendered from subtrees, and an OP/comments
+    split. Adopting it would mean making `Schema` recursive to serve one
+    caller — the inference spine `wire._TSV_FIELDS` and the `page-tsv`
+    re-evaluation both already refused.
     """
     tree = HTMLParser(html)
     op = tree.css_first("div.thing.link")
@@ -136,7 +154,11 @@ def parse_thread(html: str) -> RedditThread | None:
     score = _int_attr(op, "data-score") if op else None
     comment_total = _comment_total(op) if op else None
 
-    comments = [c for node in comment_nodes if (c := _parse_comment(node)) is not None]
+    if op is not None and title is None and author is None and not body_md:
+        log_warning("handler_schema_rot", handler="reddit", node="div.thing.link")
+        return None
+
+    comments =[c for node in comment_nodes if (c := _parse_comment(node)) is not None]
 
     return RedditThread(
         title=title,

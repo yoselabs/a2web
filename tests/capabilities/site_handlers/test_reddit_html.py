@@ -122,6 +122,38 @@ def test_parse_returns_none_on_non_thread_html() -> None:
     assert rh.parse_thread("<html><body><p>not a thread</p></body></html>") is None
 
 
+def test_parse_returns_none_when_the_post_node_matched_but_no_field_did() -> None:
+    """The `ROT` shape, on the CAPTURED page with ONE variable moved.
+
+    `div.thing.link` still matches, so the existing structural guard passes —
+    but every field selector under it misses, which is what old.reddit renaming
+    its classes looks like. There is no page state that produces it: a post
+    always has a title and an author.
+
+    Before 2026-08-02 this returned a titleless `RedditThread` and the fetch
+    rendered as a comments-only success — a silent miss (ADR-0009). It now
+    falls through to the RSS channel like any other parse miss.
+
+    Derived from the capture rather than hand-written, so it cannot drift from
+    the markup the parser actually accepts. The mutation is exactly the failure
+    being modelled: class names moved, structure unchanged.
+    """
+    rotted = (
+        _FIXTURE.read_text()
+        .replace('class="title"', 'class="post-title"')
+        .replace('class="author"', 'class="post-author"')
+        .replace('class="usertext-body"', 'class="post-body"')
+    )
+
+    # Non-vacuity: the structural anchor must still match, or this would just be
+    # re-testing `test_parse_returns_none_on_non_thread_html`.
+    from selectolax.parser import HTMLParser
+
+    assert HTMLParser(rotted).css_first("div.thing.link") is not None
+
+    assert rh.parse_thread(rotted) is None
+
+
 # --------------------------------------------------------------------- #
 # render_markdown()
 # --------------------------------------------------------------------- #
