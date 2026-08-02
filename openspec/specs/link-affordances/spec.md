@@ -128,3 +128,89 @@ When the answer is not on the page and no continuation link is found, the system
 
 - **WHEN** reviews are neither on the page nor linked in the extracted set
 - **THEN** the response states the content and its link were not found, without claiming reviews do not exist
+
+### Requirement: The digest gate is satisfiable on every retrieval path
+
+The pre-LLM gate that admits a page to the link digest — the presence of a
+structured (`json_synth` / `record_synth`) candidate standing in for
+`structural_form ∈ {product, listing}` before the model classifies — SHALL be
+reachable on every retrieval path. The gate's criterion is unchanged and
+deliberately unchanged: a prose-only article still pays nothing for a digest.
+What changes is that a product or listing page can now satisfy it whatever tier
+served it.
+
+The gate was never the defect. It was unsatisfiable on the pre-rendered path
+because the candidates that satisfy it were never produced there, and relaxing
+it would have put a digest on prose articles in direct contradiction of the
+requirement that says not to. Recorded here because a reader arriving at the
+gate while chasing a missing `other_pages` will reach for it, as this project
+did.
+
+#### Scenario: Browser-served product page gets a digest
+
+- **WHEN** a product page carrying a Product schema payload is retrieved by the
+  browser tier
+- **THEN** the `json_synth` candidate satisfies the gate and the link digest is
+  assembled from the page's anchors
+
+#### Scenario: Browser-served article still pays nothing
+
+- **WHEN** a prose article is retrieved by the browser tier and no structured rung
+  produces output
+- **THEN** no digest is assembled, exactly as on the raw tier
+
+#### Scenario: Anchors alone do not open the gate
+
+- **WHEN** a pre-rendered page carries many anchors but no structured candidate
+- **THEN** no digest is assembled — link availability is necessary and not
+  sufficient
+
+### Requirement: a page's anchors survive retrieval regardless of which tier served it
+
+When a fetch retrieves a page whose body carries anchors, those anchors SHALL be
+available to the response pipeline irrespective of which tier won. A tier that
+installs pre-rendered markdown SHALL carry the page's links across that seam
+rather than dropping them.
+
+Retrieval path is not a property the caller chose or can see. Making the index
+depend on it means the same URL yields an index or does not according to whether
+an anti-bot wall happened to force a browser — and it fails precisely on the
+pages the caller can least afford to re-fetch.
+
+#### Scenario: a link-dense page served by a pre-rendering tier
+
+- **WHEN** a page carrying many anchors is retrieved by a tier that installs
+  pre-rendered markdown (browser, archive, or a site handler over HTML)
+- **THEN** the page's links are available to the link digest
+- **AND** the count is commensurate with the anchors present in the retrieved body
+
+#### Scenario: the same page served by two different tiers
+
+- **WHEN** the same link-dense page is retrieved once by the raw tier and once by
+  a pre-rendering tier
+- **THEN** both fetches make the page's links available
+- **AND** neither yields an empty link set while the other does not
+
+### Requirement: an index-capable page is not silently reported as index-free
+
+An empty link set on a page whose retrieved body contained anchors SHALL be
+treated as a defect in retrieval, not as a property of the page. The system SHALL
+NOT present an absent index as though the page offered nothing to point at.
+
+#### Scenario: anchors present, links empty
+
+- **WHEN** the retrieved body contains anchors and the extracted link set is empty
+- **THEN** this is a failure of the extraction path, not a page with no links
+
+### Requirement: bodies that are not HTML are a known, stated gap
+
+Tiers whose retrieved body is not HTML — a markdown reader's output, or a JSON
+API payload — are NOT covered by the requirement above. This SHALL be recorded
+as a known gap rather than left implicit, so that a later reader can tell an
+unsolved case from an overlooked one.
+
+#### Scenario: a markdown-reader tier
+
+- **WHEN** a tier returns markdown rather than HTML as its body
+- **THEN** the anchors-survive-retrieval requirement does not apply to it
+- **AND** the gap is documented rather than silently absent

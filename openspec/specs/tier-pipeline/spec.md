@@ -5,7 +5,7 @@ TBD - created by archiving change pr3-raw-tier. Update Purpose after archive.
 ## Requirements
 ### Requirement: Tier protocol
 
-The system SHALL define `Tier` as a `typing.Protocol` in `src/a2web/tiers/__init__.py` with members `name: str` and `async def fetch(self, url: str, *, state: AppState) -> TierResult`. `TierResult` SHALL be a `@dataclass(slots=True)` carrying at minimum: `body: bytes`, `content_type: str`, `status_code: int`, `final_url: str`, `headers: dict[str, str]`, `tier_extras: dict[str, Any]` (default empty), `verdict: Verdict` (default `Verdict.ok`). Tiers MUST NOT raise for routine HTTP failures (4xx/5xx) — they SHALL set `verdict` to the closed-enum value (`connection_error`, `timeout`, `rate_limited`, `not_found`, etc.) and return.
+The system SHALL define `Tier` as a `typing.Protocol` in `src/a2web/tiers/__init__.py` with members `name: str` and `async def fetch(self, url: str, *, state: AppState) -> TierResult`. `TierResult` SHALL be a `@dataclass(slots=True)` carrying at minimum: `body: bytes`, `content_type: str`, `status_code: int`, `final_url: str`, `headers: dict[str, str]`, `verdict: Verdict` (default `Verdict.ok`), plus NAMED typed fields for every tier-specific signal (`pre_rendered: Rendered | None`, `from_archive`, `from_browser`, `no_match`, `conditional_hit`, `handler_name`, …). There SHALL be no `dict[str, Any]` bag; adding a signal means adding a field. Tiers MUST NOT raise for routine HTTP failures (4xx/5xx) — they SHALL set `verdict` to the closed-enum value (`connection_error`, `timeout`, `rate_limited`, `not_found`, etc.) and return.
 
 #### Scenario: Tier protocol shape
 
@@ -19,7 +19,7 @@ The system SHALL define `Tier` as a `typing.Protocol` in `src/a2web/tiers/__init
 
 ### Requirement: Tier registry with explicit ordering
 
-The system SHALL expose `TIER_ORDER: tuple[str, ...]` and `REGISTRY: dict[str, Tier]` from `a2web.tiers.__init__`. After PR5, `TIER_ORDER` SHALL begin with `"site_handler"` followed by `"raw"`. The `"site_handler"` slot SHALL dispatch via `match_handler(url)` from `a2web.handlers`; if no handler matches, the slot SHALL emit a sentinel `TierResult` with `tier_extras["no_match"] = True` that the orchestrator interprets as "skip silently — produce no diagnostic row, fall through to the next tier."
+The system SHALL expose `TIER_ORDER: tuple[str, ...]` and `REGISTRY: dict[str, Tier]` from `a2web.tiers.__init__`. After PR5, `TIER_ORDER` SHALL begin with `"site_handler"` followed by `"raw"`. The `"site_handler"` slot SHALL dispatch via `match_handler(url)` from `a2web.handlers`; if no handler matches, the slot SHALL emit a sentinel `TierResult` with `no_match=True` that the orchestrator interprets as "skip silently — produce no diagnostic row, fall through to the next tier."
 
 #### Scenario: site_handler precedes raw in PR5
 
@@ -83,12 +83,41 @@ Every duration string in the envelope, diagnostics narrative, and operator hints
 
 ### Requirement: Pre-rendered handler results bypass extraction
 
-The orchestrator SHALL check `tier_result.tier_extras` for a `"pre_rendered"` dict. When present, the orchestrator SHALL use its `content_md`, `title`, `byline`, and `headings` directly and SHALL NOT invoke `extract_markdown`, `find_published`/`find_updated`, or `parse_metadata`. The quality gate SHALL still run on the rendered markdown; the cache write proceeds with the original `body` (typically JSON for handlers).
+The orchestrator SHALL check `tier_result.pre_rendered` for a `Rendered`
+payload. When present, the orchestrator SHALL use its `content_md`, `title`,
+`byline`, `headings`, and `links` directly and SHALL NOT invoke
+`extract_markdown`, `find_published`/`find_updated`, or `parse_metadata`.
+
+**The bypass is scoped to content extraction and metadata parsing only.** It
+SHALL NOT extend to the structured-extraction ladder or to the
+listing-completeness check, which are different parsers over the same bytes and
+which a tier that produced markdown has not already performed. A pre-rendered
+result SHALL reach both.
+
+The quality gate SHALL still run on the rendered markdown; the cache write
+proceeds with the original `body`.
+
+> The prior wording named `tier_result.tier_extras["pre_rendered"]`, a
+> `dict[str, Any]` bag removed when `TierResult` became typed, and asserted a
+> bypass with no stated scope. Both are corrected here: the field is the typed
+> one, and the boundary is explicit. The unstated scope is not a documentation
+> defect — it is how the ladder, the digest gate, the listing sufficiency check
+> and the option shelf all came to be unreachable on every pre-rendering tier
+> without any requirement being violated.
 
 #### Scenario: Pre-rendered result skips trafilatura
 
-- **WHEN** a handler returns a `TierResult` with `tier_extras["pre_rendered"] = {"content_md": "...", ...}`
-- **THEN** the resulting `FetchResponse.content_md` equals the pre-rendered value and the diagnostics list contains no `extract` row
+- **WHEN** a tier returns a `TierResult` carrying a `Rendered` pre-rendered payload
+- **THEN** the resulting `FetchResponse.content_md` equals the pre-rendered value
+- **AND** the diagnostics list contains no `extract` row
+
+#### Scenario: Pre-rendered result does NOT skip the structured ladder
+
+- **WHEN** a tier returns a pre-rendered payload and the retrieved body is HTML
+  carrying a detectable record region
+- **THEN** the structured-extraction ladder runs over that body and contributes
+  its candidate to `fc.content_candidates`
+- **AND** the diagnostics list still contains no `extract` row
 
 #### Scenario: Gate still runs on pre-rendered markdown
 
@@ -123,11 +152,11 @@ A `tls_impersonate` signal observed on the `raw` tier SHALL be a no-op (raw alre
 
 ### Requirement: Browser-rendered results cache normally
 
-Unlike archive results (which set `tier_extras["from_archive"] = True` and skip cache write), browser-rendered results SHALL be cached under the standard URL+profile_hash key. `tier_extras["from_browser"] = True` is informational; it SHALL NOT cause the orchestrator to skip cache write.
+Unlike archive results (which set `from_archive=True` and skip cache write), browser-rendered results SHALL be cached under the standard URL+profile_hash key. `from_browser=True` is informational; it SHALL NOT cause the orchestrator to skip cache write.
 
 #### Scenario: Browser success writes cache
 
-- **WHEN** the browser tier returns `verdict == Verdict.ok` with `tier_extras["from_browser"] == True`
+- **WHEN** the browser tier returns `verdict == Verdict.ok` with `from_browser is True`
 - **THEN** the orchestrator writes a cache row for the URL+profile_hash key
 
 ### Requirement: Orchestrator resolves a proxy route per tier invocation

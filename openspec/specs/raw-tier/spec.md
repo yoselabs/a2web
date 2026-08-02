@@ -69,7 +69,7 @@ The JSON carve-out SHALL be evaluated BEFORE the non-HTML mismatch check, so a J
 
 ### Requirement: Conditional GET on cache hit
 
-The system SHALL, when a cached entry exists for `(url, profile_hash)`, send `If-None-Match` (from cached `etag`) and/or `If-Modified-Since` (from cached `last_modified`) with the request. A 304 response SHALL produce `TierResult.verdict == Verdict.ok` with `body` populated from cache and `tier_extras["conditional_hit"] == True`.
+The system SHALL, when a cached entry exists for `(url, profile_hash)`, send `If-None-Match` (from cached `etag`) and/or `If-Modified-Since` (from cached `last_modified`) with the request. A 304 response SHALL produce `TierResult.verdict == Verdict.ok` with `body` populated from cache and `conditional_hit is True`.
 
 #### Scenario: 304 response reuses cached body
 
@@ -80,7 +80,7 @@ The system SHALL, when a cached entry exists for `(url, profile_hash)`, send `If
 
 `RawTier.fetch` SHALL accept an optional `proxy_url: str | None = None` keyword. When set, it SHALL be passed to `curl_cffi.requests.get` via `proxies={"http": proxy_url, "https": proxy_url}`. When unset, the call SHALL be made directly (current behavior unchanged).
 
-When the proxy layer fails (proxy connection refused, proxy 502, proxy timeout), the tier SHALL return `Verdict.proxy_unavailable` with `tier_extras["proxy_url"]` populated for diagnostics. The tier SHALL NOT silently retry direct.
+When the proxy layer fails (proxy connection refused, proxy 502, proxy timeout), the tier SHALL return `Verdict.proxy_unavailable`, and the orchestrator SHALL record the route on the diagnostic row as `Diagnostic.proxy` (the proxy **id**, never the URL — the URL can carry credentials). The tier SHALL NOT silently retry direct.
 
 #### Scenario: Direct fetch unchanged
 

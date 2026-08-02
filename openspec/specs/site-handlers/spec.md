@@ -21,7 +21,7 @@ The system SHALL expose `match_handler(url: str) -> Tier | None` in `a2web.handl
 
 The system SHALL provide `RedditHandler` in `a2web.handlers.reddit` with `name = "site_handler:reddit"`. `matches(url)` SHALL return `True` for URLs whose host is `reddit.com`, `www.reddit.com`, or `old.reddit.com`, and whose path matches `/r/<sub>/comments/<id>...`. The handler SHALL fetch `<url>.json?limit=500&raw_json=1` via `httpx`, parse the response, and produce markdown comprising the post body followed by every comment depth-quoted with `>` prefixes.
 
-The handler SHALL populate `TierResult.tier_extras["pre_rendered"]` with `content_md`, `title`, `byline`, and `headings`. The `body` field SHALL contain the original JSON response bytes (for cache + future replay) with `content_type = "application/json"`.
+The handler SHALL populate `TierResult.pre_rendered` with a `Rendered` payload carrying `content_md`, `title`, `byline`, and `headings`. The `body` field SHALL contain the original JSON response bytes (for cache + future replay) with `content_type = "application/json"`.
 
 #### Scenario: Comment URL matches
 
@@ -42,7 +42,7 @@ The handler SHALL populate `TierResult.tier_extras["pre_rendered"]` with `conten
 
 The system SHALL provide `HNHandler` in `a2web.handlers.hn` with `name = "site_handler:hn"`. `matches(url)` SHALL return `True` for URLs of the form `https://news.ycombinator.com/item?id=<n>`. The handler SHALL fetch `https://hn.algolia.com/api/v1/items/<n>` via `httpx` and produce markdown containing the item's text/title followed by every reply in the `kids` tree, depth-quoted.
 
-The handler SHALL populate `TierResult.tier_extras["pre_rendered"]` and set `body` to the JSON response with `content_type = "application/json"`.
+The handler SHALL populate `TierResult.pre_rendered` and set `body` to the JSON response with `content_type = "application/json"`.
 
 #### Scenario: Item URL matches
 
@@ -65,7 +65,7 @@ Both `RedditHandler` and `HNHandler` SHALL translate connection / TLS / timeout 
 
 ### Requirement: arxiv handler renders abs page from export API
 
-The system SHALL provide `ArxivHandler` matching URLs of the form `https?://arxiv.org/abs/<id>` (case-insensitive). The handler SHALL fetch `https://export.arxiv.org/api/query?id_list=<id>`, parse the Atom XML with `xml.etree.ElementTree`, and populate `tier_extras["pre_rendered"]` with `content_md` (abstract), `title` (entry title, whitespace-collapsed), `byline` (comma-joined author names), and `headings` (top-level title + `## Categories`).
+The system SHALL provide `ArxivHandler` matching URLs of the form `https?://arxiv.org/abs/<id>` (case-insensitive). The handler SHALL fetch `https://export.arxiv.org/api/query?id_list=<id>`, parse the Atom XML with `xml.etree.ElementTree`, and populate `TierResult.pre_rendered` with `content_md` (abstract), `title` (entry title, whitespace-collapsed), `byline` (comma-joined author names), and `headings` (top-level title + `## Categories`).
 
 #### Scenario: Valid arxiv id returns rendered abstract
 

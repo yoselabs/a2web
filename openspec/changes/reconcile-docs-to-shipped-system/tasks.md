@@ -42,13 +42,59 @@ said to. Two things the spiking changed vs the task text below:
 
 ## 2. Sync work already done, before writing anything new
 
-- [ ] 2.1 Sync and archive `narrow-the-pre-rendered-extraction-skip` (27/27).
-- [ ] 2.2 Sync and archive `restore-links-on-pre-rendered-tiers` (25/25).
-- [ ] 2.3 Confirm their deltas closed `tier-pipeline`, `extraction`,
+**Done 2026-08-02. The premise of this section was half wrong, and the wrong
+half is the interesting one.** Both changes had been ARCHIVED on 2026-07-30 —
+but archived is not synced. `openspec archive` moves the change directory; it
+does not apply the delta. So the two changes sat in `archive/` looking closed
+while `openspec/specs/` still carried the pre-change text, and the tasks below
+read as pending work when 2.1/2.2 were the only part already finished.
+
+That is a trap worth naming: **an archived change is evidence that work
+shipped, never evidence that the spec says so.** Anyone auditing drift by
+listing `archive/` gets a wrong answer with authority.
+
+- [x] 2.1 Sync and archive `narrow-the-pre-rendered-extraction-skip` (27/27).
+      Archived 2026-07-30; delta applied 2026-08-02 (1 MODIFIED requirement in
+      `tier-pipeline`, 3 ADDED across `extraction` / `link-affordances` /
+      `listing-completeness`).
+- [x] 2.2 Sync and archive `restore-links-on-pre-rendered-tiers` (25/25).
+      Archived 2026-07-30; delta applied 2026-08-02 (5 ADDED across
+      `link-affordances` / `link-discovery`).
+- [x] 2.3 Confirm their deltas closed `tier-pipeline`, `extraction`,
       `link-affordances`, `listing-completeness`, `link-discovery` — including
       the `tier_extras` fix that three specs require and
       `test_no_dict_str_any_on_dataclasses.py` forbids.
-- [ ] 2.4 Re-inventory what drift remains. A large fraction should be gone.
+
+      **They did not, and could not.** The deltas covered ONE of ten
+      `tier_extras` sites (`tier-pipeline`'s pre-rendered requirement). The
+      other nine were never in scope of either change and were fixed here
+      against the real field names on `TierResult`:
+
+      | spec | was | now |
+      |---|---|---|
+      | `tier-pipeline` §Tier protocol | `tier_extras: dict[str, Any]` in the required field list | the named typed fields + an explicit "there SHALL be no `dict[str, Any]` bag" |
+      | `tier-pipeline` §registry | `tier_extras["no_match"] = True` | `no_match=True` |
+      | `tier-pipeline` §browser cache (×3) | `tier_extras["from_archive"/"from_browser"]` | `from_archive=True` / `from_browser is True` |
+      | `site-handlers` (×3) | `TierResult.tier_extras["pre_rendered"]` | `TierResult.pre_rendered` (a `Rendered`) |
+      | `raw-tier` §conditional | `tier_extras["conditional_hit"] == True` | `conditional_hit is True` |
+      | `raw-tier` §proxy failure | `tier_extras["proxy_url"]` populated for diagnostics | `Diagnostic.proxy` — the proxy **id**, not the URL |
+
+      Two of these were worse than stale. The Tier-protocol entry **mandated**
+      the bag that `test_no_dict_str_any_on_dataclasses.py` forbids and
+      CLAUDE.md's `Never` list bans, so the spec and the guard were in direct
+      opposition and the spec was losing silently. And `tier_extras["proxy_url"]`
+      named a field that has never existed in ANY form — `proxy_url` is a
+      `fetch()` parameter — while the real diagnostic carries `proxy_id`
+      deliberately, because a proxy URL can embed credentials. A reader
+      implementing that line as written would have logged secrets.
+
+      Meanwhile `retrieval-completeness:237` and `browser-backend:106` already
+      said "a typed field, never a `tier_extras` bag". The spec set contradicted
+      itself on the exact point, in the exact vocabulary, and nothing noticed.
+- [x] 2.4 Re-inventory what drift remains. A large fraction should be gone.
+      Every `tier_extras` occurrence in `openspec/specs/` is now negative
+      commentary (three sites, all saying "never a bag"). `openspec validate
+      --all`: 49 passed, 0 failed.
 
 ## 3. The remaining spec contradictions
 
