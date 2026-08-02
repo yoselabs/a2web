@@ -600,6 +600,40 @@ upstream request was cancelled, whether the model is still generating, or
 whether tokens were billed. The shelf version should say *the client stopped
 waiting* for the same reason.
 
+## 2026-08-02 — T7 promotion candidate: `llm_wobble` runs a DERIVE callable unguarded
+
+**Filed after a live bench died at cell 24 of 132.** `llm_wobble._apply_field`
+calls `policy.derive(parsed)` with nothing around it, so a derive that raises
+propagates out of `parse_with_policy` as its own type — **not** as `ParseError`.
+Every consumer catches `ParseError` (that is the funnel's whole contract), so
+whatever the derive raises sails past the handler that exists to contain it.
+
+**Why the shelf, not here.** The trap is structural, not a2web's:
+
+- STRICT means *present*, never *well-typed* — `_apply_field` returns
+  `parsed[field]` as-is. Nothing in the funnel validates a value's TYPE.
+- The only place a consumer CAN type-check is the `into` callable, and the
+  funnel calls `into` **after** every field policy has resolved.
+- So a derive necessarily reads values that nothing has validated yet, while
+  the docstring shape everyone reaches for ("STRICT already checked its peer")
+  is exactly the wrong mental model. a2web wrote that sentence and believed it
+  for months.
+
+The consequence is asymmetric in the way that makes it worth fixing upstream:
+the funnel exists to survive model wobble, and this is the one path where
+*ordinary* wobble crashes the process instead.
+
+**Shape to promote:** wrap the `policy.derive(parsed)` call so any exception
+becomes `ParseError` with the field name and offending value in the message
+(`from exc` preserved). Consumers keep one handler and the funnel keeps its
+promise. a2web's product-side coercion in `_derive_reached` becomes redundant
+belt-and-braces rather than the load-bearing guard, and `_funnel_verdict`'s
+blanket clause can narrow back to named types.
+
+**Cross-check when promoting:** the SKIP/DEFAULT paths are fine (no callable),
+but `WobblePolicy.default` is a plain value today — if it ever becomes a
+callable, it needs the same treatment.
+
 ## 2026-07-31 — T7: substrate a2web hand-builds while already owning it
 
 **Source:** primitives & elevation scan, 2026-07-31. Full evidence in
