@@ -9,6 +9,65 @@ Nothing here is actionable. If an entry looks live again, move it back rather
 than re-deriving it.
 
 ---
+## 2026-08-02 — T4: five guards that read green while covering less than they named (M, verification)
+
+Closed by `close-guards-that-read-green` §1/§2/§3/§4/§7. The change is not
+finished — §5.1-5.3 (capture-bound) and §6 (bench-side) stay open in
+`BACKLOG.md` — but these five findings are resolved and the reasoning is the
+reusable part.
+
+**The markup-funnel guard matched `re.compile` and nothing else.** It read as a
+ban on parsing markup with regexes; it was a ban on parsing markup with
+*precompiled* regexes. Widening it to `search`/`sub`/`match`/`findall` turned up
+two live violations in `reddit.py` — a `<!--.*?-->` strip and a
+`<div class="md">(.*)</div>` capture whose own adjacent comment conceded the
+nesting assumption was wrong. **The widening was run BEFORE anything was fixed,
+deliberately: the red run is the only evidence the widened matcher works.** A
+guard widened and fixed in one pass proves nothing about either half.
+
+**Two guards were named for a claim they did not check, and two more did not
+exist at all.** `test_packages_boundary_frozen.py` asserted dataclass
+immutability, not the `__all__` freeze CLAUDE.md cited it for; the `__all__`
+claim was withdrawn rather than back-filled, because one package declares one.
+Two guards cited in `docs/architecture/README.md` and
+`verification-provenance.md` — including a `path::function` citation — named
+files that had never existed. **The document that codifies the
+foreign-provenance rule had itself failed it**, and reasoned from the absent
+guard's existence to advise spending verification effort elsewhere. That
+recommendation had to be re-derived, and the failure it was built to catch (the
+dead `--no-sandbox` rung) turned out to be unguarded. Recorded in the document
+itself, not only in the fix — a doc that states a rule and breaks it is worse
+than one that states nothing.
+
+**A wire regression on ADR-0009 was one re-bless from green.** The severity that
+marks `try_user_browser` critical — the loudest signal in the system — was
+asserted only by inline asserts inside one golden-comparison test, and
+`test_no_golden_is_degenerate` barred nothing stronger than `len(text) > 20`.
+Lifted into a standalone wire capability test asserting all five signals plus
+`severity == "critical"`, and **verified by downgrading the hint and confirming
+the new test fails independently of any golden.** Separately, `ACCEPT_SLUG` took
+any value and rewrote all twelve goldens; it now validates against the known set.
+
+**`playbook.py` and its test were in 1.00/1.00 lockstep — fixed, and the fix is
+smaller than it sounds.** 49 of 53 tests re-encoded the rule table they were
+checking, so a wrong rule and a case written from the same understanding agreed
+and both went green. The foreign witness is now the `steps` key on every replay
+baseline: the dispatch sequence the real orchestrator produced from frozen
+bytes, naming no rule and therefore unable to agree with the planner by
+construction.
+
+**But measure a witness before calling it coverage.** Probed by deleting rules
+from `_RULES`: `cloudflare_403_429_archive` fails the akakce baseline;
+`gate_paywall_or_block_archive`, `exhausted_429_escalate` and
+`gate_browser_signal` fail nothing. One of four probed, of fourteen. The corpus
+produces four distinct dispatch sequences from seven cases because every case
+but akakce succeeds on the first tier — **a planner witness needs cases that
+fail interestingly.** The gap is recorded in `BACKLOG.md` as a gap. The 49
+restating tests were kept, not deleted: they are the readable statement of what
+each rule means and they catch a deletion or a typo. The error was ever counting
+them as verification, and that is now written in their own docstring.
+
+---
 ## 2026-08-01 — T2: the response contract was one concept in three files (L, structure — T2 UMBRELLA)
 
 **SHIPPED** as `unify-the-response-contract` (34 of 36 tasks; the two open ones

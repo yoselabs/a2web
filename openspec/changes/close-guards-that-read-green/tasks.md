@@ -174,5 +174,10 @@ result.
       `fetcher_response.py::_project_routing`) live outside it.
 - [x] 8.3 `make check` green, and confirm each widened or added guard has been
       observed failing at least once.
-- [ ] 8.4 Move the shipped T4 entries to `BACKLOG-CLOSED.md`; leave the deferred
-      constants and corpus-language entries open.
+- [x] 8.4 Moved the five shipped T4 findings (markup funnel, two mis-named
+      guards, two non-existent cited guards, the ADR-0009 wire re-bless, the
+      playbook lockstep). **Left open, correctly:** *22 constants can be doubled*
+      (§5.1-5.3, capture-bound), *the corpus cannot see the envelope* (§6,
+      bench-side), *invariants with no code implementer* (§6.6), plus two T4
+      findings this change never scoped — *a partial eval loss exits 0* and *45
+      of 86 prompt rules have neither code nor test*.

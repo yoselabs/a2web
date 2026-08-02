@@ -705,11 +705,9 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 | [`domain.py` is 69% an undocumented renderer](docs/findings/2026-07-31-structural-scan.md#domainpy-is-69-an-undocumented-renderer-m-structure) | M, structure |
 | [`routers.py` is one function with a hole in it](docs/findings/2026-07-31-structural-scan.md#routerspy-is-one-function-with-a-hole-in-it-s-structure) | S, structure |
 | [the Registry half of Strategy+Registry isolates nothing](docs/findings/2026-07-31-structural-scan.md#the-registry-half-of-strategyregistry-isolates-nothing-s-structure) | S, structure |
-| [`playbook.py` and its test are in 1.00/1.00 lockstep](docs/findings/2026-07-31-structural-scan.md#playbookpy-and-its-test-are-in-100100-lockstep-s-verification) | S, verification |
 | [a partial eval loss exits 0](docs/findings/2026-07-31-structural-scan.md#a-partial-eval-loss-exits-0-s-verification) | S, verification |
 | [`llm_eval/systems.py` carries a second fetch stack](docs/findings/2026-07-31-structural-scan.md#llm_evalsystemspy-carries-a-second-fetch-stack-s-structure) | S, structure |
 | [test files that have drifted from their subject](docs/findings/2026-07-31-structural-scan.md#test-files-that-have-drifted-from-their-subject-s-structure) | S, structure |
-| [the markup-funnel guard misses `re.search`/`re.sub`](docs/findings/2026-07-31-structural-scan.md#the-markup-funnel-guard-misses-researchresub-s-verification--live) | S, verification — LIVE |
 | [reddit.py is four retrieval channels behind one `matches()`](docs/findings/2026-07-31-structural-scan.md#redditpy-is-four-retrieval-channels-behind-one-matches-m-structure) | M, structure |
 | [cross-handler duplication: seven shapes, partial adoption](docs/findings/2026-07-31-structural-scan.md#cross-handler-duplication-seven-shapes-partial-adoption-m-structure) | M, structure |
 | [45 of 86 prompt rules have neither code nor test](docs/findings/2026-07-31-structural-scan.md#45-of-86-prompt-rules-have-neither-code-nor-test-l-verification) | L, verification |
@@ -718,15 +716,12 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 | [`endpoint-auth` spec yields an UNAUTHENTICATED endpoint if followed](docs/findings/2026-07-31-structural-scan.md#endpoint-auth-spec-yields-an-unauthenticated-endpoint-if-followed-s-security) | S, SECURITY |
 | [`_MAX_RECORDS` × `DEFAULT_TOLERANCE` dead zone](docs/findings/2026-07-31-structural-scan.md#_max_records--default_tolerance-dead-zone-s-correctness--adr-0009-live) — **STAYS OPEN**: `_MAX_RECORDS` was not found anywhere in `src/`, so the interaction the finding describes could not be reproduced and the entry is unverified. Do not close it on the strength of the finding alone. | S, correctness — ADR-0009 LIVE, unverified |
 | [22 constants can be doubled with zero test failures](docs/findings/2026-07-31-structural-scan.md#22-constants-can-be-doubled-with-zero-test-failures-m-verification) | M, verification |
-| [two named guards answer a different question than advertised](docs/findings/2026-07-31-structural-scan.md#two-named-guards-answer-a-different-question-than-advertised-s-verification) | S, verification |
 | [openspec canonical specs contradict shipped code](docs/findings/2026-07-31-structural-scan.md#openspec-canonical-specs-contradict-shipped-code-m-docs--4-load-bearing) | M, docs — 4 load-bearing |
 | [CLAUDE.md describes a different system than the one shipped](docs/findings/2026-07-31-structural-scan.md#claudemd-describes-a-different-system-than-the-one-shipped-s-docs) | S, docs |
 | [stale provider ids break a documented boot](docs/findings/2026-07-31-structural-scan.md#stale-provider-ids-break-a-documented-boot-s-correctness--live) | S, correctness — LIVE |
-| [two cited architecture guards do not exist](docs/findings/2026-07-31-structural-scan.md#two-cited-architecture-guards-do-not-exist-s-verification) | S, verification |
 | [naming rot: `_prescribe_browser_on_wall`](docs/findings/2026-07-31-structural-scan.md#naming-rot-_prescribe_browser_on_wall-xs-cosmetic) | XS, cosmetic |
 | [invariants with no code implementer](docs/findings/2026-07-31-structural-scan.md#invariants-with-no-code-implementer-m-l-structure) | M-L, structure |
 | [the corpus cannot see the envelope](docs/findings/2026-07-31-structural-scan.md#the-corpus-cannot-see-the-envelope-l-verification--highest-leverage) | L, verification — HIGHEST LEVERAGE |
-| [a wire regression on ADR-0009 is one re-bless from green](docs/findings/2026-07-31-structural-scan.md#a-wire-regression-on-adr-0009-is-one-re-bless-from-green-m-verification) | M, verification |
 | [the sufficiency question has no name](docs/findings/2026-07-31-structural-scan.md#the-sufficiency-question-has-no-name-m-structure--answered-by-t1) | M, structure — ANSWERED by T1 |
 
 ## 2026-07-28 — retire the twitter handler? (S, decision — REVISIT, do not act yet)
