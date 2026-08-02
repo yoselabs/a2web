@@ -2,27 +2,34 @@
 
 ### Requirement: a criterion is addressed to a reader that can read it
 
-Every corpus criterion SHALL be readable by at least one scoring path. A
-criterion naming a field no axis is given, or a property no axis can observe, is
-decorative — it reads as coverage while contributing nothing to the score.
+Every corpus criterion SHALL be readable by at least one scoring path, or SHALL
+be recorded as unreadable. A criterion naming a field no axis is given, or a
+property no axis can observe, contributes nothing to the score — and an
+unreadable criterion left unrecorded reads as coverage while providing none.
 
-A criterion asserting the absence of fabrication requires ground truth. The judge
-SHALL therefore be given the fetched page when scoring answer quality, or such
-criteria SHALL be reformulated as deterministic assertions over the envelope.
+A criterion asserting the absence of fabrication requires ground truth. Such
+criteria SHALL be reformulated as deterministic assertions over the envelope
+where the property admits one; where it does not, they SHALL appear in the
+invariant-to-cell mapping as an open gap rather than be deleted. Deleting them
+would satisfy the letter of this requirement while erasing the record of what is
+unguarded.
 
 Where a deterministic assertion vocabulary already exists for offline replay, the
 live bench SHALL use the same vocabulary per cell rather than leaving the same
-properties unchecked.
+properties unchecked. A key one harness cannot evaluate SHALL be reported as
+unobservable, never as a pass.
 
 #### Scenario: A criterion naming an unobservable property is rejected
 
 - **WHEN** a corpus criterion names an envelope field no axis reads
-- **THEN** the criterion is either wired to an axis that reads it or removed
+- **THEN** the criterion is wired to an axis that reads it, converted to a
+  deterministic assertion, removed, or recorded as an open gap
 
-#### Scenario: The quality judge can verify against the source
+#### Scenario: A URL claim is checked without a judge
 
-- **WHEN** an answer is scored for fabrication
-- **THEN** the judge is given the fetched page content
+- **WHEN** an answer cites a URL
+- **THEN** it is asserted to appear in the retrieved body, the emitted index, or
+  the page's own address, deterministically and with no model in the loop
 
 ### Requirement: every first-class invariant has at least one catching cell
 

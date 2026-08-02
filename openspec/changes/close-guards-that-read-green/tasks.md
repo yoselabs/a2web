@@ -324,7 +324,23 @@ result.
         remaining ~20 anti-fabrication criteria cannot be, and the §6.6 map
         records them as the ∅ tier.
 
-      **Do not archive without deciding that scenario's fate** — either drop it
-      from the delta (the deterministic branch is the one taken) or leave the
-      change open. Archiving as-is publishes a requirement the tree does not
-      satisfy.
+      Resolved 2026-08-02 by amending the deltas to state what shipped, since
+      the requirement was already written as a disjunction and the
+      deterministic branch is the one taken:
+
+      - `eval-corpus` — the judge-sees-the-page scenario is replaced by the
+        one that holds (`answer_urls_traceable`: a URL claim checked with no
+        model in the loop). The requirement text now also says an unreadable
+        criterion is RECORDED as a gap rather than deleted — §6.4 kept ~20 on
+        purpose, and the literal reading would have required erasing exactly
+        the record of what is unguarded.
+      - `test-fidelity` — its threshold scenario named the record detector,
+        whose constant moved to the shelf mid-change. Re-stated against the
+        general case, plus a new sentence: the witness obligation FOLLOWS a
+        constant across a promotion boundary and is not discharged by
+        asserting a dependency's internals from the consumer. That is the
+        §5.1/§5.2 finding, promoted from a backlog note into the spec.
+
+      `enforcement-integrity` and `eval-measurement-integrity` verified as-is.
+      §6.1 stays open as work, no longer as an unmet SHALL. `openspec validate`
+      passes; ready to archive.

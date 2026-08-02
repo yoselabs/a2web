@@ -44,11 +44,16 @@ detector gated at a heading fraction of 1.00 detects nothing on a listing whose
 titles are not headings — removing the ADR-0015 index and the ADR-0009
 completeness signal at once, with no diagnostic.
 
-#### Scenario: A detection threshold is witnessed in both directions
+A constant that has moved to a dependency SHALL carry its witness there. The
+obligation follows the constant across a promotion boundary; it does not lapse
+because the code left the repository, and it is NOT discharged by asserting a
+dependency's internals from the consumer.
 
-- **WHEN** a detection threshold is raised to the value that disables the
-  capability
-- **THEN** a test fails
+#### Scenario: A threshold is witnessed in both directions
+
+- **WHEN** a load-bearing threshold is moved up past its captured witness, or
+  down past it
+- **THEN** a test fails in each case
 
 #### Scenario: A fixture is not sized from the constant it tests
 
