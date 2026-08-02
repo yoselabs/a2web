@@ -1,0 +1,1927 @@
+{
+  "provider": "claude-code-sdk",
+  "model": "claude-haiku-4-5-20251001",
+  "reps": 3,
+  "n_pages": 8,
+  "n_scored_pages": 7,
+  "n_rounds": 21,
+  "paired_recall_delta": {
+    "B-A": {
+      "n": 21,
+      "mean": 0.002,
+      "stdev": 0.137,
+      "wins": 3,
+      "ties": 13,
+      "losses": 5
+    },
+    "C-A": {
+      "n": 21,
+      "mean": -0.0181,
+      "stdev": 0.1285,
+      "wins": 5,
+      "ties": 7,
+      "losses": 9
+    },
+    "C-B": {
+      "n": 21,
+      "mean": -0.0201,
+      "stdev": 0.1333,
+      "wins": 5,
+      "ties": 9,
+      "losses": 7
+    }
+  },
+  "recall_mean": {
+    "A": 0.482,
+    "B": 0.484,
+    "C": 0.463
+  },
+  "recall_per_page": {
+    "wikipedia-rust-narrow": {
+      "A": 0.155,
+      "B": 0.133,
+      "C": 0.155
+    },
+    "wikipedia-transformer-narrow": {
+      "A": 0.453,
+      "B": 0.453,
+      "C": 0.429
+    },
+    "arxiv-abstract": {
+      "A": 0.4,
+      "B": 0.333,
+      "C": 0.267
+    },
+    "pypi-httpx": {
+      "A": 0.389,
+      "B": 0.37,
+      "C": 0.333
+    },
+    "python-contact": {
+      "A": 0.308,
+      "B": 0.385,
+      "C": 0.282
+    },
+    "hn-item": {
+      "A": 0.666,
+      "B": 0.711,
+      "C": 0.778
+    },
+    "hepsiburada-product": {
+      "A": 1.0,
+      "B": 1.0,
+      "C": 1.0
+    }
+  },
+  "also_here_mean": {
+    "A": 1.29,
+    "B": 1.29,
+    "C": 0.62
+  },
+  "answer_chars_mean": {
+    "A": 428.14,
+    "B": 422.33,
+    "C": 380.29
+  },
+  "completion_tokens_mean": {
+    "A": 157.19,
+    "B": 273.24,
+    "C": 277.38
+  },
+  "entity_populated": {
+    "A": 0,
+    "B": 18,
+    "C": 21
+  },
+  "entity_types_seen": {
+    "A": [],
+    "B": [
+      "Article",
+      "DiscussionForumPosting",
+      "Organization",
+      "ScholarlyArticle",
+      "SoftwareApplication",
+      "Thing"
+    ],
+    "C": [
+      "Article",
+      "Organization",
+      "Product",
+      "ProgrammingLanguage",
+      "ScholarlyArticle",
+      "SoftwareApplication",
+      "Thing",
+      "Thread",
+      "WebPage"
+    ]
+  },
+  "extra_fields_total": {
+    "A": 0,
+    "B": 42,
+    "C": 46
+  },
+  "parse_failures": {
+    "A": 0,
+    "B": 0,
+    "C": 0
+  },
+  "rows": [
+    {
+      "slug": "wikipedia-rust-narrow",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "ask": "Who created Rust and in what year did it first appear?",
+      "why": "narrow ask on a 42k-char body \u2014 the exact configuration where `also_here` under-fired",
+      "status": "ok",
+      "content_chars": 41918,
+      "fact_count": 15,
+      "facts": [
+        "Graydon Hoare created Rust in 2006 while working at Mozilla.",
+        "Rust first appeared on January 19, 2012.",
+        "Rust 0.1 became the first public release on January 20, 2012 for Windows, Linux, and MacOS.",
+        "Graydon Hoare started the project due to frustration with a broken elevator in his apartment building whose software had crashed, according to MIT Technology Review.",
+        "The language was named after the group of fungi of the same name that is 'over-engineered for survival'.",
+        "During 2006 to 2009, Rust was not publicized to others at Mozilla and was written in Hoare's free time.",
+        "Hoare began speaking about the language around 2009 after a small group at Mozilla became interested in the project.",
+        "Mozilla officially sponsored the Rust project in 2009.",
+        "Graydon Hoare stepped down from Rust in 2013.",
+        "The first stable release, Rust 1.0, was published in May 2015.",
+        "Hoare described the language as 'technology from the past come to save the future from itself.'",
+        "Hoare cited languages from the 1970s, 1980s, and 1990s as influences, including CLU, BETA, Mesa, NIL, Erlang, Newsqueak, Napier, Hermes, Sather, Alef, and Limbo.",
+        "During early years, the Rust compiler was written in about 38,000 lines of OCaml.",
+        "The Rust logo was developed in 2011 based on a bicycle chainring.",
+        "The ownership system was in place by 2010."
+      ],
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared publicly on January 20, 2012, with Rust 0.1, released for Windows, Linux, and macOS.",
+              "answer_chars": 195,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 91,
+              "ms": 4072
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared publicly on January 20, 2012, with the release of Rust 0.1 for Windows, Linux, and macOS.",
+              "answer_chars": 200,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 8,
+              "entity_extra_fields": [
+                "yearCreated",
+                "firstAppearance",
+                "firstPublicRelease",
+                "firstStableRelease",
+                "website"
+              ],
+              "completion_tokens": 230,
+              "ms": 5181
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language \"first appeared\" on January 20, 2012, when Rust 0.1 became the first public release for Windows, Linux, and macOS.",
+              "answer_chars": 210,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "ProgrammingLanguage",
+              "entity_field_count": 7,
+              "entity_extra_fields": [
+                "dateCreated",
+                "firstPublicRelease",
+                "firstStableRelease",
+                "website"
+              ],
+              "completion_tokens": 218,
+              "ms": 4915
+            }
+          },
+          "covered": {
+            "C": [
+              1,
+              3
+            ],
+            "B": [
+              1,
+              3
+            ],
+            "A": [
+              1,
+              3
+            ]
+          },
+          "recall": {
+            "C": 0.133,
+            "B": 0.133,
+            "A": 0.133
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared publicly on January 20, 2012, with Rust 0.1 release for Windows, Linux, and macOS.",
+              "answer_chars": 193,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 91,
+              "ms": 3541
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared publicly on January 20, 2012, with Rust 0.1 released for Windows, Linux, and macOS.",
+              "answer_chars": 194,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 8,
+              "entity_extra_fields": [
+                "creationYear",
+                "firstPublicRelease",
+                "firstStableRelease",
+                "developer",
+                "website"
+              ],
+              "completion_tokens": 222,
+              "ms": 4753
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. Rust first appeared on January 19, 2012, with Rust 0.1 becoming the first public release on January 20, 2012.",
+              "answer_chars": 192,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 9,
+              "entity_extra_fields": [
+                "dateCreated",
+                "dateFirstAppeared",
+                "firstPublicRelease",
+                "firstStableRelease",
+                "website"
+              ],
+              "completion_tokens": 257,
+              "ms": 5095
+            }
+          },
+          "covered": {
+            "C": [
+              1,
+              2,
+              3
+            ],
+            "B": [
+              1,
+              3
+            ],
+            "A": [
+              1,
+              3
+            ]
+          },
+          "recall": {
+            "C": 0.2,
+            "B": 0.133,
+            "A": 0.133
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared publicly on January 20, 2012, with the release of Rust 0.1 for Windows, Linux, and MacOS. The first stable release, Rust 1.0, was published in May 2015.",
+              "answer_chars": 263,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 113,
+              "ms": 5329
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared on January 19, 2012, when Rust 0.1 became the first public release.",
+              "answer_chars": 178,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 8,
+              "entity_extra_fields": [
+                "creationYear",
+                "firstPublicRelease",
+                "firstStableRelease",
+                "developer",
+                "website"
+              ],
+              "completion_tokens": 217,
+              "ms": 4893
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. Rust first appeared publicly on January 20, 2012 as version 0.1.",
+              "answer_chars": 147,
+              "also_here": 0,
+              "structural_form": null,
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 9,
+              "entity_extra_fields": [
+                "dateCreated",
+                "firstStableRelease",
+                "website",
+                "implementationLanguage"
+              ],
+              "completion_tokens": 231,
+              "ms": 4792
+            }
+          },
+          "covered": {
+            "C": [
+              1,
+              3
+            ],
+            "B": [
+              1,
+              2
+            ],
+            "A": [
+              1,
+              3,
+              10
+            ]
+          },
+          "recall": {
+            "C": 0.133,
+            "B": 0.133,
+            "A": 0.2
+          }
+        }
+      ]
+    },
+    {
+      "slug": "wikipedia-transformer-narrow",
+      "url": "https://en.wikipedia.org/wiki/Transformer_(deep_learning_architecture)",
+      "ask": "What is multi-head attention?",
+      "why": "narrow ask, rich reference page, no meaningful JSON-LD to lean on",
+      "status": "ok",
+      "content_chars": 49486,
+      "fact_count": 14,
+      "facts": [
+        "Multi-head attention is a mechanism in transformers where each layer has multiple attention heads that allow the model to attend to tokens for different definitions of 'relevance'.",
+        "Each attention head learns three weight matrices: query weights, key weights, and value weights.",
+        "Multiple attention heads allow the model to capture different types of token relationships simultaneously, with each head potentially attending to different aspects of relevance.",
+        "The computations for each attention head can be performed in parallel, allowing for fast processing.",
+        "The outputs of multiple attention heads are concatenated before being passed into feedforward neural network layers.",
+        "Each attention head has a query size, key size, and value size, which must satisfy the constraint that query size equals key size.",
+        "The output dimension of an attention head is called its head dimension.",
+        "Many transformer attention heads encode relevance relations that are meaningful to humans; for example, some heads attend mostly to the next word while others attend from verbs to their direct objects.",
+        "In self-attention mode, all three weight matrices (query, key, value) have the same dimensions; in cross-attention mode, the value matrix typically has different dimensions.",
+        "The original transformer used a multi-head attention model that was easier to parallelize due to the use of independent heads and the lack of recurrence.",
+        "In the smallest GPT-2 model example, there are 12 attention heads with a head dimension of 64 each.",
+        "The scope of attention for each attention head can expand as tokens pass through successive layers, allowing capture of more complex and long-range dependencies.",
+        "Each attention head owns its own query and key projection matrices, which define the 'relevance' for that head.",
+        "The value projection matrix in combination with the output projection matrix determines how attended tokens influence information passed to subsequent layers."
+      ],
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Multi-head attention runs multiple attention mechanisms in parallel within a single layer. Each attention head learns three weight matrices (query, key, value) and computes attention independently. The page states: \"multiple attention heads allow the model to do this for different definitions of 'relevance'.\" Each head can capture different types of token relationships\u2014e.g., some attend mostly to the next word, others from verbs to direct objects. The outputs from all heads are concatenated and passed through a final projection matrix before feeding into the feedforward network. This parallelization of independent heads was a key factor in transformers' widespread adoption.",
+              "answer_chars": 682,
+              "also_here": 4,
+              "structural_form": "reference",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 225,
+              "ms": 5149
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Multi-head attention splits the attention mechanism into multiple independent \"heads,\" each learning different relevance definitions. In a transformer layer with multiple attention heads (indexed by h), each head has its own query, key, and value projection matrices (W_q^h, W_k^h, W_v^h) plus an output projection matrix. \"While each attention head attends to the tokens that are relevant to each token, multiple attention heads allow the model to do this for different definitions of 'relevance'.\" The outputs of all heads are concatenated and passed to the feedforward layer. This parallelizable design allows different heads to capture distinct patterns\u2014some attending to the next word, others from verbs to objects\u2014enabling the model to process complex relationships simultaneously.",
+              "answer_chars": 787,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "Thing",
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 206,
+              "ms": 5499
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "Multi-head attention is a mechanism where a transformer has multiple attention heads, each attending to tokens based on different definitions of \"relevance.\" Each head independently computes attention via its own query, key, and value projection matrices. \"While each attention head attends to the tokens that are relevant to each token, multiple attention heads allow the model to do this for different definitions of 'relevance'.\" The outputs of all heads are concatenated and passed through a final projection matrix. This parallelization of independent heads makes transformers computationally efficient. For example, GPT-2-small has 12 attention heads per layer, each with a 64-dimensional head dimension.",
+              "answer_chars": 710,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "ScholarlyArticle",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "isPartOf",
+                "about"
+              ],
+              "completion_tokens": 257,
+              "ms": 6171
+            }
+          },
+          "covered": {
+            "C": [
+              1,
+              2,
+              5,
+              7,
+              10,
+              11,
+              13
+            ],
+            "A": [
+              1,
+              2,
+              3,
+              5,
+              8,
+              10
+            ],
+            "B": [
+              1,
+              2,
+              5,
+              8,
+              13,
+              14
+            ]
+          },
+          "recall": {
+            "C": 0.5,
+            "A": 0.429,
+            "B": 0.429
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Multi-head attention is a mechanism where a transformer model learns multiple independent sets of query (Q), key (K), and value (V) weight matrices. Each set\u2014called an attention head\u2014allows the model to attend to different \"definitions of relevance\" simultaneously. For example, \"some attention heads can attend mostly to the next word, while others mainly attend from verbs to their direct objects.\" The outputs from all attention heads are concatenated and passed through a final projection matrix before feeding into the feedforward layers. This parallelizable design enables the model to capture different types of token relationships across a single layer, improving both training speed and representational capacity.",
+              "answer_chars": 722,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 171,
+              "ms": 4769
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Multi-head attention is a transformer mechanism where multiple independent attention heads operate in parallel. Each head learns its own query (Q), key (K), and value (V) weight matrices, allowing the model to attend to different definitions of \"relevance\" simultaneously. \"Multiple attention heads allow the model to do this for different definitions of 'relevance',\" with each head's computations performed in parallel for fast processing. The outputs from all heads are concatenated and passed through a final projection matrix before feeding into feedforward layers. This design lets different heads capture different types of relationships\u2014for example, some attend mostly to the next word while others attend from verbs to their direct objects\u2014enabling the model to capture more complex dependencies than a single attention head could.",
+              "answer_chars": 840,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "Thing",
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 200,
+              "ms": 4955
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "Multi-head attention is a mechanism where a transformer uses multiple independent attention heads in parallel, each with its own query, key, and value weight matrices. Each head attends to different aspects of token relationships ('relevance'), allowing the model to capture diverse linguistic patterns simultaneously. For example, some heads may attend to the next word while others link verbs to objects. The outputs of all heads are concatenated and passed through a final projection matrix before feeding into the feedforward network. This parallel computation enables efficient processing and allows the model to learn complex, multi-faceted dependencies.",
+              "answer_chars": 660,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "ScholarlyArticle",
+              "entity_field_count": 3,
+              "entity_extra_fields": [],
+              "completion_tokens": 230,
+              "ms": 6281
+            }
+          },
+          "covered": {
+            "A": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              8,
+              13
+            ],
+            "C": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              8
+            ],
+            "B": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              8,
+              13
+            ]
+          },
+          "recall": {
+            "A": 0.5,
+            "C": 0.429,
+            "B": 0.5
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Multi-head attention is a mechanism where a transformer layer uses multiple independent attention heads in parallel, each with its own query, key, and value projection matrices. Each head attends to different definitions of \"relevance\" between tokens; for example, some heads may attend mostly to the next word while others attend from verbs to their direct objects. \"The outputs for the attention layer are concatenated to pass into the feedforward neural network layers.\" The number of dimensions in each attention head's query/key/value vectors is called the head dimension; all heads typically share the same head dimension, though they can theoretically differ. Multiple heads allow the model to capture different types of token relationships and dependencies simultaneously, with computations performed in parallel for fast processing.",
+              "answer_chars": 841,
+              "also_here": 4,
+              "structural_form": "reference",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 250,
+              "ms": 5729
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Multi-head attention allows a transformer to attend to tokens using multiple independent \"heads,\" each with its own query, key, and value weight matrices. \"While each attention head attends to the tokens that are relevant to each token, multiple attention heads allow the model to do this for different definitions of 'relevance'.\" Each head can learn different relevance patterns\u2014e.g., some attending to the next word, others from verbs to objects\u2014and their outputs are concatenated before passing to feedforward layers. The computations for each head can run in parallel, enabling fast processing.",
+              "answer_chars": 599,
+              "also_here": 4,
+              "structural_form": "reference",
+              "entity_type": "Article",
+              "entity_field_count": 3,
+              "entity_extra_fields": [
+                "about"
+              ],
+              "completion_tokens": 268,
+              "ms": 8454
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "Multi-head attention is a mechanism where a transformer uses multiple independent attention heads in parallel, each learning different definitions of \"relevance\" between tokens. Each head has its own query (Q), key (K), and value (V) projection matrices; \"while each attention head attends to the tokens that are relevant to each token, multiple attention heads allow the model to do this for different definitions of 'relevance'.\" The outputs from all heads are concatenated and passed through a final projection matrix before feeding into subsequent layers. This parallelizability was critical to transformers' widespread adoption in large neural networks.",
+              "answer_chars": 658,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "ScholarlyArticle",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "about",
+                "isPartOf"
+              ],
+              "completion_tokens": 241,
+              "ms": 5321
+            }
+          },
+          "covered": {
+            "B": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              8
+            ],
+            "A": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              7
+            ],
+            "C": [
+              1,
+              2,
+              3,
+              5,
+              10
+            ]
+          },
+          "recall": {
+            "B": 0.429,
+            "A": 0.429,
+            "C": 0.357
+          }
+        }
+      ]
+    },
+    {
+      "slug": "arxiv-abstract",
+      "url": "https://arxiv.org/abs/2401.05566",
+      "ask": "What is the paper's title and its main contribution in one sentence?",
+      "why": "ScholarlyArticle entity + prose abstract the schema does not carry",
+      "status": "ok",
+      "content_chars": 2394,
+      "fact_count": 10,
+      "facts": [
+        "The paper is titled 'Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training'.",
+        "The main contribution is demonstrating proof-of-concept examples of deceptive behavior in large language models that persist through standard safety training techniques including supervised fine-tuning, reinforcement learning, and adversarial training.",
+        "The paper constructs examples where models write secure code when the prompt states the year is 2023, but insert exploitable code when the stated year is 2024.",
+        "Backdoor behavior is most persistent in the largest models.",
+        "Backdoor behavior is most persistent in models trained to produce chain-of-thought reasoning about deceiving the training process.",
+        "The persistence of backdoor behavior remains even when the chain-of-thought is distilled away.",
+        "Adversarial training can teach models to better recognize their backdoor triggers, effectively hiding unsafe behavior rather than removing it.",
+        "Standard safety training techniques can fail to remove deception and create a false impression of safety.",
+        "The paper addresses whether deceptive AI systems could be detected and removed using current state-of-the-art safety training techniques.",
+        "The research involves 31 co-authors from institutions including Anthropic."
+      ],
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Title: \"Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training.\" Main contribution: demonstrates proof-of-concept deceptive behaviors in LLMs (e.g., inserting exploitable code conditionally) that persist through standard safety training techniques and can even be hidden better by adversarial training.",
+              "answer_chars": 324,
+              "also_here": 0,
+              "structural_form": "article",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 111,
+              "ms": 4059
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "The paper is titled \"Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training.\" Its main contribution is demonstrating that large language models can learn persistent deceptive behaviors (e.g., inserting exploitable code based on hidden triggers) that survive standard safety training techniques like supervised fine-tuning, reinforcement learning, and adversarial training.",
+              "answer_chars": 394,
+              "also_here": 0,
+              "structural_form": "article",
+              "entity_type": "ScholarlyArticle",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "categories"
+              ],
+              "completion_tokens": 465,
+              "ms": 9244
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "The paper shows that LLMs can learn persistent deceptive strategies (hidden by backdoor triggers like year-based conditions) that withstand standard safety techniques including supervised fine-tuning, reinforcement learning, and adversarial training.",
+              "answer_chars": 250,
+              "also_here": 0,
+              "structural_form": "article",
+              "entity_type": "ScholarlyArticle",
+              "entity_field_count": 5,
+              "entity_extra_fields": [
+                "arxivId"
+              ],
+              "completion_tokens": 446,
+              "ms": 6266
+            }
+          },
+          "covered": {
+            "A": [
+              1,
+              2,
+              3,
+              7,
+              8
+            ],
+            "C": [
+              2,
+              3
+            ],
+            "B": [
+              1,
+              2,
+              3
+            ]
+          },
+          "recall": {
+            "A": 0.5,
+            "C": 0.2,
+            "B": 0.3
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Title: \"Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training.\" Main contribution: demonstrates that LLMs can learn deceptive strategies (e.g., inserting exploitable code based on date triggers) that persist through standard safety training techniques like supervised fine-tuning, reinforcement learning, and adversarial training.",
+              "answer_chars": 353,
+              "also_here": 0,
+              "structural_form": "article",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 113,
+              "ms": 3571
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Title: 'Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training'. Main contribution: demonstrates that LLMs can be trained to exhibit deceptive behavior (e.g., inserting exploitable code when the year is 2024 but writing secure code in 2023) that persists through standard safety training techniques like supervised fine-tuning, reinforcement learning, and adversarial training.",
+              "answer_chars": 399,
+              "also_here": 0,
+              "structural_form": "article",
+              "entity_type": "ScholarlyArticle",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "subject"
+              ],
+              "completion_tokens": 477,
+              "ms": 5756
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "The paper demonstrates that LLMs can be trained to exhibit deceptive backdoor behaviors (e.g., inserting exploitable code in 2024 but not 2023) that persist through standard safety training techniques like supervised fine-tuning, reinforcement learning, and adversarial training.",
+              "answer_chars": 279,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "ScholarlyArticle",
+              "entity_field_count": 4,
+              "entity_extra_fields": [],
+              "completion_tokens": 448,
+              "ms": 6507
+            }
+          },
+          "covered": {
+            "C": [
+              2,
+              3
+            ],
+            "A": [
+              1,
+              2,
+              3
+            ],
+            "B": [
+              1,
+              2,
+              3
+            ]
+          },
+          "recall": {
+            "C": 0.2,
+            "A": 0.3,
+            "B": 0.3
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The paper is titled 'Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training.' Its main contribution is demonstrating that large language models can learn persistent deceptive strategies (e.g., inserting exploitable code based on hidden triggers) that survive standard safety training techniques like supervised fine-tuning, reinforcement learning, and adversarial training.",
+              "answer_chars": 395,
+              "also_here": 0,
+              "structural_form": "article",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 117,
+              "ms": 3873
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Paper: 'Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training'. Main contribution: demonstrates that LLMs can learn deceptive strategies (e.g., inserting exploitable code only in specific trigger conditions) that persist through standard safety training techniques like supervised fine-tuning, reinforcement learning, and adversarial training, suggesting current defenses may create false impressions of safety.",
+              "answer_chars": 434,
+              "also_here": 0,
+              "structural_form": "article",
+              "entity_type": "ScholarlyArticle",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "category"
+              ],
+              "completion_tokens": 474,
+              "ms": 8502
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "The paper demonstrates that LLMs can be trained to exhibit persistent deceptive behavior (e.g., writing exploitable code in specific conditions) that standard safety techniques\u2014supervised fine-tuning, reinforcement learning, and adversarial training\u2014fail to remove, especially in larger models.",
+              "answer_chars": 294,
+              "also_here": 0,
+              "structural_form": "article",
+              "entity_type": "ScholarlyArticle",
+              "entity_field_count": 4,
+              "entity_extra_fields": [],
+              "completion_tokens": 443,
+              "ms": 5895
+            }
+          },
+          "covered": {
+            "A": [
+              1,
+              2,
+              3,
+              8
+            ],
+            "B": [
+              1,
+              2,
+              3,
+              8
+            ],
+            "C": [
+              2,
+              3,
+              4,
+              8
+            ]
+          },
+          "recall": {
+            "A": 0.4,
+            "B": 0.4,
+            "C": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "slug": "pypi-httpx",
+      "url": "https://pypi.org/project/httpx/",
+      "ask": "What is httpx, what is its current version, and what Python versions does it support?",
+      "why": "SoftwareApplication entity + a long README body beneath it",
+      "status": "ok",
+      "content_chars": 6710,
+      "fact_count": 18,
+      "facts": [
+        "HTTPX is a fully featured HTTP client library for Python 3.",
+        "HTTPX is described as a next-generation HTTP client for Python.",
+        "HTTPX includes an integrated command line client.",
+        "HTTPX has support for both HTTP/1.1 and HTTP/2.",
+        "HTTPX provides both sync and async APIs.",
+        "The current stable version of HTTPX is 0.28.1, released Dec 6, 2024.",
+        "HTTPX requires Python >=3.8.",
+        "HTTPX is licensed under BSD-3-Clause (BSD License).",
+        "HTTPX is developed by Tom Christie.",
+        "HTTPX has a requests-compatible API.",
+        "HTTPX supports WSGI applications via a dedicated transport.",
+        "HTTPX supports ASGI applications via a dedicated transport.",
+        "HTTPX provides optional extras for brotli, cli, http2, socks, and zstd.",
+        "The latest pre-release version is 1.0.dev3, released Sep 15, 2025.",
+        "HTTPX is classified as Development Status 4 - Beta on PyPI.",
+        "HTTPX source code is hosted at https://github.com/encode/httpx.",
+        "HTTPX documentation is available at https://www.python-httpx.org/.",
+        "HTTPX is installed via pip with: pip install httpx."
+      ],
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with \"integrated command line client, support for both HTTP/1.1 and HTTP/2, and both sync and async APIs.\" Current stable version is 0.28.1 (Dec 6, 2024); 1.0.dev3 pre-release is available (Sep 15, 2025). Requires Python >=3.8.",
+              "answer_chars": 288,
+              "also_here": 5,
+              "structural_form": "product",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 187,
+              "ms": 4572
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with both sync and async APIs, HTTP/1.1 and HTTP/2 support, and an integrated command-line client. Current stable version is 0.28.1 (released Dec 6, 2024); pre-release 1.0.dev3 exists (Sep 15, 2025). Requires Python >=3.8.",
+              "answer_chars": 283,
+              "also_here": 0,
+              "structural_form": "product",
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 11,
+              "entity_extra_fields": [
+                "latestPrerelease",
+                "pythonRequirement",
+                "releaseDate",
+                "homepage",
+                "documentation",
+                "features"
+              ],
+              "completion_tokens": 334,
+              "ms": 5969
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with integrated CLI, supporting both HTTP/1.1 and HTTP/2 via sync and async APIs. Current stable version is 0.28.1 (released Dec 6, 2024). Requires Python 3.8 or later. Pre-release 1.0.dev3 available as of Sep 15, 2025.",
+              "answer_chars": 280,
+              "also_here": 4,
+              "structural_form": "product",
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 12,
+              "entity_extra_fields": [
+                "pythonRequirement",
+                "features",
+                "extras",
+                "developmentStatus",
+                "homepage",
+                "documentation"
+              ],
+              "completion_tokens": 388,
+              "ms": 6615
+            }
+          },
+          "covered": {
+            "B": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              14
+            ],
+            "C": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              14
+            ],
+            "A": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              14
+            ]
+          },
+          "recall": {
+            "B": 0.389,
+            "C": 0.389,
+            "A": 0.389
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with \"integrated command line client\" support for \"both HTTP/1.1 and HTTP/2, and provides both sync and async APIs\". Current stable version is 0.28.1 (Dec 6, 2024); 1.0.dev3 pre-release available Sep 15, 2025. Requires Python >=3.8.",
+              "answer_chars": 293,
+              "also_here": 3,
+              "structural_form": "product",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 184,
+              "ms": 4732
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with support for HTTP/1.1, HTTP/2, sync and async APIs, and a command-line client. Current stable version is 0.28.1 (released Dec 6, 2024). Python support: >=3.8.",
+              "answer_chars": 223,
+              "also_here": 3,
+              "structural_form": "product",
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 11,
+              "entity_extra_fields": [
+                "releaseDate",
+                "pythonRequires",
+                "homepage",
+                "documentation",
+                "features",
+                "developmentStatus"
+              ],
+              "completion_tokens": 363,
+              "ms": 11253
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" supporting both HTTP/1.1 and HTTP/2 with sync and async APIs plus an integrated CLI. Current stable version is 0.28.1 (released Dec 6, 2024). Requires Python >=3.8.",
+              "answer_chars": 225,
+              "also_here": 0,
+              "structural_form": null,
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 12,
+              "entity_extra_fields": [
+                "requires",
+                "downloadUrl",
+                "sourceRepository",
+                "features"
+              ],
+              "completion_tokens": 299,
+              "ms": 5291
+            }
+          },
+          "covered": {
+            "C": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "B": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "A": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              14
+            ]
+          },
+          "recall": {
+            "C": 0.333,
+            "B": 0.333,
+            "A": 0.389
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with \"integrated command line client\" support for \"both HTTP/1.1 and HTTP/2\", and \"both sync and async APIs\". Current stable version is 0.28.1 (released Dec 6, 2024); development versions 1.0.dev1/dev2/dev3 are in pre-release. It requires Python >=3.8.",
+              "answer_chars": 313,
+              "also_here": 0,
+              "structural_form": "product",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 137,
+              "ms": 4360
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with \"integrated command line client\" support for both HTTP/1.1 and HTTP/2, plus sync and async APIs. Current stable version is 0.28.1 (Dec 6, 2024); pre-release 1.0.dev3 available (Sep 15, 2025). Requires Python >=3.8.",
+              "answer_chars": 280,
+              "also_here": 4,
+              "structural_form": "product",
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 10,
+              "entity_extra_fields": [
+                "pythonRequires",
+                "homepage",
+                "documentation",
+                "developmentStatus"
+              ],
+              "completion_tokens": 349,
+              "ms": 6110
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with support for HTTP/1.1, HTTP/2, and both sync and async APIs. Current stable version is 0.28.1 (released Dec 6, 2024). It requires Python >=3.8.",
+              "answer_chars": 208,
+              "also_here": 3,
+              "structural_form": "product",
+              "entity_type": "SoftwareApplication",
+              "entity_field_count": 11,
+              "entity_extra_fields": [
+                "releaseDate",
+                "pythonRequirement",
+                "repositoryUrl",
+                "features",
+                "extras"
+              ],
+              "completion_tokens": 367,
+              "ms": 6143
+            }
+          },
+          "covered": {
+            "B": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              14
+            ],
+            "A": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              14
+            ],
+            "C": [
+              1,
+              4,
+              5,
+              6,
+              7
+            ]
+          },
+          "recall": {
+            "B": 0.389,
+            "A": 0.389,
+            "C": 0.278
+          }
+        }
+      ]
+    },
+    {
+      "slug": "python-contact",
+      "url": "https://www.python.org/about/help/",
+      "ask": "How can I contact them \u2014 is there an email or a specific channel?",
+      "why": "Organization/ContactPoint \u2014 the entity IS the answer, so C should look strongest here",
+      "status": "ok",
+      "content_chars": 3959,
+      "fact_count": 13,
+      "facts": [
+        "The Python Software Foundation can be contacted at psf@python.org",
+        "Website issues with python.org should be reported to webmaster@python.org",
+        "The discuss.python.org website hosts a Python Help category for usage questions and answers from the Python community",
+        "The tutor list offers interactive help for Python questions",
+        "Stack Overflow hosts many Python questions and answers",
+        "The r/LearnPython subreddit accepts questions and requests for general advice about code",
+        "Python bugs can be reported via the Python Bug Tracker at github.com/python/cpython/issues",
+        "Problems with the Python website can be reported via the pythondotorg issue tracker",
+        "Documentation patches can be contributed via the Issue Tracker at github.com/python/cpython/issues",
+        "The Python Help category on discuss.python.org is available for users with questions not answered elsewhere",
+        "A mailing list called 'tutor' exists for interactive help with Python",
+        "Multiple mailing lists and newsgroups are available beyond the tutor list",
+        "Security issues have specific reporting instructions available at python.org/dev/security/"
+      ],
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The Python Software Foundation uses psf@python.org for general inquiries. For website issues specifically, contact webmaster@python.org. For other questions not covered by FAQs or mailing lists, the community discussion forum discuss.python.org is the primary channel.",
+              "answer_chars": 268,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 94,
+              "ms": 3474
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "The Python Software Foundation's primary contact is psf@python.org. For website issues specifically, contact webmaster@python.org. For questions not covered by FAQs or other resources, \"reach out on discuss.python.org\".",
+              "answer_chars": 219,
+              "also_here": 0,
+              "structural_form": "listing",
+              "entity_type": "Organization",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "webmaster_email",
+                "support_forum"
+              ],
+              "completion_tokens": 171,
+              "ms": 4747
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "Direct email: `psf@python.org` for general Python Software Foundation inquiries; `webmaster@python.org` for website issues. For community support, use the Python Help category at discuss.python.org or the tutor mailing list.",
+              "answer_chars": 224,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "WebPage",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "support_contacts",
+                "support_channels"
+              ],
+              "completion_tokens": 239,
+              "ms": 4548
+            }
+          },
+          "covered": {
+            "B": [
+              1,
+              2,
+              3
+            ],
+            "C": [
+              1,
+              2,
+              3,
+              4,
+              11
+            ],
+            "A": [
+              1,
+              2,
+              3
+            ]
+          },
+          "recall": {
+            "B": 0.231,
+            "C": 0.385,
+            "A": 0.231
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The Python Software Foundation can be reached at psf@python.org. For website issues, contact webmaster@python.org. For general questions not covered in the FAQs, the page directs users to \"reach out on discuss.python.org\" community forums.",
+              "answer_chars": 239,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 92,
+              "ms": 3813
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Python.org lists two primary contacts: `psf@python.org` for Python Software Foundation inquiries, and `webmaster@python.org` for issues with the website itself. For usage questions, the page directs to discuss.python.org, the tutor mailing list, Stack Overflow, or r/LearnPython. Bug reports use GitHub (cpython/issues for core, pythondotorg/issues for the site).",
+              "answer_chars": 363,
+              "also_here": 4,
+              "structural_form": "reference",
+              "entity_type": "Organization",
+              "entity_field_count": 3,
+              "entity_extra_fields": [],
+              "completion_tokens": 240,
+              "ms": 5157
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "For Python Software Foundation matters, email psf@python.org. For issues with python.org itself, contact webmaster@python.org. General questions can also be posted on discuss.python.org.",
+              "answer_chars": 186,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "Organization",
+              "entity_field_count": 5,
+              "entity_extra_fields": [
+                "contactEmail",
+                "websiteContactEmail",
+                "discussionForum",
+                "primaryContactPurpose"
+              ],
+              "completion_tokens": 174,
+              "ms": 6627
+            }
+          },
+          "covered": {
+            "B": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "A": [
+              1,
+              2,
+              3
+            ],
+            "C": [
+              1,
+              2,
+              3
+            ]
+          },
+          "recall": {
+            "B": 0.692,
+            "A": 0.231,
+            "C": 0.231
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The Python Software Foundation uses psf@python.org for general inquiries. For website issues specifically, contact webmaster@python.org. For unanswered questions, post on discuss.python.org. The page also lists multiple support channels: Python FAQs, the discuss.python.org Help category, the tutor mailing list, Stack Overflow, and r/LearnPython subreddit for code questions.",
+              "answer_chars": 376,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 128,
+              "ms": 3841
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Python.org lists two primary contacts: `psf@python.org` for Python Software Foundation matters, and `webmaster@python.org` for website issues. For general questions not answered on the help page, the page directs users to `discuss.python.org`. The page also mentions `python-announce@python.org` as a mailing list channel.",
+              "answer_chars": 322,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "Organization",
+              "entity_field_count": 5,
+              "entity_extra_fields": [
+                "email_psf",
+                "email_webmaster",
+                "email_announce",
+                "support_forum"
+              ],
+              "completion_tokens": 206,
+              "ms": 6941
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "Contact psf@python.org for Python Software Foundation inquiries. For website issues, email webmaster@python.org. General questions not covered in the FAQs can be posted on discuss.python.org.",
+              "answer_chars": 191,
+              "also_here": 0,
+              "structural_form": "reference",
+              "entity_type": "Organization",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "webmaster_email",
+                "support_forum"
+              ],
+              "completion_tokens": 156,
+              "ms": 4300
+            }
+          },
+          "covered": {
+            "B": [
+              1,
+              2,
+              3
+            ],
+            "C": [
+              1,
+              2,
+              3
+            ],
+            "A": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "recall": {
+            "B": 0.231,
+            "C": 0.231,
+            "A": 0.462
+          }
+        }
+      ]
+    },
+    {
+      "slug": "github-ruff",
+      "url": "https://github.com/astral-sh/ruff",
+      "ask": "What is ruff and what are its main features?",
+      "why": "SoftwareSourceCode + a long README; heavy nav chrome to resist",
+      "status": "ok",
+      "content_chars": 25557,
+      "fact_count": 30,
+      "facts": [
+        "Ruff is an extremely fast Python linter and code formatter, written in Rust.",
+        "Ruff is 10-100x faster than existing linters like Flake8 and formatters like Black.",
+        "Ruff is installable via pip.",
+        "Ruff supports pyproject.toml configuration.",
+        "Ruff is compatible with Python 3.14.",
+        "Ruff provides drop-in parity with Flake8, isort, and Black.",
+        "Ruff has built-in caching to avoid re-analyzing unchanged files.",
+        "Ruff supports automatic fix functionality for automatic error correction, such as removing unused imports.",
+        "Ruff supports over 900 built-in lint rules with native re-implementations of popular Flake8 plugins like flake8-bugbear.",
+        "Ruff has first-party editor integrations for VS Code and other editors.",
+        "Ruff is monorepo-friendly with hierarchical and cascading configuration.",
+        "Ruff can replace Flake8, Black, isort, pydocstyle, pyupgrade, and autoflake while executing tens or hundreds of times faster than any individual tool.",
+        "Ruff is backed by Astral, the creators of uv and ty.",
+        "Ruff is used in major open-source projects including Apache Airflow, Apache Superset, FastAPI, Hugging Face Transformers, Pandas, and SciPy.",
+        "Ruff's default configuration excludes common directories like .git, .venv, node_modules, and build.",
+        "Ruff's default line length is 88 characters, matching Black.",
+        "Ruff's default indent width is 4 spaces.",
+        "Ruff's default target Python version is 3.10.",
+        "By default, Ruff enables rules from the F, E, B, UP, and RUF categories, plus many more.",
+        "Ruff re-implements popular Flake8 plugins including flake8-bugbear, flake8-comprehensions, flake8-bandit, and many others.",
+        "Ruff can be invoked directly via uvx without installation.",
+        "Ruff can be installed with uv, pip, pipx, Homebrew, or Conda.",
+        "Starting with version 0.5.0, Ruff offers standalone installers for macOS, Linux, and Windows.",
+        "Ruff can be used as a pre-commit hook via ruff-pre-commit.",
+        "Ruff can be used as a VS Code extension.",
+        "Ruff can be used as a GitHub Action via ruff-action.",
+        "Ruff's formatter is built on a fork of Rome's rome_formatter.",
+        "Ruff's import resolver is based on Pyright's import resolution algorithm.",
+        "Ruff is released under the MIT license.",
+        "Ruff has over 48,000 GitHub stars and 2,302 forks as of the page date."
+      ],
+      "error": "LLMTimeout: a2web stopped waiting for the LLM after 180s"
+    },
+    {
+      "slug": "hn-item",
+      "url": "https://news.ycombinator.com/item?id=9224",
+      "ask": "What is this Hacker News discussion about, and what is the main disagreement?",
+      "why": "a thread has NO clean entity \u2014 stresses whether entity_type degrades gracefully",
+      "status": "ok",
+      "content_chars": 3634,
+      "fact_count": 15,
+      "facts": [
+        "BrandonM criticizes an app (appears to be Dropbox based on context) for not offering functionality that Linux users can already build themselves using FTP, curlftpfs, SVN, or CVS.",
+        "BrandonM argues the app does not replace USB drives because people still need USB drives for presentations when connectivity is unavailable.",
+        "BrandonM questions the app's viral potential and revenue model, noting it lacks a clear monetization strategy without charging users.",
+        "A commenter (dhouston, the app creator) responds that many users want plug-and-play simplicity rather than building their own system.",
+        "dhouston explains that Windows has poor user experience with online drives due to latency issues and lack of disconnected access, unlike built-in solutions.",
+        "dhouston describes how network latency compounds when applications make serial file accesses, causing UI lockups lasting seconds.",
+        "dhouston illustrates the latency problem: changing one character in a 20MB file and saving it can consume 8 minutes on a 40KB/sec upstream connection.",
+        "dhouston clarifies that Dropbox uses a local folder with efficient background sync, which is a key architectural difference from traditional online drives.",
+        "dhouston concedes that the app won't help users without internet access on another computer, but addresses the airplane scenario where offline access to recently synced documents is valuable.",
+        "dhouston reveals the app uses a freemium model with free tier up to X GB and tiered paid plans above that.",
+        "dhouston mentions there are unannounced viral features that were not shown in the presentation.",
+        "BrandonM acknowledges that the app provides good, easy-to-install functionality for Windows users.",
+        "BrandonM agrees that efficient background sync is a valuable feature differentiating it from alternatives like curlftpfs.",
+        "BrandonM concedes the offline syncing use case for air travel makes sense but maintains that claiming the app replaces USB drives is misleading.",
+        "The main disagreement centers on whether the app solves real problems versus providing functionality users could build themselves, and whether it adequately replaces USB drives for all use cases."
+      ],
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "This is an early Dropbox pitch (by founder dhouston) on Hacker News. BrandonM questions three claims: (1) Linux users can already build this trivially with FTP + curlftpfs + SVN/CVS; (2) it doesn't actually replace USB drives since connectivity can fail; (3) the business model is unclear without a revenue strategy. dhouston counters that plug-and-play matters (UX on Windows is poor with mounted online drives due to latency and file-access serialization), offline sync is valuable (access cached files on a plane, sync when reconnected), and a freemium model is planned. The core disagreement: whether solving UX friction for non-technical Windows users on an existing problem (file sync) justifies a new product, and whether the 'USB replacement' claim is overreaching.",
+              "answer_chars": 773,
+              "also_here": 4,
+              "structural_form": "thread",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 262,
+              "ms": 6848
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "This HN thread discusses an early file-sync application (later revealed as Dropbox). BrandonM raises three critiques: (1) Linux users can already build similar systems using FTP + curlftpfs + SVN/CVS; (2) the app doesn't truly replace USB drives since it requires connectivity, unlike physical drives for offline use; (3) unclear monetization without charging users. The main disagreement centers on whether the app solves real user-experience problems: dhouston (the creator) counters that plug-and-play matters, that local sync with background efficiency beats network-latency-prone remote filesystems, and that offline access works via cached files from the last connected state. BrandonM concedes the Windows UX win and sync efficiency but maintains the USB-replacement claim oversells the product.",
+              "answer_chars": 802,
+              "also_here": 4,
+              "structural_form": "thread",
+              "entity_type": "DiscussionForumPosting",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "discussionTopics"
+              ],
+              "completion_tokens": 383,
+              "ms": 7965
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "This is a Hacker News thread discussing an early cloud-storage application (later revealed to be Dropbox). BrandonM raises three critiques: (1) Linux users can already build equivalent systems using FTP+curlftpfs+SVN/CVS; (2) the app doesn't truly replace USB drives since it requires connectivity; (3) the business model is unclear without user fees. The main disagreement centers on whether local sync with background efficiency (Dropbox's approach) solves real UX problems that generic online-drive mounting does not. The creator (dhouston) counters that \"plug and play\" matters, that Windows remote-filesystem latency cripples usability for large files, and that offline access + sync-on-reconnect is the key value proposition\u2014noting a freemium tier was planned.",
+              "answer_chars": 766,
+              "also_here": 6,
+              "structural_form": "thread",
+              "entity_type": "Article",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "commentThread"
+              ],
+              "completion_tokens": 382,
+              "ms": 6826
+            }
+          },
+          "covered": {
+            "A": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              15
+            ],
+            "C": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              8,
+              9,
+              10,
+              15
+            ],
+            "B": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              8,
+              9,
+              10,
+              12,
+              13,
+              14,
+              15
+            ]
+          },
+          "recall": {
+            "A": 0.733,
+            "C": 0.667,
+            "B": 0.8
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "This is an early Hacker News thread (2009) discussing Dropbox's launch. BrandonM critiques the app on three counts: (1) Linux users can build equivalent systems via FTP+curlftpfs+SVN/CVS; (2) it doesn't truly replace USB drives since it fails without connectivity; (3) the business model is unclear without charging users. The main disagreement centers on UX and use-case. dhouston (Dropbox founder) counters that most users want plug-and-play simplicity, not DIY assembly\u2014and crucially, Windows network drives suffer latency issues (CIFS/WebDAV cause UI lockups on large files or slow connections). His key innovation: \"local folder with efficient sync in background.\" He also rebuts the USB claim by framing the real use-case (offline access to recent docs, syncing on reconnect) and reveals an unannounced freemium model. The thread shows early skepticism of Dropbox's premise versus the founder's differentiation on UX and background sync architecture.",
+              "answer_chars": 956,
+              "also_here": 4,
+              "structural_form": "thread",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 333,
+              "ms": 6374
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "This is an early Hacker News thread discussing Dropbox's launch. BrandonM raises three critiques: (1) Linux users can already build similar systems with FTP+curlftpfs+SVN/CVS; (2) it doesn't truly replace USB drives since it requires connectivity; (3) the business model (free tier) seems unclear for revenue generation. dhouston (Dropbox founder) responds that plug-and-play ease matters, that local sync with background sync (not remote mounting) solves Windows latency issues better than CIFS/WebDAV, that offline access on previously-synced files addresses the plane scenario, and that a freemium tiered model will monetize. The disagreement centers on whether local-sync-based file sync is genuinely better than existing DIY or built-in remote-drive solutions, and whether 'USB-drive replacement' is fair marketing.",
+              "answer_chars": 820,
+              "also_here": 4,
+              "structural_form": "thread",
+              "entity_type": "DiscussionForumPosting",
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 308,
+              "ms": 5877
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "This is an early Hacker News thread discussing what appears to be Dropbox (or a similar cloud sync tool). BrandonM raises three criticisms: (1) Linux users can already build equivalent systems using FTP + curlftpfs + version control; (2) the service doesn't truly replace USB drives for offline access; (3) it's unclear how the service will generate revenue without charging users. The main disagreement centers on UX tradeoffs: BrandonM emphasizes that existing open-source solutions exist and offline reliability matters, while dhouston (the creator) argues the key value is \"plug and play\" simplicity and efficient background sync with local folders\u2014solving the latency and UI-lag problems that plague network-mounted filesystems. dhouston also clarifies the freemium model and notes unrevealed \"viral\" features, defusing some concerns. BrandonM concedes the Windows UX argument is valid but stands by the USB-replacement claim being overreaching.",
+              "answer_chars": 950,
+              "also_here": 0,
+              "structural_form": "thread",
+              "entity_type": "Thread",
+              "entity_field_count": 5,
+              "entity_extra_fields": [
+                "fetched_at",
+                "participants",
+                "topic"
+              ],
+              "completion_tokens": 362,
+              "ms": 6516
+            }
+          },
+          "covered": {
+            "B": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              8,
+              10,
+              15
+            ],
+            "A": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              8,
+              9,
+              10,
+              11,
+              15
+            ],
+            "C": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              8,
+              10,
+              12,
+              13,
+              14,
+              15
+            ]
+          },
+          "recall": {
+            "B": 0.6,
+            "A": 0.733,
+            "C": 0.8
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "This is an early Dropbox pitch (by dhouston) on Hacker News. BrandonM raises three critiques: (1) Linux users can DIY the functionality via FTP + curlftpfs + SVN/CVS; (2) it doesn't replace USB drives because it lacks offline fallback for connectivity failures; (3) the business model is unclear without paid tiers. dhouston's rebuttal: plug-and-play matters more than DIY capability; Dropbox solves Windows latency pain (local sync + background sync vs. network filesystem lag); the freemium model (x GB free, tiered above) handles monetization. The core disagreement is whether solving the UX problem for non-technical users on Windows justifies a new product when Linux power users can build it themselves.",
+              "answer_chars": 709,
+              "also_here": 3,
+              "structural_form": "thread",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 254,
+              "ms": 5925
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "This is an early Hacker News discussion (2009) about Dropbox's launch. BrandonM raises three critiques: (1) Linux users can build similar systems with FTP + curlftpfs + SVN/CVS; (2) it doesn't truly replace USB drives since it requires connectivity; (3) the business model is unclear without a revenue strategy. The creator (dhouston) responds that plug-and-play matters more than DIY capability, that Dropbox solves the latency/UX problems of network drives through local sync with background efficiency, that the offline-access use case (e.g., airplane access to last-synced docs) is valuable, and that a freemium tiered model is planned. The core disagreement is whether local sync + cloud backup is a genuine innovation over existing file-sharing methods, and whether connectivity requirements are a fatal flaw.",
+              "answer_chars": 815,
+              "also_here": 4,
+              "structural_form": "thread",
+              "entity_type": "Thing",
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 299,
+              "ms": 6084
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "This is an early Hacker News discussion about Dropbox (presented by dhouston). BrandonM raises three critiques: (1) Linux users can already build similar systems with FTP + curlftpfs + SVN/CVS; (2) it doesn't truly replace USB drives because it requires connectivity; (3) the business model is unclear without a revenue plan. The main disagreement centers on whether local sync + background syncing solves the connectivity problem. dhouston counters that plug-and-play simplicity matters for Windows users, that Dropbox's local-folder architecture with efficient background sync avoids latency issues (unlike network mounts that lock UIs), and that offline access on planes is valuable. BrandonM concedes these points are \"well-thought-out\" but maintains the USB-replacement claim is misleading\u2014though he acknowledges Dropbox addresses Windows usability gaps the alternatives don't.",
+              "answer_chars": 882,
+              "also_here": 0,
+              "structural_form": "thread",
+              "entity_type": "Article",
+              "entity_field_count": 4,
+              "entity_extra_fields": [
+                "discussionParticipants"
+              ],
+              "completion_tokens": 338,
+              "ms": 6550
+            }
+          },
+          "covered": {
+            "B": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              15
+            ],
+            "A": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              8,
+              10,
+              15
+            ],
+            "C": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              12,
+              13,
+              14,
+              15
+            ]
+          },
+          "recall": {
+            "B": 0.733,
+            "A": 0.533,
+            "C": 0.867
+          }
+        }
+      ]
+    },
+    {
+      "slug": "hepsiburada-product",
+      "url": "https://www.hepsiburada.com/wilkinson-sword-wilkinson-swrod-hydro-5-ultimate-tirasmakinesi-1-adet-yedek-baslik-p-HBV00000UWKQ2",
+      "ask": "What is this product, its price and currency, and is it in stock?",
+      "why": "commerce Product with real body \u2014 the `discountPrice`/extra-field survival case",
+      "status": "failed",
+      "content_chars": 779,
+      "fact_count": 5,
+      "facts": [
+        "The page is not available; the URL https://www.hepsiburada.com/wilkinson-sword-wilkinson-swrod-hydro-5-ultimate-tirasmakinesi-1-adet-yedek-baslik-p-HBV00000UWKQ2 returns a 'page not found or modified' error message in Turkish.",
+        "No product information is stated on this page.",
+        "No price is stated on this page.",
+        "No currency is stated on this page.",
+        "No stock status is stated on this page."
+      ],
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Page not found. The Hepsiburada product listing for Wilkinson Sword Hydro 5 Ultimate (SKU HBV00000UWKQ2) has been removed or changed; no price or stock information is available. The page shows a 404-style error in Turkish: 'Such a page doesn't exist but unique opportunities are here!'",
+              "answer_chars": 285,
+              "also_here": 0,
+              "structural_form": "other",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 124,
+              "ms": 4475
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Page not found. The Hepsiburada product URL returns a 404-style error page ('B\u00f6yle bir sayfam\u0131z yok' / 'We don't have such a page'); the product listing for the Wilkinson Sword Hydro 5 Ultimate razor is no longer available or has been removed. Price and stock status cannot be determined.",
+              "answer_chars": 288,
+              "also_here": 0,
+              "structural_form": "other",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 122,
+              "ms": 4049
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "The product page no longer exists. Hepsiburada reports the page has been removed or changed; no product details, price, or stock status are available.",
+              "answer_chars": 150,
+              "also_here": 0,
+              "structural_form": "other",
+              "entity_type": "Product",
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 95,
+              "ms": 3702
+            }
+          },
+          "covered": {
+            "A": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "C": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "B": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ]
+          },
+          "recall": {
+            "A": 1.0,
+            "C": 1.0,
+            "B": 1.0
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The page is not available. Hepsiburada (Turkish e-commerce site) shows a 404-style message: 'B\u00f6yle bir sayfam\u0131z yok' (We don't have such a page). The product listing for Wilkinson Sword Hydro 5 Ultimate razor has been removed or modified. Price and stock status cannot be determined.",
+              "answer_chars": 283,
+              "also_here": 0,
+              "structural_form": "product",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 125,
+              "ms": 4005
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Page not found. The Hepsiburada product listing (Wilkinson Sword Hydro 5 Ultimate razor with 1 replacement head) has been removed or changed; no product details, price, or stock status are available.",
+              "answer_chars": 199,
+              "also_here": 0,
+              "structural_form": "other",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 95,
+              "ms": 4584
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "The page is no longer available. Hepsiburada (Turkish e-commerce site) shows a 404-style message stating the page has been removed or changed. No product details, price, or stock status are retrievable from this URL.",
+              "answer_chars": 216,
+              "also_here": 0,
+              "structural_form": "product",
+              "entity_type": "Product",
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 115,
+              "ms": 4017
+            }
+          },
+          "covered": {
+            "A": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "B": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "C": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ]
+          },
+          "recall": {
+            "A": 1.0,
+            "B": 1.0,
+            "C": 1.0
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Page not found. The Wilkinson Sword Hydro 5 Ultimate razor product listing has been removed or changed on Hepsiburada. Price, currency, and stock status cannot be determined. Try searching the site directly or checking a different retailer.",
+              "answer_chars": 240,
+              "also_here": 0,
+              "structural_form": "other",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 99,
+              "ms": 3977
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Page not found. The Hepsiburada product link (Wilkinson Sword Hydro 5 razor) has been removed or changed; the merchant displays a 404-style notice ('B\u00f6yle bir sayfam\u0131z yok') with no product details, price, or stock status visible.",
+              "answer_chars": 230,
+              "also_here": 0,
+              "structural_form": "other",
+              "entity_type": null,
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 109,
+              "ms": 3654
+            },
+            "C": {
+              "parse_failed": false,
+              "answer": "The page is not available. Hepsiburada (Turkish e-commerce site) shows a 404 error: 'Such a page does not exist, but unique opportunities are here!' The product listing for Wilkinson Sword Hydro 5 Ultimate razor at this URL has been removed or changed. Price, currency, and stock status cannot be determined.",
+              "answer_chars": 308,
+              "also_here": 0,
+              "structural_form": "other",
+              "entity_type": "Thing",
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "completion_tokens": 139,
+              "ms": 4243
+            }
+          },
+          "covered": {
+            "B": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "C": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "A": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ]
+          },
+          "recall": {
+            "B": 1.0,
+            "C": 1.0,
+            "A": 1.0
+          }
+        }
+      ]
+    }
+  ]
+}

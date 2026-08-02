@@ -201,12 +201,17 @@ easy case — it simply has no mirror.
 ### Token cost — smaller than expected
 
 `_ROUTER_SCHEMA_DOC` measures **10,136 chars ≈ 2.7k tokens**, and v0.24
-relocated it into the **cacheable `system` bucket**. So the marginal cost of an
-entity block is a one-time cache write, then approximately free on every cache
-hit. A ~15-line addition is roughly **+150 tokens, cached**.
+relocated it into the **cacheable `system` bucket**. So the marginal *input*
+cost of an entity block is a one-time cache write, then approximately free on
+every cache hit. A ~15-line addition is roughly **+150 prompt tokens, cached**.
 
-**Token cost is not a real objection.** Attention dilution might still be —
-which is what the spike measures.
+> **CORRECTED 2026-08-02 by the v1 spike** — see
+> `findings_2026-08-02-entity-schema-spike-v1.md` §1. This section originally
+> concluded "token cost is not a real objection". That reasoned from the INPUT
+> side only and was silent on OUTPUT. Measured, the entity block costs
+> **+116 completion tokens per call (95% CI [+63, +169]), a ~74% increase** —
+> and completion tokens are not cached. The token cost IS real; it is simply
+> paid on the output side, which this section did not look at.
 
 ---
 
@@ -242,6 +247,13 @@ That is the ADR.
 ---
 
 ## 6. The spike — what would actually settle it
+
+> **RAN 2026-08-02** as `eval/spikes/entity_schema_v1.py`; results in
+> `findings_2026-08-02-entity-schema-spike-v1.md`. Outcome: **the predicted
+> answer-loss did not appear** (both arms within noise of control). What did
+> move: +116 completion tokens, `entity_type` presence only 18/21 in the
+> additive arm, and open vocabulary decisively vindicated (9 distinct types on
+> 7 pages). Read that doc before treating anything below as settled.
 
 The user's concern deserves a measurement, not an argument. Three arms, same
 pages, same questions, same provider:
