@@ -542,7 +542,7 @@ def build_response(fc: FetchContext) -> FetchResponse:
         status = FetchStatus.ok
     # never-silently-miss: `retrieval_incomplete` is derived from the systematic
     # floor, not a parallel wall-verdict whitelist. Every wall now carries the
-    # critical `try_user_browser` hint (emitted by `_prescribe_browser_on_wall`),
+    # critical `try_user_browser` hint (emitted by `fetcher.verdict.terminal._apply_terminal`),
     # and the "failed + try_user_browser hint" hook below turns that into
     # incompleteness — a single source of truth. Only `paid_auth_error` is special:
     # it keeps its OWN dedicated hint (an operator error, a bad paid key) instead of

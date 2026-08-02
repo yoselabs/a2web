@@ -357,9 +357,15 @@ async def test_captcha_rewrite_bing_search_routes_to_ddg(monkeypatch: pytest.Mon
 async def test_captcha_rewrite_consumes_url_rewrites_budget(monkeypatch: pytest.MonkeyPatch) -> None:
     """A captcha rewrite counts against `fc.url_rewrites` (cap=1 per fetch).
 
-    The orchestrator's `_apply_after_tier_action` gates further URL rewrites
-    on `fc.url_rewrites < 1`. After a captcha rewrite, the budget is spent —
-    a second after-tier rewrite from the playbook must be skipped.
+    The planner gates further URL rewrites on
+    `playbook.URL_REWRITE_CAP` (`ctx.caps.url_rewrites >= URL_REWRITE_CAP`,
+    `playbook.py:160`). After a captcha rewrite the budget is spent, so a second
+    after-tier rewrite must be skipped.
+
+    The cap moved twice since this docstring was first written: out of the
+    orchestrator's `_apply_after_tier_action` (now `_dispatch_action`) and into
+    the planner, and from a hardcoded `< 1` into a named constant. Both spellings
+    survived here as prose describing code that no longer existed.
     """
     bodies: list[str] = []
 
@@ -379,9 +385,12 @@ async def test_captcha_rewrite_consumes_url_rewrites_budget(monkeypatch: pytest.
     state = _make_state()
     # The captcha rewrite consumes the budget before tier dispatch.
     await fetch("https://www.google.com/search?q=foo", state=state)
-    # We can't introspect the FetchContext post-fetch (it's local to orchestrator),
-    # but the budget bump is verifiable via the unit test below + the existing
-    # _apply_after_tier_action contract that reads `fc.url_rewrites < 1`.
+    # We can't introspect the FetchContext post-fetch (it's local to the
+    # orchestrator), so what THIS test pins is only that the rewrite happened and
+    # the tier was dispatched once. The budget rule itself is covered by the unit
+    # test below plus the planner's own `URL_REWRITE_CAP` check — stated plainly
+    # because this comment used to imply the assertion below verified the cap,
+    # and it does not.
     assert len(bodies) == 1
     assert bodies[0].startswith("https://duckduckgo.com/html/?q=")
 

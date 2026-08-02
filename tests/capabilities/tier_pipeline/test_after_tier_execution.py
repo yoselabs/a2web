@@ -38,7 +38,10 @@ class _CountingRawTier:
 
 @pytest.mark.asyncio
 async def test_arxiv_pdf_rewritten_to_abs(monkeypatch: pytest.MonkeyPatch) -> None:
-    """next_action_after_tier returns RewriteUrl for arxiv pdf URLs.
+    """`playbook.decide_next` returns RewriteUrl for arxiv pdf URLs.
+
+    (Was `next_action_after_tier`; the after-gate and after-tier planners were
+    unified into one `decide_next(log, *, url, caps)` over the decision log.)
 
     After PR8, the abs URL matches `ArxivHandler` (site_handler tier),
     so we stub that handler to keep this test focused on rewrite logic.

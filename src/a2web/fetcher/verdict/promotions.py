@@ -11,8 +11,9 @@ from ...models import Verdict
 from ..context import FetchContext
 
     # The never-silently-miss hint is emitted ONCE, systematically, by
-    # `_prescribe_browser_on_wall` at the end of `_run_pipeline` — not per-phase
-    # here. This phase only runs the gate + planner escalation ladder.
+    # `fetcher.verdict.terminal._apply_terminal` at the end of `_run_pipeline` —
+    # not per-phase here. This phase only runs the gate + planner escalation
+    # ladder.
 
 
 def _has_browser_hint(fc: FetchContext) -> bool:

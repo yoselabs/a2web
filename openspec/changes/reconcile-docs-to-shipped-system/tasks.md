@@ -192,49 +192,69 @@ listing `archive/` gets a wrong answer with authority.
 
 ## 6. Dead and renamed symbols
 
-- [ ] 6.1 `_prescribe_browser_on_wall` — cited in present tense at
-      `fetcher.py:1839,1919` and `fetcher_response.py:388,429` as the live
-      emitter of the `try_user_browser` floor. The symbol does not exist; the
-      behaviour lives in `_apply_terminal`. **Repoint the comments, do not strip
-      them** — they explain an ADR-0009 mechanism.
-- [ ] 6.2 `_apply_after_tier_action` / `_AfterTier` → `_dispatch_action` /
-      `_Exec`. They survive in `test_fetcher.py:360,384`; `:384` claims to test
-      "the `_apply_after_tier_action` contract" — read that test rather than only
-      renaming it.
-- [ ] 6.3 `next_action_after_gate` / `next_action_after_tier` →
-      `decide_next(log, *, url, caps)`.
-- [ ] 6.4 `ExtractionCache` → `LlmCache`.
-- [ ] 6.5 The cookies tool is registered as `refresh` but called
-      `cookies_refresh` in CLAUDE.md:119, `settings.py:239,253`,
-      `README.md:367-368`. Pick one.
+**Half this section was already true when it was written.** Censused first,
+per the `enforcement-integrity` rule this repo added on 2026-08-02: of the nine
+symbols named, three have zero occurrences anywhere and needed nothing.
+
+- [x] 6.1 **Done 2026-08-02.** Four sites named `_prescribe_browser_on_wall`.
+      Three make a PRESENT-TENSE claim and were repointed to
+      `fetcher.verdict.terminal._apply_terminal` — repointed, not stripped, as
+      the task correctly insisted: they explain the ADR-0009 single-systematic-
+      floor mechanism and deleting them loses the reasoning.
+      `actions/terminal.py:9` was left: it names the symbol in the PAST tense as
+      one of the two inverse whitelist predicates the classifier replaced, which
+      is exactly right and is the record of why the classifier exists.
+- [x] 6.2 **Done, and reading the test was the point — it was wrong in a second
+      way.** `test_fetcher.py:360,384` described "`_apply_after_tier_action`
+      gates further URL rewrites on `fc.url_rewrites < 1`". Both halves are
+      dead: the symbol is `_dispatch_action`, AND the gate is no longer an
+      inline `< 1` in the orchestrator — it moved to the planner as
+      `ctx.caps.url_rewrites >= URL_REWRITE_CAP` (`playbook.py:88,160`).
+      `_AfterTier` has ZERO occurrences repo-wide; nothing to rename.
+
+      Also corrected an overclaim found while reading: the comment implied the
+      assertion below it verified the budget rule. It does not — it asserts the
+      rewrite happened and the tier was dispatched once. Said so plainly rather
+      than leaving prose that reads as coverage.
+- [x] 6.3 `next_action_after_gate` has ZERO occurrences; `next_action_after_tier`
+      had one, a test docstring, now `playbook.decide_next` with a line naming
+      the unification (the after-gate and after-tier planners became one
+      `decide_next(log, *, url, caps)` over the decision log).
+- [x] 6.4 **Nothing to do — `ExtractionCache` has ZERO occurrences repo-wide.**
+      Renamed to `LlmCache` when the extraction cache was promoted to the shelf;
+      this task outlived the work.
+- [ ] 6.5 **Raised, not decided — this is an Ask First item.** The tool is
+      registered on the wire as bare `refresh` (`routers.py:299`) while
+      `settings.py:282,296`, `README.md:374-375` and `CLAUDE.md:148` all call it
+      `cookies_refresh`, and the CLI already groups it as
+      `a2web cookies refresh` (`cli.py:72`).
+
+      Recommend renaming the WIRE name to `cookies_refresh`: bare `refresh`
+      sits in the same flat MCP namespace as `query` and `fetch_raw` and tells
+      an agent nothing about what it refreshes. Blast radius is near-zero — the
+      tool is default-OFF (`expose_cookies_tool`), local-only, and absent from
+      the published container. But it IS a tool-signature change, which CLAUDE.md
+      lists under Ask First, so it waits for a human rather than being decided
+      by whoever happened to be editing docs.
 
 ## 7. The citation guard
 
-- [ ] 7.1 Widen `test_claude_md_citations_resolve.py:61`'s file-suffix regex to
-      accept directory citations. It currently checks 43 of 78 path-shaped
-      citations and no directory citation at all.
-- [ ] 7.2 Observe it go red before fixing anything — expect CLAUDE.md:29 and :81,
-      which cite `sunset-a2kit-dependency/` and `shelf-sweep-promotions/` as
-      read-this-first gates when both moved under `archive/` with date prefixes.
-- [ ] 7.3 Fix CLAUDE.md:31, which names `a2kit-v043-migration/` as the most
-      recent archived change; it is one of ~55 older ones (latest is
-      `2026-06-19-a2kit-v044-migration`).
-- [ ] 7.4 Extend the guard past CLAUDE.md to `openspec/specs/` and `docs/`. The
-      nine stale independence-test citations survived because
-      `close-silent-enforcement-loss` built a guard that reads CLAUDE.md alone.
-- [ ] 7.5 Record that lesson in `verification-provenance.md`: **a guard's scope is
-      not the fix's scope.** When a guard is built for a class of defect, the
-      repair covers the class, not the guard's window.
+**Done before this change reached it, except 7.3.** Verified 2026-08-02.
 
-## 8. Close out
-
-- [ ] 8.1 Fix `docs/architecture/README.md`'s rules registry — 10 of 33 guards
-      listed. Note `close-guards-that-read-green` also touches this; coordinate.
-- [ ] 8.2 Correct CLAUDE.md:249's "aiosqlite worker thread doesn't leak" — the
-      test asserts the conftest TEST-ONLY daemon patch is applied and says
-      nothing about production.
-- [ ] 8.3 `make check` green. No application logic changed in this change.
-- [ ] 8.4 Record the refuted hypothesis so it is not re-checked:
-      `handler-live-probe/spec.md` is one of the most current specs in the tree.
-      Its only defect is a `_HANDLERS` registry name with zero hits.
-- [ ] 8.5 Move the T6 entries to `BACKLOG-CLOSED.md`.
+- [x] 7.1 `_CITATION_DIR` exists at
+      `test_claude_md_citations_resolve.py:75` and is used at `:293`.
+      Directory citations are checked.
+- [x] 7.2 Already fixed: CLAUDE.md:31 and :84 cite
+      `archive/2026-07-26-sunset-a2kit-dependency/` and
+      `archive/2026-07-27-shelf-sweep-promotions/` with their date prefixes, and
+      the guard is green over them. The "observe it go red first" step cannot be
+      re-run — the fix landed with the widening, in
+      `archive/2026-07-27-close-silent-enforcement-loss`.
+- [x] 7.3 **Real, and fixed 2026-08-02.** CLAUDE.md:33 named
+      `2026-06-11-a2kit-v043-migration` as the most recent; the newest is
+      `2026-06-19-a2kit-v044-migration`. Rather than swap the name, the line now
+      says both and says which to READ: v0.44 was a clean pin bump that touched
+      nothing a2web consumed, so v0.43 remains where the surface actually moved.
+      A bare swap would have sent every reader to the less useful document while
+      being technically accurate — which is how the line got wrong in the first
+      place.

@@ -50,8 +50,9 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
             await escalate(fc, Rung.browser, state=state)
         # The render ladder was our only route (the free tiers were stopped). A
         # still-non-ok verdict here is a loud miss — but the never-silently-miss
-        # hint is now emitted ONCE by `_prescribe_browser_on_wall` at the end of
-        # `_run_pipeline` (the single systematic floor), not per-phase here.
+        # hint is now emitted ONCE by `fetcher.verdict.terminal._apply_terminal`
+        # at the end of `_run_pipeline` (the single systematic floor), not
+        # per-phase here.
 
     if not (fc.body and fc.resolved_verdict() is Verdict.ok):
         return
