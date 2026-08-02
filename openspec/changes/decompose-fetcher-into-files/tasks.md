@@ -9,26 +9,110 @@ Land nothing in this change except the move, the loop, and the ladder-skip fix
 that the loop makes unexpressible. v0.23 is the demonstration of what a refactor
 that is also a bug fix costs.
 
-## 1. Before cutting anything
+## 1. Before cutting anything — DONE 2026-08-02
 
-- [ ] 1.1 Read `_escalate_browser:2136-2151` and `_escalate_paid:2236-2253` side
-      by side. Confirm the shared tail is a utils leaf and not a third
-      escalator's worth of policy. It is the one file in the tree placed by
-      judgement rather than census.
-- [ ] 1.2 Decide whether the retry signal carries a stage marker or is bare
-      (design Open Questions).
-- [ ] 1.3 Decide the diagnostics question: append always (browser `:2105`, paid
-      `:2210`, tier loop `:1183`) or only-on-success (`_dispatch_archive:899`).
-      It is the same divergence class as the install sequence.
-- [ ] 1.4 Record the four anti-seams as tests or comments **before** moving, so
-      the move cannot quietly cross one:
-      - `:1247`'s escalation-win check is correct only because `_install_won_tier`
-        at `:1254` has not run yet
-      - the three promotion/terminal phases are one mutually-exclusive chain;
-        `small_page_promoted()` reads a field written 460 lines away
-      - `_phase_extract`'s pre-rendered branch must keep the **ladder call**
-        (`:1299-1323` documents the four-consumer starvation)
-      - `FetchContext` is phase two only
+> **Every line number in this change is stale.** It was written against a
+> 2771-line `fetcher.py`; the file is **3018** lines today, and
+> `unify-escalation-executor` has since landed `_dispatch_action`, which
+> collapsed part of the install table. Re-derive before cutting — the citations
+> below are the re-derived ones. The growth in the interval (+247 lines in two
+> days, through a change that touched it only incidentally) is itself evidence
+> for the proposal's central claim.
+
+- [x] 1.1 **Read side by side. It IS a utils leaf — and the census would have
+      merged two things that must not merge.** The shared tail is
+      `install → optional ladder → re-gate`, byte-similar across
+      `_escalate_browser:2356-2371` and `_escalate_paid:2462-2479`. Two
+      differences, and both are real:
+      **(a) paid observes its own success, browser does not.** Paid appends
+      `tier_outcome(source, verdict=ok)`; browser appends NO observation on a
+      successful render (it observes only `subresource_blocks > 0`, or
+      `not_found`/`paywall` on failure). That asymmetry is load-bearing in a
+      direction worth stating: `is_confirmed_empty` requires an independent
+      browser render, and the browser's success leaves the decision log with no
+      `tier_outcome` from it at all.
+      **(b) the ladder guard differs.** Browser decodes any non-empty body;
+      paid requires `"html" in content_type`, because a markdown-native paid
+      tier (Firecrawl) returns clean markdown that the ladder must not touch.
+      The paid predicate is the correct general one — browser's is equivalent
+      only because a browser body is always HTML.
+      So the leaf takes the install and the re-gate; the observation and the
+      html-guard are **parameters**, not shared code. A census merge would have
+      silently given the browser paid's `observe` (changing what
+      `is_confirmed_empty` sees) or given paid browser's guard (running the
+      ladder over Firecrawl's markdown).
+- [x] 1.2 **Decided: bare signal.** The design leaned that way; the code agrees
+      more strongly than the design knew. `_dispatch_action` already returns a
+      bare 3-member `_Exec` (`CONTINUE`/`RESTART`/`STOP`) and the tier loop
+      already consumes it as pure control flow — a stage marker would be a
+      SECOND control vocabulary alongside one that works. And the marker's only
+      customer would be "which stage to resume at", which is precisely the
+      freedom the loop exists to remove: if a caller can name its resume point,
+      a stage can still be skipped, and H1 is back with a nicer spelling.
+      Bare signal plus the existing context state; `_Exec` is the precedent to
+      extend, not to duplicate.
+- [x] 1.3 **Decided: append always — and the only-on-success justification is
+      provably stale.** `_dispatch_archive:966-972`'s docstring says a failed
+      escalation "should not displace the originating verdict". It cannot:
+      **`resolve_verdict` reads `Observation`s, not `Diagnostic`s** (verified —
+      `decision_log.py:119` filters `ObservationKind`), and verdict became a
+      pure projection of the decision log in v0.23. A `Diagnostic` has no path
+      into verdict resolution at all, so the reason the divergence exists
+      stopped being true and nothing noticed.
+      What it costs today is ADR-0009 visibility: a failed archive dispatch
+      leaves no row, so the response cannot show archive was tried and did not
+      help — the caller sees a gap where an attempt was.
+      **NOT applied here.** Adding rows changes `diagnostics_summary` prose,
+      which is a behaviour change, and this change's rule is that the only
+      behaviour change is the ladder skip (D7). Filed in `BACKLOG.md` so the
+      decision does not have to be re-derived.
+- [x] 1.4 **Recorded as a test, not a comment** —
+      `tests/architecture/test_fetcher_phase_ordering.py`, registered in
+      `docs/architecture/README.md`, and **all four reversion-verified** (each
+      probe applied to `fetcher.py`, observed failing, reverted).
+      It indexes functions by NAME across the whole fetcher tree, resolving
+      either today's `fetcher.py` or tomorrow's `fetcher/` package, and
+      deliberately does NOT resolve through an import: an import-based guard
+      goes quiet the moment a function lands in a module that is no longer
+      re-exported, which is exactly the window this move opens. A rename fails
+      the guard rather than skipping it.
+      The four:
+      - the escalation-win check reads `fc.tier_used` (now `:1353`) and is
+        correct only because `_install_won_tier` (now `:1360`) has not run —
+        above the install it means "an out-of-band escalation won", below it
+        means "any tier won", and the loop returns without installing
+      - `_apply_terminal` must follow both promotions AND the answer
+        (`small_page_promoted()` reads whether extraction produced one), and
+        must be called by the COORDINATOR, not `_run_phases`, so the floor also
+        runs on the `DeadlineExceeded` path
+      - `_phase_extract`'s pre-rendered branch must keep the ladder call **and**
+        the sufficiency call *before every `return`* — the 2026-07-28 defect was
+        not a missing call, it was a call sitting textually below an early
+        return
+      - `FetchContext` is phase two; recorded as scope, not as a test — a move
+        cannot cross it, only a later task can
+      Added a fifth, out of the design's list and marked as such: every
+      escalation that installs content must re-gate. It is the invariant the
+      loop restructure is meant to make structural, pinned so the move cannot
+      lose it in transit — and it carries an instruction to DELETE it with a
+      note once the loop makes it redundant, rather than leave it as decoration.
+
+**Measured while doing this, and it sharpens both defects.** The proposal's
+install table describes the WRITE sites; the sharper table is what each path
+runs afterwards:
+
+| path | extraction ladder | sufficiency |
+|---|---|---|
+| tier-loop win → `_phase_extract` | yes | yes |
+| archive pre-gate → `_phase_extract` | yes | yes |
+| **archive post-gate** (`_dispatch_action:1161-1165`) | **no** | **no** |
+| browser escalation (`:2370`) | yes | **no** |
+| paid escalation (`:2478`) | yes | **no** |
+
+Defect 1 (the fifth copy of the ladder skip) and H1 (escalators skip
+sufficiency) are the same table read down two columns — which is the proposal's
+claim, now measured against the current file rather than the one it was written
+against.
 
 ## 2. Phase one — the install chokepoint
 
