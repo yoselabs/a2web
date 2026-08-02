@@ -98,16 +98,62 @@ listing `archive/` gets a wrong answer with authority.
 
 ## 3. The remaining spec contradictions
 
-- [ ] 3.1 `browser-tier:180,192-195` says the smoke check SHALL auto-skip when
-      the binary is unavailable; `test_browser_smoke.py` hard-FAILS under
-      `A2WEB_REQUIRE_BROWSER=1`. Following the spec re-opens the dead-rung hole.
-      Correct the spec to the shipped behaviour.
+- [x] 3.1 **Done 2026-08-02, and the citation held** — first of this change's
+      §3 to survive its own check.
+
+      Corrected to the shipped rule, which is not "skip" or "fail" but
+      *environment-conditional*: skip where the engine is absent because the
+      machine has none (punishing a contributor's inner loop for a fact about
+      their laptop is wrong), FAIL under `A2WEB_REQUIRE_BROWSER=1`, which is the
+      switch asserting "a browser was provisioned here" and which the release
+      lane sets. Wrote the reasoning in, not just the behaviour: an
+      unconditional auto-skip means a rung that launches nothing skips
+      everywhere, reports green through a full release gate, and is
+      indistinguishable from a rung that works.
+
+      **Unplanned, found en route and NOT silently absorbed:** the requirement
+      named **Camoufox**, which is gated off (`_manifests/browser_backends/camoufox.py`)
+      — a spec-literal reader would have written the check against a binary the
+      project deliberately does not ship. De-named it here. But the same defect
+      runs through the WHOLE `browser-tier` spec at eight more sites, including
+      requirement titles ("executes JS via Camoufox pool", "degrades gracefully
+      without Camoufox") and a requirement whose trigger is
+      `from camoufox.async_api import AsyncCamoufox` raising `ImportError`.
+      That is a bigger correction than §3.1 and is filed as 3.1b rather than
+      folded in, because quietly widening a task is how its verification stops
+      being checkable.
+- [ ] 3.1b `browser-tier` is written against Camoufox throughout — 8 sites
+      beyond the smoke check, including two requirement titles and one whose
+      trigger condition is a Camoufox import. The shipped engines are
+      patchright / zendriver via the shelf `any_browser`; Camoufox is
+      manifest-gated OFF. Re-point the spec at the `BrowserBackend` interface.
 - [ ] 3.2 `extraction:103-152` and `content-expectations:48` contradict each
       other on candidate selection, and both contradict `fetcher.py:1541-1586`.
       **This one needs a product decision**, not a transcription — decide which
       is intended.
-- [ ] 3.3 Fix the nine `openspec/specs/` sites citing the deleted
-      `tests/test_packages_independence.py`.
+- [x] 3.3 **The citation was wrong — there are ZERO such sites in
+      `openspec/specs/`.** Measured 2026-08-02: 79 repo-wide occurrences, none
+      under `openspec/specs/`. They were fixed by
+      `archive/2026-07-27-close-silent-enforcement-loss`, and this task was
+      never updated — the fifth task this week to describe a real problem at a
+      location that had already moved.
+
+      What the survey actually found, sorted by whether the text makes a
+      PRESENT-TENSE claim:
+
+      | site | verdict |
+      |---|---|
+      | `src/a2web/packages/README.md:29` | **fixed** — said the invariant test "gates" the contract. It is `tach.toml`; repointed, and named `test_tach_covers_every_package.py`, since an unlisted package silently gets no contract at all. |
+      | `src/a2web/packages/llm_extract/router_payload.py:7` | **fixed** — "preserves the `test_packages_independence` invariant", present tense. |
+      | `BACKLOG.md:2244` | **fixed** — an OPEN entry, so it is guidance for future work, not a record. |
+      | `BACKLOG.md:1784,1794` | left — inside `✅` shipped-stage entries. |
+      | `CHANGELOG.md` ×8, `archive/**` ×~40, `docs/history/`, `docs/findings/` | left — historical records. A record of what was true then is not drift; rewriting it would destroy the evidence. |
+      | `tach.toml:6`, `docs/adr/0001:61`, `test_claude_md_citations_resolve.py` | left — already correct, each naming it as REPLACED or `<!-- gone -->`. |
+      | `CONSTITUTION.md:68,427` | **NOT fixed — needs a human.** `:427` claims "a2web has the test", which is false. Phase A requires confirmation for a Constitution-touching change, so it is raised rather than edited. |
+
+      The distinction that made this tractable: a dead citation in a historical
+      record is correct, and a dead citation in a present-tense sentence is a
+      defect. Bulk-replacing all 79 would have corrupted the record.
 
 ## 4. The container-browser fact
 

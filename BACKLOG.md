@@ -2241,7 +2241,8 @@ two new capability ideas; recording them here so they don't slip.
   remaining candidate microsofware modules (`browser_pool`,
   `block_detector`, `http_cache`, `proxy_routing`, `llm_extract`,
   `content_extract`) now live under `src/a2web/packages/` with the
-  contract enforced by `test_packages_independence`. Promoting one
+  contract enforced by `tach.toml` (it was `test_packages_independence`
+  when this entry was written; tach replaced it). Promoting one
   to a separate uv workspace package is a mechanical move from there
   — wait for an actual second consumer before paying that mechanical
   cost. Scope: M per module.

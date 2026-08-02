@@ -25,9 +25,13 @@ boundary type.
 
 ## Rules enforced by lint
 
-`ruff.lint.per-file-ignores` / `flake8-tidy-imports.banned-api` and a
-`tests/test_packages_independence.py` invariant test together gate the
-"no a2web-domain imports" contract.
+`ruff.lint.per-file-ignores` / `flake8-tidy-imports.banned-api` and
+`tach.toml` together gate the "no a2web-domain imports" contract
+(`uv run tach check`, in `make arch`). The hand-rolled
+`tests/test_packages_independence.py` this line used to name was deleted when
+tach took over; `tests/architecture/test_tach_covers_every_package.py` is what
+keeps tach's module list and the real package tree the same set, because a
+package missing from that list silently gets no contract at all.
 
 ## Discipline
 

@@ -177,22 +177,33 @@ When `BrowserTier.fetch` catches an internal exception on the navigation path (n
 
 ### Requirement: Browser tier has an opt-in real-browser smoke check
 
-The test suite SHALL include a real-browser smoke check that launches the actual Camoufox binary (opting out of the autouse `_UnavailableBrowserTier` stub), navigates a deterministic local JavaScript-rendering fixture, and asserts the tier returns non-empty rendered markdown with `js_executed == True`. The check SHALL be gated behind a registered pytest marker (`browser`) and SHALL be excluded from the default `make check` / `make test` run (`-m "not browser"`). It SHALL auto-skip when the Camoufox binary is unavailable. A dedicated `make` target SHALL run it on demand.
+The test suite SHALL include a real-browser smoke check that launches an actual browser engine (opting out of the autouse `_UnavailableBrowserTier` stub), navigates a deterministic local JavaScript-rendering fixture, and asserts the tier returns non-empty rendered markdown with `js_executed == True`. The check SHALL be gated behind a registered pytest marker (`browser`) and SHALL be excluded from the default `make check` / `make test` run (`-m "not browser"`). A dedicated `make` target SHALL run it on demand.
+
+**Skip versus fail SHALL be environment-conditional, and SHALL NOT be an unconditional auto-skip.** Where the engine is absent because the environment simply does not have one — a contributor's laptop — the check SHALL skip; failing there punishes the inner loop for a fact about the machine. Where the environment is one the project CONTROLS and provisions a browser into, an absent engine is a dead rung, not an environment fact, and the check SHALL FAIL. `A2WEB_REQUIRE_BROWSER=1` is the switch that asserts "a browser was provisioned here", and the release lane sets it.
+
+An unconditional auto-skip reopens the hole this check exists to close: a rung that launches nothing skips in every environment, reports green through a full release gate, and is indistinguishable from a rung that works.
+
+The requirement SHALL NOT name a specific engine. It named Camoufox until 2026-08-02, which had been gated off — so a spec-literal reader would have written the check against a binary the project deliberately does not ship.
 
 #### Scenario: Smoke check is excluded from the default gate
 
 - **WHEN** `make check` runs
-- **THEN** the real-browser smoke check is deselected (the marker is excluded) and no Camoufox process launches during the default gate
+- **THEN** the real-browser smoke check is deselected (the marker is excluded) and no browser process launches during the default gate
 
 #### Scenario: Smoke check verifies real JS execution on demand
 
-- **WHEN** the `browser`-marked smoke check runs against the local JS-rendering fixture with Camoufox installed
+- **WHEN** the `browser`-marked smoke check runs against the local JS-rendering fixture with a browser engine installed
 - **THEN** it launches a real browser, executes the fixture's JavaScript, and asserts `verdict == Verdict.ok` with non-empty `pre_rendered.content_md` and `js_executed == True`
 
-#### Scenario: Smoke check skips when Camoufox is absent
+#### Scenario: Smoke check skips on a machine with no engine
 
-- **WHEN** the `browser`-marked smoke check runs in an environment without the Camoufox binary
-- **THEN** the check is skipped (not failed)
+- **WHEN** the `browser`-marked smoke check runs without `A2WEB_REQUIRE_BROWSER` set and no engine launches
+- **THEN** the check is skipped (not failed), because the absence is a fact about the machine
+
+#### Scenario: Smoke check FAILS where a browser was provisioned
+
+- **WHEN** the `browser`-marked smoke check runs with `A2WEB_REQUIRE_BROWSER=1` and no engine launches
+- **THEN** the check fails, because in an environment the project controls an absent engine is a dead rung rather than an environment fact
 
 ### Requirement: Browser rendering escalates fast-to-robust by reusing the existing playbook
 

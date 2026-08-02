@@ -3,8 +3,8 @@
 Package-side frozen dataclasses with string-typed fields — the closed-enum
 `Literal` mirror lives on the domain side (`a2web.models`), and projection
 happens at the seam in `fetcher_response.build_response`. Keeping the package
-surface free of pydantic + domain imports preserves the
-`tests/test_packages_independence.py` invariant.
+surface free of pydantic + domain imports preserves the packages-boundary
+invariant, enforced by `tach.toml` (`uv run tach check`, in `make arch`).
 
 Shape comes from `eval/spikes/surface_eval_v2.py` (the pre-impl validation
 eval; findings in `eval/findings_2026-05-25-router-shape-pre-impl.md`):
