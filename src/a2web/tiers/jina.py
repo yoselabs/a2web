@@ -88,10 +88,20 @@ def _wrapper_header(text: str) -> str:
 def _unwrapped_verdict(upstream_status: int) -> Verdict:
     """Map a jina-decoded UPSTREAM status to a domain Verdict.
 
-    401/403 → `paywall` (preserves the archive-on-paywall escalation routing that
-    the gate special-case used to provide); everything else routes through the
-    tier's own `_verdict_for_status`. A wrapped 404 therefore surfaces as
-    `not_found`, no longer masked as a length_floor wall.
+    401/403 → `paywall`, which routes to `playbook._decide_paywall_or_block_archive`;
+    everything else routes through the tier's own `_verdict_for_status`. A wrapped
+    404 therefore surfaces as `not_found`, no longer masked as a length_floor wall.
+
+    This line used to say the mapping "preserves the archive-on-paywall
+    escalation routing that the gate special-case used to provide". It did not:
+    that rule required a `gate_outcome`, and this is a `tier_outcome`. The
+    mapping also lifted the status out of `connection_error`, which is what
+    every transport floor rule keys on — so a jina 401 matched NO rule at all
+    and `decide_next` returned `Continue`, with `_decide_other_4xx_escalate`
+    simultaneously documenting that "401/451 are NOT carved out". Two comments
+    each describing the other's job, and a URL falling off the tree between
+    them (ADR-0009). Fixed 2026-08-02 by keying the archive rule on the VERDICT
+    rather than on which observation kind carried it.
     """
     if upstream_status in (401, 403):
         return Verdict.paywall

@@ -232,13 +232,36 @@ def _decide_cloudflare_403_429_archive(ctx: _RuleContext) -> Action | None:
     return None
 
 
-def _decide_gate_paywall_or_block_archive(ctx: _RuleContext) -> Action | None:
-    """Gate verdict of paywall / block page → archive snapshot."""
+def _decide_paywall_or_block_archive(ctx: _RuleContext) -> Action | None:
+    """A paywall / block-page verdict → archive snapshot, WHEREVER it was raised.
+
+    Keyed on the VERDICT, never on which observation kind carried it. The
+    verdict is the decision; the kind is only where it was noticed, and routing
+    on provenance is how a2web keeps re-deriving a decision from the artifact
+    that produced it.
+
+    This used to require `gate_outcome`, which silently excluded the *stronger*
+    evidence. A gate paywall is inferred from a page a2web retrieved; a
+    transport paywall is the server SAYING SO in a 401. The certain one got less
+    escalation than the inferred one — and it did not fall through to the
+    browser floor either, because every floor rule gates on
+    `verdict is connection_error` and jina maps 401/403 to `paywall`. So a
+    tier-declared paywall matched NO rule and `decide_next` returned
+    `Continue`: no archive, no browser, no paid. A URL fell off the tree, which
+    is the ADR-0009 harm the floor exists to make impossible.
+
+    Both sides documented the routing that did not exist. `jina.py`'s mapping
+    says it "preserves the archive-on-paywall escalation routing";
+    `_decide_other_4xx_escalate` says "401/451 are NOT carved out". Each is
+    describing the other's job. Found 2026-08-02 by the
+    `walled-listing-recovered-via-archive` corpus case, on a Reuters URL that
+    401s live while Wayback holds 200s back to 2007.
+    """
     last = ctx.last
     if last is None:
         return None
     if (
-        last.kind is ObservationKind.gate_outcome
+        last.kind in (ObservationKind.gate_outcome, ObservationKind.tier_outcome)
         and last.verdict in (Verdict.paywall, Verdict.block_page_detected)
         and ctx.caps.archive_dispatches < ARCHIVE_DISPATCH_CAP
     ):
@@ -301,8 +324,16 @@ def _decide_server_5xx_escalate(ctx: _RuleContext) -> Action | None:
 def _decide_other_4xx_escalate(ctx: _RuleContext) -> Action | None:
     """Any other 4xx (excl. 403; 404/429 are their own verdicts) → browser.
 
-    401/451 are NOT carved out: a WAF issues them too, and the capped browser
-    attempt costs little; a genuine auth wall still ends in the loud terminal.
+    401/451 are NOT carved out *by this rule*: a WAF issues them too, and the
+    capped browser attempt costs little; a genuine auth wall still ends in the
+    loud terminal.
+
+    But read the guard, not just this sentence: like every floor rule it keys on
+    `verdict is connection_error`. A tier that maps a 4xx to some OTHER verdict
+    is invisible here regardless of its status code — jina maps 401/403 to
+    `paywall` and so never reaches this rule. That is intended (a paywall routes
+    to archive, which a browser without credentials cannot beat), but it means
+    this docstring alone was read for months as covering a case it cannot see.
     """
     last = _last_tier_failure(ctx)
     if last is not None and last.verdict is Verdict.connection_error and 400 <= last.status_code < 500 and last.status_code != 403:
@@ -466,9 +497,9 @@ _RULES: tuple[PlannerRule, ...] = (
         decide=_decide_cloudflare_403_429_archive,
     ),
     PlannerRule(
-        name="gate_paywall_or_block_archive",
+        name="paywall_or_block_archive",
         priority=RulePriority.LOW,
-        decide=_decide_gate_paywall_or_block_archive,
+        decide=_decide_paywall_or_block_archive,
     ),
     # Transport/status catch-all floor (LOW): declared AFTER the specific archive
     # heuristics so a Cloudflare 403/429 still routes to archive, and BEFORE

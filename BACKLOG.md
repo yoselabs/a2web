@@ -600,6 +600,57 @@ upstream request was cancelled, whether the model is still generating, or
 whether tokens were billed. The shelf version should say *the client stopped
 waiting* for the same reason.
 
+## 2026-08-02 — the judge wobble that killed a bench: contained, NOT analyzed (S, eval correctness)
+
+**Containment shipped in `dcdfd5a`. The analysis is deferred to here — do not
+read the fix as closing the question.**
+
+**What happened.** A live `make bench` died at cell 24 of 132, ~$3.18 spent, no
+report written. `_derive_reached`'s docstring claimed `overall` was "known-good"
+by the time the derive ran, because the STRICT policy had validated it. It had
+not: STRICT checks PRESENCE, never type, and the only int coercion lives in
+`_build_judge_fields`, which the funnel calls AFTER every field policy has
+resolved. A derive runs BEFORE the `into` callable, so it can never lean on it.
+One judge returned `overall: [2]`; the raw `TypeError` flew past the funnel's
+`ParseError` handler and past the runner's per-cell `except JudgeParseError` —
+a whitelist of one — and took the whole matrix with it.
+
+**What shipped:** the derive coerces and raises `ParseError`; `_funnel_verdict`
+fails ONLY as `JudgeParseError`. Both pinned by tests that go red when that fix
+alone is reverted. Verified live — the re-run completed 132/132 and the SAME
+wobble recurred **four times**, each costing one unscored cell instead of the
+run.
+
+**What is still open, and why it is not cosmetic.**
+
+1. **The wobble is recurring and trivially recoverable, and we currently discard
+   it.** 4 of 132 judge calls (~3%) returned `overall` as a ONE-ELEMENT list —
+   `[2]`, `[4]`. That is not garbage; it is an unambiguous scalar in a list. We
+   now degrade it to UNSCORED, so ~3% of the quality signal is dropped on the
+   floor every run, silently, in a benchmark whose entire job is measuring
+   quality. Decide deliberately: unwrap a length-1 list of a number (a
+   `WobbleTolerance` question, and arguably `parse_with_policy`'s job, not
+   a2web's), or keep discarding it and say so in the report.
+2. **The unscored cells are not distributed at random.** Three of the four hit
+   `webfetch_baseline`. A wobble that correlates with the system under test
+   biases a cross-system comparison, and the leaderboard's per-system `n`
+   (41 / 43 / 44) is the only place that shows it. Check whether the
+   correlation is real or coincidence before trusting a close margin — the
+   headline `a2web_extract 2.98 vs a2web_detail 2.95` is well inside it.
+3. **The isolation is still a whitelist.** The runner's three judge call sites
+   each catch exactly `JudgeParseError`. That is now sound because the funnel
+   normalizes, but the property lives in the funnel and nothing asserts the
+   runner may not grow a fourth call site that bypasses it. No guard.
+4. **Nothing bounds the blast radius of a mid-matrix crash.** `asyncio.gather`
+   over 132 cells means any one escaping exception discards 131 completed
+   results INCLUDING their spend. The rows were written to disk per-cell, but no
+   report was assembled from them. A `return_exceptions=True` + partial report
+   would have turned $3.18 of loss into $3.18 of data.
+
+The shelf-side half is filed separately as
+**"T7 promotion candidate: `llm_wobble` runs a DERIVE callable unguarded"**
+below — item 3 here is a2web's containment, that entry is the upstream fix.
+
 ## 2026-08-02 — T7 promotion candidate: `llm_wobble` runs a DERIVE callable unguarded
 
 **Filed after a live bench died at cell 24 of 132.** `llm_wobble._apply_field`

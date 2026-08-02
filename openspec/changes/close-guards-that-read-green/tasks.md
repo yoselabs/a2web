@@ -71,7 +71,7 @@ rushed at the end of a long session.
       baselines. Nothing in the corpus names a rule, so it cannot agree with the
       planner by construction. **Coverage measured, and it is thin:** deleting
       `cloudflare_403_429_archive` fails the akakce baseline; deleting
-      `gate_paywall_or_block_archive`, `exhausted_429_escalate` or
+      `paywall_or_block_archive`, `exhausted_429_escalate` or
       `gate_browser_signal` fails NOTHING. 1 of 4 probed, of fourteen rules —
       the corpus is mostly happy paths and a planner witness needs cases that
       fail interestingly. Gap recorded in `BACKLOG.md` rather than overstated.

@@ -25,7 +25,7 @@ fetch actually dispatched, produced by the real orchestrator over frozen bytes.
 Nothing in the corpus names a rule, so it cannot agree with the planner by
 construction — if a rule stops firing, the sequence changes and the baseline
 fails. Measured 2026-08-02: deleting `cloudflare_403_429_archive` breaks the
-akakce baseline. Deleting `gate_paywall_or_block_archive`,
+akakce baseline. Deleting `paywall_or_block_archive`,
 `exhausted_429_escalate`, or `gate_browser_signal` breaks NOTHING — those paths
 have no replay case yet. Recorded in `BACKLOG.md`; do not read the witness as
 covering the table.
@@ -229,6 +229,41 @@ def test_gate_paywall_retries_via_archive() -> None:
 def test_gate_block_page_retries_via_archive() -> None:
     log = [_tier(Verdict.ok), _gate(Verdict.block_page_detected)]
     assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), RetryViaArchive)
+
+
+def test_tier_declared_paywall_retries_via_archive() -> None:
+    """A paywall the SERVER declared routes like one a2web inferred.
+
+    This is the stronger evidence, and it used to get the weaker treatment: the
+    rule required `gate_outcome`, so jina's 401→`paywall` mapping matched no
+    archive rule. It did not reach the browser floor either — every floor rule
+    gates on `verdict is connection_error` — so `decide_next` returned
+    `Continue` and the URL fell off the tree with no rung attempted. That is the
+    ADR-0009 harm the floor exists to make impossible.
+
+    Live witness: `walled-listing-recovered-via-archive` (Reuters, 401 live,
+    Wayback 200s back to 2007) returned `tier=none` in the 2026-08-02 bench.
+    """
+    log = [_tier(Verdict.paywall, source="jina", status_code=401)]
+    url = "https://www.reuters.com/news/archive/technologyNews"
+    assert decide_next(log, url=url, caps=_FRESH) == RetryViaArchive(url=url)
+
+
+def test_tier_declared_block_page_retries_via_archive() -> None:
+    """Same for the sibling verdict — the pair moves together or not at all."""
+    log = [_tier(Verdict.block_page_detected, source="raw")]
+    assert isinstance(decide_next(log, url="https://x.com/", caps=_FRESH), RetryViaArchive)
+
+
+def test_tier_declared_paywall_respects_the_archive_cap() -> None:
+    """Widening WHERE the verdict may be raised must not widen HOW OFTEN.
+
+    Without this, the new tier_outcome arm could re-fire on the archive tier's
+    own failure observation and spend the budget twice.
+    """
+    spent = PlannerCaps(url_rewrites=0, archive_dispatches=1, browser_dispatches=0, paid_dispatches=0)
+    log = [_tier(Verdict.paywall, source="jina", status_code=401)]
+    assert not isinstance(decide_next(log, url="https://x.com/", caps=spent), RetryViaArchive)
 
 
 def test_clean_gate_continues() -> None:
