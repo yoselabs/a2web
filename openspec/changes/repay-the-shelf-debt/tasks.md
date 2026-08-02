@@ -162,26 +162,53 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
 
 ## 8. Make the error taxonomy live
 
-- [ ] 8.1 Make `ResourceUnavailable` (`state.py:186`), `LLMNotAvailable`
-      (`packages/llm_extract/errors.py:6`) and `JudgeParseError` (`judge.py:63`)
-      `AppError`s with proper kinds.
-- [ ] 8.2 Confirm `guard_tool`'s `except AppError` (`error_wire.py:97`) is now
-      reachable, and that the four unreachable `_KIND_LABELS` entries
-      (`:48-54`) are produced.
-- [ ] 8.3 Verify a missing LLM key no longer renders as
-      `"Internal error (UnexpectedDefect): …"`.
-- [ ] 8.4 Coordinate with `close-wire-level-adr-0009-leaks`, which covers the
-      same dead branch from the wire-leak side: this change makes it reachable,
-      that one asserts what reaches it.
+- [x] 8.1 **Two of three, and the third is DECLINED with a reason.**
+      `ResourceUnavailable` is `InfrastructureError` and `LLMNotAvailable` is
+      `AuthError` (both landed 2026-07-31). `JudgeParseError` stays a plain
+      `ValueError`: `Judge` is imported ONLY under `llm_eval/` (verified — zero
+      references in `routers.py` / `fetcher.py` / `llm_resource.py`), it is
+      raised by the bench judge and caught at three sites in `runner.py`, and it
+      never crosses the tool boundary. Typing it would make the taxonomy claim
+      something false — an `AppError` subclass advertises "this can reach the
+      wire typed", and this one structurally cannot.
+- [x] 8.2 Confirmed by execution through the real MCP transport, not by reading:
+      a `LLMNotAvailable` escaping a tool renders as
+      `Authentication required (LLMNotAvailable): …` with
+      `kind: auth`, `retryable: false` on the structured channel, and a
+      `ResourceUnavailable` as `Service unavailable (…)` with `kind: infra`,
+      `retryable: true`. The branch was reachable and unpinned — now pinned by
+      three tests in `test_error_envelope_wire.py`, reversion-verified by
+      de-typing `LLMNotAvailable` back to a bare `RuntimeError`.
+- [x] 8.3 Verified: no `Internal error` / `UnexpectedDefect` in the prose for a
+      missing key. The third test is the ANTI-VACUITY pair — a `ZeroDivisionError`
+      must still quarantine to `Internal error (UnexpectedDefect)`, so a
+      `format_error_prose` that degraded to labelling everything by class name
+      cannot pass the first two.
+- [x] 8.4 `close-wire-level-adr-0009-leaks` shipped 2026-07-31; the tests added
+      here are the "assert what reaches it" half it left open.
 - [ ] 8.5 Evaluate `a2effect.translate.raises_as` against the hand-written
       equivalents — `handlers/github.py:191-209` (9 branches),
       `tiers/jina.py:139-161`, `zyte.py:106-109`, `firecrawl.py:62-65`.
 - [ ] 8.6 Evaluate `a2effect.enrichers.pydantic_validation_error_enricher`
       against `fetcher_response.py:85-100`, which re-derives the offending field
       by hand with an `"unknown"` fallback.
-- [ ] 8.7 Read `a2effect.lint` before actioning the Rego re-homing backlog entry
-      — it is a declared-error-closure checker and may or may not be the
-      replacement.
+- [x] 8.7 **Read, run, and probed. It is NOT the Rego replacement.** Three real
+      rules exist and are registered (`A2K-RAISES-CLOSURE`,
+      `A2K-RAISES-NOT-TYPED`, `A2K-RAISES-UNCOVERED`), but they key on an
+      `Annotated[T, Raises(...)]` return-annotation convention a2web does not
+      use anywhere. **`lint_path(Path("src/a2web"))` reports 0 messages over the
+      whole tree — which reads as "clean" and means "not applicable".** That is
+      the exact guard-reads-green shape this repo keeps finding, so it is
+      recorded rather than cited as a pass.
+      Narrower still, verified by probe: `A2K-RAISES-NOT-TYPED` only flags a
+      `Raises(...)` member whose dotted prefix is in a hardcoded six-library
+      allowlist (`httpx`, `asyncpg`, `redis`, `sqlalchemy`, `fastapi`,
+      `starlette`). A probe file raising `httpx.HTTPError` fires; the identical
+      one raising `curl_cffi.CurlError` does not — and a2web's tiers use
+      `curl_cffi`, not `httpx`. So even after adopting the annotation
+      convention, it would say nothing about a2web's actual dependencies.
+      Rego was a general policy engine over arbitrary rules; this is three rules
+      over one convention. Recorded in `BACKLOG.md` against the re-homing entry.
 
 ## 9. Promote a2web's own unpromoted substrate
 

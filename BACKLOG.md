@@ -894,6 +894,31 @@ a2kit and with it the only engine that ran those policies.
   a2web-specific. (b) A local AST check under `tests/architecture/`, which is
   where a2web's other structural rules already live and needs no Rego engine.
   (b) is smaller; (a) is the one that pays for the other consumers.
+- **2026-08-02 — `a2effect.lint` is NOT the replacement. Question closed.**
+  `repay-the-shelf-debt` §8.7 asked whether it was, since a2effect ships
+  something called `lint` in a repo that records losing `a2kit lint rego` as a
+  real loss. It is not the same kind of thing. Three real, registered rules
+  exist (`A2K-RAISES-CLOSURE`, `A2K-RAISES-NOT-TYPED`, `A2K-RAISES-UNCOVERED`),
+  but all three key on an `Annotated[T, Raises(...)]` return-annotation
+  convention a2web uses nowhere. Rego was a general policy engine over arbitrary
+  rules (duplicate bodies, private-name collisions, import layering); this is
+  three rules over one convention.
+
+  **Two things worth keeping from the check.** First,
+  `lint_path(Path("src/a2web"))` returns **0 messages over the entire tree** —
+  which reads as "we pass" and means "it does not apply to us". Anyone who runs
+  it and reports green is reporting nothing; that is the shape this repo has now
+  found in `tach.toml`, `testpaths`, and the shelf catalog. Second, it is
+  narrower than even the convention suggests: `A2K-RAISES-NOT-TYPED` fires only
+  when a `Raises(...)` member's dotted prefix is in a hardcoded six-library
+  allowlist (`httpx`, `asyncpg`, `redis`, `sqlalchemy`, `fastapi`, `starlette`).
+  Probed directly — `Raises(httpx.HTTPError)` fires, `Raises(curl_cffi.CurlError)`
+  does not, and a2web's tiers use `curl_cffi`. So even after adopting the
+  annotation convention across the codebase, it would still say nothing about
+  a2web's actual dependencies.
+
+  Route (b) — a local AST check under `tests/architecture/` — therefore stands
+  unchanged as the smaller option, and route (a) is unaffected.
 - **Why deferred.** It gates nothing today that other guards do not, and the
   sunset's remaining phases are the critical path. The risk is purely that it
   is forgotten, which the `Makefile` comment and this entry exist to prevent.
