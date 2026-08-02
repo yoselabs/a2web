@@ -1,0 +1,13 @@
+{
+  "provider": "claude-code-sdk",
+  "model": "claude-haiku-4-5-20251001",
+  "reps": 1,
+  "verdicts": {},
+  "rows": [],
+  "paired_core_on_minus_off": {
+    "n": 0
+  },
+  "paired_adjacent_on_minus_off": {
+    "n": 0
+  }
+}
