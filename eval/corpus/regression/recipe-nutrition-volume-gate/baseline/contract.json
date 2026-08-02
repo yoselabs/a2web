@@ -6,6 +6,11 @@
     "listing_more"
   ],
   "status": "ok",
+  "steps": [
+    "raw:ok",
+    "extract:ok",
+    "gate:ok"
+  ],
   "tier": "raw",
   "tokens_full_max": 4113
 }

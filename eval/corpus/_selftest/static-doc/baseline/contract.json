@@ -1,5 +1,10 @@
 {
   "has_content": true,
   "status": "ok",
+  "steps": [
+    "raw:ok",
+    "extract:ok",
+    "gate:ok"
+  ],
   "tier": "raw"
 }

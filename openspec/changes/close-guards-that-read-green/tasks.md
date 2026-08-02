@@ -65,13 +65,21 @@ routing decision rather than restating it — that is new offline replay
 infrastructure, not a tweak, and it is the group most likely to be done badly if
 rushed at the end of a long session.
 
-- [ ] 4.1 Add an outcome-level witness for `actions/playbook.py` — a replay or
-      corpus case where the *result* of a routing decision is observed, not the
-      decision restated. Prefer replay (offline, always runs).
-- [ ] 4.2 Keep the four genuinely independent cases in `test_decide_next.py`
-      (`:52`, `:59` hypothesis properties; `:518` uniqueness; `:526` purity).
-      The other 49 restate the table and can stay as documentation, but must not
-      be counted as verification.
+- [x] 4.1 **Shipped as the `steps` contract key** — the ordered `tier:verdict`
+      sequence a fetch actually dispatched, projected by `replay.py::observe()`
+      from the real orchestrator over frozen bytes and blessed on all seven
+      baselines. Nothing in the corpus names a rule, so it cannot agree with the
+      planner by construction. **Coverage measured, and it is thin:** deleting
+      `cloudflare_403_429_archive` fails the akakce baseline; deleting
+      `gate_paywall_or_block_archive`, `exhausted_429_escalate` or
+      `gate_browser_signal` fails NOTHING. 1 of 4 probed, of fourteen rules —
+      the corpus is mostly happy paths and a planner witness needs cases that
+      fail interestingly. Gap recorded in `BACKLOG.md` rather than overstated.
+- [x] 4.2 The four independent cases are named in `test_decide_next.py`'s
+      docstring, which now states plainly that the rest re-encode the table they
+      check — a rule written wrong and a case written from the same
+      understanding agree, both go green, and the pair reads as proof. Kept (they
+      catch a deletion or a typo) and pointed at the foreign witness.
 
 ## 5. Constants that change behaviour
 
@@ -98,8 +106,10 @@ per 5.6 rather than faked.
       — zyte's identical 40.0 was measured to fail under concurrent load
       (`2bf60ca`) and raised to 60; firecrawl kept 40 and still carries the
       falsified "generous headroom" comment.
-- [ ] 5.6 Record the remaining unwitnessed constants in `BACKLOG.md` rather than
-      widening this change.
+- [x] 5.6 Recorded — the `2026-08-01 — deferred from close-guards-that-read-green`
+      entry names all three with the specific captured page each needs, and says
+      why hand-writing them reproduces the defect. Updated 2026-08-02 to strike
+      the §4/§6 items that have since shipped.
 
 ## 6. The corpus can see the envelope
 
@@ -116,9 +126,15 @@ result.
       `operator_hints`, `tier`, `next_links_min`, `content_includes/excludes`,
       `input_menu_includes/excludes`) into the live bench as a per-cell
       deterministic block.
-- [ ] 6.3 Add `retrieval_incomplete` and `narrative` to `replay.py::observe()`.
-      They are not in the projection, so the akakce wall baseline cannot regress
-      on them today.
+- [x] 6.3 Both in the projection, plus `narrative_present` and a
+      `narrative_includes` intent key; blessed unconditionally on any non-ok
+      status (a truthy gate would drop the key from the baseline exactly when the
+      signal went missing, taking its own assertion with it). akakce now pins
+      `retrieval_incomplete: true` + `narrative_present: true`. **Finding:**
+      `narrative` embeds real wall-clock durations ("raw → ok (8ms)"), so it was
+      the one projection field not deterministic from frozen bytes — caught
+      immediately by `test_selftest_replay_is_reproducible` and scrubbed via
+      `_DURATION_RE`, the same treatment `fetched_at` already had.
 - [ ] 6.4 Walk the 33 unread criteria. Each becomes a deterministic assertion, or
       is deleted as decorative. Do not bulk-convert — telling them apart requires
       reading each.

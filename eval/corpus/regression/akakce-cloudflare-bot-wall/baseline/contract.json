@@ -1,8 +1,14 @@
 {
   "has_content": false,
+  "narrative_present": true,
   "operator_hints": [
     "try_user_browser"
   ],
+  "retrieval_incomplete": true,
   "status": "failed",
+  "steps": [
+    "raw:rate_limited",
+    "jina:paywall"
+  ],
   "tier": "none"
 }

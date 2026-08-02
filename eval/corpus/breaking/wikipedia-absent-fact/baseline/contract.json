@@ -1,7 +1,12 @@
 {
   "answer_present": true,
   "has_content": true,
+  "next_links_min": 10,
   "status": "ok",
+  "steps": [
+    "site_handler:ok",
+    "gate:ok"
+  ],
   "tier": "site_handler:wikipedia",
   "tokens_full_max": 49536
 }

@@ -2,6 +2,10 @@
   "answer_present": true,
   "has_content": true,
   "status": "ok",
+  "steps": [
+    "site_handler:ok",
+    "gate:ok"
+  ],
   "tier": "site_handler:arxiv",
   "tokens_full_max": 1569
 }

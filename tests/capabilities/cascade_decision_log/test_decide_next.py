@@ -1,4 +1,35 @@
-"""Property + example tests for `decide_next` — the cascade-decision-log planner."""
+"""Property + example tests for `decide_next` — the cascade-decision-log planner.
+
+**Read this before adding a case here.** Most of this file is DOCUMENTATION, not
+verification, and counting it as verification is how `playbook.py` came to sit at
+1.00/1.00 coverage with nothing able to falsify it.
+
+The ~49 example tests below each construct an observation log, call
+`decide_next`, and assert the Action the rule table says it should return. That
+re-encodes the table in the test. A rule written wrong and a case written from
+the same understanding agree with each other, both go green, and the pair reads
+as proof. They are worth keeping — they are the readable statement of what each
+rule means, and they catch a typo or an accidental deletion — but they cannot
+tell you the table is RIGHT.
+
+Four tests here are genuinely independent of the table:
+
+- `test_decide_next_is_total` (hypothesis) — every input yields one valid Action.
+- `test_decide_next_respects_caps` (hypothesis) — no escalation past its budget.
+- `test_rule_names_are_unique` — a structural property of `_RULES`.
+- `test_decide_next_is_pure` — same input, same Action.
+
+The FOREIGN witness lives elsewhere, in `tests/eval_replay/`: the blessed
+`steps` key on each corpus baseline is the ordered `tier:verdict` sequence a
+fetch actually dispatched, produced by the real orchestrator over frozen bytes.
+Nothing in the corpus names a rule, so it cannot agree with the planner by
+construction — if a rule stops firing, the sequence changes and the baseline
+fails. Measured 2026-08-02: deleting `cloudflare_403_429_archive` breaks the
+akakce baseline. Deleting `gate_paywall_or_block_archive`,
+`exhausted_429_escalate`, or `gate_browser_signal` breaks NOTHING — those paths
+have no replay case yet. Recorded in `BACKLOG.md`; do not read the witness as
+covering the table.
+"""
 
 from __future__ import annotations
 

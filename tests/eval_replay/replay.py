@@ -52,6 +52,14 @@ async def replay_case(monkeypatch: pytest.MonkeyPatch, case: ReplayCase) -> dict
 
 
 _FETCHED_AT_RE = re.compile(r"fetched_at=[0-9T:+\-Z]+")
+#: Every `fmt_dur` output shape — `8ms`, `1.2s`, `12s`, `1m03s`. The narrative
+#: is built from real wall-clock timings ("raw → ok (8ms)."), so it is the one
+#: field in this projection that is NOT deterministic from frozen bytes. Caught
+#: by `test_selftest_replay_is_reproducible` the moment `narrative` was added,
+#: which is exactly what that test is for: a projection field that drifts by a
+#: millisecond would make every replay baseline flap and the corpus would be
+#: re-blessed into meaninglessness within a week.
+_DURATION_RE = re.compile(r"\b\d+m\d{2}s\b|\b\d+\.\d+s\b|\b\d+m?s\b")
 
 
 def observe(response: Any, *, input_menu: str | None = None) -> dict[str, Any]:
@@ -67,6 +75,7 @@ def observe(response: Any, *, input_menu: str | None = None) -> dict[str, Any]:
     # from frozen bytes).
     content_md = _FETCHED_AT_RE.sub("fetched_at=<scrubbed>", response.content_md or "")
     menu = _FETCHED_AT_RE.sub("fetched_at=<scrubbed>", input_menu) if input_menu else ""
+    narrative = _DURATION_RE.sub("<dur>", response.narrative or "")
     return {
         "tier": response.tier,
         "status": status,
@@ -79,6 +88,38 @@ def observe(response: Any, *, input_menu: str | None = None) -> dict[str, Any]:
         "tokens_full": response.tokens.full if response.tokens else 0,
         "next_links_count": len(response.next_links),
         "operator_hints": sorted(h.code for h in response.operator_hints),
+        # ADR-0009's two prose-independent failure signals. Absent from this
+        # projection until 2026-08-02, which meant the akakce wall baseline —
+        # the corpus's canonical "a2web was stopped and said so" case — could
+        # not regress on either. A wall that quietly stopped setting
+        # `retrieval_incomplete`, or stopped explaining itself, replayed green:
+        # `status: failed` + the `try_user_browser` hint were the only things
+        # asserted, and neither is the flag a caller branches on.
+        #
+        # `narrative` is captured as a PRESENCE bool plus the text, not as an
+        # exact match. It is tuned operator prose; asserting it byte-for-byte
+        # would make every wording pass a baseline re-bless, which is how a
+        # golden stops meaning anything. Cases that care about specific wording
+        # use the `narrative_includes` intent key.
+        # THE PLANNER'S FOREIGN WITNESS (§4.1). The ordered `(step, verdict)`
+        # pairs a fetch actually dispatched — the RESULT of every routing
+        # decision `actions/playbook.py` made, observed rather than restated.
+        #
+        # Why this and not more table tests: 49 of the 53 cases in
+        # `test_decide_next.py` assert the rule table by re-encoding the same
+        # table in the test, so a wrong rule and its test agree and both stay
+        # green. This projection is produced by a different mechanism entirely
+        # — the real orchestrator over frozen bytes — so it cannot agree with
+        # the planner by construction. If a rule stops firing, or fires where
+        # it did not, the dispatch sequence changes and the blessed baseline
+        # fails, with nothing in the corpus mentioning a rule name.
+        #
+        # Deterministic: both fields derive from frozen bytes. Durations are
+        # deliberately NOT included for the reason `_DURATION_RE` exists.
+        "steps": [f"{d.step}:{getattr(d.verdict, 'value', d.verdict)}" for d in response.diagnostics],
+        "retrieval_incomplete": bool(response.retrieval_incomplete),
+        "narrative": narrative,
+        "narrative_present": bool((response.narrative or "").strip()),
     }
 
 
@@ -97,6 +138,10 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
       tokens_full_max            observed tokens_full <= value
       next_links_min             observed next_links_count >= value
       operator_hints             exact sorted list
+      steps                      exact ordered `tier:verdict` dispatch sequence
+      retrieval_incomplete       bool match — ADR-0009's caller-facing flag
+      narrative_present          bool match — a failure must explain itself
+      narrative_includes         every listed substring IS in `narrative`
       content_includes           every listed substring IS in content_md
       content_excludes           no listed substring is in content_md
       input_menu_includes        every listed substring IS in the extractor menu
@@ -117,7 +162,7 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
         if key in {"tier", "status"}:
             if observed.get(key) != expected:
                 failures.append(f"{key}: expected {expected!r}, got {observed.get(key)!r}")
-        elif key in {"has_content", "answer_present"}:
+        elif key in {"has_content", "answer_present", "retrieval_incomplete", "narrative_present"}:
             if bool(observed.get(key)) != bool(expected):
                 failures.append(f"{key}: expected {bool(expected)}, got {bool(observed.get(key))}")
         elif key == "answer_contains":
@@ -133,6 +178,13 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
         elif key == "operator_hints":
             if observed.get("operator_hints") != list(expected):
                 failures.append(f"operator_hints: expected {expected!r}, got {observed.get('operator_hints')!r}")
+        elif key == "steps":
+            if observed.get("steps") != list(expected):
+                failures.append(
+                    f"steps: the tier dispatch sequence changed — expected {expected!r}, got {observed.get('steps')!r}. "
+                    "This is the planner's outcome-level witness: a routing rule fired differently. "
+                    "Confirm the new sequence is intended before re-blessing."
+                )
         elif key == "content_includes":
             content = observed.get("content_md") or ""
             for needle in expected:
@@ -148,6 +200,11 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
             for needle in expected:
                 if str(needle) not in menu:
                     failures.append(f"input_menu_includes: {needle!r} not in the content fed to the extractor")
+        elif key == "narrative_includes":
+            narrative = observed.get("narrative") or ""
+            for needle in expected:
+                if str(needle) not in narrative:
+                    failures.append(f"narrative_includes: {needle!r} not in narrative {narrative[:160]!r}")
         elif key == "input_menu_excludes":
             menu = observed.get("input_menu") or ""
             for needle in expected:

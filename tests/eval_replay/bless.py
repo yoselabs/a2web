@@ -36,13 +36,32 @@ def curate_contract(observed: dict[str, Any]) -> dict[str, Any]:
         contract["next_links_min"] = observed["next_links_count"]
     if observed.get("operator_hints"):
         contract["operator_hints"] = observed["operator_hints"]
+    # The planner's foreign witness — blessed unconditionally. A case that
+    # dispatched nothing is itself a fact worth pinning, and a truthy gate would
+    # let the sequence vanish from the baseline exactly when it went empty.
+    contract["steps"] = observed.get("steps", [])
+    # ADR-0009: a failed fetch must carry the caller-facing incompleteness flag
+    # AND explain itself. Blessed unconditionally on a non-ok status rather than
+    # "only when truthy" — the whole point is to catch them ceasing to be set,
+    # and a truthy-gated key would simply vanish from the baseline on re-bless,
+    # taking its own assertion with it.
+    if observed["status"] != "ok":
+        contract["retrieval_incomplete"] = bool(observed.get("retrieval_incomplete"))
+        contract["narrative_present"] = bool(observed.get("narrative_present"))
     return contract
 
 
 # Hand-authored *intent* keys — assertions about the projection, not observed
 # values. Bless carries them forward verbatim so a re-bless never silently
 # drops a case's acceptance gate.
-_INTENT_KEYS = ("content_includes", "content_excludes", "answer_contains", "input_menu_includes", "input_menu_excludes")
+_INTENT_KEYS = (
+    "content_includes",
+    "content_excludes",
+    "answer_contains",
+    "input_menu_includes",
+    "input_menu_excludes",
+    "narrative_includes",
+)
 
 
 def bless_contract(case: ReplayCase, observed: dict[str, Any]) -> None:

@@ -21,6 +21,45 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-08-02 — the planner's foreign witness covers one rule of fourteen (S, verification)
+
+`close-guards-that-read-green` §4.1 asked for an outcome-level witness for
+`actions/playbook.py` — one observing the RESULT of a routing decision rather
+than restating the decision. **Built and it works, but measure what it covers
+before treating it as coverage.**
+
+The witness is the `steps` key now blessed on every replay baseline: the ordered
+`tier:verdict` sequence a fetch actually dispatched, produced by the real
+orchestrator over frozen bytes. Nothing in the corpus names a rule, so it cannot
+agree with the planner by construction — which is exactly what the ~49 example
+tests in `test_decide_next.py` cannot claim, since they re-encode the rule table
+they are checking.
+
+**Probed by deleting rules from `_RULES` and re-running the replay suite:**
+
+| rule deleted | replay result |
+|---|---|
+| `cloudflare_403_429_archive` | akakce baseline FAILS ✓ |
+| `gate_paywall_or_block_archive` | all green — no case exercises it |
+| `exhausted_429_escalate` | all green — no case exercises it |
+| `gate_browser_signal` | all green — no case exercises it |
+
+So: 1 of 4 probed, and `_RULES` holds fourteen. The corpus's seven cases produce
+only four distinct dispatch sequences (`raw→extract→gate`, `site_handler→gate`,
+`raw→jina`, and the selftest), because every case but akakce succeeds on the
+first tier. **A planner witness needs cases that FAIL interestingly**, and the
+corpus is mostly happy paths.
+
+The work is capture-bound, not code-bound: each missing rule needs a captured
+page that provokes it (a paywall the gate flags, an exhausted 429, a JS-required
+page the gate routes to browser). Capture is the cost; the assertion is free
+once the bytes exist.
+
+**Do not delete the example tests to "fix" this.** They are the readable
+statement of what each rule means and they catch a deletion or a typo. They are
+labelled as documentation in that file's docstring; the error was ever counting
+them as verification.
+
 ## 2026-08-01 — the bench cannot separate a real quality move from noise (S, eval correctness)
 
 Source: `eval/findings_2026-08-01-pm.md` §Headline.
@@ -388,16 +427,20 @@ CAPTURED page with a specific property before a witness means anything:
 Deliberately not faked: a fixture hand-written beside the constant reproduces
 the exact defect these tasks exist to fix. They need capture work.
 
-**§4 — the playbook has no foreign witness.** 49 of 53 tests in
-`test_decide_next.py` restate the decision table; four are genuinely independent
-(two hypothesis properties, uniqueness, purity). An outcome-level witness — a
-replay observing the RESULT of a routing decision rather than the decision — is
-new offline replay infrastructure, not a tweak.
+**§4 — ~~the playbook has no foreign witness~~ SHIPPED 2026-08-02.** The witness
+is the `steps` key on every replay baseline (the dispatch sequence the real
+orchestrator produced from frozen bytes), and the 49 restating tests are now
+labelled as documentation in their own docstring. **What it covers is measured
+and thin — see the 2026-08-02 entry above; do not read it as covering the
+table.**
 
 **§6 — the corpus cannot see the envelope.** The quality judge never receives
 the fetched page (`JUDGE_V1` has slots for ask/criteria/answer only), 33 corpus
-criteria are unread, and `replay.py::observe()` omits `retrieval_incomplete` and
-`narrative` so the akakce wall baseline cannot regress on them. Includes §6.5:
+criteria are unread, and ~~`replay.py::observe()` omits `retrieval_incomplete` and
+`narrative` so the akakce wall baseline cannot regress on them~~ (SHIPPED
+2026-08-02 — both are in the projection and blessed on every non-ok case;
+`narrative` needed a duration scrub, since it embeds real wall-clock timings and
+was the one projection field not deterministic from frozen bytes). Includes §6.5:
 `_NEXT_LINKS_TEMPLATE` instructs the judge to *"never penalize an entry for
 being unfamiliar or assume it is fabricated"* — an instruction that exists
 because the judge could not verify, and which **disarms ADR-0014** once it can.
