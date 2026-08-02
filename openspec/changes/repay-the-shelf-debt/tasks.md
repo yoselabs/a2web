@@ -184,9 +184,9 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
       `test_results_tsv_stays_one_row_per_line.py`; reversion-verified (the old
       writer fails 2 of the 3).
 
-## 7. jina through `http_fetch`
+## 7. jina through `http_fetch` — DONE 2026-08-02 (shelf `http-fetch-v0.3.0`)
 
-- [ ] 7.1 Route `tiers/jina.py:18, 133-155` through `http_fetch` — it gains
+- [x] 7.1 Route `tiers/jina.py:18, 133-155` through `http_fetch` — it gains
       impersonation, conditional GET, the circuit breaker, and the `FetchVerdict`
       closed enum, none of which it has today.
       **BLOCKED ON — no, PRECEDED BY — a defect this task's own premise
@@ -438,13 +438,64 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
 
 ## 10. Close out
 
-- [ ] 10.1 `make check` green.
-- [ ] 10.2 Record which of the six shelf items landed and which are open — this
-      change is a ledger, and a partially-repaid ledger must say so.
-- [ ] 10.3 Move the closed T7 entries to `BACKLOG-CLOSED.md`. Leave the large
-      structural ones (failure-vocabulary census, elapsed-ms, handler
-      page-rendering) open — they are out of scope here.
-- [ ] 10.4 Re-record the two deliberate non-promotions so they are not
-      re-proposed: hedged-race-first-wins (one call site) and reddit's retry loop
-      (its comments encode a live-measured penalty-box model a library would take
-      the schedule from and lose the reason).
+- [x] 10.1 `make check` green — 1505 passed, 2 deselected, 1 xfailed, 91.54%
+      coverage, 141 tach tests. The one xfail is `akakce-cloudflare-bot-wall`,
+      `strict=True` with its reason inline, and it is an OPEN OPERATOR DECISION
+      (7.1), not a tolerated red.
+
+- [x] 10.2 **The ledger. Three of six repaid, one repaid-and-declined, two open
+      — and four shelf releases nobody planned.**
+
+      | shelf item | state | what landed |
+      |---|---|---|
+      | `page-tsv` | **repaid** | `page-tsv-v0.2.0` + `lean-wire-v0.2.0` — all three encoder defects, a2kay notified |
+      | `content-extract` | **repaid** | `content-extract-v0.3.0` + `convert-md-v0.9.0` — both knobs; the two funnel exemptions are retired and `trafilatura` is no longer a direct dep |
+      | `json-in-html` | **repaid, partly by declining** | `json-in-html-v0.2.0` — 2 of 4 normalizers; the other 2 were measured and are NOT generic (§5.1) |
+      | `record-mine` | **open** | capture-bound: needs a captured listing whose titles carry `role="heading"` (§2) |
+      | `dom-schema` | **open** | rot-vs-empty under a universal container (§4) |
+      | `any-browser` | **open, diagnosed** | the CDP-collapse is now a written decision in `BACKLOG.md` with its two prerequisites ordered (§5.2) — filed, not fixed |
+
+      Four shelf releases came out of this change that its proposal did not
+      name, and three of them are the more valuable half:
+      `http-fetch-v0.3.0` (the injected circuit breaker never opened —
+      **every** consumer in two repos was carrying a decoration),
+      `lean-wire-v0.3.0` (`is_empty` promoted public rather than copied a
+      fourth time), `async-scope-v0.1.0` (a2web's own `scope.py`/`lazy.py`
+      going out), and `convert-md-v0.9.0` riding the `content-extract` chain.
+
+      **What the ledger shape says.** Every item that stayed open is blocked on
+      *evidence a2web cannot fabricate* — a captured fixture, a container
+      reproduction — and not one is blocked on effort or agreement. That is the
+      right residue: the items that could be repaid from what a2web already
+      knew, were. The two declined normalizers and the declined `raises_as` /
+      `JudgeParseError` / `field_to_typer_annotation` promotions are not debt
+      either; each is a measured "not generic" with the measurement written
+      down, which is what stops it being re-proposed by the next scan.
+
+- [x] 10.3 Moved to `BACKLOG-CLOSED.md` — the five findings this change closed
+      (`prune_dict` never called, `fmt_dur` bypassed one import away,
+      `http_fetch` bypassed by jina, `lean-wire` unused where its whole reason
+      applies, and four unused `a2effect` surfaces). The T7 table in
+      `BACKLOG.md` keeps its open rows; the large structural ones
+      (failure-vocabulary census, elapsed-ms, handler page-rendering) are
+      untouched and stay open as the proposal scoped them.
+      The `a2effect` row closes as **four evaluated, two adopted** —
+      `pydantic_validation_error_enricher` adopted for field extraction,
+      `register_error_kind`/the taxonomy live, `raises_as` declined because it
+      re-raises where every named site returns a `TierResult`, and
+      `a2effect.lint` recorded as reading-green-because-not-applicable rather
+      than cited as a pass. A row that closes with two declines is closed: the
+      question "should a2web use this" has an answer.
+
+- [x] 10.4 Re-recorded in `BACKLOG-CLOSED.md` alongside the closed rows, so the
+      reasons travel with the entry rather than living only in a change that is
+      about to be archived. Both non-promotions, verbatim in intent:
+      **hedged-race-first-wins** (`tiers/archive.py`) — DEEP and STABLE, and
+      exactly one call site, so flag-when-a-second-caller-appears; and
+      **reddit's retry loop** — its comments encode a live-measured penalty-box
+      model that `tenacity`/`stamina` would take the schedule from and lose the
+      reason. Joined by the three this change added:
+      `_find_product_or_item_list` and `_normalize_commerce_row` (§5.1),
+      `raises_as` (§8.5), and `field_to_typer_annotation` — the last DEFERRED
+      rather than declined, because the generic unit is a backend-neutral
+      `analyze_param`, filed as its own change.

@@ -9,6 +9,103 @@ Nothing here is actionable. If an entry looks live again, move it back rather
 than re-deriving it.
 
 ---
+## 2026-08-02 — T7: five "adopted, then hand-rolled anyway" findings (M, structure)
+
+Closed by `repay-the-shelf-debt` §6, §7, §8. The change is not finished —
+`record-mine`, `dom-schema` and `any-browser` stay open in `BACKLOG.md` — but
+these five findings are resolved, and the reasoning is the reusable part.
+
+**A primitive can be imported, re-exported, and called from nowhere.**
+`prune_dict` was all three, while the same omit-empty question had two *other*
+answers in one file. The trap on closing it: the hand-written predicate AGREED
+with the shelf's on every type a2web uses. That is the finding, not a reprieve
+— nothing compared them, and they were never the same test (`value == []` is
+equality against a literal; `is_empty` is isinstance-plus-length, and they
+diverge on any custom `__eq__`). The fix was to promote the *predicate* public
+(`lean-wire-v0.3.0`) rather than copy it a fourth time, because `_prune_wire`
+genuinely could not use `prune_dict` itself.
+
+**"Adopted, then bypassed one import away" understates the cost.** `fmt_dur`
+was elevated and used at five sites, all in one file, while `live_sink.py`
+rendered `f"{ms/1000:.1f}s"` — and the two disagree *below* one second
+(`800ms` vs `0.8s`), not only at the ≥7s boundary the finding named. A bypass
+one import away is not a style deviation; it is a second answer that nothing
+compares.
+
+**The `results.tsv` bypass was a live data hazard, not tidiness.** Four columns
+are LLM-authored prose, and `csv.DictWriter(delimiter="\t")`'s QUOTE_MINIMAL
+emits a newline-bearing cell quoted with the newline still literal inside — so
+one logical row spans several physical lines and every `awk`/`cut` pipeline
+over the file misparses silently. This is precisely the behaviour `lean-wire`
+was adopted to replace, in the one place it was not used.
+
+**The jina bypass removed a tier from the offline test harness.** Routing it
+through `http_fetch` was the task; what the task's own premise surfaced was
+worth more. Verifying what jina would "gain" found that one of the four gains
+**did not exist** — `http_fetch`'s injected circuit breaker never opened,
+because a breaker counts what raises in its context and mapping every transport
+failure to a `FetchVerdict` and returning normally is the primitive's whole
+contract. Five consecutive failures at `threshold=2` left it
+`state=closed, failure_count=0`. Every consumer passing `breaker=` in two repos
+was carrying a decoration, and CLAUDE.md's "`purgatory` for circuit breakers"
+was false with zero enforcement. Fixed as `http-fetch-v0.3.0`, witnessed from
+both sides deliberately — the package with a counting fake (it must not depend
+on one breaker library), a2web with REAL purgatory driven through `RawTier`,
+because a fake breaker encodes the same assumption as the code, which is
+exactly how the pre-existing `_FakeBreaker` asserting `entered is True` passed
+for the defect's entire life.
+
+And the forked client was invisible to `patch_fetch_bytes`, so **every eval
+replay whose ladder reached jina made a live HTTPS request to `r.jina.ai`** — in
+CI, on every push, for the corpus's whole life, while `CassetteMiss` promised
+"replay refuses to hit the network". Measured with a `socket.getaddrinfo` spy
+before being believed. Closed at the class rather than the instance:
+`tests/eval_replay/conftest.py` fails any live DNS lookup during a replay.
+One case remains `xfail(strict)` and needs an operator decision — see
+`BACKLOG.md`.
+
+**Four unused `a2effect` surfaces: evaluated, two adopted, two declined.**
+`pydantic_validation_error_enricher` was adopted for field extraction (not
+translation — its raising shape does not fit a `tolerance="skip"` site), and
+the evaluation surfaced a real defect underneath: the hand-rolled version read
+`errors()[0]` only, so a payload violating two closed enums logged one and the
+second was invisible. `raises_as` was DECLINED on a shape mismatch that matters
+— it maps a foreign exception to a typed `AppError` and **re-raises**, while all
+four named sites catch and **return** a `TierResult` carrying a non-ok
+`Verdict`. A non-ok tier verdict is a normal ladder outcome, so routing them
+through `raises_as` would turn every recoverable tier failure into a fetch that
+stops at the first hiccup instead of escalating. `a2effect.lint` was probed and
+is **not** the Rego replacement: `lint_path(src/a2web)` reports 0 messages over
+the whole tree, which reads as "clean" and means "not applicable" — its three
+rules key on an `Annotated[T, Raises(...)]` convention a2web does not use, and
+its type allowlist covers `httpx` but not the `curl_cffi` a2web's tiers
+actually use. Recorded as guard-reads-green, never cited as a pass.
+
+### Explicitly NOT promoted, with reasons — carried forward
+
+Recorded here so the next primitives scan does not re-propose them:
+
+- **hedged-race-first-wins** (`tiers/archive.py`) — DEEP, STABLE,
+  substrate-indifferent, and exactly **one** call site.
+  Flag-when-a-second-caller-appears, not now.
+- **reddit's retry loop** — its comments encode a live-measured penalty-box
+  model that `tenacity`/`stamina` would take the schedule from and lose the
+  reason.
+- **`_find_product_or_item_list`** — a heuristic over app-state key names plus a
+  cap that is a2web's token budget, not a fact about any format.
+- **`_normalize_commerce_row`** — looked generic (schema.org `offers.price` →
+  `price`) but renders `f"{price} {currency}"` into one token: a markdown-table
+  decision wearing a normalizer's name. A generic version would keep the fields
+  apart, which is designing a new function rather than promoting one.
+- **`raises_as`** — see above; the shapes do not match.
+- **`field_to_typer_annotation`** — DEFERRED, not declined. a2kay's argparse
+  `_analyze` is a strict superset of it, so the generic unit is neither
+  function: it is `analyze_param(annotation) -> ParamSpec`, with typer and
+  argparse as thin renderers. Generic-first (shelf resolution 0010) says the
+  wrong move is to promote a2web's half and make a2kay adapt. Filed as its own
+  change.
+
+---
 ## 2026-08-02 — T4: five guards that read green while covering less than they named (M, verification)
 
 Closed by `close-guards-that-read-green` §1/§2/§3/§4/§7. The change is not

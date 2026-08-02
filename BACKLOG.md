@@ -315,7 +315,7 @@ same as ready to start.
 | 6 | `unify-the-response-contract` | T2 — absorbs the 41 external `FetchContext` reads, unblocking #7 phase two | **SHIPPED** 2026-08-01 (34/36; §2.2-2.4/2.7 remainder deferred, see tasks) → `BACKLOG-CLOSED.md` |
 | 7 | `decompose-fetcher-into-files` | T1 — the 26-file tree, the retrieval→comprehension→sufficiency loop, `install()` | **authored** |
 | 8 | `lift-the-item-set-and-renderer` | T5/T7: `domain.py`'s 360-line zero-coupling renderer (ledger Row 1), the item set (Row 2) — closes a LIVE ADR-0015 gap | **authored** |
-| 9 | `repay-the-shelf-debt` | T7: ~~`page-tsv`'s encoder defects~~ **§1 SHIPPED 2026-08-01**, five more shelf gaps, adopted-then-bypassed primitives | **in progress** |
+| 9 | `repay-the-shelf-debt` | T7: ~~`page-tsv`~~, ~~`content-extract`~~, ~~`json-in-html`~~, ~~adopted-then-bypassed primitives~~ — `record-mine` / `dom-schema` / `any-browser` open, each blocked on evidence a2web cannot fabricate | **§1, §3, §5-§10 shipped 2026-08-02** |
 | 10 | `reconcile-docs-to-shipped-system` | T6 — last, because #6/#7 re-invalidate parts of it | **authored** |
 
 **Ordering — authored is not ready.** #4 goes first: every guard the other nine
@@ -522,12 +522,12 @@ Three recurring failures, in cost order:
 | finding | tier |
 |---|---|
 | ~~[`page-tsv` still ships all three encoder defects a2web fixed](docs/findings/2026-07-31-primitives-scan.md#the-largest-un-repaid-debt-page-tsv-still-ships-all-three-encoder-defects)~~ **SHIPPED** — see below | closed |
-| [five more shelf gaps a2web has already paid for](docs/findings/2026-07-31-primitives-scan.md#five-more-shelf-gaps-a2web-paid-for) | M, shelf promotion |
-| [`prune_dict` imported, re-exported, never called](docs/findings/2026-07-31-primitives-scan.md#prune_dict--imported-re-exported-never-called) | S, structure |
-| [`fmt_dur` adopted, then bypassed one import away](docs/findings/2026-07-31-primitives-scan.md#fmt_dur--adopted-then-bypassed-one-import-away) | XS, structure |
-| [`http_fetch` bypassed by jina and three tiers](docs/findings/2026-07-31-primitives-scan.md#http_fetch--bypassed-by-jina-and-by-three-tiers-generally) | S, structure |
-| [`lean-wire` unused where its whole reason applies](docs/findings/2026-07-31-primitives-scan.md#lean-wire--not-used-where-its-whole-reason-applies) | XS, structure |
-| [four unused `a2effect` surfaces a2web hand-rolls](docs/findings/2026-07-31-primitives-scan.md#a2effect--adopted-at-one-boundary-taxonomy-unused) | M, structure |
+| [five more shelf gaps a2web has already paid for](docs/findings/2026-07-31-primitives-scan.md#five-more-shelf-gaps-a2web-paid-for) — ~~`content-extract`~~, ~~`json-in-html`~~ done; `record-mine` / `dom-schema` / `any-browser` open | M, shelf promotion |
+| ~~[`prune_dict` imported, re-exported, never called](docs/findings/2026-07-31-primitives-scan.md#prune_dict--imported-re-exported-never-called)~~ **CLOSED** 2026-08-02 → `BACKLOG-CLOSED.md` | closed |
+| ~~[`fmt_dur` adopted, then bypassed one import away](docs/findings/2026-07-31-primitives-scan.md#fmt_dur--adopted-then-bypassed-one-import-away)~~ **CLOSED** 2026-08-02 | closed |
+| ~~[`http_fetch` bypassed by jina and three tiers](docs/findings/2026-07-31-primitives-scan.md#http_fetch--bypassed-by-jina-and-by-three-tiers-generally)~~ **CLOSED** 2026-08-02 — and the breaker it would have gained never opened | closed |
+| ~~[`lean-wire` unused where its whole reason applies](docs/findings/2026-07-31-primitives-scan.md#lean-wire--not-used-where-its-whole-reason-applies)~~ **CLOSED** 2026-08-02 | closed |
+| ~~[four unused `a2effect` surfaces a2web hand-rolls](docs/findings/2026-07-31-primitives-scan.md#a2effect--adopted-at-one-boundary-taxonomy-unused)~~ **CLOSED** 2026-08-02 — 2 adopted, 2 declined with measurement | closed |
 | [ten failure vocabularies, ~21 hand-written conversion sites](docs/findings/2026-07-31-primitives-scan.md#the-failure-vocabulary-census) | L, structure |
 | [30 copies of elapsed-ms; three clocks disagree](docs/findings/2026-07-31-primitives-scan.md#elapsed-time-arithmetic--30-copies-3-clocks) | M, structure |
 | [four "how long ago" impls, four input units](docs/findings/2026-07-31-primitives-scan.md#how-long-ago--4-impls-4-input-units-3-renderings) | S, structure |
@@ -543,7 +543,7 @@ Three recurring failures, in cost order:
 | [degrade-to-default that can mask a settings rename](docs/findings/2026-07-31-primitives-scan.md#degrade-to-default-that-can-mask-a-rename) | S, correctness |
 | [the documented 5 retry layers do not hold](docs/findings/2026-07-31-primitives-scan.md#retry-the-documented-5-layers-do-not-hold) | M, docs + structure |
 | [`ProxyPool` diverges from the resource pattern](docs/findings/2026-07-31-primitives-scan.md#lifecycle-the-one-thing-that-is-a-single-concept) | XS, structure |
-| [unpromoted a2web substrate with no shelf home](docs/findings/2026-07-31-primitives-scan.md#unpromoted-a2web-substrate-with-no-shelf-home) | S, shelf promotion |
+| [unpromoted a2web substrate with no shelf home](docs/findings/2026-07-31-primitives-scan.md#unpromoted-a2web-substrate-with-no-shelf-home) — ~~`scope.py`+`lazy.py`~~ shipped as `async-scope-v0.1.0`; `field_to_typer_annotation` deferred to its own change | S, shelf promotion |
 | [CLAUDE.md drift round 2 — browser cap, globals, `to_thread`](docs/findings/2026-07-31-primitives-scan.md#doc-drift-found-in-this-round-claudemd) | S, docs — joins T6 |
 
 **Round 2 — the rule-of-three promotion ledger** (fifth agent, returned late).
@@ -577,7 +577,12 @@ hedged-race-first-wins (`tiers/archive.py:130-163`) — DEEP and STABLE but exac
 one call site, so flag-when-second-caller-appears, not now; bounded-parallelism
 (`llm_eval/runner.py:333`) — n=1, and `asyncio.Semaphore` is already the named
 concept; enum↔string round trips and dataclass→dict flattening — scanned, came up
-empty.
+empty. Joined 2026-08-02 by four more, each with its measurement in
+`BACKLOG-CLOSED.md`: `_find_product_or_item_list`, `_normalize_commerce_row`,
+`a2effect.raises_as` (it re-raises where every candidate site returns a
+`TierResult`), and `field_to_typer_annotation` — the last DEFERRED rather than
+declined, because the generic unit is a backend-neutral `analyze_param` spanning
+a2web and a2kay.
 
 ## 2026-07-31 — decompose `fetcher.py` into single-purpose files (L, structure — T1 UMBRELLA)
 
