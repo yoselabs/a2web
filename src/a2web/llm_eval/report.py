@@ -24,7 +24,14 @@ from typing import Any
 
 from lean_wire import encode_tsv
 
-from .runner import _AXIS_ATTR, AxisDisposition, EvalReport, EvalRow, row_as_flat_dict
+from .runner import (
+    _AXIS_ATTR,
+    AXIS_COVERAGE_FLOOR,
+    AxisDisposition,
+    EvalReport,
+    EvalRow,
+    row_as_flat_dict,
+)
 
 #: Columns of `results.tsv`, in order. Every axis carries its disposition
 #: beside its value: a downstream reader that sees `next_links_score` empty can
@@ -265,11 +272,16 @@ def _axis_coverage_section(report: EvalReport) -> str:
     actually measure anything" without trusting any mean above it.
     """
     lines = ["## Axis coverage\n"]
-    lines.append("| Axis | scored | not applicable | unscored |")
-    lines.append("|---|---|---|---|")
+    # The floor is printed with the numbers it judges. A gate whose threshold
+    # lives only in the source is one a reader of the artifact cannot check the
+    # table against — and this table is where a narrowing sample shows up.
+    lines.append(f"Judged-axis coverage floor: **{AXIS_COVERAGE_FLOOR:.0%}** of requested cells.\n")
+    lines.append("| Axis | scored | not applicable | unscored | coverage |")
+    lines.append("|---|---|---|---|---|")
     for name in _AXIS_ATTR:
         c = report.axis_coverage(name)
-        lines.append(f"| {name} | {c.scored} | {c.not_applicable} | {c.unscored} |")
+        pct = f"{c.scored / c.requested:.0%}" if c.requested else "—"
+        lines.append(f"| {name} | {c.scored} | {c.not_applicable} | {c.unscored} | {pct} |")
     lines.append("")
 
     reasons: dict[tuple[str, str], int] = defaultdict(int)
@@ -295,6 +307,19 @@ def _axis_coverage_section(report: EvalReport) -> str:
         for name in broken:
             c = report.axis_coverage(name)
             lines.append(f"- **{name}** — requested on {c.requested} cell(s), scored 0")
+        lines.append("")
+
+    thin = report.thin_axes()
+    if thin:
+        lines.append("### THIN AXES\n")
+        lines.append(
+            f"These axes scored below the {AXIS_COVERAGE_FLOOR:.0%} floor. The numbers are "
+            "real, but the SAMPLE narrowed — and a loss that correlates with one system "
+            "biases every cross-system comparison in this report. Check "
+            "*Why cells went unscored* above before reading them as comparable.\n"
+        )
+        for name, system, scored, requested in thin:
+            lines.append(f"- **{name}** on `{system}` — {scored}/{requested} ({scored / requested:.0%})")
         lines.append("")
     return "\n".join(lines)
 

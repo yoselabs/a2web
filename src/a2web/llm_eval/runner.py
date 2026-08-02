@@ -208,6 +208,28 @@ _AXIS_ATTR = {
 #: WebFetch-only run legitimately scores neither.
 _JUDGED_AXES = ("quality", "clarity", "next_links")
 
+#: The fraction of its REQUESTED cells a judged axis must score, PER SYSTEM, for
+#: the run to be usable. Declared, not implicit — a floor nobody can name is a
+#: floor nobody can argue with.
+#:
+#: Per system, not per run, because the denominator that matters is the one the
+#: comparison is drawn across: a run whose axis is 128/132 overall looks healthy
+#: while one system silently contributed most of the loss.
+#:
+#: **0.90 would NOT have caught 2026-08-02, and saying so is the point.** That
+#: run lost 4 of 132 quality cells; the worst system was 41/44, which is 93% —
+#: above this floor by design, because ~3% judge wobble is currently normal and
+#: a gate that fires on every run is a gate that gets ignored. What made that
+#: run untrustworthy was not the SIZE of the loss but its CORRELATION: three of
+#: four losses hit one system, on a comparison whose headline gap was 0.03. That
+#: needs a skew test against the other systems' coverage, not a floor, and it is
+#: recorded as open in `BACKLOG.md` rather than claimed here.
+#:
+#: So this catches the degradation the spec names — an axis quietly narrowing
+#: run over run — and does not catch the correlated loss. Both are real; only
+#: one is closed.
+AXIS_COVERAGE_FLOOR = 0.90
+
 
 @dataclass(slots=True)
 class EvalReport:
@@ -262,6 +284,35 @@ class EvalReport:
             if coverage.requested and coverage.scored == 0:
                 broken.append(name)
         return tuple(broken)
+
+    def thin_axes(self) -> tuple[tuple[str, str, int, int], ...]:
+        """`(axis, system, scored, requested)` for every axis/system pair that
+        scored SOME cells but fewer than `AXIS_COVERAGE_FLOOR` of them.
+
+        The gap `broken_axes` leaves. Failing only at ZERO coverage means an
+        axis can degrade from full coverage to a handful of cells across runs
+        while every run exits 0 — the honest denominator is reported, but a
+        report is not a gate: it needs a human to notice a number that shrank,
+        run over run, in a table under a leaderboard.
+
+        Split per system for the reason the denominator exists at all: the
+        numbers above it are compared ACROSS systems, so an axis at 128/132
+        overall can hide one system carrying most of the loss.
+
+        See `AXIS_COVERAGE_FLOOR` for what this deliberately does NOT catch.
+        """
+        thin: list[tuple[str, str, int, int]] = []
+        for name in _JUDGED_AXES:
+            for system in sorted({row.system for row in self.rows}):
+                rows = [r for r in self.rows if r.system == system]
+                scored = sum(1 for r in rows if r.axis(name).disposition is AxisDisposition.SCORED)
+                unscored = sum(1 for r in rows if r.axis(name).disposition is AxisDisposition.UNSCORED)
+                requested = scored + unscored
+                if not requested or scored == 0:
+                    continue  # zero coverage is `broken_axes`' call, not this one
+                if scored < requested * AXIS_COVERAGE_FLOOR:
+                    thin.append((name, system, scored, requested))
+        return tuple(thin)
 
 
 @dataclass(slots=True, frozen=True)

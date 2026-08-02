@@ -38,7 +38,7 @@ from .bench_judge import BenchJudge
 from .corpus import Corpus, CorpusError, load_corpus
 from .live_sink import LiveSink
 from .report import stats_dict, write_all
-from .runner import EvalSuite
+from .runner import AXIS_COVERAGE_FLOOR, EvalSuite
 from .systems import EvalSystem
 
 _DEFAULT_CORPUS = Path("eval/corpus.yaml")
@@ -249,6 +249,18 @@ async def _amain(argv: list[str]) -> int:
             file=sys.stderr,
         )
         return 4
+
+    thin = report.thin_axes()
+    if thin:
+        detail = ", ".join(f"{name}/{system} {scored}/{requested}" for name, system, scored, requested in thin)
+        print(
+            f"\n!! THIN AXES: {detail} — below the {AXIS_COVERAGE_FLOOR:.0%} coverage floor. "
+            "The numbers are real but the SAMPLE narrowed, and a loss that correlates with "
+            "one system biases every cross-system comparison in the report. Do not read "
+            "these axes as comparable across systems.",
+            file=sys.stderr,
+        )
+        return 5
     return 0
 
 

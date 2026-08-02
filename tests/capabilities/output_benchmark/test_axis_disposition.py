@@ -28,12 +28,20 @@ the protection has to land before a live run is spent, not after.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from a2web.llm_eval import EvalSuite, SystemResult, load_corpus
-from a2web.llm_eval.runner import AxisDisposition, _candidate_block
+from a2web.llm_eval.report import _axis_coverage_section
+from a2web.llm_eval.runner import (
+    AXIS_COVERAGE_FLOOR,
+    AxisDisposition,
+    EvalReport,
+    EvalRow,
+    _candidate_block,
+)
 from a2web.models import AskResponse, OtherPage
 from tests._helpers.llm_doubles import DoubleArm
 
@@ -353,3 +361,131 @@ class _CannedExtractProvider:
 
     async def complete(self, **kwargs: object) -> object:  # pragma: no cover - never invoked
         raise AssertionError("the extractor should not be invoked by this test")
+
+
+# --------------------------------------------------------------------- #
+# The coverage floor — the gap `broken_axes` leaves
+# --------------------------------------------------------------------- #
+
+
+def _rows(coverage: dict[str, tuple[int, int]], *, system: str) -> list[EvalRow]:
+    """Rows for one system with the given per-axis `(scored, unscored)` counts."""
+    out: list[EvalRow] = []
+    for axis_name, (scored, unscored) in coverage.items():
+        for i in range(scored + unscored):
+            row = EvalRow(
+                slug=f"{system}-{axis_name}-{i}",
+                url="https://x",
+                system=system,
+                url_class="listing",
+                task="t",
+                answer="a",
+                fetch_latency_ms=1,
+                fetch_cost_usd=0.0,
+                fetch_prompt_tokens=0,
+                fetch_completion_tokens=0,
+                fetch_error=None,
+                fetch_metadata={},
+            )
+            axis = row.axis(axis_name)
+            axis.disposition = AxisDisposition.SCORED if i < scored else AxisDisposition.UNSCORED
+            if i >= scored:
+                axis.reason = "parse_error: judge returned a list for `overall`"
+            out.append(row)
+    return out
+
+
+def _report(*rows: EvalRow) -> EvalReport:
+    now = datetime.now(UTC)
+    return EvalReport(
+        rows=list(rows),
+        corpus_path=Path("eval/corpus.yaml"),
+        output_dir=Path("unwritten-report"),
+        started_at=now,
+        ended_at=now,
+        systems=sorted({r.system for r in rows}),
+        judge_model="test",
+        provider="test",
+    )
+
+
+def _report_with(coverage: dict[str, tuple[int, int]], *, system: str = "a2web_extract") -> EvalReport:
+    """An `EvalReport` whose axes have the given `(scored, unscored)` counts.
+
+    Built from rows rather than driven through `EvalSuite`: the question here
+    is arithmetic over dispositions, and a run that produced a real 4-of-132
+    judge-parse loss on demand would be a fixture pretending to be an incident.
+    """
+    return _report(*_rows(coverage, system=system))
+
+
+def test_a_narrowed_axis_now_fails_the_run() -> None:
+    """The degradation the spec names: an axis that quietly shrinks its sample.
+
+    30 of 44 is 68% — well under the floor. `broken_axes` sees a scored axis
+    and says nothing, which is the gap this closes.
+    """
+    report = _report_with({"quality": (30, 14)})
+    assert report.broken_axes() == (), "not a zero-coverage failure — that is the point"
+    assert report.thin_axes() == (("quality", "a2web_extract", 30, 44),)
+
+
+def test_the_floor_is_per_system_not_per_run() -> None:
+    """The denominator that matters is the one the comparison is drawn across.
+
+    One system at 30/44 alongside four healthy ones is 206/220 overall — 94%,
+    above a per-RUN floor, while the system carrying the loss sits at 68%. The
+    per-run gate stays quiet; the per-system one names the system.
+    """
+    healthy = [
+        row
+        for name in ("a2web_extract", "a2web_detail", "sys_c", "sys_d")
+        for row in _rows({"quality": (44, 0)}, system=name)
+    ]
+    report = _report(*_rows({"quality": (30, 14)}, system="webfetch_baseline"), *healthy)
+
+    overall = report.axis_coverage("quality")
+    assert overall.scored / overall.requested > AXIS_COVERAGE_FLOOR, (
+        "the run-level coverage must be ABOVE the floor, or this test proves nothing "
+        "about the per-system split"
+    )
+    assert [(t[0], t[1], t[2], t[3]) for t in report.thin_axes()] == [
+        ("quality", "webfetch_baseline", 30, 44)
+    ]
+
+
+def test_the_2026_08_02_loss_is_deliberately_NOT_caught() -> None:
+    """Pinning the limit, so nobody reads this gate as covering more than it does.
+
+    That run's worst system scored 41 of 44 — 93%, above the floor by design:
+    ~3% judge wobble is currently normal and a gate firing on every run gets
+    ignored. What made the run untrustworthy was the CORRELATION (three of four
+    losses on one system, headline gap 0.03), which needs a skew test against
+    the other systems and is recorded as open in BACKLOG.md.
+
+    This test exists so that the day someone claims the floor closed that
+    incident, it contradicts them.
+    """
+    assert _report_with({"quality": (41, 3)}).thin_axes() == ()
+
+
+def test_a_full_axis_is_not_thin() -> None:
+    """The floor must be able to stay silent, or it is just an error."""
+    assert _report_with({"quality": (44, 0)}).thin_axes() == ()
+
+
+def test_a_zero_coverage_axis_is_broken_not_thin() -> None:
+    """The two gates must not both fire on one failure — `broken` is the louder
+    diagnosis and owns zero coverage outright."""
+    report = _report_with({"next_links": (0, 10)})
+    assert report.broken_axes() == ("next_links",)
+    assert report.thin_axes() == ()
+
+
+def test_the_floor_is_stated_in_the_artifact() -> None:
+    """A gate whose threshold lives only in the source is one a reader of the
+    report cannot check the table against."""
+    section = _axis_coverage_section(_report_with({"quality": (30, 14)}))
+    assert f"{AXIS_COVERAGE_FLOOR:.0%}" in section
+    assert "THIN AXES" in section
+    assert "30/44" in section

@@ -21,6 +21,31 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-08-02 — a judge loss that CORRELATES with one system still exits 0 (S, eval correctness)
+
+**Source:** `close-guards-that-read-green` §8 close-out, 2026-08-02.
+
+The coverage floor shipped the same day (`AXIS_COVERAGE_FLOOR = 0.90`, per axis
+per system) closes the degradation the spec named: an axis quietly narrowing its
+sample run over run. **It does not close the failure that actually happened.**
+
+2026-08-02: quality scored 41 / 43 / 44 across the three systems. The worst is
+93% — above the floor by design, because ~3% judge wobble is currently normal
+and a gate firing on every run is a gate that gets ignored. What made the run
+untrustworthy was not the SIZE of the loss but its CORRELATION: three of the
+four losses hit one system, on a leaderboard whose headline gap was 0.03.
+
+`test_the_2026_08_02_loss_is_deliberately_NOT_caught` pins the limit, so nobody
+later reads the floor as covering this.
+
+What it needs is a different statistic — a skew test comparing each system's
+coverage against the others' on the same axis, failing when the spread exceeds a
+declared tolerance even though every system clears the floor. Cheap, offline,
+and the natural companion to the floor.
+
+Related: the judge-wobble entry above. If ~3% recovery-on-retry lands, the floor
+can rise and this may collapse into it.
+
 ## 2026-08-02 — shelf: `record_mine`'s two detection thresholds are unwitnessed (S, shelf)
 
 **Source:** `close-guards-that-read-green` §5.1/§5.2, re-examined 2026-08-02.
