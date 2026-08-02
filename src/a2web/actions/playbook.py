@@ -75,15 +75,30 @@ class Continue:
 Action = RetryViaArchive | RewriteUrl | EscalateBrowser | EscalatePaid | Continue
 
 
+#: Per-fetch escalation budgets — ONE declaration site each.
+#:
+#: These were literals: `< 1` and `< 2` spelled at eleven places across the
+#: planner and the orchestrator, in two modules that cannot see each other's
+#: copies. That is the shape `NEXT_LINKS_CAP` was extracted for — one stated
+#: invariant with six implementations, one of which shipped five times the cap
+#: while a probe recorded the violation as healthy.
+#:
+#: `PAID_DISPATCH_CAP` is the one that costs money, and it is SHARED by four
+#: independent claimants (see `fetcher.paid_budget_available`).
+URL_REWRITE_CAP = 1
+ARCHIVE_DISPATCH_CAP = 1
+#: Two: the fast Chromium rung then the robust CDP rung. The fast→robust ladder
+#: IS the browser rule firing twice.
+BROWSER_DISPATCH_CAP = 2
+#: One paid last-resort attempt per fetch. Cost-incurring; never speculative.
+PAID_DISPATCH_CAP = 1
+
+
 @dataclass(slots=True, frozen=True)
 class PlannerCaps:
     """Per-fetch escalation budgets the planner must respect.
 
-    `url_rewrites` and `archive_dispatches` are capped at 1; `browser_dispatches`
-    is capped at 2 — the fast Chromium rung then the robust CDP rung (the
-    fast→robust browser ladder is the browser rule firing twice).
-    `paid_dispatches` is capped at 1 — a single paid last-resort attempt per
-    fetch (cost-incurring; never speculative).
+    Ceilings are the module constants above, not literals repeated per rule.
     """
 
     url_rewrites: int
@@ -142,7 +157,7 @@ _REDDIT_COMMENT_RE = re.compile(r"^https?://(?:www\.|old\.|np\.)?reddit\.com/r/[
 
 def _decide_arxiv_pdf_rewrite(ctx: _RuleContext) -> Action | None:
     """arxiv PDF → abs-page rewrite (URL-based; fires regardless of verdict)."""
-    if ctx.caps.url_rewrites >= 1:
+    if ctx.caps.url_rewrites >= URL_REWRITE_CAP:
         return None
     arxiv_match = _ARXIV_PDF_RE.match(ctx.url)
     if arxiv_match is None:
@@ -169,7 +184,7 @@ def _decide_gate_browser_signal(ctx: _RuleContext) -> Action | None:
         and last.escalation is not None
         and last.escalation.next_tier == "browser"
         and last.verdict is not Verdict.ok
-        and ctx.caps.browser_dispatches < 2
+        and ctx.caps.browser_dispatches < BROWSER_DISPATCH_CAP
     ):
         return EscalateBrowser()
     return None
@@ -195,7 +210,7 @@ def _decide_reddit_comment_not_found_archive(ctx: _RuleContext) -> Action | None
         and last.verdict is Verdict.not_found
         and (last.authoritative or last.status_code == 404)
         and _REDDIT_COMMENT_RE.match(ctx.url) is not None
-        and ctx.caps.archive_dispatches < 1
+        and ctx.caps.archive_dispatches < ARCHIVE_DISPATCH_CAP
         and not any(o.subsystem == "js_required" for o in ctx.log)
     ):
         return RetryViaArchive(url=ctx.url)
@@ -207,7 +222,12 @@ def _decide_cloudflare_403_429_archive(ctx: _RuleContext) -> Action | None:
     last = ctx.last
     if last is None:
         return None
-    if last.kind is ObservationKind.tier_outcome and last.cloudflare and last.status_code in (403, 429) and ctx.caps.archive_dispatches < 1:
+    if (
+        last.kind is ObservationKind.tier_outcome
+        and last.cloudflare
+        and last.status_code in (403, 429)
+        and ctx.caps.archive_dispatches < ARCHIVE_DISPATCH_CAP
+    ):
         return RetryViaArchive(url=ctx.url)
     return None
 
@@ -220,7 +240,7 @@ def _decide_gate_paywall_or_block_archive(ctx: _RuleContext) -> Action | None:
     if (
         last.kind is ObservationKind.gate_outcome
         and last.verdict in (Verdict.paywall, Verdict.block_page_detected)
-        and ctx.caps.archive_dispatches < 1
+        and ctx.caps.archive_dispatches < ARCHIVE_DISPATCH_CAP
     ):
         return RetryViaArchive(url=ctx.url)
     return None
@@ -257,7 +277,7 @@ def _last_tier_failure(ctx: _RuleContext) -> Observation | None:
     last = ctx.last
     if last is None or last.kind is not ObservationKind.tier_outcome:
         return None
-    if ctx.caps.browser_dispatches >= 2:
+    if ctx.caps.browser_dispatches >= BROWSER_DISPATCH_CAP:
         return None
     return last
 
@@ -423,7 +443,7 @@ def _decide_paid_last_resort(ctx: _RuleContext) -> Action | None:
     last = ctx.last
     if last is None:
         return None
-    if last.kind is ObservationKind.gate_outcome and _is_paid_worthy_wall(last) and ctx.caps.paid_dispatches < 1:
+    if last.kind is ObservationKind.gate_outcome and _is_paid_worthy_wall(last) and ctx.caps.paid_dispatches < PAID_DISPATCH_CAP:
         return EscalatePaid()
     return None
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .playbook import (
+    PAID_DISPATCH_CAP,
     Action,
     Continue,
     EscalateBrowser,
@@ -14,6 +15,7 @@ from .playbook import (
 )
 
 __all__ = [
+    "PAID_DISPATCH_CAP",
     "Action",
     "Continue",
     "EscalateBrowser",

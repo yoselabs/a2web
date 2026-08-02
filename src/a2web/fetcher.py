@@ -45,7 +45,16 @@ from record_mine import Record, RecordSet, extract_records
 
 from . import content_expectations
 from . import log as a2web_log
-from .actions import Action, EscalateBrowser, EscalatePaid, PlannerCaps, RetryViaArchive, RewriteUrl, decide_next
+from .actions import (
+    PAID_DISPATCH_CAP,
+    Action,
+    EscalateBrowser,
+    EscalatePaid,
+    PlannerCaps,
+    RetryViaArchive,
+    RewriteUrl,
+    decide_next,
+)
 from .actions.empty import is_complete_small_page, is_confirmed_empty
 from .actions.terminal import TerminalOutcome, classify_terminal
 from .cache import CacheRow, SqliteResource
@@ -1168,6 +1177,28 @@ def _install_gate_archive(fc: FetchContext, outcome: _ArchiveOutcome) -> None:
     fc.snapshot_taken_at = outcome.snapshot_taken_at
 
 
+def paid_budget_available(fc: FetchContext) -> bool:
+    """One paid dispatch per fetch, claimed by four independent callers.
+
+    The claimants, in the order they get to ask — which is the phase order, and
+    therefore the precedence:
+
+    1. `_phase_gate_and_escalate`'s forced site render (`render_requested`)
+    2. the planner's `paid_last_resort` rule, post-gate
+    3. `_obstacle_wants_render` — the extractor said the answer is not here
+    4. `_listing_wants_render` — a partial listing worth scrolling
+
+    **The precedence is real and is now stated rather than emergent.** It was
+    four independent `paid_dispatches < 1` tests whose winner fell out of which
+    phase happened to run first; reading the code told you the cap four times and
+    the order zero times. This function does not CHANGE who wins — that would be
+    a behaviour change, and this is a move — it makes the answer readable in one
+    place. If the precedence should be different (an obstacle render arguably
+    beats a listing scroll on value per dollar), that is its own change.
+    """
+    return fc.paid_dispatches < PAID_DISPATCH_CAP
+
+
 def _planner_caps(fc: FetchContext) -> PlannerCaps:
     """Snapshot the per-fetch escalation budgets for the planner."""
     return PlannerCaps(
@@ -2123,7 +2154,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
     # the own-browser is unreliable on them. On success the paid content installs
     # and is gated below like any other; if no paid tier is keyed, `_escalate_paid`
     # is a no-op and the empty body falls through to the never-silently-miss hint.
-    if fc.render_requested and fc.pre_rendered_payload is None and fc.paid_dispatches < 1:
+    if fc.render_requested and fc.pre_rendered_payload is None and paid_budget_available(fc):
         await escalate(fc, Rung.paid, state=state)
         # Paid tier absent/failed → try the own-browser BEFORE conceding. The
         # ladder is paid-scraper → real-browser → hint: a real (anti-detect)
@@ -2747,18 +2778,7 @@ async def _run_phases(
     # v0.4: optional LLM extraction. Runs only when ask= is set and the fetch
     # succeeded (or a complete-small-page was promoted). Graceful when no API key +
     # no Claude Code OAuth available.
-    await _phase_extract_answer(fc, state=state)
-    # Obstacle-driven render: when the extractor flagged an empty/blocked
-    # obstacle (a fat SPA shell that passed the gate), attempt one paid render +
-    # re-extraction before declaring the retrieval incomplete. Runs BEFORE
-    # cache_write so the final (possibly re-rendered) body is cached once and a
-    # confabulated shell never lands in the cache.
-    await _phase_obstacle_render(fc, state=state)
-    # Listing scroll-to-complete: when a partial listing was flagged and
-    # `complete_listings` is enabled, dispatch one bounded scrolling render to
-    # load the rest of the items (shares the obstacle/wall paid-dispatch cap).
-    # Runs BEFORE cache_write so the completed body is the one cached.
-    await _phase_listing_render(fc, state=state)
+    await _phase_answer(fc, state=state)
     await _phase_cache_write(fc, state=state)
     # empty-vs-wall-discrimination: promote a corroborated empty result to `ok`
     # BEFORE the failure floor. Runs after cache_write (which declines it — the
@@ -2852,6 +2872,41 @@ async def _record_uptake(fc: FetchContext, state: AppState) -> None:
             await a2web_log.info("other_pages_suggested", url=fc.requested_url, count=stored)
     except (aiosqlite.Error, OSError) as exc:  # telemetry is best-effort — never break the fetch
         log_warning("uptake_write_failed", error=str(exc))
+
+
+async def _phase_answer(fc: FetchContext, *, state: AppState) -> None:
+    """The answer, and the two renders that can invalidate it — one head, one caller.
+
+    `_phase_extract_answer` was entered from THREE places and is not idempotent,
+    which is the design's "answer is being used as the loop body". The
+    re-entries were correct; what was wrong is that they were invisible. Each
+    render phase decided for itself whether the answer needed recomputing, so
+    "how many LLM calls does a fetch make" was a property of which phases
+    happened to fire, answerable only by reading three functions.
+
+    Both renders run BEFORE `_phase_cache_write`, so the final (possibly
+    re-rendered) body is the one cached and a confabulated shell never lands in
+    the cache. The sequence is exactly the previous one — answer, obstacle
+    render, answer-if-changed, listing render, answer-if-changed — hoisted, not
+    reordered. Deliberately NOT a `while` loop: that would re-run the obstacle
+    render after a listing render changed the content, which is a second render
+    nobody asked for.
+
+    What this does not fix, because it is a behaviour change and this is a move:
+    a second entry OVERWRITES `fc.extraction_meta`, so a fetch that made two LLM
+    calls reports the tokens and cost of one. Filed in `BACKLOG.md`.
+    """
+    await _phase_extract_answer(fc, state=state)
+    # Obstacle-driven render: the extractor flagged an empty/blocked obstacle (a
+    # fat SPA shell that passed the gate) — one paid render, then re-answer over
+    # the real content.
+    if await _phase_obstacle_render(fc, state=state):
+        await _phase_extract_answer(fc, state=state)
+    # Listing scroll-to-complete: a partial listing plus `complete_listings` —
+    # one bounded scrolling render (sharing the obstacle/wall paid budget), then
+    # re-answer over the fuller page.
+    if await _phase_listing_render(fc, state=state):
+        await _phase_extract_answer(fc, state=state)
 
 
 async def _phase_extract_answer(
@@ -3032,7 +3087,7 @@ def _obstacle_wants_render(fc: FetchContext) -> bool:
     """
     if fc.ask is None or fc.routing is None:
         return False
-    if fc.paid_dispatches >= 1:
+    if not paid_budget_available(fc):
         return False
     if fc.routing.obstacle not in _INCOMPLETE_OBSTACLES:
         return False
@@ -3044,30 +3099,30 @@ def _obstacle_wants_render(fc: FetchContext) -> bool:
     return looks_like_unrendered_spa(raw)
 
 
-async def _phase_obstacle_render(fc: FetchContext, *, state: AppState) -> None:
+async def _phase_obstacle_render(fc: FetchContext, *, state: AppState) -> bool:
     """Attempt one paid render when the extractor flagged an unretrieved obstacle.
 
     The extractor is the only component that can say "the answer isn't in this
     content" (a fat SPA shell that passed the gate). When it reports
     `obstacle ∈ {empty, blocked}`, dispatch one paid render of the original URL —
-    `_escalate_paid` already installs the rendered `content_md`, runs the
-    extraction-escalation ladder, and re-gates — then re-run answer extraction
-    over the real content. If the render produced nothing new (no paid tier keyed,
-    failure, or an identical body), the v0.29.0 `retrieval_incomplete` signal
-    stands (never-silently-miss). Bounded to one render + one extra LLM call.
+    `escalate` installs the rendered content and comprehends it. If the render
+    produced nothing new (no paid tier keyed, failure, or an identical body), the
+    v0.29.0 `retrieval_incomplete` signal stands (never-silently-miss). Bounded
+    to one render + one extra LLM call.
+
+    Returns whether the content changed. It does NOT re-run the answer itself:
+    `_phase_answer` owns that, so the number of LLM calls a fetch makes is
+    countable at one place instead of being a property of which render phases
+    happened to fire.
     """
     if not _obstacle_wants_render(fc):
-        return
+        return False
     prev_md = fc.content_md
     await escalate(fc, Rung.paid, state=state)
-    if fc.content_md == prev_md:
-        # No new content (unavailable / failed / paid_auth_error hard-stop /
-        # identical shell) — leave the obstacle-flagged answer; the surviving
-        # obstacle drives retrieval_incomplete in build_ask_response.
-        return
-    # Fresh content installed by the render — re-extract the answer over it. The
-    # fresh obstacle is now authoritative for completeness.
-    await _phase_extract_answer(fc, state=state)
+    # No new content (unavailable / failed / paid_auth_error hard-stop /
+    # identical shell) — leave the obstacle-flagged answer; the surviving
+    # obstacle drives retrieval_incomplete in build_ask_response.
+    return fc.content_md != prev_md
 
 
 def _listing_wants_render(fc: FetchContext, *, settings: AppSettings) -> bool:
@@ -3094,14 +3149,14 @@ def _listing_wants_render(fc: FetchContext, *, settings: AppSettings) -> bool:
         return False
     if fc.items_total is None:
         return False
-    if fc.paid_dispatches >= 1:
+    if not paid_budget_available(fc):
         return False
     if fc.tier_used in _JS_EXECUTED_TIERS:
         return False
     return fc.items_total <= settings.listing_scroll_max
 
 
-async def _phase_listing_render(fc: FetchContext, *, state: AppState) -> None:
+async def _phase_listing_render(fc: FetchContext, *, state: AppState) -> bool:
     """Complete a partial listing with one bounded scrolling render (Slice 2 / 2b).
 
     Free own-browser first, paid egress second (spec: own-browser preferred).
@@ -3115,24 +3170,23 @@ async def _phase_listing_render(fc: FetchContext, *, state: AppState) -> None:
     rendered, the Slice 1 signal stands unchanged.
     """
     if not _listing_wants_render(fc, settings=state.settings):
-        return
+        return False
     prev_md = fc.content_md
     # Free own-browser scroll first — no egress cost, just latency.
     if state.settings.browser_enabled:
         await escalate(fc, Rung.browser, state=state, scroll=True)
     # Paid fallback only if the free attempt changed nothing and budget remains.
-    if fc.content_md == prev_md and fc.paid_dispatches < 1:
+    if fc.content_md == prev_md and paid_budget_available(fc):
         await escalate(fc, Rung.paid, state=state, scroll=True)
     if fc.content_md == prev_md:
-        return  # nothing rendered → the partial signal stands (never-silently-miss).
+        return False  # nothing rendered → the partial signal stands (never-silently-miss).
     # The re-assessment is NOT re-implemented here any more. `escalate` ran
     # `_comprehend`, which re-ran `_phase_listing_completeness` over the fuller
     # page: complete → the signal is cleared, still short → it stands with the
     # updated count. This block existed only because there was no loop head to
     # return to, and it read the OLD `fc.items_total` where the loop head reads
     # the re-rendered page's own oracle.
-    if fc.ask is not None:
-        await _phase_extract_answer(fc, state=state)
+    return True
 
 
 def _to_llm_next_link(nl: NextLink) -> LlmNextLink:

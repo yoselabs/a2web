@@ -230,12 +230,61 @@ against.
       One improvement falls out: the deleted block re-assessed against the OLD
       `fc.items_total`, while the loop head reads the re-rendered page's own
       oracle.
-- [ ] 3.5 Make `_phase_extract_answer` non-re-entrant. It is currently entered 3×
-      and is not idempotent — *answer* is being used as the loop body.
+- [x] 3.5 **One caller now — `_phase_answer` — and the re-entry is visible
+      instead of eliminated.** The three entries were the phase sequence plus
+      each render phase deciding for itself whether the answer needed
+      recomputing. The re-entries are CORRECT: an obstacle render exists
+      precisely because the answer said the content was not here, and re-running
+      it over fresh content is the point. What was wrong is that they were
+      invisible — "how many LLM calls does this fetch make" was answerable only
+      by reading three functions.
+      So both render phases now return "content changed" and re-answering is the
+      head's job. The sequence is byte-identical (answer → obstacle →
+      answer-if-changed → listing → answer-if-changed), hoisted, not reordered.
+      **Deliberately NOT a `while` loop**: that would re-run the obstacle render
+      after a listing render changed the content, which is a second render
+      nobody asked for.
+      **Two real defects fell out of making the re-entry visible**, both filed
+      rather than fixed (behaviour change, and this is a move):
+      `fc.extraction_meta` is OVERWRITTEN on the second call, so a fetch that
+      made two billed LLM calls reports one call's tokens and cost — biased
+      toward the expensive fetches, since a render is what triggers the second
+      call; and `fc.next_links_llm` is assigned only inside
+      `if result.next_links:`, so a second extraction returning none leaves the
+      FIRST call's links in place, validated against markdown that has since
+      been replaced. That is an ADR-0014 violation reached by staleness rather
+      than hallucination, on the exact path a guard exists to protect.
+      `test_the_answer_stage_has_exactly_one_caller` keeps the re-entry pinned
+      to one site while they are open.
+      **The §1.4 guard earned itself here**: it was written against the direct
+      `_phase_extract_answer` call in `_run_phases` and went red the moment the
+      call became indirect. The constraint had not changed, so the guard
+      followed the indirection rather than being deleted — which is the whole
+      reason it was written before any cutting.
 - [ ] 3.6 Confirm the `retrieval → comprehension` import cycle is gone. The cycle
       was the loop; if it survives, the loop was not modelled.
-- [ ] 3.7 Resolve the paid budget explicitly rather than by call order across
-      four competitors.
+      **Deferred to §4** — there are no files yet for a cycle to exist between.
+      The loop is modelled (`escalate` → `_comprehend`, one direction), so the
+      prediction is that the split is now possible; §4 is the test of it.
+- [x] 3.7 **Partly. The cap is now single-sited and the four claimants share one
+      predicate; the PRECEDENCE is stated rather than changed — and saying so is
+      the honest half.**
+      What was there: eleven `< 1` / `< 2` literals across `playbook.py` and
+      `fetcher.py`, in two modules that cannot see each other's copies. That is
+      the `NEXT_LINKS_CAP` shape exactly — one stated invariant with six
+      implementations, one of which shipped five times the cap while a probe
+      recorded the violation as healthy. Now `URL_REWRITE_CAP`,
+      `ARCHIVE_DISPATCH_CAP`, `BROWSER_DISPATCH_CAP` and `PAID_DISPATCH_CAP` are
+      declared once in `actions/playbook.py` (the pure module both sides may
+      import), and the four paid claimants call `paid_budget_available(fc)`.
+      What was NOT done, deliberately: the winner is still decided by call
+      order. Four independent tests whose outcome fell out of which phase ran
+      first is now one function whose docstring NAMES the four claimants in
+      precedence order — forced site render, planner last-resort, obstacle
+      render, listing scroll. Reading the code told you the cap four times and
+      the order zero times; it now tells you the order once. Changing who wins
+      (an obstacle render arguably beats a listing scroll on value per dollar)
+      is a behaviour change and belongs to its own change.
 
 ## 4. Phase one — the tree
 

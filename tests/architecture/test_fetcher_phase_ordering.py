@@ -125,6 +125,7 @@ def test_the_terminal_floor_runs_after_both_promotions_and_after_the_answer() ->
         "_run_phases",
         "_run_pipeline",
         "_phase_complete_small_page_promotion",
+        "_phase_answer",
         "_phase_extract_answer",
         "_phase_empty_promotion",
         "_apply_terminal",
@@ -132,7 +133,12 @@ def test_the_terminal_floor_runs_after_both_promotions_and_after_the_answer() ->
     phases = fns["_run_phases"]
 
     small_page = _call_lines(phases, "_phase_complete_small_page_promotion")
-    answer = _call_lines(phases, "_phase_extract_answer")
+    # `_phase_answer` is the answer stage's head (§3.5). This guard caught the
+    # hoist — it was written against the direct `_phase_extract_answer` call and
+    # went red the moment the call became indirect, which is exactly what an
+    # anti-seam guard is for: the constraint did not change, so the guard had to
+    # follow the indirection rather than be deleted.
+    answer = _call_lines(phases, "_phase_answer")
     empty = _call_lines(phases, "_phase_empty_promotion")
     assert small_page and answer and empty, "the promotion/answer chain is no longer called from _run_phases"
     assert max(small_page) < min(answer), (
@@ -151,6 +157,27 @@ def test_the_terminal_floor_runs_after_both_promotions_and_after_the_answer() ->
     )
     assert _call_lines(fns["_run_pipeline"], "_apply_terminal"), (
         "`_apply_terminal` is no longer called from the coordinator — ADR-0009's floor is off"
+    )
+
+
+def test_the_answer_stage_has_exactly_one_caller() -> None:
+    """`_phase_extract_answer` is not idempotent, so who re-enters it must be one place.
+
+    It was entered from three (§3.5): the phase sequence, plus each render phase
+    deciding for itself whether the answer needed recomputing. The re-entries
+    were correct; being invisible was not — "how many LLM calls does this fetch
+    make" was answerable only by reading three functions, and the two known
+    non-idempotencies (a stale `next_links_llm` surviving from the pre-render
+    content, and `extraction_meta` overwritten so a two-call fetch reports one
+    call's tokens) are both consequences of re-entry nobody was counting.
+    """
+    fns = _index_functions()
+    _require(fns, "_phase_answer", "_phase_extract_answer")
+    callers = sorted(name for name, node in fns.items() if name != "_phase_extract_answer" and _call_lines(node, "_phase_extract_answer"))
+    assert callers == ["_phase_answer"], (
+        f"`_phase_extract_answer` is entered from {callers}. It is not idempotent — a second "
+        "entry overwrites the extraction metadata and can leave links validated against content "
+        "that has since been replaced. Route the re-entry through `_phase_answer`."
     )
 
 

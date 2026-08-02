@@ -477,6 +477,39 @@ along. The failure it caught — the dead `--no-sandbox` rung — is unguarded i
 a2web today. Either restore a witness for whichever fakes a2web still
 hand-writes, or verify that `any_browser` holds it.
 
+## 2026-08-02 — a two-LLM-call fetch reports one call's tokens (S, cost truthfulness)
+
+**Surfaced by `decompose-fetcher-into-files` §3.5, deliberately not fixed there**
+— it is a behaviour change and that change lands only the move. Two
+non-idempotencies in `_phase_extract_answer`, both consequences of re-entry
+nobody was counting until the re-entry was hoisted to one head (`_phase_answer`).
+
+**1. `extraction_meta` is overwritten, not accumulated.** An obstacle render or
+a listing scroll re-runs extraction, and the second run replaces
+`fc.extraction_meta` wholesale — `prompt_tokens`, `completion_tokens`,
+`cost_usd`, `latency_ms`. So a fetch that made TWO billed LLM calls reports the
+cost of one. The wire's `tokens` block and every eval-harness cost column
+under-report by exactly the calls a render triggered, which is the population
+where cost is highest — the under-report is biased toward the expensive fetches.
+
+**2. `next_links_llm` can survive content it no longer describes.** The
+assignment sits inside `if request_next_links and result.next_links:`, so a
+second extraction that returns NO links leaves the first call's list in place —
+links validated against the pre-render markdown, presented alongside an answer
+derived from the post-render page. `_validate_llm_next_links_against_markdown`
+exists precisely to stop a URL that is not on the page from reaching the
+caller (ADR-0014); this route gets one there anyway, by staleness rather than
+hallucination.
+
+**Fix shape.** (1) wants accumulation, not assignment: sum the token counts and
+costs across entries, keep the last model/template, and decide what `cache_hit`
+means across two calls. (2) wants an unconditional assignment — `fc.next_links_llm
+= validated` with `validated` empty when the model returned nothing — plus a test
+that a second extraction returning no links CLEARS the first one's.
+
+Both are pinned open by `test_the_answer_stage_has_exactly_one_caller`, which
+keeps the re-entry visible at a single site while they are unfixed.
+
 ## 2026-08-02 — a failed archive dispatch leaves no diagnostic row (S, ADR-0009 visibility)
 
 **Decided in `decompose-fetcher-into-files` §1.3, deliberately not applied there**
