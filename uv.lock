@@ -112,7 +112,7 @@ requires-dist = [
     { name = "http-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-cache&tag=http-cache-v0.1.0" },
     { name = "http-fetch", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fhttp-fetch&tag=http-fetch-v0.3.0" },
     { name = "httpx", specifier = ">=0.27,<1" },
-    { name = "json-in-html", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.1.0" },
+    { name = "json-in-html", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.2.0" },
     { name = "lean-wire", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Flean-wire&tag=lean-wire-v0.3.0" },
     { name = "llm-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-cache&tag=llm-cache-v0.1.2" },
     { name = "llm-wobble", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-wobble&tag=llm-wobble-v0.4.0" },
@@ -1552,8 +1552,8 @@ wheels = [
 
 [[package]]
 name = "json-in-html"
-version = "0.1.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.1.0#bed84775b4b90335e27f4a997da75c3e5a7faf10" }
+version = "0.2.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fjson-in-html&tag=json-in-html-v0.2.0#438ceda9d63cd76cd71d248ee27d2f6f620ddf67" }
 dependencies = [
     { name = "selectolax" },
 ]

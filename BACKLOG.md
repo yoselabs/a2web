@@ -2794,3 +2794,37 @@ API handlers did not. Renaming the literal is wire-visible on the candidate menu
 so it was deliberately not done inside a change whose value is one measured
 behaviour delta. It will confuse the next person reading a candidate menu from a
 handler fetch.
+
+## `any-browser` container CDP-connect failure — the robust rung silently collapses (M, 2026-08-02)
+
+In the slim container, **zendriver's CDP handshake fails while patchright
+launches**, so `browser_robust_backend` falls back to the same engine as the
+fast rung. The escalation still *happens* — a fast-rung failure dispatches the
+robust rung, the tier reports a second attempt, the decision log records two
+browser dispatches — but both attempts run the same engine, so the second one
+is a retry wearing an escalation's name.
+
+**Why this is worth an entry rather than a shrug.** The fast/robust split exists
+because the two engines fail differently; a rung that silently becomes its twin
+converts "we tried a genuinely different renderer and it also failed" into "we
+tried the same thing twice", and the fetch reports the former. That is the
+ADR-0009 shape one level down: not a silent miss, but a silently *weaker* effort
+than the response claims.
+
+Observable, not fixed: `correlated_witness` surfaces the engine actually used, so
+an operator comparing the two dispatches can see they match. Nothing asserts it.
+
+Two things to establish before fixing, in this order — the second is the
+decision, and the first is what makes it answerable:
+
+1. **Is it the container or the engine?** zendriver connects over CDP to a
+   browser it expects to have launched; the slim image drops the
+   `[browser]` extra's full dependency set. Reproduce outside the container
+   before blaming either.
+2. **What should a collapsed rung DO?** Options: fail the robust dispatch loudly
+   (honest, costs the retry), keep the retry but stop calling it an escalation
+   in the decision log (honest, cheaper, weaker), or ship the engine. Only the
+   third is a fix; the first two are the floor while it is not fixed, and the
+   floor is what ADR-0009 actually requires.
+
+Filed from `repay-the-shelf-debt` §5.2.

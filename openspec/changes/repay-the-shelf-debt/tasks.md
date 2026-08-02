@@ -108,13 +108,48 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
 
 ## 5. `json-in-html` and `any-browser`
 
-- [ ] 5.1 Promote the normalization layer — ~270 lines of LD/microdata/OG →
-      uniform rows at `domain.py:262-292, 383-416, 501-545`. **Sequence after
-      `lift-the-item-set-and-renderer`** has moved the renderer.
-- [ ] 5.2 File the `any-browser` container CDP-connect failure: zendriver's
-      handshake fails in the slim container while patchright launches, so the
-      robust rung silently collapses to the same engine. `correlated_witness`
-      makes it observable; it is not fixed.
+- [x] 5.1 **Two of four promoted** (`json-in-html-v0.2.0`, ledger 0083,
+      adopted; both local copies deleted). `microdata_to_ld` and `ld_entries`
+      now come from the shelf.
+      The siting argument for `microdata_to_ld` is the strongest available and
+      is not "a2web happens to have this code": `json-in-html` EMITS
+      `source="microdata"` in extruct's raw `{"type": [...], "properties": {…}}`
+      shape, and already DECODES that shape internally (`rank_payloads` reaches
+      into it to score the payload) — so it was shipping a source no consumer
+      could use without privately rewriting the adapter the package had already
+      written. `ld_entries` is smaller and subtler: LD-JSON arrives bare, as a
+      list, or under `@graph`, and `@graph` is what the RICHEST pages emit. The
+      failure is quiet in the worst way — the outer object looks like a valid
+      entity, so a consumer that does not descend finds ONE contentless entry
+      rather than zero, and zero is a bug you notice while one-empty reads as a
+      thin page.
+      **Declined, with reasons.** `_find_product_or_item_list` is a heuristic
+      over app-state key names plus a cap that is a2web's budget, not a fact
+      about any format. `_normalize_commerce_row` LOOKED generic (schema.org
+      `offers.price` → `price`) but renders `f"{price} {currency}"` into one
+      token — a markdown-table decision wearing a normalizer's name; a generic
+      version would keep the fields apart, which is designing a new function
+      rather than promoting one. Both stay here.
+      **This task's own framing overcounted, traceably.** "~270 lines" was
+      written before `lift-the-item-set-and-renderer` moved the renderer out of
+      `domain.py`, and most of those lines WERE the renderer; the genuinely
+      generic residue is ~40. The cited `domain.py` line ranges point at a file
+      that no longer holds any of it.
+      One behaviour question settled during the port: `@type` preserves
+      list-ness, because extruct always emits `type` as a list and collapsing a
+      one-element list would invent a distinction the source does not make. The
+      first shelf test asserted the collapsed shape and failed — the test was
+      wrong, not the code. A promotion is not where behaviour changes.
+- [x] 5.2 Filed in `BACKLOG.md` (M, 2026-08-02). Written as a decision, not just
+      a symptom: the entry states WHY a collapsed rung matters (the fast/robust
+      split exists because the two engines fail differently, so a rung that
+      becomes its twin turns "a genuinely different renderer also failed" into
+      "we tried the same thing twice", while the response claims the former —
+      ADR-0009's shape one level down), and names the two things to establish
+      before fixing, in order: reproduce outside the container to tell container
+      from engine, then decide what a collapsed rung should DO. Only shipping
+      the engine is a fix; failing loudly or not calling it an escalation are
+      the floor while it is not fixed, and the floor is what ADR-0009 requires.
 
 ## 6. Use what is already adopted — DONE 2026-08-02
 

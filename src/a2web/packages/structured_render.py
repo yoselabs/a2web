@@ -28,6 +28,8 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
+from json_in_html import ld_entries, microdata_to_ld
+
 if TYPE_CHECKING:
     from json_in_html import JsonPayload
 
@@ -84,7 +86,7 @@ def json_to_markdown_rows(payload: JsonPayload) -> str:
     if payload.source in ("next_data", "nuxt_data", "window_var", "generic"):
         return _framework_state_to_markdown(data)
     if payload.source == "microdata":
-        return _ld_json_to_markdown(_microdata_to_ld_shape(data))
+        return _ld_json_to_markdown(microdata_to_ld(data))
     if payload.source == "opengraph":
         return _opengraph_to_markdown(data)
     return ""
@@ -97,7 +99,7 @@ _ENTITY_TYPES = frozenset(
 
 
 def _ld_json_to_markdown(data: dict | list) -> str:
-    entries = _collect_ld_entries(data)
+    entries = ld_entries(data)
     if not entries:
         return ""
     lines: list[str] = []
@@ -169,33 +171,20 @@ def listing_rows(payload: JsonPayload) -> list[dict]:
         return []
     data = payload.data
     if payload.source == "microdata":
-        data = _microdata_to_ld_shape(data)
+        data = microdata_to_ld(data)
     elif payload.source in ("next_data", "nuxt_data", "window_var", "generic"):
         return _framework_state_rows(data)
     elif payload.source != "ld_json":
         return []
 
     rows: list[dict] = []
-    for entry in _collect_ld_entries(data):
+    for entry in ld_entries(data):
         entry_type = entry.get("@type")
         if isinstance(entry_type, list):
             entry_type = entry_type[0] if entry_type else None
         if entry_type == "ItemList":
             rows.extend(_item_list_rows(entry))
     return rows
-
-
-def _collect_ld_entries(data: dict | list) -> list[dict]:
-    out: list[dict] = []
-    if isinstance(data, dict):
-        graph = data.get("@graph")
-        if isinstance(graph, list):
-            out.extend(item for item in graph if isinstance(item, dict))
-        else:
-            out.append(data)
-    elif isinstance(data, list):
-        out.extend(item for item in data if isinstance(item, dict))
-    return out
 
 
 def _find_product_or_item_list(data: Any, depth: int = 0) -> list[dict]:
@@ -487,36 +476,6 @@ def _rows_to_md_table(rows: list[dict], *, title: str) -> str:
 # --------------------------------------------------------------------- #
 # extruct adapters (v0.18)
 # --------------------------------------------------------------------- #
-
-
-def _microdata_to_ld_shape(data: dict | list) -> list[dict]:
-    """Flatten extruct's microdata output into LD-JSON shape so the existing
-    LD walker can consume it.
-
-    Extruct emits `{"type": ["https://schema.org/Product"], "properties":
-    {"name": "...", "offers": {...}, ...}}`. We map `type` → `@type` (last
-    URL segment, e.g. `Product`), promote `properties` to direct keys.
-    """
-    items: list[dict] = []
-    if isinstance(data, list):
-        items = [it for it in data if isinstance(it, dict)]
-    elif isinstance(data, dict):
-        items = [data]
-    out: list[dict] = []
-    for it in items:
-        raw_types = it.get("type") or it.get("@type")
-        type_value: str | list[str] | None = None
-        if isinstance(raw_types, str):
-            type_value = raw_types.rsplit("/", 1)[-1]
-        elif isinstance(raw_types, list):
-            type_value = [t.rsplit("/", 1)[-1] for t in raw_types if isinstance(t, str)]
-        raw_props = it.get("properties")
-        props: dict = raw_props if isinstance(raw_props, dict) else {}
-        entry: dict[str, Any] = {"@type": type_value} if type_value is not None else {}
-        for k, v in props.items():
-            entry[k] = v
-        out.append(entry)
-    return out
 
 
 def _opengraph_to_markdown(data: dict | list) -> str:
