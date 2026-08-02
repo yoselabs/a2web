@@ -44,8 +44,7 @@ _CASES = load_corpus(_REGRESSION)
 #: deliberately: re-point this case at a currently-walled URL, or split it.
 _UNREPRODUCIBLE = {
     "akakce-cloudflare-bot-wall": (
-        "blessed `jina:paywall` step was never frozen; site no longer walls "
-        "— needs a deliberate re-capture decision"
+        "blessed `jina:paywall` step was never frozen; site no longer walls — needs a deliberate re-capture decision"
     ),
 }
 

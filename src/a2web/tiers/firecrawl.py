@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 from ..models import Verdict
-from ._paid import paid_verdict_for_status
+from ._paid import paid_api_breaker, paid_verdict_for_status
 
 if TYPE_CHECKING:
     from ..state import AppState
@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 
 _API_URL = "https://api.firecrawl.dev/v1/scrape"
+_API_HOST = "api.firecrawl.dev"
 # Firecrawl renders server-side, like Zyte. This was 40.0 with the comment
 # "allow generous headroom" — the SAME value and the SAME claim Zyte carried
 # until `2bf60ca` measured it failing: heavy pages take ~8-40s solo and exceed
@@ -66,8 +67,16 @@ class FirecrawlTier:
             return TierResult(body=b"", content_type="text/markdown", status_code=0, final_url=url, skipped=True, verdict=Verdict.other)
 
         headers = {"Authorization": f"Bearer {key}"}
+        # `httpx`, not `fetch_bytes`, is a DECIDED exception — see
+        # `docs/architecture/transport-discipline.md`. The breaker is the one
+        # thing the shared primitive would have given this tier, so it is taken
+        # explicitly rather than forgone.
         try:
-            async with httpx.AsyncClient(timeout=state.settings.request_timeout(_TIMEOUT_S), follow_redirects=True) as client:
+            timeout_s = state.settings.request_timeout(_TIMEOUT_S)
+            async with (
+                paid_api_breaker(state, _API_HOST),
+                httpx.AsyncClient(timeout=timeout_s, follow_redirects=True) as client,
+            ):
                 resp = await client.post(_API_URL, json={"url": url, "formats": ["markdown"]}, headers=headers)
         except httpx.TimeoutException:
             return TierResult(body=b"", content_type="text/markdown", status_code=0, final_url=url, verdict=Verdict.timeout)

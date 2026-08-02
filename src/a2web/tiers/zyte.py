@@ -34,7 +34,7 @@ import httpx
 from html_fragment import to_markdown
 
 from ..models import Verdict
-from ._paid import paid_verdict_for_status
+from ._paid import paid_api_breaker, paid_verdict_for_status
 
 if TYPE_CHECKING:
     from ..state import AppState
@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 
 
 _API_URL = "https://api.zyte.com/v1/extract"
+_API_HOST = "api.zyte.com"
 # Zyte renders server-side (browserHtml) — allow generous headroom. Heavy pages
 # like a Reddit listing take ~8-40s solo and can exceed 40s under concurrent
 # load, timing out into a weaker fallback; 60s covers the slow tail while
@@ -100,8 +101,16 @@ class ZyteTier:
         raw = mode == "httpResponseBody"
         request = _zyte_extract_request(url, raw=raw, scroll=scroll, scroll_cap=state.settings.listing_scroll_cap)
 
+        # `httpx`, not `fetch_bytes`, is a DECIDED exception — see
+        # `docs/architecture/transport-discipline.md`. The breaker is the one
+        # thing the shared primitive would have given this tier, so it is taken
+        # explicitly rather than forgone.
         try:
-            async with httpx.AsyncClient(timeout=state.settings.request_timeout(_TIMEOUT_S), follow_redirects=True) as client:
+            timeout_s = state.settings.request_timeout(_TIMEOUT_S)
+            async with (
+                paid_api_breaker(state, _API_HOST),
+                httpx.AsyncClient(timeout=timeout_s, follow_redirects=True) as client,
+            ):
                 resp = await client.post(_API_URL, json=request, auth=(key, ""))
         except httpx.TimeoutException:
             return TierResult(body=b"", content_type="text/html", status_code=0, final_url=url, verdict=Verdict.timeout)

@@ -12,7 +12,12 @@ the instance to `_HANDLERS` in `__init__.py`.
 
 ## Transport discipline
 
-**Every handler MUST call `fetch_bytes` from `a2web.packages.http_fetch`.**
+**Every handler MUST call `fetch_bytes` from the shelf's `http_fetch`.**
+
+The rule covers `tiers/` too, and it is a TEST now, not prose:
+`tests/architecture/test_transport_discipline.py`. Rationale, the two decided
+paid-tier exceptions, and the "whose host is the breaker keyed on?" question
+live in [`docs/architecture/transport-discipline.md`](../../../docs/architecture/transport-discipline.md).
 
 No hand-rolled `httpx.AsyncClient`, no inline `curl_cffi` sessions. The
 shared primitive gives every handler:
@@ -20,7 +25,12 @@ shared primitive gives every handler:
 - Chrome120 TLS impersonation (`curl_cffi`) — without this, Cloudflare-fronted
   hosts like `linux.do` serve an anti-AI banner instead of the JSON payload.
 - Proxy plumbing via `state.proxy_pool` when a route rule matches.
-- Per-host circuit breakers via `state.breakers`.
+- Per-host circuit breakers via `state.breakers` — ones that actually OPEN,
+  from `http-fetch` v0.3.0 onward. Before that the breaker was accepted and
+  silently never tripped, because the work it wrapped never raised.
+- Visibility to the eval replay harness. `patch_fetch_bytes` is what makes the
+  corpus offline; a forked client is invisible to it, and the jina tier's fork
+  had the replay suite making live requests to `r.jina.ai` on every CI run.
 - Closed-verdict mapping (`FetchVerdict` → `Verdict`) — no raw `httpx`
   exceptions escape into the orchestrator.
 

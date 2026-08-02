@@ -124,6 +124,7 @@ guard's own docstring first line.
 - `tests/architecture/test_tach_covers_every_package.py` — Every package is inside the boundary rule, and every rule has a package.
 - `tests/architecture/test_terminal_hint_coherence.py` — Architectural invariant: terminal outcome ↔ operator-hint coherence.
 - `tests/architecture/test_trafilatura_funnel.py` — Architectural invariant: HTML extraction is funneled through `content_extract`.
+- `tests/architecture/test_transport_discipline.py` — Nothing under `tiers/` or `handlers/` hand-rolls an HTTP client; `zyte`/`firecrawl` are named exceptions with compensating controls (`docs/architecture/transport-discipline.md`).
 - `tests/architecture/test_ttl_settings_are_read.py` — Every declared TTL setting is read by at least one code path.
 - `tests/architecture/test_walk_is_not_vacuous.py` — The guard on the guards.
 - `tests/architecture/test_wobble_policies_match_prompts.py` — The wobble triage agrees with the prompt it claims to be reading.

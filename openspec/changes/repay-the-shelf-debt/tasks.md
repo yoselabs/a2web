@@ -218,11 +218,47 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
       "Fiyat Yok / offerCount 0" reading. Blessing that would retire a bot-wall
       regression guard by accident while looking like an update — so it was not
       blessed. Re-point the case at a currently-walled URL, or split it in two.
-- [ ] 7.2 Decide the `zyte`/`firecrawl` question: widen `http_fetch` to POST, or
-      record them as an explicit exception (design Open Questions). They POST to
-      JSON APIs; `http_fetch` is GET-only.
-- [ ] 7.3 Extend `handlers/README.md:17`'s hand-rolled-`httpx.AsyncClient` ban to
-      `tiers/`, which is where it is being violated.
+- [x] 7.2 **Decided: do NOT widen. Explicit, guarded exception.** Written up in
+      `docs/architecture/transport-discipline.md`. The case for widening is the
+      one this repo applies to timeouts — a bound re-implemented N times is the
+      one missing from the N+1th — but the list of what these two would GAIN by
+      routing through the primitive is empty or negative. Impersonation is
+      pointless against an API you authenticate to with a key; both tiers
+      already `del proxy_url` because the vendor owns egress; conditional GET
+      does not apply to a POST; neither is reachable in a replay (key-gated), so
+      `patch_fetch_bytes` visibility buys nothing. And the closed-enum row is a
+      LOSS, which decided it: `paid_verdict_for_status` maps 401/402/403 to
+      `Verdict.paid_auth_error` — the case ADR-0009 names as the one substitute
+      for the `try_user_browser` klaxon — and `FetchVerdict` has no such member,
+      so the shared enum would collapse "your key is wrong" into a generic
+      connection failure. Widening a GET primitive to POST in order to make a
+      tier LESS truthful is a bad trade.
+      The one real gain — the circuit breaker — is taken directly instead, via
+      the new `_paid.paid_api_breaker`, keyed on `api.zyte.com` /
+      `api.firecrawl.dev` for the same reason jina keys on `r.jina.ai`: a paid
+      tier does not dial the target, and keying on the target would share the
+      raw tier's breaker, short-circuiting the LAST-RESORT tier for exactly the
+      hosts it exists to reach.
+      Rule of three recorded rather than acted on: at a THIRD POST consumer, add
+      a sibling `post_json` to the shelf's `http-fetch` sharing the breaker and
+      timeout machinery — never overload `fetch_bytes`. The package's identity
+      is "one HTTP-GET primitive"; a second function is honest.
+- [x] 7.3 **Done, as a test rather than prose** —
+      `tests/architecture/test_transport_discipline.py`, scoped to BOTH `tiers/`
+      and `handlers/`, registered in `docs/architecture/README.md`, and
+      reversion-verified (an `import httpx` planted in `archive.py` fails it).
+      The exception table carries a reason per entry, and two further tests keep
+      those entries honest: one fails when an exempt module stops importing a
+      transport module at all (a stale entry silently pre-authorises the next
+      module to take that name — the `test_terminal_hint_coherence` shape), and
+      one fails when an exempt tier stops calling `paid_api_breaker`, which is
+      the compensating control the exemption was granted for.
+      `handlers/README.md` also had the rule pointing at
+      `a2web.packages.http_fetch`, a path that has not existed since the
+      promotion. Fixed, and the "what the primitive gives you" list now names
+      the two things it did not: a breaker that actually opens (v0.3.0), and
+      visibility to `patch_fetch_bytes` — the reason a forked client is not a
+      local style choice but a silent removal from the offline test harness.
 
 ## 8. Make the error taxonomy live
 
