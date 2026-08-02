@@ -384,12 +384,31 @@ question each answers.
       most instances were patching a value back to itself; the split only made
       two of them visibly inert, and those two were asserting *the browser is NOT
       dispatched* and had been passing for the wrong reason the whole time.
-- [ ] 6.2 **NOT run — operator's call.** `make bench` is live-network and spends
-      LLM quota, so it is deliberately outside `make check`. Tier routing and
-      escalation ARE stated triggers and this change touched both, so the honest
-      status is "owed", not "not applicable". The four-axis harness tests under
-      `tests/capabilities/output_benchmark/` ran green in 6.1, which keeps the
-      harness from rotting but says nothing about output quality.
+- [x] 6.2 **Run 2026-08-02, operator-approved.** `eval/runs/2026-08-02_133205` —
+      132 cells, $10.12, 926s. Findings: `eval/findings_2026-08-02.md`.
+
+      **This change did not move behaviour**, which is what a pure restructuring
+      owed: contract conformance 44/44 on both a2web systems, and no URL class
+      shows the collapse a mis-wired escalation seam would produce.
+
+      The run earned its cost on two OTHER things, neither of which this change
+      caused and both of which it surfaced:
+
+      - the first attempt **died at cell 24 of 132**, ~$3.18 spent, no report —
+        a judge policy callable raising past the runner's per-cell isolation
+        (fixed `dcdfd5a`; analysis deferred to `BACKLOG.md`). The re-run is the
+        foreign witness for that fix: the same wobble recurred four times and
+        each cost one cell, not the matrix.
+      - the new `walled-listing-recovered-via-archive` corpus case caught a live
+        ADR-0009 hole — a tier-declared paywall matched no planner rule at all
+        and returned `Continue` with no rung attempted (fixed `82aa421`).
+
+      The headline product finding is unrelated to this change and is recorded
+      for whoever picks it up: **`a2web_detail`'s clarity is 1.46, below the
+      WebFetch baseline's 3.44**, while `a2web_extract` matches its answer
+      quality at one sixth the tokens. Do not read the 2.98-vs-2.95 quality gap
+      as real — the per-system `n` differs (41/43/44) and three of four unscored
+      cells landed on one system.
 - [x] 6.3 `walled-listing-recovered-via-archive` — a walled news ARCHIVE INDEX,
       recovered from Wayback. Both structural facts verified before writing the
       entry rather than assumed: the live URL 401s to server-side clients (which
