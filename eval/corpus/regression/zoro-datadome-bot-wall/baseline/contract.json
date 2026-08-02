@@ -1,8 +1,16 @@
 {
   "has_content": false,
+  "narrative_present": true,
   "operator_hints": [
     "try_user_browser"
   ],
+  "retrieval_incomplete": true,
   "status": "failed",
+  "steps": [
+    "raw:connection_error",
+    "browser:length_floor",
+    "jina:connection_error",
+    "browser_robust:length_floor"
+  ],
   "tier": "none"
 }

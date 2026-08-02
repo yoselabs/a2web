@@ -2,6 +2,11 @@
   "answer_present": true,
   "has_content": true,
   "status": "ok",
+  "steps": [
+    "raw:ok",
+    "extract:ok",
+    "gate:ok"
+  ],
   "tier": "raw",
   "tokens_full_max": 2642
 }

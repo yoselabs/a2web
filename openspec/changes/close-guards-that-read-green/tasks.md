@@ -229,8 +229,38 @@ result.
       in a check that can read the page, not in an LLM opinion. The prompt WAS
       rewritten in the same pass for a different, measured defect — it was
       penalising faithfully-relayed items and so rewarding ADR-0012 violations.
-- [ ] 6.6 Produce the invariant → catching-cell mapping and record the gaps. Nine
-      of twelve currently have zero cells.
+- [x] 6.6 `docs/findings/2026-08-02-invariant-cell-mapping.md`. **Done 2026-08-02.**
+
+      **9 of 12 with zero catching cells → 4.** Named cells per invariant, not
+      counts, and split three ways rather than covered/not: **D**
+      deterministic (a contract key, definitively falsifiable), **J** judged
+      (readable from the answer prose), **∅** unreadable (the judge cannot see
+      its subject — it can never fail). The ∅ tier is why §6.4 kept ~20
+      criteria rather than deleting them: they are the standing record of what
+      is unguarded, and this table is what they are for.
+
+      ADR-0015 went 0 → 7, the largest move, and for a structural reason: it is
+      an invariant about a SHAPE (`other_pages`/`options`/`also_here`
+      non-empty), which is exactly what a deterministic key asserts and a prose
+      judge cannot.
+
+      **The honest zero is ADR-0014** — 7 criteria, 6 cases, not one can fail.
+      But it does not need §6.1's judge: "is every emitted URL in the page's
+      anchor set" is deterministic set membership, so it belongs in a contract
+      key. Cheaper than 6.1 and now the highest-value item left here.
+
+      **never-cache-below-the-gate has no cell and no plan** — neither harness
+      observes the cache. Needs a projection field first; recorded, not faked.
+
+      **And §4.1 / §6.3 were claims about the CODE, not the corpus.** §4.1 said
+      `steps` was "blessed on all seven baselines"; §6.3 said akakce pinned
+      `retrieval_incomplete` + `narrative_present`. Measured: **2 of 8
+      baselines carried neither** — including `zoro-datadome-bot-wall`, the
+      canonical wall specimen and the ONLY offline cell ADR-0009's wire half
+      depends on. The bless code was right; the baselines were never re-blessed
+      after the case split, and nothing failed because the assertions simply
+      did not exist. Fixed by one `A2WEB_BLESS_EVAL=1` run; verified by
+      flipping `retrieval_incomplete` to false and confirming red.
 
 ## 7. The ADR-0009 wire signals
 
