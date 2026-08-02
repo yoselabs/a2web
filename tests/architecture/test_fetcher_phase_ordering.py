@@ -202,19 +202,58 @@ def test_the_pre_rendered_branch_still_runs_the_ladder_and_the_sufficiency_check
     )
 
 
-def test_every_escalation_that_installs_content_re_gates() -> None:
-    """An escalation that installs new content and does not re-gate reports the OLD verdict.
+def test_escalation_cannot_be_separated_from_comprehension() -> None:
+    """Nothing dispatches a rung except `escalate`, and `escalate` always comprehends.
 
-    Not one of the design's four anti-seams — it is the invariant the loop
-    restructure is meant to make structural, pinned here so the move cannot lose
-    it on the way. Once escalation returns a retry signal instead of calling
-    forward, this becomes redundant and should be deleted with a note, not left
-    as decoration.
+    This replaces a weaker guard (2026-08-02): before the loop landed, the best
+    available assertion was "every escalator re-gates", which is a check that
+    each of four call sites remembered one of three downstream steps. They did
+    not — browser and paid ran the ladder but never sufficiency, and the
+    post-gate archive path ran neither while re-gating anyway.
+
+    The structural version is the whole point of §3. `escalate` is the only
+    caller of the rung dispatchers, and it is the only caller of `_comprehend`,
+    so "install without reading what you installed" is not a thing you can
+    write. Delete this test only alongside the structure it describes.
     """
     fns = _index_functions()
-    _require(fns, "_escalate_browser", "_escalate_paid", "_install_gate_archive", "_regate_after_escalation")
-    for name in ("_escalate_browser", "_escalate_paid"):
-        assert _call_lines(fns[name], "_regate_after_escalation"), (
-            f"{name} installs content without re-gating — the response would carry the verdict "
-            "from before the escalation, which is a fetch reporting a wall it just got past"
+    _require(fns, "escalate", "_comprehend", "_escalate_browser", "_escalate_paid", "_escalate_archive_post_gate")
+
+    dispatchers = ("_escalate_browser", "_escalate_paid", "_escalate_archive_post_gate")
+    strays = [
+        f"{caller} calls {dispatcher}"
+        for caller, node in fns.items()
+        if caller != "escalate"
+        for dispatcher in dispatchers
+        if _call_lines(node, dispatcher)
+    ]
+    assert not strays, (
+        "a rung is being dispatched outside `escalate`:\n  "
+        + "\n  ".join(strays)
+        + "\nCall `escalate(fc, Rung.…)`. A caller that dispatches directly installs content "
+        "nothing has read, which is the defect this seam removes."
+    )
+    for dispatcher in dispatchers:
+        assert _call_lines(fns["escalate"], dispatcher), f"`escalate` no longer dispatches {dispatcher}"
+
+    assert _call_lines(fns["escalate"], "_comprehend"), (
+        "`escalate` no longer comprehends what it installed — the response would carry a "
+        "verdict over content nothing read, and the ladder's four consumers would be starved"
+    )
+    comprehend = fns["_comprehend"]
+    for step in ("_run_extraction_escalation", "_phase_listing_completeness", "_regate_after_escalation"):
+        assert _call_lines(comprehend, step), (
+            f"`_comprehend` no longer runs {step}. It is the SINGLE downstream of an escalation; "
+            "dropping a step here silently drops it on every escalated path at once."
         )
+
+    stray_regates = [
+        f"{caller} calls _regate_after_escalation"
+        for caller, node in fns.items()
+        if caller != "_comprehend" and _call_lines(node, "_regate_after_escalation")
+    ]
+    assert not stray_regates, (
+        "re-gating outside `_comprehend`:\n  "
+        + "\n  ".join(stray_regates)
+        + "\nA re-gate that is not preceded by the ladder reports a verdict over content nothing read."
+    )

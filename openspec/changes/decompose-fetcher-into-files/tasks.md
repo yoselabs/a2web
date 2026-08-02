@@ -174,15 +174,62 @@ against.
 
 ## 3. Phase one — the loop
 
-- [ ] 3.1 Change escalation to **return a retry signal** instead of calling
-      comprehension forward — archive, browser, paid.
-- [ ] 3.2 Establish the single path: retrieval → comprehension → sufficiency,
-      with one loop head.
-- [ ] 3.3 Verify the archive-post-gate ladder skip (`fetcher.py:1058`) is now
-      unexpressible, not merely fixed. It is the fifth copy of a bug repaired one
-      path at a time four times.
-- [ ] 3.4 Delete `_phase_listing_render:2716-2722`'s inline assess-and-set — it
-      exists only because there was no loop head to return to.
+- [x] 3.1 **Done — the signal is a `bool`, and that is the whole vocabulary.**
+      Each rung dispatcher (`_escalate_browser`, `_escalate_paid`, the new
+      `_escalate_archive_post_gate`) returns whether it installed content, and
+      returns *only* that. Per §1.2's decision the signal is bare: "installed"
+      is all any caller needs, and anything richer would let a caller name its
+      own resume point, which is the freedom the loop exists to remove.
+- [x] 3.2 **The loop head is `escalate(fc, rung, *, state, scroll)`** — dispatch,
+      then, if anything landed, `_comprehend(fc)`. Five call sites now go through
+      it: the planner's three actions in `_dispatch_action`, the
+      `render_requested` block's paid-then-browser ladder, `_phase_obstacle_render`,
+      and both rungs of `_phase_listing_render`.
+      `_comprehend` reads `fc` rather than taking the tier result, which is the
+      load-bearing detail: it **cannot be handed a subset of what was installed**,
+      and a subset is exactly what each escalator was passing itself.
+      Two implementation notes worth keeping.
+      **The html guard is the paid tier's, deliberately.** Browser decoded any
+      non-empty body — equivalent only because a browser body is always HTML;
+      paid requires `"html" in content_type` because a markdown-native paid tier
+      (Firecrawl) returns clean markdown the ladder must not touch. §1.1 flagged
+      this; unifying on the browser's predicate would have run the ladder over
+      Firecrawl's markdown.
+      **Dispatch is by NAME, not through a table.** The first version held a
+      `dict[Rung, Callable]` built at import time, which captures the original
+      functions — so `monkeypatch.setattr(fetcher, "_escalate_paid", fake)` kept
+      calling the real one and two existing tests went red. A seam that works and
+      cannot be tested is the failure mode this change exists to remove, so the
+      dict is gone.
+- [x] 3.3 **Unexpressible, and witnessed both ways.** Structurally:
+      `test_escalation_cannot_be_separated_from_comprehension` asserts nothing
+      dispatches a rung except `escalate`, that `escalate` always calls
+      `_comprehend`, that `_comprehend` runs all three steps, and that nothing
+      re-gates outside it. It REPLACES the weaker guard written in §1.4 — which
+      could only ask "did each of four call sites remember one of three
+      downstream steps", and they had not.
+      Behaviourally: `tests/capabilities/tier_pipeline/test_post_gate_archive_comprehension.py`
+      drives a real archive outcome through the seam and asserts the four
+      consumers `eval/findings_2026-07-28.md` named are fed —
+      `content_candidates` past one item, `record_set`, `record_count == 3` — plus
+      the planner route (`_dispatch_action(post_gate=True)`), because asserting
+      only on `escalate` would leave the path that HAD the bug untested. A fifth
+      test is the anti-vacuity half: a FAILED dispatch must install and
+      comprehend nothing, otherwise all four would pass on a context handed
+      nothing.
+      Three reversion probes, all observed failing: archive skipping
+      comprehension (the old behaviour), `_comprehend` dropping sufficiency (H1's
+      old shape), and a caller dispatching a rung directly.
+- [x] 3.4 **Deleted — and it could not be deleted without making the assessment
+      symmetric.** `_phase_listing_completeness` could only ever SET the partial
+      signal; the CLEAR lived hand-written in `_phase_listing_render`, which is
+      the tell the task named. Now that the loop head re-runs sufficiency after
+      every escalation, the second pass is the one that matters, and a function
+      that cannot retract would report a truncation the scroll had already
+      resolved. The clear is now the `else` of the same branch.
+      One improvement falls out: the deleted block re-assessed against the OLD
+      `fc.items_total`, while the loop head reads the re-rendered page's own
+      oracle.
 - [ ] 3.5 Make `_phase_extract_answer` non-re-entrant. It is currently entered 3×
       and is not idempotent — *answer* is being used as the loop body.
 - [ ] 3.6 Confirm the `retrieval → comprehension` import cycle is gone. The cycle

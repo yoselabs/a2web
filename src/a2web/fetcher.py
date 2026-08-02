@@ -1218,6 +1218,12 @@ async def _dispatch_action(
         return _Exec.RESTART
 
     if isinstance(action, RetryViaArchive):
+        if post_gate:
+            # Post-gate archive goes through the one escalation seam, which
+            # comprehends what it installs. The pre-gate walk below does not need
+            # to: `_phase_extract` runs next and comprehends everything.
+            await escalate(fc, Rung.archive, state=state)
+            return _Exec.CONTINUE  # post-gate loop reconsults decide_next
         fc.archive_dispatches += 1
         outcome = await _dispatch_archive(
             action.url,
@@ -1225,22 +1231,17 @@ async def _dispatch_action(
             start_perf=fc.start_perf,
             diagnostics=fc.diagnostics,
         )
-        if post_gate:
-            if outcome.success and outcome.pre_rendered is not None:
-                _install_gate_archive(fc, outcome)
-                _regate_after_escalation(fc)
-            return _Exec.CONTINUE  # post-gate loop reconsults decide_next
         if outcome.success:
             _install_archive_payload(fc, outcome)
             return _Exec.STOP
         return _Exec.CONTINUE  # archive failed → caller decides tier-win / advance
 
     if isinstance(action, EscalateBrowser):
-        await _escalate_browser(fc, state=state)
+        await escalate(fc, Rung.browser, state=state)
         return _Exec.CONTINUE
 
     if isinstance(action, EscalatePaid):
-        await _escalate_paid(fc, state=state)
+        await escalate(fc, Rung.paid, state=state)
         return _Exec.CONTINUE
 
     # Continue — no escalation. The tier-walk caller decides won-tier install /
@@ -1666,12 +1667,22 @@ def _phase_listing_completeness(fc: FetchContext, *, raw_html: str) -> None:
         # fallback consults this to stay a strict superset (never overrides).
         fc.regex_oracle_total = total
         if content_expectations.assess(loaded=fc.record_count, total=total) != "partial":
+            # Symmetric CLEAR, not an early return. This runs after every
+            # escalation now, so the second pass is the one that matters: a
+            # scroll render that completed the listing must retract the
+            # `listing_partial` signal, and a function that can only ever SET it
+            # would report a truncation that has since been resolved. The clear
+            # was previously hand-written inside `_phase_listing_render`, which
+            # is where it had to live when there was no loop head to return to.
+            fc.items_loaded = None
+            fc.items_total = None
+            fc.items_more = False
             return
         # Flag the partial state; the `listing_partial` hint is appended by
-        # `build_response` from these fields, so a later scroll-to-complete
-        # (Slice 2) can clear the signal simply by nulling them.
+        # `build_response` from these fields.
         fc.items_loaded = fc.record_count
         fc.items_total = total
+        fc.items_more = False
         return
     # No numeric oracle — fall back to the structural affordance. `items_total`
     # stays None (unknown); `build_response` emits `listing_more` off `items_more`.
@@ -2113,7 +2124,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
     # and is gated below like any other; if no paid tier is keyed, `_escalate_paid`
     # is a no-op and the empty body falls through to the never-silently-miss hint.
     if fc.render_requested and fc.pre_rendered_payload is None and fc.paid_dispatches < 1:
-        await _escalate_paid(fc, state=state)
+        await escalate(fc, Rung.paid, state=state)
         # Paid tier absent/failed → try the own-browser BEFORE conceding. The
         # ladder is paid-scraper → real-browser → hint: a real (anti-detect)
         # browser passes soft per-IP walls the HTTP client cannot (e.g. Reddit
@@ -2121,7 +2132,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
         # backend short-circuits to an unavailable verdict (cheap no-op), so this
         # only installs content when a browser genuinely renders the surface.
         if fc.pre_rendered_payload is None and fc.browser_dispatches < 1:
-            await _escalate_browser(fc, state=state)
+            await escalate(fc, Rung.browser, state=state)
         # The render ladder was our only route (the free tiers were stopped). A
         # still-non-ok verdict here is a loud miss — but the never-silently-miss
         # hint is now emitted ONCE by `_prescribe_browser_on_wall` at the end of
@@ -2340,8 +2351,14 @@ def _regate_after_escalation(fc: FetchContext) -> None:
     )
 
 
-async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool = False) -> None:
+async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool = False) -> bool:
     """Dispatch a browser rung out-of-band; install its result on success.
+
+    Returns whether content was installed. It does NOT comprehend what it
+    installed — that is `escalate`'s job, and the split is the whole point: an
+    escalator that calls comprehension forward is an escalator that can call
+    PART of it, which is how the archive path came to run neither the ladder nor
+    the sufficiency check. Private by convention; call `escalate`.
 
     `scroll` (listing-completeness Slice 2b) asks the browser to scroll the page
     to stable before snapshotting — the free own-browser listing-completion path.
@@ -2437,30 +2454,23 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
                 post_extract=True,
             ),
         )
-        # When browser-rendered markdown is under-extracted (Trendyol pattern —
-        # __NEXT_DATA__ exposed post-hydration, or a server-rendered listing
-        # trafilatura guts), run the extraction-escalation ladder against the
-        # rendered DOM before re-gating — the ladder covers raw, browser, and
-        # archive results uniformly.
-        rendered_html = browser_result.body.decode("utf-8", errors="replace") if browser_result.body else ""
-        if rendered_html:
-            await _run_extraction_escalation(fc, raw_html=rendered_html)
-        _regate_after_escalation(fc)
-    else:
-        # The browser produced no usable content. If it rendered a real UPSTREAM
-        # error page (a 404/paywall status surfaced by the tier), record it as an
-        # observation so `classify_terminal` can corroborate a genuinely-gone URL.
-        # A browser that merely failed to RUN (unavailable/timeout/internal error)
-        # is not evidence about the target — it only surfaces its hint, no observation.
-        if browser_result.verdict in (Verdict.not_found, Verdict.paywall):
-            fc.observe(
-                kind=ObservationKind.tier_outcome,
-                source=rung,
-                verdict=browser_result.verdict,
-                status_code=browser_result.status_code,
-            )
-        if browser_result.operator_hint is not None:
-            fc.operator_hints.append(browser_result.operator_hint)
+        return True
+
+    # The browser produced no usable content. If it rendered a real UPSTREAM
+    # error page (a 404/paywall status surfaced by the tier), record it as an
+    # observation so `classify_terminal` can corroborate a genuinely-gone URL.
+    # A browser that merely failed to RUN (unavailable/timeout/internal error)
+    # is not evidence about the target — it only surfaces its hint, no observation.
+    if browser_result.verdict in (Verdict.not_found, Verdict.paywall):
+        fc.observe(
+            kind=ObservationKind.tier_outcome,
+            source=rung,
+            verdict=browser_result.verdict,
+            status_code=browser_result.status_code,
+        )
+    if browser_result.operator_hint is not None:
+        fc.operator_hints.append(browser_result.operator_hint)
+    return False
 
 
 # Paid tiers tried, in order, by `_escalate_paid`. Only names present in
@@ -2470,8 +2480,10 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
 _PAID_TIER_ORDER = ("zyte", "firecrawl")
 
 
-async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = False) -> None:
+async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = False) -> bool:
     """Dispatch the paid last-resort tier out-of-band; install on success.
+
+    Returns whether content was installed; comprehension is `escalate`'s job.
 
     Cost-incurring, so capped at one escalation per fetch: `fc.paid_dispatches`
     is bumped unconditionally at entry (even when no paid tier is registered) so
@@ -2532,7 +2544,7 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = Fa
                 authoritative=True,
                 status_code=result.status_code,
             )
-            return
+            return False
 
         pre = result.pre_rendered
         if result.verdict is Verdict.ok and pre is not None:
@@ -2549,17 +2561,7 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = Fa
                 ),
             )
             fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.ok)
-            # An HTML-returning paid tier (Zyte `browserHtml`) hands back a full
-            # rendered page — a straight markdown conversion carries SPA nav +
-            # inline-script noise. Run the extraction-escalation ladder
-            # (trafilatura + json/record synth) on the HTML first, mirroring
-            # `_escalate_browser`. Markdown-native paid tiers (Firecrawl) return
-            # no HTML body, so this is skipped and the clean markdown stands.
-            rendered_html = result.body.decode("utf-8", errors="replace") if ("html" in result.content_type and result.body) else ""
-            if rendered_html:
-                await _run_extraction_escalation(fc, raw_html=rendered_html)
-            _regate_after_escalation(fc)
-            return
+            return True
 
         # Non-auth failure — record and let the next registered paid tier try.
         fc.observe(
@@ -2568,6 +2570,87 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = Fa
             verdict=result.verdict,
             status_code=result.status_code,
         )
+    return False
+
+
+class Rung(Enum):
+    """What an escalation dispatches. The vocabulary `escalate` switches on."""
+
+    browser = "browser"
+    paid = "paid"
+    archive = "archive"
+
+
+async def _comprehend(fc: FetchContext) -> None:
+    """Read whatever was just installed: the extraction ladder, sufficiency, the gate.
+
+    THE single downstream of an escalation. It reads `fc` rather than taking the
+    tier result, so it cannot be handed a subset of what was installed — which is
+    how the three escalation paths came to run three different amounts of it:
+    browser and paid ran the ladder but never the sufficiency check (H1), and the
+    post-gate archive path ran NEITHER while re-gating anyway, reporting a
+    verdict over content nothing had read.
+
+    The html guard is the paid tier's, deliberately, not the browser's. Browser
+    decoded any non-empty body, which is equivalent only because a browser body
+    is always HTML; paid requires `"html" in content_type` because a
+    markdown-native paid tier (Firecrawl) returns clean markdown the ladder must
+    not touch. Generalising to the browser's predicate would have run the ladder
+    over Firecrawl's markdown — a census merge of these two tails would have
+    picked one of them silently.
+    """
+    raw_html = fc.body.decode("utf-8", errors="replace") if (fc.body and "html" in fc.content_type) else ""
+    if raw_html:
+        await _run_extraction_escalation(fc, raw_html=raw_html)
+        _phase_listing_completeness(fc, raw_html=raw_html)
+    _regate_after_escalation(fc)
+
+
+async def escalate(fc: FetchContext, rung: Rung, *, state: AppState, scroll: bool = False) -> bool:
+    """The one seam through which content may be installed after the gate.
+
+    Dispatch, then — if anything landed — comprehend it. Escalators do not call
+    comprehension forward any more, and that is the load-bearing change in this
+    decomposition: a caller that can call comprehension can call PART of it, and
+    four call sites calling four different subsets is precisely the state this
+    replaces.
+
+    Returns whether content was installed, which is all any caller needs to know.
+    `_phase_obstacle_render` and `_phase_listing_render` compare `content_md`
+    before and after instead; that is a weaker test of the same thing (an
+    identical re-render reads as "nothing installed") and is left alone here
+    because tightening it is a behaviour change, not a move.
+    """
+    # Dispatched by NAME rather than through a table of function objects. A dict
+    # built at import time captures the originals, so a test that patches
+    # `_escalate_paid` in this module would silently keep calling the real one —
+    # the seam would work and be untestable, which is the failure mode this whole
+    # change exists to remove.
+    if rung is Rung.browser:
+        installed = await _escalate_browser(fc, state=state, scroll=scroll)
+    elif rung is Rung.paid:
+        installed = await _escalate_paid(fc, state=state, scroll=scroll)
+    else:
+        installed = await _escalate_archive_post_gate(fc, state=state, scroll=scroll)
+    if installed:
+        await _comprehend(fc)
+    return installed
+
+
+async def _escalate_archive_post_gate(fc: FetchContext, *, state: AppState, scroll: bool = False) -> bool:
+    """Archive, dispatched after the gate has already run.
+
+    `scroll` is accepted and ignored — the archive serves a frozen snapshot, so
+    there is nothing to scroll. It exists so every rung has one signature and
+    `escalate` needs no per-rung special case.
+    """
+    del scroll
+    fc.archive_dispatches += 1
+    outcome = await _dispatch_archive(fc.final_url, state=state, start_perf=fc.start_perf, diagnostics=fc.diagnostics)
+    if not (outcome.success and outcome.pre_rendered is not None):
+        return False
+    _install_gate_archive(fc, outcome)
+    return True
 
 
 async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
@@ -2976,7 +3059,7 @@ async def _phase_obstacle_render(fc: FetchContext, *, state: AppState) -> None:
     if not _obstacle_wants_render(fc):
         return
     prev_md = fc.content_md
-    await _escalate_paid(fc, state=state)
+    await escalate(fc, Rung.paid, state=state)
     if fc.content_md == prev_md:
         # No new content (unavailable / failed / paid_auth_error hard-stop /
         # identical shell) — leave the obstacle-flagged answer; the surviving
@@ -3036,19 +3119,18 @@ async def _phase_listing_render(fc: FetchContext, *, state: AppState) -> None:
     prev_md = fc.content_md
     # Free own-browser scroll first — no egress cost, just latency.
     if state.settings.browser_enabled:
-        await _escalate_browser(fc, state=state, scroll=True)
+        await escalate(fc, Rung.browser, state=state, scroll=True)
     # Paid fallback only if the free attempt changed nothing and budget remains.
     if fc.content_md == prev_md and fc.paid_dispatches < 1:
-        await _escalate_paid(fc, state=state, scroll=True)
+        await escalate(fc, Rung.paid, state=state, scroll=True)
     if fc.content_md == prev_md:
         return  # nothing rendered → the partial signal stands (never-silently-miss).
-    if fc.record_count is None or fc.items_total is None:
-        return
-    if content_expectations.assess(loaded=fc.record_count, total=fc.items_total) == "partial":
-        fc.items_loaded = fc.record_count  # still short — keep the signal, updated count.
-    else:
-        fc.items_loaded = None  # completed — clear the signal.
-        fc.items_total = None
+    # The re-assessment is NOT re-implemented here any more. `escalate` ran
+    # `_comprehend`, which re-ran `_phase_listing_completeness` over the fuller
+    # page: complete → the signal is cleared, still short → it stands with the
+    # updated count. This block existed only because there was no loop head to
+    # return to, and it read the OLD `fc.items_total` where the loop head reads
+    # the re-rendered page's own oracle.
     if fc.ask is not None:
         await _phase_extract_answer(fc, state=state)
 
