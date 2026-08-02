@@ -26,6 +26,7 @@ dependencies = [
     { name = "any-browser" },
     { name = "anyio" },
     { name = "anyllm", extra = ["anthropic", "claude-code-sdk", "openai"] },
+    { name = "async-scope" },
     { name = "browser-cookies" },
     { name = "content-extract" },
     { name = "cryptography" },
@@ -96,6 +97,7 @@ requires-dist = [
     { name = "any-browser", extras = ["patchright", "zendriver"], marker = "extra == 'browser'", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fany-browser&tag=any-browser-v0.1.0" },
     { name = "anyio", specifier = ">=4,<5" },
     { name = "anyllm", extras = ["anthropic", "openai", "claude-code-sdk"], specifier = ">=0.2,<1" },
+    { name = "async-scope", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fasync-scope&tag=async-scope-v0.1.0" },
     { name = "browser-cookie3", marker = "extra == 'cookies'", specifier = ">=0.20,<1" },
     { name = "browser-cookies", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fbrowser-cookies&tag=browser-cookies-v0.1.0" },
     { name = "claude-agent-sdk", marker = "extra == 'claude-code'", specifier = ">=0.1.80,<1" },
@@ -282,6 +284,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/2c/63/8a0491538205ec5af
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d2/a5/b79d86c972e8dd888fd8e4b2ea4c277791f455b86f25c458c2917bf9cff9/application_properties-0.9.2-py3-none-any.whl", hash = "sha256:503388017a8d12436ba0914c8d24820adf658f765f9ac7dc9dc77a4733115238", size = 23283, upload-time = "2026-02-07T21:52:16.964Z" },
 ]
+
+[[package]]
+name = "async-scope"
+version = "0.1.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fasync-scope&tag=async-scope-v0.1.0#cb92897a52fc39ad0923161e152b39c6574dbc12" }
 
 [[package]]
 name = "asyncio-atexit"

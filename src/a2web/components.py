@@ -30,14 +30,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from any_browser import BrowserBackend
+from async_scope import Lazy, ResourceScope, memoized
 from purgatory import AsyncCircuitBreakerFactory
 
 from .cache import SqliteResource
 from .cookie_jar import CookieJarResource, build_cookie_jar
-from .lazy import Lazy
 from .llm_resource import LlmExtractorResource
 from .packages.llm_extract import Provider
-from .scope import ResourceScope, memoized
 from .settings import AppSettings, get_settings
 from .state import (
     AppState,

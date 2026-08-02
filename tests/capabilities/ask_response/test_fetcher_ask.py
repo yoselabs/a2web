@@ -14,9 +14,9 @@ passed directly to `fetch()`. No real API calls are made. Verifies:
 from __future__ import annotations
 
 import pytest
+from async_scope import lazy
 
 from a2web.fetcher import fetch
-from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
 from a2web.models import FetchStatus
 from a2web.packages.llm_extract import Provider

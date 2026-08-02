@@ -24,10 +24,10 @@ from typing import TypeVar, cast
 
 from a2effect.errors import InfrastructureError
 from any_browser import BrowserBackend
+from async_scope import Lazy
 from purgatory import AsyncCircuitBreakerFactory
 
 from .cache import SqliteResource
-from .lazy import Lazy
 from .llm_resource import _PROVIDER_ORDER, LlmExtractorResource, select_provider
 from .packages.llm_extract import Provider  # runtime: a2kit introspects factory annotations (Lazy[Provider]) via get_type_hints
 from .packages.proxy_routing import ProxyEntryShape, ProxyPool, RouteRuleShape

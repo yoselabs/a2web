@@ -313,8 +313,9 @@ async def test_the_bypass_flag_yields_an_extractor_with_no_cache(tmp_path: Path)
     still write, so the first cell of a run would poison the rest and a
     "bypassed" run would silently become cache-served partway through.
     """
+    from async_scope import lazy
+
     from a2web.cache import SqliteResource
-    from a2web.lazy import lazy
     from a2web.llm_resource import LlmExtractorResource
     from a2web.settings import AppSettings
 

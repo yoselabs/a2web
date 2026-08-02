@@ -23,10 +23,10 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any
 
+from async_scope import lazy
 from fastmcp import Client
 
 from a2web.components import Components, build_components
-from a2web.lazy import lazy
 from a2web.server import build_mcp_server
 from a2web.settings import AppSettings, get_settings
 

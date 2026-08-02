@@ -12,9 +12,9 @@ import dataclasses
 import json
 
 import pytest
+from async_scope import lazy
 
 from a2web.components import build_components
-from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
 from a2web.packages.llm_extract import ProviderResponse
 from a2web.state import AppState

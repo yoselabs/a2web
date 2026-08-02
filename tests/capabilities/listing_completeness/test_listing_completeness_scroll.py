@@ -13,9 +13,9 @@ import json
 from dataclasses import dataclass
 
 import pytest
+from async_scope import lazy
 
 from a2web.fetcher import _listing_wants_render, fetch
-from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
 from a2web.models import Verdict
 from a2web.settings import AppSettings

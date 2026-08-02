@@ -19,12 +19,12 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 import pytest
+from async_scope import lazy
 from browser_cookies.models import CookieRow
 
 from a2web.cache import SqliteResource
 from a2web.cookie_jar import build_cookie_jar
 from a2web.fetcher import fetch
-from a2web.lazy import lazy
 from a2web.settings import AppSettings
 from tests.conftest import make_default_state
 

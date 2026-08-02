@@ -26,6 +26,7 @@ from urllib.parse import urljoin, urlparse
 
 import aiosqlite
 from any_browser import BrowserBackend
+from async_scope import Lazy
 from content_extract import (
     extract_markdown as _package_extract_markdown,
 )
@@ -72,7 +73,6 @@ from .hints import (
     paid_auth_error_hint,
     try_user_browser_hint,
 )
-from .lazy import Lazy
 from .link_digest import LinkDigest, build_digest
 from .listing_oracle import listing_has_more, listing_oracle
 from .llm_resource import LlmExtractorResource

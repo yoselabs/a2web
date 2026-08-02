@@ -28,10 +28,10 @@ import dataclasses
 import json
 
 import pytest
+from async_scope import lazy
 
 from a2web.components import build_components
 from a2web.cookie_jar import StalenessInfo
-from a2web.lazy import lazy
 from a2web.models import NextLink
 from a2web.server import build_mcp_server
 from a2web.settings import AppSettings

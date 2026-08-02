@@ -11,11 +11,11 @@ import dataclasses
 import json
 
 import pytest
+from async_scope import lazy
 from record_mine import Record, RecordSet
 
 from a2web.components import build_components
 from a2web.fetcher_response import _records_to_options
-from a2web.lazy import lazy
 from a2web.llm_resource import LlmExtractorResource
 from a2web.tiers import REGISTRY
 from tests._helpers.mcp import call_wire, mcp_client

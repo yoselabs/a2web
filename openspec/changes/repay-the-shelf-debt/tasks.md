@@ -349,14 +349,57 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
 
 ## 9. Promote a2web's own unpromoted substrate
 
-- [ ] 9.1 Assess `lazy.py` (43) + `scope.py` (109) against DEEP · STABLE · WINS.
-      Both were written after the 2026-07-27 sweep, so their absence from its
-      verdict table is an oversight, not a judgement.
-- [ ] 9.2 **Do not loosen the cold-start guarantee.** `scope.py` is load-bearing
-      for `test_cold_start_laziness.py`; if the shelf version needs a more general
-      contract, keep it local.
-- [ ] 9.3 Assess `cli.py:field_to_typer_annotation` (MCP tool → Typer CLI
-      derivation).
+- [x] 9.1 **Assessed, and the three candidates split three ways.** `scope.py`
+      PROMOTES (shipped as shelf `async-scope-v0.1.0`, ledger 0082, adopted;
+      `scope.py` and `lazy.py` are deleted here). It is DEEP enough on the only
+      test that matters: it differs from stdlib `AsyncExitStack` in two ways
+      that are DIFFERENCES, not preferences — a failing `__aexit__` must not
+      strand the resources beneath it, and `aclose()` must be idempotent —
+      plus record-after-enter, where appending before the await turns a cleanup
+      path into the thing that crashes. Both reversion-verified in the shelf
+      suite (removing the lock fails the 20-way concurrency test; moving the
+      append fails the failed-open test).
+      `lazy.py` DECLINES as its own package and rides along inside `async-scope`.
+      A `TypeAlias` for `Callable[[], Awaitable[T]]` plus a three-line helper
+      fails DEEP outright — the interface is the same size as the
+      implementation, so the shelf entry would be a name, not a capability. It
+      belongs with `memoized`, which returns a `Lazy[T]`: the alias is that
+      package's vocabulary, not a package.
+      **Second-consumer evidence, found rather than assumed.** a2kay's
+      `serve.py` hand-rolls the same lifecycle — an `AsyncExitStack` for the
+      spoke, then three bare sequential statements (`c.graph.close()`,
+      `c.audit.close()`, `c.search.close()`) outside any try. As written, the
+      first raising strands the other two: exactly the failure
+      `test_a_failing_close_does_not_strand_the_rest` pins. Recorded in the
+      ledger, NOT fixed — a2kay's teardown order is a stated invariant
+      ("Invariant D") and re-pointing it at a scope is that repo owner's call.
+- [x] 9.2 **Held, and verified rather than asserted.** The shelf version needed
+      no more general contract — it is a2web's code with the docstrings
+      expanded, so the guarantee did not have to be traded for the promotion.
+      `test_cold_start_laziness.py` and `test_one_composition_root.py` both pass
+      against the adopted primitive. That the cold-start guard now pins an
+      ADOPTED primitive is the right outcome, not a dilution: the guarantee
+      ("awaiting nothing constructs nothing, and concurrent first-callers
+      collapse to one construction") is generic; the six-thunk graph in
+      `components.py` is a2web's and stays here.
+- [x] 9.3 **Assessed. DEFERRED with evidence — and the right unit is NOT this
+      function.** `field_to_typer_annotation` is 30 lines and typer-specific, so
+      promoting it as-is would ship a typer adapter to a shelf whose other
+      consumer does not use typer. But the CONCEPT has two independent
+      implementations already: a2kay's `cli/verbs.py::_analyze` does the same
+      job — read `Annotated[base, FieldInfo]`, take `description` for help text,
+      strip `Optional`, decide the flag — against argparse, and it is a strict
+      SUPERSET (it also honours `Field(alias)` for the flag name and detects
+      non-scalar types needing a JSON-string flag).
+      So the generic thing is neither function: it is
+      `analyze_param(annotation) -> ParamSpec(flag, base_type, needs_json, help,
+      alias)`, with typer and argparse as thin renderers over it. That is a
+      DESIGN, not a lift, and it touches two repos' CLIs — too big to ride along
+      inside this change, and generic-first (resolution 0010) says the wrong
+      move is to promote a2web's half and make a2kay adapt to it.
+      Filed for its own change. The measured basis: two implementations, same
+      author, neither aware of the other, and the one with fewer features is the
+      one being offered for promotion.
 
 ## 10. Close out
 

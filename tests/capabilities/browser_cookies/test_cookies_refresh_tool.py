@@ -10,12 +10,12 @@ caught the tool failing to register at all.
 from __future__ import annotations
 
 import pytest
+from async_scope import lazy
 from browser_cookies.models import CookieRow
 
 from a2web.cache import SqliteResource
 from a2web.components import build_components
 from a2web.cookie_jar import CookiesRefreshResult, build_cookie_jar
-from a2web.lazy import lazy
 from a2web.settings import AppSettings
 from tests._helpers.mcp import mcp_client
 

@@ -122,6 +122,15 @@ dependencies = [
     # machinery (${VAR} + secret-stripping YAML source) — a2web keeps its AppSettings
     # schema, secret set, and path defaults and composes it (was in settings.py).
     "timefmt>=0.1,<1",
+    # async-scope: `ResourceScope` (LIFO teardown that never strands what it
+    # holds) + `memoized`/`lazy`/`Lazy[T]` — promoted from a2web 2026-08-02 (was
+    # `src/a2web/scope.py` + `lazy.py`, themselves what survived a2kit's
+    # 599-line DI container). a2web's cold-start guarantee
+    # (`test_cold_start_laziness.py`) is a property of `memoized`, so that guard
+    # now tests an adopted primitive rather than a local one — which is the
+    # point: the guarantee is generic, the six-thunk graph in `components.py` is
+    # a2web's.
+    "async-scope>=0.1,<1",
     "settings-base>=0.1,<1",
     "plugin-surface>=0.1,<1",
     # The typed LLM-JSON funnel (promoted from packages/llm_extract/wobble/
@@ -270,6 +279,7 @@ content-extract = { git = "https://github.com/yoselabs/shelf", subdirectory = "p
 # independent version to pin. The `anyllm[...]>=0.2,<1` dependency line still declares
 # the version floor + SDK extras; the resolved rev is captured in uv.lock.
 timefmt = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/timefmt", tag = "timefmt-v0.1.0" }
+async-scope = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/async-scope", tag = "async-scope-v0.1.0" }
 settings-base = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/settings-base", tag = "settings-base-v0.1.0" }
 plugin-surface = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/plugin-surface", tag = "plugin-surface-v0.1.0" }
 llm-wobble = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/llm-wobble", tag = "llm-wobble-v0.4.0" }

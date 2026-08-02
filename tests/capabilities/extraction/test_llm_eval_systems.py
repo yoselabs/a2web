@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import httpx
 import pytest
+from async_scope import lazy
 
 from a2web.components import Components
-from a2web.lazy import lazy
 from a2web.llm_eval import (
     A2WebDetail,
     A2WebExtract,

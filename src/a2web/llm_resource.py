@@ -46,9 +46,9 @@ _P = TypeVar("_P")
 
 if TYPE_CHECKING:
     from anyllm import LLMProvider
+    from async_scope import Lazy
 
     from .cache import SqliteResource
-    from .lazy import Lazy
     from .packages.llm_extract import ExtractionResult, Extractor, LlmNextLink, Provider
 
 

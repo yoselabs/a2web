@@ -14,8 +14,9 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
+from async_scope import lazy as lazy_value
+
 from a2web import fetcher
-from a2web.lazy import lazy as lazy_value
 from tests.conftest import make_default_state
 
 from .harness import CassetteBrowserPool, CassetteLlm, patch_fetch_bytes
