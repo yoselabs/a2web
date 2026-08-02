@@ -10,6 +10,7 @@ Uses an in-process mock provider — no real API calls. Verifies:
 from __future__ import annotations
 
 import json
+from unittest import mock
 
 import pytest
 
@@ -21,6 +22,8 @@ from a2web.packages.llm_extract import (
     Provider,
     ProviderResponse,
 )
+from a2web.packages.llm_extract import judge as judge_mod
+from a2web.packages.llm_extract.wobble import ParseError, WobblePolicy, WobbleTolerance
 from tests._helpers.llm_doubles import DoubleArm
 
 
@@ -206,6 +209,68 @@ async def test_judge_missing_overall_still_raises() -> None:
     )
     judge = Judge(provider=provider, model=ModelSpec("m"))
     with pytest.raises(JudgeParseError):
+        await judge.score(task="?", criteria=["c"], answer="x")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("bad_overall", [[4, 5], {"v": 4}, "high", None])
+async def test_judge_derive_survives_a_malformed_overall(bad_overall: object) -> None:
+    """The two wobbles CO-OCCURRING: `reached` dropped AND `overall` unusable.
+
+    Each was covered alone; their intersection was not, and it is the one input
+    where the derive callable runs against a value nothing has validated. Live
+    2026-08-02: a judge returned `overall` as a LIST, `_derive_reached` raised a
+    bare `TypeError`, and it flew past the funnel's `ParseError` handler and the
+    runner's per-cell `except JudgeParseError` to kill a 132-cell bench at cell
+    24. The contract is that a judge whose output we cannot parse is an UNSCORED
+    cell — so this must surface as `JudgeParseError`, the one type the runner
+    isolates, and never as the raw coercion error.
+    """
+    provider = _MockJudgeProvider(
+        text=json.dumps({"scores": [4], "overall": bad_overall, "reasoning": "x"}),
+    )
+    judge = Judge(provider=provider, model=ModelSpec("m"))
+    with pytest.raises(JudgeParseError) as caught:
+        await judge.score(task="?", criteria=["c"], answer="x")
+    # The raw text rides along — the runner writes it to judge_raw.txt, which is
+    # the only forensic trail for a wobble that no longer crashes the run.
+    assert "overall" in caught.value.raw_text
+
+
+@pytest.mark.parametrize("bad_overall", [[4, 5], {"v": 4}, "high"])
+def test_derive_reached_rejects_a_non_numeric_overall(bad_overall: object) -> None:
+    """Pin the derive's OWN contract, not the funnel's net around it.
+
+    The end-to-end test above stays green with this coercion reverted, because
+    `_funnel_verdict`'s blanket clause converts the raw `TypeError` anyway — so
+    it pins the net, never the typed guard. Calling the callable directly is the
+    only way to tell the two fixes apart.
+    """
+    with pytest.raises(ParseError):
+        judge_mod._derive_reached({"overall": bad_overall})
+
+
+@pytest.mark.asyncio
+async def test_judge_normalizes_any_policy_callable_failure() -> None:
+    """A policy callable that raises something we did NOT anticipate is still a
+    `JudgeParseError`, not a matrix-killer.
+
+    Pins the blanket clause in `_funnel_verdict` directly rather than through
+    the one derive that happens to exist today: narrowing it to the exceptions
+    nameable now is exactly how the hole reopens for the next callable.
+    """
+    boom = WobblePolicy(
+        WobbleTolerance.DERIVE,
+        derive=lambda _parsed: (_ for _ in ()).throw(ZeroDivisionError("callable blew up")),
+    )
+    provider = _MockJudgeProvider(
+        text=json.dumps({"scores": [4], "overall": 4, "reasoning": "x"}),
+    )
+    judge = Judge(provider=provider, model=ModelSpec("m"))
+    with (
+        mock.patch.dict(judge_mod._JUDGE_POLICY, {"reached": boom}),
+        pytest.raises(JudgeParseError, match="ZeroDivisionError"),
+    ):
         await judge.score(task="?", criteria=["c"], answer="x")
 
 

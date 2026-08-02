@@ -38,12 +38,31 @@ _REACHED_DERIVED_THRESHOLD: int = 3
 def _derive_reached(parsed: dict[str, Any]) -> bool:
     """Compute `reached` from `overall` against the report-side threshold.
 
-    Used as the DERIVE-policy callable for the `reached` field. The judge
-    parser separately validates that `overall` is present and an int via
-    the STRICT-policy path, so this derive runs only after `overall` is
-    known-good.
+    Used as the DERIVE-policy callable for the `reached` field.
+
+    **A derive runs BEFORE the `into` callable, so it cannot lean on it.**
+    This docstring used to claim the opposite — that `overall` was "known-good"
+    by the time the derive ran, because the STRICT policy had validated it. It
+    had not: STRICT checks PRESENCE, never type (`wobble._apply_field` returns
+    `parsed[field]` as-is), and the only int coercion lives in
+    `_build_judge_fields`, which the funnel calls *after* every field policy has
+    resolved. So on the one input where both wobbles co-occur — `reached`
+    dropped AND `overall` a list — this raised a bare `TypeError` past the
+    funnel, past `_funnel_verdict`'s `ParseError` handler, and past the
+    runner's per-cell `JudgeParseError` isolation, killing a 132-cell bench at
+    cell 24 (2026-08-02). Coerce here, and fail as a `ParseError` so the
+    funnel's retry-then-`JudgeParseError` path applies.
+
+    `_funnel_verdict`'s blanket clause would ALSO convert a raw `TypeError`
+    here, so this is belt-and-braces on purpose: the blanket clause is a net,
+    this is the typed contract, and `test_derive_reached_rejects_a_non_numeric_overall`
+    pins it without going through the net.
     """
-    return int(parsed["overall"]) >= _REACHED_DERIVED_THRESHOLD
+    try:
+        return int(parsed["overall"]) >= _REACHED_DERIVED_THRESHOLD
+    except (TypeError, ValueError) as exc:
+        msg = f"judge: cannot derive `reached` from overall={parsed['overall']!r}: {exc}"
+        raise ParseError(msg) from exc
 
 
 # Per-field policy table for the judge boundary. STRICT fields are
@@ -202,10 +221,36 @@ class Judge:
 
 
 def _funnel_verdict(text: str, *, model: str) -> Any:
-    """Funnel the judge response: try the strict path first (fences + JSON);
-    on ParseError fall back to a permissive first-{...} regex extraction and
-    re-funnel that substring. Raises JudgeParseError if neither yields a
-    valid object."""
+    """Funnel the judge response, and **fail only as `JudgeParseError`.**
+
+    Try the strict path first (fences + JSON); on `ParseError` fall back to a
+    permissive first-`{...}` regex extraction and re-funnel that substring.
+
+    The blanket clause is the structural half of the `_derive_reached` fix.
+    Everything in here is pure text→verdict parsing of a REMOTE model's output:
+    no I/O, no billing (the ADR-0016 cost guard fires inside `complete()`,
+    upstream of this call, and stays fatal), and `CancelledError` is a
+    `BaseException` so it still propagates. The runner's per-cell isolation is
+    an `except JudgeParseError` — a whitelist of one — so any *other* exception
+    escaping this function sinks the entire matrix. That is not a hypothetical:
+    one un-typed `TypeError` from a policy callable cost a 132-cell run.
+    Narrowing this to the exceptions we can name today just reopens the hole
+    for the next policy callable.
+    """
+    try:
+        return _funnel_attempts(text, model=model)
+    except JudgeParseError:
+        raise
+    except Exception as exc:  # deliberate — see docstring
+        raise JudgeParseError(
+            f"judge response: unexpected {type(exc).__name__} while parsing: {exc}",
+            raw_text=text,
+        ) from exc
+
+
+def _funnel_attempts(text: str, *, model: str) -> Any:
+    """The two parse attempts. Raises `ParseError`/`JudgeParseError`; anything
+    else is normalized by `_funnel_verdict`."""
     try:
         return parse_with_policy(
             text,
