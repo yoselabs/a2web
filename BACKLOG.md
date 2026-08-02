@@ -74,6 +74,16 @@ falsify either — it would encode the same assumption as the detector.
 Do it as shelf work at the next `record-mine` touch, not by reaching across the
 boundary from here.
 
+**Narrowed 2026-08-02 by `repay-the-shelf-debt` §2** (shelf `fcdec3a`, ledger
+0084), which was the adjacent bug at the same line — *which selectors count as
+a heading*, not *what fraction is required*. That trip closed the guard's two
+endpoints: every normative spelling is now asserted to detect, and a listing
+whose titles are plain `<span>` is asserted to yield NO region. **The VALUE is
+still unwitnessed in both constants** — nothing distinguishes `_HEADING_FRAC_MIN
+= 0.50` from `0.40` or `0.60`, and `_CONSISTENCY_MIN` has no case at all. That
+needs a listing where the fraction genuinely straddles the number (some cards
+headed, some not), which the 23-page probe run during §2 did not look for.
+
 ## 2026-08-02 — the comment-thread handlers extract links they cannot carry (S, structure)
 
 Surfaced by `repay-the-shelf-debt` §3.4. Now that `handlers/reddit.py` and
@@ -368,7 +378,7 @@ same as ready to start.
 | 6 | `unify-the-response-contract` | T2 — absorbs the 41 external `FetchContext` reads, unblocking #7 phase two | **SHIPPED** 2026-08-01 (34/36; §2.2-2.4/2.7 remainder deferred, see tasks) → `BACKLOG-CLOSED.md` |
 | 7 | `decompose-fetcher-into-files` | T1 — the 26-file tree, the retrieval→comprehension→sufficiency loop, `install()` | **authored** |
 | 8 | `lift-the-item-set-and-renderer` | T5/T7: `domain.py`'s 360-line zero-coupling renderer (ledger Row 1), the item set (Row 2) — closes a LIVE ADR-0015 gap | **authored** |
-| 9 | `repay-the-shelf-debt` | T7: ~~`page-tsv`~~, ~~`content-extract`~~, ~~`json-in-html`~~, ~~adopted-then-bypassed primitives~~ — `record-mine` / `dom-schema` / `any-browser` open, each blocked on evidence a2web cannot fabricate | **§1, §3, §5-§10 shipped 2026-08-02** |
+| 9 | `repay-the-shelf-debt` | T7: ~~`page-tsv`~~, ~~`content-extract`~~, ~~`json-in-html`~~, ~~adopted-then-bypassed primitives~~, ~~`record-mine`~~ — `dom-schema` / `any-browser` open, each blocked on evidence a2web cannot fabricate | **§1-§3, §5-§10 shipped 2026-08-02** |
 | 10 | `reconcile-docs-to-shipped-system` | T6 — last, because #6/#7 re-invalidate parts of it | **authored** |
 
 **Ordering — authored is not ready.** #4 goes first: every guard the other nine
@@ -794,7 +804,7 @@ Three recurring failures, in cost order:
 | finding | tier |
 |---|---|
 | ~~[`page-tsv` still ships all three encoder defects a2web fixed](docs/findings/2026-07-31-primitives-scan.md#the-largest-un-repaid-debt-page-tsv-still-ships-all-three-encoder-defects)~~ **SHIPPED** — see below | closed |
-| [five more shelf gaps a2web has already paid for](docs/findings/2026-07-31-primitives-scan.md#five-more-shelf-gaps-a2web-paid-for) — ~~`content-extract`~~, ~~`json-in-html`~~ done; `record-mine` / `dom-schema` / `any-browser` open | M, shelf promotion |
+| [five more shelf gaps a2web has already paid for](docs/findings/2026-07-31-primitives-scan.md#five-more-shelf-gaps-a2web-paid-for) — ~~`content-extract`~~, ~~`json-in-html`~~, ~~`record-mine`~~ done (the last one by disproving it — the gap was a misread, the real loss was that it was untested); `dom-schema` / `any-browser` open | M, shelf promotion |
 | ~~[`prune_dict` imported, re-exported, never called](docs/findings/2026-07-31-primitives-scan.md#prune_dict--imported-re-exported-never-called)~~ **CLOSED** 2026-08-02 → `BACKLOG-CLOSED.md` | closed |
 | ~~[`fmt_dur` adopted, then bypassed one import away](docs/findings/2026-07-31-primitives-scan.md#fmt_dur--adopted-then-bypassed-one-import-away)~~ **CLOSED** 2026-08-02 | closed |
 | ~~[`http_fetch` bypassed by jina and three tiers](docs/findings/2026-07-31-primitives-scan.md#http_fetch--bypassed-by-jina-and-by-three-tiers-generally)~~ **CLOSED** 2026-08-02 — and the breaker it would have gained never opened | closed |

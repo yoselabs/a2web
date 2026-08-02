@@ -50,14 +50,41 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
       tests and its coverage base 2610 → 3544 statements. Shelf ledger 0077.
       Same shape as a2web's `tach.toml` finding — worth watching for a third.
 
-## 2. `record-mine` — the shipped detector contradicts a2web's own spec
+## 2. `record-mine` — DONE 2026-08-02 (shelf `fcdec3a`, ledger 0084)
 
-- [ ] 2.1 Promote `[role=heading]` to `detector.py:62`, which gates on `h1`-`h6`
-      only. `openspec/specs/record-extraction/spec.md:15` requires either.
-- [ ] 2.2 Add a captured fixture: a listing whose item titles carry
-      `role="heading"`, asserting detection.
-- [ ] 2.3 Add the test asserting the delegated selector set matches the normative
-      one, so the two cannot diverge again silently.
+**The section title was wrong. The detector never contradicted the spec** —
+`[role=heading]` has shipped since the package was born (2026-07-08). What was
+real is the inverse, and worse: the capability was entirely unwitnessed.
+
+- [x] 2.1 **Nothing to promote; the claim was false, verified before acting.**
+      `detector.py:62` is the `_HEADING_TAGS` CONSTANT. The gate is at `:183`
+      and `:199`, and both have read
+      `d.tag in _HEADING_TAGS or d.get("role") == "heading"` since commit
+      `911a230`. This task read the table instead of its consumer — the same
+      error shape as `close-guards-that-read-green` §4.1/§6.3, which described
+      the bless CODE while the BASELINES were stale. Third instance; worth
+      naming as a pattern.
+- [x] 2.2 **A captured fixture could not be produced, and that is a
+      measurement, not a deferral.** 23 diverse live listing pages were probed
+      for `role="heading"` on repeated item titles (MDN, GOV.UK, Stack Overflow,
+      reddit, HN, W3C WAI, Shopify Polaris, Primer, a11yproject, Apple, GitLab,
+      AWS, Smashing, LinkedIn, Notion, Google Workspace Marketplace, Play,
+      Figma, Mastodon, Google News, DuckDuckGo, Bing, Scholar) — **zero** carry
+      it; two carry a single unrelated occurrence. It is a client-side-framework
+      spelling, so a2web meets it through the BROWSER tier's rendered DOM,
+      essentially never through server HTML. Shipped a synthetic instead, with
+      the carve-out stated in the test: it is not standing in for a live-shape
+      oracle (the captured arXiv listing holds that job), it controls exactly
+      ONE variable — the heading spelling — inside markup shape `_FLAT_LISTING`
+      already proved.
+- [x] 2.3 Shipped as one parametrised case per normative spelling (`h1`-`h6`
+      plus `[role=heading]`), each asserting detection AND the recovered
+      `heading_text`/`heading_link`, plus the non-vacuity control (same listing,
+      title in a plain `span`, no region — so the seven cases pass BECAUSE of
+      guard (c) rather than around it). Reversion-verified twice: before the
+      tests, deleting the `role` clause from both sites left all 17 shelf tests
+      GREEN; after, it fails exactly the `role` case, and dropping `"h4"` from
+      `_HEADING_TAGS` fails exactly the `h4` case. Shelf gate 696 passed, 85.90%.
 
 ## 3. `content-extract` — DONE 2026-08-02 (shelf `content-extract-v0.3.0`, `convert-md-v0.9.0`)
 
