@@ -186,12 +186,49 @@ only debt with a live cross-repo consumer" — it had no live consumer at all.
       cannot pass the first two.
 - [x] 8.4 `close-wire-level-adr-0009-leaks` shipped 2026-07-31; the tests added
       here are the "assert what reaches it" half it left open.
-- [ ] 8.5 Evaluate `a2effect.translate.raises_as` against the hand-written
-      equivalents — `handlers/github.py:191-209` (9 branches),
-      `tiers/jina.py:139-161`, `zyte.py:106-109`, `firecrawl.py:62-65`.
-- [ ] 8.6 Evaluate `a2effect.enrichers.pydantic_validation_error_enricher`
-      against `fetcher_response.py:85-100`, which re-derives the offending field
-      by hand with an `"unknown"` fallback.
+- [x] 8.5 **Evaluated. DECLINED — the shapes do not match, and adopting it
+      would break the tier contract.** `raises_as` maps a foreign exception to a
+      typed `AppError` and RE-RAISES it. All four named sites do the opposite:
+      they CATCH and RETURN a `TierResult` carrying a non-ok `Verdict`. That is
+      not a stylistic difference. A non-ok tier verdict is a normal ladder
+      outcome — `fetcher._AfterTier.CONTINUE` ("advance to the next tier") — so a
+      jina timeout must let the ladder try the next rung. Routing those four
+      sites through `raises_as` would turn every recoverable tier failure into an
+      exception escaping the tier, i.e. a fetch that stops at the first
+      hiccup instead of escalating. The taxonomy is for errors that REACH THE
+      CALLER; a tier verdict is a routing input that never does.
+      Two things found while probing, both recorded rather than acted on:
+      (a) `gidgethub.RateLimitExceeded` and `InvalidField` are both subclasses of
+      `BadRequest`, so `github.py`'s except-ORDER is load-bearing. `raises_as`
+      iterates its mapping dict in insertion order, so it would preserve that —
+      but silently, where the `except` chain at least makes the ordering visible
+      as code. A future reordering of that dict is a live hazard the current
+      form does not have.
+      (b) The one place the taxonomy DOES belong on this path is already done:
+      `LLMNotAvailable` (§8.1), which genuinely reaches the tool boundary.
+- [x] 8.6 **Evaluated. Adopted for field extraction, not for translation** — and
+      the evaluation surfaced a real defect underneath. The enricher's RAISING
+      shape does not fit (`_project_routing` logs `tolerance="skip"` and returns
+      `None`; the caller still gets `answer`), but its FIELD EXTRACTION does, so
+      `_validation_error_fields` now calls it and reads `details["fields"]`.
+      What the hand-rolled version got wrong, both now fixed and pinned:
+      it read `errors()[0]` only, so a payload violating TWO closed enums at once
+      logged one and the second was invisible (the operator fixes the named enum,
+      re-runs, and the same event fires naming a field that was wrong all along);
+      and its `"unknown"` fallback fired for a REAL `ValidationError` whose first
+      error had an empty `loc`, making a diagnosable event indistinguishable from
+      an undiagnosable one. Added `violating_fields` (all of them) alongside
+      `field` (the first — an existing operator grep keeps working). `"unknown"`
+      now means exactly one thing: not a `ValidationError` at all.
+      **The event was previously untested in full** — not that it fires, not what
+      it names, not that `answer` survives. `tests/capabilities/wobble_funnel/
+      test_routing_mirror_wobble_event.py` closes that, with an anti-vacuity
+      floor (a valid boundary projects and emits nothing) and a reversion check
+      (capping extraction at the first field fails the two-violation test).
+      The test captures off the `a2web` logger directly rather than via `caplog`:
+      the logger sets `propagate=False`, so a caplog version passed alone and
+      failed in the full suite — capturing by accident, whose mirror image is
+      asserting nothing by accident.
 - [x] 8.7 **Read, run, and probed. It is NOT the Rego replacement.** Three real
       rules exist and are registered (`A2K-RAISES-CLOSURE`,
       `A2K-RAISES-NOT-TYPED`, `A2K-RAISES-UNCOVERED`), but they key on an

@@ -15,6 +15,7 @@ import time
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from a2effect.enrichers import pydantic_validation_error_enricher
 from timefmt import fmt_dur
 
 from .actions.terminal import TerminalOutcome
@@ -61,6 +62,20 @@ if TYPE_CHECKING:
     from .packages.llm_extract import RouterPayload as RouterBoundary
 
 
+def _validation_error_fields(exc: BaseException) -> list[str]:
+    """Names of every field a pydantic `ValidationError` rejected, in order.
+
+    Empty when `exc` is not a `ValidationError` — the caller distinguishes that
+    from "a validation error we could not read", which the previous hand-rolled
+    introspection conflated.
+    """
+    translated = pydantic_validation_error_enricher(exc)
+    if translated is None:
+        return []
+    fields = translated.details.get("fields", []) if translated.details else []
+    return [".".join(str(part) for part in err["loc"]) for err in fields if err.get("loc")]
+
+
 def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
     """Project the package-side boundary type into the pydantic mirror.
 
@@ -96,20 +111,23 @@ def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
     except Exception as exc:
         # Use the unified `llm_wobble` log key so operators grep one event
         # across every LLM-contract boundary (judge / bench_judge / extractor
-        # / routing-mirror). The violating field is the first loc element of
-        # the pydantic ValidationError; fall back to "unknown" if the error
-        # shape doesn't expose it.
-        offending_field = "unknown"
-        errors_attr = getattr(exc, "errors", None)
-        if callable(errors_attr):
-            errs = errors_attr()
-            if errs and isinstance(errs, list) and errs[0].get("loc"):
-                first = errs[0]["loc"][0]
-                offending_field = str(first)
+        # / routing-mirror).
+        #
+        # Field extraction goes through `a2effect`'s enricher rather than
+        # duck-typing `exc.errors()` by hand. Two things the hand-rolled version
+        # got wrong: it reported only `errors()[0]`, so a payload violating TWO
+        # closed enums at once logged one of them and the second was invisible;
+        # and its `"unknown"` fallback fired for a real `ValidationError` whose
+        # first error simply had an empty `loc`, making a diagnosable event
+        # indistinguishable from an undiagnosable one. `"unknown"` now means
+        # exactly one thing — this was not a `ValidationError` at all (the
+        # `except` is deliberately broad, so that case is reachable).
+        offending_fields = _validation_error_fields(exc)
         log_warning(
             "llm_wobble",
             boundary="fetcher_routing_mirror",
-            field=offending_field,
+            field=offending_fields[0] if offending_fields else "unknown",
+            violating_fields=offending_fields,
             tolerance="skip",
             structural_form=boundary.structural_form,
             shape=boundary.shape,
