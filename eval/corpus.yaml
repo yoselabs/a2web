@@ -289,6 +289,12 @@ urls:
     class: affordance
     task: "Summarize the customer reviews for this product — what do buyers say?"
     needs: [content+links]
+    contract:
+      # ADR-0014, and deterministic: whatever the fetch outcome, every
+      # http(s) URL in the answer prose must appear in the retrieved body,
+      # the emitted index, or the page's own address. Unlike a quality
+      # score this is machine-independent -- the review page's own -yorumlari URL is the classic fabrication.
+      answer_urls_traceable: true
     criteria:
       - "Does NOT fabricate or invent specific review quotes / ratings not on the fetched page"
       - "States that the reviews are not on the fetched page, scoped to THIS page's evidence (ADR-0009)"
@@ -434,6 +440,12 @@ urls:
     class: affordance
     task: "What are the most common complaints in the reviews?"
     needs: [content+links]
+    contract:
+      # ADR-0014, and deterministic: whatever the fetch outcome, every
+      # http(s) URL in the answer prose must appear in the retrieved body,
+      # the emitted index, or the page's own address. Unlike a quality
+      # score this is machine-independent -- an invented /product-reviews/ path is the classic fabrication.
+      answer_urls_traceable: true
     criteria:
       - "Reports only review content actually present on the fetched page; does not fabricate complaints"
       - "If the full reviews live behind a separate link, surfaces that link as a drilldown"
@@ -479,6 +491,12 @@ urls:
     next_links_expected: true
     task: "Which of these Bluetooth headphones is the best one to buy?"
     needs: [content+links]
+    contract:
+      # ADR-0014, and deterministic: whatever the fetch outcome, every
+      # http(s) URL in the answer prose must appear in the retrieved body,
+      # the emitted index, or the page's own address. Unlike a quality
+      # score this is machine-independent -- product URLs must come from the page, never pattern-guessed.
+      answer_urls_traceable: true
     criteria:
       - "Does NOT crown a single 'best' of the fetcher's own choosing (ADR-0012 — no manufactured selection)"
       - "Presents the option space — multiple products with their disclosed metadata (price / rating) as shown"

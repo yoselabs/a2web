@@ -236,6 +236,47 @@ what ADR-0009 actually requires — instead of the answer's content, or those sl
 get pinned to captured pages. Until then the noisiest cells in the corpus are
 measuring the network.
 
+**SURVEYED 2026-08-03, and the obvious execution has a trap.** Twelve adversarial
+slugs still score answer content with no `contract:` block:
+
+```
+  medium-tag            g2-crm-wall                spa-react-dev
+  hepsiburada-product-reviews                      amazon-product-reviews-elsewhere
+  koctas-product-spa-thin-fetch                    trendyol-listing-which-best
+  g2-bespoke-wall-thin-200   walled-api-fake-empty-spa
+  hard-anti-bot-robust-escalation                  twitter-upstream-walled
+  walled-page-with-preceding-info-hint
+```
+
+The obvious move is to give each the wall contract `datadome-wall-commerce`
+already carries (`status: failed`, `retrieval_incomplete: true`,
+`narrative_present: true`, `answer_present: false`,
+`hint_severity: {try_user_browser: critical}`). **Do not do that wholesale.**
+
+Observed in `eval/runs/2026-08-03_161513`, seven of the twelve came back
+`reached: False, tier=none` — but that was measured on a host with **no proxies,
+no zyte/firecrawl keys and an unreachable jina**. On a provisioned machine some
+of them retrieve. A `status: failed` contract would pin THIS HOST'S limitation
+into the gate as a product expectation, and the case would then fail for
+whoever fixes the provisioning — the precise inverse of what the corpus is for.
+
+The distinction that has to be made per slug is **whether the wall is a property
+of the SITE or of the HOST.** `datadome-wall-commerce` is safe because its own
+note establishes the site fact ("DataDome-protected, walls server-side clients at
+every rung including a rendering one"). `koctas-product-spa-thin-fetch` is not —
+a browser rung on a better machine may well render it.
+
+Shipped now, because it needs no such judgement: `answer_urls_traceable: true`
+on the three affordance slugs whose answers are expected to carry links
+(`hepsiburada-product-reviews`, `amazon-product-reviews-elsewhere`,
+`trendyol-listing-which-best`). ADR-0014 holds whatever the fetch outcome, so it
+is deterministic AND machine-independent — it converts "did not fabricate a
+`-yorumlari` URL" from a probabilistic judge call into a binary one.
+
+**The remaining eleven-way call is deliberately left for a human**: each needs a
+site-vs-host determination, and getting one wrong bakes a network fact into the
+gate.
+
 ## 2026-08-01 — converge the item set, once `reason` can survive the trip (M, structure)
 
 Source: `openspec/changes/lift-the-item-set-and-renderer/` §4, deferred with its
