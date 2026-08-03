@@ -48,7 +48,10 @@ async def _run_refresh(case_ref: str) -> int:
         return 2
 
     corpus, _, slug = case_ref.partition("/")
-    case = load_case(case_dir, corpus=corpus or "")
+    # `with_inputs=False`: refresh OVERWRITES inputs/ and never reads it, and a
+    # case whose cassette the parser rejects is precisely the case that most
+    # needs refreshing. Parsing it first would make the guard block its own fix.
+    case = load_case(case_dir, corpus=corpus or "", with_inputs=False)
     bless = os.environ.get("A2WEB_BLESS_EVAL") == "1"
 
     print(f"re-capturing {case_ref} (live) …")

@@ -127,7 +127,7 @@ def _load_baseline(baseline_dir: Path) -> CaseBaseline:
     return CaseBaseline(contract=contract, answer=answer)
 
 
-def load_case(case_dir: Path, *, corpus: str = "") -> ReplayCase:
+def load_case(case_dir: Path, *, corpus: str = "", with_inputs: bool = True) -> ReplayCase:
     """Load one case directory into a `ReplayCase`."""
     case_dir = Path(case_dir)
     spec = _read_yaml(case_dir / "case.yaml")
@@ -151,7 +151,12 @@ def load_case(case_dir: Path, *, corpus: str = "") -> ReplayCase:
         tags=tags,
         corpus=corpus,
         path=case_dir,
-        inputs=_load_inputs(case_dir / "inputs"),
+        # `with_inputs=False` is for REFRESH, which overwrites `inputs/` and
+        # never reads it. Loading them there is not merely wasteful — a cassette
+        # the parser rejects (a frozen `304` with no body) would block the one
+        # tool able to replace it, which is exactly what happened when that
+        # guard was added.
+        inputs=_load_inputs(case_dir / "inputs") if with_inputs else CaseInputs(),
         baseline=_load_baseline(case_dir / "baseline"),
         meta=_read_yaml(case_dir / "meta.yaml"),
         spec=spec,

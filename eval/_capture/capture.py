@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
 from http_fetch import FetchOutcome
@@ -231,7 +232,29 @@ async def capture_case(
     Shared by `make eval-capture` (new case) and `make eval-refresh`
     (re-capture an existing case's inputs). Live-network + LLM quota.
     """
-    settings = AppSettings()
+    # A CAPTURE MUST NEVER SEND A CONDITIONAL REQUEST.
+    #
+    # Capturing a URL already in the operator's cache sends `If-None-Match`, the
+    # origin answers `304 Not Modified`, and the cassette freezes a response
+    # that BY DEFINITION carries no body. The frozen "input" is then a pointer
+    # into `~/.a2web/cache.sqlite` — a file outside the repository — so the
+    # replay suite's determinism claim becomes false: green on the capturing
+    # machine, `content_len: 0` anywhere else.
+    #
+    # Not hypothetical. `akakce-no-current-price` was captured this way on
+    # 2026-08-02 and shipped a 13-byte body section under a baseline demanding
+    # `has_content: true`, and it took a cold-cache run to see it
+    # (`eval/findings_2026-08-03-the-cassette-that-froze-a-304.md`).
+    #
+    # Done by adding this host to `live_only_hosts` rather than by widening
+    # `fetch()` with a `bypass_cache=` kwarg: the mechanism already exists and
+    # means exactly this ("do not serve this host from cache"), and a capture
+    # genuinely IS a live-only fetch. One less public parameter to keep honest.
+    host = urlparse(url).hostname or ""
+    base = AppSettings()
+    settings = (
+        base.model_copy(update={"live_only_hosts": [*base.live_only_hosts, host]}) if host else base
+    )
     parts = build_components(settings=settings)
     state = await parts.state()
 

@@ -14,8 +14,11 @@ test client) from tripping a2kit's `AmbientContextMissing`.
 
 from __future__ import annotations
 
+import atexit
 import contextlib
 import os
+import shutil
+import tempfile
 from typing import TYPE_CHECKING
 
 import aiosqlite.core
@@ -39,6 +42,36 @@ _HARNESS_CONTROL_ENV = {"A2WEB_BLESS_EVAL", "A2WEB_BLESS_CONTRACTS", "A2WEB_ACCE
 for _leaked_key in [_k for _k in os.environ if _k.startswith("A2WEB_") and _k not in _HARNESS_CONTROL_ENV]:
     del os.environ[_leaked_key]
 os.environ["A2WEB_CONFIG"] = "/nonexistent/a2web-hermetic-test-config.yaml"
+
+# --- The cache must be hermetic too, and for the SAME reason --------------- #
+# The scrub above removes `A2WEB_CACHE_DIR` along with every other `A2WEB_*`
+# var, and `cache.cache_dir()` then falls back to `~/.a2web` — the developer's
+# REAL cache. Five test files set it back via a per-file `monkeypatch` fixture;
+# every other cache-touching test wrote into the user's own `cache.sqlite`.
+#
+# Two consequences, both observed on 2026-08-03:
+#
+# 1. **Tests mutated real user data.** `https://example.org/post` and
+#    `https://blocked.example/page` were found sitting in a live `~/.a2web`.
+# 2. **A leaked row made the suite flaky.** `test_cache_hit_on_second_call`
+#    asserts its FIRST fetch is a `miss`; with that URL already cached from an
+#    earlier run it is a `hit`. Invisible on a fresh checkout and on CI,
+#    semi-permanent once seeded locally — the shape most likely to be dismissed
+#    as noise.
+#
+# This was BLOCKED until the replay suite stopped depending on home-cache state:
+# a frozen `304` cassette meant `tests/eval_replay/` only passed because the
+# body it referred to was in `~/.a2web`
+# (`eval/findings_2026-08-03-the-cassette-that-froze-a-304.md`). With captures
+# now live-only and that cassette refrozen at 200, the dependency is gone.
+#
+# Set at MODULE scope, not as a fixture, for the same reason the scrub is: it
+# must hold before the first `AppSettings()` in any import, and a per-file
+# fixture is the one that gets forgotten. Files with their own `tmp_path`
+# override still win — they set the same var later.
+_TEST_CACHE_DIR = tempfile.mkdtemp(prefix="a2web-test-cache-")
+os.environ["A2WEB_CACHE_DIR"] = _TEST_CACHE_DIR
+atexit.register(lambda: shutil.rmtree(_TEST_CACHE_DIR, ignore_errors=True))
 
 from a2web.cache import SqliteResource
 from a2web.components import Components, build_components

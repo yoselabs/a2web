@@ -116,16 +116,48 @@ def _parse_exchange(chunk: str) -> _Exchange:
     encoding = meta.get("body-encoding", "utf-8")
     body = base64.b64decode(body_text) if encoding == "base64" else body_text.encode("utf-8")
 
+    status_code = int(meta.get("status", "0"))
+    conditional_hit = meta.get("conditional-hit", "false") == "true"
+
+    # A recorded `304` with no body is UNREPLAYABLE, and must say so loudly.
+    #
+    # `304 Not Modified` carries no body by definition — it is a pointer to a
+    # copy the client already holds. A cassette that froze one has frozen a
+    # pointer into `~/.a2web/cache.sqlite`, a file outside the repository. It
+    # replays green on the machine that captured it and yields an empty body
+    # everywhere else, which is the precise inverse of what a cassette is for.
+    #
+    # Silence here is what let `akakce-no-current-price` ship a 13-byte body
+    # under a baseline demanding `has_content: true`, and pass CI and every
+    # local run on the author's machine for a day
+    # (`eval/findings_2026-08-03-the-cassette-that-froze-a-304.md`).
+    #
+    # Captures cannot produce this shape any more (`capture_case` passes
+    # `bypass_cache=True`), so this guard is for cassettes already on disk and
+    # for any future path that reintroduces a conditional request.
+    if status_code == 304 and conditional_hit and not body:
+        raise ValueError(
+            f"cassette for {url} froze a `304 Not Modified` with an empty body.\n"
+            "A 304 carries no body — the bytes it refers to live in the capturing "
+            "machine's HTTP cache, not in this repository, so this cassette cannot "
+            "replay anywhere else.\n"
+            "Re-capture it: `make eval-refresh ID=<slug> CORPUS=<corpus>`. Captures now "
+            "pass `bypass_cache=True`, so the refreshed cassette will carry real bytes.\n"
+            "Before blessing the new baseline, READ the fetched body and confirm the case "
+            "still tests what it was captured to test — a golden proves a surface has not "
+            "changed, never that it was right when captured."
+        )
+
     return _Exchange(
         url=url,
         outcome=FetchOutcome(
             body=body,
             content_type=meta.get("content-type", ""),
-            status_code=int(meta.get("status", "0")),
+            status_code=status_code,
             final_url=meta.get("final-url", url),
             headers=headers,
             verdict=FetchVerdict(meta.get("verdict", "ok")),
-            conditional_hit=meta.get("conditional-hit", "false") == "true",
+            conditional_hit=conditional_hit,
         ),
     )
 

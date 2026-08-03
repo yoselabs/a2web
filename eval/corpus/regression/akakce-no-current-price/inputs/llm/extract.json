@@ -1,17 +1,17 @@
 {
-  "answer": "The page shows no current price or seller listings for the Smartmi Fan 3 Kablosuz Vantilat\u00f6r. The structured data states `offerCount=0` and `lowPrice=0, highPrice=0`, indicating the product is not presently available for purchase through Akak\u00e7e's price aggregator. The page displays specs (25W, 4-speed, 7-blade, 3.5kg, remote control, oscillating) and comparison data against related Xiaomi models, but no vendors or pricing.",
-  "completion_tokens": 212,
-  "cost_usd": 0.0107639,
-  "latency_ms": 5842,
+  "answer": "The page lists the Smartmi Fan 3 with 0 active offers and shows no current lowest price (offerCount=0, lowPrice=0). The structured data indicates \"Fiyat Yok\" (no price), meaning the product is not currently available for purchase on this price-comparison platform. The comparison table notes the same: no price listed, no seller information.",
+  "completion_tokens": 168,
+  "cost_usd": 0.0026100000000000003,
+  "latency_ms": 5980,
   "model": "claude-haiku-4-5-20251001",
-  "prompt_tokens": 17491,
+  "prompt_tokens": 17682,
   "routing": {
     "also_here": [
-      "specs / power wattage, blade count, weight, control type",
-      "related products / Smartmi Fan 2S, Xiaomi Smart Standing fans",
-      "popular fans category"
+      "specs, power/control/oscillation",
+      "related products comparison vs Fan 2S / Xiaomi alternatives",
+      "popular fan category listings"
     ],
-    "answer": "The page shows no current price or seller listings for the Smartmi Fan 3 Kablosuz Vantilat\u00f6r. The structured data states `offerCount=0` and `lowPrice=0, highPrice=0`, indicating the product is not presently available for purchase through Akak\u00e7e's price aggregator. The page displays specs (25W, 4-speed, 7-blade, 3.5kg, remote control, oscillating) and comparison data against related Xiaomi models, but no vendors or pricing.",
+    "answer": "The page lists the Smartmi Fan 3 with 0 active offers and shows no current lowest price (offerCount=0, lowPrice=0). The structured data indicates \"Fiyat Yok\" (no price), meaning the product is not currently available for purchase on this price-comparison platform. The comparison table notes the same: no price listed, no seller information.",
     "item_total_seen": null,
     "obstacle": null,
     "other_pages": [],

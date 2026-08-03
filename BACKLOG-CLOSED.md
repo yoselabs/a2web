@@ -947,3 +947,137 @@ a current plugin surface, naming plugins whose spellings were themselves retired
 
 Open, with reasons, in `BACKLOG.md`: §4 (playbook foreign witness), §5.1-5.3
 (constants needing captured fixtures), §6 (corpus/bench).
+
+---
+
+## 2026-08-03 — the test suite writes to the developer's REAL cache (M, test hermeticity)
+
+**The finding.** `tests/conftest.py` scrubs every `A2WEB_*` env var before the
+first a2web import, deliberately, so a developer's real keys cannot register
+paid tiers. That scrub also removes `A2WEB_CACHE_DIR`, and `cache.cache_dir()`
+then falls back to `~/.a2web`. Exactly five test files set it back via a
+per-file `monkeypatch` fixture; **every other cache-touching test writes into
+the developer's own `cache.sqlite`.**
+
+Observed on a dev machine 2026-08-03 (218MB real cache, 1028 rows):
+
+```
+  https://example.org/post        1 row   <- from test_fetcher.py
+  https://blocked.example/page    1 row   <- from test_fetcher.py
+```
+
+**Two harms, and the second is why this is not cosmetic.**
+
+1. Tests mutate real user data. Nothing else in the suite does this.
+2. **It makes `make check` flaky in the worst possible shape.**
+   `test_cache_hit_on_second_call` asserts its FIRST fetch is a `miss`. Once
+   `example.org/post` is seeded in the real cache by an earlier run, that
+   fetch is a `hit` and the test fails — intermittently, because whether the
+   real cache is consulted depends on test ordering and on which
+   `SqliteResource` was constructed first. Reproduced twice under coverage on
+   2026-08-03; 8 consecutive clean runs without. **Invisible on a fresh
+   checkout and on CI, semi-permanent once seeded locally** — a developer sees
+   a failure CI cannot reproduce, which is the failure mode most likely to be
+   dismissed as noise.
+
+**The obvious fix does not work yet, and that is the real content of this
+entry.** Setting `A2WEB_CACHE_DIR` to a temp dir at conftest module scope (one
+line, same seam as the scrub) fixes both harms and turns two OTHER tests red:
+
+```
+  tests/eval_replay/test_regression_corpus.py::test_regression_replay[akakce-no-current-price]
+  tests/eval_replay/test_regression_corpus.py::test_llm_egress_is_reproduced_byte_for_byte
+      AssertionError: assert None == 'The page shows no current price...'
+```
+
+So the frozen-cassette replay suite — the one that exists to be deterministic —
+**currently depends on state in the developer's home cache.** A cold-cache run
+either serves no answer or reaches for the network (a cold-dir run of
+`tests/eval_replay/` did not complete inside five minutes, where the warm-cache
+run takes 18 seconds). Whatever it is reaching for is not in the cassette,
+which is precisely what `test_llm_egress_is_reproduced_byte_for_byte` claims to
+prove is impossible.
+
+That is a second, larger defect wearing this one as a symptom, and it deserves
+its own diagnosis rather than being bundled into a hermeticity fix.
+
+> **DIAGNOSED 2026-08-03** — `eval/findings_2026-08-03-the-cassette-that-froze-a-304.md`.
+> The cassette `akakce-no-current-price/inputs/raw.http` records a **`304 Not
+> Modified` with a 13-byte body section**. A 304 carries no body by definition;
+> it points at a copy the client already holds. So the suite's "frozen bytes"
+> live in `~/.a2web/cache.sqlite`, not in the repo — and the URL is present in
+> the real home cache on this machine. Cold, the replay yields `content_len: 0`,
+> `extracted_answer: None`, and the LLM cassette is never called.
+>
+> It also surfaced a SECOND, product-side defect: a conditional-hit tier result
+> with no cache row behind it gated as **`status: ok` with an empty
+> `content_md`** and a cheerful `raw → ok (9ms)` narrative — the ADR-0009 harm
+> in the pipeline, not the harness. Fix that one first; it is independent and
+> unit-testable.
+>
+> Re-capture is NOT a drive-by: this case is a fabrication-trap specimen
+> ("no current price"), so a refreeze against today's page can leave it green
+> while testing nothing. Verify the page still has no price by reading the body
+> before blessing.
+
+**Scope.** M. Two steps, in order:
+
+1. Diagnose what `replay_case` resolves out of the cache — extraction cache,
+   HTTP cache, or both — and freeze it into the cassette. The suite cannot
+   claim determinism while a warm home directory changes its result.
+2. THEN set `A2WEB_CACHE_DIR` at conftest module scope (not a per-file
+   fixture — five files remember and the sixth is the one that leaks), and
+   delete the five per-file fixtures that become redundant.
+
+**Do not do 2 before 1.** It turns a rare flake into two reliable failures and
+buries the more serious finding under them.
+
+**Evidence.** This session; the one-line conftest patch and its exact fallout
+are reproducible by adding `os.environ["A2WEB_CACHE_DIR"] = tempfile.mkdtemp()`
+immediately after the `A2WEB_CONFIG` line in `tests/conftest.py`.
+
+---
+
+### CLOSED 2026-08-03 — fixed in full, in the order the diagnosis required
+
+The blocked half turned out to be a frozen `304`
+(`eval/findings_2026-08-03-the-cassette-that-froze-a-304.md`): the cassette's
+"frozen bytes" were a pointer into `~/.a2web/cache.sqlite`, so the replay
+suite's determinism claim was false and the hermeticity fix could not land
+without turning it red.
+
+Shipped, in dependency order:
+
+1. **`fix(tier-walk)`** — a `304` with no cached row behind it no longer falls
+   through to `install()` as `status: ok` with an empty body. That was the
+   ADR-0009 harm in the pipeline, independent of the harness, and it is the one
+   defect here that could reach a real caller. Mutation-proven.
+2. **`capture_case` is live-only for its target host** — the MECHANISM fix. A
+   capture can no longer send a conditional request, so no future cassette can
+   freeze a body-less 304. Done via `live_only_hosts` rather than a new
+   `bypass_cache=` kwarg on `fetch()`: the mechanism already means exactly this,
+   and a capture genuinely is a live-only fetch.
+3. **Cassette guard** — a recorded `304` with an empty body raises on parse
+   instead of replaying as an empty success.
+4. **`load_case(..., with_inputs=False)`** — because (3) initially blocked its
+   own fix: `eval-refresh` parsed the bad cassette before re-capturing, so the
+   error message named a command that could not run. Refresh overwrites
+   `inputs/` and never reads it.
+5. **Re-captured `akakce-no-current-price`**, verified before blessing:
+   `304`/13-byte body → `200`/124,030-byte body, and the case still tests what
+   it was captured to test (independent raw fetch found zero TL price literals
+   and the marker `fiyat bulunamadı`; the fresh answer still reports
+   `offerCount=0`, `lowPrice=0`, "Fiyat Yok"). `steps`, `tier` and `status`
+   unchanged.
+6. **The conftest one-liner** — `A2WEB_CACHE_DIR` set at module scope, so the
+   suite stops writing to the developer's real cache.
+
+Verified with three consecutive full runs on a cold cache, 1631 passing each
+time, plus `make check`.
+
+**The lesson worth keeping:** the guard at `tier_walk` read
+`if ... and fc.cached_row is not None and ...`, which LOOKS like protection. A
+failed condition simply fell through to the success path. The check was present;
+the protection was not. Prefer an explicit reject branch over a condition whose
+failure mode is "carry on".
+
