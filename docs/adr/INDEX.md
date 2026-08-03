@@ -21,4 +21,4 @@ Architecture Decision Records for a2web. Each records a decision with context, r
 | [0015](0015-the-withheld-body-index.md) | The withheld-body index (`also_here` / `other_pages`) | Accepted |
 | [0016](0016-never-metered-api-in-dev-loop.md) | Never bill the metered API in the dev/eval loop (dev-loop tenet) | Accepted |
 | [0017](0017-effort-and-confidence-proportional-to-evidence.md) | Effort ∝ existence prior; confidence ∝ corroboration; severity encodes confidence | Accepted |
-| [0018](0018-the-generic-layer-is-a-floor-never-a-ceiling.md) | The generic layer is a floor, never a ceiling (product tenet) | Proposed |
+| [0018](0018-the-generic-layer-is-a-floor-never-a-ceiling.md) | The generic layer is a floor, never a ceiling (product tenet) | Accepted |

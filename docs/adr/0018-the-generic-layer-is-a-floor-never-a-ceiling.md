@@ -1,10 +1,12 @@
 # ADR-0018 — The generic layer is a floor, never a ceiling (product tenet)
 
-**Status:** **Proposed** (drafted 2026-08-02)
+**Status:** **Accepted** (drafted 2026-08-02, accepted 2026-08-03 on measurement)
 **Date:** 2026-08-02
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-0009 (a silent miss is the cardinal harm — this is its shape one layer down), ADR-0012 (relay, never manufacture — the same refusal to substitute a2web's judgement for the source's), ADR-0015 (never withhold the body without leaving the index), inbox note `I0269`, findings `eval/findings_2026-08-02-schema-shaped-extraction.md` + `-entity-schema-spike-v1.md` + `-entity-schema-spike-v2.md`.
+**Related:** ADR-0009 (a silent miss is the cardinal harm — this is its shape one layer down), ADR-0012 (relay, never manufacture — the same refusal to substitute a2web's judgement for the source's), ADR-0015 (never withhold the body without leaving the index), inbox note `I0269`, findings `eval/findings_2026-08-02-schema-shaped-extraction.md` + `-entity-schema-spike-v1.md` + `-entity-schema-spike-v2.md` + `-2026-08-03-entity-schema-spike-v3.md` + `-declared-entity-v4.md` + `-declared-field-cap-v5.md` + `-declaration-rate-v6.md`.
+
+**Accepted on evidence, not on principle.** The draft conceded its own case rested on "the principle and the asymmetry, NOT on a measured pile of losses". That is no longer true: `declaration_rate_v6` (2026-08-03) measured a closed vocabulary dropping **4 of the 7 corpus pages that declare anything subject-level**, including the richest. Shipped in the same pass — `_ENTITY_TYPES` deleted, `AskResponse.declared_entity` relaying the declared type verbatim as a label.
 
 ## Context
 
