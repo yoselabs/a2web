@@ -1,0 +1,2992 @@
+{
+  "provider": "claude-code-sdk",
+  "model": "claude-haiku-4-5-20251001",
+  "reps": 3,
+  "n_pages": 10,
+  "n_scored": 8,
+  "n_rounds": 24,
+  "coverage_mean": {
+    "A_answer": 0.552,
+    "B_answer": 0.477,
+    "B_fields": 0.114,
+    "B_combined": 0.517,
+    "E_combined": 0.519
+  },
+  "paired": {
+    "B_combined-A_answer": {
+      "n": 24,
+      "mean": -0.0358,
+      "stdev": 0.2146,
+      "wins": 11,
+      "ties": 3,
+      "losses": 10
+    },
+    "B_fields-A_answer": {
+      "n": 24,
+      "mean": -0.4381,
+      "stdev": 0.3941,
+      "wins": 6,
+      "ties": 0,
+      "losses": 18
+    },
+    "B_answer-A_answer": {
+      "n": 24,
+      "mean": -0.0758,
+      "stdev": 0.1909,
+      "wins": 5,
+      "ties": 7,
+      "losses": 12
+    },
+    "E_combined-B_combined": {
+      "n": 24,
+      "mean": 0.0021,
+      "stdev": 0.1581,
+      "wins": 9,
+      "ties": 8,
+      "losses": 7
+    }
+  },
+  "completion_tokens_mean": {
+    "A": 196.5,
+    "B": 272.4,
+    "E": 284.7
+  },
+  "delta_tokens_B_minus_A": 75.9,
+  "coverage_lift_B_over_A": -0.035,
+  "extra_facts_per_1k_tokens": -0.46,
+  "type_stability": {
+    "declared": {
+      "stable": 2,
+      "total": 4
+    },
+    "inferred": {
+      "stable": 7,
+      "total": 12
+    }
+  },
+  "E_followed_declared": "0/6",
+  "entity_field_count_mean": 4.6,
+  "rows": [
+    {
+      "slug": "hepsiburada-product",
+      "url": "https://www.hepsiburada.com/wilkinson-sword-wilkinson-swrod-hydro-5-ultimate-tirasmakinesi-1-adet-yedek-baslik-p-HBV00000UWKQ2",
+      "ask": "What is this product, its price and currency, and is it in stock?",
+      "declared": [],
+      "content_chars": 779,
+      "core_count": 5,
+      "adjacent_count": 6,
+      "inventory": {
+        "core": [
+          "The page does not display product information; it shows a 404 error message stating 'B\u00f6yle bir sayfam\u0131z yok ama benzersiz f\u0131rsatlar burada!' (We don't have such a page but unique opportunities are here).",
+          "The product listing for Wilkinson Sword Hydro 5 Ultimate razor with 1 replacement head is not accessible on this page.",
+          "No price information is available on the page.",
+          "No currency is displayed on the page.",
+          "No stock status is indicated on the page."
+        ],
+        "adjacent": [
+          "The page is hosted on hepsiburada.com (Turkish e-commerce platform).",
+          "The page reports it was fetched on 2026-08-03 at 02:44:57 UTC.",
+          "The original URL was intended to be a Hepsiburada product page (SKU HBV00000UWKQ2).",
+          "The page offers navigation options: search, homepage link, and category browsing.",
+          "Product categories visible include electronics, clothing, cosmetics, books, sports, home automation, and more.",
+          "The page includes a note that the page may have been removed or modified."
+        ]
+      },
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The page is not available. Hepsiburada (Turkish e-commerce) returned a 404: \"Such a page does not exist but unique opportunities are here!\" The product listing for Wilkinson Sword Hydro 5 Ultimate razor with 1 replacement head cannot be accessed\u2014no price, currency, or stock status visible.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 117
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Product page not found. The Hepsiburada URL returned a 404 error ('B\u00f6yle bir sayfam\u0131z yok' = 'We don't have such a page'). Price, currency, and stock status cannot be determined.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 97
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "Page not found. The Wilkinson Sword Hydro 5 Ultimate razor product page at this URL has been removed or changed. No product details, price, or stock information is available.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 84
+            }
+          },
+          "coverage": {
+            "B_fields": 0.0,
+            "E_combined": 0.455,
+            "B_answer": 0.455,
+            "B_combined": 0.455,
+            "A_answer": 0.545
+          },
+          "covered": {
+            "B_fields": [],
+            "E_combined": [
+              2,
+              3,
+              4,
+              5,
+              11
+            ],
+            "B_answer": [
+              1,
+              3,
+              4,
+              5,
+              6
+            ],
+            "B_combined": [
+              1,
+              3,
+              4,
+              5,
+              6
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Page not found. The Hepsiburada product link (Wilkinson Sword Hydro 5 razor) returned a 404-style error ('B\u00f6yle bir sayfam\u0131z yok' \u2014 'We don't have such a page'). No product details, price, or stock status are available on this page.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 116
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Page not found. The Hepsiburada listing for this Wilkinson Sword Hydro 5 product has been removed or changed; the page displays a 404-style notice ('B\u00f6yle bir sayfam\u0131z yok') with no product details, pricing, or stock information available.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 108
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "The product page is not accessible. Hepsiburada (a Turkish e-commerce site) shows a 404 error: 'B\u00f6yle bir sayfam\u0131z yok' (We don't have such a page). The page may have been removed or changed. No product details, price, or stock status are available.",
+              "entity_type": "Product",
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 126
+            }
+          },
+          "coverage": {
+            "E_combined": 0.545,
+            "B_combined": 0.636,
+            "B_fields": 0.0,
+            "B_answer": 0.636,
+            "A_answer": 0.545
+          },
+          "covered": {
+            "E_combined": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              11
+            ],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              11
+            ],
+            "B_fields": [],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              11
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The page is not accessible. Hepsiburada (Turkish e-commerce) returns a 'page not found' message ('B\u00f6yle bir sayfam\u0131z yok') \u2014 the product listing for Wilkinson Sword Hydro 5 Ultimate has been removed or changed. Price, currency, and stock status cannot be determined from this response.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 119
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "The product page is unavailable. Hepsiburada (Turkish e-commerce site) shows a 404-style error: 'Sayfa kald\u0131r\u0131lm\u0131\u015f veya de\u011fi\u015ftirilmi\u015f olabilir' (page removed or changed). No product details, price, or stock status are accessible from this URL.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 115
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "Page not found. The Hepsiburada product listing for Wilkinson Sword Hydro 5 Ultimate razor + replacement head has been removed or changed; current content shows only a 404 navigation template with no product details, pricing, or stock status.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 100
+            }
+          },
+          "coverage": {
+            "B_combined": 0.364,
+            "B_answer": 0.364,
+            "B_fields": 0.0,
+            "A_answer": 0.364,
+            "E_combined": 0.455
+          },
+          "covered": {
+            "B_combined": [
+              1,
+              6,
+              7,
+              11
+            ],
+            "B_answer": [
+              1,
+              6,
+              7,
+              11
+            ],
+            "B_fields": [],
+            "A_answer": [
+              1,
+              2,
+              6,
+              11
+            ],
+            "E_combined": [
+              1,
+              2,
+              6,
+              9,
+              11
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "slug": "hepsiburada-bic",
+      "url": "https://www.hepsiburada.com/bic-flex-5-tiras-bicagi-6-yedek-tiras-bicagi-can-p-HBV00000QN9YB",
+      "ask": "What is this product and what do the reviews say about it?",
+      "declared": [],
+      "content_chars": 745,
+      "core_count": 3,
+      "adjacent_count": 6,
+      "inventory": {
+        "core": [
+          "The page indicates the product listing has been removed or changed (page not found message displayed).",
+          "No product information is accessible on the page.",
+          "No reviews are present on the page."
+        ],
+        "adjacent": [
+          "The fetched URL is https://www.hepsiburada.com/bic-flex-5-tiras-bicagi-6-yedek-tiras-bicagi-can-p-HBV00000QN9YB from Hepsiburada (Turkish e-commerce site).",
+          "The URL structure suggests the product SKU is HBV00000QN9YB.",
+          "The page displays a 404-style error state with Turkish text: 'B\u00f6yle bir sayfam\u0131z yok ama benzersiz f\u0131rsatlar burada!' (We don't have such a page but unique opportunities are here).",
+          "The page offers navigation to homepage and product categories as alternatives.",
+          "The page was fetched on 2026-08-03 at 02:46:15 UTC.",
+          "Hepsiburada's category structure includes: Computer/Tablet, Phone, Home Electronics, White Goods/Kitchen, Photo/Camera, Sports/Outdoor, Clothing/Shoes, Gold/Jewelry, Watches/Glasses/Accessories, Cosmetics/Personal Care, Mother/Baby/Toys, Books/Films/Music, Hobby/Gaming, Hardware/Garden/Auto, Home Decoration, Pet Shop, Supermarket, and Smart Home & Living."
+        ]
+      },
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The page is not available. Hepsiburada (Turkish e-commerce site) shows a 404-style message: \"B\u00f6yle bir sayfam\u0131z yok ama benzersiz f\u0131rsatlar burada!\" (We don't have such a page, but unique opportunities are here!). The product listing for BIC Flex 5 razor blades (6-pack) at that URL is gone or has been removed. No product details or reviews are accessible.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 150
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "The product page is unavailable. Hepsiburada (Turkish e-commerce site) shows a 404: 'B\u00f6yle bir sayfam\u0131z yok' (we don't have such a page). The product\u2014BIC Flex 5 razors with 6 spare blades\u2014cannot be accessed, and no reviews are retrievable from this URL.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 1,
+              "completion_tokens": 177
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "The page is no longer available; Hepsiburada shows a 404-style message ('B\u00f6yle bir sayfam\u0131z yok' = 'We don't have such a page'). The product was a BIC Flex 5 razor with 6 replacement blades, but the listing has been removed or changed. No reviews are accessible on this page.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 124
+            }
+          },
+          "coverage": {
+            "E_combined": 0.444,
+            "A_answer": 0.556,
+            "B_fields": 0.0,
+            "B_combined": 0.444,
+            "B_answer": 0.444
+          },
+          "covered": {
+            "E_combined": [
+              1,
+              2,
+              3,
+              6
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              6
+            ],
+            "B_fields": [],
+            "B_combined": [
+              1,
+              2,
+              3,
+              6
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              6
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The product page is not accessible \u2014 Hepsiburada shows a 404 error ('B\u00f6yle bir sayfam\u0131z yok' / 'We don't have such a page'). The URL points to a BIC Flex 5 razor with 6 replacement blades (SKU HBV00000QN9YB), but the listing has been removed or changed. No product details or reviews are available on this page.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 142
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "The page is not accessible \u2014 Hepsiburada shows a 'page removed or changed' error for this product URL. No product details or reviews are available on this page.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 178
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "The page is not available \u2014 Hepsiburada reports 'Such a page does not exist' or the product has been removed/changed. The product ID (HBV00000QN9YB) suggests it was a BIC Flex 5 razor with 6 replacement blades, but no product details or reviews are accessible on this page.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 121
+            }
+          },
+          "coverage": {
+            "E_combined": 0.667,
+            "A_answer": 0.667,
+            "B_fields": 0.0,
+            "B_combined": 0.333,
+            "B_answer": 0.333
+          },
+          "covered": {
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "B_fields": [],
+            "B_combined": [
+              1,
+              2,
+              3
+            ],
+            "B_answer": [
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The product page for this item is no longer available\u2014Hepsiburada shows a 404 error ('B\u00f6yle bir sayfam\u0131z yok'). The URL suggests it was a BIC Flex 5 razor with 6 replacement blades, but neither product details nor reviews are accessible on this page.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 113
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "The page is not available \u2014 it has been removed or changed. Hepsiburada (Turkish e-commerce site) shows a 404-style error rather than product details. The URL indicates a BIC Flex 5 razor with 6 replacement blades, but neither product information nor reviews are accessible on this page.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 113
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "The page is not available \u2014 it shows a 404-style message ('B\u00f6yle bir sayfam\u0131z yok') indicating the product listing for BIC Flex 5 razors has been removed or changed. No product details or reviews are accessible on this page.",
+              "entity_type": "Product",
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 112
+            }
+          },
+          "coverage": {
+            "E_combined": 0.444,
+            "A_answer": 0.667,
+            "B_combined": 0.556,
+            "B_answer": 0.556,
+            "B_fields": 0.0
+          },
+          "covered": {
+            "E_combined": [
+              1,
+              2,
+              3,
+              6
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              6
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              6
+            ],
+            "B_fields": []
+          }
+        }
+      ]
+    },
+    {
+      "slug": "wikipedia-rust",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "ask": "Who created Rust and in what year did it first appear?",
+      "declared": [
+        "Article"
+      ],
+      "content_chars": 41918,
+      "core_count": 2,
+      "adjacent_count": 15,
+      "inventory": {
+        "core": [
+          "Graydon Hoare created Rust in 2006 while working at Mozilla.",
+          "Rust first appeared on January 19, 2012."
+        ],
+        "adjacent": [
+          "Hoare started the Rust project as a personal project due to frustration with a broken elevator in his apartment building whose software had crashed.",
+          "Rust was named after the group of fungi of the same name that is 'over-engineered for survival'.",
+          "Between 2006 and 2009, Rust was not publicized to others at Mozilla and was written in Hoare's free time.",
+          "Mozilla officially sponsored the Rust project in 2009.",
+          "Hoare began speaking about the language around 2009 after a small group at Mozilla became interested in the project.",
+          "During the early years, the Rust compiler was written in about 38,000 lines of OCaml.",
+          "Brendan Eich and other Mozilla executives placed engineers on the project including Patrick Walton, Niko Matsakis, Felix Klock, and Manish Goregaokar.",
+          "The ownership system was in place by 2010.",
+          "The Rust logo was developed in 2011 based on a bicycle chainring.",
+          "Rust 0.1 became the first public release on January 20, 2012 for Windows, Linux, and MacOS.",
+          "Graydon Hoare stepped down from Rust in 2013.",
+          "After Hoare's departure, Rust evolved under a federated governance structure with a 'core team' of initially six people.",
+          "Rust 1.0 was published on May 15, 2015, becoming the first stable release.",
+          "Hoare cited languages from the 1970s, 1980s, and 1990s as influences including CLU, BETA, Mesa, NIL, Erlang, Newsqueak, Napier, Hermes, Sather, Alef, and Limbo.",
+          "Hoare described the language as 'technology from the past come to save the future from itself.'"
+        ]
+      },
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared publicly on January 20, 2012, with Rust 0.1 released for Windows, Linux, and macOS.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 91
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla. \"The first appeared\" date was January 19, 2012, when Rust 0.1 became the first public release.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Rust",
+                "developer": "The Rust Team",
+                "creator": "Graydon Hoare",
+                "creationYear": "2006",
+                "firstPublicRelease": "January 20, 2012",
+                "firstStableRelease": "May 15, 2015",
+                "license": "MIT, Apache 2.0",
+                "website": "rust-lang.org",
+                "paradigms": "multi-paradigm (functional, object-oriented, imperative)",
+                "keyFeatures": "performance, type safety, memory safety, concurrency"
+              },
+              "entity_field_count": 10,
+              "entity_extra_fields": [
+                "developer",
+                "creationYear",
+                "firstPublicRelease",
+                "firstStableRelease",
+                "website",
+                "paradigms",
+                "keyFeatures"
+              ],
+              "also_here": 0,
+              "completion_tokens": 257
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared publicly on January 20, 2012, with Rust 0.1 released for Windows, Linux, and macOS.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Rust",
+                "developer": "The Rust Team",
+                "creator": "Graydon Hoare",
+                "dateCreated": "2006",
+                "datePublished": "2012-01-20",
+                "firstPublicRelease": "Rust 0.1",
+                "firstStableRelease": "Rust 1.0",
+                "stableReleaseDate": "2015-05-15",
+                "license": "MIT, Apache 2.0",
+                "filenameExtensions": ".rs, .rlib",
+                "website": "rust-lang.org",
+                "foundationFormationDate": "2021-02-08"
+              },
+              "entity_field_count": 12,
+              "entity_extra_fields": [
+                "developer",
+                "dateCreated",
+                "firstPublicRelease",
+                "firstStableRelease",
+                "stableReleaseDate",
+                "filenameExtensions",
+                "website",
+                "foundationFormationDate"
+              ],
+              "also_here": 0,
+              "completion_tokens": 286
+            }
+          },
+          "coverage": {
+            "E_combined": 0.235,
+            "B_answer": 0.118,
+            "B_combined": 0.235,
+            "B_fields": 0.235,
+            "A_answer": 0.176
+          },
+          "covered": {
+            "E_combined": [
+              1,
+              2,
+              12,
+              15
+            ],
+            "B_answer": [
+              1,
+              2
+            ],
+            "B_combined": [
+              1,
+              2,
+              12,
+              15
+            ],
+            "B_fields": [
+              1,
+              2,
+              12,
+              15
+            ],
+            "A_answer": [
+              1,
+              2,
+              12
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared publicly on January 20, 2012, with Rust 0.1 released for Windows, Linux, and macOS.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 91
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla. The language first appeared on January 20, 2012, when Rust 0.1 became the first public release for Windows, Linux, and macOS.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Rust",
+                "creator": "Graydon Hoare",
+                "creationYear": "2006",
+                "firstPublicRelease": "January 20, 2012",
+                "firstStableRelease": "May 15, 2015",
+                "developer": "The Rust Team",
+                "license": "MIT, Apache 2.0",
+                "website": "rust-lang.org",
+                "paradigms": "Multi-paradigm (functional, object-oriented)",
+                "keyFeatures": "Performance, type safety, concurrency, memory safety"
+              },
+              "entity_field_count": 10,
+              "entity_extra_fields": [
+                "creationYear",
+                "firstPublicRelease",
+                "firstStableRelease",
+                "developer",
+                "website",
+                "paradigms",
+                "keyFeatures"
+              ],
+              "also_here": 0,
+              "completion_tokens": 258
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared publicly on January 20, 2012, with Rust 0.1 released for Windows, Linux, and macOS.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Rust",
+                "creator": "Graydon Hoare",
+                "yearCreated": "2006",
+                "firstPublicRelease": "January 20, 2012",
+                "firstStableRelease": "May 15, 2015",
+                "releaseVersion": "1.0",
+                "license": "MIT, Apache 2.0",
+                "filenameExtensions": ".rs, .rlib",
+                "website": "rust-lang.org",
+                "implementationLanguage": "OCaml (2006\u20132011), Rust (2012\u2013present)",
+                "paradigms": "Multi-paradigm: imperative, functional, object-oriented",
+                "typingDiscipline": "Static, strong"
+              },
+              "entity_field_count": 12,
+              "entity_extra_fields": [
+                "yearCreated",
+                "firstPublicRelease",
+                "firstStableRelease",
+                "releaseVersion",
+                "filenameExtensions",
+                "website",
+                "implementationLanguage",
+                "paradigms",
+                "typingDiscipline"
+              ],
+              "also_here": 0,
+              "completion_tokens": 301
+            }
+          },
+          "coverage": {
+            "B_answer": 0.118,
+            "E_combined": 0.176,
+            "B_fields": 0.176,
+            "A_answer": 0.118,
+            "B_combined": 0.176
+          },
+          "covered": {
+            "B_answer": [
+              1,
+              12
+            ],
+            "E_combined": [
+              1,
+              12,
+              15
+            ],
+            "B_fields": [
+              1,
+              12,
+              15
+            ],
+            "A_answer": [
+              1,
+              12
+            ],
+            "B_combined": [
+              1,
+              12,
+              15
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 while working at Mozilla. The language first appeared on January 19, 2012, with Rust 0.1 becoming the first public release on January 20, 2012.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 90
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared publicly on January 20, 2012, with the release of Rust 0.1 for Windows, Linux, and macOS.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Rust",
+                "creator": "Graydon Hoare",
+                "dateCreated": "2006",
+                "datePublished": "2012-01-20",
+                "firstPublicRelease": "Rust 0.1",
+                "stableRelease": "Rust 1.0",
+                "stableReleaseDate": "2015-05-15",
+                "license": "MIT, Apache 2.0",
+                "website": "rust-lang.org",
+                "paradigm": "Multi-paradigm (functional, object-oriented, imperative)"
+              },
+              "entity_field_count": 10,
+              "entity_extra_fields": [
+                "dateCreated",
+                "firstPublicRelease",
+                "stableRelease",
+                "stableReleaseDate",
+                "website",
+                "paradigm"
+              ],
+              "also_here": 0,
+              "completion_tokens": 264
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "Graydon Hoare created Rust in 2006 as a personal project while working at Mozilla. The language first appeared on January 20, 2012, with Rust 0.1 as the first public release.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Rust",
+                "creator": "Graydon Hoare",
+                "creationDate": "2006",
+                "firstAppearance": "January 19, 2012",
+                "firstPublicRelease": "January 20, 2012",
+                "firstStableRelease": "May 15, 2015",
+                "stableReleaseVersion": "Rust 1.0",
+                "description": "general-purpose programming language which emphasizes performance, type safety, concurrency, and memory safety",
+                "license": "MIT, Apache 2.0",
+                "website": "rust-lang.org",
+                "implementationLanguage": "OCaml (2006\u20132011), Rust (2012\u2013present)",
+                "filenameExtensions": ".rs, .rlib",
+                "currentSponsor": "Rust Foundation (since February 2021)"
+              },
+              "entity_field_count": 13,
+              "entity_extra_fields": [
+                "creationDate",
+                "firstAppearance",
+                "firstPublicRelease",
+                "firstStableRelease",
+                "stableReleaseVersion",
+                "website",
+                "implementationLanguage",
+                "filenameExtensions",
+                "currentSponsor"
+              ],
+              "also_here": 0,
+              "completion_tokens": 329
+            }
+          },
+          "coverage": {
+            "E_combined": 0.235,
+            "A_answer": 0.176,
+            "B_combined": 0.235,
+            "B_answer": 0.176,
+            "B_fields": 0.235
+          },
+          "covered": {
+            "E_combined": [
+              1,
+              2,
+              12,
+              15
+            ],
+            "A_answer": [
+              1,
+              2,
+              12
+            ],
+            "B_combined": [
+              1,
+              2,
+              12,
+              15
+            ],
+            "B_answer": [
+              1,
+              2,
+              12
+            ],
+            "B_fields": [
+              1,
+              2,
+              12,
+              15
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "slug": "python-contact",
+      "url": "https://www.python.org/about/help/",
+      "ask": "How can I contact them \u2014 is there an email or a specific channel?",
+      "declared": [
+        "WebSite"
+      ],
+      "content_chars": 3959,
+      "error": "LLMTimeout: a2web stopped waiting for the LLM after 300s"
+    },
+    {
+      "slug": "bbc-news",
+      "url": "https://www.bbc.com/news",
+      "ask": "What are the main news stories right now?",
+      "declared": [
+        "WebPage"
+      ],
+      "content_chars": 13478,
+      "core_count": 8,
+      "adjacent_count": 14,
+      "inventory": {
+        "core": [
+          "Two firefighting helicopter crew members died in a collision in Greece; a Danish national and a Greek national were killed, while a British pilot and another Greek crew member survived.",
+          "Trump suggested new talks with Iran to begin on Monday; Tehran has not yet responded.",
+          "A man admitted to transporting a Scottish woman's body in a suitcase in Greece and was arrested on suspicion of manslaughter, robbery, and weapons offences.",
+          "An explosive device detonated at an Italian restaurant in Moscow, killing three people and injuring 21 others.",
+          "A forensic linguist told the BBC that ransom notes can reveal crucial information about a person from just a few sentences.",
+          "India's medical entrance examination paper leak resulted in deaths; two families revealed the human toll.",
+          "A Malaysian boy will go on trial for allegedly murdering a girl in school; the case has shocked Malaysia and sparked debate about social media's effect on children.",
+          "Ariana Grande, 33, will step back from public visibility at the end of her world tour next month."
+        ],
+        "adjacent": [
+          "The Foxtrot Network is thought to be responsible for about 35 murders in Europe and uses violence-as-a-service tactics.",
+          "Mountaineer Nirmal Purja's body was recovered after a Pakistan avalanche; he was known for scaling the world's 14 highest peaks in just over six months in 2019.",
+          "Sophie Woods ran the Via Alpina through storms, heat up to 37\u00b0C, and dodged floods and wildfires across eight countries, becoming the fastest runner to cross the Alps.",
+          "A Russian ship defied sanctions to send military vehicles to Mali through the English Channel to Africa, as shown by satellite images.",
+          "Wildfires across more than 250,000 acres in Washington state led to widespread evacuations and power outages.",
+          "Five people died and 41 are missing after an Indonesian ferry with at least 250 people on board caught fire off Madura island.",
+          "The Ceuta crossings in Spain created a political storm over migration, exposing divisions in Europe.",
+          "Chelsea completed the signing of Argentina and Strasbourg midfielder Valentin Barco on a seven-year deal.",
+          "Irish boxer Lee Reeves is in critical but stable condition in hospital after being stretchered out of the ring in Dublin on Saturday.",
+          "Xabi Alonso joined Chelsea as manager, having healed from his Real Madrid exit.",
+          "Shiho Kuwaki won the Women's Open after two play-off holes against Esther Henseleit, becoming the second consecutive Japanese player to win the championship.",
+          "Emma Finucane won a fourth track cycling Commonwealth Games gold medal and led Wales into the closing ceremony.",
+          "Glasgow 2026 Commonwealth Games was described as a joyful success in isolation but questions remain about the Games' future.",
+          "Liverpool manager Andoni Iraola concluded the club's pre-season US tour with conclusions to ponder after the final match."
+        ]
+      },
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "BBC News homepage features breaking stories across multiple categories: **Europe** \u2014 firefighting helicopters collided in Greece killing two crew (Danish and Greek nationals); a Scottish woman's body was found in a suitcase in Greece; a bomb blast at a Moscow restaurant killed 3 and injured 21. **World** \u2014 Trump suggested Iran talks beginning Monday; a Russian ship defied sanctions transporting military vehicles to Mali. **Asia** \u2014 India's medical exam paper leak prompted two families to reveal human toll; a Malaysian boy faces trial for allegedly murdering a schoolgirl; an Indonesian ferry caught fire with 250+ aboard (5 dead, 41 missing). **US & Canada** \u2014 wildfires scorched Washington state across 250,000+ acres triggering evacuations; Nancy Guthrie kidnapping case analyzed via ransom note forensics. **Culture** \u2014 Ariana Grande announced stepping back from public life after her world tour ends next month. **Health** \u2014 article on 'luteal uglies' and menstrual cycle effects on women. **Sports** \u2014 Liverpool's pre-season tour concluded; Glasgow 2026 Commonwealth Games wrapped; Chelsea signed midfielder Valentin Barco; Irish boxer Lee Reeves hospitalized in critical but stable condition; Japanese golfer Shiho Kuwaki won Women's Open; Emma Finucane won fourth Commonwealth Games cycling gold.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 340
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "BBC News homepage lists breaking stories across multiple sections: **Europe** \u2014 firefighting helicopters collided in Greece killing two crew (Danish and Greek nationals); a Scottish woman's body was found in a suitcase in Greece; a bomb blast at a Moscow Italian restaurant killed 3 and injured 21. **World** \u2014 Trump suggested Iran talks to begin Monday; a Russian ship defied sanctions sending military vehicles to Mali. **Asia** \u2014 India's medical exam paper leak sparked suicides; Malaysia has a high-profile school murder trial; Indonesia ferry fire left 5 dead, 41 missing. **Americas** \u2014 US ransom note linguistics; wildfires across 250,000+ acres in Washington state forced evacuations. **UK/Regional** \u2014 mountaineer Nirmal Purja's body recovered after Pakistan avalanche; Spain's migrant crisis sparked political debate. **Culture** \u2014 Ariana Grande taking a break from public life; 'luteal uglies' discussion on social media; 'loneliness influencers' trend. **Sport** \u2014 Chelsea signed Argentine midfielder Barco; Irish boxer Lee Reeves hospitalized in critical condition; golfer Kuwaki won Women's Open; Emma Finucane won fourth Commonwealth Games gold.",
+              "entity_type": "NewsArticle",
+              "entity_fields": {
+                "publisher": "BBC News",
+                "datePublished": "2026-08-03T02:53:33Z"
+              },
+              "entity_field_count": 2,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 355
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "BBC News homepage shows breaking stories across multiple regions (as of Aug 3, 2:53 UTC): **Europe** \u2014 firefighting helicopters collided in Greece killing two crew; Moscow bomb blast at Italian restaurant killed 3, injured 21; teenage hitmen network (Foxtrot) linked to ~35 European murders; Spain's migrant crisis at Ceuta; Russian ship defying sanctions to Mali. **World** \u2014 Trump suggests Iran talks begin Monday; Scottish woman's body found in suitcase in Greece. **Asia** \u2014 India's medical exam paper leak tied to student deaths; Malaysian boy on trial for school murder; Indonesia ferry fire with 5 dead, 41 missing. **US/Canada** \u2014 Nancy Guthrie kidnapping (forensic linguistics angle); wildfires in Washington state (250K+ acres, evacuations). **Health/Culture** \u2014 'luteal uglies' trend on social media; Ariana Grande stepping back from public life; 'loneliness influencers' and solo living. **Sport** \u2014 Chelsea signs Barco; Irish boxer Reeves critical but stable; Kuwaki wins Women's Open golf; Emma Finucane's fourth Commonwealth Games gold.",
+              "entity_type": "NewsArticle",
+              "entity_fields": {
+                "publisher": "BBC News",
+                "datePublished": "2026-08-03T02:53:33+00:00"
+              },
+              "entity_field_count": 2,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 355
+            }
+          },
+          "coverage": {
+            "A_answer": 0.727,
+            "B_answer": 0.727,
+            "E_combined": 0.773,
+            "B_combined": 0.727,
+            "B_fields": 0.0
+          },
+          "covered": {
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              8,
+              12,
+              13,
+              14,
+              16,
+              17,
+              19,
+              20,
+              21,
+              22
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              8,
+              10,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              19,
+              20
+            ],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              19,
+              20
+            ],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              8,
+              10,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              19,
+              20
+            ],
+            "B_fields": []
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "BBC News homepage (2026-08-03) leads with: **Europe** \u2014 firefighting helicopters collided in Greece killing two crew; Scottish woman's body found in suitcase in Greece; Moscow bomb blast at Italian restaurant killed 3, injured 21. **World** \u2014 Trump proposes Iran talks Monday; Russian ship defies sanctions shipping military vehicles to Mali. **Asia** \u2014 India medical exam paper leak linked to student deaths; Malaysian boy on trial for alleged school murder; Indonesia ferry fire: 5 dead, 41 missing. **US & Canada** \u2014 Washington wildfires scorch 250,000+ acres, evacuations ordered; Nancy Guthrie kidnapping ransom-note linguistic analysis. **Culture/Health** \u2014 Ariana Grande taking break from public life after tour; 'luteal uglies' social-media trend; solo-living 'loneliness influencers' debate. **Sport** \u2014 Chelsea signs Barco; Kuwaki wins Women's Open golf; Emma Finucane wins fourth Commonwealth Games gold; boxer Lee Reeves critical but stable; Xabi Alonso joins Chelsea.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 290
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "BBC News (as of 2026-08-03, 02:53 UTC) leads with: firefighting helicopter collision in Greece killing two crew; Trump suggesting Iran talks to begin Monday; Scottish woman's body transported in suitcase (Greek police); Moscow bomb blast at Italian restaurant (3 killed, 21 injured); forensic linguistics in kidnapping case; India medical exam paper leak aftermath; Malaysian boy murder trial; Ariana Grande taking public break; luteal phase health discussion; loneliness influencers trend; Love Island US edition popularity; Foxtrot Network teenage hitmen in Europe (~35 murders); mountaineer Nirmal Purja recovered after Pakistan avalanche; Sophie Woods' record Alps crossing; Russian ship sanctions defiance to Mali; Spain migrant crisis political fallout; Indonesia ferry fire (5 dead, 41 missing); Washington state wildfires (250K+ acres). Sports: Liverpool pre-season US tour analysis, Glasgow 2026 Commonwealth Games retrospective, Chelsea signing Valentin Barco, Irish boxer Lee Reeves hospitalized, Xabi Alonso at Chelsea, Shiho Kuwaki Women's Open golf win, Emma Finucane's fourth Commonwealth Games cycling gold.",
+              "entity_type": "Thing",
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 310
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "BBC News homepage (2026-08-03, ~03:00 UTC) leads with: firefighting helicopter collision in Greece (2 dead); Trump-Iran talks suggested for Monday; Scottish woman's body found in suitcase (Greece); Moscow bomb blast at Italian restaurant (3 killed, 21 injured); India medical exam paper leak; Malaysian murder trial; Ariana Grande taking break from public life; wildfires in Washington state (250K+ acres, evacuations); Indonesia ferry fire (5 dead, 41 missing); Ceuta migrant crisis; sports: Chelsea signings, Commonwealth Games closing, boxer Lee Reeves hospitalized. International focus: conflict/disaster (Greece, Iran, Russia-Mali, Moscow, Indonesia), human interest (exam leaks, kidnapping linguistics, vasectomy trends, loneliness influencers), celebrity (Grande).",
+              "entity_type": "NewsArticle",
+              "entity_fields": {
+                "source": "BBC News",
+                "datePublished": "2026-08-03T02:53:33Z",
+                "coverage": "International (Europe, Asia, US & Canada, Africa), Sports, Culture, Health"
+              },
+              "entity_field_count": 3,
+              "entity_extra_fields": [
+                "source",
+                "coverage"
+              ],
+              "also_here": 0,
+              "completion_tokens": 312
+            }
+          },
+          "coverage": {
+            "B_answer": 1.0,
+            "E_combined": 0.636,
+            "B_fields": 0.0,
+            "B_combined": 1.0,
+            "A_answer": 0.727
+          },
+          "covered": {
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22
+            ],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              8,
+              13,
+              14,
+              15,
+              16,
+              17,
+              20,
+              21
+            ],
+            "B_fields": [],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              12,
+              13,
+              14,
+              16,
+              17,
+              18,
+              19,
+              20
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "BBC News homepage (as of 2026-08-03 02:53 UTC) leads with: firefighting helicopter collision in Greece killing 2 crew; Trump suggesting Iran talks to begin Monday; Scottish woman's body transported in suitcase (Greek arrest); Moscow bomb blast at Italian restaurant (3 dead, 21 injured); Nancy Guthrie kidnapping ransom-note forensics; India medical exam paper leak deaths; Malaysian boy murder trial; Ariana Grande stepping back from public life post-tour; 'luteal uglies' menstrual-phase discussion; \"loneliness influencers\" solo-living trend; Love Island US vs UK viewership; Foxtrot Network teenage hitmen (35 European murders); mountaineer Nirmal Purja body recovered (Pakistan avalanche); fastest Alps runner (Sophie Woods, Via Alpina); Russian ship sanctions-defying Mali weapons shipment; Spain migrant crisis (Ceuta); Indonesia ferry fire (5 dead, 41 missing); Washington state wildfires (250K+ acres, evacuations); sports: Liverpool pre-season, Glasgow 2026 Commonwealth Games retrospective, Chelsea signings (Barco, Alonso), boxer Lee Reeves hospitalized, Women's Open golf (Kuwaki), Emma Finucane 4th cycling gold.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 337
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "BBC News (as of 2026-08-03 02:53 UTC) leads with: **Europe** \u2014 firefighting helicopters collided in Greece, killing a Danish and Greek national; a Scottish woman's body was transported in a suitcase in Greece; a bomb detonated at a Moscow restaurant, killing 3. **World** \u2014 Trump suggested Iran talks begin Monday; a Russian ship defied sanctions to deliver military vehicles to Mali. **Asia** \u2014 India's medical exam paper leak ended young lives; a Malaysian boy faces trial for allegedly murdering a schoolmate; Indonesia ferry fire left 5 dead, 41 missing. **US** \u2014 Washington state wildfires forced evacuations across 250,000+ acres; thousands without power. **Culture/Health** \u2014 Ariana Grande announced a break from public life after her world tour; \"luteal uglies\" (luteal phase effects on women) trending on social media. **Sport** \u2014 Chelsea signed Argentine midfielder Valentin Barco; boxer Lee Reeves in critical condition after Dublin match; Shiho Kuwaki won the Women's Open golf after playoff; Emma Finucane won a fourth Commonwealth Games gold in track cycling.",
+              "entity_type": "NewsArticle",
+              "entity_fields": {
+                "publisher": "BBC News",
+                "datePublished": "2026-08-03T02:53:33+00:00"
+              },
+              "entity_field_count": 2,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 349
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "BBC News homepage (2026-08-03 02:53 UTC) leads with: helicopter collision in Greece (2 dead); Trump-Iran talks; Scottish woman's body in suitcase (Greece); Moscow bomb blast (3 dead, 21 injured); India medical exam leak; Malaysian murder trial; Ariana Grande break announcement; Indonesia ferry fire (5 dead, 41 missing); Washington state wildfires (250K+ acres); teenage hitmen network (Foxtrot, ~35 murders); Chelsea signs Barco; boxer Lee Reeves hospitalized; Women's Open golf (Kuwaki wins); Commonwealth Games closing (Finucane's 4th gold).",
+              "entity_type": "Thing",
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 208
+            }
+          },
+          "coverage": {
+            "A_answer": 1.0,
+            "B_fields": 0.0,
+            "E_combined": 0.727,
+            "B_combined": 0.636,
+            "B_answer": 0.636
+          },
+          "covered": {
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22
+            ],
+            "B_fields": [],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              8,
+              9,
+              12,
+              13,
+              14,
+              16,
+              17,
+              19,
+              20,
+              21
+            ],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              8,
+              12,
+              13,
+              14,
+              16,
+              17,
+              19,
+              20
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              8,
+              12,
+              13,
+              14,
+              16,
+              17,
+              19,
+              20
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "slug": "allrecipes",
+      "url": "https://www.allrecipes.com/recipe/213742/cheesy-scalloped-potatoes/",
+      "ask": "How do I make this, and what goes in it?",
+      "declared": [],
+      "content_chars": 0,
+      "skipped": "content too thin"
+    },
+    {
+      "slug": "pypi-httpx",
+      "url": "https://pypi.org/project/httpx/",
+      "ask": "What is httpx, its current version, and which Python versions it supports?",
+      "declared": [],
+      "content_chars": 6822,
+      "core_count": 4,
+      "adjacent_count": 21,
+      "inventory": {
+        "core": [
+          "HTTPX is a fully featured HTTP client library for Python 3.",
+          "HTTPX is a next-generation HTTP client for Python.",
+          "The current stable version is 0.28.1, released Dec 6, 2024.",
+          "HTTPX requires Python >=3.8."
+        ],
+        "adjacent": [
+          "HTTPX includes an integrated command line client.",
+          "HTTPX has support for both HTTP/1.1 and HTTP/2.",
+          "HTTPX provides both sync and async APIs.",
+          "HTTPX can be installed using pip: $ pip install httpx",
+          "HTTPX has a requests-compatible API.",
+          "HTTPX supports async functionality.",
+          "HTTPX provides WSGI transport support.",
+          "HTTPX provides ASGI transport support.",
+          "HTTPX offers optional extras: brotli, cli, http2, socks, zstd.",
+          "HTTPX is maintained by Tom Christie as primary author.",
+          "HTTPX is licensed under BSD-3-Clause license.",
+          "HTTPX is classified as Development Status 4 - Beta.",
+          "HTTPX is verified on PyPI by maintainers florimondmanca, tomchristie, and yeraydiazdiaz.",
+          "Pre-release version 1.0.dev3 was released Sep 15, 2025.",
+          "Pre-release version 1.0.dev2 was released Aug 4, 2025.",
+          "Pre-release version 1.0.dev1 was released Jul 2, 2025.",
+          "HTTPX source code is hosted at github.com/encode/httpx.",
+          "HTTPX documentation is available at python-httpx.org.",
+          "The source distribution httpx-0.28.1.tar.gz is 141.4 kB.",
+          "The wheel distribution httpx-0.28.1-py3-none-any.whl is 73.5 kB.",
+          "Both 0.28.1 distributions were uploaded using twine/6.0.1 on CPython/3.8.18."
+        ]
+      },
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3.\" Current stable version is 0.28.1 (released Dec 6, 2024), with pre-releases at 1.0.dev3 (Sep 15, 2025). It requires Python >=3.8. The library supports HTTP/1.1 and HTTP/2, includes both sync and async APIs, and provides a requests-compatible interface.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 5,
+              "completion_tokens": 201
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with \"support for both HTTP/1.1 and HTTP/2\" and \"both sync and async APIs\". Current stable version is 0.28.1 (Dec 6, 2024); pre-release 1.0.dev3 exists (Sep 15, 2025). The page states \"Requires: Python >=3.8\", so it supports Python 3.8 and later.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "HTTPX",
+                "description": "A fully featured HTTP client library for Python 3 with HTTP/1.1 and HTTP/2 support, sync and async APIs",
+                "version": "0.28.1",
+                "datePublished": "2024-12-06",
+                "author": "Tom Christie",
+                "pythonRequires": ">=3.8",
+                "license": "BSD-3-Clause",
+                "developmentStatus": "4 - Beta"
+              },
+              "entity_field_count": 8,
+              "entity_extra_fields": [
+                "pythonRequires",
+                "developmentStatus"
+              ],
+              "also_here": 4,
+              "completion_tokens": 351
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with integrated command-line client, HTTP/1.1 and HTTP/2 support, and both sync and async APIs. Current stable version is 0.28.1 (Dec 6, 2024); pre-release 1.0.dev3 (Sep 15, 2025) is also available. Requires Python >=3.8.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "HTTPX",
+                "description": "A fully featured HTTP client library for Python 3",
+                "version": "0.28.1",
+                "latestPrerelease": "1.0.dev3",
+                "datePublished": "2024-12-06",
+                "author": "Tom Christie",
+                "license": "BSD-3-Clause",
+                "pythonRequires": ">=3.8",
+                "homepage": "https://github.com/encode/httpx",
+                "documentation": "https://www.python-httpx.org",
+                "features": "requests-compatible API, HTTP/2 support, async support, WSGI transport, ASGI transport",
+                "extras": "brotli, cli, http2, socks, zstd"
+              },
+              "entity_field_count": 12,
+              "entity_extra_fields": [
+                "latestPrerelease",
+                "pythonRequires",
+                "homepage",
+                "documentation",
+                "features",
+                "extras"
+              ],
+              "also_here": 3,
+              "completion_tokens": 386
+            }
+          },
+          "coverage": {
+            "B_combined": 0.36,
+            "E_combined": 0.64,
+            "A_answer": 0.24,
+            "B_fields": 0.32,
+            "B_answer": 0.28
+          },
+          "covered": {
+            "B_combined": [
+              1,
+              3,
+              4,
+              6,
+              7,
+              14,
+              15,
+              16,
+              18
+            ],
+            "E_combined": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              18,
+              21,
+              22
+            ],
+            "A_answer": [
+              1,
+              3,
+              4,
+              6,
+              7,
+              18
+            ],
+            "B_fields": [
+              1,
+              3,
+              4,
+              6,
+              7,
+              14,
+              15,
+              16
+            ],
+            "B_answer": [
+              1,
+              3,
+              4,
+              6,
+              7,
+              14,
+              18
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with integrated CLI, HTTP/1.1 and HTTP/2 support, and both sync and async APIs. Current stable version is 0.28.1 (Dec 6, 2024); development version 1.0.dev3 was released Sep 15, 2025. Python requirement: >=3.8.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 3,
+              "completion_tokens": 172
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with \"integrated command line client, support for both HTTP/1.1 and HTTP/2, and both sync and async APIs.\" Current stable version is 0.28.1 (Dec 6, 2024); development versions 1.0.dev1-dev3 are in pre-release. Requires Python >=3.8.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "HTTPX",
+                "description": "A fully featured HTTP client library for Python 3",
+                "version": "0.28.1",
+                "datePublished": "2024-12-06",
+                "pythonRequires": ">=3.8",
+                "license": "BSD-3-Clause",
+                "author": "Tom Christie",
+                "developmentStatus": "4 - Beta",
+                "homepage": "https://github.com/encode/httpx",
+                "documentation": "https://www.python-httpx.org",
+                "features": "['HTTP/1.1 support', 'HTTP/2 support', 'sync API', 'async API', 'requests-compatible API', 'CLI']",
+                "extras": "['brotli', 'cli', 'http2', 'socks', 'zstd']"
+              },
+              "entity_field_count": 12,
+              "entity_extra_fields": [
+                "pythonRequires",
+                "developmentStatus",
+                "homepage",
+                "documentation",
+                "features",
+                "extras"
+              ],
+              "also_here": 3,
+              "completion_tokens": 385
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "HTTPX is a fully featured HTTP client library for Python 3, with integrated command-line client, HTTP/1.1 and HTTP/2 support, and both sync and async APIs. Current stable version is 0.28.1 (released Dec 6, 2024). It requires Python >=3.8.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "HTTPX",
+                "description": "A next-generation HTTP client for Python",
+                "version": "0.28.1",
+                "releaseDate": "2024-12-06",
+                "programmingLanguage": "Python",
+                "runtimeRequirements": "Python >=3.8",
+                "license": "BSD-3-Clause",
+                "author": "Tom Christie",
+                "homepage": "https://github.com/encode/httpx",
+                "documentation": "https://www.python-httpx.org",
+                "sourceRepository": "https://github.com/encode/httpx",
+                "features": "HTTP/1.1 and HTTP/2 support, async APIs, requests-compatible API, WSGI/ASGI transport",
+                "developmentStatus": "Beta",
+                "latestPrerelease": "1.0.dev3"
+              },
+              "entity_field_count": 14,
+              "entity_extra_fields": [
+                "releaseDate",
+                "runtimeRequirements",
+                "homepage",
+                "documentation",
+                "sourceRepository",
+                "features",
+                "developmentStatus",
+                "latestPrerelease"
+              ],
+              "also_here": 4,
+              "completion_tokens": 440
+            }
+          },
+          "coverage": {
+            "B_combined": 0.52,
+            "E_combined": 0.6,
+            "A_answer": 0.28,
+            "B_answer": 0.36,
+            "B_fields": 0.52
+          },
+          "covered": {
+            "B_combined": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              9,
+              13,
+              14,
+              15,
+              16,
+              21,
+              22
+            ],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              9,
+              11,
+              12,
+              14,
+              15,
+              16,
+              18,
+              21,
+              22
+            ],
+            "A_answer": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              18
+            ],
+            "B_answer": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              18,
+              19,
+              20
+            ],
+            "B_fields": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              9,
+              13,
+              14,
+              15,
+              16,
+              21,
+              22
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with integrated CLI, HTTP/1.1 and HTTP/2 support, and both sync and async APIs. Current stable version is 0.28.1 (Dec 6, 2024); development versions 1.0.dev1-3 are in pre-release. Requires Python >=3.8.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 124
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with both sync and async APIs, HTTP/1.1 and HTTP/2 support, and an integrated command-line client. Current stable version is 0.28.1 (Dec 6, 2024); pre-release 1.0.dev3 shipped Sep 15, 2025. Requires Python >=3.8.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "HTTPX",
+                "description": "A fully featured HTTP client library for Python 3",
+                "version": "0.28.1",
+                "datePublished": "2024-12-06",
+                "author": "Tom Christie",
+                "license": "BSD-3-Clause",
+                "pythonRequires": ">=3.8",
+                "homepage": "https://github.com/encode/httpx",
+                "documentation": "https://www.python-httpx.org",
+                "features": "HTTP/1.1, HTTP/2, sync/async APIs, requests-compatible API, CLI, WSGI/ASGI transport support",
+                "installCommand": "pip install httpx",
+                "latestPrerelease": "1.0.dev3"
+              },
+              "entity_field_count": 12,
+              "entity_extra_fields": [
+                "pythonRequires",
+                "homepage",
+                "documentation",
+                "features",
+                "installCommand",
+                "latestPrerelease"
+              ],
+              "also_here": 0,
+              "completion_tokens": 345
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "HTTPX is \"a fully featured HTTP client library for Python 3\" with integrated CLI, HTTP/1.1 and HTTP/2 support, and both sync and async APIs. Current stable version is 0.28.1 (Dec 6, 2024); 1.0.dev3 pre-release available Sep 15, 2025. Requires Python >=3.8.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "HTTPX",
+                "description": "A next-generation HTTP client for Python",
+                "version": "0.28.1",
+                "datePublished": "2024-12-06",
+                "author": "Tom Christie",
+                "license": "BSD-3-Clause",
+                "pythonRequires": ">=3.8",
+                "homepage": "https://github.com/encode/httpx",
+                "documentation": "https://www.python-httpx.org",
+                "developmentStatus": "4 - Beta",
+                "features": "HTTP/1.1, HTTP/2, sync API, async API, CLI, requests-compatible API, WSGI/ASGI transport support",
+                "extras": "brotli, cli, http2, socks, zstd"
+              },
+              "entity_field_count": 12,
+              "entity_extra_fields": [
+                "pythonRequires",
+                "homepage",
+                "documentation",
+                "developmentStatus",
+                "features",
+                "extras"
+              ],
+              "also_here": 3,
+              "completion_tokens": 381
+            }
+          },
+          "coverage": {
+            "E_combined": 0.64,
+            "B_combined": 0.52,
+            "A_answer": 0.36,
+            "B_fields": 0.4,
+            "B_answer": 0.36
+          },
+          "covered": {
+            "E_combined": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              9,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              18,
+              21,
+              22
+            ],
+            "B_combined": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              11,
+              12,
+              18,
+              21,
+              22
+            ],
+            "A_answer": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              18,
+              19,
+              20
+            ],
+            "B_fields": [
+              1,
+              3,
+              4,
+              8,
+              9,
+              11,
+              12,
+              18,
+              21,
+              22
+            ],
+            "B_answer": [
+              1,
+              3,
+              4,
+              5,
+              6,
+              7,
+              18,
+              21,
+              22
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "slug": "hn-item",
+      "url": "https://news.ycombinator.com/item?id=9224",
+      "ask": "What is this discussion about, and what is the main disagreement?",
+      "declared": [],
+      "content_chars": 3634,
+      "core_count": 8,
+      "adjacent_count": 13,
+      "inventory": {
+        "core": [
+          "BrandonM criticizes an app for not offering functionality that Linux users can already build themselves using FTP, curlftpfs, SVN, or CVS.",
+          "BrandonM argues the app does not replace a USB drive because it fails to solve connectivity problems that USB drives handle.",
+          "BrandonM questions the app's business viability, noting it lacks a revenue model without charging users.",
+          "dhouston (app creator) responds that users want plug-and-play simplicity, not DIY solutions.",
+          "dhouston explains the app uses local folder sync in the background, which differs from online drive approaches that cause UI latency and performance issues on Windows.",
+          "dhouston clarifies the use case is offline access on planes, where Dropbox syncs when reconnected without manual copying.",
+          "dhouston reveals the business model is freemium: free tier with a GB limit, then tiered paid plans.",
+          "The main disagreement is whether the app solves a real problem: BrandonM sees it as unnecessary duplication, while dhouston frames it as superior user experience for practical scenarios like plane travel."
+        ],
+        "adjacent": [
+          "BrandonM notes most people email files or host them online but still carry USB drives as backup.",
+          "dhouston points out Windows online drive implementations (CIFS, WebDAV) hide latency poorly and break when applications expect local disk performance.",
+          "dhouston references Joel Spolsky's article on leaky abstractions to explain why remote storage feels slow in practice.",
+          "dhouston illustrates the performance problem: saving a 20MB file with a 40KB/sec upstream connection would stall the system for 8 minutes.",
+          "dhouston contrasts document work on online drives to 'walking around with cinder blocks tied to your feet.'",
+          "dhouston describes the specific offline use case: accessing most recent document versions on a plane without network.",
+          "BrandonM acknowledges the app works well for Windows users and that background sync is a good design point.",
+          "BrandonM notes he experienced minor lagging with curlftpfs in Linux.",
+          "BrandonM concedes that claiming the app replaces USB drives is a 'bad idea in general,' suggesting the app's marketing claim is overstated.",
+          "The discussion is framed as pre-launch feedback on what appears to be Dropbox before public release.",
+          "dhouston mentions unannounced features that have viral potential.",
+          "BrandonM expresses hope the feedback helps dhouston anticipate future criticisms.",
+          "Both participants agree efficient background sync is technically valuable."
+        ]
+      },
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "This is an early Dropbox pitch thread (2008). BrandonM critiques the service on three fronts: (1) Linux users can already build equivalent systems with FTP+curlftpfs+SVN/CVS; (2) it doesn't truly replace USB drives since it requires connectivity, whereas USB handles offline scenarios; (3) the business model is unclear\u2014without direct charges, revenue viability is uncertain. dhouston (Dropbox founder) counters that plug-and-play matters more than DIY feasibility, that Dropbox solves Windows latency/UX problems via local sync (unlike slow network mounts), handles airplane/offline access via cached files, and will monetize via freemium tiers. BrandonM concedes the Windows UX case is strong but maintains the 'USB replacement' claim is overreaching; dhouston clarifies Dropbox targets the specific use-case of accessing recent files offline, not all USB scenarios.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 4,
+              "completion_tokens": 297
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "This is an early Dropbox pitch thread on Hacker News. BrandonM critiques the service on three grounds: (1) Linux users can already build similar systems with FTP + curlftpfs + SVN/CVS; (2) it doesn't truly replace USB drives because it fails offline; (3) the business model is unclear. The creator (dhouston) counters that plug-and-play UX matters more than DIY alternatives, that Dropbox solves latency/sync problems Windows file systems create (e.g., CIFS/WebDAV lock-up on remote access), and that it handles offline sync\u2014syncing \"everything up when you get back online.\" He also hints at an unannounced freemium model. The core disagreement is whether Dropbox is genuinely novel given existing tools, and whether it solves real pain points or just repackages them.",
+              "entity_type": "DiscussionForumPosting",
+              "entity_fields": {
+                "url": "https://news.ycombinator.com/item?id=9224",
+                "platform": "Hacker News",
+                "author": "BrandonM",
+                "respondent": "dhouston (Dropbox creator)",
+                "topic": "Dropbox file sync service early criticism and response",
+                "dateDiscussed": "~2008 (inferred from HN item ID and Dropbox launch era)"
+              },
+              "entity_field_count": 6,
+              "entity_extra_fields": [
+                "platform",
+                "respondent",
+                "topic",
+                "dateDiscussed"
+              ],
+              "also_here": 4,
+              "completion_tokens": 423
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "A Hacker News thread discussing Dropbox's early pitch. BrandonM raises three concerns: (1) Linux users can build equivalent systems with FTP + curlftpfs + SVN/CVS; (2) the app doesn't truly replace USB drives since connectivity failures still occur; (3) the business model is unclear without a revenue strategy. dhouston (Dropbox's founder) rebuts: efficient local sync with background synchronization solves Windows latency problems that networked filesystems (CIFS, WebDAV) create\u2014apps assume disk I/O takes milliseconds, not 80ms+; the offline-access use case (e.g., viewing recent docs on a plane) matters; and freemium monetization is planned. BrandonM concedes dhouston's points about Windows usability and efficient sync but maintains that claiming to 'replace USB drives' overstates the value given connectivity-dependent scenarios.",
+              "entity_type": "DiscussionForumPosting",
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 3,
+              "completion_tokens": 303
+            }
+          },
+          "coverage": {
+            "B_fields": 0.048,
+            "B_combined": 0.524,
+            "A_answer": 0.524,
+            "B_answer": 0.429,
+            "E_combined": 0.524
+          },
+          "covered": {
+            "B_fields": [
+              18
+            ],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              11,
+              19
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              14,
+              15,
+              17
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              19
+            ],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              15,
+              17
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "A Hacker News thread discussing an early file-sync application (Dropbox). BrandonM critiques three aspects: (1) Linux users can build similar systems with FTP + curlftpfs + SVN/CVS; (2) the app doesn't truly replace USB drives since it requires connectivity; (3) the business model is unclear without charging users. The thread's main disagreement centers on whether the app solves real UX problems. dhouston (the app creator) counters that plug-and-play matters, that \"online drives generally suck\" on Windows due to latency (UI lockup when saving large files over slow connections), and that local sync with background refresh (not mounted remote FS) is the key difference. dhouston also reveals an unannounced freemium model. BrandonM concedes the Windows UX points but maintains the \"replaces USB\" claim oversells the product.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 3,
+              "completion_tokens": 274
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "This is an early Hacker News discussion about Dropbox. BrandonM raises three critiques: (1) Linux users can already build similar systems with FTP+curlftpfs+SVN/CVS; (2) the product doesn't truly replace USB drives since it requires connectivity; (3) the business model isn't clear without paid tiers. The main disagreement centers on use-case framing. dhouston (Dropbox founder) counters that plug-and-play matters; local sync with efficient background syncing solves the latency/UX problem Windows users face with network drives; and offline access is a bonus when you're away from your computer (e.g., on a plane). BrandonM concedes the Windows UX point and offline scenario make sense, but maintains that claiming USB-drive replacement is misleading given connectivity dependencies.",
+              "entity_type": "Thing",
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 1,
+              "completion_tokens": 250
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "A Hacker News thread discussing an early file-sync application (later identified as Dropbox). BrandonM raises three critiques: (1) Linux users can build similar systems with FTP+curlftpfs+SVN/CVS; (2) the app doesn't truly replace USB drives since it requires connectivity; (3) the business model is unclear without a revenue strategy. The creator (dhouston) rebuts: (1) plug-and-play UX matters\u2014online drives on Windows suffer latency and app assumptions; (2) the app enables offline-tolerant sync (access cached docs on a plane, sync when reconnected); (3) a freemium model with tiered paid plans is planned. Core disagreement: whether a synced local folder solving UX friction is materially different from existing DIY solutions, and whether claiming USB-drive replacement is misleading.",
+              "entity_type": "Thing",
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 4,
+              "completion_tokens": 291
+            }
+          },
+          "coverage": {
+            "B_fields": 0.0,
+            "B_combined": 0.476,
+            "B_answer": 0.476,
+            "A_answer": 0.524,
+            "E_combined": 0.571
+          },
+          "covered": {
+            "B_fields": [],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              15,
+              17
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              15,
+              17
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              7,
+              8,
+              10,
+              12,
+              15,
+              17
+            ],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              12,
+              15,
+              17
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "A Hacker News thread debating an early file-sync application (later identified as Dropbox). BrandonM initially critiques it on three fronts: (1) Linux users can already build similar systems with FTP+curlftpfs+SVN/CVS; (2) it doesn't truly replace USB drives since connectivity remains a problem; (3) the business model is unclear without a revenue mechanism. The creator (dhouston) responds that plug-and-play matters\u2014existing solutions have poor UX and don't solve latency issues on Windows, where network-mounted drives cause UI freezes. His app uses local folders with efficient background sync. On point #2, dhouston clarifies the use case: offline access on planes, with sync on reconnect. On point #3, he hints at an unannounced freemium model. The main disagreement centers on whether the app solves real problems (dhouston: yes, esp. Windows UX + offline access) vs. whether those problems are already solvable (BrandonM: technically yes, but acknowledges dhouston's solution is better-engineered for end users).",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 4,
+              "completion_tokens": 334
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "This is an early Hacker News thread (likely 2008, based on Dropbox's launch timeline) discussing a file-sync application. BrandonM raises three critiques: (1) Linux users can build similar systems with FTP + curlftpfs + SVN/CVS; (2) the app doesn't truly replace USB drives because it fails without connectivity; (3) the business model is unclear without a revenue strategy. The developer (dhouston, Drew Houston) pushes back: (1) plug-and-play matters more than DIY capability; (2) latency and app assumptions make online drives unusable on Windows\u2014their solution uses local sync instead; (3) connectivity is solved by offline access to recent versions; (4) freemium tiered pricing is planned. The main disagreement is whether local sync + background sync solves the USB/connectivity problem, and whether the UX pain of network latency justifies a dedicated tool.",
+              "entity_type": "Thing",
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 4,
+              "completion_tokens": 306
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "This is an early Hacker News discussion (item 9224) about Dropbox, then a nascent file-sync application. BrandonM critiques the product on three grounds: (1) Linux users can already achieve similar functionality via FTP + curlftpfs + SVN/CVS; (2) it doesn't truly replace USB drives because it requires connectivity; (3) the business model is unclear without a revenue strategy.\n\nThe main disagreement centers on UX trade-offs. dhouston (the founder) rebuts that \"plug and play\" matters\u2014offline-capable local folders with efficient background sync solve the latency and disconnected-access problems that plague network-mounted filesystems on Windows. BrandonM acknowledges this strength but maintains that claiming USB-drive replacement is oversold, since the tool cannot help when both offline *and* away from your computer.",
+              "entity_type": "DiscussionForumPosting",
+              "entity_fields": {
+                "url": "https://news.ycombinator.com/item?id=9224",
+                "platform": "Hacker News",
+                "author": "BrandonM",
+                "respondent": "dhouston",
+                "topic": "Dropbox file-sync application critique and early product defense",
+                "datePublished": "2026-08-03"
+              },
+              "entity_field_count": 6,
+              "entity_extra_fields": [
+                "platform",
+                "respondent",
+                "topic"
+              ],
+              "also_here": 5,
+              "completion_tokens": 426
+            }
+          },
+          "coverage": {
+            "B_fields": 0.0,
+            "B_combined": 0.762,
+            "E_combined": 0.381,
+            "A_answer": 0.714,
+            "B_answer": 0.762
+          },
+          "covered": {
+            "B_fields": [],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              17,
+              18
+            ],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              6,
+              8,
+              15,
+              17
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              17
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              17,
+              18
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "slug": "github-ruff",
+      "url": "https://github.com/astral-sh/ruff",
+      "ask": "What is ruff and what are its main features?",
+      "declared": [],
+      "content_chars": 25557,
+      "core_count": 8,
+      "adjacent_count": 18,
+      "inventory": {
+        "core": [
+          "Ruff is an extremely fast Python linter and code formatter written in Rust.",
+          "Ruff is 10-100x faster than existing linters like Flake8 and formatters like Black.",
+          "Ruff supports over 900 built-in lint rules with native re-implementations of popular Flake8 plugins.",
+          "Ruff provides drop-in parity with Flake8, isort, and Black.",
+          "Ruff can replace Flake8, Black, isort, pydocstyle, pyupgrade, and autoflake while executing tens or hundreds of times faster.",
+          "Ruff is installable via pip and can be invoked with uvx, uv, pip, or pipx.",
+          "Ruff provides fix support for automatic error correction such as removing unused imports.",
+          "Ruff includes built-in caching to avoid re-analyzing unchanged files."
+        ],
+        "adjacent": [
+          "Ruff is backed by Astral, the creators of uv and ty.",
+          "The GitHub repository has 48,996 stars and 2,302 forks.",
+          "Ruff is written in Rust and released under the MIT License.",
+          "Ruff supports Python 3.14 compatibility.",
+          "Ruff is configured through pyproject.toml, ruff.toml, or .ruff.toml files.",
+          "Ruff has first-party editor integrations for VS Code and other editors.",
+          "Ruff is monorepo-friendly with hierarchical and cascading configuration.",
+          "Ruff is used by major open-source projects including Apache Airflow, FastAPI, Hugging Face, Pandas, and SciPy.",
+          "Ruff re-implements over 60 Flake8 plugins and related tools such as flake8-bugbear, eradicate, and tryceratops.",
+          "Ruff provides a playground at play.ruff.rs for testing.",
+          "Ruff can be used as a pre-commit hook, VS Code extension, and GitHub Action.",
+          "Ruff enables F, E, B, UP, and RUF rule categories by default, omitting stylistic rules that overlap with formatters.",
+          "Ruff's formatter is built on a fork of Rome's rome_formatter and draws from Rome, Prettier, and Black.",
+          "Ruff's import resolver is based on Pyright's import resolution algorithm.",
+          "The default line length is 88 characters, matching Black.",
+          "Ruff uses double quotes for strings by default, matching Black's behavior.",
+          "Ruff is used by companies including Anthropic, Amazon, Databricks, Microsoft, and Netflix.",
+          "Ruff's linter draws on APIs and implementation details from Flake8, Pyflakes, pycodestyle, pydocstyle, pyupgrade, and isort."
+        ]
+      },
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Ruff is \"an extremely fast Python linter and code formatter, written in Rust.\" Main features: 10\u2013100x faster than Flake8 and Black; pip-installable; pyproject.toml support; Python 3.14 compatible; drop-in parity with Flake8, isort, and Black; built-in caching; automatic error correction via `--fix`; over 900 built-in lint rules (native re-implementations of Flake8 plugins like flake8-bugbear); VS Code and other editor integrations; monorepo-friendly with hierarchical configuration. Consolidates Flake8 + plugins, Black, isort, pydocstyle, pyupgrade, autoflake into one tool.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 209
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Ruff is an extremely fast Python linter and code formatter written in Rust. Main features: 10-100x faster than Flake8 and Black; installable via pip/uv/pipx; pyproject.toml support; Python 3.14 compatible; drop-in parity with Flake8, isort, and Black; built-in caching; automatic error fixing; \"over 900 built-in rules\"; first-party VS Code integration; monorepo-friendly with hierarchical configuration. Can replace Flake8 (plus plugins), Black, isort, pydocstyle, pyupgrade, autoflake and more\u2014often 10-100x faster than any individual tool.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Ruff",
+                "description": "An extremely fast Python linter and code formatter, written in Rust",
+                "license": "MIT License",
+                "language": "Rust",
+                "stargazers_count": "48996",
+                "forks_count": "2302",
+                "author": "Astral",
+                "python_versions_supported": "3.14",
+                "installation_methods": "['pip', 'uv', 'pipx', 'Homebrew', 'Conda', 'standalone installers']",
+                "rule_count": "900+",
+                "editor_support": "['VS Code', 'more (via integrations)']",
+                "speed_improvement": "10-100x faster than existing linters and formatters"
+              },
+              "entity_field_count": 12,
+              "entity_extra_fields": [
+                "language",
+                "stargazers_count",
+                "forks_count",
+                "python_versions_supported",
+                "installation_methods",
+                "rule_count",
+                "editor_support",
+                "speed_improvement"
+              ],
+              "also_here": 0,
+              "completion_tokens": 401
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "Ruff is an extremely fast Python linter and code formatter written in Rust. Main features: 10-100x faster than Flake8 and Black; installable via pip; supports pyproject.toml; Python 3.14 compatible; drop-in parity with Flake8, isort, and Black; built-in caching; automatic error correction via fix support; \"over 900 built-in rules\" with re-implementations of popular Flake8 plugins; first-party VS Code and editor integrations; monorepo-friendly with hierarchical configuration. Ruff can replace Flake8 (plus dozens of plugins), Black, isort, pydocstyle, pyupgrade, autoflake, and more. Used by Apache Airflow, FastAPI, Hugging Face, Pandas, SciPy, and many others.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Ruff",
+                "description": "An extremely fast Python linter and code formatter, written in Rust",
+                "license": "MIT License",
+                "repository": "https://github.com/astral-sh/ruff",
+                "stargazers": "48996",
+                "forks": "2302",
+                "language": "Rust",
+                "pypiPackage": "ruff",
+                "targetPythonVersions": "Python 3.14 compatible",
+                "defaultLineLength": "88",
+                "defaultIndentWidth": "4",
+                "defaultTargetVersion": "py310",
+                "numberBuiltInRules": "900+",
+                "editorSupport": "['VS Code', 'various others']",
+                "installMethods": "['pip', 'uv', 'pipx', 'Homebrew', 'Conda', 'standalone installers']",
+                "organization": "Astral"
+              },
+              "entity_field_count": 16,
+              "entity_extra_fields": [
+                "repository",
+                "stargazers",
+                "forks",
+                "language",
+                "pypiPackage",
+                "targetPythonVersions",
+                "defaultLineLength",
+                "defaultIndentWidth",
+                "defaultTargetVersion",
+                "numberBuiltInRules",
+                "editorSupport",
+                "installMethods",
+                "organization"
+              ],
+              "also_here": 7,
+              "completion_tokens": 576
+            }
+          },
+          "coverage": {
+            "A_answer": 0.462,
+            "E_combined": 0.538,
+            "B_combined": 0.577,
+            "B_fields": 0.308,
+            "B_answer": 0.462
+          },
+          "covered": {
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              13,
+              14,
+              15,
+              17
+            ],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              11,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "B_fields": [
+              1,
+              2,
+              6,
+              9,
+              10,
+              11,
+              12,
+              14
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              13,
+              14,
+              15,
+              17
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Ruff is an extremely fast Python linter and code formatter written in Rust. Main features: \"10-100x faster than existing linters (like Flake8) and formatters (like Black)\"; installable via pip; supports pyproject.toml and Python 3.14; drop-in parity with Flake8, isort, and Black; built-in caching; automatic error correction (fix support); \"over 900 built-in rules\" with native re-implementations of popular Flake8 plugins; first-party editor integrations for VS Code and others; monorepo-friendly with hierarchical configuration. Ruff can replace Flake8 (plus plugins), Black, isort, pydocstyle, pyupgrade, autoflake, and more while executing orders of magnitude faster.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 219
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Ruff is an extremely fast Python linter and code formatter written in Rust. Main features: 10-100x faster than existing tools like Flake8 and Black; installable via `pip`; `pyproject.toml` support; Python 3.14 compatibility; drop-in parity with Flake8, isort, and Black; built-in caching; automatic fix support for error correction; over 900 built-in rules with native re-implementations of popular Flake8 plugins; first-party editor integrations for VS Code and others; monorepo-friendly with hierarchical configuration. Ruff can replace Flake8 (plus plugins), Black, isort, pydocstyle, pyupgrade, autoflake, and more while executing tens or hundreds of times faster.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Ruff",
+                "description": "An extremely fast Python linter and code formatter, written in Rust",
+                "license": "MIT License",
+                "language": "Rust",
+                "repository": "https://github.com/astral-sh/ruff",
+                "stars": "48996",
+                "forks": "2302",
+                "installationMethods": "['pip', 'uv', 'pipx', 'Homebrew', 'Conda', 'standalone installers']",
+                "minPythonVersion": "3.10",
+                "maxPythonVersion": "3.14",
+                "supportedRulesCount": "900+",
+                "editorIntegrations": "['VS Code', 'other editors']",
+                "organization": "Astral"
+              },
+              "entity_field_count": 13,
+              "entity_extra_fields": [
+                "language",
+                "repository",
+                "stars",
+                "forks",
+                "installationMethods",
+                "minPythonVersion",
+                "maxPythonVersion",
+                "supportedRulesCount",
+                "editorIntegrations",
+                "organization"
+              ],
+              "also_here": 8,
+              "completion_tokens": 527
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "Ruff is an extremely fast Python linter and code formatter written in Rust. Main features: 10-100x faster than Flake8/Black; installable via pip; supports pyproject.toml; Python 3.14 compatible; drop-in parity with Flake8, isort, and Black; built-in caching; automatic error correction; over 900 built-in rules including native re-implementations of popular Flake8 plugins; editor integrations for VS Code and others; monorepo-friendly with hierarchical configuration. Can replace Flake8 + dozens of plugins, Black, isort, pydocstyle, pyupgrade, autoflake, and more.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Ruff",
+                "description": "An extremely fast Python linter and code formatter, written in Rust",
+                "applicationCategory": "DeveloperApplication",
+                "operatingSystem": "Linux, macOS, Windows",
+                "license": "MIT License",
+                "programmingLanguage": "Rust",
+                "url": "https://github.com/astral-sh/ruff",
+                "gitHubStars": "48996",
+                "gitHubForks": "2302",
+                "softwareVersion": "0.16.1",
+                "downloadUrl": "https://pypi.org/project/ruff/",
+                "documentation": "https://docs.astral.sh/ruff/",
+                "playground": "https://play.ruff.rs/",
+                "publisher": "Astral",
+                "relatedTools": "['Flake8', 'Black', 'isort', 'pydocstyle', 'pyupgrade', 'autoflake']",
+                "supportedPythonVersions": "3.14"
+              },
+              "entity_field_count": 16,
+              "entity_extra_fields": [
+                "applicationCategory",
+                "operatingSystem",
+                "gitHubStars",
+                "gitHubForks",
+                "downloadUrl",
+                "documentation",
+                "playground",
+                "relatedTools",
+                "supportedPythonVersions"
+              ],
+              "also_here": 9,
+              "completion_tokens": 655
+            }
+          },
+          "coverage": {
+            "B_combined": 0.538,
+            "B_answer": 0.423,
+            "E_combined": 0.423,
+            "A_answer": 0.423,
+            "B_fields": 0.308
+          },
+          "covered": {
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              13,
+              14,
+              15
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              13,
+              14,
+              15
+            ],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              13,
+              14,
+              15
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              13,
+              14,
+              15
+            ],
+            "B_fields": [
+              1,
+              6,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "Ruff is an extremely fast Python linter and code formatter written in Rust. Main features: \"10-100x faster than existing linters (like Flake8) and formatters (like Black)\"; installable via pip; pyproject.toml support; Python 3.14 compatible; drop-in parity with Flake8, isort, and Black; built-in caching; automatic fix support; \"over 900 built-in rules\" with native re-implementations of Flake8 plugins; first-party editor integrations (VS Code, others); monorepo-friendly hierarchical configuration. Ruff consolidates functionality of Flake8 + plugins, Black, isort, pydocstyle, pyupgrade, autoflake, and others into a single tool.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 5,
+              "completion_tokens": 319
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Ruff is an extremely fast Python linter and code formatter written in Rust. Main features: 10-100x faster than existing linters (Flake8) and formatters (Black); installable via pip; pyproject.toml support; Python 3.14 compatible; drop-in parity with Flake8, isort, and Black; built-in caching; automatic fix support; \"over 900 built-in rules\" with native re-implementations of popular Flake8 plugins; first-party editor integrations for VS Code and others; monorepo-friendly with hierarchical configuration. Ruff can replace Flake8 (plus dozens of plugins), Black, isort, pydocstyle, pyupgrade, autoflake, and more.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Ruff",
+                "description": "An extremely fast Python linter and code formatter, written in Rust",
+                "license": "MIT License",
+                "language": "Rust",
+                "gitHubStars": "48996",
+                "gitHubForks": "2302",
+                "homepage": "https://github.com/astral-sh/ruff",
+                "docsUrl": "https://docs.astral.sh/ruff/",
+                "playgroundUrl": "https://play.ruff.rs/",
+                "pypiPackage": "ruff",
+                "targetLanguages": "Python",
+                "minPythonVersion": "3.14",
+                "organizationBehind": "Astral",
+                "relatedProjects": "uv, ty"
+              },
+              "entity_field_count": 14,
+              "entity_extra_fields": [
+                "language",
+                "gitHubStars",
+                "gitHubForks",
+                "homepage",
+                "docsUrl",
+                "playgroundUrl",
+                "pypiPackage",
+                "targetLanguages",
+                "minPythonVersion",
+                "organizationBehind",
+                "relatedProjects"
+              ],
+              "also_here": 7,
+              "completion_tokens": 512
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "Ruff is an extremely fast Python linter and code formatter written in Rust. Main features: 10-100x faster than Flake8 and Black; installable via `pip`; `pyproject.toml` support; Python 3.14 compatible; drop-in parity with Flake8, isort, and Black; built-in caching; automatic error correction via fix support; \"over 900 built-in rules\"; first-party VS Code and other editor integrations; monorepo-friendly with hierarchical configuration. Replaces Flake8 (plus plugins), Black, isort, pydocstyle, pyupgrade, autoflake, and more in a single tool.",
+              "entity_type": "SoftwareApplication",
+              "entity_fields": {
+                "name": "Ruff",
+                "description": "An extremely fast Python linter and code formatter, written in Rust",
+                "license": "MIT License",
+                "repositoryUrl": "https://github.com/astral-sh/ruff",
+                "stargazers": "48996",
+                "forks": "2302",
+                "language": "Rust",
+                "applicationCategory": "DeveloperApplication",
+                "operatingSystem": "macOS, Linux, Windows",
+                "installationMethod": "pip, uv, pipx, Homebrew, Conda, standalone installers",
+                "builtInRules": "900+",
+                "pythonVersionsSupported": "3.14 compatible, target-version default py310"
+              },
+              "entity_field_count": 12,
+              "entity_extra_fields": [
+                "repositoryUrl",
+                "stargazers",
+                "forks",
+                "language",
+                "applicationCategory",
+                "operatingSystem",
+                "installationMethod",
+                "builtInRules",
+                "pythonVersionsSupported"
+              ],
+              "also_here": 0,
+              "completion_tokens": 402
+            }
+          },
+          "coverage": {
+            "A_answer": 0.462,
+            "E_combined": 0.538,
+            "B_answer": 0.423,
+            "B_combined": 0.423,
+            "B_fields": 0.192
+          },
+          "covered": {
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              7,
+              8,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              7,
+              8,
+              12,
+              13,
+              14,
+              15
+            ],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              7,
+              8,
+              12,
+              13,
+              14,
+              15
+            ],
+            "B_fields": [
+              1,
+              9,
+              10,
+              11,
+              12
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "slug": "arxiv-abstract",
+      "url": "https://arxiv.org/abs/2401.05566",
+      "ask": "What is the paper's title and its main contribution?",
+      "declared": [],
+      "content_chars": 2686,
+      "core_count": 0,
+      "adjacent_count": 10,
+      "inventory": {
+        "core": [],
+        "adjacent": [
+          "The page is a listing of supplementary tools and services available for arXiv paper 2401.05566, not the paper itself.",
+          "The page does not contain the paper's title.",
+          "The page does not contain the paper's main contribution or abstract.",
+          "The page lists bibliographic tools: Bibliographic Explorer, Connected Papers, Litmaps, and scite Smart Citations.",
+          "The page lists code and data discovery services: alphaXiv, CatalyzeX, DagsHub, Gotit.pub, Hugging Face, and ScienceCast.",
+          "The page lists demo platforms: Replicate, Hugging Face Spaces, and TXYZ.AI.",
+          "The page lists recommender and search tools: Influence Flower and CORE Recommender.",
+          "arXivLabs is described as a framework for collaborators to develop and share new arXiv features on the arXiv website.",
+          "arXivLabs partners are stated to have embraced values of openness, community, excellence, and user data privacy.",
+          "The fetched content was retrieved on 2026-08-03T02:59:37+00:00 from https://arxiv.org/abs/2401.05566."
+        ]
+      },
+      "reps": [
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The fetched content shows only arXiv's bibliographic tools and partner listings, not the paper itself. The paper's title and main contribution are not included in this page excerpt. To answer your question, I need the actual paper abstract or content page.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 207
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "Not stated on this page. The fetched content shows only arXiv's sidebar tooling and lab-integration panels (bibliographic explorers, code finders, demos, recommenders). The abstract, title, authors, and contribution summary are not present in the provided excerpt.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 161
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "Page content shows only arXiv's sidebar tooling and feature listings (bibliographic explorers, code repositories, demos, recommenders). The paper's title and main contribution are not present in the fetched content \u2014 the abstract, metadata, and body are absent from what was retrieved.",
+              "entity_type": "ScholarlyArticle",
+              "entity_fields": {
+                "url": "https://arxiv.org/abs/2401.05566"
+              },
+              "entity_field_count": 1,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 147
+            }
+          },
+          "coverage": {
+            "A_answer": 1.0,
+            "B_fields": 0.0,
+            "E_combined": 0.8,
+            "B_combined": 0.9,
+            "B_answer": 0.9
+          },
+          "covered": {
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "B_fields": [],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              10
+            ],
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The page content provided is limited to arXiv's supplementary tools and labs ecosystem (bibliographic explorers, code repositories, demos, recommenders). The paper's title and main contribution are not included in the fetched excerpt. To access this information, you would need the paper's abstract section, which typically appears above these tool listings on arXiv abstract pages.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 193
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "The page content provided does not include the paper's title or main contribution. The fetched section shows only arXiv's tooling sidebar (bibliographic explorers, code/data resources, demos, recommenders) \u2014 the abstract, title, and research summary are absent from this excerpt. Fetch the full paper page or its abstract section to retrieve that information.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 119
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "The page content provided is an arXiv abstract landing page showing auxiliary tools and integrations (bibliographic explorers, code repositories, demos, recommenders), but does NOT include the paper's title, abstract, or main contribution. The fetched content is a service menu, not the paper metadata.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 198
+            }
+          },
+          "coverage": {
+            "A_answer": 1.0,
+            "B_combined": 0.3,
+            "B_fields": 0.0,
+            "E_combined": 0.3,
+            "B_answer": 0.3
+          },
+          "covered": {
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "B_combined": [
+              1,
+              2,
+              3
+            ],
+            "B_fields": [],
+            "E_combined": [
+              1,
+              2,
+              3
+            ],
+            "B_answer": [
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        {
+          "arms": {
+            "A": {
+              "parse_failed": false,
+              "answer": "The fetched content is a metadata/tooling page from arXiv (abstract 2401.05566) listing bibliographic explorers, code repositories, demos, and recommender systems. The page does NOT contain the paper's title, abstract, or main contribution \u2014 only arXiv's auxiliary features and partner integrations.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 171
+            },
+            "B": {
+              "parse_failed": false,
+              "answer": "The page does not display the paper's title or abstract\u2014it shows only arXiv's ancillary tools and metadata integrations (bibliographic explorers, code repositories, demos, recommenders). The core paper content is not present on this fetched segment.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 177
+            },
+            "E": {
+              "parse_failed": false,
+              "answer": "The page content shows only arXiv's bibliographic tools and labs interface (Connected Papers, Litmaps, scite, etc.) but does not include the paper's title, abstract, or main contribution. The actual paper metadata is not present in the fetched content.",
+              "entity_type": null,
+              "entity_fields": {},
+              "entity_field_count": 0,
+              "entity_extra_fields": [],
+              "also_here": 0,
+              "completion_tokens": 169
+            }
+          },
+          "coverage": {
+            "B_combined": 0.7,
+            "B_fields": 0.0,
+            "E_combined": 0.7,
+            "A_answer": 1.0,
+            "B_answer": 0.7
+          },
+          "covered": {
+            "B_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "B_fields": [],
+            "E_combined": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "A_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "B_answer": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
