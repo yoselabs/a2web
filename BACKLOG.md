@@ -72,6 +72,25 @@ prove is impossible.
 That is a second, larger defect wearing this one as a symptom, and it deserves
 its own diagnosis rather than being bundled into a hermeticity fix.
 
+> **DIAGNOSED 2026-08-03** — `eval/findings_2026-08-03-the-cassette-that-froze-a-304.md`.
+> The cassette `akakce-no-current-price/inputs/raw.http` records a **`304 Not
+> Modified` with a 13-byte body section**. A 304 carries no body by definition;
+> it points at a copy the client already holds. So the suite's "frozen bytes"
+> live in `~/.a2web/cache.sqlite`, not in the repo — and the URL is present in
+> the real home cache on this machine. Cold, the replay yields `content_len: 0`,
+> `extracted_answer: None`, and the LLM cassette is never called.
+>
+> It also surfaced a SECOND, product-side defect: a conditional-hit tier result
+> with no cache row behind it gated as **`status: ok` with an empty
+> `content_md`** and a cheerful `raw → ok (9ms)` narrative — the ADR-0009 harm
+> in the pipeline, not the harness. Fix that one first; it is independent and
+> unit-testable.
+>
+> Re-capture is NOT a drive-by: this case is a fabrication-trap specimen
+> ("no current price"), so a refreeze against today's page can leave it green
+> while testing nothing. Verify the page still has no price by reading the body
+> before blessing.
+
 **Scope.** M. Two steps, in order:
 
 1. Diagnose what `replay_case` resolves out of the cache — extraction cache,
