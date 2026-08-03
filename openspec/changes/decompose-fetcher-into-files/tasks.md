@@ -485,6 +485,13 @@ question each answers.
       projected frozen dataclass — instead of the whole `FetchContext`, so the
       slice becomes a declared type rather than a ledger of attribute names.
 
+      Size, dated so it can be compared rather than believed: `fetcher_response.py`
+      was **941 lines on 2026-08-03**, up from the 830 CLAUDE.md stated when the
+      module was first documented on 2026-08-01. Recorded here rather than in
+      CLAUDE.md because a raw line count drifts on every edit — the same reason
+      `_READS`'s count was removed from prose. Re-measure; do not trust this
+      number after the fact.
+
       `test_response_context_slice.py`'s own docstring already anticipates this:
       "A Protocol was the other option and was not taken ... Worth revisiting
       when `context.py` is actually sliced — at that point the Protocol has a
