@@ -244,6 +244,43 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 },
             )
 
+            # A 304 with NO cached row behind it is unusable, and must never be
+            # mistaken for content. The tier is telling the truth — "not
+            # modified, reuse your copy" — but there is no copy, so the body is
+            # empty and there is nothing to reuse.
+            #
+            # Before this branch existed the condition below simply failed and
+            # the empty-body, `Verdict.ok` result FELL THROUGH to `install()`,
+            # gating as `status: ok` with `content_md: ""` and the narrative
+            # `raw → ok (9ms)`. An empty result reported as success is the
+            # ADR-0009 harm, and the caller had no hint that anything was wrong.
+            #
+            # a2web only sends `If-None-Match` / `If-Modified-Since` when it
+            # HAS the row, so in production this means the row was evicted
+            # between the request being built and the response arriving. It is
+            # also exactly what a replayed cassette does when it froze a 304
+            # (`eval/findings_2026-08-03-the-cassette-that-froze-a-304.md`).
+            #
+            # Treated as a tier that produced nothing usable, so the cascade
+            # continues to the next rung — which is what the cascade is for.
+            # NOT a wall, NOT a 404: `other` is the honest verdict for an
+            # unusable protocol state.
+            if tier_result.status_code == 304 and tier_result.conditional_hit and fc.cached_row is None:
+                fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.other)
+                fc.diagnostics.append(
+                    Diagnostic(
+                        t_ms=tier_start_ms,
+                        step=tier_name,
+                        engine="curl_cffi" if tier_name == "raw" else None,
+                        host=_host(fc.url),
+                        proxy=handle.proxy_id,
+                        verdict=Verdict.other,
+                        dur_ms=tier_dur_ms,
+                        extra={"conditional_hit": "unmatched", "status_code": 304},
+                    )
+                )
+                continue
+
             # Conditional 304 → reuse cached body. Distinct return path (no
             # after-tier action, no further tiers, no extract/gate ahead).
             if tier_result.status_code == 304 and fc.cached_row is not None and tier_result.conditional_hit:

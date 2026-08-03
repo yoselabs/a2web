@@ -576,3 +576,86 @@ def test_wrap_markers_invisible_to_markdown_renderers() -> None:
         if "a2web:" in line:
             assert line.lstrip().startswith("<!--")
             assert line.rstrip().endswith("-->")
+
+
+@pytest.mark.asyncio
+async def test_unmatched_304_is_not_an_empty_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A `304` with no cached row behind it must never gate as `ok`.
+
+    The tier is telling the truth — "not modified, reuse your copy" — but there
+    is no copy, so the body is empty and there is nothing to reuse. Before the
+    guard in `tier_walk`, that empty-body `Verdict.ok` result fell straight
+    through to `install()` and the fetch reported:
+
+        status: ok   content_md: ""   narrative: "raw → ok (9ms)"
+
+    An empty result reported as success is the ADR-0009 harm — the caller could
+    not tell a served page from a served nothing.
+
+    Found via `eval/findings_2026-08-03-the-cassette-that-froze-a-304.md`: the
+    regression cassette froze a 304, so replaying it against a cold cache drove
+    exactly this path. In production it means the cache row was evicted between
+    the conditional request being built and the response arriving (a2web only
+    sends `If-None-Match` when it HAS the row).
+    """
+
+    class _NotModifiedNoRow:
+        name = "raw"
+
+        async def fetch(self, url: str, *, state: AppState, **kwargs: object):
+            return TierResult(
+                body=b"",
+                content_type="text/html",
+                status_code=304,
+                final_url=url,
+                headers={"etag": '"v1"'},
+                conditional_hit=True,
+            )
+
+    _swap_tier(monkeypatch, _NotModifiedNoRow())
+    state = await _make_state_with_sqlite()
+
+    # No prior fetch, so the cache is empty — `fc.cached_row` is None.
+    result = await fetch("https://example.org/never-cached", state=state, debug=True)
+
+    assert result.status != FetchStatus.ok, (
+        f"a 304 with no cached body reported {result.status} with "
+        f"{len(result.content_md or '')} chars of content — an empty result "
+        "wearing the shape of a success (ADR-0009)"
+    )
+    assert not (result.content_md or "").strip()
+
+
+@pytest.mark.asyncio
+async def test_a_matched_304_still_serves_the_cached_body(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The other direction — the guard must not break the real conditional hit.
+
+    Without this, rejecting every 304 would satisfy the test above while
+    disabling conditional GET entirely, which is the whole point of sending the
+    validators.
+    """
+    body = (_FIX / "blog.html").read_bytes()
+    _swap_tier(monkeypatch, _MockTier(body))
+    state = await _make_state_with_sqlite()
+    first = await fetch("https://example.org/cached-then-304", state=state, debug=True)
+    assert first.cache == CacheState.miss
+
+    class _NotModifiedWithRow:
+        name = "raw"
+
+        async def fetch(self, url: str, *, state: AppState, **kwargs: object):
+            return TierResult(
+                body=b"",
+                content_type="text/html",
+                status_code=304,
+                final_url=url,
+                headers={"etag": '"v1"'},
+                conditional_hit=True,
+            )
+
+    _swap_tier(monkeypatch, _NotModifiedWithRow())
+    second = await fetch("https://example.org/cached-then-304", state=state, debug=True)
+
+    assert second.cache == CacheState.hit
+    assert second.status == FetchStatus.ok
+    assert second.content_md == first.content_md
