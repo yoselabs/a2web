@@ -1,6 +1,6 @@
 """The response builder's slice of `FetchContext` is explicit and bounded.
 
-`fetcher_response.py` reads 44 of `FetchContext`'s 74 fields. That
+`fetcher_response.py` reads a large minority of `FetchContext`'s members. That
 coupling was implicit — nothing stated which fields the response contract
 depends on, so `decompose-fetcher-into-files` phase two could not slice
 `context.py` per node without first re-deriving the set by hand.
@@ -10,6 +10,13 @@ fine and expected, and the fix is to add the name here. What it prevents is the
 set growing silently until "the response builder reads a bit of the context"
 quietly means "the response builder reads most of it", which is the state that
 makes decomposition impossible to do safely.
+
+**`_READS` is the count — do not restate it in prose.** This docstring used to
+open "reads 44 of 74 fields" while `_READS` held 45 names and `FetchContext`
+declared 79 members, and CLAUDE.md said "42 of 72". Three numbers for one fact,
+none of them right, all of them describing a ledger whose whole design is to
+GROW as reads are added. A hardcoded count beside an append-only list is a
+drift generator. Cite this file; read `len(_READS)` if a number is wanted.
 
 **A Protocol was the other option and was not taken.** Declaring 44 members with
 real annotations pulls every one of their types into this module's namespace,

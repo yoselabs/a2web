@@ -1,9 +1,15 @@
 # Tasks
 
-Two phases. **Phase two is blocked on `unify-the-response-contract`.** Do not
-start it early — 41 of `FetchContext`'s 69 fields are read externally by
-`fetcher_response.py`, and attempting both phases at once turns a decomposition
-into a rewrite.
+Two phases. **Phase two is blocked on narrowing `fetcher_response.py`'s read of
+`FetchContext` to a declared type** (§7.0). Do not start it early — attempting
+both phases at once turns a decomposition into a rewrite.
+
+This header used to name `unify-the-response-contract` as the blocker. That
+change landed 2026-08-01 and did NOT clear it: absorbing the reads was in its
+Out of Scope, so nothing in it could have. Measured 2026-08-03 the external read
+set had grown from 41 to 46. A blocker named as a change rather than as a
+condition goes stale the moment that change archives — §7.1 records the
+measurement, §7.0 states the condition.
 
 Land nothing in this change except the move, the loop, and the ladder-skip fix
 that the loop makes unexpressible. v0.23 is the demonstration of what a refactor
@@ -445,10 +451,48 @@ question each answers.
       holds, the group boundaries worked and one module needs cutting; if every
       module grew evenly, they did not.
 
-## 7. Phase two — BLOCKED on `unify-the-response-contract`
+## 7. Phase two — STILL BLOCKED. The named blocker landed and did not clear it.
 
-- [ ] 7.1 Confirm that change has landed and absorbed the 41 external
-      `FetchContext` reads.
+- [x] 7.1 **Measured 2026-08-03. The answer is no, and the premise was
+      contradictory from the start.**
+
+      `unify-the-response-contract` archived 2026-08-01. Its *Why* says "41 of
+      `FetchContext`'s 69 fields are read externally by `fetcher_response.py`.
+      Until the response contract absorbs those reads, `context.py` cannot be
+      sliced per-node. This change is the blocker on that one." Its *Out of
+      Scope* says "Slicing `FetchContext` per-node ... is
+      `decompose-fetcher-into-files` phase two, which this change unblocks."
+
+      Those two statements are in tension inside one document: absorbing the
+      reads was never a task in that change, so nothing in it could have moved
+      the number. Measured now:
+
+      ```
+        FetchContext              75 fields + 4 methods = 79 members
+        fetcher_response.py       45 members read      (was 41)
+        actions/playbook.py        1
+        distinct external reads   46 of 79
+      ```
+
+      The coupling GREW. That is not a regression — the ledger in
+      `tests/architecture/test_response_context_slice.py` is append-only by
+      design and every addition was deliberate — but it does mean the stated
+      precondition for 7.2 is further away, not closer.
+
+- [ ] 7.0 **The actual unblocking step, now that 7.1 has named it.** Nothing
+      will absorb these reads as a side effect; it has to be the task. Give
+      `build_response` / `build_ask_response` a narrow input — a Protocol or a
+      projected frozen dataclass — instead of the whole `FetchContext`, so the
+      slice becomes a declared type rather than a ledger of attribute names.
+
+      `test_response_context_slice.py`'s own docstring already anticipates this:
+      "A Protocol was the other option and was not taken ... Worth revisiting
+      when `context.py` is actually sliced — at that point the Protocol has a
+      consumer." It now has one. This is its own change, and it touches the
+      response contract, so it needs the Ask First gate before starting.
+
+- [ ] 7.1b Re-measure after 7.0. 7.2 stays blocked until the external read set
+      is a type rather than 46 attribute names.
 - [ ] 7.2 Slice `context.py` per node.
 - [ ] 7.3 Update the ~19 test modules importing `FetchContext`.
 - [ ] 7.4 Move the T1 entries to `BACKLOG-CLOSED.md`, including the two subsumed
