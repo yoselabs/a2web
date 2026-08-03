@@ -199,6 +199,97 @@ def test_contract_deviating_tier_and_status_allowed() -> None:
 
 
 # --------------------------------------------------------------------- #
+# Incompleteness coherence (ADR-0009) — 2026-08-03
+#
+# Each rule gets BOTH directions: an envelope that violates it and one that
+# satisfies it. A one-sided test cannot distinguish "the rule fired" from "the
+# rule is unreachable", and this repo has shipped that mistake twice — a guard
+# reading green over an empty candidate set, and an accepted-delta entry
+# justified by a hint that did not exist.
+# --------------------------------------------------------------------- #
+
+
+def _walled() -> dict[str, object]:
+    """The ADR-0009 envelope, as the invariant spells it out."""
+    return {
+        "confidence": "low",
+        "status": "failed",
+        "retrieval_incomplete": True,
+        "narrative": "The page was walled by an anti-bot challenge at every tier.",
+        "operator_hints": [{"code": "try_user_browser", "severity": "critical"}],
+    }
+
+
+def test_coherence_the_full_walled_envelope_is_conformant() -> None:
+    result = check_envelope_contract(_walled(), requested_url="https://e.com/", debug=False)
+    assert result.conformant, result.violations
+
+
+def test_coherence_incomplete_but_status_ok_fails() -> None:
+    """The cardinal contradiction: a miss wearing the shape of an answer.
+
+    `status` omitted IS `ok` on the wire (deviation-only), so this is the
+    shape a silent miss would actually take.
+    """
+    envelope = _walled()
+    del envelope["status"]
+    result = check_envelope_contract(envelope, requested_url="https://e.com/", debug=False)
+    assert not result.conformant
+    assert any("`status` is omitted (i.e. ok)" in v for v in result.violations)
+
+
+def test_coherence_incomplete_with_empty_narrative_fails() -> None:
+    envelope = _walled() | {"narrative": "   "}
+    result = check_envelope_contract(envelope, requested_url="https://e.com/", debug=False)
+    assert not result.conformant
+    assert any("`narrative` is empty" in v for v in result.violations)
+
+
+def test_coherence_incomplete_with_no_hint_fails() -> None:
+    envelope = _walled() | {"operator_hints": []}
+    result = check_envelope_contract(envelope, requested_url="https://e.com/", debug=False)
+    assert not result.conformant
+    assert any("no operator hint fired" in v for v in result.violations)
+
+
+def test_coherence_a_complete_success_declares_none_of_it() -> None:
+    """The other branch, and the reason this is machine-independent.
+
+    A retrieved page omits `retrieval_incomplete`, `status` and `narrative`
+    entirely — and must NOT be asked for a narrative or a hint it has no
+    reason to carry. The same case passes on a host that reaches the URL and
+    on one that does not; only the branch differs.
+    """
+    result = check_envelope_contract(
+        {"confidence": "high", "answer": "42", "content_md": "body"},
+        requested_url="https://e.com/",
+        debug=False,
+    )
+    assert result.conformant, result.violations
+
+
+def test_coherence_a_confirmed_404_may_fail_without_incompleteness() -> None:
+    """The asymmetry, pinned so nobody "tightens" it into a biconditional.
+
+    `gone_confirmed` is a fetch that SUCCEEDED in learning the page is dead.
+    Requiring `retrieval_incomplete` of every `failed` envelope would fail
+    every honest-404 case in the corpus — and would push the 404 toward the
+    `try_user_browser` klaxon that ADR-0009 explicitly forbids it.
+    """
+    result = check_envelope_contract(
+        {
+            "confidence": "high",
+            "status": "failed",
+            "narrative": "The URL returns 404 at two independent tiers.",
+            "operator_hints": [{"code": "dead_url", "severity": "info"}],
+        },
+        requested_url="https://e.com/gone",
+        debug=False,
+    )
+    assert result.conformant, result.violations
+
+
+# --------------------------------------------------------------------- #
 # Output-clarity + next_links judge axes — tasks 5.2, 6.2
 # --------------------------------------------------------------------- #
 

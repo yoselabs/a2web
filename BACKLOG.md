@@ -273,9 +273,40 @@ on the three affordance slugs whose answers are expected to carry links
 is deterministic AND machine-independent — it converts "did not fabricate a
 `-yorumlari` URL" from a probabilistic judge call into a binary one.
 
-**The remaining eleven-way call is deliberately left for a human**: each needs a
-site-vs-host determination, and getting one wrong bakes a network fact into the
-gate.
+**Also shipped now, and it narrows the decision rather than pre-empting it.**
+Surveying the eleven exposed something upstream of them: `llm_eval/contract.py`
+— the universal envelope check EVERY case runs — verified serialization
+discipline (`tier`/`status`/`url` deviation-gating, `debug` gating) and said
+nothing whatever about ADR-0009. The bench's only always-on assertion could not
+distinguish a walled envelope that declares itself from one claiming
+`retrieval_incomplete` in total silence.
+
+That check now also asserts *incompleteness coherence*: `retrieval_incomplete`
+⟹ `status: failed` + a non-empty `narrative` + at least one operator hint. The
+asymmetry is deliberate and pinned — a `failed` status does NOT imply
+incompleteness, because a corroborated `404` is `gone_confirmed`, a fetch that
+succeeded in learning the page is dead.
+
+This is exactly the "score the envelope's honesty" resolution proposed above,
+and it needs **no site-vs-host call at all**: coherence is a property of the
+envelope with itself, true in both branches on every machine. Retrieve the page
+and there is no incompleteness to declare; fail to, and the declaration must be
+loud. The eleven get a real deterministic assertion out of it today.
+
+It is gated in two places for two different reasons. `make bench` runs it live
+on all 47 cases as part of the data-contract axis. `tests/eval_replay/
+test_incompleteness_coherence.py` runs it over the replay corpora on **every
+push** — because a bench-only rule regresses silently until someone chooses to
+spend LLM quota. The replay test carries a non-vacuity companion, and it is not
+theoretical: exactly ONE case (`zoro-datadome-bot-wall`) currently reaches the
+incomplete branch, so a capture refresh that let it succeed would empty the
+file of meaning. Verified by mutation against that real replayed envelope —
+strip its narrative, its hint, or its `failed` status and each rule fires.
+
+**What still needs a human, and it is now smaller**: whether each of the eleven
+should additionally pin `status: failed` — i.e. whether its wall is a property
+of the SITE or of the HOST. Getting that wrong still bakes a network fact into
+the gate. But the eleven are no longer assertion-free while it waits.
 
 ## 2026-08-01 — converge the item set, once `reason` can survive the trip (M, structure)
 
