@@ -1,0 +1,420 @@
+{
+  "provider": "claude-code-sdk",
+  "model": "claude-haiku-4-5-20251001",
+  "reps": 2,
+  "n_scored": 8,
+  "chars_per_token_estimate": 3.8,
+  "answer_coverage": 0.419,
+  "answer_completion_tokens": 157.3,
+  "caps": {
+    "cap_5": {
+      "coverage": 0.506,
+      "lift_over_answer": 0.087,
+      "ci_half": 0.1056,
+      "signif": false,
+      "mean_wire_tokens": 121.6,
+      "median_wire_tokens": 112.0,
+      "lift_per_1k_wire": 0.7153
+    },
+    "cap_10": {
+      "coverage": 0.53,
+      "lift_over_answer": 0.111,
+      "ci_half": 0.1046,
+      "signif": true,
+      "mean_wire_tokens": 242.8,
+      "median_wire_tokens": 209.5,
+      "lift_per_1k_wire": 0.4573
+    },
+    "cap_20": {
+      "coverage": 0.618,
+      "lift_over_answer": 0.199,
+      "ci_half": 0.1366,
+      "signif": true,
+      "mean_wire_tokens": 357.1,
+      "median_wire_tokens": 397.5,
+      "lift_per_1k_wire": 0.5572
+    },
+    "cap_40": {
+      "coverage": 0.642,
+      "lift_over_answer": 0.223,
+      "ci_half": 0.1481,
+      "signif": true,
+      "mean_wire_tokens": 585.2,
+      "median_wire_tokens": 500.5,
+      "lift_per_1k_wire": 0.381
+    },
+    "cap_all": {
+      "coverage": 0.636,
+      "lift_over_answer": 0.217,
+      "ci_half": 0.1484,
+      "signif": true,
+      "mean_wire_tokens": 703.8,
+      "median_wire_tokens": 500.5,
+      "lift_per_1k_wire": 0.3083
+    }
+  },
+  "declared_field_count": {
+    "adafruit-product": 13,
+    "sparkfun-product": 26,
+    "thingiverse-thing": 26,
+    "goodreads-book": 11,
+    "bbcgoodfood-recipe": 49,
+    "rottentomatoes-movie": 38,
+    "coursera-course": 71,
+    "wikipedia-rust": 11
+  },
+  "rows": [
+    {
+      "slug": "adafruit-product",
+      "url": "https://www.adafruit.com/product/3055",
+      "ask": "What is this product, what does it cost, and what is it for?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "declared_types": [
+        "WebSite",
+        "Product"
+      ],
+      "declared_field_count": 13,
+      "wire_tokens": {
+        "cap_5": 231,
+        "cap_10": 391,
+        "cap_20": 427,
+        "cap_40": 427,
+        "cap_all": 427
+      },
+      "inventory_size": 17,
+      "reps": [
+        {
+          "coverage": {
+            "cap_all": 0.765,
+            "cap_20": 0.765,
+            "answer": 0.647,
+            "cap_40": 0.765,
+            "cap_10": 0.765,
+            "cap_5": 0.647
+          },
+          "a_tokens": 164
+        },
+        {
+          "coverage": {
+            "cap_5": 0.529,
+            "cap_40": 0.647,
+            "cap_10": 0.647,
+            "cap_20": 0.647,
+            "answer": 0.471,
+            "cap_all": 0.647
+          },
+          "a_tokens": 152
+        }
+      ]
+    },
+    {
+      "slug": "sparkfun-product",
+      "url": "https://www.sparkfun.com/products/13664",
+      "ask": "What is this board, what does it cost, and what can it do?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "declared_types": [
+        "BreadcrumbList",
+        "WebSite",
+        "Organization",
+        "Product"
+      ],
+      "declared_field_count": 26,
+      "wire_tokens": {
+        "cap_5": 118,
+        "cap_10": 184,
+        "cap_20": 378,
+        "cap_40": 478,
+        "cap_all": 478
+      },
+      "inventory_size": 8,
+      "reps": [
+        {
+          "coverage": {
+            "cap_10": 0.25,
+            "cap_20": 0.25,
+            "answer": 0.25,
+            "cap_all": 0.25,
+            "cap_5": 0.25,
+            "cap_40": 0.25
+          },
+          "a_tokens": 159
+        },
+        {
+          "coverage": {
+            "cap_5": 0.125,
+            "cap_40": 0.125,
+            "cap_20": 0.125,
+            "cap_all": 0.125,
+            "cap_10": 0.125,
+            "answer": 0.125
+          },
+          "a_tokens": 156
+        }
+      ]
+    },
+    {
+      "slug": "thingiverse-thing",
+      "url": "https://www.thingiverse.com/thing:763622",
+      "ask": "What is this model and who made it?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "declared_types": [
+        "Product"
+      ],
+      "declared_field_count": 26,
+      "wire_tokens": {
+        "cap_5": 160,
+        "cap_10": 288,
+        "cap_20": 417,
+        "cap_40": 523,
+        "cap_all": 523
+      },
+      "inventory_size": 11,
+      "reps": [
+        {
+          "coverage": {
+            "cap_all": 1.0,
+            "cap_5": 0.818,
+            "cap_20": 1.0,
+            "cap_40": 1.0,
+            "cap_10": 0.818,
+            "answer": 0.0
+          },
+          "a_tokens": 93
+        },
+        {
+          "coverage": {
+            "cap_10": 0.727,
+            "cap_40": 0.909,
+            "cap_all": 0.909,
+            "answer": 0.364,
+            "cap_20": 0.727,
+            "cap_5": 0.727
+          },
+          "a_tokens": 125
+        }
+      ]
+    },
+    {
+      "slug": "goodreads-book",
+      "url": "https://www.goodreads.com/book/show/3735293-clean-code",
+      "ask": "What is this book about, who wrote it, and how is it rated?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "declared_types": [
+        "Book"
+      ],
+      "declared_field_count": 11,
+      "wire_tokens": {
+        "cap_5": 73,
+        "cap_10": 124,
+        "cap_20": 120,
+        "cap_40": 120,
+        "cap_all": 120
+      },
+      "inventory_size": 10,
+      "reps": [
+        {
+          "coverage": {
+            "cap_all": 0.7,
+            "cap_20": 0.7,
+            "cap_5": 0.7,
+            "answer": 0.7,
+            "cap_40": 0.7,
+            "cap_10": 0.7
+          },
+          "a_tokens": 161
+        },
+        {
+          "coverage": {
+            "cap_5": 0.5,
+            "cap_10": 0.6,
+            "answer": 0.5,
+            "cap_20": 0.6,
+            "cap_all": 0.6,
+            "cap_40": 0.6
+          },
+          "a_tokens": 228
+        }
+      ]
+    },
+    {
+      "slug": "bbcgoodfood-recipe",
+      "url": "https://www.bbcgoodfood.com/recipes/classic-lasagne",
+      "ask": "How do I make this, and what goes in it?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "declared_types": [
+        "Recipe",
+        "BreadcrumbList",
+        "Thing"
+      ],
+      "declared_field_count": 49,
+      "wire_tokens": {
+        "cap_5": 113,
+        "cap_10": 184,
+        "cap_20": 339,
+        "cap_40": 1029,
+        "cap_all": 1127
+      },
+      "inventory_size": 5,
+      "reps": [
+        {
+          "coverage": {
+            "cap_10": 0.4,
+            "cap_5": 0.4,
+            "cap_all": 1.0,
+            "cap_40": 1.0,
+            "cap_20": 0.8,
+            "answer": 0.4
+          },
+          "a_tokens": 170
+        },
+        {
+          "coverage": {
+            "cap_10": 0.4,
+            "cap_40": 1.0,
+            "cap_20": 1.0,
+            "cap_5": 0.4,
+            "answer": 0.4,
+            "cap_all": 1.0
+          },
+          "a_tokens": 167
+        }
+      ]
+    },
+    {
+      "slug": "rottentomatoes-movie",
+      "url": "https://www.rottentomatoes.com/m/shawshank_redemption",
+      "ask": "What is this film, who directed it, and how is it rated?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "declared_types": [
+        "Movie"
+      ],
+      "declared_field_count": 38,
+      "wire_tokens": {
+        "cap_5": 111,
+        "cap_10": 235,
+        "cap_20": 513,
+        "cap_40": 803,
+        "cap_all": 803
+      },
+      "inventory_size": 19,
+      "reps": [
+        {
+          "coverage": {
+            "answer": 0.526,
+            "cap_all": 0.526,
+            "cap_40": 0.526,
+            "cap_10": 0.526,
+            "cap_20": 0.526,
+            "cap_5": 0.526
+          },
+          "a_tokens": 111
+        },
+        {
+          "coverage": {
+            "cap_all": 0.526,
+            "cap_40": 0.526,
+            "cap_10": 0.526,
+            "cap_20": 0.526,
+            "cap_5": 0.526,
+            "answer": 0.526
+          },
+          "a_tokens": 137
+        }
+      ]
+    },
+    {
+      "slug": "coursera-course",
+      "url": "https://www.coursera.org/learn/machine-learning",
+      "ask": "What is this course, who teaches it, and what does it cover?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "declared_types": [
+        "Course",
+        "FAQPage",
+        "BreadcrumbList"
+      ],
+      "declared_field_count": 71,
+      "wire_tokens": {
+        "cap_5": 90,
+        "cap_10": 382,
+        "cap_20": 504,
+        "cap_40": 1143,
+        "cap_all": 1993
+      },
+      "inventory_size": 21,
+      "reps": [
+        {
+          "coverage": {
+            "cap_all": 0.857,
+            "cap_20": 0.905,
+            "cap_5": 0.714,
+            "answer": 0.667,
+            "cap_40": 0.905,
+            "cap_10": 0.714
+          },
+          "a_tokens": 255
+        },
+        {
+          "coverage": {
+            "cap_all": 0.81,
+            "cap_5": 0.762,
+            "cap_10": 0.81,
+            "answer": 0.667,
+            "cap_20": 0.857,
+            "cap_40": 0.857
+          },
+          "a_tokens": 257
+        }
+      ]
+    },
+    {
+      "slug": "wikipedia-rust",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "ask": "Who created Rust and in what year did it first appear?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "declared_types": [
+        "Article"
+      ],
+      "declared_field_count": 11,
+      "wire_tokens": {
+        "cap_5": 77,
+        "cap_10": 154,
+        "cap_20": 159,
+        "cap_40": 159,
+        "cap_all": 159
+      },
+      "inventory_size": 15,
+      "reps": [
+        {
+          "coverage": {
+            "cap_all": 0.267,
+            "cap_20": 0.267,
+            "cap_5": 0.267,
+            "answer": 0.267,
+            "cap_40": 0.267,
+            "cap_10": 0.267
+          },
+          "a_tokens": 91
+        },
+        {
+          "coverage": {
+            "cap_40": 0.2,
+            "answer": 0.2,
+            "cap_20": 0.2,
+            "cap_all": 0.2,
+            "cap_10": 0.2,
+            "cap_5": 0.2
+          },
+          "a_tokens": 91
+        }
+      ]
+    }
+  ]
+}
