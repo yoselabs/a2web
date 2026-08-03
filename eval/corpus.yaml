@@ -889,3 +889,98 @@ urls:
     criteria:
       - "NO price and NO availability claim is produced; a wall is 'couldn't see it', never 'no price' or 'out of stock'"
       - "Does NOT read a number or a stock state out of the challenge markup"
+
+  # ─── The page declares its own subject (ADR-0018, 2026-08-03) ──────────
+  - slug: recipe-declares-what-the-answer-omits
+    # `query` withholds the body, so the caller is blind to everything the
+    # answer did not surface (ADR-0015). This is the case where that gap is
+    # widest and cheapest to close: bbcgoodfood publishes a 49-field `Recipe`
+    # in JSON-LD, and `declared_entity_v4` measured the split directly —
+    # answer alone scored 0.40 / 0.75 coverage across two reps while the
+    # page's own declaration scored 1.00 on both.
+    #
+    # Structural facts (survive content rotation): the page is a BBC Good Food
+    # recipe, it server-renders `application/ld+json` with `@type: Recipe`, and
+    # a recipe declaration always carries far more than the handful of fields a
+    # prose answer to one question will mention. The entry does NOT pin any
+    # ingredient, time, or yield — those rotate.
+    #
+    # The task deliberately asks a NARROW question. A broad "summarise this
+    # recipe" would let the answer carry everything and the declaration would
+    # add nothing measurable, which is the case that proves the least.
+    url: https://www.bbcgoodfood.com/recipes/classic-lasagne
+    class: clean
+    task: "How long does this take to cook?"
+    needs: [content+links]
+    contract:
+      status: ok
+      answer_present: true
+      declared_entity_type: Recipe
+      # 49 observed 2026-08-03; the floor is set well below so ordinary
+      # publisher churn does not trip it, and well above zero so a declaration
+      # that silently stopped being parsed does.
+      declared_fields_min: 12
+    criteria:
+      - "Answers the cooking-time question from the page, without inventing a number"
+      - "Does not restate the whole recipe — the narrow ask stays narrow (ADR-0012 exhaustive over the ASKED set)"
+
+  - slug: declared-entity-cap-declares-its-own-truncation
+    # The other half of the cap decision. Coursera publishes a 71-field
+    # `Course`; `DECLARED_FIELDS_CAP = 20` fires, and the remainder must be
+    # COUNTED on the wire rather than dropped — a caller that cannot tell "the
+    # page states only this" from "a2web stopped relaying" reads the first into
+    # the second (ADR-0009).
+    #
+    # The cap is measured, not chosen (`declared_cap_v5`, 8 pages x 2 reps x 5
+    # caps): cap 10 vs cap 20 loses significant coverage (-0.089, CI [-0.175,
+    # -0.002]); cap 20 vs uncapped is null (-0.018, CI [-0.052, +0.016]) while
+    # the wire cost doubles. This entry is the live witness for that constant —
+    # move the cap without re-running the sweep and this case notices.
+    #
+    # Structural fact: a Coursera course page declares a `Course` entity with
+    # far more than 20 fields. Nothing about the syllabus is pinned.
+    url: https://www.coursera.org/learn/machine-learning
+    class: clean
+    task: "Who teaches this course and what does it cover?"
+    needs: [content+links]
+    contract:
+      status: ok
+      declared_entity_type: Course
+      # The cap fired: exactly 20 kept...
+      declared_fields_min: 20
+      # ...and the remainder was DECLARED, not silently dropped. This is the
+      # assertion that would go red if the cap ever truncated in silence.
+      declared_omitted_min: 1
+    criteria:
+      - "Names the instructor(s) and the subject from the page, without inventing either"
+
+  - slug: chrome-must-not-displace-the-content-payload
+    # Regression witness for the selection bug that `_ENTITY_TYPES` was hiding
+    # (2026-08-03). `_wire_content_md` took `next(json_synth)` and discarded the
+    # rest; that read as correct only because the eight-name allowlist made a
+    # page's chrome (`WebSite`, `Organization`) render as "" and so never
+    # compete. With the gate gone, chrome became a candidate and won the pick
+    # outright — Yandex Market's `## WebSite: Yandex Market` displaced its
+    # product rows entirely.
+    #
+    # Sparkfun is the live shape of that hazard and was measured on
+    # 2026-08-03: it declares FOUR entities — `BreadcrumbList`, `WebSite`,
+    # `Organization`, `Product` — i.e. three chrome payloads competing with one
+    # subject payload on a single page.
+    #
+    # Structural fact: the page is a SparkFun product page publishing multiple
+    # JSON-LD entities of which exactly one describes the product. The entry
+    # pins that the SUBJECT wins, never a specific price or stock state.
+    url: https://www.sparkfun.com/products/13664
+    class: clean
+    task: "What is this board and what does it do?"
+    needs: [content+links]
+    contract:
+      status: ok
+      answer_present: true
+      # The subject declaration reached the caller — NOT `WebSite`, which is
+      # what a chrome-first pick would have surfaced.
+      declared_entity_type: Product
+    criteria:
+      - "Describes the BOARD, not the SparkFun site or storefront — page chrome must never be relayed as the subject"
+      - "Does not invent specifications absent from the page"

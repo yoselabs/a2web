@@ -70,6 +70,14 @@ CONTRACT_KEYS: frozenset[str] = frozenset(
         "also_here_min",
         "index_non_empty",
         "answer_urls_traceable",
+        # ADR-0018 / declared_entity. Deterministic facts about what the PAGE
+        # declared, so they belong here rather than in prose `criteria` — the
+        # corpus header's own rule ("prefer this whenever the fact is
+        # deterministic: prose costs an LLM call and returns a probabilistic
+        # answer to a binary question").
+        "declared_entity_type",
+        "declared_fields_min",
+        "declared_omitted_min",
     }
 )
 
@@ -358,6 +366,27 @@ def _check_index(key: str, expected: Any, observed: Mapping[str, Any]) -> list[s
     elif key == "also_here_min":
         if len(list(index.get("also_here") or ())) < expected:
             out.append(f"also_here_min: {len(list(index.get('also_here') or ()))} < {expected}")
+    elif key == "declared_entity_type":
+        # EXACT, and verbatim as the page spelled it. The point of ADR-0018 is
+        # that a2web holds no allowlist, so a case pins the literal string —
+        # `ProductGroup`, not a normalised `Product`.
+        got = (observed.get("declared_entity") or {}).get("type")
+        if got != expected:
+            out.append(
+                f"declared_entity_type: expected {expected!r}, got {got!r} — the page's own "
+                "declared type must be relayed verbatim as a label (ADR-0018)"
+            )
+    elif key == "declared_fields_min":
+        got_fields = (observed.get("declared_entity") or {}).get("fields") or {}
+        if len(got_fields) < expected:
+            out.append(f"declared_fields_min: {len(got_fields)} < {expected}")
+    elif key == "declared_omitted_min":
+        # Pins that the CAP fired AND said so. A silently truncated declaration
+        # is the ADR-0009 shape: the caller cannot tell "the page states only
+        # this" from "a2web stopped relaying".
+        got_omitted = (observed.get("declared_entity") or {}).get("omitted") or 0
+        if got_omitted < expected:
+            out.append(f"declared_omitted_min: {got_omitted} < {expected} — the cap fired but the remainder was not declared")
     else:
         # This branch is the reason the function ends in `else` rather than
         # falling off the end. `check_contract_keys` routes everything it did

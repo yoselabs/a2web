@@ -752,6 +752,10 @@ def _observe_for_contract(fetch_result: SystemResult) -> dict[str, Any]:
         # The ADR-0015 index, structured — see `systems._index_projection` for
         # why this cannot be read off `envelope` (the wire renders it as TSV).
         "index": fetch_result.metadata.get("index") or {},
+        # What the PAGE declared about itself (ADR-0018). Absent on the ~83-93%
+        # of pages that declare nothing, so `{}` is the common case, not a
+        # failure — the contract keys read through `.get(...)` accordingly.
+        "declared_entity": env.get("declared_entity") or {},
     }
 
 

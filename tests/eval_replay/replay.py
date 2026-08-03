@@ -81,6 +81,10 @@ def observe(response: Any, *, input_menu: str | None = None) -> dict[str, Any]:
     return {
         "tier": response.tier,
         "status": status,
+        # ADR-0018 — a PrivateAttr on `FetchResponse` (off the fetch_raw wire),
+        # projected here so one `contract:` block means the same thing offline
+        # and live. `{}` when the page declared nothing.
+        "declared_entity": (lambda d: d.model_dump() if d is not None else {})(getattr(response, "_declared_entity", None)),
         "has_content": bool(response.content_md),
         "content_len": len(response.content_md or ""),
         "content_md": content_md,

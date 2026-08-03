@@ -203,6 +203,12 @@ _IMPOSSIBLE: dict = {
     "also_here_min": 1,
     "index_non_empty": True,
     "answer_urls_traceable": False,
+    # ADR-0018. All three are unfalsifiable against an observation that carries
+    # no declaration, which is the common case (83-93% of pages) — so a page
+    # declaring nothing must FAIL a case that pins one, not pass it silently.
+    "declared_entity_type": "ProductGroup",
+    "declared_fields_min": 1,
+    "declared_omitted_min": 1,
 }
 
 #: Keys an EMPTY observation cannot falsify, with an observation that can. An
