@@ -88,29 +88,36 @@ _OUT = Path(__file__).resolve().parent / "declared_entity_v4_summary.json"
 #: that made v3's declared arm inert.
 _LADDER = ("raw", "browser", "browser_robust")
 
-#: Weighted toward pages expected to declare SUBJECT-level entities — commerce,
-#: recipe, job, event. v3's corpus was editorial-heavy, which is where declared
-#: types are document metadata and the idea looks worst.
+#: **Chosen by measurement, not by expectation.** v4's first corpus was picked
+#: from what a2web's own regression set contains, and 6 of 8 pages returned NO
+#: JSON-LD at all — hepsiburada / allrecipes / imdb / marriott are hard-walled
+#: from this machine (no proxies, no paid keys, jina unreachable, browser gets
+#: `paywall`), and trendyol serves 374KB with zero `application/ld+json`. The
+#: declared arm was starved by RETRIEVAL and measured nothing.
+#: These eight were probed first (`raw` only, no LLM) and every one of the first
+#: seven actually serves a SUBJECT-level declaration this machine can read:
+#: Product x3, Book, Recipe, Movie, Course. `wikipedia-rust` is kept as the
+#: document-level contrast (`Article`).
 CASES: list[tuple[str, str, str]] = [
+    ("adafruit-product", "https://www.adafruit.com/product/3055", "What is this product, what does it cost, and what is it for?"),
+    ("sparkfun-product", "https://www.sparkfun.com/products/13664", "What is this board, what does it cost, and what can it do?"),
+    ("thingiverse-thing", "https://www.thingiverse.com/thing:763622", "What is this model and who made it?"),
     (
-        "hepsiburada-product",
-        "https://www.hepsiburada.com/wilkinson-sword-wilkinson-swrod-hydro-5-ultimate-tirasmakinesi-1-adet-yedek-baslik-p-HBV00000UWKQ2",
-        "What is this product, its price and currency, and is it in stock?",
+        "goodreads-book",
+        "https://www.goodreads.com/book/show/3735293-clean-code",
+        "What is this book about, who wrote it, and how is it rated?",
     ),
-    ("allrecipes", "https://www.allrecipes.com/recipe/213742/cheesy-scalloped-potatoes/", "How do I make this, and what goes in it?"),
-    ("trendyol-product", "https://www.trendyol.com/apple/iphone-15-128-gb-p-751012800", "What is this product, its price, and its rating?"),
-    ("bbc-article", "https://www.bbc.com/news", "What are the main news stories right now?"),
-    ("pypi-httpx", "https://pypi.org/project/httpx/", "What is httpx, its current version, and which Python versions it supports?"),
+    ("bbcgoodfood-recipe", "https://www.bbcgoodfood.com/recipes/classic-lasagne", "How do I make this, and what goes in it?"),
+    (
+        "rottentomatoes-movie",
+        "https://www.rottentomatoes.com/m/shawshank_redemption",
+        "What is this film, who directed it, and how is it rated?",
+    ),
+    ("coursera-course", "https://www.coursera.org/learn/machine-learning", "What is this course, who teaches it, and what does it cover?"),
     (
         "wikipedia-rust",
         "https://en.wikipedia.org/wiki/Rust_(programming_language)",
         "Who created Rust and in what year did it first appear?",
-    ),
-    ("imdb-title", "https://www.imdb.com/title/tt0111161/", "What is this film, who directed it, and what is its rating?"),
-    (
-        "booking-hotel",
-        "https://www.marriott.com/en-us/hotels/istmc-istanbul-marriott-hotel-asia/overview/",
-        "What hotel is this, where is it, and what does it offer?",
     ),
 ]
 
@@ -200,7 +207,7 @@ def _flatten(entry: dict, prefix: str = "", depth: int = 0) -> dict[str, str]:
     return out
 
 
-async def _html_via_ladder(parts: Any, url: str) -> tuple[str, str]:
+async def _html_via_ladder(parts: Any, url: str) -> tuple[str, str, list[str]]:
     """Return `(html, tier)` from the first ladder rung that yields JSON-LD.
 
     Falls through on a blocked/empty rung instead of concluding the page
@@ -208,13 +215,24 @@ async def _html_via_ladder(parts: Any, url: str) -> tuple[str, str]:
     """
     state = await parts.state()
     best_html, best_tier = "", "none"
+    errors: list[str] = []
     for name in _LADDER:
         tier = REGISTRY.get(name)
         if tier is None:
             continue
         try:
-            result = await tier.fetch(url, state=state)
-        except Exception:
+            # The browser rungs take `backend=` and a RESOLVED backend — not the
+            # `Lazy` thunk. Omitting it makes the tier return "not provisioned"
+            # rather than raising, so a silently unusable rung looks like a page
+            # that publishes nothing. That is exactly the confusion this ladder
+            # exists to remove, so it must not be reintroduced by the ladder.
+            kwargs: dict[str, Any] = {}
+            if name.startswith("browser"):
+                thunk = parts.browser_robust_backend if name == "browser_robust" else parts.browser_backend
+                kwargs["backend"] = await thunk()
+            result = await tier.fetch(url, state=state, **kwargs)
+        except Exception as exc:
+            errors.append(f"{name}: {type(exc).__name__}")
             continue
         html = (result.body or b"").decode("utf-8", "replace")
         if not html:
@@ -223,8 +241,8 @@ async def _html_via_ladder(parts: Any, url: str) -> tuple[str, str]:
         if len(html) > len(best_html):
             best_html, best_tier = html, name
         if any(p.source == "ld_json" for p in extract_json_payloads(html)):
-            return html, name
-    return best_html, best_tier
+            return html, name, errors
+    return best_html, best_tier, errors
 
 
 def _declared(html: str) -> tuple[dict[str, str], list[str], dict[str, dict[str, str]]]:
@@ -275,11 +293,12 @@ async def main() -> None:
             print(f"[{i}/{len(cases)}] {slug}", flush=True)
             row: dict[str, Any] = {"slug": slug, "url": url, "ask": ask}
             try:
-                html, tier = await _html_via_ladder(parts, url)
+                html, tier, ladder_errors = await _html_via_ladder(parts, url)
                 fields, types, per_type = _declared(html)
                 labels = {t: _label(t) for t in types}
                 row |= {
                     "html_tier": tier,
+                    "ladder_errors": ladder_errors,
                     "html_chars": len(html),
                     "declared_types": types,
                     "type_labels": labels,

@@ -1,0 +1,918 @@
+{
+  "provider": "claude-code-sdk",
+  "model": "claude-haiku-4-5-20251001",
+  "reps": 2,
+  "n_pages": 8,
+  "n_scored": 8,
+  "n_with_subject_declaration": 7,
+  "coverage_all": {
+    "answer": 0.398,
+    "llm_fields": 0.374,
+    "declared_fields": 0.426,
+    "answer_plus_declared": 0.482,
+    "answer_plus_llm": 0.551
+  },
+  "coverage_subject_pages_only": {
+    "answer": 0.433,
+    "llm_fields": 0.383,
+    "declared_fields": 0.487,
+    "answer_plus_declared": 0.528,
+    "answer_plus_llm": 0.585
+  },
+  "paired": {
+    "answer_plus_declared-answer": {
+      "n": 16,
+      "mean": 0.0832,
+      "stdev": 0.154,
+      "wins": 7,
+      "ties": 8,
+      "losses": 1
+    },
+    "answer_plus_llm-answer": {
+      "n": 16,
+      "mean": 0.1523,
+      "stdev": 0.1615,
+      "wins": 11,
+      "ties": 5,
+      "losses": 0
+    },
+    "declared_fields-llm_fields": {
+      "n": 16,
+      "mean": 0.0522,
+      "stdev": 0.4382,
+      "wins": 6,
+      "ties": 2,
+      "losses": 8
+    },
+    "answer_plus_declared-answer_plus_llm": {
+      "n": 16,
+      "mean": -0.0691,
+      "stdev": 0.1763,
+      "wins": 4,
+      "ties": 5,
+      "losses": 7
+    }
+  },
+  "paired_subject_pages": {
+    "answer_plus_declared-answer": {
+      "n": 14,
+      "mean": 0.0951,
+      "stdev": 0.1617,
+      "wins": 7,
+      "ties": 6,
+      "losses": 1
+    }
+  },
+  "declared_field_count": {
+    "adafruit-product": 13,
+    "sparkfun-product": 26,
+    "thingiverse-thing": 26,
+    "goodreads-book": 11,
+    "bbcgoodfood-recipe": 49,
+    "rottentomatoes-movie": 38,
+    "coursera-course": 71,
+    "wikipedia-rust": 11
+  },
+  "declared_types": {
+    "adafruit-product": [
+      "WebSite",
+      "Product"
+    ],
+    "sparkfun-product": [
+      "BreadcrumbList",
+      "WebSite",
+      "Organization",
+      "Product"
+    ],
+    "thingiverse-thing": [
+      "Product"
+    ],
+    "goodreads-book": [
+      "Book"
+    ],
+    "bbcgoodfood-recipe": [
+      "Recipe",
+      "BreadcrumbList",
+      "Thing"
+    ],
+    "rottentomatoes-movie": [
+      "Movie"
+    ],
+    "coursera-course": [
+      "Course",
+      "FAQPage",
+      "BreadcrumbList"
+    ],
+    "wikipedia-rust": [
+      "Article"
+    ]
+  },
+  "html_tier": {
+    "adafruit-product": "raw",
+    "sparkfun-product": "raw",
+    "thingiverse-thing": "raw",
+    "goodreads-book": "raw",
+    "bbcgoodfood-recipe": "raw",
+    "rottentomatoes-movie": "raw",
+    "coursera-course": "raw",
+    "wikipedia-rust": "raw"
+  },
+  "llm_field_count_mean": 9.1,
+  "tokens": {
+    "A": 155.3,
+    "B": 316.6,
+    "declared": 0
+  },
+  "lift_declared_over_answer": 0.084,
+  "type_label_counts": {
+    "document": 7,
+    "subject": 7,
+    "unknown": 2
+  },
+  "rows": [
+    {
+      "slug": "adafruit-product",
+      "url": "https://www.adafruit.com/product/3055",
+      "ask": "What is this product, what does it cost, and what is it for?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "html_chars": 89371,
+      "declared_types": [
+        "WebSite",
+        "Product"
+      ],
+      "type_labels": {
+        "WebSite": "document",
+        "Product": "subject"
+      },
+      "declared_field_count": 13,
+      "has_subject": true,
+      "declared_fields": {
+        "Product.name": "Raspberry Pi 3 - Model B - ARMv8 with 1G RAM",
+        "Product.description": "Did you really think the Raspberry Pi would stop getting better? At this point, we sound like a broken record, extolling on the new Pi&rsquo;s myriad improvements like we&rsquo;re surprised that the folks at the Raspberry Pi Foundation are continuously making their flagship board better.  Still, we&rsquo;ll say it again - the Raspberry Pi team have outdone themselves. The Raspberry Pi 3 Model B is",
+        "Product.sku": "3055",
+        "Product.image": "https://cdn-shop.adafruit.com//970x728/3055-04.jpg; https://cdn-shop.adafruit.com//970x728/3055-12.jpg; https://cdn-shop.adafruit.com//970x728/3055-10.jpg; https://cdn-shop.adafruit.com//970x728/3055-11.jpg; https://cdn-shop.adafruit.com//970x728/3055-09.jpg",
+        "Product.offers.availability": "http://schema.org/InStock",
+        "Product.offers.price": "35.0000",
+        "Product.offers.priceCurrency": "USD",
+        "Product.offers.itemCondition": "http://schema.org/NewCondition",
+        "Product.offers.url": "https://adafruit.com/product/3055",
+        "Product.offers.description": "Did you really think the Raspberry Pi would stop getting better? At this point, we sound like a broken record, extolling on the new Pi&rsquo;s myriad improvements like we&rsquo;re surprised that the folks at the Raspberry Pi Foundation are continuously making their flagship board better.&nbsp; Still, we&rsquo;ll say it again - the Raspberry Pi team have outdone themselves.&nbsp;The Raspberry Pi 3 ",
+        "WebSite.url": "https://www.adafruit.com/",
+        "WebSite.potentialAction.target": "https://www.adafruit.com/search?g=1&q={search_term}",
+        "WebSite.potentialAction.query-input": "required name=search_term"
+      },
+      "content_chars": 5126,
+      "inventory": {
+        "core": [
+          "The product is the Raspberry Pi 3 Model B, a single-board computer with ARMv8 64-bit architecture and 1GB RAM.",
+          "The price is $35.00 USD.",
+          "It is designed as a general-purpose computing platform; the page specifically highlights its use as an IoT solution due to built-in WiFi and Bluetooth Low Energy.",
+          "It features a quad-core Broadcom BCM2837 processor running at up to 1.2 GHz.",
+          "It has built-in WiFi via a BCM43438 chip and Bluetooth Low Energy (BLE) capabilities."
+        ],
+        "adjacent": [
+          "The processor speed increased from 900 MHz on the Pi 2 to 1.2 GHz on the Pi 3.",
+          "The board includes an upgraded power supply capable of 2.5 Amps instead of the previous 2 Amps.",
+          "Product dimensions are 86.9mm x 58.5mm x 19.1mm (3.4\" x 2.3\" x 0.8\").",
+          "Product weight is 41.2g (1.5oz).",
+          "The Pi 3 maintains the same physical shape, connectors, and mounting holes as the Pi 2.",
+          "99% of cases and accessories for Pi 3, Pi 2, and Pi B+ are compatible, though metal-topped cases may cause WiFi chip issues.",
+          "The product is available in both UK and China manufacturing locations with no advance notice of which will be shipped.",
+          "Although the chip is 64-bit ARMv8, Raspbian is only available in 32-bit ARMv7 compatible mode, and the OS may report as 32-bit ARMv7.",
+          "The only physical difference from Pi 2 is a slight change in LED placement.",
+          "The product SKU is 3055.",
+          "The item condition is listed as new.",
+          "BLE support was still in development at the time of this product page.",
+          "A 5V 2.4A power supply is noted as compatible and sufficient for the board with Ethernet and USB add-ons.",
+          "The page explicitly clarifies this is the Pi 3 Model B, not the Pi 3 Model B+."
+        ]
+      },
+      "reps": [
+        {
+          "coverage": {
+            "answer": 0.474,
+            "llm_fields": 0.474,
+            "declared_fields": 0.158,
+            "answer_plus_declared": 0.579,
+            "answer_plus_llm": 0.579
+          },
+          "a_tokens": 186,
+          "b_tokens": 461,
+          "llm_field_count": 15
+        },
+        {
+          "coverage": {
+            "llm_fields": 0.526,
+            "answer_plus_llm": 0.421,
+            "declared_fields": 0.211,
+            "answer": 0.368,
+            "answer_plus_declared": 0.474
+          },
+          "a_tokens": 175,
+          "b_tokens": 463,
+          "llm_field_count": 15
+        }
+      ]
+    },
+    {
+      "slug": "sparkfun-product",
+      "url": "https://www.sparkfun.com/products/13664",
+      "ask": "What is this board, what does it cost, and what can it do?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "html_chars": 557213,
+      "declared_types": [
+        "BreadcrumbList",
+        "WebSite",
+        "Organization",
+        "Product"
+      ],
+      "type_labels": {
+        "BreadcrumbList": "document",
+        "WebSite": "document",
+        "Organization": "document",
+        "Product": "subject"
+      },
+      "declared_field_count": 26,
+      "has_subject": true,
+      "declared_fields": {
+        "Product.name": "SparkFun SAMD21 Mini Breakout",
+        "Product.description": "If you\u2019re ready to step your Arduino game up from older 8-bit/16MHz microcontrollers, the SparkFun SAMD21 Mini Breakout is a great landing spot.",
+        "Product.image": "https://www.sparkfun.com/media/catalog/product/cache/f8158826193ba5faa8b862a9bd1eb9e9/1/3/13664-01.jpg",
+        "Product.offers[0].priceCurrency": "USD",
+        "Product.offers[0].price": "24.95",
+        "Product.offers[0].seller.name": "SparkFun Electronics",
+        "Product.offers[0].url": "https://www.sparkfun.com/sparkfun-samd21-mini-breakout.html",
+        "Product.url": "https://www.sparkfun.com/sparkfun-samd21-mini-breakout.html",
+        "Product.sku": "DEV-13664",
+        "Product.mpn": "DEV-13664",
+        "BreadcrumbList.itemListElement[0].position": "1",
+        "BreadcrumbList.itemListElement[0].item.name": "SparkFun SAMD21 Mini Breakout",
+        "WebSite.url": "https://www.sparkfun.com/",
+        "WebSite.name": "SparkFun Electronics",
+        "WebSite.potentialAction.target": "https://www.sparkfun.com/catalogsearch/result/?q={search_term_string}",
+        "WebSite.potentialAction.query-input": "required name=search_term_string",
+        "Organization.url": "https://www.sparkfun.com/",
+        "Organization.name": "SparkFun Electronics",
+        "Organization.logo": "https://www.sparkfun.com/media/wysiwyg/footerpages/PressMedia/dark-logo-red-flame.png",
+        "Organization.description": "Read Since 2003, SparkFun has empowered all skill levels to create with open source hardware, tutorials, and tools for rapid prototyping and innovatio...",
+        "Organization.address.addressCountry": "US",
+        "Organization.address.postalCode": "80503",
+        "Organization.address.addressRegion": "Colorado",
+        "Organization.address.addressLocality": "Niwot",
+        "Organization.address.streetAddress": "6333 Dry Creek Parkway",
+        "Organization.sameAs": "https://www.facebook.com/SparkFun; https://x.com/sparkfun; https://www.instagram.com/sparkfun/; https://www.youtube.com/sparkfun; https://www.linkedin.com/company/sparkfun-electronics"
+      },
+      "content_chars": 34635,
+      "inventory": {
+        "core": [],
+        "adjacent": [
+          "The page is a product listing from SparkFun containing 32 electronic products and components.",
+          "The URL shown is sparkfun.com/sparkfun-samd21-mini-breakout.html but the page content does not display details about the SAMD21 Mini Breakout board itself.",
+          "The page displays product names, prices, stock status, and links to individual product pages.",
+          "SparkFun RTK Facet is listed at $739.95 (as low as $628.96) and is in stock.",
+          "SparkPNT TX2 is listed at $1,249.95 and is in stock.",
+          "SparkFun Thing Plus - RP2350 is listed at $30.95 (as low as $26.31) and is in stock.",
+          "SparkFun DataLogger IoT is listed at $57.95 (as low as $49.26) and is in stock.",
+          "SparkFun BlueSMiRF v2 is listed at $10.95 (as low as $9.31) and is in stock.",
+          "RockBLOCK 9603N Iridium SatComm Module is listed at $299.95 and is in stock.",
+          "SparkFun OpenLog is listed at $17.50 (as low as $14.88) and is in stock.",
+          "Resistor Kit 1/4W (500 total) is listed at $9.95 (as low as $8.96) and is in stock.",
+          "SparkFun Capacitor Kit is listed at $11.50 (as low as $9.78) and is in stock.",
+          "Buck-Boost Converter 8-40V to 12V/3A is listed at $22.50 (as low as $20.25) and is in stock.",
+          "PureThermal Mini Pro JST-SR with FLIR Lepton 3.5 is listed at $369.95 and is in stock.",
+          "LIDAR-Lite v3HP is listed at $169.99 and is in stock.",
+          "SparkFun Simultaneous RFID Reader M7E Hecto is listed at $309.95 (as low as $263.46) and is in stock.",
+          "SparkFun Qwiic Soil Moisture Sensor (Capacitive) is listed at $9.95 (as low as $8.46) and is on backorder.",
+          "AgXRP Starter Kit DIY Beta is listed at $99.95 (as low as $84.96) and is in stock.",
+          "AgXRP Starter Kit Beta is listed at $129.95 (as low as $110.46) and is in stock.",
+          "SparkFun RedBoard Plus is listed at $29.50 (as low as $25.08) and is in stock.",
+          "Teensy 4.0 is listed at $23.80 (as low as $19.95) and is in stock.",
+          "Raspberry Pi 5 8GB is listed at $180.00 and is in stock."
+        ]
+      },
+      "reps": [
+        {
+          "coverage": {
+            "answer": 0.136,
+            "llm_fields": 0.0,
+            "answer_plus_declared": 0.136,
+            "declared_fields": 0.0,
+            "answer_plus_llm": 0.136
+          },
+          "a_tokens": 235,
+          "b_tokens": 181,
+          "llm_field_count": 0
+        },
+        {
+          "coverage": {
+            "answer_plus_declared": 0.091,
+            "declared_fields": 0.0,
+            "answer": 0.091,
+            "llm_fields": 0.0,
+            "answer_plus_llm": 0.091
+          },
+          "a_tokens": 179,
+          "b_tokens": 162,
+          "llm_field_count": 0
+        }
+      ]
+    },
+    {
+      "slug": "thingiverse-thing",
+      "url": "https://www.thingiverse.com/thing:763622",
+      "ask": "What is this model and who made it?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "html_chars": 15317,
+      "declared_types": [
+        "Product"
+      ],
+      "type_labels": {
+        "Product": "subject"
+      },
+      "declared_field_count": 26,
+      "has_subject": true,
+      "declared_fields": {
+        "name": "#3DBenchy - The jolly 3D printing torture-test by CreativeTools.se",
+        "description": "As of February 14, 2025, the 3DBenchy model has been released into the public domain.For more details, please visit the link below:https://www.3dbenchy.com/3dbenchy-sets-sail-into-the-public-domain/Creative Tools Creative Tools supplies 3D printer and 3D scanner products incl filaments, accessories and support and also 3D software for leading CAD, modeling, animation, and rendering.#3DBenchy is a ",
+        "mpn": "763622",
+        "sku": "763622",
+        "url": "https://www.thingiverse.com/thing:763622",
+        "category": "3D Printing, 3D Printing Tests",
+        "thumbnailUrl": "https://resize.thingiverse.com/?url=https://cdn.thingiverse.com/assets/ee/dc/9a/fb/74/1_3D-printed_3DBenchy_by_Creative-Tools.com.JPG&w=628&h=472&fit=contain&cbg=white&n=-1",
+        "image": "https://resize.thingiverse.com/?url=https://cdn.thingiverse.com/assets/ee/dc/9a/fb/74/1_3D-printed_3DBenchy_by_Creative-Tools.com.JPG&w=628&h=472&fit=contain&cbg=white&n=-1",
+        "brand.name": "CreativeTools",
+        "brand.url": "https://www.thingiverse.com/CreativeTools",
+        "offers.price": "0.00",
+        "offers.priceCurrency": "USD",
+        "offers.availability": "https://schema.org/InStock",
+        "offers.url": "https://www.thingiverse.com/thing:763622",
+        "mainEntityOfPage.discussionUrl": "https://www.thingiverse.com/thing:763622/comments",
+        "mainEntityOfPage.dateModified": "2025-02-14 10:43:54",
+        "mainEntityOfPage.datePublished": "2015-04-09 12:57:28",
+        "mainEntityOfPage.isAccessibleForFree": "True",
+        "mainEntityOfPage.author.name": "CreativeTools",
+        "mainEntityOfPage.author.url": "https://www.thingiverse.com/CreativeTools",
+        "mainEntityOfPage.license": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "mainEntityOfPage.interactionStatistic[0].interactionType": "https://schema.org/CommentAction",
+        "mainEntityOfPage.interactionStatistic[0].userInteractionCount": "1001",
+        "mainEntityOfPage.interactionStatistic[1].interactionType": "https://schema.org/LikeAction",
+        "mainEntityOfPage.interactionStatistic[1].userInteractionCount": "91045",
+        "mainEntityOfPage.url": "https://www.thingiverse.com/thing:763622"
+      },
+      "content_chars": 1226,
+      "inventory": {
+        "core": [
+          "The model is called #3DBenchy, a 3D printing torture-test designed for testing and benchmarking 3D printers.",
+          "The model was made by Creative Tools (CreativeTools.se).",
+          "As of February 14, 2025, the 3DBenchy model was released into the public domain."
+        ],
+        "adjacent": [
+          "The model is available on Thingiverse at https://www.thingiverse.com/thing:763622 with SKU/MPN 763622.",
+          "The model is free to download (price: $0.00 USD).",
+          "The model is categorized under 3D Printing and 3D Printing Tests.",
+          "Creative Tools is a company that supplies 3D printer and 3D scanner products, filaments, accessories, and 3D software for CAD, modeling, animation, and rendering.",
+          "Additional details about the public domain release are available at https://www.3dbenchy.com/3dbenchy-sets-sail-into-the-public-domain/.",
+          "The model is described as 'jolly,' suggesting a whimsical design approach."
+        ]
+      },
+      "reps": [
+        {
+          "coverage": {
+            "declared_fields": 1.0,
+            "answer": 0.444,
+            "answer_plus_declared": 0.778,
+            "llm_fields": 0.556,
+            "answer_plus_llm": 0.667
+          },
+          "a_tokens": 118,
+          "b_tokens": 300,
+          "llm_field_count": 10
+        },
+        {
+          "coverage": {
+            "answer_plus_llm": 0.778,
+            "declared_fields": 1.0,
+            "answer_plus_declared": 0.444,
+            "answer": 0.444,
+            "llm_fields": 0.778
+          },
+          "a_tokens": 125,
+          "b_tokens": 285,
+          "llm_field_count": 10
+        }
+      ]
+    },
+    {
+      "slug": "goodreads-book",
+      "url": "https://www.goodreads.com/book/show/3735293-clean-code",
+      "ask": "What is this book about, who wrote it, and how is it rated?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "html_chars": 704702,
+      "declared_types": [
+        "Book"
+      ],
+      "type_labels": {
+        "Book": "subject"
+      },
+      "declared_field_count": 11,
+      "has_subject": true,
+      "declared_fields": {
+        "name": "Clean Code: A Handbook of Agile Software Craftsmanship",
+        "image": "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1436202607i/3735293.jpg",
+        "bookFormat": "Paperback",
+        "numberOfPages": "431",
+        "inLanguage": "English",
+        "isbn": "9780132350884",
+        "author[0].name": "Robert C. Martin",
+        "author[0].url": "https://www.goodreads.com/author/show/45372.Robert_C_Martin",
+        "aggregateRating.ratingValue": "4.35",
+        "aggregateRating.ratingCount": "23742",
+        "aggregateRating.reviewCount": "1494"
+      },
+      "content_chars": 1252,
+      "inventory": {
+        "core": [
+          "The book is titled 'Clean Code: A Handbook of Agile Software Craftsmanship'.",
+          "The book is about software craftsmanship and writing clean code.",
+          "The book was first published January 1, 2007.",
+          "The book is 431 pages long in paperback format."
+        ],
+        "adjacent": [
+          "The book includes a quote from Ray Ozzie, CTO of Microsoft Corporation: 'Complexity kills. It sucks the life out of developers, it makes products difficult to plan, build, and test.'",
+          "The book discusses how freshman programmers often prioritize getting code to work over code quality, while seasoned programmers recognize this approach as professional suicide.",
+          "The book's OpenGraph description states 'Even bad code can function. But if code isn't clean, it\u2026'",
+          "The book is categorized as 'books.book' on Goodreads.",
+          "The page displays a book cover image from Amazon.",
+          "The page contains a 'Rate this book' prompt, indicating user ratings are available on Goodreads."
+        ]
+      },
+      "reps": [
+        {
+          "coverage": {
+            "answer_plus_declared": 0.4,
+            "llm_fields": 0.3,
+            "declared_fields": 0.4,
+            "answer_plus_llm": 0.6,
+            "answer": 0.4
+          },
+          "a_tokens": 121,
+          "b_tokens": 263,
+          "llm_field_count": 5
+        },
+        {
+          "coverage": {
+            "llm_fields": 0.3,
+            "answer_plus_declared": 0.4,
+            "answer": 0.5,
+            "declared_fields": 0.5,
+            "answer_plus_llm": 0.5
+          },
+          "a_tokens": 179,
+          "b_tokens": 273,
+          "llm_field_count": 5
+        }
+      ]
+    },
+    {
+      "slug": "bbcgoodfood-recipe",
+      "url": "https://www.bbcgoodfood.com/recipes/classic-lasagne",
+      "ask": "How do I make this, and what goes in it?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "html_chars": 544046,
+      "declared_types": [
+        "Recipe",
+        "BreadcrumbList",
+        "Thing"
+      ],
+      "type_labels": {
+        "Recipe": "subject",
+        "BreadcrumbList": "document",
+        "Thing": "unknown"
+      },
+      "declared_field_count": 49,
+      "has_subject": true,
+      "declared_fields": {
+        "Recipe.description": "Kids will love to help assemble this easiest ever pasta bake with streaky bacon, beef mince, a cr\u00e8me fra\u00eeche sauce and gooey mozzarella",
+        "Recipe.image[0].url": "https://images.immediate.co.uk/production/volatile/sites/30/2020/08/classic-lasange-4a66137.jpg?resize=440,400",
+        "Recipe.image[0].width": "440",
+        "Recipe.image[0].height": "400",
+        "Recipe.name": "Easy classic lasagne",
+        "Recipe.url": "https://www.bbcgoodfood.com/recipes/classic-lasagne",
+        "Recipe.author[0].name": "Angela Boggiano",
+        "Recipe.author[0].url": "https://www.bbcgoodfood.com/author/angelaboggiano",
+        "Recipe.dateModified": "2025-11-10T11:33:11+00:00",
+        "Recipe.datePublished": "2015-05-30T13:38:07+01:00",
+        "Recipe.headline": "Easy classic lasagne",
+        "Recipe.keywords": "2 of 5-a-day, Angela Boggiano, Beef lasagne, Calcium, Children, Cooking with children, Cooking with kids, Family friendly, Kids, Lasagne, Spring",
+        "Recipe.publisher.name": "Good Food",
+        "Recipe.publisher.url": "https://www.bbcgoodfood.com",
+        "Recipe.publisher.logo.height": "325",
+        "Recipe.publisher.logo.url": "https://images.immediate.co.uk/production/volatile/sites/30/2026/02/goodfood.logo-f37096c.png?resize=1312,325",
+        "Recipe.publisher.logo.width": "1312",
+        "Recipe.cookTime": "PT1H",
+        "Recipe.nutrition.calories": "844 calories",
+        "Recipe.nutrition.fatContent": "52 grams fat",
+        "Recipe.nutrition.saturatedFatContent": "30 grams saturated fat",
+        "Recipe.nutrition.carbohydrateContent": "54 grams carbohydrates",
+        "Recipe.nutrition.sugarContent": "13 grams sugar",
+        "Recipe.nutrition.fiberContent": "5 grams fiber",
+        "Recipe.nutrition.proteinContent": "37 grams protein",
+        "Recipe.nutrition.sodiumContent": "1.1 milligram of sodium",
+        "Recipe.prepTime": "PT15M",
+        "Recipe.recipeCategory": "Dinner, Lunch, Main course, Pasta, Supper",
+        "Recipe.recipeCuisine": "Italian",
+        "Recipe.recipeIngredient": "1 tbsp olive oil; 2 rashers smoked streaky bacon; 1 onion finely chopped; 1 celery stick, finely chopped; 1 medium carrot grated; 2 garlic cloves finely chopped; 500g beef mince; 1 tbsp tomato pur\u00e9e; 2 x 400g cans chopped tomatoes; 1 tbsp clear honey; 500g pack fresh egg lasagne sheets; 400ml cr\u00e8me fra\u00eeche",
+        "Recipe.recipeInstructions[0].text": "Heat the oil in a large saucepan. Use kitchen scissors to snip the bacon into small pieces, or use a sharp knife to chop it on a chopping board. Add the bacon to the pan and cook for just a few mins until starting to turn golden. Add the onion, celery and carrot, and cook over a medium heat for 5 mins, stirring occasionally, until softened.",
+        "Recipe.recipeInstructions[1].text": "Add the garlic and cook for 1 min, then tip in the mince and cook, stirring and breaking it up with a wooden spoon, for about 6 mins until browned all over.",
+        "Recipe.recipeInstructions[2].text": "Stir in the tomato pur\u00e9e and cook for 1 min, mixing in well with the beef and vegetables. Tip in the chopped tomatoes. Fill each can half full with water to rinse out any tomatoes left in the can, and add to the pan. Add the honey and season to taste. Simmer for 20 mins.",
+        "Recipe.recipeInstructions[3].text": "Heat oven to 200C/180C fan/gas 6. To assemble the lasagne, ladle a little of the ragu sauce into the bottom of the roasting tin or casserole dish, spreading the sauce all over the base. Place 2 sheets of lasagne on top of the sauce overlapping to make it fit, then repeat with more sauce and another layer of pasta. Repeat with a further 2 layers of sauce and pasta, finishing with a layer of pasta.",
+        "Recipe.recipeInstructions[4].text": "Put the cr\u00e8me fra\u00eeche in a bowl and mix with 2 tbsp water to loosen it and make a smooth pourable sauce. Pour this over the top of the pasta, then top with the mozzarella. Sprinkle Parmesan over the top and bake for 25\u201330 mins until golden and bubbling. Serve scattered with basil, if you like.",
+        "Recipe.recipeYield": "6",
+        "Recipe.totalTime": "PT1H15M",
+        "BreadcrumbList.itemListElement[0].position": "1",
+        "BreadcrumbList.itemListElement[0].name": "Home",
+        "BreadcrumbList.itemListElement[0].item": "https://www.bbcgoodfood.com/",
+        "BreadcrumbList.itemListElement[1].position": "2",
+        "BreadcrumbList.itemListElement[1].name": "Recipes",
+        "BreadcrumbList.itemListElement[1].item": "https://www.bbcgoodfood.com/recipes",
+        "BreadcrumbList.itemListElement[2].position": "3",
+        "BreadcrumbList.itemListElement[2].name": "Easy classic lasagne",
+        "Thing.aggregateRating.ratingValue": "4",
+        "Thing.aggregateRating.reviewCount": "127",
+        "Thing.aggregateRating.bestRating": "5",
+        "Thing.aggregateRating.worstRating": "1"
+      },
+      "content_chars": 1802,
+      "inventory": {
+        "core": [],
+        "adjacent": [
+          "The page fetched is a listing page from BBC Good Food, not a recipe page for classic lasagne.",
+          "The page shows 5 records including Crusty garlic bread, Cep rocket & Parmesan salad, and subscription/app promotion listings.",
+          "No recipe content, ingredients list, or cooking instructions are present on the fetched page.",
+          "The page URL is https://www.bbcgoodfood.com/recipes/classic-lasagne but the actual recipe content was not included in the fetch."
+        ]
+      },
+      "reps": [
+        {
+          "coverage": {
+            "llm_fields": 0.0,
+            "answer": 0.5,
+            "declared_fields": 1.0,
+            "answer_plus_declared": 1.0,
+            "answer_plus_llm": 1.0
+          },
+          "a_tokens": 85,
+          "b_tokens": 178,
+          "llm_field_count": 0
+        },
+        {
+          "coverage": {
+            "llm_fields": 0.0,
+            "answer_plus_llm": 0.75,
+            "answer": 0.75,
+            "declared_fields": 1.0,
+            "answer_plus_declared": 1.0
+          },
+          "a_tokens": 180,
+          "b_tokens": 99,
+          "llm_field_count": 0
+        }
+      ]
+    },
+    {
+      "slug": "rottentomatoes-movie",
+      "url": "https://www.rottentomatoes.com/m/shawshank_redemption",
+      "ask": "What is this film, who directed it, and how is it rated?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "html_chars": 212033,
+      "declared_types": [
+        "Movie"
+      ],
+      "type_labels": {
+        "Movie": "subject"
+      },
+      "declared_field_count": 38,
+      "has_subject": true,
+      "declared_fields": {
+        "actor[0].name": "Tim Robbins",
+        "actor[0].sameAs": "https://www.rottentomatoes.com/celebrity/tim_robbins",
+        "actor[0].image": "https://resizing.flixster.com/QRuGCaJqeTQ1HjwrzrLaY_JubDk=/100x120/v2/https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/1473_v9_bc.jpg",
+        "actor[1].name": "Morgan Freeman",
+        "actor[1].sameAs": "https://www.rottentomatoes.com/celebrity/morgan_freeman",
+        "actor[1].image": "https://resizing.flixster.com/Mbgd4Y07Lo4KXNlSb_eJYvvAKw8=/100x120/v2/https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/47162_v9_bc.jpg",
+        "actor[2].name": "Bob Gunton",
+        "actor[2].sameAs": "https://www.rottentomatoes.com/celebrity/bob_gunton",
+        "actor[2].image": "https://resizing.flixster.com/KuF8llairjlmsK2wP4_m_Y_qf1E=/100x120/v2/https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/71567_v9_bc.jpg",
+        "actor[3].name": "William Sadler",
+        "actor[3].sameAs": "https://www.rottentomatoes.com/celebrity/william_sadler",
+        "actor[3].image": "https://resizing.flixster.com/qq11fo1M1ADqtkDbtGL72vuStLU=/100x120/v2/https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/105148_v9_bc.jpg",
+        "actor[4].name": "Clancy Brown",
+        "actor[4].sameAs": "https://www.rottentomatoes.com/celebrity/clancy_brown",
+        "actor[4].image": "https://resizing.flixster.com/5kZ-Luok_sRiiHZyvbG3e4Zv8iU=/100x120/v2/https://resizing.flixster.com/QzLqHxOSj4VcsnQ3VPhIKp0Tiu8=/ems.cHJkLWVtcy1hc3NldHMvY2VsZWJyaXRpZXMvZDcwMzI5N2MtMjRjMi00NmE2LTg5NTctMTk5MmZiMmU2YjYwLnBuZw==",
+        "aggregateRating.bestRating": "100",
+        "aggregateRating.description": "The Tomatometer rating \u2013 based on the published opinions of hundreds of film and television critics \u2013 is a trusted measurement of movie and TV programming quality for millions of moviegoers. It represents the percentage of professional critic reviews that are positive for a given film or television show.",
+        "aggregateRating.name": "Tomatometer",
+        "aggregateRating.ratingCount": "147",
+        "aggregateRating.ratingValue": "89",
+        "aggregateRating.reviewCount": "147",
+        "aggregateRating.worstRating": "0",
+        "contentRating": "R",
+        "dateCreated": "1994-09-01",
+        "director[0].name": "Frank Darabont",
+        "director[0].sameAs": "https://www.rottentomatoes.com/celebrity/frank_darabont",
+        "director[0].image": "https://images.fandango.com/cms/assets/b0cefeb0-b6a8-11ed-81d8-51a487a38835--poster-default-thumbnail.jpg",
+        "description": "Discover reviews, ratings, and trailers for The Shawshank Redemption on Rotten Tomatoes. Stay updated with critic and audience scores today!",
+        "genre": "Drama",
+        "image": "https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p15987_p_v12_at.jpg",
+        "name": "The Shawshank Redemption",
+        "producer[0].name": "Liz Glotzer",
+        "producer[0].sameAs": "https://www.rottentomatoes.com/celebrity/liz_glotzer",
+        "producer[0].image": "https://images.fandango.com/cms/assets/b0cefeb0-b6a8-11ed-81d8-51a487a38835--poster-default-thumbnail.jpg",
+        "producer[1].name": "David V. Lester",
+        "producer[1].sameAs": "https://www.rottentomatoes.com/celebrity/david_v_lester",
+        "producer[1].image": "https://images.fandango.com/cms/assets/b0cefeb0-b6a8-11ed-81d8-51a487a38835--poster-default-thumbnail.jpg",
+        "url": "https://www.rottentomatoes.com/m/shawshank_redemption"
+      },
+      "content_chars": 2765,
+      "inventory": {
+        "core": [
+          "The Shawshank Redemption is a drama film.",
+          "The film was directed by Frank Darabont.",
+          "The film is rated R for Prison Violence and Language.",
+          "The film stars Morgan Freeman and Tim Robbins.",
+          "The film chronicles the hardship of incarceration."
+        ],
+        "adjacent": [
+          "The film was released in theaters on September 1, 1994, in wide release.",
+          "The film has a runtime of 2 hours and 22 minutes.",
+          "The original language of the film is English.",
+          "The film was produced by Niki Marvin.",
+          "The film was distributed by Columbia Pictures.",
+          "Production companies include Columbia Pictures and Castle Rock Entertainment.",
+          "The film's aspect ratio is Flat (1.85:1).",
+          "The sound mix includes SDDS, Dolby A, Stereo, Surround, Dolby Digital, and Dolby SR.",
+          "The film's USA box office gross was $27.3 million.",
+          "The film became available for streaming on August 15, 2008.",
+          "The film can be rented or purchased on Fandango.",
+          "The film is described as being steeped in old-fashioned storytelling.",
+          "The film is characterized as having evergreen humanity."
+        ]
+      },
+      "reps": [
+        {
+          "coverage": {
+            "answer_plus_declared": 0.333,
+            "answer": 0.333,
+            "declared_fields": 0.333,
+            "answer_plus_llm": 0.778,
+            "llm_fields": 0.722
+          },
+          "a_tokens": 121,
+          "b_tokens": 348,
+          "llm_field_count": 14
+        },
+        {
+          "coverage": {
+            "answer": 0.444,
+            "answer_plus_declared": 0.444,
+            "answer_plus_llm": 0.667,
+            "declared_fields": 0.444,
+            "llm_fields": 0.667
+          },
+          "a_tokens": 123,
+          "b_tokens": 296,
+          "llm_field_count": 14
+        }
+      ]
+    },
+    {
+      "slug": "coursera-course",
+      "url": "https://www.coursera.org/learn/machine-learning",
+      "ask": "What is this course, who teaches it, and what does it cover?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "html_chars": 943755,
+      "declared_types": [
+        "Course",
+        "FAQPage",
+        "BreadcrumbList"
+      ],
+      "type_labels": {
+        "Course": "subject",
+        "FAQPage": "unknown",
+        "BreadcrumbList": "document"
+      },
+      "declared_field_count": 71,
+      "has_subject": true,
+      "declared_fields": {
+        "Course.publisher.name": "Coursera",
+        "Course.publisher.url": "https://www.coursera.org",
+        "Course.financialAidEligible": "Financial Aid available for eligible students.",
+        "Course.educationalCredentialAwarded.name": "Coursera Certificate",
+        "Course.name": "Supervised Machine Learning: Regression and Classification ",
+        "Course.description": "In the first course of the Machine Learning Specialization, you will:\n\u2022 Build machine learning models in Python using popular machine learning libraries NumPy and scikit-learn.\n\u2022 Build and train supervised machine learning models for prediction and binary classification tasks, including linear regression and logistic regression\n\nThe Machine Learning Specialization is a foundational online program ",
+        "Course.image": "https://s3.amazonaws.com/coursera-course-photos/9c/90ae67ecdb4185a4ae79ec9a5ae0b6/Course-Logo--1.png",
+        "Course.about": "Regression Analysis; Python Programming; Feature Engineering; Model Training; Applied Machine Learning; Model Optimization; Supervised Learning; Logistic Regression; Classification Algorithms; Machine Learning; Predictive Modeling; Jupyter",
+        "Course.teaches": "Build machine learning models in Python using popular machine learning libraries NumPy &amp; scikit-learn; Build &amp; train supervised machine learning models for prediction &amp; binary classification tasks, including linear regression &amp; logistic regression",
+        "Course.offers.category": "Partially Free",
+        "Course.aggregateRating.ratingValue": "4.896022201665125",
+        "Course.aggregateRating.bestRating": "5",
+        "Course.aggregateRating.ratingCount": "32430",
+        "Course.provider.name": "DeepLearning.AI",
+        "Course.provider.url": "https://www.deeplearning.ai",
+        "Course.educationalLevel": "Beginner",
+        "Course.totalHistoricalEnrollment": "1225618",
+        "Course.inLanguage": "en",
+        "Course.availableLanguage": "ar; az; bn; de; el; es; fa; fi; fr; hi; hu; id",
+        "Course.syllabusSections[0].name": "Week 1: Introduction to Machine Learning",
+        "Course.syllabusSections[0].description": "Welcome to the Machine Learning Specialization!  You're joining millions of others who have taken either this or the original course, which led to the founding of Coursera, and has helped millions of other learners, like you, take a look at the exciting world of machine learning!",
+        "Course.syllabusSections[0].timeRequired": "PT7H4M54S",
+        "Course.syllabusSections[1].name": "Week 2: Regression with multiple input variables",
+        "Course.syllabusSections[1].description": "This week, you'll extend linear regression to handle multiple input features.  You'll also learn some methods for improving your model's training and performance, such as vectorization, feature scaling, feature engineering and polynomial regression.  At the end of the week, you'll get to practice implementing linear regression in code.",
+        "Course.syllabusSections[1].timeRequired": "PT9H51M10S",
+        "Course.syllabusSections[2].name": "Week 3: Classification",
+        "Course.syllabusSections[2].description": "This week, you'll learn the other type of supervised learning, classification.  You'll learn how to predict categories using the logistic regression model.  You'll learn about the problem of overfitting, and how to handle this problem with a method called regularization.  You'll get to practice implementing logistic regression with regularization at the end of this week! ",
+        "Course.syllabusSections[2].timeRequired": "PT16H23M47S",
+        "Course.coursePrerequisites": "Basic coding (for loops, functions, if/else statements) &amp; high school-level math (arithmetic, algebra); Other math concepts will be explained",
+        "Course.review[0].author.name": "RG",
+        "Course.review[0].datePublished": "2024-08-31T00:00:00.000Z",
+        "Course.review[0].reviewBody": "The course was excellent, and I gained valuable knowledge throughout. I am also grateful for the financial aid, which allowed me to complete the program successfully. Thank you for this opportunity.",
+        "Course.review[0].reviewRating.bestRating": "5",
+        "Course.review[0].reviewRating.ratingValue": "5",
+        "Course.review[1].author.name": "AC",
+        "Course.review[1].datePublished": "2024-10-08T00:00:00.000Z",
+        "Course.review[1].reviewBody": "great course. Nice explanation even if you are not familiar with certain mathematical concepts Like Gradient. I would recommend having some mathematical base to ease the understanding of the course.",
+        "Course.review[1].reviewRating.bestRating": "5",
+        "Course.review[1].reviewRating.ratingValue": "5",
+        "Course.review[2].author.name": "FM",
+        "Course.review[2].datePublished": "2022-09-23T00:00:00.000Z",
+        "Course.review[2].reviewBody": "V\u200bery Engaging course. The instructor explains stuff in a way such that a student can develop a sound intuition of the mathematics behind the algorithms in addition to the implementation side of it",
+        "Course.review[2].reviewRating.bestRating": "5",
+        "Course.review[2].reviewRating.ratingValue": "5",
+        "Course.review[3].author.name": "SS",
+        "Course.review[3].datePublished": "2023-05-08T00:00:00.000Z",
+        "Course.review[3].reviewBody": "One of the best courses out there on Machine Learning. Clean, Crisp and up to the point. Short but delivers all the things one need. More better than a classroom program. Saves one's time and energy.",
+        "Course.review[3].reviewRating.bestRating": "5",
+        "Course.review[3].reviewRating.ratingValue": "5",
+        "Course.review[4].author.name": "MA",
+        "Course.review[4].datePublished": "2024-09-18T00:00:00.000Z",
+        "Course.review[4].reviewBody": "I learned a lot from this specialized course.\nIt was one of the best courses that I've ever done.\nThe instructor i.e. Andrew Ng taught every concepts so well.\nI'll highly recommend others to do this.",
+        "Course.review[4].reviewRating.bestRating": "5",
+        "Course.review[4].reviewRating.ratingValue": "5",
+        "Course.hasCourseInstance[0].courseMode": "Online",
+        "Course.hasCourseInstance[0].courseWorkload": "PT33H19M51S",
+        "Course.hasCourseInstance[0].instructor.name": "Andrew Ng",
+        "Course.hasCourseInstance[0].instructor.description": "Founder, DeepLearning.AI & Co-founder, Coursera",
+        "Course.hasCourseInstance[0].instructor.image": "https://d3njjcbhbojbot.cloudfront.net/api/utilities/v1/imageproxy/https://coursera-instructor-photos.s3.amazonaws.com/2a/6192a04f1311e7ba12057425631cbc/AndrewNg-Headshot.jpg",
+        "FAQPage.mainEntity[0].name": "When will I have access to the lectures and assignments?",
+        "FAQPage.mainEntity[0].acceptedAnswer.text": "To access course materials, assignments, and earn a Certificate, you&#x27;ll need to purchase the Certificate experience when you enroll in a course. Eligible learners may also have the option to start with a Free Trial. Some courses may also offer a Full Course, No Certificate option. This lets you access course materials, submit required assessments, and receive a final grade, but you won&#x27;t",
+        "FAQPage.mainEntity[1].name": "What will I get if I subscribe to this Specialization?",
+        "FAQPage.mainEntity[1].acceptedAnswer.text": "When you enroll in the course, you get access to all of the courses in the Specialization, and you earn a certificate when you complete the work. Your electronic Certificate will be added to your Accomplishments page - from there, you can print your Certificate or add it to your LinkedIn profile.",
+        "FAQPage.mainEntity[2].name": "Is financial aid available?",
+        "FAQPage.mainEntity[2].acceptedAnswer.text": "Yes. In select learning programs, you can apply for financial aid or a scholarship if you can\u2019t afford the enrollment fee. If fin aid or scholarship is available for your learning program selection, you\u2019ll find a link to apply on the description page.",
+        "BreadcrumbList.itemListElement[0].position": "1",
+        "BreadcrumbList.itemListElement[0].item.name": "Browse",
+        "BreadcrumbList.itemListElement[1].position": "2",
+        "BreadcrumbList.itemListElement[1].item.name": "Data Science",
+        "BreadcrumbList.itemListElement[2].position": "3",
+        "BreadcrumbList.itemListElement[2].item.name": "Machine Learning"
+      },
+      "content_chars": 15095,
+      "inventory": {
+        "core": [
+          "The course is titled 'Supervised Machine Learning: Regression and Classification'.",
+          "Andrew Ng is the primary instructor, with 3 additional instructors.",
+          "The course is part of the Machine Learning Specialization.",
+          "The course covers building machine learning models in Python using NumPy and scikit-learn.",
+          "The course teaches supervised machine learning models for prediction and binary classification tasks, including linear regression and logistic regression.",
+          "The course is offered by DeepLearning.AI in partnership with Stanford University."
+        ],
+        "adjacent": [
+          "The course has 3 modules.",
+          "The recommended course duration is 3 weeks at 10 hours per week.",
+          "The course is at beginner level.",
+          "Learners can proceed at their own flexible pace.",
+          "The course has a rating of 4.9 out of 5 based on 32,430 reviews.",
+          "1,225,618 learners are already enrolled as of the page date (August 3, 2026).",
+          "Enrollment for the course is free.",
+          "Skills gained include regression analysis, feature engineering, model training, applied machine learning, model optimization, supervised learning, logistic regression, predictive modeling, data preprocessing, and artificial intelligence algorithms.",
+          "Andrew Ng has an instructor rating of 5.0 with 11,537 ratings and is designated a Top Instructor.",
+          "Andrew Ng is affiliated with DeepLearning.AI and has 51 courses with 9,889,639 learners.",
+          "Learners who enroll in this course are also automatically enrolled in the Machine Learning Specialization.",
+          "Upon completion, learners can earn a shareable career certificate.",
+          "The course includes hands-on projects.",
+          "The course starts on August 3, 2026.",
+          "Financial aid is available for the course.",
+          "Related courses in the specialization include 'Advanced Learning Algorithms' and 'Unsupervised Learning, Recommenders, Reinforcement Learning'."
+        ]
+      },
+      "reps": [
+        {
+          "coverage": {
+            "answer_plus_declared": 0.591,
+            "answer_plus_llm": 0.591,
+            "answer": 0.545,
+            "declared_fields": 0.409,
+            "llm_fields": 0.545
+          },
+          "a_tokens": 221,
+          "b_tokens": 525,
+          "llm_field_count": 20
+        },
+        {
+          "coverage": {
+            "llm_fields": 0.5,
+            "answer_plus_declared": 0.727,
+            "answer_plus_llm": 0.636,
+            "answer": 0.636,
+            "declared_fields": 0.364
+          },
+          "a_tokens": 255,
+          "b_tokens": 572,
+          "llm_field_count": 17
+        }
+      ]
+    },
+    {
+      "slug": "wikipedia-rust",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "ask": "Who created Rust and in what year did it first appear?",
+      "html_tier": "raw",
+      "ladder_errors": [],
+      "html_chars": 998475,
+      "declared_types": [
+        "Article"
+      ],
+      "type_labels": {
+        "Article": "document"
+      },
+      "declared_field_count": 11,
+      "has_subject": false,
+      "declared_fields": {
+        "name": "Rust (programming language)",
+        "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+        "sameAs": "http://www.wikidata.org/entity/Q575650",
+        "mainEntity": "http://www.wikidata.org/entity/Q575650",
+        "author.name": "Contributors to Wikimedia projects",
+        "publisher.name": "Wikimedia Foundation, Inc.",
+        "publisher.logo.url": "https://www.wikimedia.org/static/images/wmf-hor-googpub.png",
+        "datePublished": "2010-10-30T22:30:54Z",
+        "dateModified": "2026-07-27T19:12:11Z",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Rust_programming_language_black_logo.svg",
+        "headline": "memory-safe programming language without garbage collection"
+      },
+      "content_chars": 41918,
+      "inventory": {
+        "core": [
+          "Graydon Hoare created Rust in 2006 while working at Mozilla.",
+          "Rust first appeared on January 19, 2012."
+        ],
+        "adjacent": [
+          "Hoare started the Rust project due to frustration with broken elevator software in his apartment building.",
+          "The language was named after a group of fungi described as 'over-engineered for survival'.",
+          "Between 2006 and 2009, Rust was not publicized and was written in Hoare's free time.",
+          "Mozilla officially sponsored the Rust project in 2009.",
+          "Rust 0.1 became the first public release on January 20, 2012 for Windows, Linux, and MacOS.",
+          "Early Rust compiler was written in approximately 38,000 lines of OCaml.",
+          "Graydon Hoare stepped down from Rust in 2013.",
+          "Rust 1.0, the first stable release, was published on May 15, 2015.",
+          "Hoare cited languages from the 1970s, 1980s, and 1990s as influences, including CLU, BETA, Mesa, Erlang, Newsqueak, and others.",
+          "Hoare described Rust as 'technology from the past come to save the future from itself.'",
+          "The Rust logo was developed in 2011 based on a bicycle chainring."
+        ]
+      },
+      "reps": [
+        {
+          "coverage": {
+            "answer_plus_llm": 0.308,
+            "answer_plus_declared": 0.154,
+            "answer": 0.154,
+            "declared_fields": 0.0,
+            "llm_fields": 0.308
+          },
+          "a_tokens": 91,
+          "b_tokens": 255,
+          "llm_field_count": 10
+        },
+        {
+          "coverage": {
+            "answer_plus_llm": 0.308,
+            "declared_fields": 0.0,
+            "llm_fields": 0.308,
+            "answer": 0.154,
+            "answer_plus_declared": 0.154
+          },
+          "a_tokens": 91,
+          "b_tokens": 405,
+          "llm_field_count": 11
+        }
+      ]
+    }
+  ]
+}
