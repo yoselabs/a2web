@@ -677,6 +677,37 @@ def build_response(fc: FetchContext) -> FetchResponse:
         narrative = f"{fc.tier_used} → fetched ok but {reason} ({fmt_dur(total_ms)})."
         diagnostics_summary = f"ask_unanswered ({reason}): {len(fc.content_md)} chars fetched, no answer"
 
+    # THE LOUDNESS FLOOR — incompleteness may never be declared in silence.
+    #
+    # ADR-0009's requirement is not the flag; it is that the caller cannot
+    # mistake a miss for an answer. `retrieval_incomplete` is machine-readable
+    # and the narrative is prose, but the OPERATOR HINT is the channel carrying
+    # the remedy, and nothing guaranteed one was present.
+    #
+    # The gap is structural rather than a specific bug. Incompleteness has
+    # sources that do not consult the terminal classification at all — the
+    # `render_requested` clause above marks a stopped-ladder render incomplete
+    # "regardless of the handler's placeholder verdict" — while `_apply_terminal`
+    # deliberately emits NO hint for `unreachable` and `operator_error`. Whether
+    # those two ever meet is a reachability question spanning the whole tier
+    # ladder, decidable nowhere locally. Probing (verdict x render_requested)
+    # with the real terminal phase found 4 of 26 incomplete combinations
+    # carrying no hint; two were an artifact of the probe (`paid_auth_error`
+    # emits its hint at the paid tier, which the probe did not run) and two —
+    # `dns_error` / `content_type_mismatch` under a requested render — are of
+    # genuinely uncertain reachability.
+    #
+    # So this closes the CLASS instead of arguing the instances. It fires only
+    # when every other source stayed silent, and errs the way the rest of this
+    # subsystem errs: a redundant hint over-warns, which is cheap, while a
+    # missing one is the silent miss ADR-0009 exists to prevent.
+    #
+    # Note `retrieval_incomplete_hint()` is the same hint `build_ask_response`'s
+    # phase 2 appends for its own escalation — one code, so an operator alerting
+    # on it sees both phases.
+    if retrieval_incomplete and not op_hints:
+        op_hints.append(retrieval_incomplete_hint())
+
     # `url` is redirect-only: carry the final URL only when it differs from
     # what the caller requested (HTTP redirect, captcha-host rewrite, or
     # after-tier RewriteUrl); empty otherwise, so the serializer drops it.
