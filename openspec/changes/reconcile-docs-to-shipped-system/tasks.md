@@ -172,15 +172,39 @@ listing `archive/` gets a wrong answer with authority.
 
 ## 4. The container-browser fact
 
-- [ ] 4.1 Establish the actual rule: default `docker build` vs the published
-      release image (`release.yml:92-94` sets `INSTALL_BROWSER=true`).
-- [ ] 4.2 Correct CLAUDE.md:119,125 — it says the container has no browser, while
-      `Dockerfile:9-13` and `README.md:332-334` describe a browser-baked ~1.9 GB
-      image.
-- [ ] 4.3 Correct `openspec/specs/container-image:20-27`, which errs the opposite
-      way by asserting Chromium unconditionally.
-- [ ] 4.4 State it once, with the build argument named, and have both documents
-      cite that.
+- [x] 4.1 **Done 2026-08-03. The rule:** `Dockerfile`'s `ARG INSTALL_BROWSER`
+      defaults to `false`; `release.yml` passes `INSTALL_BROWSER=true`. So the
+      PUBLISHED image carries the browser rung (~1.35 GB of a ~1.9 GB image) and
+      a default `docker build` is the ~390 MB browserless shape. README.md was
+      right all along and contradicted by both other documents.
+- [x] 4.2 **Done.** CLAUDE.md's Deployment paragraph now states the build
+      argument instead of the conclusion, and separates the two claims it had
+      fused: `[cookies]`/`[claude-code]` genuinely ARE dropped, and
+      `cookies_refresh` is absent because `expose_cookies_tool` defaults to
+      `False` — not because there is no browser. That conflation is what made
+      the wrong browser claim look reasonable. The same wrong justification at
+      CLAUDE.md:65 (the `server.py` entry) is corrected too.
+- [x] 4.3 **Done, and it was three defects rather than one.** Beyond the
+      unconditional Chromium, `openspec/specs/container-image` also specified a
+      `serve --transport=http --host=0.0.0.0` command that does not exist (the
+      entrypoint is the `a2web-serve` console script; the CLI is derived from
+      the MCP tools and has no framework `serve`), and listed bare `GOOGLE_*` as
+      supported configuration — the inverse of §1.1's security fix, since
+      `AppSettings` reads only `A2WEB_`-prefixed vars and a2web now refuses to
+      boot rather than serving open on a bare `GOOGLE_CLIENT_ID`. All three
+      corrected, with a degradation scenario added: a browserless build returns
+      the ADR-0009 envelope, never an empty-but-`ok`.
+- [x] 4.4 **Done, and pinned rather than merely stated.**
+      `tests/capabilities/endpoint_auth/test_container_browser_arg.py` reads the
+      default out of the `Dockerfile` and the override out of `release.yml` —
+      the `test_health_route.py` pattern, for the same reason: this fact drifted
+      in two directions at once precisely because it lived only in build files
+      pytest never opened. It also pins that BOTH build stages re-declare the
+      ARG, since a `--build-arg` reaches only stages that do, and a dropped
+      declaration would ship a venv with patchright and no Chromium — a failure
+      that surfaces at first browser use inside a published image. The guard
+      cannot check that the prose is right; it forces any change to be
+      deliberate and names the documents to update.
 
 ## 5. CLAUDE.md — inventory and structure
 

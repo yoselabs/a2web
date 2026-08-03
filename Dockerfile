@@ -1,8 +1,10 @@
 # a2web — networked MCP server image (deployable-container-ci).
 #
-# Runs `a2web serve --transport=http --select surface=mcp`: MCP under /mcp, plus
-# a transport-native GET /health liveness route (a2kit ships it at the parent
-# root). Multi-stage: a builder resolves the venv (needs git + uv), and a clean
+# ENTRYPOINT is the `a2web-serve` console script (`a2web.server:serve_http_main`):
+# MCP under /mcp, plus a GET /health liveness route a2web registers itself
+# (`_register_health_route`). There is no `serve` subcommand — the CLI is derived
+# from the registered MCP tools, and that spelling belonged to a2kit's App,
+# retired 2026-07-22. Multi-stage: a builder resolves the venv (needs git + uv), and a clean
 # runtime layer copies only the venv + source — no git, no uv, no build caches.
 # Runs as a non-root user; keeps the sqlite HTTP cache on a volume-backable /data.
 #

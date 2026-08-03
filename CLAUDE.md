@@ -62,7 +62,7 @@ neither the browser nor the LLM thunk) and single-composition-root
 (`test_one_composition_root.py`).
 
 - `src/a2web/settings.py` — `AppSettings(BaseSettings)` from env (`A2WEB_*`) + optional YAML at `$A2WEB_CONFIG` or `~/.a2web/config.yaml`. Holds proxy pool, route rules, default UA, stealth toggle, diagnostics default, cache TTLs, `jina_key` (env-only secret). `${ENV_VAR}` references inside YAML resolve at load time.
-- `src/a2web/server.py` — `build_mcp_server(*, settings=None, components=None, **fastmcp_kwargs) -> FastMCP`. Builds the graph via `build_components()`, registers the tools, installs two middlewares and a lifespan whose exit calls `components.aclose()` (LIFO teardown of whatever was actually entered). **Middleware order is load-bearing**: `TypedErrorEnvelopeMiddleware` is added FIRST so it is outermost and sees the `ToolError` that `guard_tool` raised; `EnvelopeContentMiddleware` sits inside it and only touches success results. `expose_cookies_tool` gates whether `register_cookies_tools` runs — a served a2web has no local browser, so the tool is ABSENT rather than present-and-failing. `serve_http_main()` is the container entrypoint: `build_mcp_server(auth=provider)` + `mcp.run(transport="http")`, with config-gated Google OAuth. Also registers `GET /health` (`_register_health_route`) — the route the Dockerfile HEALTHCHECK curls; a2kit's multiplex parent served it for free, Phase 4 404'd it for a day, and `tests/capabilities/endpoint_auth/test_health_route.py` reads the path out of the Dockerfile so the two cannot drift again.
+- `src/a2web/server.py` — `build_mcp_server(*, settings=None, components=None, **fastmcp_kwargs) -> FastMCP`. Builds the graph via `build_components()`, registers the tools, installs two middlewares and a lifespan whose exit calls `components.aclose()` (LIFO teardown of whatever was actually entered). **Middleware order is load-bearing**: `TypedErrorEnvelopeMiddleware` is added FIRST so it is outermost and sees the `ToolError` that `guard_tool` raised; `EnvelopeContentMiddleware` sits inside it and only touches success results. `expose_cookies_tool` gates whether `register_cookies_tools` runs — it defaults to `False`, so on a served a2web the tool is ABSENT rather than present-and-failing. (The gate is that setting plus the dropped `[cookies]` extra. It is NOT "the container has no browser" — the published image does have one; see **Deployment** below.) `serve_http_main()` is the container entrypoint: `build_mcp_server(auth=provider)` + `mcp.run(transport="http")`, with config-gated Google OAuth. Also registers `GET /health` (`_register_health_route`) — the route the Dockerfile HEALTHCHECK curls; a2kit's multiplex parent served it for free, Phase 4 404'd it for a day, and `tests/capabilities/endpoint_auth/test_health_route.py` reads the path out of the Dockerfile so the two cannot drift again.
 - `src/a2web/cli.py` — the Typer CLI, **derived** from the registered MCP tools rather than hand-written in parallel. `build_cli(components=…)` walks `mcp.list_tools()`, and each tool's `inspect.signature` becomes the command's options via `field_to_typer_annotation` (vendored from a2kit's 54-line `_field_to_typer.py`), so `--help` text and the MCP `inputSchema` descriptions are the same string and cannot disagree. Safe only because D1 made the parameter list wire-only; under a2kit's ambient wire/injected split the derivation would have been a guess. `_TOOL_GROUPS` is a LITERAL tool→(group, command) table for the same reason `wire._TSV_FIELDS` is literal — a tool missing from it is a build-time error, not a silently absent command. Commands own their teardown (`components.aclose()` in a `finally`): skipping it does not merely leak, the aiosqlite worker thread keeps the process alive after the JSON prints. Dropped vs a2kit: `--format`, `--json` (a no-op), `schema`/`list-tools`/`code`/`_meta`, and the never-called 50k truncate cap.
 - `src/a2web/components.py` — **the one composition root.** `Components` is a frozen dataclass holding `settings` + `scope` + six `Lazy[T]` thunks (`state`, `sqlite`, `browser_backend`, `browser_robust_backend`, `llm_extractor`, `cookie_jar`). `build_components(*, settings=None, **factory_overrides)` wires them; nothing is constructed or entered until something awaits a thunk. The `*_factory` overrides are the test seam that `app.provide(T, fake)` used to be — `dataclasses.replace` fails loudly on a field that does not exist, so an override that stopped matching the graph breaks the test instead of quietly disarming it.
 - shelf `async-scope` — `ResourceScope` (enter + LIFO unwind; records ONLY after a successful `__aenter__`, keeps unwinding past a failing `__aexit__`) + `memoized(factory) -> Lazy[T]` (double-checked lock, so twenty concurrent cold `query` calls launch one browser, not twenty) + the `Lazy[T]` alias. **Promoted out of a2web 2026-08-02** (was `scope.py` + `lazy.py`, themselves what survived a2kit's 599-line DI container); a2web keeps `components.py`'s six-thunk graph, which is the domain half. The cold-start guarantee is a property of `memoized`, so `test_cold_start_laziness.py` now pins an adopted primitive — deliberately: the guarantee is generic, the graph is not.
@@ -144,13 +144,33 @@ then points at that endpoint (`{"type": "http", "url": "https://<your-gateway>/a
 A source change goes live by rebuilding and redeploying that image — deploying is
 a separate, operator-driven step, never a side effect of pushing.
 
-The container is deliberately slimmed — no `[browser]`/`[cookies]`/`[claude-code]`
-extras — so a served a2web has no local browser and the `cookies_refresh` tool is
-ABSENT (gated by `expose_cookies_tool`).
+**Whether the container has a browser is ONE build argument, and this line said
+the opposite of the truth until 2026-08-03.** `Dockerfile`'s `INSTALL_BROWSER`
+defaults to `false`; `release.yml` passes `INSTALL_BROWSER=true`. So **the
+published image DOES carry the browser rung** (patchright + zendriver +
+Chromium + its desktop system-lib tree, ~1.35 GB of a ~1.9 GB image) and a
+default `docker build` produces the ~390 MB browserless shape. Cite the build
+argument, never a conclusion — this file claimed "no local browser" while
+`openspec/specs/container-image` asserted Chromium unconditionally, both
+describing the same `Dockerfile`, and neither reader could have got a
+deployment right. Pinned by
+`tests/capabilities/endpoint_auth/test_container_browser_arg.py`, which reads
+the default out of the `Dockerfile` and the override out of `release.yml`.
+
+`[cookies]` and `[claude-code]` genuinely are dropped. The `cookies_refresh`
+tool is ABSENT because `expose_cookies_tool` defaults to `False` — that is the
+gate, not the browser, and conflating the two is what made the browser claim
+look reasonable.
+
+A browserless build degrades LOUDLY, never silently: the browser tier is
+escalation-only, so a site needing it returns the ADR-0009 envelope
+(`status: failed` + `retrieval_incomplete` + a critical `try_user_browser`
+hint), and Zyte/Firecrawl still cover hard sites by API.
 
 **`make install-global` is optional, for LOCAL work only** — a `uv tool` install
-carrying the extras the container drops (`[browser]` patchright/zendriver,
-`[cookies]` local-browser mirror, `[claude-code]` OS-session piggyback). Use it
+carrying the extras the container drops (`[cookies]` local-browser mirror,
+`[claude-code]` OS-session piggyback), plus `[browser]` for a local browser
+independent of how the image was built. Use it
 for the local CLI or to exercise the browser/cookie paths that only work on a
 real desktop. It is NOT part of the deploy path, so there is no "reinstall after
 a version bump" step — that trade-off died with the remote switch.
