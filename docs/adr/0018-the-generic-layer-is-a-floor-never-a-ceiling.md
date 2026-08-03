@@ -146,6 +146,41 @@ One concrete loss did occur and is worth naming: a `Review` block on a commerce
 product page was dropped, on a corpus entry whose whole purpose is
 review-related questions.
 
+### The counter-evidence above is SUPERSEDED — the ceiling is not cheap
+
+`eval/spikes/declaration_rate_v6.py` (2026-08-03) re-ran the same question over
+the full 44-URL corpus with the escalating retrieval ladder rather than a single
+`raw` fetch, which is what limited the probe above to 5 readable pages. See
+`eval/findings_2026-08-03-declaration-rate-v6.md`.
+
+```
+  pages retrieved                : 42
+  declaring a KNOWN subject type :  3   Product
+  declaring an UNKNOWN type      :  4   ProductGroup (74 fields)
+                                        DiscussionForumPosting (51)
+                                        NewsMediaOrganization (35)
+                                        Store (3)
+```
+
+**A closed list drops 4 of the 7 pages that declare anything subject-level,
+including the richest one on the corpus.** The measured cost of the ceiling is
+not "2 types across 26 pages" — it is **more than half of everything the feature
+would fire on**. The earlier number was an artifact of a retrieval path that
+could only see 5 pages, and reporting it as a fact about the web rather than
+about the fetch was the same conflation ADR-0009 exists to prevent.
+
+The strong form of the complaint is therefore **supported by measurement**, and
+this ADR no longer rests on principle and asymmetry alone.
+
+There is a sharper demonstration. The v6 spike's own bucketing wrote
+`elif labels: bucket = "document"` — silently converting v4's deliberate label
+table back into a gate, and filing every unrecognised type as "document
+metadata, no lift". It **halved the spike's headline** (7.1% vs 16.7%) and was
+caught only because a 74-field `ProductGroup` appearing under "no lift" was
+visibly absurd. The failure mode this ADR forbids reappeared, unprompted, inside
+the instrument built to measure it, written by an author who had just read the
+rule. That is the argument for making it structural rather than remembered.
+
 ## Placement — CLAUDE.md + this ADR, NOT CONSTITUTION.md
 
 Per the ADR-0009 / 0012 / 0014 / 0015 precedent: a single project's product
