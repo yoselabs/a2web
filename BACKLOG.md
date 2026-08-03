@@ -21,6 +21,73 @@ description, why it was deferred, and a rough scope tier (S / M / L).
 
 ---
 
+## 2026-08-03 — the test suite writes to the developer's REAL cache (M, test hermeticity)
+
+**The finding.** `tests/conftest.py` scrubs every `A2WEB_*` env var before the
+first a2web import, deliberately, so a developer's real keys cannot register
+paid tiers. That scrub also removes `A2WEB_CACHE_DIR`, and `cache.cache_dir()`
+then falls back to `~/.a2web`. Exactly five test files set it back via a
+per-file `monkeypatch` fixture; **every other cache-touching test writes into
+the developer's own `cache.sqlite`.**
+
+Observed on a dev machine 2026-08-03 (218MB real cache, 1028 rows):
+
+```
+  https://example.org/post        1 row   <- from test_fetcher.py
+  https://blocked.example/page    1 row   <- from test_fetcher.py
+```
+
+**Two harms, and the second is why this is not cosmetic.**
+
+1. Tests mutate real user data. Nothing else in the suite does this.
+2. **It makes `make check` flaky in the worst possible shape.**
+   `test_cache_hit_on_second_call` asserts its FIRST fetch is a `miss`. Once
+   `example.org/post` is seeded in the real cache by an earlier run, that
+   fetch is a `hit` and the test fails — intermittently, because whether the
+   real cache is consulted depends on test ordering and on which
+   `SqliteResource` was constructed first. Reproduced twice under coverage on
+   2026-08-03; 8 consecutive clean runs without. **Invisible on a fresh
+   checkout and on CI, semi-permanent once seeded locally** — a developer sees
+   a failure CI cannot reproduce, which is the failure mode most likely to be
+   dismissed as noise.
+
+**The obvious fix does not work yet, and that is the real content of this
+entry.** Setting `A2WEB_CACHE_DIR` to a temp dir at conftest module scope (one
+line, same seam as the scrub) fixes both harms and turns two OTHER tests red:
+
+```
+  tests/eval_replay/test_regression_corpus.py::test_regression_replay[akakce-no-current-price]
+  tests/eval_replay/test_regression_corpus.py::test_llm_egress_is_reproduced_byte_for_byte
+      AssertionError: assert None == 'The page shows no current price...'
+```
+
+So the frozen-cassette replay suite — the one that exists to be deterministic —
+**currently depends on state in the developer's home cache.** A cold-cache run
+either serves no answer or reaches for the network (a cold-dir run of
+`tests/eval_replay/` did not complete inside five minutes, where the warm-cache
+run takes 18 seconds). Whatever it is reaching for is not in the cassette,
+which is precisely what `test_llm_egress_is_reproduced_byte_for_byte` claims to
+prove is impossible.
+
+That is a second, larger defect wearing this one as a symptom, and it deserves
+its own diagnosis rather than being bundled into a hermeticity fix.
+
+**Scope.** M. Two steps, in order:
+
+1. Diagnose what `replay_case` resolves out of the cache — extraction cache,
+   HTTP cache, or both — and freeze it into the cassette. The suite cannot
+   claim determinism while a warm home directory changes its result.
+2. THEN set `A2WEB_CACHE_DIR` at conftest module scope (not a per-file
+   fixture — five files remember and the sixth is the one that leaks), and
+   delete the five per-file fixtures that become redundant.
+
+**Do not do 2 before 1.** It turns a rare flake into two reliable failures and
+buries the more serious finding under them.
+
+**Evidence.** This session; the one-line conftest patch and its exact fallout
+are reproducible by adding `os.environ["A2WEB_CACHE_DIR"] = tempfile.mkdtemp()`
+immediately after the `A2WEB_CONFIG` line in `tests/conftest.py`.
+
 ## 2026-08-02 — a judge loss that CORRELATES with one system still exits 0 (S, eval correctness)
 
 **Source:** `close-guards-that-read-green` §8 close-out, 2026-08-02.

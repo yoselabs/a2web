@@ -218,6 +218,68 @@ Shape = Literal[
 Obstacle = Literal["paywalled", "blocked", "empty", "error"]
 
 
+#: How many declared fields reach the wire. **Measured, not chosen**
+#: (`eval/spikes/declared_cap_v5.py`, 8 pages x 2 reps x 5 caps, 2026-08-03):
+#:
+#:     cap 10 - cap 20    -0.089  [-0.175, -0.002]  SIGNIF -- 10 loses coverage
+#:     cap 20 - uncapped  -0.018  [-0.052, +0.016]  null   -- 20 loses nothing
+#:
+#: Cap 20 keeps 92% of the benefit for 51% of the wire cost; past it the CI on
+#: what you gain straddles zero while the bill doubles (coursera declares 71
+#: fields, ~1993 tokens, against an answer of ~155). Uncapped even scored
+#: marginally BELOW cap 40 -- the tail is at best inert.
+DECLARED_FIELDS_CAP = 20
+
+
+class DeclaredEntity(BaseModel):
+    """What the PAGE said it is — parsed from its own JSON-LD, never inferred.
+
+    `query` withholds the page body by default, so the caller is blind to
+    everything the answer did not surface (ADR-0015). This is the cheapest
+    faithful index there is: the publisher's own structured description of the
+    subject, already parsed, costing **zero generation tokens** and carrying
+    **zero model wobble**.
+
+    Measured (`eval/spikes/declared_entity_v4.py`): on pages declaring a
+    subject-level entity, `answer + declared` beats `answer` alone by +0.095
+    coverage (95% CI [+0.010, +0.180]), and is statistically indistinguishable
+    from `answer + an LLM-generated entity block` — which costs ~161 completion
+    tokens and is only 58% type-stable across repeats. Same delivery; one side
+    is free and exact.
+
+    **`type` is a LABEL, never a gate** (ADR-0018). It is relayed verbatim as
+    the page spelled it — `ProductGroup`, `DiscussionForumPosting`, whatever —
+    and a2web holds no list of acceptable values. The measured cost of holding
+    one: a closed vocabulary drops 4 of the 7 corpus pages that declare anything
+    subject-level, including the richest.
+
+    **`source` is `declared` and only `declared`.** The field exists so the
+    caller never has to guess whether a2web read this or wrote it, and so an
+    `inferred` variant could be added later without silently changing what an
+    existing consumer is reading. a2web does NOT currently emit `inferred`:
+    v3/v4 measured the model-generated version and it did not earn its keep.
+
+    **`fields` is capped and the cut is DECLARED.** `omitted` counts what the
+    page published beyond `DECLARED_FIELDS_CAP`, so a caller can tell "the page
+    states only this" from "a2web stopped relaying" and knows a full-body
+    re-query would recover the rest. Order is the publisher's, subject entities
+    first — NOT a relevance ranking, because a2web does not rank (ADR-0012) and
+    a ranked cap would be shipping the ranker's opinion as the page's.
+    """
+
+    type: str
+    source: Literal["declared"] = "declared"
+    fields: dict[str, str] = Field(default_factory=dict)
+    omitted: int = 0
+
+    @model_serializer(mode="wrap")
+    def _omit_zero_omitted(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        data = dict(handler(self))
+        if not data.get("omitted"):
+            data.pop("omitted", None)
+        return data
+
+
 OtherPageKind = Literal["structural", "drilldown"]
 
 
@@ -456,6 +518,13 @@ class FetchResponse(BaseModel):
     # so it belongs on neither the `fetch_raw` wire nor its JSON schema. Set
     # after construction in `build_response`.
     _routing_outcome: RoutingOutcome | None = PrivateAttr(default=None)
+    # The page's own subject declaration, parsed from its JSON-LD. A PrivateAttr
+    # for the same reason as `_options`: `fetch_raw` already ships the rendered
+    # entity inside `content_md`, so putting it on that wire would send the same
+    # facts twice. It exists for `query`, which WITHHOLDS the body and whose
+    # caller is therefore blind to everything the answer did not surface
+    # (ADR-0015). Set after construction in `build_response`.
+    _declared_entity: DeclaredEntity | None = PrivateAttr(default=None)
 
     @model_serializer(mode="wrap")
     def _omit_empty(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
@@ -695,6 +764,12 @@ class AskResponse(BaseModel):
     # only when the model agrees it is a listing). Dropped from the wire when empty
     # by `_prune_wire`. Any ranking lives in `answer`, not this order.
     options: list[ListingOption] = Field(default_factory=list)
+
+    # What the page declared itself to be, parsed from its own JSON-LD. `None`
+    # (dropped from the wire) when the page published no subject-level
+    # declaration — measured at 83-93% of corpus pages, so absence is the
+    # common case and must cost nothing. See `DeclaredEntity`.
+    declared_entity: DeclaredEntity | None = None
 
     @model_serializer(mode="wrap")
     def _envelope_discipline(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:

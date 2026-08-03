@@ -28,7 +28,7 @@ from ..hints import (
 )
 from ..link_digest import LinkDigest
 from ..llm_resource import LlmExtractorResource
-from ..models import CacheState, Diagnostic, ExtractionMeta, Heading, Link, NextLink, Verdict
+from ..models import CacheState, DeclaredEntity, Diagnostic, ExtractionMeta, Heading, Link, NextLink, Verdict
 from ..packages.escalation import EscalationSignal
 from ..packages.llm_extract import RouterPayload, RoutingOutcome
 from ..state import unavailable_lazy
@@ -274,6 +274,13 @@ class FetchContext:
     # projection can surface the option shelf, instead of keeping only the count
     # and discarding the structured records. None on a non-listing page.
     record_set: RecordSet | None = None
+    # What the PAGE declared itself to be, parsed from its own JSON-LD during
+    # the comprehension ladder. Carried rather than re-derived at projection
+    # time: `fetcher_response` must never reconstruct a decision from the
+    # artifact that decision produced, and re-parsing the body there would be
+    # exactly that (it would also need `raw_html`, which it does not have).
+    # None when the page published no subject-level declaration.
+    declared_entity: DeclaredEntity | None = None
     items_loaded: int | None = None
     items_total: int | None = None
     # The numeric oracle the regex path extracted (set even when it deemed the

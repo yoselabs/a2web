@@ -726,6 +726,10 @@ def build_response(fc: FetchContext) -> FetchResponse:
     # fetch_raw wire + schema; lifted onto AskResponse by build_ask_response).
     response._options = _records_to_options(fc.record_set)
     response._routing_outcome = fc.routing_outcome
+    # CARRIED from the ladder, never re-derived here — `fetcher_response` must
+    # not reconstruct a fact from the artifact that produced it, and this module
+    # has no `raw_html` to re-parse even if it wanted to.
+    response._declared_entity = fc.declared_entity
     return response
 
 
@@ -899,6 +903,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         other_pages=other_pages,
         refinement_axes=refinement_axes,
         options=options,
+        declared_entity=fr._declared_entity,
     )
 
 

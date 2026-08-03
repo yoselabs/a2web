@@ -34,10 +34,109 @@ if TYPE_CHECKING:
     from json_in_html import JsonPayload
 
 __all__ = (
+    "declared_subject_entity",
     "json_response_fallback",
     "json_to_markdown_rows",
     "listing_rows",
 )
+
+#: Types that describe the DOCUMENT rather than its subject. A **blocklist, not
+#: an allowlist** — the direction is the whole point (ADR-0018). An unrecognised
+#: type falls THROUGH and is surfaced; only these known-chrome names are held
+#: back. An allowlist fails closed and drops what it has not met, which is
+#: exactly what `_ENTITY_TYPES` did: measured 2026-08-03, a closed list discards
+#: 4 of the 7 corpus pages declaring anything subject-level, including a
+#: 74-field `ProductGroup`.
+#:
+#: Holding these back is not the same mistake inverted. Measured
+#: (`declared_entity_v4`): `wikipedia-rust` declares `Article` — 11 fields of
+#: publisher / logo / sameAs metadata — and scored **0.00 subject coverage on
+#: both reps**. Document metadata delivers nothing about the thing the caller
+#: asked about, and a2web already has an axis for what kind of PAGE this is
+#: (`structural_form`). The asymmetry: a wrongly-held-back type costs one page's
+#: metadata; a wrongly-passed-through allowlist costs every type nobody thought of.
+_DOCUMENT_TYPES = frozenset(
+    {
+        "Article",
+        "NewsArticle",
+        "BlogPosting",
+        "WebPage",
+        "WebSite",
+        "BreadcrumbList",
+        "CollectionPage",
+        "ItemPage",
+        "SearchResultsPage",
+        "ImageObject",
+        "SiteNavigationElement",
+        "Organization",
+        "FAQPage",
+        "Thing",
+    }
+)
+
+#: Depth bound on the flatten. JSON-LD graphs can self-reference.
+_DECLARED_DEPTH_CAP = 3
+
+
+def _flatten_entity(entry: dict, prefix: str = "", depth: int = 0) -> dict[str, str]:
+    """Flatten one JSON-LD entity to `key: value` pairs, in the publisher's order.
+
+    Flat because the consumer is an agent reading a dict, not a schema.org
+    validator — and because schema.org's own `additionalProperty` nesting
+    carries a documented caveat that a consumer looking for `price` will not
+    look inside it.
+    """
+    out: dict[str, str] = {}
+    if depth > _DECLARED_DEPTH_CAP:
+        return out
+    for k, v in entry.items():
+        if not isinstance(k, str) or k.startswith("@") or k.lower() in _ENTITY_NOISE_KEYS:
+            continue
+        key = f"{prefix}{k}"
+        if isinstance(v, dict):
+            out.update(_flatten_entity(v, key + ".", depth + 1))
+        elif isinstance(v, list):
+            scalars = [str(x) for x in v if not isinstance(x, (dict, list)) and str(x)]
+            if scalars:
+                out[key] = _capped("; ".join(scalars[:_ENTITY_ARRAY_CAP]))
+            else:
+                for i, item in enumerate(v[:_ENTITY_ARRAY_CAP]):
+                    if isinstance(item, dict):
+                        out.update(_flatten_entity(item, f"{key}[{i}].", depth + 1))
+        elif isinstance(v, (str, int, float)) and str(v):
+            out[key] = _capped(str(v))
+    return out
+
+
+def declared_subject_entity(payload: JsonPayload) -> tuple[str, dict[str, str]] | None:
+    """The page's own declaration ABOUT ITS SUBJECT: `(type, fields)` or `None`.
+
+    Returns the RICHEST qualifying entity — most fields wins — which is the
+    caller-stated preference and the only tie-break that does not require a2web
+    to hold an opinion about which schema.org type is more important.
+
+    Package-pure: returns primitives, never `a2web.models`. The domain half
+    (capping to `DECLARED_FIELDS_CAP`, building `DeclaredEntity`) lives at the
+    call site, because the cap is a wire-economics decision and this module
+    knows nothing about the wire.
+    """
+    if payload.source not in ("ld_json", "microdata"):
+        return None
+    data = microdata_to_ld(payload.data) if payload.source == "microdata" else payload.data
+    best: tuple[str, dict[str, str]] | None = None
+    for entry in ld_entries(data):
+        if not isinstance(entry, dict):
+            continue
+        t = entry.get("@type")
+        if isinstance(t, list):
+            t = t[0] if t else None
+        if not t or str(t) in _DOCUMENT_TYPES:
+            continue
+        fields = _flatten_entity(entry)
+        if fields and (best is None or len(fields) > len(best[1])):
+            best = (str(t), fields)
+    return best
+
 
 _JSON_FALLBACK_CAP = 20_000
 

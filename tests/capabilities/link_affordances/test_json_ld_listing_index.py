@@ -80,6 +80,9 @@ class _FakeFc:
     content_candidates: list[ContentCandidate] = field(default_factory=list)
     record_set: RecordSet | None = None
     record_count: int | None = None
+    # Mirrors `FetchContext`: the ladder installs the page's own declared
+    # subject entity here (ADR-0018 / declared_entity_v4).
+    declared_entity: object | None = None
 
 
 async def test_json_ld_listing_populates_other_pages() -> None:
@@ -133,7 +136,7 @@ async def test_dom_records_keep_precedence_when_both_exist() -> None:
     combined = ld_only + _dom_page().split("<h1>Catalog</h1>", 1)[1]
 
     probe = _FakeFc()
-    _, json_set = await _escalate_via_json(probe, raw_html=combined)  # type: ignore[arg-type]
+    _, json_set, _declared = await _escalate_via_json(probe, raw_html=combined)  # type: ignore[arg-type]
     assert json_set is not None, "non-vacuous: the JSON-LD half must have parsed"
 
     fc = _FakeFc()

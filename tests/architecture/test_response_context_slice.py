@@ -41,6 +41,7 @@ _READS: frozenset[str] = frozenset(
         "content_candidates",
         "content_md",
         "debug",
+        "declared_entity",
         "diagnostics",
         "empty_confirmed",
         "extracted_answer",

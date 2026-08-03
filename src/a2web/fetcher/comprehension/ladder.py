@@ -15,8 +15,8 @@ from record_mine import Record, RecordSet, extract_records
 
 from ... import log as a2web_log
 from ...events import StageEnded, StageStarted
-from ...models import Verdict
-from ...packages.structured_render import json_to_markdown_rows, listing_rows
+from ...models import DECLARED_FIELDS_CAP, DeclaredEntity, Verdict
+from ...packages.structured_render import declared_subject_entity, json_to_markdown_rows, listing_rows
 from ..answer.links import _records_to_next_links
 from ..comprehension.menu import _wire_content_md
 from ..context import ContentCandidate, FetchContext
@@ -40,8 +40,24 @@ async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None
     candidates: list[ContentCandidate] = []
     if fc.content_md:
         candidates.append(ContentCandidate(source="trafilatura", content_md=fc.content_md))
-    json_candidates, json_record_set = await _escalate_via_json(fc, raw_html=raw_html)
+    json_candidates, json_record_set, declared_entity = await _escalate_via_json(fc, raw_html=raw_html)
     candidates.extend(json_candidates)
+    # UNCONDITIONAL, including back to None — deliberately NOT the keep-first
+    # rule used for `next_links_handler` below, and the difference matters.
+    #
+    # That rule protects a PRODUCER's claim from a later stage's reconstruction:
+    # the handler knows the site, the miner is guessing. Here there is one
+    # producer running twice, over two different bodies. `escalate` re-runs
+    # comprehension on whatever the new rung installed, so a keep-first write
+    # makes the declaration STICKY: the raw tier's JSON-LD would survive onto a
+    # browser body that replaced it, and a2web would relay the publisher's
+    # claim about a page it did not serve.
+    #
+    # A declaration must describe the body the caller actually gets. Losing one
+    # because a later rung's body has no JSON-LD is the lesser harm — it costs
+    # an index; the alternative costs correctness (ADR-0009: never let the
+    # caller mistake one page's facts for another's).
+    fc.declared_entity = declared_entity
     record_candidate = await _escalate_via_records(fc, raw_html=raw_html)
     if record_candidate is not None:
         candidates.append(record_candidate)
@@ -104,7 +120,7 @@ def _is_prose_metadata_ld(payload: JsonPayload) -> bool:
     return False
 
 
-async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[ContentCandidate], RecordSet | None]:
+async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[ContentCandidate], RecordSet | None, DeclaredEntity | None]:
     """Menu source — embedded JSON (incl. JSON-LD).
 
     Returns one `ContentCandidate` per *renderable* payload, in rank order —
@@ -122,7 +138,19 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[C
     candidates: list[ContentCandidate] = []
     json_record_set: RecordSet | None = None
     seen: set[str] = set()
+    # The page's own declaration about its subject. Captured HERE, on the raw
+    # HTML, because this is the only place in the pipeline that holds it —
+    # `fetcher_response` must never re-derive a fact from the artifact it
+    # produced, and re-parsing the body at projection time would be that.
+    #
+    # Richest-wins across payloads, same rule as within one payload: it is the
+    # only tie-break that does not require a2web to hold an opinion about which
+    # schema.org type matters more.
+    best_declared: tuple[str, dict[str, str]] | None = None
     for payload in rank_payloads(payloads):
+        declared = declared_subject_entity(payload)
+        if declared is not None and (best_declared is None or len(declared[1]) > len(best_declared[1])):
+            best_declared = declared
         rendered = json_to_markdown_rows(payload)
         if rendered and rendered not in seen:
             seen.add(rendered)
@@ -151,7 +179,20 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[C
             extra={"outcome": outcome, "payloads": len(candidates)},
         )
     )
-    return candidates, json_record_set
+    # RETURNED, not written onto `fc` — this escalator is pure by contract
+    # (`test_menu_assembly_is_pure`), and the caller decides precedence. Capped
+    # here rather than at the wire because the cap is a wire-economics number
+    # and `DeclaredEntity` is where it is documented.
+    declared_entity: DeclaredEntity | None = None
+    if best_declared is not None:
+        kind, all_fields = best_declared
+        kept = dict(list(all_fields.items())[:DECLARED_FIELDS_CAP])
+        declared_entity = DeclaredEntity(
+            type=kind,
+            fields=kept,
+            omitted=len(all_fields) - len(kept),
+        )
+    return candidates, json_record_set, declared_entity
 
 
 def _rows_to_record_set(rows: list[dict], *, base_url: str) -> RecordSet | None:
