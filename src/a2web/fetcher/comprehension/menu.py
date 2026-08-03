@@ -64,8 +64,28 @@ def _wire_content_md(candidates: list[ContentCandidate]) -> str:
         answer_c = next((c for c in candidates if c.answer_bearing), None)
         if answer_c is not None and answer_c.content_md:
             return answer_c.content_md
-        if json_c is not None and json_c.content_md:
-            return json_c.content_md
+        # EVERY json candidate, not `next(...)`. `_escalate_via_json` returns
+        # one per renderable payload in rank order and this took the first,
+        # discarding the rest — the same value-blind single-source pick this
+        # module's docstring rejects, surviving one level down.
+        #
+        # It was masked until 2026-08-03 by `_ENTITY_TYPES`: a page's chrome
+        # `WebSite` / `Organization` payload rendered as "" and so never became
+        # a candidate at all, leaving the content payload first by accident.
+        # Deleting that gate (ADR-0018) made chrome renderable and it began
+        # winning the pick outright — Yandex Market's `WebSite: Yandex Market`
+        # displaced the product rows. Removing a filter revealed a selection
+        # bug rather than causing one, and reinstating the filter to hide it
+        # would be treating the symptom.
+        #
+        # Concatenating is the same trade the prose branch below already makes:
+        # extra text costs visible tokens, a dropped payload costs a whole new
+        # proxy fetch to recover. Duplicate renders are already suppressed
+        # upstream by `seen`, and subsets are suppressed here.
+        json_all = [c for c in candidates if c.source == "json_synth" and c.content_md]
+        if json_all:
+            kept = _suppress_subsets(json_all)
+            return "\n\n".join(c.content_md for c in kept if c.content_md)
         if prose_md:
             return prose_md
         other = next((c for c in candidates if c.content_md), None)

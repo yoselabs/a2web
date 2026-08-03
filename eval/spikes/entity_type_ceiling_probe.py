@@ -42,7 +42,13 @@ import yaml
 from json_in_html import extract_json_payloads, ld_entries
 
 from a2web.components import build_components
-from a2web.packages.structured_render import _ENTITY_TYPES
+# HISTORICAL.  was deleted on 2026-08-03 (ADR-0018) after this
+# probe and  measured what it cost. The list is inlined so
+# the probe still runs as a record of the state it measured; it no longer
+# reflects the shipped renderer, which has no type gate at all.
+_ENTITY_TYPES = frozenset(
+    {"Product", "Article", "NewsArticle", "LocalBusiness", "Organization", "ContactPoint", "Event", "Recipe"},
+)
 from a2web.settings import AppSettings
 from a2web.tiers import REGISTRY
 

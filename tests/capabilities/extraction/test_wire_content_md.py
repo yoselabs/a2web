@@ -109,3 +109,44 @@ def test_json_that_is_a_subset_of_prose_is_suppressed() -> None:
     # subset here (repeated), so this asserts the concat path stays clean of
     # exact-duplication rather than subset math; both survive but prose leads.
     assert out.startswith(body[:40])
+
+
+def test_thin_prose_keeps_every_json_candidate_not_just_the_first() -> None:
+    """A page with sub-floor prose must not lose its content payload to chrome.
+
+    `_escalate_via_json` returns one candidate per renderable payload in rank
+    order; this branch took `next(...)` and discarded the rest — the same
+    value-blind single-source pick the module docstring rejects, surviving one
+    level down.
+
+    It was invisible until 2026-08-03 because `_ENTITY_TYPES`' eight-name
+    allowlist made a page's chrome (`WebSite`, `SiteNavigationElement`) render
+    as `""`, so chrome never became a candidate and the content payload was
+    first by accident. Deleting that gate (ADR-0018) let chrome render, and it
+    began winning outright: Yandex Market's `## WebSite: Yandex Market`
+    displaced the product rows entirely.
+
+    Ordered chrome-first here on purpose — that is the failing arrangement.
+    """
+    thin = ContentCandidate(source="trafilatura", content_md="Рюкзак")
+    chrome = ContentCandidate(source="json_synth", content_md="## WebSite: Shop\n- **name:** Shop")
+    content = ContentCandidate(source="json_synth", content_md="## Product: Mark Ryden backpack\n- **price:** 815")
+
+    out = _wire_content_md([thin, chrome, content])
+
+    assert "Mark Ryden backpack" in out, "the content payload was dropped in favour of chrome"
+    assert "815" in out
+
+
+def test_a_single_json_candidate_is_unchanged_by_the_fix() -> None:
+    """The other direction — one candidate must not gain a separator or a twin.
+
+    Without this, the concatenation above could pass by emitting the same
+    payload twice, or by wrapping it, and nothing would notice.
+    """
+    thin = ContentCandidate(source="trafilatura", content_md="nav")
+    only = ContentCandidate(source="json_synth", content_md="## Product: P\n- **name:** P")
+
+    out = _wire_content_md([thin, only])
+
+    assert out == "## Product: P\n- **name:** P"

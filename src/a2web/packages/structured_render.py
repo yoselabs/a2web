@@ -92,10 +92,16 @@ def json_to_markdown_rows(payload: JsonPayload) -> str:
     return ""
 
 
-#: Schemas rendered by the default-keep entity path (ADR-0004).
-_ENTITY_TYPES = frozenset(
-    {"Product", "Article", "NewsArticle", "LocalBusiness", "Organization", "ContactPoint", "Event", "Recipe"},
-)
+#: Types with their OWN renderer below. Not an allowlist — everything else
+#: falls through to the type-agnostic default-keep path, which is the point.
+_SPECIAL_TYPES = frozenset({"ItemList", "BreadcrumbList"})
+
+#: How many JSON-LD entities one payload renders. A bound, not a filter: a page
+#: publishing forty `ImageObject`s must not crowd out its `Product`, but the cut
+#: is by VOLUME (declared below) rather than by a vocabulary a2web holds.
+#: `declared_cap_v5` measured the shape of this trade on the sibling wire path —
+#: coverage saturates around 20 fields and the tail is inert.
+_ENTITY_COUNT_CAP = 12
 
 
 def _ld_json_to_markdown(data: dict | list) -> str:
@@ -103,17 +109,34 @@ def _ld_json_to_markdown(data: dict | list) -> str:
     if not entries:
         return ""
     lines: list[str] = []
+    rendered = 0
+    dropped = 0
     for entry in entries:
         t = entry.get("@type")
         if isinstance(t, list):
             t = t[0] if t else None
-        if t in _ENTITY_TYPES:
-            # Answer/entity schemas render by the same default-keep path — a
-            # contact page's LocalBusiness (telephone/email/address) is an answer,
-            # not chrome (structured-data-answers). `Recipe` joined them in the
-            # 2026-08-01 move; it had its own allowlist renderer, see
-            # `_RECIPE_LABELS`.
-            lines.append(_single_entity_md(entry, kind=str(t)))
+        if t not in _SPECIAL_TYPES:
+            # DEFAULT-KEEP, no type gate (ADR-0018). This was an eight-name
+            # allowlist — `Product`, `Article`, `NewsArticle`, `LocalBusiness`,
+            # `Organization`, `ContactPoint`, `Event`, `Recipe` — and every
+            # other declared type rendered as NOTHING. Measured on 2026-08-03
+            # (`declaration_rate_v6`): a closed list drops 4 of the 7 corpus
+            # pages that declare anything subject-level, including a 74-field
+            # `ProductGroup`, a 51-field `DiscussionForumPosting` and a
+            # 35-field `NewsMediaOrganization`. The renderer never needed the
+            # list — `_single_entity_md` takes the type as a plain string
+            # LABEL and reads the entity's own keys, so passing an unknown type
+            # through costs nothing and recovers everything.
+            #
+            # An unnamed entity carrying no renderable field yields "" and is
+            # dropped by the final join, so chrome does not become noise.
+            if rendered >= _ENTITY_COUNT_CAP:
+                dropped += 1
+                continue
+            md = _single_entity_md(entry, kind=str(t) if t else "Thing")
+            if md:
+                lines.append(md)
+                rendered += 1
         elif t == "ItemList":
             rows = _item_list_rows(entry)
             if rows:
@@ -123,6 +146,12 @@ def _ld_json_to_markdown(data: dict | list) -> str:
             names = [it.get("name") for it in items if isinstance(it, dict) and it.get("name")]
             if names:
                 lines.append("**Breadcrumbs:** " + " > ".join(names))
+    if dropped:
+        # DECLARE the cut. A reader who cannot tell "the page published this
+        # much" from "a2web stopped rendering" will read the first into the
+        # second (ADR-0009). `dropped` differs from `rendered` by construction,
+        # so unlike `hn`'s old note this one can actually fire.
+        lines.append(f"_… {dropped} further structured entit{'y' if dropped == 1 else 'ies'} not shown._")
     return "\n\n".join(s for s in lines if s)
 
 
@@ -320,6 +349,15 @@ def _single_entity_md(entry: dict, *, kind: str) -> str:
             text = str(val)
             if text:
                 lines.append(f"- **{_label(key)}:** {_capped(text)}")
+    # A header with nothing under it is noise, not content. This mattered
+    # little while an eight-name allowlist stood in front (a `Product` almost
+    # always has fields); once the gate came off (ADR-0018), every page's
+    # `ImageObject` / `SiteNavigationElement` chrome reached here and would
+    # have rendered a wall of `## ImageObject: unnamed` stubs. Emptiness is
+    # decided by CONTENT — which is what makes the type gate unnecessary rather
+    # than merely wrong.
+    if len(lines) == 1 and name == "unnamed":
+        return ""
     return "\n".join(lines)
 
 
