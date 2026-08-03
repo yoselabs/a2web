@@ -1,0 +1,694 @@
+{
+  "n_urls": 44,
+  "buckets": {
+    "none": 28,
+    "document": 7,
+    "subject": 3,
+    "unreachable": 2,
+    "unknown": 4
+  },
+  "n_retrieved": 42,
+  "subject_rate_of_retrieved": 0.071,
+  "subject_or_unknown_rate_of_retrieved": 0.167,
+  "n_excluded_unreachable": 2,
+  "distinct_hosts_firing": [
+    "www.bhklima.com",
+    "www.hepsiburada.com",
+    "www.nike.com",
+    "www.reuters.com",
+    "www.v2ex.com"
+  ],
+  "mean_fields_when_subject": 22.3,
+  "mean_capped_fields_when_subject": 19.3,
+  "by_class": {
+    "listing": {
+      "none": 10
+    },
+    "comments": {
+      "none": 3,
+      "unknown": 1
+    },
+    "clean": {
+      "document": 2,
+      "none": 1,
+      "subject": 1,
+      "unreachable": 1
+    },
+    "gated": {
+      "document": 1,
+      "none": 7,
+      "unknown": 2,
+      "unreachable": 1
+    },
+    "spa": {
+      "none": 2
+    },
+    "affordance": {
+      "subject": 2,
+      "document": 2,
+      "none": 5,
+      "unknown": 1
+    },
+    "article": {
+      "document": 2
+    }
+  },
+  "rows": [
+    {
+      "slug": "hn-front",
+      "url": "https://news.ycombinator.com/",
+      "class": "listing",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 34798,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "reddit-listing",
+      "url": "https://www.reddit.com/r/LocalLLaMA/",
+      "class": "listing",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 529479,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "arxiv-listing-partial",
+      "url": "https://arxiv.org/list/cs.CL/recent",
+      "class": "listing",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 88273,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "pypi-httpx",
+      "url": "https://pypi.org/project/httpx/",
+      "class": "listing",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 137677,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "gh-trending",
+      "url": "https://github.com/trending/python?since=daily",
+      "class": "listing",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 674714,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "lobste-active",
+      "url": "https://lobste.rs/active",
+      "class": "listing",
+      "bucket": "none",
+      "html_tier": "raw",
+      "html_chars": 57632,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "gh-trending-best",
+      "url": "https://github.com/trending/python?since=daily",
+      "class": "listing",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 674713,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "reddit-comments",
+      "url": "https://www.reddit.com/r/programming/comments/ddlc78/comments_should_be_sentences/",
+      "class": "comments",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 988778,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "reddit-iem-compare",
+      "url": "https://www.reddit.com/r/inearfidelity/comments/1egsngc/confused_between_moondrop_starfield_2_and_the/",
+      "class": "comments",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 761182,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "hn-item",
+      "url": "https://news.ycombinator.com/item?id=9224",
+      "class": "comments",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 8816,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "wikipedia-rust",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "class": "clean",
+      "bucket": "document",
+      "html_tier": "raw",
+      "html_chars": 998475,
+      "ladder_errors": [],
+      "declared_types": [
+        "Article"
+      ],
+      "type_labels": [
+        "document"
+      ],
+      "field_count": 11,
+      "capped_field_count": 11
+    },
+    {
+      "slug": "arxiv-abstract",
+      "url": "https://arxiv.org/abs/2401.05566",
+      "class": "clean",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 49723,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "medium-tag",
+      "url": "https://medium.com/tag/programming",
+      "class": "gated",
+      "bucket": "document",
+      "html_tier": "raw",
+      "html_chars": 416228,
+      "ladder_errors": [],
+      "declared_types": [
+        "CollectionPage"
+      ],
+      "type_labels": [
+        "document"
+      ],
+      "field_count": 139,
+      "capped_field_count": 20
+    },
+    {
+      "slug": "g2-crm-wall",
+      "url": "https://www.g2.com/categories/crm",
+      "class": "gated",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 2609,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "spa-react-dev",
+      "url": "https://react.dev/",
+      "class": "spa",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 272518,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "hepsiburada-product-reviews",
+      "url": "https://www.hepsiburada.com/wilkinson-sword-wilkinson-swrod-hydro-5-ultimate-erkek-tiras-bicagi-sap-baslik-pm-HBC0000FWLZQH",
+      "class": "affordance",
+      "bucket": "subject",
+      "html_tier": "raw",
+      "html_chars": 600985,
+      "ladder_errors": [],
+      "declared_types": [
+        "Product"
+      ],
+      "type_labels": [
+        "subject"
+      ],
+      "field_count": 19,
+      "capped_field_count": 19
+    },
+    {
+      "slug": "fetch-deadline-reports-an-unfinished-job",
+      "url": "https://en.wikipedia.org/wiki/Web_scraping",
+      "class": "affordance",
+      "bucket": "document",
+      "html_tier": "raw",
+      "html_chars": 239076,
+      "ladder_errors": [],
+      "declared_types": [
+        "Article"
+      ],
+      "type_labels": [
+        "document"
+      ],
+      "field_count": 10,
+      "capped_field_count": 10
+    },
+    {
+      "slug": "other-pages-carries-the-real-kind-and-anchor",
+      "url": "https://news.ycombinator.com/item?id=44444444",
+      "class": "affordance",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 4961,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "json-ld-itemlist-leaves-an-index",
+      "url": "https://www.hepsiburada.com/ara?q=bluetooth+kulaklik",
+      "class": "affordance",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 4395337,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "hepsiburada-product-no-footer-options",
+      "url": "https://www.hepsiburada.com/wilkinson-sword-wilkinson-swrod-hydro-5-ultimate-erkek-tiras-bicagi-sap-baslik-pm-HBC0000FWLZQH",
+      "class": "clean",
+      "bucket": "subject",
+      "html_tier": "raw",
+      "html_chars": 600985,
+      "ladder_errors": [],
+      "declared_types": [
+        "Product"
+      ],
+      "type_labels": [
+        "subject"
+      ],
+      "field_count": 19,
+      "capped_field_count": 19
+    },
+    {
+      "slug": "hepsiburada-reviews-drilldown-on-page",
+      "url": "https://www.hepsiburada.com/bic-flex-5-tiras-bicagi-6-yedek-tiras-bicagi-canta-p-HBCV00001XNOZN",
+      "class": "affordance",
+      "bucket": "subject",
+      "html_tier": "raw",
+      "html_chars": 750421,
+      "ladder_errors": [],
+      "declared_types": [
+        "Product",
+        "Review"
+      ],
+      "type_labels": [
+        "subject",
+        "subject"
+      ],
+      "field_count": 29,
+      "capped_field_count": 20
+    },
+    {
+      "slug": "amazon-product-reviews-elsewhere",
+      "url": "https://www.amazon.com/dp/B0CHX1W1XY",
+      "class": "affordance",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 3494,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "koctas-product-spa-thin-fetch",
+      "url": "https://www.koctas.com.tr/einhell-te-cd-18-48-li-i-darbeli-matkap-125-ah-starter-kit/p/5001125801",
+      "class": "spa",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 2628,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "wikipedia-narrow-ask-indexes",
+      "url": "https://en.wikipedia.org/wiki/Rust_(programming_language)",
+      "class": "clean",
+      "bucket": "document",
+      "html_tier": "raw",
+      "html_chars": 998475,
+      "ladder_errors": [],
+      "declared_types": [
+        "Article"
+      ],
+      "type_labels": [
+        "document"
+      ],
+      "field_count": 11,
+      "capped_field_count": 11
+    },
+    {
+      "slug": "trendyol-listing-which-best",
+      "url": "https://www.trendyol.com/sr?q=bluetooth+kulaklik",
+      "class": "affordance",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 809788,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "github-repo-issues-affordance",
+      "url": "https://github.com/astral-sh/ruff",
+      "class": "affordance",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 679510,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "contact-page-channels",
+      "url": "https://www.python.org/about/help/",
+      "class": "affordance",
+      "bucket": "document",
+      "html_tier": "raw",
+      "html_chars": 38520,
+      "ladder_errors": [],
+      "declared_types": [
+        "WebSite"
+      ],
+      "type_labels": [
+        "document"
+      ],
+      "field_count": 3,
+      "capped_field_count": 3
+    },
+    {
+      "slug": "incehesap-404-dead-search-url",
+      "url": "https://www.incehesap.com/arama/?kelime=deepcool+ch160+plus",
+      "class": "gated",
+      "bucket": "none",
+      "html_tier": "raw",
+      "html_chars": 6505,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "trendyol-200-soft-404-empty-results",
+      "url": "https://www.trendyol.com/sr?q=zzzqqxnonexistentproduct12345",
+      "class": "gated",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 442771,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "g2-bespoke-wall-thin-200",
+      "url": "https://www.g2.com/categories/crm",
+      "class": "gated",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 2612,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "walled-api-fake-empty-spa",
+      "url": "https://www.incehesap.com/arama/?kelime=deepcool+ch160",
+      "class": "gated",
+      "bucket": "none",
+      "html_tier": "raw",
+      "html_chars": 6505,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "tiny-complete-page",
+      "url": "https://example.com/",
+      "class": "clean",
+      "bucket": "unreachable",
+      "html_tier": "raw",
+      "html_chars": 559,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "hard-anti-bot-robust-escalation",
+      "url": "https://www.nike.com/t/air-force-1-07-mens-shoes-jBrhbr/CW2288-111",
+      "class": "gated",
+      "bucket": "unknown",
+      "html_tier": "raw",
+      "html_chars": 789464,
+      "ladder_errors": [],
+      "declared_types": [
+        "ProductGroup"
+      ],
+      "type_labels": [
+        "unknown"
+      ],
+      "field_count": 74,
+      "capped_field_count": 20
+    },
+    {
+      "slug": "dead-product-url-fat-404",
+      "url": "https://www.bhklima.com/urun/1446_vortice-lineo-125-quiet-sessiz-kanal-tipi-fan",
+      "class": "gated",
+      "bucket": "unknown",
+      "html_tier": "raw",
+      "html_chars": 319175,
+      "ladder_errors": [],
+      "declared_types": [
+        "Website",
+        "Store"
+      ],
+      "type_labels": [
+        "unknown",
+        "unknown"
+      ],
+      "field_count": 3,
+      "capped_field_count": 3
+    },
+    {
+      "slug": "answer-carries-no-fenced-scaffolding",
+      "url": "https://news.ycombinator.com/",
+      "class": "listing",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 34799,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "listing-answer-always-leaves-an-index",
+      "url": "https://arxiv.org/list/cs.CL/recent",
+      "class": "listing",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 88273,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "router-envelope-survives-model-fencing",
+      "url": "https://en.wikipedia.org/wiki/Transformer_(deep_learning_architecture)",
+      "class": "article",
+      "bucket": "document",
+      "html_tier": "raw",
+      "html_chars": 1071084,
+      "ladder_errors": [],
+      "declared_types": [
+        "Article"
+      ],
+      "type_labels": [
+        "document"
+      ],
+      "field_count": 11,
+      "capped_field_count": 11
+    },
+    {
+      "slug": "discourse-topic-list",
+      "url": "https://meta.discourse.org/latest",
+      "class": "listing",
+      "bucket": "none",
+      "html_tier": "browser_robust",
+      "html_chars": 985955,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "habr-article",
+      "url": "https://habr.com/ru/articles/1032730/",
+      "class": "article",
+      "bucket": "document",
+      "html_tier": "raw",
+      "html_chars": 116276,
+      "ladder_errors": [],
+      "declared_types": [
+        "Article"
+      ],
+      "type_labels": [
+        "document"
+      ],
+      "field_count": 9,
+      "capped_field_count": 9
+    },
+    {
+      "slug": "v2ex-topic",
+      "url": "https://www.v2ex.com/t/1000000",
+      "class": "comments",
+      "bucket": "unknown",
+      "html_tier": "raw",
+      "html_chars": 150717,
+      "ladder_errors": [],
+      "declared_types": [
+        "DiscussionForumPosting",
+        "BreadcrumbList"
+      ],
+      "type_labels": [
+        "unknown",
+        "document"
+      ],
+      "field_count": 51,
+      "capped_field_count": 20
+    },
+    {
+      "slug": "twitter-upstream-walled",
+      "url": "https://twitter.com/anthropicai/status/1701832836929187894",
+      "class": "gated",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 126642,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "walled-page-with-preceding-info-hint",
+      "url": "https://www.g2.com/products/salesforce-salesforce-sales-cloud/reviews",
+      "class": "gated",
+      "bucket": "none",
+      "html_tier": "browser",
+      "html_chars": 2650,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    },
+    {
+      "slug": "walled-listing-recovered-via-archive",
+      "url": "https://www.reuters.com/news/archive/technologyNews",
+      "class": "affordance",
+      "bucket": "unknown",
+      "html_tier": "browser_robust",
+      "html_chars": 639028,
+      "ladder_errors": [],
+      "declared_types": [
+        "CollectionPage",
+        "NewsMediaOrganization"
+      ],
+      "type_labels": [
+        "document",
+        "unknown"
+      ],
+      "field_count": 35,
+      "capped_field_count": 20
+    },
+    {
+      "slug": "datadome-wall-commerce",
+      "url": "https://www.zoro.com/dayton-air-circulator-20-in-3-speed-fan-1vcj7/i/G0180417/",
+      "class": "gated",
+      "bucket": "unreachable",
+      "html_tier": "browser",
+      "html_chars": 1525,
+      "ladder_errors": [],
+      "declared_types": [],
+      "type_labels": [],
+      "field_count": 0,
+      "capped_field_count": 0
+    }
+  ]
+}
