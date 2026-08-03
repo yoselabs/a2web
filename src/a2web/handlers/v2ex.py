@@ -25,7 +25,7 @@ from html_fragment import to_markdown
 from http_fetch import FetchVerdict, fetch_bytes
 
 from ..models import Heading, Verdict
-from ._common import empty_result, truncation_note
+from ._common import UNRETRIEVED_MARKER, empty_result, report_rot, truncation_note
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -82,9 +82,18 @@ class V2EXHandler:
             # Non-200, malformed JSON, or an empty list for an unknown id.
             return empty_result(url, Verdict.not_found)
 
+        # THREE states, not two. `_fetch_json` returns `None` for every routine
+        # failure — 429, 500, timeout, malformed body — and folding that into
+        # `[]` made a rate-limited replies call byte-identical to a topic with
+        # no replies: the `## Replies` section simply vanished under an `ok`
+        # verdict. That is the ADR-0009 harm and the same collapse `github`
+        # already fixed with its unretrieved vocabulary.
         raw_replies = results["replies"]
+        replies_unretrieved = raw_replies is None
+        if replies_unretrieved:
+            report_rot("v2ex", url=url, section="replies", cause="sub_fetch_failed")
         replies = raw_replies if isinstance(raw_replies, list) else []
-        rendered = _render(topic_list[0], replies)
+        rendered = _render(topic_list[0], replies, replies_unretrieved=replies_unretrieved)
 
         return TierResult(
             body=b"",
@@ -118,8 +127,12 @@ async def _fetch_json(endpoint: str, headers: dict[str, str], *, timeout_s: floa
 # --------------------------------------------------------------------- #
 
 
-def _render(topic: dict[str, Any], replies: list[Any]) -> dict[str, Any]:
-    """Render a V2EX topic body and its linear replies to markdown."""
+def _render(topic: dict[str, Any], replies: list[Any], *, replies_unretrieved: bool = False) -> dict[str, Any]:
+    """Render a V2EX topic body and its linear replies to markdown.
+
+    `replies_unretrieved` marks the section rather than omitting it — see the
+    three-state note at the call site.
+    """
     title = (topic.get("title") or "").strip() or None
     byline = _member_name(topic.get("member"))
     body = _post_body(topic)
@@ -138,7 +151,11 @@ def _render(topic: dict[str, Any], replies: list[Any]) -> dict[str, Any]:
 
     all_replies = [r for r in replies if isinstance(r, dict)]
     reply_dicts = all_replies[:_MAX_REPLIES]
-    if reply_dicts:
+    if replies_unretrieved:
+        parts.append("---\n")
+        parts.append(f"## Replies\n\n{UNRETRIEVED_MARKER}\n")
+        headings.append(Heading(level=2, text="Replies"))
+    elif reply_dicts:
         parts.append("---\n")
         parts.append(f"## Replies ({len(reply_dicts)})\n")
         note = truncation_note(len(reply_dicts), len(all_replies), noun="replies")

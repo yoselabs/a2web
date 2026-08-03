@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
 
 from a2web.handlers import HabrHandler, match_handler
+from a2web.handlers._common import UNRETRIEVED_MARKER
 from a2web.handlers.habr import _parse
 from a2web.models import Verdict
 from a2web.state import AppState
@@ -21,10 +23,16 @@ def _state() -> AppState:
     return make_default_state()
 
 
-def _responder(*, article_status: int = 200, comments_status: int = 200, captured: dict[str, Any] | None = None):
+def _responder(
+    *,
+    article_status: int = 200,
+    comments_status: int = 200,
+    comments_payload: dict[str, Any] | None = None,
+    captured: dict[str, Any] | None = None,
+):
     """Build a fake `httpx.AsyncClient.get` routing on the endpoint path."""
     article = (_FIX / "habr_article.json").read_text()
-    comments = (_FIX / "habr_comments.json").read_text()
+    comments = json.dumps(comments_payload) if comments_payload is not None else (_FIX / "habr_comments.json").read_text()
 
     async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         from urllib.parse import parse_qs, urlparse
@@ -98,7 +106,16 @@ async def test_article_renders_body_and_threaded_discussion(monkeypatch: pytest.
 
 
 @pytest.mark.asyncio
-async def test_comments_failure_degrades_to_article_only(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_comments_failure_degrades_to_article_only_AND_SAYS_SO(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failed comments fetch degrades to article-only — and DECLARES it.
+
+    This test previously asserted `"## Discussion" not in content_md`, i.e. it
+    pinned the section's silent disappearance in place as intended behaviour.
+    Degrading is correct; degrading invisibly is not. A 500 on the comments
+    call rendered byte-identically to an article with no comments, so the
+    caller could not tell "nobody commented" from "we did not ask successfully"
+    — the ADR-0009 harm, held green by the assertion above.
+    """
     patch_curl_session(monkeypatch, _responder(comments_status=500))
 
     result = await HabrHandler().fetch("https://habr.com/ru/articles/1032730/", state=_state())
@@ -106,7 +123,25 @@ async def test_comments_failure_degrades_to_article_only(monkeypatch: pytest.Mon
     pre = result.pre_rendered
     assert pre is not None
     assert "managing the IT overload crisis" in pre.content_md
-    assert "## Discussion" not in pre.content_md
+    # The section is PRESENT and marked, not absent.
+    assert "## Discussion" in pre.content_md
+    assert UNRETRIEVED_MARKER in pre.content_md
+
+
+@pytest.mark.asyncio
+async def test_zero_comments_is_not_marked_unretrieved(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The other direction — retrieved-and-empty must stay silent.
+
+    Without this the marker could be emitted unconditionally and the test above
+    would still pass, which would replace one indistinguishable pair with
+    another.
+    """
+    patch_curl_session(monkeypatch, _responder(comments_payload={"comments": {}, "threads": []}))
+
+    result = await HabrHandler().fetch("https://habr.com/ru/articles/1032730/", state=_state())
+    pre = result.pre_rendered
+    assert pre is not None
+    assert UNRETRIEVED_MARKER not in pre.content_md
 
 
 @pytest.mark.asyncio

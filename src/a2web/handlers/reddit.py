@@ -50,7 +50,7 @@ from .. import content_expectations
 from ..hints import OperatorHint, comments_partial_hint, reddit_deleted_hint, reddit_forbidden_hint, try_user_browser_hint
 from ..models import NEXT_LINKS_CAP, Heading, NextLink, Verdict
 from . import _reddit_html as rh
-from ._common import challenge_verdict, empty_result
+from ._common import challenge_verdict, empty_result, report_rot
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -260,6 +260,22 @@ class RedditHandler:
             rendered = _render_thread_atom(feed)
 
         if rendered.is_empty:
+            # DISTINGUISH the two ways a feed renders empty. Every downstream
+            # filter keys off `_AtomEntry.kind`, which is derived by splitting
+            # the Atom `<id>` on `_` and taking the `t3`/`t1` prefix. If Reddit
+            # ever drops that prefix, every entry gets `kind == ""`, the feed
+            # reads as empty, and this branch reports parser rot to the caller
+            # as *"the thread was deleted"* — a confident, wrong, terminal
+            # story. Entries present but no recognised kind is rot; zero
+            # entries is a real empty feed and stays silent.
+            if feed.entries and not any(e.kind for e in feed.entries):
+                report_rot(
+                    "reddit",
+                    url=url,
+                    shape=shape,
+                    cause="atom_id_prefix",
+                    entries=len(feed.entries),
+                )
             if shape in ("search", "listing"):
                 return empty_result(url, Verdict.not_found)
             return await _fetch_old_reddit_or_archive_signal(url, state=state, cookies=cookies)

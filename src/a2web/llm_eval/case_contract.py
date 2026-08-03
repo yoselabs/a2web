@@ -191,15 +191,11 @@ def check_contract_keys(
         elif key == "operator_hints_include":
             fired = set(observed.get("operator_hints") or ())
             failures.extend(
-                f"operator_hints_include: {code!r} did not fire (fired: {sorted(fired)})"
-                for code in expected
-                if code not in fired
+                f"operator_hints_include: {code!r} did not fire (fired: {sorted(fired)})" for code in expected if code not in fired
             )
         elif key == "operator_hints_exclude":
             fired = set(observed.get("operator_hints") or ())
-            failures.extend(
-                f"operator_hints_exclude: {code!r} fired and must not" for code in expected if code in fired
-            )
+            failures.extend(f"operator_hints_exclude: {code!r} fired and must not" for code in expected if code in fired)
         elif key == "hint_severity":
             failures.extend(_check_severity(observed, expected))
         elif key == "confidence_max":
@@ -322,8 +318,7 @@ def _check_index(key: str, expected: Any, observed: Mapping[str, Any]) -> list[s
     elif key == "other_pages_kinds":
         allowed = set(expected)
         out.extend(
-            f"other_pages_kinds: entry {row.get('anchor') or row.get('url')!r} has kind "
-            f"{row.get('kind')!r}, allowed {sorted(allowed)}"
+            f"other_pages_kinds: entry {row.get('anchor') or row.get('url')!r} has kind {row.get('kind')!r}, allowed {sorted(allowed)}"
             for row in other
             if row.get("kind") not in allowed
         )
@@ -353,9 +348,7 @@ def _check_index(key: str, expected: Any, observed: Mapping[str, Any]) -> list[s
             if missing:
                 out.append(f"options_all_have_url: {len(missing)} option(s) carry no URL: {missing}")
     elif key == "index_non_empty":
-        populated = any(
-            index.get(name) for name in ("other_pages", "options", "also_here", "refinement_axes")
-        )
+        populated = any(index.get(name) for name in ("other_pages", "options", "also_here", "refinement_axes"))
         if populated is not bool(expected):
             out.append(
                 f"index_non_empty: expected {bool(expected)}, but other_pages/options/also_here/"

@@ -194,9 +194,7 @@ def test_every_field_that_survives_re_comprehension_is_declared() -> None:
             # Either shape means the field is re-derived, not carried: an
             # assignment the function always executes, or one that puts the
             # field back to its unset value.
-            renews = id(sub) in unconditional or (
-                isinstance(sub.value, ast.Constant) and any(sub.value.value is c for c in _CLEARING)
-            )
+            renews = id(sub) in unconditional or (isinstance(sub.value, ast.Constant) and any(sub.value.value is c for c in _CLEARING))
             for tgt in sub.targets:
                 if isinstance(tgt, ast.Attribute) and isinstance(tgt.value, ast.Name) and tgt.value.id == "fc":
                     written.setdefault(tgt.attr, set()).add(name)

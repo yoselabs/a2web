@@ -19,9 +19,8 @@ from dom_schema import Field as DomField
 from http_fetch import fetch_bytes
 
 from ..listing_oracle import listing_oracle
-from ..log import log_warning
 from ..models import NEXT_LINKS_CAP, Heading, NextLink, Verdict
-from ._common import empty_result, map_non_ok
+from ._common import empty_result, map_non_ok, report_rot
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -146,12 +145,7 @@ class ArxivHandler:
             # old parser did while returning nothing for every listing URL.
             # A non-ok verdict lets the cascade try another tier, and the
             # captured-fixture test is what turns this into a red build.
-            log_warning(
-                "handler_schema_rot",
-                handler="arxiv",
-                url=url,
-                missing=sorted(parsed.missing),
-            )
+            report_rot("arxiv", url=url, missing=sorted(parsed.missing))
             return empty_result(url, Verdict.length_floor)
 
         entries = parsed.rows

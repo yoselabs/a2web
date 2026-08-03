@@ -26,7 +26,7 @@ from html_fragment import to_markdown, to_text
 from http_fetch import FetchVerdict, fetch_bytes
 
 from ..models import Heading, Verdict
-from ._common import empty_result, truncation_note
+from ._common import UNRETRIEVED_MARKER, empty_result, report_rot, truncation_note
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -101,8 +101,21 @@ class HabrHandler:
             # Non-200, malformed JSON, or an error payload for an unknown id.
             return empty_result(url, Verdict.not_found)
 
+        # THREE states, not two. The module docstring says "a failed comments
+        # fetch degrades to article-only", and the degradation is right — but
+        # it was SILENT: `_fetch_json` returns `None` for a 429/500/timeout,
+        # the `## Discussion` heading simply never appeared, and the caller saw
+        # an `ok` article indistinguishable from one with no comments.
+        # Degrading is fine; degrading without saying so is the ADR-0009 harm.
         comments = results["comments"]
-        rendered = _render_article(article, comments if isinstance(comments, dict) else None)
+        comments_unretrieved = comments is None
+        if comments_unretrieved:
+            report_rot("habr", url=url, section="comments", cause="sub_fetch_failed")
+        rendered = _render_article(
+            article,
+            comments if isinstance(comments, dict) else None,
+            comments_unretrieved=comments_unretrieved,
+        )
 
         return TierResult(
             body=b"",
@@ -138,8 +151,17 @@ async def _fetch_json(endpoint: str, params: dict[str, str], headers: dict[str, 
 # --------------------------------------------------------------------- #
 
 
-def _render_article(article: dict[str, Any], comments: dict[str, Any] | None) -> dict[str, Any]:
-    """Render the article body and, when available, a threaded discussion."""
+def _render_article(
+    article: dict[str, Any],
+    comments: dict[str, Any] | None,
+    *,
+    comments_unretrieved: bool = False,
+) -> dict[str, Any]:
+    """Render the article body and, when available, a threaded discussion.
+
+    `comments_unretrieved` marks the section rather than omitting it — see the
+    three-state note at the call site.
+    """
     title = to_text(article.get("titleHtml") or "") or None
     author = article.get("author")
     byline = None
@@ -160,7 +182,11 @@ def _render_article(article: dict[str, Any], comments: dict[str, Any] | None) ->
         headings.append(Heading(level=1, text=title))
 
     discussion = _render_discussion(comments) if comments is not None else ""
-    if discussion:
+    if comments_unretrieved:
+        parts.append("---\n")
+        parts.append(f"## Discussion\n\n{UNRETRIEVED_MARKER}\n")
+        headings.append(Heading(level=2, text="Discussion"))
+    elif discussion:
         parts.append("---\n")
         parts.append("## Discussion\n")
         parts.append(discussion)
@@ -179,6 +205,15 @@ def _render_discussion(comments_payload: dict[str, Any]) -> str:
     comments = comments_payload.get("comments")
     threads = comments_payload.get("threads")
     if not isinstance(comments, dict) or not comments or not isinstance(threads, list):
+        # A RETRIEVED comments payload whose shape we no longer recognise. This
+        # is the exact `is_rot` case arxiv/wikipedia log; here it was a bare
+        # `return ""` folded into the same article-only render a failed fetch
+        # produces. `comments` empty-but-present is a real zero-comment article
+        # and stays silent; only a missing/wrong-typed key reports.
+        if comments_payload:
+            missing = [k for k in ("comments", "threads") if k not in comments_payload]
+            if missing or not isinstance(comments, dict) or not isinstance(threads, list):
+                report_rot("habr", missing=sorted(missing), section="comments", cause="shape")
         return ""
 
     children: dict[str, list[str]] = defaultdict(list)

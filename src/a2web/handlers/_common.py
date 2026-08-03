@@ -1,8 +1,6 @@
 """Shared handler helpers — the byte-identical bits that used to live in
 every site handler.
 
-Three helpers:
-
 - `empty_result(url, verdict)` — the empty `TierResult` builder every handler
   duplicates verbatim for short-circuit returns.
 - `challenge_verdict(raw_html, content_type)` — the wall check an HTML handler
@@ -14,8 +12,10 @@ Three helpers:
   `status_code == 403` shape-aware branch stays inline — it's the only
   handler-specific HTTP policy and pulling it here would mis-shape the
   abstraction.
+- `report_rot(handler, ...)` — the ONE emitter of `handler_schema_rot`.
+- `truncation_note(shown, total, noun)` — the `N of M` partial-view note.
 
-(Phase 5 of `fetcher-orchestrator-refactor-v1`.)
+(Phase 5 of `fetcher-orchestrator-refactor-v1`; `report_rot` added 2026-08-03.)
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING
 
 from http_fetch import FetchVerdict
 
+from ..log import log_warning
 from ..models import Verdict
 from ..packages.block_detector import BlockVerdict, evaluate
 
@@ -129,7 +130,60 @@ def challenge_verdict(raw_html: str, *, content_md: str) -> Verdict | None:
     return Verdict(result.verdict.value)
 
 
-__all__ = ["challenge_verdict", "empty_result", "map_non_ok"]
+#: The single structured key for "this handler stopped describing its site".
+#: One key so an operator can alert on one thing, and so the count of handlers
+#: that can report is countable by a walk rather than by reading nine files.
+ROT_EVENT = "handler_schema_rot"
+
+
+def report_rot(handler: str, *, url: str | None = None, **fields: object) -> None:
+    """Emit the ONE `handler_schema_rot` event. Never raises, never returns.
+
+    **Why this exists.** Nine handlers, and until 2026-08-03 only three could
+    say anything when their parse stopped matching the site. The other six
+    rendered a perfectly-formed empty result with `Verdict.ok` — `hn` printed
+    `## Front page (0)` when Algolia's `hits` key went missing; `v2ex` and
+    `habr` turned a rate-limited sub-fetch into an omitted section; `reddit`
+    reported an unrecognised Atom `<id>` prefix to the caller as *"the thread
+    was deleted"*. Each is the ADR-0009 harm in its quietest form: a miss
+    wearing the shape of an answer, and no signal anywhere that a parser died.
+
+    Measured cost of that silence: a2web's arXiv and Wikipedia parsers were
+    both found returning ZERO rows against live pages holding 47 entries and
+    1066 anchors, each behind a green suite (2026-07-28). Detection came from a
+    live probe, not from the code noticing.
+
+    **What this is NOT.** Calling it does not change a verdict, and it must not
+    be mistaken for handling the rot. The caller still has to decide what the
+    caller returns — a non-ok verdict (`arxiv`), a dropped index (`wikipedia`),
+    or a marked section (`github`). This makes the event observable; choosing
+    the outcome stays local, because only the handler knows whether an untried
+    upstream remains.
+
+    **Warning, not error.** Rot is a fact about a2web, not about the request,
+    and the fetch may still succeed via another tier. It must not read as a
+    failed fetch to an operator scanning for those.
+    """
+    log_warning(ROT_EVENT, handler=handler, url=url, **fields)
+
+
+#: Rendered in place of a section that was NOT retrieved, as distinct from one
+#: retrieved and found empty. Lifted verbatim from `github.py`, which was the
+#: only handler with the vocabulary: a rate-limited comments call there used to
+#: render as `[]`, making it indistinguishable from an issue with no comments.
+#: `None` = unretrieved, `[]` = retrieved-and-empty — three states, not two.
+UNRETRIEVED_MARKER = "_(not retrieved — upstream did not answer)_"
+
+
+__all__ = [
+    "ROT_EVENT",
+    "UNRETRIEVED_MARKER",
+    "challenge_verdict",
+    "empty_result",
+    "map_non_ok",
+    "report_rot",
+    "truncation_note",
+]
 
 
 def truncation_note(shown: int, total: int | None, *, noun: str) -> str:

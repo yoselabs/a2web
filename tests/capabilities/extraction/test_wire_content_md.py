@@ -82,9 +82,7 @@ def test_relative_length_selects_nothing() -> None:
     long_prose = ContentCandidate(source="trafilatura", content_md=_PROSE)
     long_json = ContentCandidate(source="json_synth", content_md="spec: value\n" * 200)
 
-    short_case = _wire_content_md(
-        [long_prose, ContentCandidate(source="json_synth", content_md="price: 299 TRY")]
-    )
+    short_case = _wire_content_md([long_prose, ContentCandidate(source="json_synth", content_md="price: 299 TRY")])
     long_case = _wire_content_md([long_prose, long_json])
 
     assert "price: 299 TRY" in short_case and _PROSE in short_case

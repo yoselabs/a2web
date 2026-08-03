@@ -12,7 +12,7 @@ from html_fragment import to_markdown
 from http_fetch import fetch_bytes
 
 from ..models import NEXT_LINKS_CAP, Heading, NextLink, Verdict
-from ._common import empty_result, map_non_ok, truncation_note
+from ._common import empty_result, map_non_ok, report_rot, truncation_note
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -112,6 +112,16 @@ class HNHandler:
         items_rendered: int | None = None
         items_advertised: int | None = None
         if is_hit_list:
+            # `hits` is the ONE load-bearing key on this path and it had no
+            # guard: `payload.get("hits", [])` at three separate sites meant an
+            # Algolia rename rendered `## Front page (0)` with `Verdict.ok`,
+            # `items_rendered=0` and no next_links — a dead parser wearing the
+            # shape of a quiet news day. A 200 that parses as JSON but carries
+            # no `hits` is rot, never an empty front page: HN's front page is
+            # never empty, and a real zero-hit SEARCH still returns the key.
+            if not _has_hits(payload):
+                report_rot("hn", url=url, missing=["hits"], shape="hit_list")
+                return empty_result(url, Verdict.length_floor)
             rendered = _render_front_page(payload, is_search=query is not None)
             next_links = _front_page_candidates(payload)
             # Declared for the same reason arXiv declares them: the prose says
@@ -124,6 +134,14 @@ class HNHandler:
         else:
             rendered = _render_item(payload)
             next_links = []
+            # An item that renders to nothing is rot, not a blank story: this
+            # path is only reached after a 200 that parsed as JSON for a
+            # resolved item id, so `title`/`text`/`children` all going missing
+            # means the shape moved. Previously this returned an entirely empty
+            # `content_md` with `Verdict.ok`.
+            if not (rendered.get("content_md") or "").strip():
+                report_rot("hn", url=url, missing=["title", "text", "children"], shape="item")
+                return empty_result(url, Verdict.length_floor)
 
         return TierResult(
             body=outcome.body,
@@ -138,6 +156,17 @@ class HNHandler:
             items_rendered=items_rendered,
             items_advertised=items_advertised,
         )
+
+
+def _has_hits(payload: Any) -> bool:
+    """True when Algolia's `hits` key is present AND a list.
+
+    Presence, not emptiness — an empty `hits` on a search is a real result and
+    must stay `ok`. Only a MISSING or wrong-typed key is rot. Tested in both
+    directions (`[]` passes, absent fails), because a guard that cannot
+    distinguish the two is the guard that was missing here.
+    """
+    return isinstance(payload, dict) and isinstance(payload.get("hits"), list)
 
 
 def _source_total(payload: Any, *, is_search: bool) -> int | None:

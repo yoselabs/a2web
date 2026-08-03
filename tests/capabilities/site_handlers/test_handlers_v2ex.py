@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from a2web.handlers import V2EXHandler, match_handler
+from a2web.handlers._common import UNRETRIEVED_MARKER
 from a2web.handlers.v2ex import _topic_id
 from a2web.models import Verdict
 from a2web.state import AppState
@@ -21,10 +22,16 @@ def _state() -> AppState:
     return make_default_state()
 
 
-def _responder(*, topic_status: int = 200, replies_status: int = 200, topic_empty: bool = False):
+def _responder(
+    *,
+    topic_status: int = 200,
+    replies_status: int = 200,
+    topic_empty: bool = False,
+    no_replies: bool = False,
+):
     """Build a fake `httpx.AsyncClient.get` routing on the endpoint path."""
     topic = "[]" if topic_empty else (_FIX / "v2ex_topic.json").read_text()
-    replies = (_FIX / "v2ex_replies.json").read_text()
+    replies = "[]" if no_replies else (_FIX / "v2ex_replies.json").read_text()
 
     async def _fake_get(self: Any, url: str, **kwargs: Any) -> FakeCurlResp:
         if "replies/show" in url:
@@ -86,7 +93,15 @@ async def test_topic_url_renders_body_and_flat_replies(monkeypatch: pytest.Monke
 
 
 @pytest.mark.asyncio
-async def test_replies_failure_degrades_to_topic_only(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_replies_failure_degrades_to_topic_only_AND_SAYS_SO(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failed replies fetch degrades to topic-only — and DECLARES it.
+
+    This test previously asserted `"## Replies" not in content_md`, pinning the
+    section's silent disappearance in place as intended behaviour. A 500 on
+    `replies/show.json` rendered byte-identically to a topic with no replies,
+    so the caller could not tell "nobody replied" from "we did not ask
+    successfully" — the ADR-0009 harm, held green by the assertion above.
+    """
     patch_curl_session(monkeypatch, _responder(replies_status=500))
 
     result = await V2EXHandler().fetch("https://www.v2ex.com/t/12345", state=_state())
@@ -94,7 +109,24 @@ async def test_replies_failure_degrades_to_topic_only(monkeypatch: pytest.Monkey
     pre = result.pre_rendered
     assert pre is not None
     assert "re-explaining who I am" in pre.content_md
-    assert "## Replies" not in pre.content_md
+    # The section is PRESENT and marked, not absent.
+    assert "## Replies" in pre.content_md
+    assert UNRETRIEVED_MARKER in pre.content_md
+
+
+@pytest.mark.asyncio
+async def test_zero_replies_is_not_marked_unretrieved(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The other direction — retrieved-and-empty must stay silent.
+
+    Without this the marker could fire unconditionally and the test above would
+    still pass, swapping one indistinguishable pair for another.
+    """
+    patch_curl_session(monkeypatch, _responder(no_replies=True))
+
+    result = await V2EXHandler().fetch("https://www.v2ex.com/t/12345", state=_state())
+    pre = result.pre_rendered
+    assert pre is not None
+    assert UNRETRIEVED_MARKER not in pre.content_md
 
 
 @pytest.mark.asyncio

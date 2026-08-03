@@ -75,10 +75,7 @@ def _attribute_read_lines(node: ast.AST, obj: str, attr: str) -> list[int]:
     return [
         sub.lineno
         for sub in ast.walk(node)
-        if isinstance(sub, ast.Attribute)
-        and sub.attr == attr
-        and isinstance(sub.value, ast.Name)
-        and sub.value.id == obj
+        if isinstance(sub, ast.Attribute) and sub.attr == attr and isinstance(sub.value, ast.Name) and sub.value.id == obj
     ]
 
 
@@ -214,9 +211,7 @@ def test_the_pre_rendered_branch_still_runs_the_ladder_and_the_sufficiency_check
             node
             for node in ast.walk(extract)
             if isinstance(node, ast.If)
-            and any(
-                isinstance(sub, ast.Attribute) and sub.attr == "pre_rendered_payload" for sub in ast.walk(node.test)
-            )
+            and any(isinstance(sub, ast.Attribute) and sub.attr == "pre_rendered_payload" for sub in ast.walk(node.test))
         ),
         None,
     )

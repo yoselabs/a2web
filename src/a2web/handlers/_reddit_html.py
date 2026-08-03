@@ -27,7 +27,7 @@ from urllib.parse import urlencode, urlparse, urlunparse
 from html_fragment import to_markdown
 from selectolax.parser import HTMLParser, Node
 
-from ..log import log_warning
+from ._common import report_rot
 
 Channel = Literal["thread", "listing"]
 
@@ -155,10 +155,10 @@ def parse_thread(html: str) -> RedditThread | None:
     comment_total = _comment_total(op) if op else None
 
     if op is not None and title is None and author is None and not body_md:
-        log_warning("handler_schema_rot", handler="reddit", node="div.thing.link")
+        report_rot("reddit", node="div.thing.link")
         return None
 
-    comments =[c for node in comment_nodes if (c := _parse_comment(node)) is not None]
+    comments = [c for node in comment_nodes if (c := _parse_comment(node)) is not None]
 
     return RedditThread(
         title=title,

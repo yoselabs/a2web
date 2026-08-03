@@ -332,10 +332,7 @@ def _index_projection(response: AskResponse) -> dict[str, Any]:
     is the documented split), so read the objects.
     """
     return {
-        "other_pages": [
-            {"kind": p.kind, "url": p.url, "anchor": p.anchor, "off_domain": p.off_domain}
-            for p in response.other_pages
-        ],
+        "other_pages": [{"kind": p.kind, "url": p.url, "anchor": p.anchor, "off_domain": p.off_domain} for p in response.other_pages],
         "options": [{"title": o.title, "url": o.url, "detail": o.detail} for o in response.options],
         "also_here": list(response.also_here),
         "refinement_axes": [a.dimension for a in response.refinement_axes],

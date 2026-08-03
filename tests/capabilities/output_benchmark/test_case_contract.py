@@ -47,9 +47,7 @@ _OK = {
 
 
 def test_a_satisfied_contract_produces_no_failures() -> None:
-    failures, unsupported = check_contract_keys(
-        {"status": "ok", "tier": "raw", "answer_present": True, "next_links_min": 2}, _OK
-    )
+    failures, unsupported = check_contract_keys({"status": "ok", "tier": "raw", "answer_present": True, "next_links_min": 2}, _OK)
     assert failures == []
     assert unsupported == []
 
@@ -226,9 +224,7 @@ def test_bench_only_keys_are_unsupported_offline() -> None:
     assert BENCH_ONLY_KEYS
     assert BENCH_ONLY_KEYS < CONTRACT_KEYS
     assert not (BENCH_ONLY_KEYS & REPLAY_ONLY_KEYS)
-    failures, unsupported = check_contract_keys(
-        {"other_pages_min": 99, "status": "ok"}, _OK, supported=CONTRACT_KEYS - BENCH_ONLY_KEYS
-    )
+    failures, unsupported = check_contract_keys({"other_pages_min": 99, "status": "ok"}, _OK, supported=CONTRACT_KEYS - BENCH_ONLY_KEYS)
     assert unsupported == ["other_pages_min"]
     assert failures == []
 
@@ -243,9 +239,7 @@ def test_replay_only_keys_are_reported_unsupported_not_passed() -> None:
     """The live bench has no cassette spy. `steps` must come back as
     unobservable — the one outcome that is neither a pass nor a failure."""
     supported = CONTRACT_KEYS - REPLAY_ONLY_KEYS
-    failures, unsupported = check_contract_keys(
-        {"steps": ["raw:ok"], "status": "ok"}, _OK, supported=supported
-    )
+    failures, unsupported = check_contract_keys({"steps": ["raw:ok"], "status": "ok"}, _OK, supported=supported)
     assert unsupported == ["steps"]
     assert failures == []
 
@@ -261,9 +255,7 @@ def test_live_projection_supplies_the_deviation_only_defaults() -> None:
     """`tier` and `status` are deviation-only on the wire — absent means the
     boring default. A projection that reported `None` would fail every case
     pinning the common path, so the default is re-supplied here."""
-    result = SystemResult(
-        answer="a", system="a2web_extract", latency_ms=1, metadata={"envelope": {"answer": "a"}}
-    )
+    result = SystemResult(answer="a", system="a2web_extract", latency_ms=1, metadata={"envelope": {"answer": "a"}})
     observed = _observe_for_contract(result)
     assert observed["tier"] == "raw"
     assert observed["status"] == "ok"
@@ -287,9 +279,7 @@ def test_live_projection_uses_the_same_key_names_as_replay() -> None:
     # Each side may project fields the other cannot — but ONLY the declared
     # ones. An undeclared divergence is a rename, and a renamed key stops its
     # assertions running without failing anything.
-    assert live - offline == _BENCH_ONLY_PROJECTION, (
-        f"live projection invented key(s) {sorted(live - offline - _BENCH_ONLY_PROJECTION)}"
-    )
+    assert live - offline == _BENCH_ONLY_PROJECTION, f"live projection invented key(s) {sorted(live - offline - _BENCH_ONLY_PROJECTION)}"
     assert len(shared) >= 10
 
 
@@ -406,7 +396,4 @@ def test_shipped_per_row_keys_are_paired_with_a_floor() -> None:
         contract = entry.extra.get("contract") or {}
         for per_row, floor in pairing.items():
             if per_row in contract:
-                assert floor in contract, (
-                    f"{entry.slug}: `{per_row}` is vacuously true over an empty index — "
-                    f"pair it with `{floor}`"
-                )
+                assert floor in contract, f"{entry.slug}: `{per_row}` is vacuously true over an empty index — pair it with `{floor}`"

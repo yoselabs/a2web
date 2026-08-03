@@ -9,9 +9,9 @@ from ...log import log_warning
 from ...packages.llm_extract import OtherPageBoundary, RouterPayload
 from ..context import FetchContext
 
-    # `_apply_terminal` is NOT called here — the coordinator owns it, so the
-    # never-silently-miss floor runs on the deadline path too. Calling it in
-    # both places would run it twice on every successful fetch.
+# `_apply_terminal` is NOT called here — the coordinator owns it, so the
+# never-silently-miss floor runs on the deadline path too. Calling it in
+# both places would run it twice on every successful fetch.
 
 
 # Server-side ceiling on digest size — a circuit breaker on token cost, never a

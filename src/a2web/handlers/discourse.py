@@ -26,7 +26,7 @@ from http_fetch import fetch_bytes
 
 from ..models import NEXT_LINKS_CAP, Heading, NextLink, Verdict
 from ..settings import DEFAULT_DISCOURSE_HOSTS
-from ._common import empty_result, map_non_ok, truncation_note
+from ._common import empty_result, map_non_ok, report_rot, truncation_note
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -83,6 +83,20 @@ class DiscourseHandler:
         rendered = _render_topic(payload) if topic_match is not None else _render_index(payload, url)
         if rendered is None:
             # Valid JSON but not a Discourse topic / index — fall through.
+            #
+            # `not_found` is REUSED here for two different facts and that is a
+            # known wart: a genuine 404 and "Discourse changed its JSON
+            # contract" produce the same verdict. The verdict is left alone
+            # (falling through to the generic ladder is right either way), but
+            # the rot is now at least SAYABLE — before this, a contract change
+            # across every Discourse forum would have surfaced as a quiet rise
+            # in 404s with nothing naming the handler.
+            report_rot(
+                "discourse",
+                url=url,
+                shape="topic" if topic_match is not None else "index",
+                keys=sorted(payload)[:12] if isinstance(payload, dict) else None,
+            )
             return empty_result(url, Verdict.not_found)
 
         return TierResult(

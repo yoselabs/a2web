@@ -16,9 +16,8 @@ from dom_schema import Field as DomField
 from dom_schema import Schema, extract
 from http_fetch import fetch_bytes
 
-from ..log import log_warning
 from ..models import NEXT_LINKS_CAP, Heading, Link, NextLink, Verdict
-from ._common import challenge_verdict, empty_result, map_non_ok
+from ._common import challenge_verdict, empty_result, map_non_ok, report_rot
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -183,7 +182,7 @@ def _wikilink_candidates(html: str, *, lang: str) -> list[NextLink]:
     """
     parsed = extract(html, _WIKILINK_SCHEMA)
     if parsed.is_rot:
-        log_warning("handler_schema_rot", handler="wikipedia", missing=sorted(parsed.missing))
+        report_rot("wikipedia", missing=sorted(parsed.missing))
         return []
 
     seen: set[str] = set()

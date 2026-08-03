@@ -106,6 +106,7 @@ guard's own docstring first line.
 - `tests/architecture/test_eval_not_imported_by_a2web.py` — Architectural invariant: the shipped `a2web` package never imports the.
 - `tests/architecture/test_every_hint_code_has_a_factory.py` — Every declared hint code is built by a factory, and every factory lives in one place.
 - `tests/architecture/test_fetcher_phase_ordering.py` — The four fetcher orderings that are correct only because of where they sit; written before `decompose-fetcher-into-files` cuts anything, so the move cannot cross one silently.
+- `tests/architecture/test_every_handler_can_report_rot.py` — Every site handler must be able to say that its parser stopped matching the site.
 - `tests/architecture/test_handler_challenge_check.py` — A handler that extracts prose from retrieved HTML must check for a wall.
 - `tests/architecture/test_handler_markup_funnel.py` — Architectural invariant: handlers parse markup with a DOM, never a regex.
 - `tests/architecture/test_hermetic_llm_env.py` — The suite may not read whether THIS machine has an LLM.

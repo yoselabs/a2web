@@ -29,7 +29,7 @@ from http_fetch import FetchVerdict, fetch_bytes
 
 from ..hints import OperatorHint, section_unretrieved_hint
 from ..models import Heading, NextLink, Verdict
-from ._common import empty_result
+from ._common import empty_result, report_rot
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -299,6 +299,17 @@ async def _fetch_repo(url: str, parts: tuple[str, ...], gh: GitHubAPI) -> TierRe
             readme_md = base64.b64decode(readme_payload.get("content", "")).decode("utf-8", errors="replace")
         except (ValueError, TypeError):
             readme_md = ""
+            # RETRIEVED but undecodable. `unretrieved` is untouched here by
+            # design (the call succeeded), so without this the README section
+            # is simply omitted and reads as "this repo has no README" — the
+            # section-marking machinery below defeated by a decode failure
+            # rather than by a failed fetch.
+            report_rot("github", section="README", cause="base64_decode")
+    elif isinstance(readme_payload, dict):
+        # A 200 whose `encoding` is not `base64` — GitHub has served base64
+        # here for the life of this handler, so a different value is a contract
+        # change, not a repo without a README.
+        report_rot("github", section="README", cause="encoding", encoding=readme_payload.get("encoding"))
 
     next_links = await _fetch_repo_candidates(owner, repo, gh, unretrieved)
 
@@ -360,6 +371,12 @@ async def _fetch_repo_candidates(
             ),
         )
         issue_count += 1
+    # Rows RETRIEVED, every one unusable. `unretrieved` stays empty because the
+    # call succeeded, so this used to read as "no open issues" — a repo with a
+    # hundred of them, reported as having none. Non-empty input with zero rows
+    # surviving is rot; a genuinely empty list stays silent.
+    if isinstance(issues_data, list) and issues_data and issue_count == 0:
+        report_rot("github", section="open issues", cause="row_shape", rows=len(issues_data))
 
     pulls_data = await _get_or_none(
         "/repos/{owner}/{repo}/pulls{?state,per_page,sort,direction}",
@@ -388,6 +405,8 @@ async def _fetch_repo_candidates(
             ),
         )
         pr_count += 1
+    if isinstance(pulls_data, list) and pulls_data and pr_count == 0:
+        report_rot("github", section="open pull requests", cause="row_shape", rows=len(pulls_data))
 
     return out
 
@@ -533,6 +552,7 @@ def _render_issue(
         # has no comments" — which is exactly what a throttled sub-fetch used to
         # look like.
         parts.append(_UNRETRIEVED_MARKER + "\n\n")
+    rendered_comments = 0
     for c in comments:
         if not isinstance(c, dict):
             continue
@@ -542,6 +562,13 @@ def _render_issue(
         c_body = c.get("body") or ""
         if c_body:
             parts.append(f"**{c_user}:**\n\n{c_body}\n\n")
+            rendered_comments += 1
+    # The `comments_unretrieved` marker above guards a FAILED fetch. This guards
+    # the other route to the same empty section: comments retrieved, `body`
+    # rotted, nothing rendered, no marker — the failure `:550` exists to prevent,
+    # reached from inside a successful payload.
+    if comments and not comments_unretrieved and rendered_comments == 0:
+        report_rot("github", section="comments", cause="row_shape", rows=len(comments))
 
     return {
         "content_md": "".join(parts).strip() + "\n",

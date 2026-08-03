@@ -67,13 +67,11 @@ def test_a_captured_page_lands_on_the_expected_side_of_the_floor(name: str, clea
     verdict = evaluate(content_md=prose, raw_html=(_FIXTURES / name).read_text(errors="replace"), content_type="text/html")
     if clears_floor:
         assert verdict.verdict is not BlockVerdict.length_floor, (
-            f"{name} extracts {len(prose)} chars of real prose and must count as content; "
-            f"LENGTH_FLOOR is {LENGTH_FLOOR}"
+            f"{name} extracts {len(prose)} chars of real prose and must count as content; LENGTH_FLOOR is {LENGTH_FLOOR}"
         )
     else:
         assert verdict.verdict is BlockVerdict.length_floor, (
-            f"{name} extracts only {len(prose)} chars and must NOT be treated as a full page; "
-            f"LENGTH_FLOOR is {LENGTH_FLOOR}"
+            f"{name} extracts only {len(prose)} chars and must NOT be treated as a full page; LENGTH_FLOOR is {LENGTH_FLOOR}"
         )
 
 

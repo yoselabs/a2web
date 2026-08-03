@@ -744,9 +744,7 @@ def _observe_for_contract(fetch_result: SystemResult) -> dict[str, Any]:
         # could only pin the code would stay green through the exact regression
         # that shipped once already (a `critical` hint reaching the agent
         # unmarked because a quieter hint preceded it in the TSV table).
-        "hint_severities": {
-            h.get("code", ""): h.get("severity", "info") for h in hints if isinstance(h, dict)
-        },
+        "hint_severities": {h.get("code", ""): h.get("severity", "info") for h in hints if isinstance(h, dict)},
         "confidence": env.get("confidence"),
         # The page's own address — a legitimate thing for the answer to cite,
         # and deviation-only on the wire, so fall back to what was requested.
@@ -782,9 +780,7 @@ def _apply_case_contract_axis(row: EvalRow, entry: CorpusEntry, fetch_result: Sy
         axis.reason = "system records no structured envelope (e.g. WebFetch)"
         return
 
-    failures, unsupported = check_contract_keys(
-        contract, _observe_for_contract(fetch_result), supported=_BENCH_CONTRACT_KEYS
-    )
+    failures, unsupported = check_contract_keys(contract, _observe_for_contract(fetch_result), supported=_BENCH_CONTRACT_KEYS)
     if unsupported:
         # Not a failure and NOT a pass: the bench genuinely cannot see these.
         axis.reason = f"replay-only keys, not observable live: {sorted(unsupported)}"

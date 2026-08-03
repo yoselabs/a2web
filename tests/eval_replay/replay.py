@@ -165,9 +165,7 @@ def assert_contract(case: ReplayCase, observed: dict[str, Any]) -> None:
     if not contract:
         raise ContractMismatch(f"case {case.slug!r} has no blessed baseline/contract.json — capture/bless it first")
 
-    failures, unsupported = check_contract_keys(
-        contract, observed, supported=CONTRACT_KEYS - BENCH_ONLY_KEYS
-    )
+    failures, unsupported = check_contract_keys(contract, observed, supported=CONTRACT_KEYS - BENCH_ONLY_KEYS)
     # Replay owns the cassette spy but drives `fetch_raw`'s page-shaped
     # `FetchResponse`, which has no `other_pages` / `options` / `also_here` —
     # those live on the `AskResponse` the live bench measures. So an unsupported

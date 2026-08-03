@@ -87,9 +87,7 @@ def test_tier_manifest_count_is_real() -> None:
     assert len(manifests) >= 5, f"manifest discovery returned {manifests} — the walk is broken, not the doc"
 
     claimed = _claim(r"`tiers/` \((\d+) tiers")
-    assert claimed == len(manifests), (
-        f"CLAUDE.md claims {claimed} tier manifests; {len(manifests)} exist ({sorted(manifests)})"
-    )
+    assert claimed == len(manifests), f"CLAUDE.md claims {claimed} tier manifests; {len(manifests)} exist ({sorted(manifests)})"
 
 
 def test_every_tier_manifest_is_named() -> None:

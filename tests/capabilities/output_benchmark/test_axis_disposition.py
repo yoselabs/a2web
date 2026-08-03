@@ -437,21 +437,14 @@ def test_the_floor_is_per_system_not_per_run() -> None:
     above a per-RUN floor, while the system carrying the loss sits at 68%. The
     per-run gate stays quiet; the per-system one names the system.
     """
-    healthy = [
-        row
-        for name in ("a2web_extract", "a2web_detail", "sys_c", "sys_d")
-        for row in _rows({"quality": (44, 0)}, system=name)
-    ]
+    healthy = [row for name in ("a2web_extract", "a2web_detail", "sys_c", "sys_d") for row in _rows({"quality": (44, 0)}, system=name)]
     report = _report(*_rows({"quality": (30, 14)}, system="webfetch_baseline"), *healthy)
 
     overall = report.axis_coverage("quality")
     assert overall.scored / overall.requested > AXIS_COVERAGE_FLOOR, (
-        "the run-level coverage must be ABOVE the floor, or this test proves nothing "
-        "about the per-system split"
+        "the run-level coverage must be ABOVE the floor, or this test proves nothing about the per-system split"
     )
-    assert [(t[0], t[1], t[2], t[3]) for t in report.thin_axes()] == [
-        ("quality", "webfetch_baseline", 30, 44)
-    ]
+    assert [(t[0], t[1], t[2], t[3]) for t in report.thin_axes()] == [("quality", "webfetch_baseline", 30, 44)]
 
 
 def test_the_2026_08_02_loss_is_deliberately_NOT_caught() -> None:

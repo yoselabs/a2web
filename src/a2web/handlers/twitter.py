@@ -25,7 +25,7 @@ from http_fetch import FetchVerdict, fetch_bytes
 
 from .. import log as a2web_log
 from ..models import Heading, Verdict
-from ._common import challenge_verdict, empty_result
+from ._common import challenge_verdict, empty_result, report_rot
 
 if TYPE_CHECKING:
     from ..settings import AppSettings
@@ -92,6 +92,13 @@ class TwitterHandler:
 
         last_verdict = Verdict.connection_error
         saw_wall = False
+        # Counted, not just remembered: `last_verdict` keeps whichever instance
+        # answered LAST after the shuffle, so five distinct outcomes collapse
+        # into one arbitrary survivor. A run where every instance parsed to
+        # nothing is nitter-wide markup rot; a run where every instance timed
+        # out is a network problem. Those are different operator actions and
+        # the single surviving verdict cannot tell them apart.
+        thin: list[str] = []
         for instance in instances:
             breaker = await state.breakers.get_breaker(f"nitter:{instance}")
             try:
@@ -106,6 +113,11 @@ class TwitterHandler:
                         return result
                     if verdict in _WALL_VERDICTS:
                         saw_wall = True
+                    if verdict is Verdict.length_floor:
+                        # `_try_instance` returns exactly this when the
+                        # extractor produced no markdown from a 200 that
+                        # cleared the challenge check — i.e. the markup moved.
+                        thin.append(instance)
                     last_verdict = verdict
                     # Raise to register a failure with the breaker. The
                     # outer `try` catches this and moves to the next
@@ -117,6 +129,11 @@ class TwitterHandler:
                 # Breaker open OR unexpected error — skip this instance.
                 await a2web_log.debug("nitter_instance_skipped", instance=instance, error=str(exc))
                 continue
+
+        # Every instance that ANSWERED did so with an unreadable body. One thin
+        # instance is that instance's problem; all of them is the extractor's.
+        if thin and len(thin) == len(instances):
+            report_rot("twitter", url=url, cause="nitter_markup", instances=len(thin))
 
         if saw_wall:
             return _walled_signal(url)
