@@ -11,10 +11,12 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 import pytest
 
 from a2web.fetcher import _run_extraction_escalation
+from a2web.fetcher.context import FetchInputs
 from a2web.models import NextLink
 from tests.fixtures import FIXTURES_DIR
 
@@ -23,7 +25,14 @@ from tests.fixtures import FIXTURES_DIR
 class _FakeFc:
     content_md: str = ""
     final_url: str = ""
-    start_perf: float = field(default_factory=time.perf_counter)
+    #: §7.2 lifted the frozen preamble off `FetchContext`; the double carries the
+    #: REAL `FetchInputs` rather than a shim, so it cannot drift from the shape
+    #: the code under test actually reads.
+    inputs: FetchInputs = field(
+        default_factory=lambda: FetchInputs(
+            started_at=datetime.now(UTC), start_perf=time.perf_counter(), profile_hash="x", bypass_cache=True
+        )
+    )
     next_links_handler: list[NextLink] = field(default_factory=list)
     # Mirrors `FetchContext`: the escalation installs a JSON-LD-derived record
     # set here when the DOM miner found none (ADR-0015 listing index).

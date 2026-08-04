@@ -23,21 +23,25 @@ import time
 import pytest
 
 from a2web import fetcher
-from a2web.fetcher import DeadlineExceeded, FetchContext, _check_deadline, _remaining_budget, _within_budget
+from a2web.fetcher import DeadlineExceeded, FetchContext, FetchInputs, FetchResources, _check_deadline, _remaining_budget, _within_budget
 from a2web.models import Verdict
 
 
 def _fc(*, deadline_perf: float | None) -> FetchContext:
     """A context carrying only what the deadline helpers read."""
     return FetchContext(
-        started_at=fetcher.datetime.now(fetcher.UTC),
-        start_perf=time.perf_counter(),
-        profile_hash="test",
-        sqlite=None,
-        bypass_cache=True,
+        inputs=FetchInputs(
+            started_at=fetcher.datetime.now(fetcher.UTC),
+            start_perf=time.perf_counter(),
+            profile_hash="test",
+            bypass_cache=True,
+            deadline_perf=deadline_perf,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url="https://example.com/slow",
         final_url="https://example.com/slow",
-        deadline_perf=deadline_perf,
     )
 
 

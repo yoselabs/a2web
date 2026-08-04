@@ -28,7 +28,7 @@ from datetime import UTC, datetime
 import pytest
 
 from a2web.actions import RetryViaArchive
-from a2web.fetcher import FetchContext, Rung, _ArchiveOutcome, _dispatch_action, escalate
+from a2web.fetcher import FetchContext, FetchInputs, FetchResources, Rung, _ArchiveOutcome, _dispatch_action, escalate
 
 # Patched on the OWNING module, not on `a2web.fetcher`. The package re-exports
 # every name for compatibility, but a re-export is a second binding: setting it
@@ -59,11 +59,15 @@ _ARCHIVED_LISTING = """<!doctype html>
 
 def _fc() -> FetchContext:
     return FetchContext(
-        started_at=datetime.now(UTC),
-        start_perf=0.0,
-        profile_hash="x",
-        sqlite=None,
-        bypass_cache=True,
+        inputs=FetchInputs(
+            started_at=datetime.now(UTC),
+            start_perf=0.0,
+            profile_hash="x",
+            bypass_cache=True,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url="https://example.com/widgets",
         final_url="https://example.com/widgets",
     )

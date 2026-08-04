@@ -21,8 +21,11 @@ if the ladder stops capturing or the projection stops lifting.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 
+from a2web.fetcher.context import FetchInputs
 from a2web.models import DECLARED_FIELDS_CAP, AskResponse, DeclaredEntity
 
 
@@ -42,7 +45,14 @@ async def _declared_from(html: str) -> DeclaredEntity | None:
     class _Fc:
         content_md: str = ""
         final_url: str = "https://shop.example.com/p/1"
-        start_perf: float = field(default_factory=time.perf_counter)
+        #: §7.2 lifted the frozen preamble off `FetchContext`; the double carries
+        #: the REAL `FetchInputs` rather than a shim, so it cannot drift from the
+        #: shape the code under test actually reads.
+        inputs: FetchInputs = field(
+            default_factory=lambda: FetchInputs(
+                started_at=datetime.now(UTC), start_perf=time.perf_counter(), profile_hash="x", bypass_cache=True
+            )
+        )
         next_links_handler: list[NextLink] = field(default_factory=list)
         content_candidates: list = field(default_factory=list)
         record_set: object | None = None

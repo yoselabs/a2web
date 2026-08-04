@@ -47,12 +47,17 @@ _CONTEXT = _ROOT / "src" / "a2web" / "fetcher" / "context.py"
 
 #: The slice as of 2026-08-03, and a RATCHET rather than a target.
 #:
+#: Lowered 45 -> 39 when `decompose-fetcher-into-files` §7.2 lifted the frozen
+#: preamble: seven flat members became one `inputs: FetchInputs`. A ratchet that
+#: is not tightened after the work that earned it is just a ceiling nobody is
+#: under.
+#:
 #: Raising it is allowed and is sometimes right — but it must be deliberate,
 #: because every member added here is one more thing
 #: `decompose-fetcher-into-files` phase two has to keep together when it slices
 #: `context.py` per node. If you are raising this, check whether the new read
 #: could be a value passed in instead.
-_MEMBER_CEILING = 45
+_MEMBER_CEILING = 39
 
 #: Below this, the walk is broken rather than the code being wonderful.
 _MEMBER_FLOOR = 30

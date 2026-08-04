@@ -46,16 +46,16 @@ def _ttl_for(content_type: str | None, settings: AppSettings, *, volatility: str
 
 async def _phase_cache_check(fc: FetchContext) -> None:
     """Read the cached row (if cache is enabled and a hit exists)."""
-    if fc.sqlite is not None:
-        fc.cached_row = await fc.sqlite.get(fc.url, fc.profile_hash)
+    if fc.resources.sqlite is not None:
+        fc.cached_row = await fc.resources.sqlite.get(fc.url, fc.inputs.profile_hash)
 
 
 async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
     """Write to cache iff gate passed, non-hit, non-bypass, non-archive."""
     is_archive_result = fc.tier_used == "archive"
     should_cache = (
-        fc.sqlite is not None
-        and not fc.bypass_cache
+        fc.resources.sqlite is not None
+        and not fc.inputs.bypass_cache
         and fc.cache_state != CacheState.hit
         and fc.resolved_verdict() is Verdict.ok
         and fc.body
@@ -63,13 +63,13 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
     )
     if not should_cache:
         return
-    assert fc.sqlite is not None  # noqa: S101 — narrowed by should_cache
+    assert fc.resources.sqlite is not None  # noqa: S101 — narrowed by should_cache
 
-    cache_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
+    cache_dur_start = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
     await a2web_log.info(StageStarted(t_ms=cache_dur_start, step="cache_write"))
-    await fc.sqlite.put(
+    await fc.resources.sqlite.put(
         fc.url,
-        fc.profile_hash,
+        fc.inputs.profile_hash,
         etag=fc.etag,
         last_modified=fc.last_modified,
         status_code=fc.status_code,
@@ -77,7 +77,7 @@ async def _phase_cache_write(fc: FetchContext, *, state: AppState) -> None:
         body=fc.body,
         ttl_s=_ttl_for(fc.content_type, state.settings, volatility=fc.volatility),
     )
-    cache_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - cache_dur_start
+    cache_dur_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000) - cache_dur_start
     await a2web_log.info(
         StageEnded(t_ms=cache_dur_start, step="cache_write", verdict=Verdict.ok, dur_ms=cache_dur_ms),
     )

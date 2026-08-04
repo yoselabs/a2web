@@ -45,7 +45,7 @@ from datetime import UTC, datetime
 import pytest
 
 from a2web.decision_log import ObservationKind
-from a2web.fetcher.context import FetchContext
+from a2web.fetcher.context import FetchContext, FetchInputs, FetchResources
 from a2web.fetcher.verdict.terminal import _apply_terminal
 from a2web.fetcher_response import build_response
 from a2web.llm_eval.contract import _check_incompleteness_coherence
@@ -59,11 +59,15 @@ def _envelope(*, verdict: Verdict, render_requested: bool) -> dict[str, object]:
     that attaches the hint, so a probe omitting it measures its own omission.
     """
     fc = FetchContext(
-        started_at=datetime.now(UTC),
-        start_perf=0.0,
-        profile_hash="x",
-        sqlite=None,
-        bypass_cache=True,
+        inputs=FetchInputs(
+            started_at=datetime.now(UTC),
+            start_perf=0.0,
+            profile_hash="x",
+            bypass_cache=True,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url="https://e.com/p",
         final_url="https://e.com/p",
         render_requested=render_requested,

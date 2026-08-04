@@ -42,7 +42,7 @@ def _obstacle_wants_render(fc: FetchContext) -> bool:
       their content); AND the raw body shows unrendered-SPA markers. A complete
       page (a spec doc, a book, any content-rich SSR page) is NOT re-rendered.
     """
-    if fc.ask is None or fc.routing is None:
+    if fc.inputs.ask is None or fc.routing is None:
         return False
     if not paid_budget_available(fc):
         return False
@@ -102,7 +102,7 @@ def _listing_wants_render(fc: FetchContext, *, settings: AppSettings) -> bool:
     """
     if not settings.complete_listings:
         return False
-    if fc.ask is None:
+    if fc.inputs.ask is None:
         return False
     if fc.items_total is None:
         return False

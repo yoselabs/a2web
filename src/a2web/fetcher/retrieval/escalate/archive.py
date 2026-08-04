@@ -168,7 +168,7 @@ async def _escalate_archive_post_gate(fc: FetchContext, *, state: AppState, scro
     """
     del scroll
     fc.archive_dispatches += 1
-    outcome = await _dispatch_archive(fc.final_url, state=state, start_perf=fc.start_perf, diagnostics=fc.diagnostics)
+    outcome = await _dispatch_archive(fc.final_url, state=state, start_perf=fc.inputs.start_perf, diagnostics=fc.diagnostics)
     if not (outcome.success and outcome.pre_rendered is not None):
         return False
     _install_gate_archive(fc, outcome)

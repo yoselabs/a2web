@@ -38,7 +38,7 @@ import pytest
 
 from a2web.fetcher import DeadlineExceeded
 from a2web.fetcher import pipeline as pipeline_mod
-from a2web.fetcher.context import FetchContext
+from a2web.fetcher.context import FetchContext, FetchInputs, FetchResources
 from a2web.llm_eval.contract import _check_incompleteness_coherence
 from a2web.models import FetchStatus
 from tests.conftest import make_default_state
@@ -46,11 +46,15 @@ from tests.conftest import make_default_state
 
 def _fc() -> FetchContext:
     return FetchContext(
-        started_at=datetime.now(UTC),
-        start_perf=0.0,
-        profile_hash="x",
-        sqlite=None,
-        bypass_cache=True,
+        inputs=FetchInputs(
+            started_at=datetime.now(UTC),
+            start_perf=0.0,
+            profile_hash="x",
+            bypass_cache=True,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url="https://slow.example/page",
         final_url="https://slow.example/page",
     )

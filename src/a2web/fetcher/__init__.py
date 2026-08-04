@@ -126,6 +126,8 @@ from .context import (
     ContentCandidate,
     DeadlineExceeded,
     FetchContext,
+    FetchInputs,
+    FetchResources,
     GateOutcomeProjection,
     _check_deadline,
     _remaining_budget,
@@ -254,28 +256,32 @@ async def fetch(
 
     deadline_s = state.settings.fetch_deadline_s
     fc = FetchContext(
-        started_at=started_at,
-        start_perf=start_perf,
-        deadline_perf=(start_perf + deadline_s) if deadline_s > 0 else None,
-        profile_hash=profile_hash,
-        sqlite=sqlite,
-        bypass_cache=bypass_cache,
-        browser_backend=browser_lazy,
-        browser_robust_backend=browser_robust_lazy,
-        llm_extractor=llm_lazy,
-        cookie_jar=cookie_lazy,
+        inputs=FetchInputs(
+            started_at=started_at,
+            start_perf=start_perf,
+            deadline_perf=(start_perf + deadline_s) if deadline_s > 0 else None,
+            profile_hash=profile_hash,
+            bypass_cache=bypass_cache,
+            requested_url=requested_url,
+            include_links=include_links,
+            link_roles=link_roles,
+            wrap_content=wrap_content,
+            debug=debug,
+            ask=ask,
+            next_links_enabled=next_links,
+            max_content_chars=max_content_chars,
+            include_routing=include_routing,
+        ),
+        resources=FetchResources(
+            sqlite=sqlite,
+            browser_backend=browser_lazy,
+            browser_robust_backend=browser_robust_lazy,
+            llm_extractor=llm_lazy,
+            cookie_jar=cookie_lazy,
+        ),
         url=url,
         final_url=url,
-        requested_url=requested_url,
         url_rewrites=initial_url_rewrites,
-        include_links=include_links,
-        link_roles=link_roles,
-        wrap_content=wrap_content,
-        debug=debug,
-        ask=ask,
-        next_links_enabled=next_links,
-        max_content_chars=max_content_chars,
-        include_routing=include_routing,
         cache_state=CacheState.bypass if bypass_cache else CacheState.miss,
     )
 
@@ -291,13 +297,13 @@ async def fetch(
     # `diagnostics_summary` is always populated and carries verdict + timing.
     # v0.6 link-role filter: even when links are included, default to
     # role=primary only — kills nav/footer/aside payload bloat.
-    if not fc.include_links:
+    if not fc.inputs.include_links:
         response.links = []
     else:
-        allowed_roles = fc.link_roles
+        allowed_roles = fc.inputs.link_roles
         if allowed_roles is not None:
             response.links = [lk for lk in response.links if lk.role in allowed_roles]
-    if not fc.debug:
+    if not fc.inputs.debug:
         response.diagnostics = []
 
     return response

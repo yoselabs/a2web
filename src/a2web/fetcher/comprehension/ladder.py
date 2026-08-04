@@ -132,7 +132,7 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[C
     the full set reaches the extractor via the menu. Pure function — emits log
     telemetry, does NOT mutate `fc.content_md`.
     """
-    t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+    t_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
     await a2web_log.info(StageStarted(t_ms=t_ms, step="json_synth"))
     payloads = extract_json_payloads(raw_html)
     candidates: list[ContentCandidate] = []
@@ -168,7 +168,7 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[C
             # decides precedence.
             if json_record_set is None:
                 json_record_set = _rows_to_record_set(listing_rows(payload), base_url=fc.final_url or "")
-    dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
+    dur_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000) - t_ms
     outcome = "no_payloads" if not payloads else ("no_synth" if not candidates else "collected")
     await a2web_log.info(
         StageEnded(
@@ -246,10 +246,10 @@ async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCa
     whenever the detector produces a record set — no length gate (ADR-0005).
     Pure function — no mutation of `fc.content_md` / `fc.next_links_handler`.
     """
-    t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+    t_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
     await a2web_log.info(StageStarted(t_ms=t_ms, step="record_synth"))
     record_set = extract_records(raw_html, base_url=fc.final_url or "")
-    dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - t_ms
+    dur_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000) - t_ms
     if record_set is not None:
         synthetic = record_set.to_markdown()
         if synthetic:

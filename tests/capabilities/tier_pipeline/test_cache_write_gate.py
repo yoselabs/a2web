@@ -37,7 +37,7 @@ from datetime import UTC, datetime
 import pytest
 
 from a2web.decision_log import ObservationKind
-from a2web.fetcher.context import FetchContext
+from a2web.fetcher.context import FetchContext, FetchInputs, FetchResources
 from a2web.fetcher.retrieval.cache import _phase_cache_write
 from a2web.models import CacheState, Verdict
 from tests.conftest import make_default_state
@@ -60,13 +60,14 @@ class _RecordingSqlite:
 
 def _fc(*, verdict: Verdict, **overrides: object) -> FetchContext:
     fc = FetchContext(
-        started_at=datetime.now(UTC),
-        start_perf=0.0,
-        profile_hash="p",
-        sqlite=None,
+        inputs=FetchInputs(
+            started_at=datetime.now(UTC),
+            start_perf=0.0,
+            profile_hash="p",
+            **{"bypass_cache": False, **overrides},  # type: ignore[arg-type]
+        ),
         url="https://e.com/p",
         final_url="https://e.com/p",
-        **{"bypass_cache": False, **overrides},  # type: ignore[arg-type]
     )
     fc.observe(kind=ObservationKind.tier_outcome, source="raw", verdict=verdict)
     fc.body = b"<html>a body long enough to be real</html>"
@@ -76,7 +77,10 @@ def _fc(*, verdict: Verdict, **overrides: object) -> FetchContext:
 
 async def _wrote(fc: FetchContext) -> bool:
     spy = _RecordingSqlite()
-    fc.sqlite = spy  # type: ignore[assignment]
+    # `FetchResources` is frozen, so the spy is installed by REPLACING the
+    # bundle rather than poking a field. That is the freeze doing its job:
+    # swapping a resource mid-fetch has to be a visible, wholesale act.
+    fc.resources = FetchResources(sqlite=spy)  # type: ignore[arg-type]
     await _phase_cache_write(fc, state=make_default_state())
     return bool(spy.puts)
 
@@ -171,4 +175,4 @@ async def test_no_sqlite_is_a_no_op_not_a_crash() -> None:
     """The cacheless configuration (`sqlite=None`) is legitimate — the CLI runs
     it — so the gate must decline rather than raise."""
     fc = _fc(verdict=Verdict.ok)
-    await _phase_cache_write(fc, state=make_default_state())  # sqlite is still None
+    await _phase_cache_write(fc, state=make_default_state())  # resources.sqlite is still None

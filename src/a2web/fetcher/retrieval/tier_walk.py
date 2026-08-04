@@ -129,7 +129,7 @@ async def _dispatch_action(
         fc.url_rewrites += 1
         fc.url = action.new_url
         fc.final_url = fc.url
-        fc.cached_row = await fc.sqlite.get(fc.url, fc.profile_hash) if fc.sqlite is not None else None
+        fc.cached_row = await fc.resources.sqlite.get(fc.url, fc.inputs.profile_hash) if fc.resources.sqlite is not None else None
         return _Exec.RESTART
 
     if isinstance(action, RetryViaArchive):
@@ -143,7 +143,7 @@ async def _dispatch_action(
         outcome = await _archive_mod._dispatch_archive(
             action.url,
             state=state,
-            start_perf=fc.start_perf,
+            start_perf=fc.inputs.start_perf,
             diagnostics=fc.diagnostics,
         )
         if outcome.success:
@@ -183,7 +183,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
         await _phase_resolve_cookies(fc, state=state)
         for tier_name in TIER_ORDER:
             tier = REGISTRY[tier_name]
-            tier_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+            tier_start_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
 
             conditional_extras: dict[str, str] | None = None
             if fc.cached_row is not None:
@@ -236,7 +236,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 engine="curl_cffi" if tier_name == "raw" else None,
                 verdict=tier_result.verdict,
                 start_ms=tier_start_ms,
-                start_perf=fc.start_perf,
+                start_perf=fc.inputs.start_perf,
                 extra={
                     "status_code": tier_result.status_code,
                     "route.proxy_id": handle.proxy_id,

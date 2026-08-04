@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from a2web.fetcher import FetchContext
+from a2web.fetcher import FetchContext, FetchInputs, FetchResources
 from a2web.fetcher_response import _compose_next_links
 from a2web.models import NextLink
 
@@ -22,16 +22,20 @@ def _fc(
     enabled: bool = True,
 ) -> FetchContext:
     return FetchContext(
-        started_at=datetime.now(UTC),
-        start_perf=0.0,
-        profile_hash="x",
-        sqlite=None,
-        bypass_cache=False,
+        inputs=FetchInputs(
+            started_at=datetime.now(UTC),
+            start_perf=0.0,
+            profile_hash="x",
+            bypass_cache=False,
+            next_links_enabled=enabled,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url="https://e.com",
         final_url="https://e.com",
         next_links_handler=handler or [],
         next_links_llm=llm or [],
-        next_links_enabled=enabled,
     )
 
 

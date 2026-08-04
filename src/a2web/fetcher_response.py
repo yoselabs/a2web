@@ -61,7 +61,7 @@ if TYPE_CHECKING:
     from record_mine import RecordSet
 
     from .decision_log import Observation
-    from .fetcher.context import ContentCandidate, GateOutcomeProjection
+    from .fetcher.context import ContentCandidate, FetchInputs, GateOutcomeProjection
     from .models import DeclaredEntity, Diagnostic, Heading, Link
     from .packages.llm_extract import RouterPayload as RouterBoundary
 
@@ -112,12 +112,13 @@ class ResponseContext(Protocol):
     offers them.
     """
 
-    # -- request / timing ------------------------------------------------
-    started_at: datetime
-    start_perf: float
-    requested_url: str
+    # -- the frozen preamble ---------------------------------------------
+    #: Seven members used to sit flat here — `started_at`, `start_perf`,
+    #: `requested_url`, `debug`, `wrap_content`, `ask`, `next_links_enabled`.
+    #: §7.2 lifted them into `FetchInputs`, so this Protocol names the group
+    #: rather than its contents and shrinks by six.
+    inputs: FetchInputs
     final_url: str
-    debug: bool
 
     # -- retrieval outcome -----------------------------------------------
     tier_used: str
@@ -131,7 +132,6 @@ class ResponseContext(Protocol):
     # -- comprehension ---------------------------------------------------
     content_md: str
     content_candidates: list[ContentCandidate]
-    wrap_content: bool
     title: str | None
     byline: str | None
     published: date | None
@@ -153,7 +153,6 @@ class ResponseContext(Protocol):
     comments_total: int | None
 
     # -- answer ----------------------------------------------------------
-    ask: str | None
     extracted_answer: str | None
     extraction_meta: ExtractionMeta | None
     extraction_provider_error: str | None
@@ -164,7 +163,6 @@ class ResponseContext(Protocol):
     # ledger could not have made, since both spell `RouterPayload`.
     routing: RouterBoundary | None
     routing_outcome: RoutingOutcome | None
-    next_links_enabled: bool
     next_links_handler: list[NextLink]
     next_links_llm: list[NextLink]
 
@@ -495,7 +493,7 @@ def _compose_next_links(fc: ResponseContext) -> list[NextLink]:
     interleaved, and the existing cap still bounds the total, so the token cost
     is bounded by the same number as before.
     """
-    if not fc.next_links_enabled:
+    if not fc.inputs.next_links_enabled:
         return []
     if not fc.next_links_llm:
         return list(fc.next_links_handler[:NEXT_LINKS_CAP]) if fc.next_links_handler else []
@@ -633,7 +631,7 @@ _INCOMPLETE_TERMINALS: frozenset[TerminalOutcome] = frozenset(
 
 def build_response(fc: ResponseContext) -> FetchResponse:
     """Materialize the FetchResponse from accumulated FetchContext state."""
-    total_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+    total_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
     # The verdict is derived — a pure projection of the append-only observation
     # log, never a stored field. See `decision_log.resolve_verdict`.
     final_verdict = resolve_verdict(fc.observations)
@@ -688,13 +686,13 @@ def build_response(fc: ResponseContext) -> FetchResponse:
     #   - llm_unavailable: no LLM backend was configured at all, so extraction
     #     never ran (the `_extract_answer` phase emitted a critical hint).
     # This is the single response chokepoint, so the guarantee holds for every
-    # route. `fetch_raw` (no `fc.ask`) is unaffected — it needs no answer.
+    # route. `fetch_raw` (no `fc.inputs.ask`) is unaffected — it needs no answer.
     extraction_empty = (
         fc.extraction_meta is not None and not (fc.extracted_answer or "").strip() and (len(fc.content_md) > 500 or fc.structured_grounded)
     )
     llm_unavailable = has_hint(fc.operator_hints, "llm_unavailable")
     provider_errored = bool(fc.extraction_provider_error)
-    ask_unanswered = final_verdict == Verdict.ok and bool(fc.ask) and (extraction_empty or llm_unavailable)
+    ask_unanswered = final_verdict == Verdict.ok and bool(fc.inputs.ask) and (extraction_empty or llm_unavailable)
     if ask_unanswered:
         status = FetchStatus.failed
         retrieval_incomplete = True
@@ -739,8 +737,12 @@ def build_response(fc: ResponseContext) -> FetchResponse:
         gate_subsystem=gate_subsystem,
     )
 
-    wrapped_md = _wrap_content_md(fc.content_md, source=fc.final_url, fetched_at=fc.started_at) if fc.wrap_content else fc.content_md
-    tokens = TokenCounts(full=len(wrapped_md)) if fc.debug and final_verdict == Verdict.ok and fc.content_md else None
+    wrapped_md = (
+        _wrap_content_md(fc.content_md, source=fc.final_url, fetched_at=fc.inputs.started_at)
+        if fc.inputs.wrap_content
+        else fc.content_md
+    )
+    tokens = TokenCounts(full=len(wrapped_md)) if fc.inputs.debug and final_verdict == Verdict.ok and fc.content_md else None
     op_hints: list[OperatorHint] = list(fc.operator_hints)
     if extraction_empty:
         # Exactly one story per unanswered ask. A provider failure and a genuine
@@ -825,7 +827,7 @@ def build_response(fc: ResponseContext) -> FetchResponse:
     # `url` is redirect-only: carry the final URL only when it differs from
     # what the caller requested (HTTP redirect, captcha-host rewrite, or
     # after-tier RewriteUrl); empty otherwise, so the serializer drops it.
-    deviated_url = fc.final_url if fc.final_url != fc.requested_url else ""
+    deviated_url = fc.final_url if fc.final_url != fc.inputs.requested_url else ""
 
     # narrative / diagnostics_summary stay populated for internal callers (the
     # eval harness reads them); the serializer drops them on a successful wire.
@@ -839,10 +841,10 @@ def build_response(fc: ResponseContext) -> FetchResponse:
         title=fc.title,
         byline=fc.byline,
         published=fc.published,
-        started_at=fc.started_at if fc.debug else None,
-        total_ms=total_ms if fc.debug else None,
+        started_at=fc.inputs.started_at if fc.inputs.debug else None,
+        total_ms=total_ms if fc.inputs.debug else None,
         tokens=tokens,
-        cache=fc.cache_state if fc.debug else None,
+        cache=fc.cache_state if fc.inputs.debug else None,
         narrative=narrative,
         diagnostics_summary=diagnostics_summary,
         diagnostics=fc.diagnostics,
@@ -863,7 +865,7 @@ def build_response(fc: ResponseContext) -> FetchResponse:
         extracted_answer=fc.extracted_answer,
         extraction=fc.extraction_meta,
         content_candidates=(
-            [ContentCandidateWire(source=c.source, content_md=c.content_md) for c in fc.content_candidates] if fc.debug else []
+            [ContentCandidateWire(source=c.source, content_md=c.content_md) for c in fc.content_candidates] if fc.inputs.debug else []
         ),
         routing=_project_routing(fc.routing),
     )

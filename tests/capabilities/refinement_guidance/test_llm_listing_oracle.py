@@ -7,17 +7,21 @@ never overrides a regex verdict.
 
 from __future__ import annotations
 
-from a2web.fetcher import FetchContext, _apply_llm_listing_oracle
+from a2web.fetcher import FetchContext, FetchInputs, FetchResources, _apply_llm_listing_oracle
 from a2web.packages.llm_extract.router_payload import RouterPayload as RouterBoundary
 
 
 def _fc(*, record_count: int | None, regex_oracle_total: int | None, item_total_seen: int | None) -> FetchContext:
     fc = FetchContext(
-        started_at=None,  # type: ignore[arg-type]
-        start_perf=0.0,
-        profile_hash="h",
-        sqlite=None,  # type: ignore[arg-type]  # unused by the helper under test
-        bypass_cache=False,
+        inputs=FetchInputs(
+            started_at=None,
+            start_perf=0.0,
+            profile_hash="h",
+            bypass_cache=False,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url="https://shop.example/ara?q=x",
         final_url="https://shop.example/ara?q=x",
     )

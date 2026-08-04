@@ -123,15 +123,19 @@ def test_the_handler_declaration_actually_reaches_the_context() -> None:
 
     So this drives the real install and asserts the handoff.
     """
-    from a2web.fetcher import FetchContext, _install_won_tier
+    from a2web.fetcher import FetchContext, FetchInputs, FetchResources, _install_won_tier
     from a2web.tiers import TierResult
 
     fc = FetchContext(
-        started_at=__import__("datetime").datetime.now(__import__("datetime").UTC),
-        start_perf=0.0,
-        profile_hash="x",
-        sqlite=None,
-        bypass_cache=True,
+        inputs=FetchInputs(
+            started_at=__import__("datetime").datetime.now(__import__("datetime").UTC),
+            start_perf=0.0,
+            profile_hash="x",
+            bypass_cache=True,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url="https://arxiv.org/list/cs.CL/recent",
         final_url="https://arxiv.org/list/cs.CL/recent",
     )

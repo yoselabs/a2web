@@ -73,7 +73,7 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = Fa
         tier = REGISTRY.get(tier_name)
         if tier is None:
             continue  # un-keyed at boot — not registered.
-        paid_start_ms = await _emit_tier_started(step=tier_name, host=_host(fc.final_url), start_perf=fc.start_perf)
+        paid_start_ms = await _emit_tier_started(step=tier_name, host=_host(fc.final_url), start_perf=fc.inputs.start_perf)
         async with _within_budget(fc, about_to=f"tier:{tier.name}"):
             result = await tier.fetch(fc.final_url, state=state, scroll=scroll)
         paid_dur_ms = await _emit_tier_ended(
@@ -81,7 +81,7 @@ async def _escalate_paid(fc: FetchContext, *, state: AppState, scroll: bool = Fa
             engine=tier_name,
             verdict=result.verdict,
             start_ms=paid_start_ms,
-            start_perf=fc.start_perf,
+            start_perf=fc.inputs.start_perf,
             extra={"status_code": result.status_code},
         )
         fc.diagnostics.append(

@@ -11,11 +11,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 import pytest
 from async_scope import lazy
 
 from a2web.fetcher import _obstacle_wants_render, fetch
+from a2web.fetcher.context import FetchInputs
 from a2web.fetcher_response import build_ask_response
 from a2web.llm_resource import LlmExtractorResource
 from a2web.models import Confidence, Verdict
@@ -69,8 +71,10 @@ class _Rt:
 
 
 @dataclass
+    #: §7.2 lifted `ask` into the frozen `FetchInputs`; the double carries the
+    #: REAL type rather than a shim, so it cannot drift from what the code reads.
 class _Fc:
-    ask: str | None
+    inputs: FetchInputs
     routing: object
     paid_dispatches: int
     tier_used: str = "raw"
@@ -78,49 +82,55 @@ class _Fc:
     content_md: str = "thin shell content"  # below the ceiling by default
 
 
+
+def _inputs(ask: str | None) -> FetchInputs:
+    """The one field this module's double actually varies, in its real type."""
+    return FetchInputs(started_at=datetime.now(UTC), start_perf=0.0, profile_hash="x", bypass_cache=True, ask=ask)
+
+
 class TestObstacleWantsRender:
     def test_empty_obstacle_ask_unspent_budget(self) -> None:
-        assert _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0))
+        assert _obstacle_wants_render(_Fc(inputs=_inputs("q"), routing=_Rt("empty"), paid_dispatches=0))
 
     def test_blocked_obstacle_fires(self) -> None:
-        assert _obstacle_wants_render(_Fc(ask="q", routing=_Rt("blocked"), paid_dispatches=0))
+        assert _obstacle_wants_render(_Fc(inputs=_inputs("q"), routing=_Rt("blocked"), paid_dispatches=0))
 
     def test_paywalled_and_error_do_not_fire(self) -> None:
-        assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt("paywalled"), paid_dispatches=0))
-        assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt("error"), paid_dispatches=0))
+        assert not _obstacle_wants_render(_Fc(inputs=_inputs("q"), routing=_Rt("paywalled"), paid_dispatches=0))
+        assert not _obstacle_wants_render(_Fc(inputs=_inputs("q"), routing=_Rt("error"), paid_dispatches=0))
 
     def test_no_obstacle_does_not_fire(self) -> None:
-        assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt(None), paid_dispatches=0))
+        assert not _obstacle_wants_render(_Fc(inputs=_inputs("q"), routing=_Rt(None), paid_dispatches=0))
 
     def test_no_ask_does_not_fire(self) -> None:
-        assert not _obstacle_wants_render(_Fc(ask=None, routing=_Rt("empty"), paid_dispatches=0))
+        assert not _obstacle_wants_render(_Fc(inputs=_inputs(None), routing=_Rt("empty"), paid_dispatches=0))
 
     def test_no_routing_does_not_fire(self) -> None:
-        assert not _obstacle_wants_render(_Fc(ask="q", routing=None, paid_dispatches=0))
+        assert not _obstacle_wants_render(_Fc(inputs=_inputs("q"), routing=None, paid_dispatches=0))
 
     def test_spent_paid_budget_suppresses(self) -> None:
         # A prior gate/handler render already spent the budget — don't pay twice.
-        assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=1))
+        assert not _obstacle_wants_render(_Fc(inputs=_inputs("q"), routing=_Rt("empty"), paid_dispatches=1))
 
     def test_js_executed_tier_suppresses(self) -> None:
         # jina / browser already executed JS — a re-render returns the same content.
         for tier in ("jina", "browser", "browser_robust"):
-            assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, tier_used=tier))
+            assert not _obstacle_wants_render(_Fc(inputs=_inputs("q"), routing=_Rt("empty"), paid_dispatches=0, tier_used=tier))
 
     def test_static_page_without_spa_markers_suppresses(self) -> None:
         # A thin static page with no SPA markers → a render cannot add the
         # missing answer, so don't pay for one.
-        assert not _obstacle_wants_render(_Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, body=_STATIC_HTML))
+        assert not _obstacle_wants_render(_Fc(inputs=_inputs("q"), routing=_Rt("empty"), paid_dispatches=0, body=_STATIC_HTML))
 
     def test_substantial_content_suppresses(self) -> None:
         # The SSR false-positive (Next/Nuxt): the body has SPA mount markers but
         # substantial content was already retrieved → the page is complete, the
         # answer's absence is real, a render is pure waste.
-        fc = _Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, body=_SHELL_HTML, content_md="x" * 2500)
+        fc = _Fc(inputs=_inputs("q"), routing=_Rt("empty"), paid_dispatches=0, body=_SHELL_HTML, content_md="x" * 2500)
         assert not _obstacle_wants_render(fc)
 
     def test_thin_spa_shell_with_markers_fires(self) -> None:
-        fc = _Fc(ask="q", routing=_Rt("empty"), paid_dispatches=0, body=_SHELL_HTML, content_md="thin shell")
+        fc = _Fc(inputs=_inputs("q"), routing=_Rt("empty"), paid_dispatches=0, body=_SHELL_HTML, content_md="thin shell")
         assert _obstacle_wants_render(fc)
 
 

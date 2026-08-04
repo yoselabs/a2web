@@ -63,7 +63,7 @@ async def _record_deadline(fc: FetchContext, *, about_to: str, state: AppState) 
         fc.operator_hints.append(fetch_deadline_hint(fc.final_url or fc.url, seconds=seconds, about_to=about_to))
     await a2web_log.warning(
         StageEnded(
-            t_ms=int((time.perf_counter() - fc.start_perf) * 1000),
+            t_ms=int((time.perf_counter() - fc.inputs.start_perf) * 1000),
             step="deadline",
             verdict=Verdict.timeout,
             dur_ms=0,
@@ -117,12 +117,12 @@ async def _record_uptake(fc: FetchContext, state: AppState) -> None:
     """
     try:
         conn = await state.sqlite.ensure()
-        followed = await note_visit(conn, fc.requested_url)
+        followed = await note_visit(conn, fc.inputs.requested_url)
         if followed:
-            await a2web_log.info("other_pages_followed", url=fc.requested_url, fulfilled=followed)
+            await a2web_log.info("other_pages_followed", url=fc.inputs.requested_url, fulfilled=followed)
         targets = [(e.url, e.off_domain) for e in (fc.routing.other_pages if fc.routing else ()) if e.url]
-        stored = await record_suggestions(conn, source_url=fc.requested_url, question=fc.ask, targets=targets)
+        stored = await record_suggestions(conn, source_url=fc.inputs.requested_url, question=fc.inputs.ask, targets=targets)
         if stored:
-            await a2web_log.info("other_pages_suggested", url=fc.requested_url, count=stored)
+            await a2web_log.info("other_pages_suggested", url=fc.inputs.requested_url, count=stored)
     except (aiosqlite.Error, OSError) as exc:  # telemetry is best-effort — never break the fetch
         log_warning("uptake_write_failed", error=str(exc))

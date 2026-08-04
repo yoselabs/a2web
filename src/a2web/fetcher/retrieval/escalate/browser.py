@@ -31,8 +31,8 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
 
     Two-rung fast→robust ladder on the SAME out-of-band dispatch: the rung is
     selected from `fc.browser_dispatches` — the first dispatch is the fast
-    Chromium rung (`browser`, `fc.browser_backend`), the second the robust CDP
-    rung (`browser_robust`, `fc.browser_robust_backend`). The playbook's browser
+    Chromium rung (`browser`, `fc.resources.browser_backend`), the second the robust CDP
+    rung (`browser_robust`, `fc.resources.browser_robust_backend`). The playbook's browser
     rule (cap `< 2`) re-fires only when the fast render came back thin/blocked
     (gate still wants browser), so the robust rung never runs after a good fast
     render. Resolves the rung's `Lazy[...]` at this single seam — the engine only
@@ -54,18 +54,18 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
     if correlated_witness:
         await a2web_log.warning(
             CorrelatedWitnessRung(
-                t_ms=int((time.perf_counter() - fc.start_perf) * 1000),
+                t_ms=int((time.perf_counter() - fc.inputs.start_perf) * 1000),
                 engine=engine,
                 host=_host(fc.final_url),
             ),
         )
     backend: BrowserBackend | None
     try:
-        backend = await (fc.browser_robust_backend() if is_robust else fc.browser_backend())
+        backend = await (fc.resources.browser_robust_backend() if is_robust else fc.resources.browser_backend())
     except ResourceUnavailable:
         backend = None
     browser_tier = REGISTRY[rung]
-    br_start_ms = await _emit_tier_started(step=rung, host=_host(fc.final_url), start_perf=fc.start_perf)
+    br_start_ms = await _emit_tier_started(step=rung, host=_host(fc.final_url), start_perf=fc.inputs.start_perf)
     async with _within_budget(fc, about_to="tier:browser"):
         browser_result = await browser_tier.fetch(fc.final_url, state=state, backend=backend, scroll=scroll)
     fc.browser_dispatches += 1
@@ -74,7 +74,7 @@ async def _escalate_browser(fc: FetchContext, *, state: AppState, scroll: bool =
         engine=engine,
         verdict=browser_result.verdict,
         start_ms=br_start_ms,
-        start_perf=fc.start_perf,
+        start_perf=fc.inputs.start_perf,
         extra={"status_code": browser_result.status_code},
     )
     fc.diagnostics.append(

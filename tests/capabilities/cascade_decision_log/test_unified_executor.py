@@ -18,7 +18,7 @@ import pytest
 
 from a2web import fetcher
 from a2web.actions import Continue, EscalateBrowser, EscalatePaid, RetryViaArchive, RewriteUrl
-from a2web.fetcher import FetchContext, _ArchiveOutcome, _dispatch_action, _Exec
+from a2web.fetcher import FetchContext, FetchInputs, FetchResources, _ArchiveOutcome, _dispatch_action, _Exec
 
 # Patched on the OWNING module, not on `a2web.fetcher`. The package re-exports
 # every name for compatibility, but a re-export is a second binding: setting it
@@ -34,11 +34,15 @@ from tests.conftest import make_default_state
 
 def _fc() -> FetchContext:
     return FetchContext(
-        started_at=datetime.now(UTC),
-        start_perf=0.0,
-        profile_hash="x",
-        sqlite=None,
-        bypass_cache=True,
+        inputs=FetchInputs(
+            started_at=datetime.now(UTC),
+            start_perf=0.0,
+            profile_hash="x",
+            bypass_cache=True,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url="https://example.com/",
         final_url="https://example.com/",
     )

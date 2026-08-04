@@ -43,7 +43,7 @@ def _phase_empty_promotion(fc: FetchContext) -> None:
     """
     if fc.resolved_verdict() is Verdict.ok:
         return
-    if not is_confirmed_empty(fc.observations, fc.requested_url):
+    if not is_confirmed_empty(fc.observations, fc.inputs.requested_url):
         return
     fc.empty_confirmed = True
     if not _has_hint(fc, "content_empty"):
@@ -67,6 +67,6 @@ def _phase_complete_small_page_promotion(fc: FetchContext) -> None:
     """
     if fc.resolved_verdict() is Verdict.ok:
         return
-    if not is_complete_small_page(fc.observations, fc.requested_url):
+    if not is_complete_small_page(fc.observations, fc.inputs.requested_url):
         return
     fc.small_page_confirmed = True

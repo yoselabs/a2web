@@ -40,7 +40,7 @@ from datetime import UTC, datetime
 import pytest
 from content_extract import extract_markdown
 
-from a2web.fetcher import FetchContext, _build_link_digest, _phase_extract
+from a2web.fetcher import FetchContext, FetchInputs, FetchResources, _build_link_digest, _phase_extract
 from a2web.tiers import Rendered
 
 _BASE_URL = "https://example.org/list/recent"
@@ -85,11 +85,15 @@ async def _pre_rendered_fetch() -> FetchContext:
     """
     extracted = await extract_markdown(_LISTING_HTML, _BASE_URL)
     fc = FetchContext(
-        started_at=datetime.now(UTC),
-        start_perf=0.0,
-        profile_hash="x",
-        sqlite=None,
-        bypass_cache=False,
+        inputs=FetchInputs(
+            started_at=datetime.now(UTC),
+            start_perf=0.0,
+            profile_hash="x",
+            bypass_cache=False,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url=_BASE_URL,
         final_url=_BASE_URL,
         body=_LISTING_HTML.encode("utf-8"),

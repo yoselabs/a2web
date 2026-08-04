@@ -189,14 +189,18 @@ async def test_browser_dispatch_capped_at_two_rungs(monkeypatch: pytest.MonkeyPa
 def _bare_fc() -> object:
     from datetime import UTC, datetime
 
-    from a2web.fetcher import FetchContext
+    from a2web.fetcher import FetchContext, FetchInputs, FetchResources
 
     return FetchContext(
-        started_at=datetime.now(UTC),
-        start_perf=0.0,
-        profile_hash="x",
-        sqlite=None,
-        bypass_cache=True,
+        inputs=FetchInputs(
+            started_at=datetime.now(UTC),
+            start_perf=0.0,
+            profile_hash="x",
+            bypass_cache=True,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url="https://x.com/",
         final_url="https://x.com/",
     )

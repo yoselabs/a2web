@@ -30,7 +30,7 @@ from __future__ import annotations
 import time
 from datetime import UTC, datetime
 
-from a2web.fetcher.context import FetchContext
+from a2web.fetcher.context import FetchContext, FetchInputs, FetchResources
 from a2web.fetcher.retrieval.tier_walk import _phase_tier_loop
 from a2web.models import Verdict
 from a2web.packages.proxy_routing import _ProxyHealth
@@ -61,11 +61,15 @@ def _state_with_a_dead_required_proxy() -> AppState:
 
 def _fc() -> FetchContext:
     return FetchContext(
-        started_at=datetime.now(UTC),
-        start_perf=time.perf_counter(),
-        profile_hash="x",
-        sqlite=None,
-        bypass_cache=True,
+        inputs=FetchInputs(
+            started_at=datetime.now(UTC),
+            start_perf=time.perf_counter(),
+            profile_hash="x",
+            bypass_cache=True,
+        ),
+        resources=FetchResources(
+            sqlite=None,
+        ),
         url="https://locked.example/page",
         final_url="https://locked.example/page",
     )

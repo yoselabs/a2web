@@ -57,7 +57,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
     if not (fc.body and fc.resolved_verdict() is Verdict.ok):
         return
 
-    gate_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
+    gate_dur_start = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
     await a2web_log.info(StageStarted(t_ms=gate_dur_start, step="gate"))
 
     # Pre-rendered handler results carry application/json bodies; skip the
@@ -81,7 +81,7 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
     )
     if gate_result.promoted_structured:
         fc.structured_grounded = True
-    gate_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - gate_dur_start
+    gate_dur_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000) - gate_dur_start
     fc.diagnostics.append(
         Diagnostic(
             t_ms=gate_dur_start,

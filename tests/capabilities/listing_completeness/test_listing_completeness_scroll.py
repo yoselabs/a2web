@@ -10,12 +10,14 @@ A broad-search oracle above `listing_scroll_max` steers instead of scrolling.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 import pytest
 from async_scope import lazy
 
 from a2web.fetcher import _listing_wants_render, fetch
+from a2web.fetcher.context import FetchInputs
 from a2web.llm_resource import LlmExtractorResource
 from a2web.models import Verdict
 from a2web.settings import AppSettings
@@ -58,9 +60,17 @@ def test_zyte_request_browser_scroll_adds_bounded_actions() -> None:
 # --------------------------------------------------------------------- #
 
 
+
+def _inputs(*, ask: str | None) -> FetchInputs:
+    """`ask` is the only preamble field this module varies, in its real type."""
+    return FetchInputs(started_at=datetime.now(UTC), start_perf=0.0, profile_hash="x", bypass_cache=True, ask=ask)
+
+
 @dataclass
+    #: §7.2 lifted `ask` into the frozen `FetchInputs`; the double carries the
+    #: REAL type rather than a shim, so it cannot drift from what the code reads.
 class _Fc:
-    ask: str | None = "q"
+    inputs: FetchInputs = field(default_factory=lambda: _inputs(ask="q"))
     items_total: int | None = 40
     paid_dispatches: int = 0
     tier_used: str = "raw"
@@ -81,7 +91,7 @@ class TestListingWantsRender:
         assert not _listing_wants_render(_Fc(), settings=AppSettings(complete_listings=False))
 
     def test_no_ask_does_not_fire(self) -> None:
-        assert not _listing_wants_render(_Fc(ask=None), settings=_settings())
+        assert not _listing_wants_render(_Fc(inputs=_inputs(ask=None)), settings=_settings())
 
     def test_not_partial_does_not_fire(self) -> None:
         assert not _listing_wants_render(_Fc(items_total=None), settings=_settings())

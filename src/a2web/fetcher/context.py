@@ -79,46 +79,71 @@ class ContentCandidate:
     is_prose_metadata: bool = False
 
 
-@dataclass(slots=True)
-class FetchContext:
-    """Mutable per-fetch state passed between phase functions.
+@dataclass(frozen=True, slots=True)
+class FetchInputs:
+    """The frozen preamble — everything decided BEFORE any phase runs.
 
-    Replaces the v0.1 pattern of 20+ local variables in `_run_pipeline`.
-    Phase functions read and write fields here; the top-level coordinator
-    constructs one, runs the phases, and builds the response from it.
+    Lifted out of `FetchContext` by `decompose-fetcher-into-files` §7.2, after a
+    survey found these are never written by any pipeline node: they are set once
+    at `fetch()` entry and read thereafter. They were not context STATE at all,
+    only state-shaped.
+
+    **Not named `FetchRequest`, deliberately.** Several are not the caller's at
+    all — `started_at`, `start_perf`, `deadline_perf` and `profile_hash` are
+    computed inside `fetch()`. What unites them is not provenance but lifetime:
+    fixed before the pipeline starts, constant for its duration.
+
+    Frozen so the invariant is enforced by the language rather than by an AST
+    walk. `tests/architecture/test_fetch_context_request_is_frozen.py` pinned it
+    the other way first, deliberately — a guard written before a refactor proves
+    the refactor is possible; frozen-ness afterwards makes it structural.
     """
 
-    # Inputs (set at construction; not mutated by phases)
     started_at: datetime
     start_perf: float
     profile_hash: str
-    sqlite: SqliteResource | None
     bypass_cache: bool
-
-    # URL state (rewritten on after-tier RewriteUrl)
-    url: str
-    final_url: str
-    # The URL the caller actually passed — captured once at fetch() entry,
-    # never mutated by captcha or after-tier rewrites. `build_response`
-    # compares it against `final_url` to decide whether `url` is wire-worthy.
     requested_url: str = ""
+    #: Monotonic instant the whole fetch must finish by. `start_perf +
+    #: fetch_deadline_s`, or None when the budget is disabled.
+    deadline_perf: float | None = None
 
-    # Lazy handles for heavy/conditional resources (a2kit v0.36+). Phases that
-    # actually need browser or LLM extraction `await fc.browser_backend()` /
-    # `await fc.llm_extractor()` to resolve the resource once at the seam.
-    # Resources never enter when their consuming phase doesn't fire.
-    #
-    # Non-optional (Phase 3 of fetcher-orchestrator-refactor-v1): the `fetch()`
-    # entrypoint normalizes any `None` caller-kwarg to an `unavailable_lazy(...)`
-    # stub before constructing FetchContext, so phases never check for `None` —
-    # they `await` uniformly and catch `ResourceUnavailable` to emit the
-    # graceful operator hint.
+    # -- caller-facing opt-ins -------------------------------------------
+    ask: str | None = None
+    debug: bool = False
+    include_links: bool = False
+    #: None keeps all roles; otherwise the roles to keep (v0.6 link-role filter).
+    link_roles: frozenset[str] | None = frozenset({"primary"})
+    max_content_chars: int | None = None
+    next_links_enabled: bool = True
+    wrap_content: bool = True
+    include_routing: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class FetchResources:
+    """The injected resources, bound once for the whole fetch.
+
+    Frozen for a reason beyond tidiness: rebinding one mid-fetch would mean a
+    single fetch talking to two different browsers, or writing to a different
+    cache than it read from.
+
+    The `Lazy[T]` thunks are passed down UNAWAITED so cold start stays cheap
+    (`tests/architecture/test_cold_start_laziness.py`). Freezing the binding does
+    not resolve them — `memoized` still decides when a resource is constructed,
+    and still constructs it at most once.
+
+    Non-optional by construction: `fetch()` normalizes any `None` caller-kwarg
+    to an `unavailable_lazy(...)` stub, so phases `await` uniformly and catch
+    `ResourceUnavailable` rather than checking for `None`.
+    """
+
+    sqlite: SqliteResource | None = None
     browser_backend: Lazy[BrowserBackend] = field(
         default_factory=lambda: unavailable_lazy(BrowserBackend, reason="browser_backend not provisioned"),
     )
-    # Robust browser rung (CDP) — resolved only on the SECOND browser dispatch
-    # (fast rung came back thin/blocked). Separate Lazy seam so it enters only
-    # when the robust escalation actually fires.
+    #: Robust browser rung (CDP) — resolved only on the SECOND browser dispatch,
+    #: so it enters only when the robust escalation actually fires.
     browser_robust_backend: Lazy[BrowserBackend] = field(
         default_factory=lambda: unavailable_lazy(BrowserBackend, reason="browser_robust_backend not provisioned"),
     )
@@ -129,18 +154,29 @@ class FetchContext:
         default_factory=lambda: unavailable_lazy(CookieJarResource, reason="cookie_jar not provisioned"),
     )
 
-    # Response-shape opt-ins (v0.3 envelope diet)
-    include_links: bool = False
-    debug: bool = False
-    # v0.6 link-role filter — None keeps all roles, otherwise a frozenset of
-    # roles to keep. Default keeps only "primary" when links are included.
-    link_roles: frozenset[str] | None = frozenset({"primary"})
-    # v0.6 untrusted-content envelope: wrap content_md with HTML-comment
-    # markers carrying source + fetched_at + an untrusted warning. Defensive
-    # cue for agent-side prompt-injection awareness.
-    wrap_content: bool = True
-    # v0.4: optional LLM extraction question + outputs
-    ask: str | None = None
+
+@dataclass(slots=True)
+class FetchContext:
+    """Mutable per-fetch state passed between phase functions.
+
+    Replaces the v0.1 pattern of 20+ local variables in `_run_pipeline`.
+    Phase functions read and write fields here; the top-level coordinator
+    constructs one, runs the phases, and builds the response from it.
+    """
+
+    #: The frozen preamble and the bound resources. Everything a pipeline node
+    #: never writes lives here, so what remains on this class IS the mutable
+    #: per-fetch state the name promises.
+    inputs: FetchInputs
+
+    # URL state (rewritten on after-tier RewriteUrl)
+    url: str
+    final_url: str
+
+    #: Bound once for the whole fetch. Defaulted so a directly-constructed
+    #: context (unit tests, the eval harness) gets `unavailable_lazy` stubs
+    #: rather than having to name five resources it will never resolve.
+    resources: FetchResources = field(default_factory=FetchResources)
     extracted_answer: str | None = None
     extraction_meta: ExtractionMeta | None = None
     # Set when the extraction provider call itself failed. Distinguishes a dead
@@ -156,7 +192,6 @@ class FetchContext:
     # What happened to that envelope. `None` when routing was never requested —
     # which `routing is None` alone cannot distinguish from a parse failure.
     routing_outcome: RoutingOutcome | None = None
-    include_routing: bool = True
     # v1 link-affordances — the closed link-digest fed to the extractor for
     # `{{n}}` handle references; built in `_phase_extract_answer` gated on a
     # product/listing proxy. None on genres that skip the digest.
@@ -250,18 +285,6 @@ class FetchContext:
     # response per the four-cell matrix in `link-discovery` spec.
     next_links_handler: list[NextLink] = field(default_factory=list)
     next_links_llm: list[NextLink] = field(default_factory=list)
-    # Tool-param off-switch. When False, the final response forces [].
-    next_links_enabled: bool = True
-
-    # Monotonic instant past which no further hop may be dispatched. `None`
-    # disables the deadline — which is what `fetch_deadline_s <= 0` selects, and
-    # also what a directly-constructed context (unit tests, the eval harness)
-    # gets. Defaulted rather than required because those callers construct this
-    # by hand; `fetch()` — the only production construction site — always sets
-    # it from settings. Monotonic, not wall clock: a clock step must never
-    # shorten or extend a fetch budget.
-    deadline_perf: float | None = None
-
     # reddit-via-zyte content-expectations: loaded/oracle comment counts a
     # handler measured (None unless the page carried the concept). Threaded onto
     # the response envelope by `build_response`.
@@ -305,10 +328,6 @@ class FetchContext:
     # appends a `listing_more` hint instead of the quantified `listing_partial`.
     items_more: bool = False
 
-    # v0.10: caller-supplied cap on content chars sent to the extractor LLM.
-    # None = inherit Extractor's default (100_000).
-    max_content_chars: int | None = None
-
     def observe(
         self,
         *,
@@ -323,7 +342,7 @@ class FetchContext:
         subresource_blocks: int = 0,
     ) -> None:
         """Append one immutable observation to the decision log."""
-        t_ms = int((time.perf_counter() - self.start_perf) * 1000)
+        t_ms = int((time.perf_counter() - self.inputs.start_perf) * 1000)
         self.observations.append(
             Observation(
                 kind=kind,
@@ -357,7 +376,7 @@ class FetchContext:
         """
         if not self.small_page_confirmed:
             return False
-        if self.ask is None:
+        if self.inputs.ask is None:
             return True
         return bool((self.extracted_answer or "").strip())
 
@@ -403,9 +422,9 @@ class DeadlineExceeded(Exception):
 
 def _remaining_budget(fc: FetchContext) -> float | None:
     """Seconds left on the fetch deadline, or `None` when it is disabled."""
-    if fc.deadline_perf is None:
+    if fc.inputs.deadline_perf is None:
         return None
-    return fc.deadline_perf - time.perf_counter()
+    return fc.inputs.deadline_perf - time.perf_counter()
 
 
 def _check_deadline(fc: FetchContext, *, about_to: str) -> None:

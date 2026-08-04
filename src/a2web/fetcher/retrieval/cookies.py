@@ -40,7 +40,7 @@ async def _phase_resolve_cookies(fc: FetchContext, *, state: AppState) -> None:
     path = parsed.path or "/"
 
     try:
-        jar = await fc.cookie_jar()
+        jar = await fc.resources.cookie_jar()
     except ResourceUnavailable:
         return
     cookies_full = await jar.get_for_host(host, scheme, path)
@@ -49,7 +49,7 @@ async def _phase_resolve_cookies(fc: FetchContext, *, state: AppState) -> None:
     fc.cookies_resolved_for_host = host
 
     if cookies_full:
-        t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+        t_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
         await a2web_log.info(
             CookiesAttached(
                 t_ms=t_ms,
@@ -71,7 +71,7 @@ async def _phase_cookies_staleness(fc: FetchContext, *, state: AppState) -> None
     if fc.cookies_stale_hint_appended:
         return
     try:
-        jar = await fc.cookie_jar()
+        jar = await fc.resources.cookie_jar()
     except ResourceUnavailable:
         return
     info = await jar.staleness()
@@ -80,7 +80,7 @@ async def _phase_cookies_staleness(fc: FetchContext, *, state: AppState) -> None
     threshold_h = state.settings.cookie_stale_after_hours
     age_str = _format_age(info.age_hours)
     fc.operator_hints.append(cookies_stale_hint(age=age_str, threshold_hours=threshold_h))
-    t_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+    t_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
     await a2web_log.info(
         CookiesStale(
             t_ms=t_ms,

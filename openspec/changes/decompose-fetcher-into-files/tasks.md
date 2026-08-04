@@ -534,7 +534,9 @@ question each answers.
 - [x] 7.1b **Re-measured. The blocker is CLEARED.** The external read set is a
       declared type checked at every call site, not a list of attribute names.
       7.2 can be attempted with `ty` naming every member a cut would strand.
-- [ ] 7.2 Slice `context.py` per node. **Surveyed 2026-08-03 — the cut is far
+- [~] 7.2 Slice `context.py` per node. **First cut LANDED 2026-08-03 — the frozen
+      preamble is lifted (a) below; the per-node split of what remains is still
+      open. Surveyed 2026-08-03 — the cut is far
       more tractable than this change assumed, and the survey changes its
       shape.** Ownership derived by AST across the five pipeline groups, the
       package core and the response builder. Owner = the group that WRITES a
@@ -561,6 +563,28 @@ question each answers.
       injected `Lazy[T]` resources. No pipeline node writes them. They are not
       context STATE at all, and lifting them into a frozen request/resources
       pair is the largest easy win and can land alone.
+
+      **LIFTED 2026-08-03.** `FetchInputs` (14) + `FetchResources` (5), both
+      `frozen=True, slots=True`, in `fetcher/context.py`. `FetchContext` went
+      from 79 members to 62, and `ResponseContext` from 45 to 39 (its budget
+      ratchet was lowered to match — a ratchet not tightened after the work that
+      earned it is a ceiling nobody is under).
+
+      Named `FetchInputs`, not `FetchRequest`: `started_at`, `start_perf`,
+      `deadline_perf` and `profile_hash` are computed inside `fetch()`, not
+      passed by the caller. What unites the group is lifetime, not provenance.
+
+      `start_perf` joined them though the survey had bucketed it AMBIENT — that
+      bucket was about read-breadth (5 groups), not ownership, and splitting it
+      from its sibling `started_at` would have been arbitrary. 0 writes, 28
+      reads.
+
+      The guard below changed shape rather than being deleted: `frozen=True`
+      now enforces at runtime what the AST walk could only observe, so the walk
+      is retired and what is asserted instead is that the freeze is still there
+      (one keyword, deleting it breaks nothing else), that membership has not
+      leaked back onto `FetchContext`, and that no forwarding `@property`
+      re-flattens the boundary — the obvious next "helpful" edit.
 
       **PINNED 2026-08-03, before the lift:**
       `tests/architecture/test_fetch_context_request_is_frozen.py` asserts that

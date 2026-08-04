@@ -57,7 +57,7 @@ async def extract_markdown(html: str, url: str) -> _ExtractResult:
 
 async def _phase_extract(fc: FetchContext) -> None:
     """Run extraction on `body` (or use pre-rendered handler output)."""
-    extract_dur_start = int((time.perf_counter() - fc.start_perf) * 1000)
+    extract_dur_start = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
     raw_html = fc.body.decode("utf-8", errors="replace") if fc.body else ""
 
     if fc.pre_rendered_payload is not None:
@@ -122,7 +122,7 @@ async def _phase_extract(fc: FetchContext) -> None:
                     host=None,
                     proxy=None,
                     verdict=Verdict.ok,
-                    dur_ms=int((time.perf_counter() - fc.start_perf) * 1000) - extract_dur_start,
+                    dur_ms=int((time.perf_counter() - fc.inputs.start_perf) * 1000) - extract_dur_start,
                     extra={"chars": len(md)},
                 )
             )
@@ -144,7 +144,7 @@ async def _phase_extract(fc: FetchContext) -> None:
     fc.meta_dict = parse_metadata(raw_html)
     await _run_extraction_escalation(fc, raw_html=raw_html)
     _phase_listing_completeness(fc, raw_html=raw_html)
-    extract_dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - extract_dur_start
+    extract_dur_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000) - extract_dur_start
     fc.diagnostics.append(
         Diagnostic(
             t_ms=extract_dur_start,

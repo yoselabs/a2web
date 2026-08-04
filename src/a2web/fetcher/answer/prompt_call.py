@@ -65,7 +65,7 @@ async def _phase_extract_answer(
     Resolves `Lazy[LlmExtractorResource]` at this seam — the LLM resource
     only enters when an `ask=` was passed AND the fetch succeeded.
     """
-    if fc.ask is None:
+    if fc.inputs.ask is None:
         return
     # A corroborated complete-small-page (`small_page_confirmed`) is thin — its
     # verdict is left `length_floor` (so cache declines it) — but it IS extractable:
@@ -76,12 +76,12 @@ async def _phase_extract_answer(
         # Failed fetches don't get extraction — no content to extract from.
         # The agent will see status=failed + diagnostics_summary explaining why.
         return
-    phase_start_ms = int((time.perf_counter() - fc.start_perf) * 1000)
+    phase_start_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
     await a2web_log.info(StageStarted(t_ms=phase_start_ms, step="extract_answer"))
 
     # v0.7 link-discovery: request next-links from the LLM in the same call.
     # Skip the extension when the off-switch is engaged.
-    request_next_links = fc.next_links_enabled
+    request_next_links = fc.inputs.next_links_enabled
     handler_candidates_for_llm = (
         [_to_llm_next_link(nl) for nl in fc.next_links_handler] if request_next_links and fc.next_links_handler else None
     )
@@ -106,19 +106,19 @@ async def _phase_extract_answer(
     # both raise ResourceUnavailable. Graceful degrade — the fetch succeeded,
     # the operator hint surfaces the actionable reason.
     try:
-        extractor_resource = await fc.llm_extractor()
+        extractor_resource = await fc.resources.llm_extractor()
         result = await extractor_resource.extract(
             content=menu,
-            ask=fc.ask,
+            ask=fc.inputs.ask,
             request_next_links=request_next_links,
             handler_candidates=handler_candidates_for_llm,
-            max_content_chars=fc.max_content_chars,
-            request_routing=fc.include_routing,
+            max_content_chars=fc.inputs.max_content_chars,
+            request_routing=fc.inputs.include_routing,
             link_digest=digest_text,
         )
     except ResourceUnavailable as exc:
         fc.operator_hints.append(llm_unavailable_hint(reason=exc.reason, key_env=state.settings.llm_api_key_env))
-        dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
+        dur_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000) - phase_start_ms
         await a2web_log.info(
             StageEnded(
                 t_ms=phase_start_ms,
@@ -166,7 +166,7 @@ async def _phase_extract_answer(
         for drift_url in dropped:
             fc.diagnostics.append(
                 Diagnostic(
-                    t_ms=int((time.perf_counter() - fc.start_perf) * 1000),
+                    t_ms=int((time.perf_counter() - fc.inputs.start_perf) * 1000),
                     step="extract_answer.next_links",
                     verdict=Verdict.other,
                     dur_ms=0,
@@ -193,7 +193,7 @@ async def _phase_extract_answer(
     # LLM-side partialness detection (superset of the regex oracle) now that the
     # model's `item_total_seen` is available — closes the noun-list language gap.
     _apply_llm_listing_oracle(fc)
-    dur_ms = int((time.perf_counter() - fc.start_perf) * 1000) - phase_start_ms
+    dur_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000) - phase_start_ms
     await a2web_log.info(
         StageEnded(
             t_ms=phase_start_ms,
