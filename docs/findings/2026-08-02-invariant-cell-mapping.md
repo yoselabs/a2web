@@ -43,7 +43,7 @@ exists to expose.
 | 8 | empty-vs-wall discrimination | **2** | 5 | 2 | `trendyol-200-soft-404-empty-results` + `incehesap-404-dead-search-url` (both: the klaxon must NOT fire). The `ok`-promotion side is still judged |
 | 9 | tier-truthfulness (never launder a 404 into `ok`) | **2** | 1 | 1 | `dead-product-url-fat-404` (`status: failed` + `content_not_found`), `tiny-complete-page` (the inverse: a small page is not a miss) |
 | 10 | listing `options` shape | **2** | 2 | 0 | `json-ld-itemlist-leaves-an-index` (`options_min`), `hepsiburada-product-no-footer-options` (`options_max: 0`) |
-| 11 | never cache below the gate | 0 | 0 | 0 | **none, in any corpus.** Neither harness observes the cache |
+| 11 | never cache below the gate | 0 | 0 | 0 | **still none in any corpus** — neither harness observes the cache, and no corpus cell can (see below). Enforced instead by `tests/capabilities/tier_pipeline/test_cache_write_gate.py` since 2026-08-03 |
 | 12 | the planner's routing decisions | **6** | 0 | 0 | six offline baselines pin `steps`; two did not until this session |
 
 ## What moved, and what did not
@@ -53,6 +53,36 @@ exists to expose.
 rather than by neglect. #4 was a third until `answer_urls_traceable` closed it
 hours after this table was first written; the before/after is left visible
 because the reason it looked unclosable is the interesting part.
+
+### #11 has no corpus cell because it cannot have one
+
+Added 2026-08-03. A cached block page produces a perfectly normal-looking
+response *on the fetch that stored it*; the harm appears only on the NEXT
+fetch of the same URL, served from the poisoned row. Both harnesses fetch each
+case once and read one envelope, so no cell they could contain would catch it.
+The "∅" was therefore never asking for a corpus case — it was asking for
+enforcement somewhere, and the gate is a pure boolean over context state, which
+is a unit test's shape rather than a corpus cell's.
+
+Checked while closing it: **no test in the repository named `_phase_cache_write`
+at all.** Zero corpus cells and zero unit tests, for a rule on CLAUDE.md's Never
+list, whose failure mode is worse than an ordinary miss — a block page in the
+cache is a silent miss that REPEATS for the whole TTL with no network request to
+notice it.
+
+The gate is a six-term conjunction, so each term is now tested as a term, plus
+the positive case (without which every "must not write" assertion is vacuous —
+a gate that never writes would pass them all). Mutation-verified by deleting
+each clause in turn: every deletion turns the file red, and deleting the
+gate-passed clause fails eight.
+
+The clause worth naming is the promotions'. `_phase_empty_promotion` and
+`_phase_complete_small_page_promotion` deliberately leave the verdict at
+`length_floor` **so that this gate declines them** — two comments say so, and
+nothing enforced it. "Fixing" that verdict to `ok` at the promotion site is a
+one-line change that looks obviously right in isolation and would start
+persisting wire-only promotions, which is the repeating silent miss the
+empty-vs-wall design explicitly warns about.
 
 The four that gained deterministic cells (#1, #5, #7, #9) plus #10 and #12 are
 the §6.2/§6.4 return. #5 went from zero to seven, which is the single largest
