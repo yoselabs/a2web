@@ -632,6 +632,44 @@ question each answers.
       `verdict` purely because verdict reads it. Owner must mean writer; the
       no-writer case is its own bucket, and it turned out to be the biggest
       finding (a). The numbers above are the corrected run.
+- [ ] 7.2d **Recommendation, 2026-08-05: stop the per-node split here, and the
+      seam in (c) is not the one to cut.** Two findings from actually reading it.
+
+      **The (c) seam is narrower than surveyed, and it is a legitimate two.**
+      `title`/`byline`/`headings`/`links`/`content_md` have exactly two writers:
+      `_install_rendered_fields` (a tier already ran the canonical extractor)
+      and `_phase_extract` (trafilatura over `fc.body`). They are two
+      PROVENANCES, mutually exclusive by construction — the pre-rendered branch
+      returns before reaching the raw one. Collapsing them is not available:
+      `_phase_extract` also sets `published` and `meta_dict`, which `Rendered`
+      does not carry, so one writer would have to invent a clearing semantics
+      for fields the other provenance never had — the same objection that keeps
+      `etag` and the snapshot dates out of `TierInstall`.
+
+      **What the seam actually needed was a guard, and it was missing.**
+      `_install_rendered_fields`'s docstring claimed "THE ONLY PLACE THIS COPY
+      IS WRITTEN" — the sentence carrying the `links`-on-one-path-of-four
+      incident — while the guard written in response
+      (`test_transport_install_chokepoint.py`) covered the OTHER half. Closed
+      2026-08-05 by `test_content_install_chokepoint.py`: two full writers, one
+      per provenance, each writing exactly the set, plus one narrowing partial.
+      Mutation-verified by replaying the original bug.
+
+      **And the remaining split has no invariant behind it.** (a) bought a
+      language-enforced property — `frozen=True` makes rebinding an input or a
+      resource mid-fetch a runtime error. The remaining 62 members are written
+      mid-pipeline by definition, so no per-node bundle can be frozen; the split
+      would buy naming only, at ~150 src and ~200 test reference sites, most of
+      them genuinely ambiguous (`.content_md` reads identically on `Rendered`,
+      `ExtractResult`, `FetchContext` and both response models, so `ty` guides
+      far less of this cut than it guided (a)). Churn on that scale with no
+      enforceable property at the end is what this change's own header warns
+      about: "both phases at once turns a decomposition into a rewrite".
+
+      Reopen if a concrete defect traces to a node reading another node's
+      fields. Nothing observed does today — the two that did (the four-copy
+      install, the five-path transport install) are both closed by chokepoint
+      guards, which is the cheaper shape of the same fix.
 - [ ] 7.3 Update the ~19 test modules importing `FetchContext`.
 - [ ] 7.4 Move the T1 entries to `BACKLOG-CLOSED.md`, including the two subsumed
       ones (*no "install a fetch result" type*, *five escalation decisions live
