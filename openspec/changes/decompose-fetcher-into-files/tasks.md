@@ -534,7 +534,59 @@ question each answers.
 - [x] 7.1b **Re-measured. The blocker is CLEARED.** The external read set is a
       declared type checked at every call site, not a list of attribute names.
       7.2 can be attempted with `ty` naming every member a cut would strand.
-- [ ] 7.2 Slice `context.py` per node.
+- [ ] 7.2 Slice `context.py` per node. **Surveyed 2026-08-03 — the cut is far
+      more tractable than this change assumed, and the survey changes its
+      shape.** Ownership derived by AST across the five pipeline groups, the
+      package core and the response builder. Owner = the group that WRITES a
+      field; ambient = read by four or more groups:
+
+      ```
+        retrieval                24
+        request-frozen           18   inputs + injected resources, no node writes them
+        AMBIENT                   7   content_md, diagnostics, final_url, observations,
+                                      operator_hints, routing, start_perf
+        answer                    7
+        comprehension/retrieval   7   the pre-rendered handler shortcut
+        comprehension             5
+        verdict                   3
+        sufficiency               3
+        retrieval/sufficiency     1   regex_oracle_total
+                                 --
+                                 75
+      ```
+
+      Three findings, each changing what 7.2 is:
+
+      **(a) 18 fields are request-frozen** — the caller's arguments plus the
+      injected `Lazy[T]` resources. No pipeline node writes them. They are not
+      context STATE at all, and lifting them into a frozen request/resources
+      pair is the largest easy win and can land alone.
+
+      **(b) only 7 members resist a slice, and they are not shared mutable
+      state.** They are the append-only logs (`observations`, `diagnostics`,
+      `operator_hints`), the payload (`content_md`), request identity
+      (`final_url`), timing (`start_perf`), and the extraction result
+      (`routing`). Every one is a legitimate whole-pipeline concern, so they
+      belong in a small ambient core rather than being forced into a node.
+
+      **(c) exactly 8 fields have split ownership, and 7 of them share ONE
+      name:** the pre-rendered handler path, where a retrieval-time site handler
+      writes directly into comprehension's output slots (`title`, `byline`,
+      `headings`, `links`, `next_links_handler`, `record_count`,
+      `pre_rendered_payload`). That is a nameable seam to decide about, not
+      tangle. `regex_oracle_total` is the only other, and it is one field.
+
+      So 7.2 is not "partition 75 fields five ways". It is: lift the frozen
+      request, name the ambient core, decide the pre-rendered seam, and the
+      remainder falls out by writer. `ResponseContext` (§7.0) means `ty` will
+      name every member a bad cut strands.
+
+      **Instrument note, because it nearly became a recorded fact.** A first
+      pass assigned ownership by falling back to READERS when no group wrote a
+      field, which put `requested_url` — a constructor argument — under
+      `verdict` purely because verdict reads it. Owner must mean writer; the
+      no-writer case is its own bucket, and it turned out to be the biggest
+      finding (a). The numbers above are the corrected run.
 - [ ] 7.3 Update the ~19 test modules importing `FetchContext`.
 - [ ] 7.4 Move the T1 entries to `BACKLOG-CLOSED.md`, including the two subsumed
       ones (*no "install a fetch result" type*, *five escalation decisions live
