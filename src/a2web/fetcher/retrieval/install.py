@@ -56,7 +56,19 @@ def install(fc: FetchContext, ti: TierInstall) -> None:
 def _install_rendered_fields(fc: FetchContext, pre: Rendered) -> None:
     """Copy a pre-rendered payload's content fields onto the context.
 
-    THE ONLY PLACE THIS COPY IS WRITTEN. There were FOUR, and they disagreed:
+    THE ONLY PLACE THE PRE-RENDERED COPY IS WRITTEN — which is narrower than
+    what this line said until 2026-08-05 ("the only place this copy is
+    written"), and the difference matters to whoever adds the next path.
+    `_phase_extract` writes the same five fields from a fresh trafilatura
+    result; the two are the two PROVENANCES, mutually exclusive by construction
+    (the pre-rendered branch returns before reaching the raw one). Read
+    strictly, the old sentence was false, and it was the sentence carrying the
+    incident below. Pinned now by
+    `tests/architecture/test_content_install_chokepoint.py`, which asserts both
+    provenances write exactly this set — the transport half got its guard in
+    2026-07 and this half, the one the incident actually happened in, did not.
+
+    There were FOUR copies, and they disagreed:
     `_phase_extract` (the tier won the loop), `_dispatch_archive`,
     `_escalate_browser` (the gate said escalate), and `_escalate_paid`. Adding a
     field to `Rendered` meant remembering all four, and `links` was added to
