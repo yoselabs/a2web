@@ -1081,3 +1081,55 @@ failed condition simply fell through to the success path. The check was present;
 the protection was not. Prefer an explicit reject branch over a condition whose
 failure mode is "carry on".
 
+## 2026-08-02 — a failed archive dispatch leaves no diagnostic row (S, ADR-0009 visibility)
+
+**Decided in `decompose-fetcher-into-files` §1.3, deliberately not applied there**
+— that change's rule is that the only behaviour change is the ladder-skip fix,
+and adding rows changes `diagnostics_summary` prose. Recorded so the decision is
+not re-derived.
+
+`_dispatch_archive` appends a `Diagnostic` **only on success**. Browser, paid,
+and the tier loop append **always**. The divergence has a stated reason in the
+docstring — a failed escalation is "tried, didn't help" and "should not displace
+the originating verdict" — and **that reason stopped being true.**
+
+`resolve_verdict` reads `Observation`s, not `Diagnostic`s (`decision_log.py:119`
+filters on `ObservationKind`), and verdict became a pure projection of the
+decision log in v0.23. A `Diagnostic` has no path into verdict resolution at
+all. The justification survived the refactor that invalidated it, which is the
+same shape as a stale allowlist entry: prose that reads as a decision and is
+protecting nothing.
+
+**What it costs.** ADR-0009 says the caller must never mistake a miss for a
+complete answer, and the diagnostics list is where "what did you try" lives. A
+failed archive dispatch leaves a gap exactly where an attempt was — the response
+cannot show that archive ran and did not help, so "we never tried" and "we tried
+and it failed" render identically. That is the cheap half of the ADR-0009 harm,
+but it is the same direction.
+
+**Fix:** append the `Diagnostic` before the success check in `_dispatch_archive`,
+with the failing verdict. Expect `diagnostics_summary` deltas in tests that
+exercise a failed archive escalation — those deltas are the fix working, not a
+regression.
+
+**SHIPPED 2026-08-03.** The append moved above the success check; the docstring
+now records that the original justification had expired rather than repeating
+it.
+
+**The fix landed with all 1703 tests green**, though this entry predicted
+`diagnostics_summary` deltas. That absence was the real finding: the only test
+named for a failed archive dispatch fakes `_dispatch_archive` ITSELF, so the
+real function never ran and the branch had no coverage at all. A behaviour
+change with zero deltas is not reassurance — it is a question.
+
+Covered now by `tests/capabilities/tier_pipeline/test_archive_attempt_is_visible.py`,
+which fakes the archive TIER and lets the real dispatch execute. That is the
+difference between testing a caller's handling of a result and testing the code
+that produces it. Mutation-verified: moving the append back below the guard
+fails 5 of its 6 tests.
+
+The sixth is the one that would not have failed, and it is deliberate — a
+successful dispatch must still record EXACTLY ONE row. Hoisting an append is a
+two-line edit that could easily leave the original in place, and a duplicate row
+per archive hit is something no other test would notice.
+

@@ -45,9 +45,24 @@ async def _dispatch_archive(
     """One-stop archive dispatch — used by both after-tier and after-gate paths.
 
     Emits TierStarted/TierEnded around the archive fetch, appends a Diagnostic
-    only on success (a failed escalation is "tried, didn't help" and should
-    not displace the originating verdict), and returns an outcome the caller
-    installs into orchestrator state.
+    ALWAYS, and returns an outcome the caller installs into orchestrator state.
+
+    **Always, not only on success — changed 2026-08-03.** This appended a row
+    only when the archive won, on the stated grounds that a failed escalation is
+    "tried, didn't help" and "should not displace the originating verdict".
+    That reason stopped being true and the prose survived: `resolve_verdict`
+    reads `Observation`s, not `Diagnostic`s (`decision_log.py` filters on
+    `ObservationKind`), and the verdict became a pure projection of the decision
+    log in v0.23. A `Diagnostic` has no path into verdict resolution at all.
+
+    What the silence cost is ADR-0009 visibility. The diagnostics list is where
+    "what did you try" lives, so a failed archive dispatch left a gap exactly
+    where an attempt had been — "we never tried the archive" and "we tried and
+    it did not help" rendered identically to the caller. The cheap half of the
+    ADR-0009 harm, but the same direction.
+
+    Browser, paid and the tier loop have always appended unconditionally; this
+    was the one divergence.
     """
     archive_tier = REGISTRY["archive"]
     arch_start_ms = await _emit_tier_started(step="archive", host=_host(url), start_perf=start_perf)
@@ -61,9 +76,8 @@ async def _dispatch_archive(
         start_perf=start_perf,
         extra={"status_code": archive_result.status_code},
     )
-    archive_pre = archive_result.pre_rendered
-    if archive_result.verdict != Verdict.ok or archive_pre is None:
-        return _ArchiveOutcome(success=False)
+    # Appended BEFORE the success check: the row records the attempt, and an
+    # attempt that failed is exactly the one a caller cannot otherwise see.
     diagnostics.append(
         Diagnostic(
             t_ms=arch_start_ms,
@@ -76,6 +90,9 @@ async def _dispatch_archive(
             extra={"status_code": archive_result.status_code},
         )
     )
+    archive_pre = archive_result.pre_rendered
+    if archive_result.verdict != Verdict.ok or archive_pre is None:
+        return _ArchiveOutcome(success=False)
     return _ArchiveOutcome(
         success=True,
         body=archive_result.body,

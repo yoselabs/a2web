@@ -709,37 +709,6 @@ Pinned open by `test_fetcher_residual_ordering.py`'s
 `_SURVIVES_RECOMPREHENSION` ledger, which will not let a third sticky field
 appear without naming itself.
 
-## 2026-08-02 — a failed archive dispatch leaves no diagnostic row (S, ADR-0009 visibility)
-
-**Decided in `decompose-fetcher-into-files` §1.3, deliberately not applied there**
-— that change's rule is that the only behaviour change is the ladder-skip fix,
-and adding rows changes `diagnostics_summary` prose. Recorded so the decision is
-not re-derived.
-
-`_dispatch_archive` appends a `Diagnostic` **only on success**. Browser, paid,
-and the tier loop append **always**. The divergence has a stated reason in the
-docstring — a failed escalation is "tried, didn't help" and "should not displace
-the originating verdict" — and **that reason stopped being true.**
-
-`resolve_verdict` reads `Observation`s, not `Diagnostic`s (`decision_log.py:119`
-filters on `ObservationKind`), and verdict became a pure projection of the
-decision log in v0.23. A `Diagnostic` has no path into verdict resolution at
-all. The justification survived the refactor that invalidated it, which is the
-same shape as a stale allowlist entry: prose that reads as a decision and is
-protecting nothing.
-
-**What it costs.** ADR-0009 says the caller must never mistake a miss for a
-complete answer, and the diagnostics list is where "what did you try" lives. A
-failed archive dispatch leaves a gap exactly where an attempt was — the response
-cannot show that archive ran and did not help, so "we never tried" and "we tried
-and it failed" render identically. That is the cheap half of the ADR-0009 harm,
-but it is the same direction.
-
-**Fix:** append the `Diagnostic` before the success check in `_dispatch_archive`,
-with the failing verdict. Expect `diagnostics_summary` deltas in tests that
-exercise a failed archive escalation — those deltas are the fix working, not a
-regression.
-
 ## 2026-08-01 — T7 promotion candidate: `anyllm` needs a per-request timeout
 
 **Filed while shipping `bound-every-unbounded-path` §2.** `anyllm.LLMProvider.complete()`
