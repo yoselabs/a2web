@@ -119,9 +119,7 @@ def test_correctness_is_delegated_and_the_delegate_is_real() -> None:
     repo keeps finding, so the delegation is asserted rather than assumed.
     """
     tree = ast.parse(_RESPONSE.read_text(encoding="utf-8"))
-    builders = {
-        n.name: n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name in {"build_response", "_compose_next_links"}
-    }
+    builders = {n.name: n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name in {"build_response", "_compose_next_links"}}
     assert builders, "neither `build_response` nor `_compose_next_links` was found — the walk broke"
 
     for name, fn in sorted(builders.items()):

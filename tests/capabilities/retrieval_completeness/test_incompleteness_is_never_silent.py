@@ -105,10 +105,7 @@ def test_the_sweep_reaches_the_incomplete_branch_often() -> None:
     the 26 observed so ordinary reclassification does not trip it.
     """
     incomplete = [
-        (v.value, rr)
-        for v in Verdict
-        for rr in (True, False)
-        if _envelope(verdict=v, render_requested=rr)["retrieval_incomplete"]
+        (v.value, rr) for v in Verdict for rr in (True, False) if _envelope(verdict=v, render_requested=rr)["retrieval_incomplete"]
     ]
     assert len(incomplete) >= 15, (
         f"only {len(incomplete)} of {len(list(Verdict)) * 2} combinations reach "

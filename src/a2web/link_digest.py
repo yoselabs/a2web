@@ -103,6 +103,27 @@ class LinkDigest:
         return _HANDLE_RE.sub(_sub, text)
 
 
+def strip_handles(text: str) -> str:
+    """Remove every ``{{n}}`` token — the no-digest half of ADR-0013.
+
+    `LinkDigest.rehydrate_text` handles the case where a digest exists. This is
+    the case where one does NOT, and it was the hole: `_build_link_digest`
+    returns `None` for a prose-only article (no links, or no structured
+    candidate), while the `LINKS IN THE ANSWER` clause teaching the `{{n}}`
+    convention sits in the BASE prompt and is sent unconditionally. So the model
+    is taught the convention, given no link list, and anything it emitted
+    reached the caller verbatim.
+
+    A handle with no digest is not resolvable and not meaningful — there is
+    nothing it could refer to — so it is removed rather than passed through.
+    That keeps one rule true in both branches: **a `{{n}}` never reaches the
+    caller.** A leaked handle is not the ADR-0014 fabricated-URL harm, but it is
+    a token an agent could reasonably mistake for content, emitted by the one
+    subsystem whose entire job is to not do that.
+    """
+    return _HANDLE_RE.sub("", text)
+
+
 def build_digest(links: list[Link], *, page_url: str, limit: int | None = None) -> LinkDigest:
     """Assemble a :class:`LinkDigest` from a page's anchors.
 

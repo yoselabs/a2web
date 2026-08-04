@@ -9,6 +9,7 @@ from ...events import StageEnded, StageStarted
 from ...hints import (
     llm_unavailable_hint,
 )
+from ...link_digest import strip_handles
 from ...models import Diagnostic, ExtractionMeta, Verdict
 from ...state import AppState, ResourceUnavailable
 from ..answer.digest import _build_link_digest, _rehydrate_routing_handles
@@ -128,13 +129,23 @@ async def _phase_extract_answer(
             ),
         )
         return
-    # Defensive rehydration of the answer text: if the model referenced a link
-    # by its `{{n}}` handle inside its prose (not just in `other_pages`), turn that
+    # Rehydration of the answer text: if the model referenced a link by its
+    # `{{n}}` handle inside its prose (not just in `other_pages`), turn that
     # handle into the real URL rather than leaking `{{n}}` to the caller. Known
     # handle -> href (an actionable inline link); unknown handle -> removed.
-    # No-op when no digest was fed. Also the seam a future "links in the answer"
-    # eval builds on (findings 2026-07-11-answer-inline-links).
-    fc.extracted_answer = fc.link_digest.rehydrate_text(result.answer) if fc.link_digest else result.answer
+    #
+    # The no-digest branch STRIPS rather than passing through, and that was a
+    # real leak until 2026-08-03. It read "no-op when no digest was fed", which
+    # sounds safe and is not: `_build_link_digest` returns None for a prose-only
+    # article, while the `LINKS IN THE ANSWER` clause teaching the `{{n}}`
+    # convention lives in the BASE prompt and ships unconditionally. The model
+    # was taught the convention, given no link list, and anything it emitted
+    # reached the caller verbatim. A handle with no digest cannot resolve to
+    # anything, so it is removed — one rule, true in both branches.
+    #
+    # Also the seam a future "links in the answer" eval builds on
+    # (findings 2026-07-11-answer-inline-links).
+    fc.extracted_answer = fc.link_digest.rehydrate_text(result.answer) if fc.link_digest else strip_handles(result.answer)
     # Carry the provider failure (if any) to the response builder so the
     # unanswered-ask hint can name the real cause instead of blaming the page.
     fc.extraction_provider_error = result.provider_error

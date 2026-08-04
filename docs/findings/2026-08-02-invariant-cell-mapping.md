@@ -35,7 +35,7 @@ exists to expose.
 |---|---|---|---|---|---|
 | 1 | **ADR-0009** wire half (failed ⇒ `retrieval_incomplete` + `narrative` + diagnostics + critical hint) | **4** | 3 | 2 | offline `zoro-datadome-bot-wall` (all four signals, as of this session); bench `datadome-wall-commerce` (`status`/`retrieval_incomplete`/`narrative_present`/`answer_present` + `hint_severity`) |
 | 2 | **ADR-0012** never manufacture a selection | 0 | **4** | 0 | `gh-trending-best`, `trendyol-listing-which-best`, `reddit-iem-compare`, `v2ex-topic` — all judged, and legitimately so: neutrality is a property of prose |
-| 3 | **ADR-0013** closed-set `{{n}}` handles | 0 | 0 | **2** | none. `discourse-topic-list` and `walled-listing-recovered-via-archive` state it; neither reader can check a handle |
+| 3 | **ADR-0013** closed-set `{{n}}` handles | 0 | 0 | **2** | still none in either corpus — a handle is consumed before the envelope exists, so no cell can see one. Enforced by `tests/capabilities/link_affordances/test_rehydration_seam.py`, which since 2026-08-03 also covers the NO-digest branch (see below) |
 | 4 | **ADR-0014** every URL traceable to the page | **7** | 0 | 4 | `answer_urls_traceable` on `pypi-httpx` (the historical specimen), `other-pages-carries-the-real-kind-and-anchor`, `json-ld-itemlist-leaves-an-index`, `hepsiburada-reviews-drilldown-on-page`, `contact-page-channels`, `discourse-topic-list`, `walled-listing-recovered-via-archive`. **Was zero when this table was first written, later the same day — see below.** |
 | 5 | **ADR-0015** withheld body leaves an index | **7** | 2 | 0 | `listing-answer-always-leaves-an-index`, `discourse-topic-list`, `json-ld-itemlist-leaves-an-index` (×3 keys), `wikipedia-narrow-ask-indexes`, `github-repo-issues-affordance`, `other-pages-carries-the-real-kind-and-anchor`, `walled-listing-recovered-via-archive` |
 | 6 | **ADR-0016** never bill the metered API | n/a | n/a | n/a | not a corpus question — enforced before the call by `anyllm.cost` (`CostViolation`), which is the right layer |
@@ -152,3 +152,41 @@ assertions simply did not exist.
 - #6 marked n/a rather than 0: enforcing a spend guard through a benchmark that
   itself spends would be the wrong layer, and `anyllm.cost` already raises
   before the call.
+
+
+## #3 (ADR-0013) had unit coverage, and a hole in the branch nobody tested
+
+Added 2026-08-03, closing this table's other zero.
+
+Like #11, the "no catching cell" entry was the wrong frame: a `{{n}}` handle is
+resolved *before* the envelope is built, so nothing either harness observes
+could ever contain one. The invariant lives at the seam, and the seam had tests
+— `rehydrate_handle` for `other_pages`, `rehydrate_text` for the answer prose.
+
+What neither covered was the branch where there is **no digest at all**:
+
+```python
+fc.extracted_answer = (
+    fc.link_digest.rehydrate_text(result.answer) if fc.link_digest else result.answer
+)
+```
+
+`_build_link_digest` returns `None` for a prose-only article — no links, or no
+json_synth/record_synth candidate. The `LINKS IN THE ANSWER` clause that teaches
+the model the `{{n}}` convention lives in the BASE prompt and ships on every
+extraction, digest or not. So the model was taught the convention, given no link
+list, and anything it emitted reached the caller verbatim. Demonstrated:
+`"Reviews are on a separate page: {{1}}"` in, byte-identical out.
+
+The comment on that line read *"no-op when no digest was fed"*, which sounds
+safe and describes the defect exactly. CLAUDE.md meanwhile claimed the prose is
+rehydrated "never leaked" — true only in the branch that had a digest. Both
+corrected; the branch now strips.
+
+**The test-shape lesson is the transferable part.** The first three tests
+written for this fix all passed with the fix REVERTED, because they exercised
+`strip_handles` rather than the line that calls it. Verified by mutation, which
+is the only reason it was noticed. A helper proven correct and not proven wired
+is this repository's most-repeated failure, and the fix is an end-to-end case
+through `fetch()` with a provider that emits a handle — not a contrived double,
+since a model doing that is following the instructions it was sent.
