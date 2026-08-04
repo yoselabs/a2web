@@ -1,8 +1,19 @@
 """`FetchContext` — the state every pipeline stage reads and writes.
 
 Whole on purpose. Slicing it per node is phase two of
-`decompose-fetcher-into-files`, blocked until the response contract absorbs the
-42-of-72 fields `fetcher_response.py` reads out of it.
+`decompose-fetcher-into-files`.
+
+What the response builder needs out of this class is declared as the
+`ResponseContext` Protocol in `fetcher_response.py`, and `ty` checks it
+structurally at every call site — so a slice that strands one of those members
+fails type-checking rather than at runtime. This class does not import or
+mention that Protocol: conformance is structural, the consumer states its own
+requirements, and this side is free to move.
+
+No count is stated here. It lives in the Protocol, with a growth budget in
+`tests/architecture/test_response_context_slice.py`; a number restated in prose
+beside a set designed to change is the drift this file used to demonstrate
+(it claimed "42-of-72" against a ledger holding 45).
 """
 
 from __future__ import annotations

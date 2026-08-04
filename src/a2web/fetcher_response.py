@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from a2effect.enrichers import pydantic_validation_error_enricher
 from timefmt import fmt_dur
@@ -56,10 +56,124 @@ from .models import (
 from .packages.llm_extract import RoutingOutcome
 
 if TYPE_CHECKING:
+    from datetime import date
+
     from record_mine import RecordSet
 
-    from .fetcher import FetchContext
+    from .decision_log import Observation
+    from .fetcher.context import ContentCandidate, GateOutcomeProjection
+    from .models import DeclaredEntity, Diagnostic, Heading, Link
     from .packages.llm_extract import RouterPayload as RouterBoundary
+
+
+@runtime_checkable
+class ResponseContext(Protocol):
+    """Exactly what the response builder needs from the fetch context.
+
+    **This replaces a ledger of attribute names with a type.** The set was
+    frozen as `_READS` in `tests/architecture/test_response_context_slice.py` —
+    an AST walk comparing a hand-maintained list against the `fc.<name>` reads
+    in this module. That was the right instrument for establishing the boundary
+    and the wrong one for keeping it: it could say the set had grown, never that
+    a member still had the type this module assumes, and it was blind to a
+    rename on the context side until a separate test was bolted on for that.
+
+    Declaring it as a Protocol makes `ty` do both, structurally, at every call
+    site — a member that changes type, disappears, or is renamed is a type
+    error where the context is passed in, not an `AttributeError` at runtime.
+
+    **Why this unblocks `decompose-fetcher-into-files` phase two.**
+    `FetchContext` carries 79 members; this is 45 of them. Slicing the context
+    per pipeline node means knowing which parts the response contract depends
+    on, and a hand-maintained list is exactly the thing you cannot slice
+    against — it is a claim about the code, and the code can move underneath it.
+    A Protocol is checked against reality on every type-check run, so the slice
+    can be attempted and the failures will be told to you.
+
+    **The import-surface objection, weighed and now paid.** The 2026-08-01 note
+    on `_READS` declined this because "declaring 44 members with real
+    annotations pulls every one of their types into this module's namespace",
+    and deferred it to "when `context.py` is actually sliced — at that point the
+    Protocol has a consumer". Measured at the time of writing: 9 of the 17 types
+    were already imported here, and the 8 new ones are all `TYPE_CHECKING`-only,
+    so the runtime import graph is unchanged and no cycle is introduced (the
+    fetcher package imports `build_response` from this module — a real cycle if
+    these were runtime imports).
+
+    `ContentCandidate` and `GateOutcomeProjection` are declared inside
+    `fetcher/context.py` but are NOT part of `FetchContext`: they are
+    independent frozen dataclasses that a per-node slice does not move. Naming
+    them here is not the coupling this change exists to remove.
+
+    **Structural, so nothing declares conformance.** `FetchContext` neither
+    imports nor mentions this Protocol; it satisfies it by having the members.
+    That direction matters — the consumer states what it needs, and the
+    provider is free to be sliced, replaced, or faked as long as it still
+    offers them.
+    """
+
+    # -- request / timing ------------------------------------------------
+    started_at: datetime
+    start_perf: float
+    requested_url: str
+    final_url: str
+    debug: bool
+
+    # -- retrieval outcome -----------------------------------------------
+    tier_used: str
+    cache_state: CacheState
+    observations: list[Observation]
+    diagnostics: list[Diagnostic]
+    render_requested: bool
+    snapshot_age_days: int | None
+    snapshot_taken_at: date | None
+
+    # -- comprehension ---------------------------------------------------
+    content_md: str
+    content_candidates: list[ContentCandidate]
+    wrap_content: bool
+    title: str | None
+    byline: str | None
+    published: date | None
+    headings: list[Heading]
+    links: list[Link]
+    meta_dict: dict[str, str]
+    record_set: RecordSet | None
+    declared_entity: DeclaredEntity | None
+    structured_grounded: bool
+
+    # -- sufficiency -----------------------------------------------------
+    terminal: TerminalOutcome | None
+    empty_confirmed: bool
+    small_page_confirmed: bool
+    items_loaded: int | None
+    items_total: int | None
+    items_more: bool
+    comments_loaded: int | None
+    comments_total: int | None
+
+    # -- answer ----------------------------------------------------------
+    ask: str | None
+    extracted_answer: str | None
+    extraction_meta: ExtractionMeta | None
+    extraction_provider_error: str | None
+    extraction_provider_error_retryable: bool
+    # The PACKAGE-side boundary type, not the pydantic mirror of the same name
+    # in `models.py`. `_project_routing` converts one to the other, and `ty`
+    # rejected the mirror here on the first run — a distinction the `_READS`
+    # ledger could not have made, since both spell `RouterPayload`.
+    routing: RouterBoundary | None
+    routing_outcome: RoutingOutcome | None
+    next_links_enabled: bool
+    next_links_handler: list[NextLink]
+    next_links_llm: list[NextLink]
+
+    # -- verdict ---------------------------------------------------------
+    operator_hints: list[OperatorHint]
+
+    def last_gate_outcome(self) -> GateOutcomeProjection | None: ...
+
+    def small_page_promoted(self) -> bool: ...
 
 
 def _validation_error_fields(exc: BaseException) -> list[str]:
@@ -351,7 +465,7 @@ def _records_to_options(record_set: RecordSet | None) -> list[ListingOption]:
     return options
 
 
-def _compose_next_links(fc: FetchContext) -> list[NextLink]:
+def _compose_next_links(fc: ResponseContext) -> list[NextLink]:
     """Fold handler + LLM candidate lists into the final wire list.
 
     Matrix per `link-discovery` spec:
@@ -517,7 +631,7 @@ _INCOMPLETE_TERMINALS: frozenset[TerminalOutcome] = frozenset(
 )
 
 
-def build_response(fc: FetchContext) -> FetchResponse:
+def build_response(fc: ResponseContext) -> FetchResponse:
     """Materialize the FetchResponse from accumulated FetchContext state."""
     total_ms = int((time.perf_counter() - fc.start_perf) * 1000)
     # The verdict is derived — a pure projection of the append-only observation

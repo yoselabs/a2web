@@ -1,8 +1,9 @@
 # Tasks
 
-Two phases. **Phase two is blocked on narrowing `fetcher_response.py`'s read of
-`FetchContext` to a declared type** (§7.0). Do not start it early — attempting
-both phases at once turns a decomposition into a rewrite.
+Two phases. **Phase two's blocker cleared 2026-08-03** (§7.0): the response
+builder's read of `FetchContext` is the `ResponseContext` Protocol now, checked
+by `ty`. 7.2–7.4 are ready to attempt. Still do not fold them into another
+change — both phases at once turns a decomposition into a rewrite.
 
 This header used to name `unify-the-response-contract` as the blocker. That
 change landed 2026-08-01 and did NOT clear it: absorbing the reads was in its
@@ -479,7 +480,7 @@ question each answers.
       design and every addition was deliberate — but it does mean the stated
       precondition for 7.2 is further away, not closer.
 
-- [ ] 7.0 **The actual unblocking step, now that 7.1 has named it.** Nothing
+- [x] 7.0 **DONE 2026-08-03.** Nothing
       will absorb these reads as a side effect; it has to be the task. Give
       `build_response` / `build_ask_response` a narrow input — a Protocol or a
       projected frozen dataclass — instead of the whole `FetchContext`, so the
@@ -495,11 +496,44 @@ question each answers.
       `test_response_context_slice.py`'s own docstring already anticipates this:
       "A Protocol was the other option and was not taken ... Worth revisiting
       when `context.py` is actually sliced — at that point the Protocol has a
-      consumer." It now has one. This is its own change, and it touches the
-      response contract, so it needs the Ask First gate before starting.
+      consumer." It now has one. Approved and shipped the same day.
 
-- [ ] 7.1b Re-measure after 7.0. 7.2 stays blocked until the external read set
-      is a type rather than 46 attribute names.
+      **What landed.** `ResponseContext`, a `@runtime_checkable` Protocol in
+      `fetcher_response.py` declaring 45 members (43 fields + 2 methods).
+      `build_response` and `_compose_next_links` take it instead of
+      `FetchContext`. Conformance is structural — `context.py` neither imports
+      nor mentions the Protocol, so the consumer states its needs and the
+      provider stays free to be sliced.
+
+      The import-surface objection that deferred this on 2026-08-01 was measured
+      rather than re-argued: 9 of the 17 types were already imported here, and
+      all 8 new ones are `TYPE_CHECKING`-only, so the runtime import graph is
+      unchanged and no cycle appears (the fetcher package imports
+      `build_response` from this module — a real cycle at runtime).
+
+      **It found a defect on its first run.** The draft annotated `routing` as
+      `models.RouterPayload`; `ty` rejected it, because the context carries the
+      package-side `llm_extract.RouterPayload`. Two distinct types, one
+      spelling — a ledger comparing NAMES could not have noticed, and that is
+      the concrete argument for the swap.
+
+      **Mutation-verified in four directions before the ledger was deleted:**
+      renaming a member on `FetchContext`, retyping one, reading an undeclared
+      field in the builder, and widening the annotation back to `FetchContext`.
+      The first three go red under `ty` at the call site; the fourth is caught
+      by the surviving test, which asserts the delegation so the boundary cannot
+      silently become uncovered.
+
+      The `_READS` ledger is gone; two capability tests that imported it now read
+      the Protocol's members instead. Its BUDGET half survives — `ty` proves the
+      slice is correct and says nothing about whether it is small, and "reads a
+      bit of the context" quietly becoming "reads most of it" was the ledger's
+      actual stated purpose. That is now a ratchet plus a ratio assertion, since
+      45 of 79 is a slice and 45 of 50 is not, at the same count.
+
+- [x] 7.1b **Re-measured. The blocker is CLEARED.** The external read set is a
+      declared type checked at every call site, not a list of attribute names.
+      7.2 can be attempted with `ty` naming every member a cut would strand.
 - [ ] 7.2 Slice `context.py` per node.
 - [ ] 7.3 Update the ~19 test modules importing `FetchContext`.
 - [ ] 7.4 Move the T1 entries to `BACKLOG-CLOSED.md`, including the two subsumed

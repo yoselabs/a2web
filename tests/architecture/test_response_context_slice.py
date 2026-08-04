@@ -1,29 +1,39 @@
-"""The response builder's slice of `FetchContext` is explicit and bounded.
+"""The response builder's slice of the fetch context is a BUDGET, not just a type.
 
-`fetcher_response.py` reads a large minority of `FetchContext`'s members. That
-coupling was implicit — nothing stated which fields the response contract
-depends on, so `decompose-fetcher-into-files` phase two could not slice
-`context.py` per node without first re-deriving the set by hand.
+**What moved, and what did not.** The slice used to be `_READS`, a hand-kept
+frozenset of attribute names compared against the `fc.<name>` reads in
+`fetcher_response.py` by an AST walk. It is now the `ResponseContext` Protocol
+in that module, and `ty` checks it structurally at every call site. Verified by
+mutation in all three directions before the ledger was deleted:
 
-This is the derivation, frozen. It is a LEDGER, not a ban: adding a read is
-fine and expected, and the fix is to add the name here. What it prevents is the
-set growing silently until "the response builder reads a bit of the context"
-quietly means "the response builder reads most of it", which is the state that
-makes decomposition impossible to do safely.
+    rename `tier_used` on FetchContext   -> "Argument to build_response is incorrect"
+    retype `small_page_confirmed`        -> "Argument to build_response is incorrect"
+    read an undeclared field in builder  -> "ResponseContext has no attribute ..."
 
-**`_READS` is the count — do not restate it in prose.** This docstring used to
-open "reads 44 of 74 fields" while `_READS` held 45 names and `FetchContext`
-declared 79 members, and CLAUDE.md said "42 of 72". Three numbers for one fact,
-none of them right, all of them describing a ledger whose whole design is to
-GROW as reads are added. A hardcoded count beside an append-only list is a
-drift generator. Cite this file; read `len(_READS)` if a number is wanted.
+The type checker does strictly more than the ledger did. The ledger compared
+NAMES, so it was blind to types — and that blindness was not hypothetical: the
+Protocol's first draft annotated `routing` as `models.RouterPayload` and `ty`
+rejected it, because the context carries the package-side
+`llm_extract.RouterPayload`. Two different types, one spelling. A ledger of
+names could never have said so.
 
-**A Protocol was the other option and was not taken.** Declaring 44 members with
-real annotations pulls every one of their types into this module's namespace,
-which is a large import surface added at the end of a long change for a
-property this ledger already gives: the set is stated, and it cannot move
-without someone editing it. Worth revisiting when `context.py` is actually
-sliced — at that point the Protocol has a consumer.
+**So why does this file still exist.** `ty` proves the slice is *correct*. It
+has nothing to say about whether the slice is *small*. Adding twenty members to
+the Protocol type-checks perfectly, and the original ledger's stated purpose was
+the other thing:
+
+    "What it prevents is the set growing silently until 'the response builder
+    reads a bit of the context' quietly means 'the response builder reads most
+    of it', which is the state that makes decomposition impossible to do
+    safely."
+
+That property has no type-level expression, so it is asserted here. This file is
+now a budget guard and nothing else — correctness belongs to `make ty`.
+
+**Do not restate the numbers in prose elsewhere.** The count lives in
+`_MEMBER_CEILING` and in the Protocol itself. CLAUDE.md said "42 of 72" while
+the old ledger held 45 names and its own docstring said "44 of 74" — three
+numbers, one fact, none right. Cite this file.
 """
 
 from __future__ import annotations
@@ -31,104 +41,95 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-_RESPONSE = Path(__file__).resolve().parents[2] / "src" / "a2web" / "fetcher_response.py"
-#: `FetchContext` lives in the tree now (`decompose-fetcher-into-files` §4). Its
-#: own module, not the package: this guard parses a class definition, and the
-#: package `__init__` only re-exports it.
-_FETCHER = Path(__file__).resolve().parents[2] / "src" / "a2web" / "fetcher" / "context.py"
+_ROOT = Path(__file__).resolve().parents[2]
+_RESPONSE = _ROOT / "src" / "a2web" / "fetcher_response.py"
+_CONTEXT = _ROOT / "src" / "a2web" / "fetcher" / "context.py"
 
-#: Every `fc.<name>` the response builder reads. Frozen 2026-08-01.
-_READS: frozenset[str] = frozenset(
-    {
-        "ask",
-        "byline",
-        "cache_state",
-        "comments_loaded",
-        "comments_total",
-        "content_candidates",
-        "content_md",
-        "debug",
-        "declared_entity",
-        "diagnostics",
-        "empty_confirmed",
-        "extracted_answer",
-        "extraction_meta",
-        "extraction_provider_error",
-        "extraction_provider_error_retryable",
-        "final_url",
-        "headings",
-        "items_loaded",
-        "items_more",
-        "items_total",
-        "last_gate_outcome",
-        "links",
-        "meta_dict",
-        "next_links_enabled",
-        "next_links_handler",
-        "next_links_llm",
-        "observations",
-        "operator_hints",
-        "published",
-        "record_set",
-        # ADR-0009: the caller must be able to tell a live page from an archived
-        # copy, so `build_response` reads the snapshot age to emit its hint.
-        "snapshot_age_days",
-        "snapshot_taken_at",
-        "render_requested",
-        "requested_url",
-        "routing",
-        "routing_outcome",
-        "small_page_confirmed",
-        "small_page_promoted",
-        "start_perf",
-        "started_at",
-        "structured_grounded",
-        "terminal",
-        "tier_used",
-        "title",
-        "wrap_content",
-    }
-)
+#: The slice as of 2026-08-03, and a RATCHET rather than a target.
+#:
+#: Raising it is allowed and is sometimes right — but it must be deliberate,
+#: because every member added here is one more thing
+#: `decompose-fetcher-into-files` phase two has to keep together when it slices
+#: `context.py` per node. If you are raising this, check whether the new read
+#: could be a value passed in instead.
+_MEMBER_CEILING = 45
+
+#: Below this, the walk is broken rather than the code being wonderful.
+_MEMBER_FLOOR = 30
 
 
-def _actual_reads() -> set[str]:
+def _protocol_members() -> set[str]:
+    """Every member `ResponseContext` declares — annotated fields and methods."""
     tree = ast.parse(_RESPONSE.read_text(encoding="utf-8"))
-    return {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name) and n.value.id == "fc"}
+    proto = next(c for c in ast.walk(tree) if isinstance(c, ast.ClassDef) and c.name == "ResponseContext")
+    fields = {n.target.id for n in proto.body if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)}
+    methods = {n.name for n in proto.body if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)}
+    return fields | methods
 
 
-def test_the_context_slice_has_not_grown_silently() -> None:
-    actual = _actual_reads()
-    assert len(actual) >= 30, f"non-vacuous: found only {len(actual)} `fc.` reads — the AST match broke"
-
-    added = sorted(actual - _READS)
-    removed = sorted(_READS - actual)
-
-    assert not added, (
-        f"`fetcher_response.py` reads new `FetchContext` field(s): {added}.\n"
-        "That is allowed — add them to `_READS`. The ledger exists so the slice "
-        "cannot grow to 'most of the context' without anyone noticing, which is "
-        "what blocks slicing `context.py` per node."
-    )
-    assert not removed, (
-        f"`_READS` names field(s) the response builder no longer reads: {removed}.\n"
-        "Remove them — a ledger with fossils overstates the coupling and makes "
-        "the decomposition look harder than it is."
-    )
-
-
-def test_every_read_field_actually_exists_on_the_context() -> None:
-    """A read that resolves to nothing would be an AttributeError in production.
-
-    Catches a rename on the `FetchContext` side that this module did not follow —
-    the failure the ledger is otherwise blind to, since it only compares the
-    module against itself.
-    """
-    tree = ast.parse(_FETCHER.read_text(encoding="utf-8"))
+def _context_members() -> set[str]:
+    tree = ast.parse(_CONTEXT.read_text(encoding="utf-8"))
     cls = next(c for c in ast.walk(tree) if isinstance(c, ast.ClassDef) and c.name == "FetchContext")
-    declared = {n.target.id for n in cls.body if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)}
-    declared |= {n.name for n in cls.body if isinstance(n, ast.FunctionDef)}
+    fields = {n.target.id for n in cls.body if isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)}
+    methods = {n.name for n in cls.body if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)}
+    return fields | methods
 
-    assert len(declared) >= 50, f"non-vacuous: parsed only {len(declared)} FetchContext members"
 
-    missing = sorted(_actual_reads() - declared)
-    assert not missing, f"`fetcher_response.py` reads `fc.<name>` that FetchContext does not declare: {missing}"
+def test_the_slice_has_not_grown_past_its_budget() -> None:
+    members = _protocol_members()
+    assert len(members) >= _MEMBER_FLOOR, (
+        f"non-vacuous: parsed only {len(members)} members off `ResponseContext` — the AST walk broke, "
+        "or the Protocol was renamed. This is not a pass."
+    )
+    assert len(members) <= _MEMBER_CEILING, (
+        f"`ResponseContext` now declares {len(members)} members, budget is {_MEMBER_CEILING}.\n"
+        "Every member is one more thing phase two must keep together when it slices "
+        "`context.py` per node. Before raising `_MEMBER_CEILING`, check whether the new "
+        "read could be a value passed in instead — that is the direction that unblocks "
+        "the decomposition rather than deferring it further."
+    )
+
+
+def test_the_slice_is_a_minority_of_the_context() -> None:
+    """The property the budget exists to preserve, stated directly.
+
+    A ceiling alone drifts in meaning as `FetchContext` grows: 45 of 79 is a
+    slice, 45 of 50 is "reads most of it" wearing the same number. The ratio is
+    what makes decomposition tractable, so assert the ratio.
+    """
+    proto = _protocol_members()
+    ctx = _context_members()
+    assert len(ctx) >= 50, f"non-vacuous: parsed only {len(ctx)} FetchContext members"
+    assert len(proto) < len(ctx) * 0.75, (
+        f"the response builder now reads {len(proto)} of `FetchContext`'s {len(ctx)} members "
+        f"({len(proto) / len(ctx):.0%}). Past ~three quarters this is not a slice, and "
+        "`decompose-fetcher-into-files` phase two cannot cut the context per node without "
+        "the response contract following it everywhere."
+    )
+
+
+def test_correctness_is_delegated_and_the_delegate_is_real() -> None:
+    """Guard against this file quietly becoming the whole story again.
+
+    The correctness half now rests entirely on `fc: ResponseContext` in the
+    builder's signature. If that annotation is ever widened back to
+    `FetchContext` — or to `Any` — `ty` stops checking the slice and this file
+    would go on passing, reporting a budget for a boundary that no longer
+    exists. That is the "reads as coverage while providing none" failure this
+    repo keeps finding, so the delegation is asserted rather than assumed.
+    """
+    tree = ast.parse(_RESPONSE.read_text(encoding="utf-8"))
+    builders = {
+        n.name: n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name in {"build_response", "_compose_next_links"}
+    }
+    assert builders, "neither `build_response` nor `_compose_next_links` was found — the walk broke"
+
+    for name, fn in sorted(builders.items()):
+        first = fn.args.args[0] if fn.args.args else None
+        annotation = ast.unparse(first.annotation) if first is not None and first.annotation else None
+        assert annotation == "ResponseContext", (
+            f"`{name}` takes `{annotation}` rather than `ResponseContext`.\n"
+            "The Protocol is what makes `ty` check the slice at every call site; widening "
+            "this annotation silently retires that check and leaves only the budget below, "
+            "which asserts nothing about correctness."
+        )

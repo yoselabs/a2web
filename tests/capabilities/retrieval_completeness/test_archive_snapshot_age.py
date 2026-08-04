@@ -77,7 +77,7 @@ def test_the_age_reaches_the_response_builder() -> None:
     The factory alone proves nothing: `snapshot_age_days` was correctly computed
     and correctly stored for the tier's whole life, and the defect was that
     nobody read it. So this asserts the field is on `FetchContext` and that
-    `fetcher_response` is declared as reading it.
+    `fetcher_response`'s `ResponseContext` Protocol declares it.
     """
     import dataclasses
 
@@ -86,9 +86,9 @@ def test_the_age_reaches_the_response_builder() -> None:
     names = {f.name for f in dataclasses.fields(FetchContext)}
     assert "snapshot_age_days" in names, "the age never reaches the context that builds the response"
 
-    from tests.architecture.test_response_context_slice import _READS
+    from tests.architecture.test_response_context_slice import _protocol_members
 
-    assert "snapshot_age_days" in _READS, "the response builder does not read the age"
+    assert "snapshot_age_days" in _protocol_members(), "the response builder does not declare the age"
 
 
 def test_a_non_archive_fetch_emits_nothing() -> None:
@@ -137,6 +137,6 @@ def test_the_snapshot_date_reaches_the_response_builder() -> None:
     names = {f.name for f in dataclasses.fields(FetchContext)}
     assert "snapshot_taken_at" in names
 
-    from tests.architecture.test_response_context_slice import _READS
+    from tests.architecture.test_response_context_slice import _protocol_members
 
-    assert "snapshot_taken_at" in _READS
+    assert "snapshot_taken_at" in _protocol_members()
