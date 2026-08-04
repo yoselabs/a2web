@@ -562,6 +562,27 @@ question each answers.
       context STATE at all, and lifting them into a frozen request/resources
       pair is the largest easy win and can land alone.
 
+      **PINNED 2026-08-03, before the lift:**
+      `tests/architecture/test_fetch_context_request_is_frozen.py` asserts that
+      nothing in `src/a2web` assigns any of the 18 after construction — measured
+      zero, covering plain, augmented and annotated assignment (`fc.deadline_perf
+      -= x` is a mutation a `= ` search misses). The order is deliberate: a guard
+      written AFTER a refactor proves the refactor happened; written before, it
+      proves the refactor is still possible and goes red the moment someone makes
+      it impossible. Mutation-verified against real source, not synthetic strings
+      — planting `fc.debug = True` in `retrieval/install.py` fails it with the
+      file:line.
+
+      The 18 split cleanly in two, which is the shape the lift should take:
+      13 caller parameters (`ask`, `debug`, `bypass_cache`, `include_links`,
+      `include_routing`, `link_roles`, `max_content_chars`, `next_links_enabled`,
+      `profile_hash`, `requested_url`, `started_at`, `wrap_content`,
+      `deadline_perf`) and 5 injected resources (`browser_backend`,
+      `browser_robust_backend`, `cookie_jar`, `llm_extractor`, `sqlite`). The
+      resource half carries its own reason beyond tidiness: rebinding one
+      mid-fetch would mean a single fetch talking to two different browsers or
+      two different caches.
+
       **(b) only 7 members resist a slice, and they are not shared mutable
       state.** They are the append-only logs (`observations`, `diagnostics`,
       `operator_hints`), the payload (`content_md`), request identity
