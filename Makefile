@@ -1,4 +1,4 @@
-.PHONY: lint fix test test-browser test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail eval-capture eval-replay eval-refresh bless-wire handler-probe install-global
+.PHONY: recon lint fix test test-browser test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail eval-capture eval-replay eval-refresh bless-wire handler-probe install-global
 
 check: lint ty test-cov arch
 
@@ -165,3 +165,11 @@ eval-refresh:
 # NOT wired into `make check` — runs deliberately, hits the open internet.
 handler-probe:
 	uv run python -m a2web.handler_probe
+
+# Spec <-> test reconciliation. READ-ONLY report, deliberately NOT a gate and
+# NOT in `make check` — today it reports 4 of 398 requirements traceable to a
+# test, which would fail every run and teach nothing. It exists to answer
+# "which tests do I change for this requirement?", a question the suite cannot
+# currently answer. See Projects/164-test-suite-strategy in K.
+recon:
+	uv run python scripts/spec_test_reconcile.py

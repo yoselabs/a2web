@@ -326,6 +326,7 @@ select = [
 "src/a2web/llm_eval/extraction_cli.py" = ["T201"]  # CLI entry — print() is the output mechanism
 "src/a2web/llm_eval/browser_bakeoff.py" = ["T201"]  # CLI entry — print() is the output mechanism
 "benchmarks/**" = ["T201"]  # ad-hoc benchmark scripts — print() is the output mechanism
+"scripts/**" = ["T201"]  # operator reports — print() is the output mechanism
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
