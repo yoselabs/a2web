@@ -356,3 +356,10 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 - Do not commit or push without clear authority from the active profile or the current user request.
 - If a required sync or push is blocked, stop and report the exact command and error.
 <!-- END BEADS INTEGRATION -->
+
+**Override (authorized deviation from the block above, `adopt-beads-work-queue` D7):**
+`bd remember`/`bd prime` are NOT adopted for persistent knowledge in this repo — Denis
+already runs three memory systems outside this repo, and a fourth here would fragment
+them. Use `bd` for issue tracking only (create/update/close/comment/dep). Continue using
+this repo's own `CLAUDE.md`/`docs/`/`docs/findings/` for durable knowledge, exactly as
+before bd was adopted.
