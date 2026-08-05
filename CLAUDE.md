@@ -50,7 +50,7 @@ replaced by ~300 lines a2web owns. What moved where:
 | `a2kit.log` | `a2web.log` (Phase 1) |
 | `encode_tsv` | shelf `lean-wire` (adopted 2026-07-22; `_tsv_compat.py` is gone) |
 | `a2kit.testing.client` | `tests/_helpers/mcp.py` |
-| `a2kit lint rego` | **dropped — a real loss**, see `BACKLOG.md` 2026-07-22 |
+| `a2kit lint rego` | **dropped — a real loss**, see bd issue a2web-526 |
 
 `a2effect` (the typed error taxonomy + `ErrorEnvelope`) is now a DIRECT
 dependency rather than transitive through a2kit.
