@@ -941,6 +941,47 @@ empty. Joined 2026-08-02 by four more, each with its measurement in
 declined, because the generic unit is a backend-neutral `analyze_param` spanning
 a2web and a2kay.
 
+## 2026-08-05 — the test suite is the right size and the wrong shape (M, verification — 9 ranked fixes)
+
+**Source:** `docs/findings/2026-08-05-what-is-wrong-with-the-test-suite.md`.
+Measured, not recalled. Companion to the shelf-gap finding above.
+
+**Root cause, one sentence: most tests reach the system through its
+implementation, not its seams.** 167 imports of PRIVATE `a2web` names across 77
+of 260 test files. `make_default_state` 179 call sites vs
+`make_default_components` 4 — the *sanctioned exception* to
+single-composition-root is the main road at 45:1. `mcp_client`, which CLAUDE.md
+calls "the seam", is 15 sites out of 1512 test functions. This is the mechanical
+cause of helper-tested-wiring-untested, which recurred **five times** in one
+session.
+
+**Supersedes the volume framing of [[P164]] without contradicting it.** P164
+measured size and found it healthy; that still holds (44s, nothing over 3.4s,
+1.44:1). This measures shape. Do NOT cut tests — the easy-to-write private-helper
+tests are the ones that look busiest, so cutting removes the good ones first.
+
+Top fixes, cheapest first:
+1. **`ty check src/ tests/`** — tests are currently unchecked. 37k lines where
+   fakes drift from real interfaces; §7.2 needed 10 test doubles fixed by
+   reading tracebacks.
+2. **Completeness assertions on hand-written guard subject lists.**
+   `test_boundary_dataclasses_are_frozen` parametrizes a hand tuple with no
+   check that it matches the real tree — a new frozen boundary type is never
+   checked, silently. The fix pattern already exists here
+   (`test_tach_covers_every_package`) and is applied twice of ~8 chances.
+3. `mutation-probe` (see the shelf entry above).
+4. **A written rule: a helper test does not count without a wiring test.**
+
+Also: coverage is a gate at 85% and reports 91.93% while the deadline path had
+ZERO coverage, the cache-write gate had no test, and inverting the proxy
+breaker's egress/origin classification passed 1727 of 1727. Keep the floor,
+stop citing the number.
+
+**Refuse Tach impact analysis** and record why: its plugin reported "2 test(s)
+failed that would be skipped by impact analysis" during a real refactor, and
+those two were the chokepoint guards that caught it. It offers ~12s off a 44s
+suite.
+
 ## 2026-08-05 — the shelf has no verification-time packages (M, structure — 8 candidates)
 
 **Source:** `docs/findings/2026-08-05-what-the-tests-caught-and-what-should-be-substrate.md`,
