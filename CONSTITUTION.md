@@ -1,7 +1,16 @@
 <!-- Canonical source: github.com/yoselabs/a2kit/blob/main/CONSTITUTION.md
      This is a verbatim copy synced manually. To propose changes, edit the
      a2kit copy first; once amended there, re-sync this file. Drift between
-     the two is a bug — Article IX governs amendment. -->
+     the two is a bug — Article IX governs amendment.
+
+     AUTHORIZED DEVIATION (2026-08-05, adopt-beads-work-queue): the BACKLOG
+     wording below was rewritten directly in this copy, ahead of any a2kit
+     re-sync, because a2kit's own most recent commit (2026-07-15) reframes
+     its App/DI-substrate role as itself being retired/refounded elsewhere —
+     treating a2web's copy as the practical authority for its own process is
+     a deliberate, recorded departure from the sync process above, not an
+     oversight. If a2kit later publishes its own rewrite of this section,
+     reconcile with that instead of diverging further. -->
 
 # a2 Constitution
 
@@ -184,9 +193,12 @@ is a first-class action, not a bug.
 **Refusal rules:**
 - A feature requested by product X that no other product plausibly
   needs stays in product X. The substrate says no.
-- Refusal is recorded in the requesting product's BACKLOG (so the
-  feature isn't lost), never in the substrate's BACKLOG (so the
-  substrate isn't pulled toward product concerns).
+- Refusal is recorded in the requesting product's work queue (so the
+  feature isn't lost), never in the substrate's work queue (so the
+  substrate isn't pulled toward product concerns). A product's work
+  queue is whatever it uses to track deferred work — a `BACKLOG.md`, a
+  `bd` (beads) database, or any equivalent; the Constitution names the
+  role, not the mechanism.
 - The substrate maintainer is allowed (encouraged) to say:
   "interesting problem; build it in your product. If a2atlassian also
   needs it in 6 months, we revisit."
@@ -205,7 +217,7 @@ feature:**
 2. If generic — what's the named second consumer?
 3. If named — is the second consumer *currently asking*, or
    speculation?
-4. If speculation — refuse, log in product BACKLOG, revisit if
+4. If speculation — refuse, log in the product's work queue, revisit if
    second consumer materializes.
 
 ---
@@ -253,7 +265,7 @@ Every Constitution-grade decision is recorded — never tacit.
   Articles I + II + III + IV
 - Promoting / demoting between tiers → ADR or openspec change citing
   Article II + IV
-- Refusing a substrate feature → BACKLOG entry in the requesting
+- Refusing a substrate feature → a work-queue entry in the requesting
   product, citing Article V
 - Adding a new consumer-facing concept → ADR citing Article VI
 
@@ -370,7 +382,7 @@ enforced; it sits in the Enforcement Inventory (below) marked
    invoke the `constitution-check` skill before proposing any
    substrate-touching change. The skill classifies the change, runs the
    mechanical checks, drafts required artifacts (ADR / adoption
-   research / BACKLOG entry), and either:
+   research / work-queue entry), and either:
    - **proceeds** if the change is compliant
    - **drafts** the recordable artifact if a Constitution-grade
      decision is needed (Article VII)
@@ -431,7 +443,7 @@ check is built.
 | **II** Placement Hierarchy | `REGO-TIER-PROMOTION` — file move between tiers requires linked ADR; pre-commit detects moves | `promotion-detector` | `[pending]` |
 | **III** Adopt Before Build | New `packages/<X>/` requires `_adoption_research.md`; `REGO-ADOPTION-RESEARCH` | `adoption-research` (auto web-search + draft) | `[pending]` |
 | **IV** Promotion Triggers | ADR template requires "trigger evidence" field; `REGO-PROMOTION-TRIGGER` validates ADR shape | `promotion-validator` | `[pending]` |
-| **V** Substrate Refusal | `REGO-SUBSTRATE-BACKLOG-PURITY` — substrate BACKLOG entries must name ≥2 products | `refusal-router` (auto re-files in product BACKLOG) | `[pending]` |
+| **V** Substrate Refusal | `REGO-SUBSTRATE-BACKLOG-PURITY` — substrate work-queue entries must name ≥2 products | `refusal-router` (auto re-files in the product's work queue) | `[pending]` |
 | **VI** Magic Budget | Per-release diff of exported symbols; `REGO-MAGIC-BUDGET`; `REGO-VOCAB-LEAK` (private vocab in consumer-facing docs) | `vocab-auditor` | `[pending]` |
 | **VII** Decisions Recorded | Commit-message hook: substrate-touching commits cite article(s); `REGO-CONSTITUTION-CITATION` | `citation-checker` | `[pending]` |
 | **VIII** Dependency Memory | Per-subpackage `_deps.md` presence check; `REGO-DEP-ADR-LINK` validates each dep has ADR + subpackage mapping; ADR template requires `decision`/`considered_alternatives`/`re_evaluation_triggers` fields | `dep-research` (auto-search OSS + draft adopt/reject ADR + update `_deps.md`) | `[pending]` |
@@ -457,7 +469,7 @@ non-trivial change in any a2-ecosystem repo:
 2. **Classify the change**: which articles apply?
 3. **Run the mechanical checks** for each applicable article.
 4. **Draft any required artifacts** — ADR / adoption research /
-   BACKLOG entry — citing the articles.
+   work-queue entry — citing the articles.
 5. **Refuse with citation** if a non-recoverable violation is detected.
 6. **Cite the articles** in commit message / PR description / ADR.
 7. **Escalate to human** only when (a) two articles conflict and the
@@ -494,7 +506,12 @@ keep the substrate honest. Amend it via ADR titled
 - `docs/PROMOTION_AUDIT.md` — first applied audit (2026-05-28) ranking
   every a2kit + a2web package against Articles I-IV
 - `openspec/changes/` — proposals in flight
-- `BACKLOG.md` — deferred work (substrate refusals land here in the
-  requesting product, never in a2kit's own BACKLOG)
+- The product's own work queue — deferred work (substrate refusals
+  land here in the requesting product, never in a2kit's own queue). In
+  a2kit itself this is still a `BACKLOG.md`; a2web's copy of this file
+  is edited directly to reflect that a2web replaced its own `BACKLOG.md`
+  with `bd` (beads) — see `adopt-beads-work-queue`, an authorized,
+  recorded deviation from this file's own sync-from-a2kit process
+  (Article IX)
 - Per-subpackage `_deps.md` files — Article VIII dependency decisions
   (example: `src/a2kit/packages/formatter/_deps.md`)

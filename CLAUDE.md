@@ -288,9 +288,35 @@ Currently enforced:
 
 ## Backlog
 
-`BACKLOG.md` tracks deferred work (Phase D workspace packaging, OSS swaps that turned out to be wrong fit, post-v0.1 features). CHANGELOG.md is the shipped record.
+Deferred work is tracked as `bd` (beads) issues, not a flat markdown file —
+`BACKLOG.md`/`BACKLOG-CLOSED.md` were replaced by `adopt-beads-work-queue`.
+CHANGELOG.md is still the shipped record.
 
-**Three files, one queue.** `BACKLOG.md` is the *queue* — one entry per open item, plus the TRACKS index that groups them and states the dependency order. `BACKLOG-CLOSED.md` holds shipped/resolved/superseded entries; move an item there rather than deleting it, because a closed entry often records the incident a surviving invariant exists to prevent. `docs/findings/` holds the *evidence* — measurements, `file:line` citations, verification notes — for entries whose backing is too long to sit in a queue. A backlog entry that needs more than a paragraph of proof should carry a pointer, not the proof.
+- `bd ready` / `bd blocked` / `bd list --status deferred` — find what's
+  workable, what's stuck, what's shelved.
+- `bd create` / `bd update --claim` / `bd close --reason "..."` — the create →
+  claim → close lifecycle.
+- **Status mapping (three distinct "not ready" mechanisms, not one):** waiting
+  on another tracked issue closing → a real `blocks` dependency (`bd dep add
+  <id> <blocker> --type blocks`); deliberately shelved with nothing specific
+  blocking it → native `deferred` status (`bd defer <id> --reason "..."`);
+  waiting on something with no bead of its own (external access, a pending
+  human decision) → manual `--status blocked` plus a comment stating why. Never
+  invent a synthetic blocking issue just to represent "not started yet" — that
+  case is `deferred`.
+- **Linking a bead to the OpenSpec change that resolves it:** `bd update <id>
+  --spec-id "openspec/changes/<name>/proposal.md"`, not free text.
+- **Branch/commit provenance** (no dedicated field exists): `bd update <id>
+  --set-metadata branch=<name> --set-metadata commit=<sha>`, as a documented
+  convention, not a bd feature.
+- **Narrative and evidence content is not a work item.** A retrospective, a
+  retraction, a measurement writeup — anything with no status or completion
+  criterion — is not a bead. It lives in `docs/findings/` as before. A bead
+  whose justification is longer than a short paragraph carries a pointer to the
+  `docs/findings/` document, not the evidence itself.
+- `.beads/issues.jsonl` is committed (plaintext, greppable without `bd`
+  installed) and refreshes synchronously on every mutating `bd` command — it
+  is never stale across a queue-only session.
 
 ## Ask First
 
