@@ -16,5 +16,5 @@ Every module under `packages/` follows the same contract:
 4. **Publish-ready.** Could be lifted to its own PyPI package tomorrow
    with no code changes inside `packages/<name>/`.
 
-See `BACKLOG.md` "v0.5 simplification stages" for the staged migration.
+See bd issue a2web-5ur ("v0.5 simplification stages") for the staged migration.
 """

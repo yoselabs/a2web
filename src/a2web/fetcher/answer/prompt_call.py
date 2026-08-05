@@ -40,7 +40,7 @@ async def _phase_answer(fc: FetchContext, *, state: AppState) -> None:
 
     What this does not fix, because it is a behaviour change and this is a move:
     a second entry OVERWRITES `fc.extraction_meta`, so a fetch that made two LLM
-    calls reports the tokens and cost of one. Filed in `BACKLOG.md`.
+    calls reports the tokens and cost of one. Filed in bd issue a2web-l26.
     """
     await _phase_extract_answer(fc, state=state)
     # Obstacle-driven render: the extractor flagged an empty/blocked obstacle (a

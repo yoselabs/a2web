@@ -5,7 +5,8 @@ an agent can ANSWER QUESTIONS from a fetched page. This module measures
 the upstream signal: does a2web's extraction pipeline produce markdown
 that matches a hand-curated gold standard?
 
-Trip condition for the Reader-LM v2 fallback (BACKLOG Reader-LM entry):
+Trip condition for the Reader-LM v2 fallback (no tracked bd issue exists for
+this trip condition; it was never filed as its own entry, only referenced here):
 ≥10% of URLs score below 0.7 token-F1 against gold. Drives the decision
 on whether to add an LLM-based extraction tier behind trafilatura.
 
@@ -235,7 +236,7 @@ class ExtractionSummary:
 def summarize(results: list[ExtractionResult], *, threshold: float = 0.7, miss_rate: float = 0.10) -> ExtractionSummary:
     """Aggregate per-URL results into the Reader-LM trip-decision shape.
 
-    Trip condition (BACKLOG default): ≥`miss_rate` of URLs scoring below
+    Trip condition (default, no separate bd issue): ≥`miss_rate` of URLs scoring below
     `threshold` on token-F1 → recommend Reader-LM v2 fallback.
     """
     n = len(results)

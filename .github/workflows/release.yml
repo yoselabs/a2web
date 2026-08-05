@@ -7,7 +7,7 @@
 # works out of the box — a slimmer browserless image can still be built
 # locally by omitting the build arg (see README → Deployment).
 #
-# Publish is single-arch (linux/amd64). Multi-arch is deferred (see BACKLOG).
+# Publish is single-arch (linux/amd64). Multi-arch is deferred: bd issue a2web-9qm.
 # One-time after the first successful publish: set the GHCR package
 # `yoselabs/a2web` visibility to Public (repo/org → Packages → Package settings),
 # otherwise the pull needs auth. See README → Deployment.

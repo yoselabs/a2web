@@ -12,7 +12,7 @@ The primary tool, `query`, goes a step past fetching. It runs a small fast model
 
 ## Status
 
-v0.48. Cascade and extraction are feature-complete. See [`CHANGELOG.md`](./CHANGELOG.md) for what shipped and [`BACKLOG.md`](./BACKLOG.md) for deferred work.
+v0.48. Cascade and extraction are feature-complete. See [`CHANGELOG.md`](./CHANGELOG.md) for what shipped. Deferred work is tracked in `bd` (beads); run `bd ready` for what's workable.
 
 ## Install
 

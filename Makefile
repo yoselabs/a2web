@@ -19,7 +19,7 @@ lint:
 # That is a REAL capability loss, not dead ceremony — it caught the `_resolve`
 # and `_safe_emit` collisions during Phase 1 — so `policies/data.json` is kept
 # rather than deleted, and re-homing the linter (shelf candidate, or a
-# standalone `conftest`-level AST check) is tracked in BACKLOG.md. Restoring it
+# standalone `conftest`-level AST check) is tracked in bd issue a2web-526. Restoring it
 # is cheap; silently forgetting it is what this comment exists to prevent.
 
 fix:

@@ -35,7 +35,7 @@ from ._walk import REPO_ROOT
 _DENIED: tuple[str, ...] = (
     "iorlas",
     "mcp.shen.iorlas.net",
-    "38.242.156.243",  # the operator's egress IP — cited in two ADRs and BACKLOG
+    "38.242.156.243",  # the operator's egress IP — cited in two ADRs and the bd archive
     "/Users/",
 )
 

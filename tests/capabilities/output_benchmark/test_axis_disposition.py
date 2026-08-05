@@ -454,7 +454,7 @@ def test_the_2026_08_02_loss_is_deliberately_NOT_caught() -> None:
     ~3% judge wobble is currently normal and a gate firing on every run gets
     ignored. What made the run untrustworthy was the CORRELATION (three of four
     losses on one system, headline gap 0.03), which needs a skew test against
-    the other systems and is recorded as open in BACKLOG.md.
+    the other systems and is recorded as open in bd issue a2web-oyb.
 
     This test exists so that the day someone claims the floor closed that
     incident, it contradicts them.

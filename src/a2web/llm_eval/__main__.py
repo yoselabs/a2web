@@ -276,7 +276,8 @@ def main(argv: list[str] | None = None) -> int:
     # because the Python parent dies immediately, the lazily-launched Camoufox
     # subprocess reaps itself via its parent-death pipe instead of lingering.
     # See eval/findings_2026-05-26-shutdown-thread-leak-spike.md + the
-    # `bench-shutdown-thread-leak` BACKLOG entry. Root-cause attribution
+    # `bench-shutdown-thread-leak` finding (no separate bd issue was ever filed
+    # for it). Root-cause attribution
     # (which dep leaks the thread) stays open upstream.
     sys.stdout.flush()
     sys.stderr.flush()

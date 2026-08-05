@@ -260,7 +260,7 @@ class TimeoutProvider:
 
     Ultimately `anyllm.LLMProvider.complete()` should take a per-request
     timeout, at which point this becomes a thin pass-through — filed as a shelf
-    promotion under BACKLOG T7.
+    promotion under bd issue a2web-vgk.
     """
 
     inner: Any

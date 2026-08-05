@@ -12,7 +12,7 @@ convention — statement position, or the absence of a clearing branch — and t
 a Stage protocol would have carried in its signature instead.
 
 **They are guarded, not fixed.** Two of the three are open behaviour changes
-filed in `BACKLOG.md`; this change's rule is that the only behaviour change is
+filed in bd issue a2web-s9d; this change's rule is that the only behaviour change is
 the ladder-skip fix (D7). What a guard buys on an OPEN hazard is that its blast
 radius cannot grow silently — a fifth paid claimant, or a second field that
 survives re-comprehension, has to come here and say so.
@@ -155,7 +155,7 @@ _SURVIVES_RECOMPREHENSION = {
     # the handler knows the site, the miner is guessing from shape.
     "next_links_handler": "intended — producer-claim precedence, CLAUDE.md `Never`",
     "record_set": "intended — same rule; the JSON fallback fills only when the structural path found nothing",
-    # NOT intended, both filed in BACKLOG.md rather than fixed here (a clearing
+    # NOT intended, both filed in bd issue a2web-s9d rather than fixed here (a clearing
     # branch is a behaviour change, and this change ships one).
     "record_count": "OPEN — a re-comprehension that finds no records leaves the old count, which "
     "`_phase_listing_completeness` then assesses against the NEW page's oracle total",

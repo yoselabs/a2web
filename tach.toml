@@ -39,7 +39,7 @@ depends_on = [
 [[modules]]
 path = "a2web.packages.block_detector"
 # GRANDFATHERED: block_detector imports EscalationSignal from packages.escalation.
-# Retired by BACKLOG.md "cross-package-coupling-cleanup" (2026-05-26 follow-up).
+# Retired by bd issue a2web-aif ("Structural-refactor follow-ups, ADR-0001 deferrals").
 # Plan: lift EscalationSignal to a shared types module both packages can import,
 # or inline the signal flag back into block_detector since escalation is its
 # sole consumer.

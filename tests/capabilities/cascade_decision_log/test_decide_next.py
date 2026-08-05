@@ -27,7 +27,7 @@ construction — if a rule stops firing, the sequence changes and the baseline
 fails. Measured 2026-08-02: deleting `cloudflare_403_429_archive` breaks the
 akakce baseline. Deleting `paywall_or_block_archive`,
 `exhausted_429_escalate`, or `gate_browser_signal` breaks NOTHING — those paths
-have no replay case yet. Recorded in `BACKLOG.md`; do not read the witness as
+have no replay case yet. Recorded in bd issue a2web-8tz; do not read the witness as
 covering the table.
 """
 

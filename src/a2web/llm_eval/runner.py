@@ -223,7 +223,7 @@ _JUDGED_AXES = ("quality", "clarity", "next_links")
 #: run untrustworthy was not the SIZE of the loss but its CORRELATION: three of
 #: four losses hit one system, on a comparison whose headline gap was 0.03. That
 #: needs a skew test against the other systems' coverage, not a floor, and it is
-#: recorded as open in `BACKLOG.md` rather than claimed here.
+#: recorded as open in bd issue a2web-oyb rather than claimed here.
 #:
 #: So this catches the degradation the spec names — an axis quietly narrowing
 #: run over run — and does not catch the correlated loss. Both are real; only

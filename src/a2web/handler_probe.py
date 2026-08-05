@@ -159,7 +159,7 @@ _PROBE_CASES: dict[str, tuple[ProbeCase, ...]] = {
         # nitter.privacydev.net → connection_error, nitter.net → length_floor,
         # xcancel.com → HTTP 200 serving a browser-verification interstitial
         # that the handler reports as Verdict.ok. This floor makes that a
-        # failure. The upstream may simply be gone; see BACKLOG.
+        # failure. The upstream may simply be gone; see bd issue a2web-rtp ("Retire the twitter handler?").
         ProbeCase(
             url="https://twitter.com/anthropicai/status/1701832836929187894",
             shape="detail",

@@ -24,7 +24,7 @@ The distinction that makes this belong HERE rather than in a per-case
 `contract:` block is machine-independence. Whether a given URL is reachable
 from a given host depends on proxies, paid-tier keys and jina reachability —
 so `status: failed` is a per-case, per-host claim and pinning it wholesale
-would bake one machine's provisioning into the gate (see `BACKLOG.md`,
+would bake one machine's provisioning into the gate (see bd issue a2web-1v1,
 2026-08-03, on the eleven adversarial slugs). But *coherence* is a property of
 the envelope with itself, true in BOTH branches on EVERY machine: retrieve the
 page and there is no incompleteness to declare; fail to, and the declaration

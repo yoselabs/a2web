@@ -20,7 +20,7 @@ ADR-0009 harm — nobody is handed a wrong answer — but it is the same directi
 and it is the half that makes the expensive half hard to debug.
 
 **Why this file exists rather than a delta in an existing test.** The fix landed
-with all 1703 tests still green, though `BACKLOG.md` predicted
+with all 1703 tests still green, though the closed bd issue a2web-3b6 predicted
 `diagnostics_summary` deltas. The absence was the finding: the one test named
 for a failed archive dispatch fakes `_dispatch_archive` ITSELF, so the real
 function never runs and the branch had no coverage at all. This fakes the archive

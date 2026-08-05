@@ -29,7 +29,7 @@ repos:
       # `uv run a2kit lint rego`. a2kit was retired on 2026-07-22, so the hook
       # had been failing to spawn ever since — it read as architectural policy
       # enforcement while enforcing nothing. The Rego lint itself is a real
-      # loss and is tracked in BACKLOG.md ("re-home the Rego policy lint");
+      # loss and is tracked in bd issue a2web-526 ("re-home the Rego policy lint");
       # removing the dead hook makes the gap visible rather than papered over.
       - id: ty
         name: ty (typecheck src)
