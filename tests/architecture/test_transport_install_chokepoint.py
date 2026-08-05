@@ -38,10 +38,17 @@ _ALLOWED_WRITERS = {
     "install": "the chokepoint itself",
     # The 304 path reuses a CACHED body — no tier result exists to install, and
     # `status_code = 200` is a logical hit rather than anything a server said.
-    # `decompose-fetcher-into-files` gives it its own file (`retrieval/conditional.py`);
-    # routing it through `install` would additionally write `final_url`, which it
+    # Routing it through `install` would additionally write `final_url`, which it
     # deliberately does not set today.
-    "_phase_tier_loop": "the conditional-304 cache-reuse path — no tier result to install",
+    #
+    # This exemption was `_phase_tier_loop` until 2026-08-05, and the line above
+    # said `decompose-fetcher-into-files` "gives it its own file
+    # (`retrieval/conditional.py`)" — a prediction, written before the file
+    # existed. §7 landed it, and this guard is what noticed: the move went red
+    # here first, on the stale-exemption assertion below, before any behavioural
+    # test had an opinion. An exemption naming a function that no longer writes
+    # is how a guard comes to pre-authorise whatever takes that name next.
+    "_reuse_cached_body": "the conditional-304 cache-reuse path — no tier result to install",
     # `RewriteUrl` retargets the fetch BEFORE any retrieval — `final_url` here is
     # "where we are about to look", not "where a tier landed". Found by this
     # guard on its first run, which is the argument for having it: a sixth writer

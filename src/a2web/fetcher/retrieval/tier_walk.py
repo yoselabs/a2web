@@ -17,13 +17,15 @@ from ...actions import (
 )
 from ...decision_log import ObservationKind
 from ...events import TierStarted
-from ...models import CacheState, Diagnostic, Verdict
+from ...models import Diagnostic, Verdict
 from ...state import AppState
 from ...tiers import REGISTRY, TIER_ORDER, Tier, TierResult
 from ..context import FetchContext, _within_budget
+from ..retrieval.conditional import Conditional, build_validators, resolve_conditional
 from ..retrieval.cookies import _phase_resolve_cookies
 from ..retrieval.escalate.seam import Rung, escalate
 from ..retrieval.install import TierInstall, install
+from ..retrieval.proxy_lease import acquire_lease, report_lease
 from ..telemetry import _emit_tier_ended, _host
 
 # Imported as MODULES, not names. `from .browser import _escalate_browser`
@@ -185,29 +187,10 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
             tier = REGISTRY[tier_name]
             tier_start_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
 
-            conditional_extras: dict[str, str] | None = None
-            if fc.cached_row is not None:
-                conditional_extras = {}
-                if fc.cached_row.etag:
-                    conditional_extras["etag"] = fc.cached_row.etag
-                if fc.cached_row.last_modified:
-                    conditional_extras["last_modified"] = fc.cached_row.last_modified
+            conditional_extras = build_validators(fc)
 
-            handle = proxy_pool.acquire(_host(fc.url) or "", tier_name)
+            handle = acquire_lease(fc, proxy_pool=proxy_pool, tier_name=tier_name, tier_start_ms=tier_start_ms)
             if handle is None:
-                fc.diagnostics.append(
-                    Diagnostic(
-                        t_ms=tier_start_ms,
-                        step=tier_name,
-                        engine=None,
-                        host=_host(fc.url),
-                        proxy=None,
-                        verdict=Verdict.proxy_unavailable,
-                        dur_ms=0,
-                        extra={"reason": "all_proxies_dead_required"},
-                    )
-                )
-                fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.proxy_unavailable)
                 continue
 
             await a2web_log.info(TierStarted(t_ms=tier_start_ms, step=tier_name, host=_host(fc.url)))
@@ -226,10 +209,7 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
             if tier_result.no_match or tier_result.skipped:
                 continue
 
-            proxy_pool.report(
-                handle,
-                success=tier_result.verdict not in (Verdict.proxy_unavailable, Verdict.connection_error, Verdict.timeout),
-            )
+            report_lease(proxy_pool, handle, tier_result)
 
             tier_dur_ms = await _emit_tier_ended(
                 step=tier_result.handler_name or tier_name,
@@ -244,67 +224,18 @@ async def _phase_tier_loop(fc: FetchContext, *, state: AppState) -> None:
                 },
             )
 
-            # A 304 with NO cached row behind it is unusable, and must never be
-            # mistaken for content. The tier is telling the truth — "not
-            # modified, reuse your copy" — but there is no copy, so the body is
-            # empty and there is nothing to reuse.
-            #
-            # Before this branch existed the condition below simply failed and
-            # the empty-body, `Verdict.ok` result FELL THROUGH to `install()`,
-            # gating as `status: ok` with `content_md: ""` and the narrative
-            # `raw → ok (9ms)`. An empty result reported as success is the
-            # ADR-0009 harm, and the caller had no hint that anything was wrong.
-            #
-            # a2web only sends `If-None-Match` / `If-Modified-Since` when it
-            # HAS the row, so in production this means the row was evicted
-            # between the request being built and the response arriving. It is
-            # also exactly what a replayed cassette does when it froze a 304
-            # (`eval/findings_2026-08-03-the-cassette-that-froze-a-304.md`).
-            #
-            # Treated as a tier that produced nothing usable, so the cascade
-            # continues to the next rung — which is what the cascade is for.
-            # NOT a wall, NOT a 404: `other` is the honest verdict for an
-            # unusable protocol state.
-            if tier_result.status_code == 304 and tier_result.conditional_hit and fc.cached_row is None:
-                fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.other)
-                fc.diagnostics.append(
-                    Diagnostic(
-                        t_ms=tier_start_ms,
-                        step=tier_name,
-                        engine="curl_cffi" if tier_name == "raw" else None,
-                        host=_host(fc.url),
-                        proxy=handle.proxy_id,
-                        verdict=Verdict.other,
-                        dur_ms=tier_dur_ms,
-                        extra={"conditional_hit": "unmatched", "status_code": 304},
-                    )
-                )
-                continue
-
-            # Conditional 304 → reuse cached body. Distinct return path (no
-            # after-tier action, no further tiers, no extract/gate ahead).
-            if tier_result.status_code == 304 and fc.cached_row is not None and tier_result.conditional_hit:
-                fc.body = fc.cached_row.body
-                fc.content_type = fc.cached_row.content_type or "text/html"
-                fc.status_code = 200  # logical hit
-                fc.cache_state = CacheState.hit
-                fc.etag = fc.cached_row.etag
-                fc.last_modified = fc.cached_row.last_modified
-                fc.tier_used = tier_name
-                fc.observe(kind=ObservationKind.tier_outcome, source=tier_name, verdict=Verdict.ok)
-                fc.diagnostics.append(
-                    Diagnostic(
-                        t_ms=tier_start_ms,
-                        step=tier_name,
-                        engine="curl_cffi",
-                        host=_host(fc.url),
-                        proxy=handle.proxy_id,
-                        verdict=Verdict.ok,
-                        dur_ms=tier_dur_ms,
-                        extra={"conditional_hit": "true"},
-                    )
-                )
-                return
+            conditional = resolve_conditional(
+                fc,
+                tier_result,
+                tier_name=tier_name,
+                tier_start_ms=tier_start_ms,
+                tier_dur_ms=tier_dur_ms,
+                proxy_id=handle.proxy_id,
+            )
+            if conditional is Conditional.unusable:
+                continue  # nothing to reuse — the cascade continues
+            if conditional is Conditional.reused:
+                return  # cached body installed; no gate/extract ahead
 
             fc.diagnostics.append(
                 Diagnostic(
