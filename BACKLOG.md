@@ -941,6 +941,41 @@ empty. Joined 2026-08-02 by four more, each with its measurement in
 declined, because the generic unit is a backend-neutral `analyze_param` spanning
 a2web and a2kay.
 
+## 2026-08-05 — the shelf has no verification-time packages (M, structure — 8 candidates)
+
+**Source:** `docs/findings/2026-08-05-what-the-tests-caught-and-what-should-be-substrate.md`,
+written from the 22-commit session `3c4ad5d..9571f1d`.
+
+Checked against the shelf catalog: **27 packages, all runtime substrate, zero
+test-time.** Every instrument that found a defect in that session was hand-rolled
+in `tests/`, and three of them now exist in two copies with diverging details.
+
+Eight candidates, ranked in the finding. The top three, with the evidence that
+makes them sharp edges rather than conveniences:
+
+1. **`mutation-probe`** — apply a mutation, ASSERT IT APPLIED, run, assert red,
+   restore. A `sed` mutation silently matched zero occurrences and reported "All
+   checks passed"; the result was discarded only because the applied-count was
+   printed. Four defects that session were found by mutation alone.
+2. **`guard-walk`** — a source walk with a declared floor. 30 of 32 architecture
+   guards once passed against an EMPTY source tree.
+3. **`chokepoint-guard`** — "this field set has these writers". Written twice
+   here already, and the two copies scope assignments differently.
+
+(1) gates (2)–(5): a guard package's verification lane *is* "plant a violation,
+assert red", so promoting guards without a mutation harness ships the blind spot
+the shelf loop's resolution 0013 forbids.
+
+**Also three DX proposals for the shelf itself**, in §3 of the finding. The
+load-bearing one: `docs/agent-loop.md`'s SEAM trigger enumerates only runtime
+substrate ("LLM / DB / embedding / git / file / format / config / datetime /
+collections"), and the catalog matches that list exactly. The trigger describes
+what gets noticed — verification code is invisible to the loop that exists to
+catch it.
+
+**Constitution-touching** (it proposes editing the canonical agent loop), so
+Phase A applies: this is a proposal for a human to confirm, not an agent action.
+
 ## 2026-07-31 — the remaining 36 findings (evidence in `docs/findings/`)
 
 Full evidence — measurements, `file:line` citations, verification notes — lives in
