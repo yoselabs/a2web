@@ -61,6 +61,13 @@ the codebase.** It is the question ADR-0015 exists to answer.
 
 ## What Changes
 
+> **Shipped shape differs — measured 2026-08-05.** 32 files; `__init__.py` 504
+> (65 imports + a 190-line `__all__` re-export block over one 152-line
+> `fetch()`), `context.py` 462, `tier_walk.py` 316. Five designed files did not
+> ship: three correctly (`prerendered.py`/`json_synth.py` → `comprehension/extract.py`;
+> `_tail.py` → `seam.py`, per task 1.1), two as real gaps that landed late
+> (`conditional.py`, `proxy_lease.py`). Cite `tasks.md` §7.5, not this budget.
+
 - **`fetcher.py` becomes `fetcher/`** — 26 files, largest 281 (`context.py`),
   then 191, nothing over 300, grouped by the question each answers:
   `retrieval/` (get bytes) · `comprehension/` (what did we get) ·

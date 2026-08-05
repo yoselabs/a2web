@@ -534,7 +534,7 @@ question each answers.
 - [x] 7.1b **Re-measured. The blocker is CLEARED.** The external read set is a
       declared type checked at every call site, not a list of attribute names.
       7.2 can be attempted with `ty` naming every member a cut would strand.
-- [~] 7.2 Slice `context.py` per node. **First cut LANDED 2026-08-03 — the frozen
+- [x] 7.2 Slice `context.py` per node. **CLOSED SHORT — see 7.2d.** **First cut LANDED 2026-08-03 — the frozen
       preamble is lifted (a) below; the per-node split of what remains is still
       open. Surveyed 2026-08-03 — the cut is far
       more tractable than this change assumed, and the survey changes its
@@ -632,7 +632,7 @@ question each answers.
       `verdict` purely because verdict reads it. Owner must mean writer; the
       no-writer case is its own bucket, and it turned out to be the biggest
       finding (a). The numbers above are the corrected run.
-- [ ] 7.2d **Recommendation, 2026-08-05: stop the per-node split here, and the
+- [x] 7.2d **Recommendation, 2026-08-05: stop the per-node split here, and the
       seam in (c) is not the one to cut.** Two findings from actually reading it.
 
       **The (c) seam is narrower than surveyed, and it is a legitimate two.**
@@ -670,8 +670,54 @@ question each answers.
       fields. Nothing observed does today — the two that did (the four-copy
       install, the five-path transport install) are both closed by chokepoint
       guards, which is the cheaper shape of the same fix.
-- [ ] 7.3 Update the ~19 test modules importing `FetchContext`.
-- [ ] 7.4 Move the T1 entries to `BACKLOG-CLOSED.md`, including the two subsumed
-      ones (*no "install a fetch result" type*, *five escalation decisions live
-      outside the single policy function*) and *the sufficiency question has no
-      name*.
+- [x] 7.3 **Done by construction 2026-08-03.** 25 test modules import
+      `FetchContext`; they were updated during the §7.2 lift and `ty` named every
+      one, so there was no separate pass to run. The count in this task was 19,
+      measured before the package split added test modules.
+- [x] 7.4 **Done 2026-08-05.** T1 umbrella moved to `BACKLOG-CLOSED.md` with a
+      *what actually shipped* note; the TRACKS index row and the T1 paragraph
+      updated. The three subsumed findings are ANNOTATED IN PLACE in the
+      36-findings index rather than deleted — that entry's title states a count,
+      and removing rows from an index whose header counts them makes the header
+      lie.
+- [x] 7.5 **The two designed files that never shipped — landed 2026-08-05.**
+      Found by comparing the designed tree against the real one before closing,
+      which is the check worth doing on any change that ships a structure.
+
+      Five designed files were absent. Three were correct omissions
+      (`prerendered.py` / `json_synth.py` became `comprehension/extract.py`;
+      `escalate/_tail.py` was confirmed WRONG by task 1.1 and became `seam.py`).
+      Two were real: `retrieval/conditional.py` and `retrieval/proxy_lease.py`,
+      both extractions from `_phase_tier_loop` — the function this change's own
+      census named as carrying 5 jobs, still 219 lines and the largest in the
+      tree. Closing without them would have left the headline example unfixed
+      while the change record implied otherwise.
+
+      ```
+        _phase_tier_loop  219 -> 148      tier_walk.py  385 -> 316
+      ```
+
+      **The transport chokepoint guard caught the move before any behavioural
+      test did** — its exemption named `_phase_tier_loop`, and its comment had
+      predicted `retrieval/conditional.py` by name. Repointed to
+      `_reuse_cached_body`.
+
+      **Mutation-verified, and the fifth mutation is the finding.** Four
+      mutations of the moved code went red. The fifth — replacing the
+      egress-vs-origin verdict test with a flat `success=False` — passed all
+      1727 tests. In production that quarantines a healthy proxy for 10 minutes
+      after three 404s, and on a `proxy_required` route the tier is then skipped
+      entirely: ADR-0009's unfetched URL reached by a bug rather than a dead
+      pool. `tests/packages/test_proxy_routing.py` could not have caught it — it
+      passes the boolean literally, and the question is which verdicts produce
+      it. Pinned in both directions by
+      `tests/capabilities/tier_pipeline/test_breaker_blames_the_egress_not_the_origin.py`,
+      with `dns_error` documented as a deliberate ambiguity rather than silently
+      classified.
+
+      **Correct the tree before citing it.** This change claims "26 files,
+      largest 281, nothing over 300". Shipped, measured 2026-08-05: 32 files;
+      `__init__.py` 504 (65 imports + a 190-line `__all__` re-export block over
+      one 152-line `fetch()` — the deliberate back-compat surface), `context.py`
+      462, `tier_walk.py` 316. The budget was not met and the number should not
+      be repeated.

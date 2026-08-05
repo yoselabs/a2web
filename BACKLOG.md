@@ -480,7 +480,7 @@ same as ready to start.
 | 4 | `run-the-gate-on-every-push` | T4 CI — **do first**, everything else's guards are inert until it lands | **authored** |
 | 5 | `close-guards-that-read-green` | T4 remainder: markup funnel misses `re.search`/`re.sub`, two guards answer a different question, two cited guards don't exist, 22 doubleable constants, playbook 1.00 lockstep, partial eval loss exits 0, the corpus cannot see the envelope | **authored** |
 | 6 | `unify-the-response-contract` | T2 — absorbs the 41 external `FetchContext` reads, unblocking #7 phase two | **SHIPPED** 2026-08-01 (34/36; §2.2-2.4/2.7 remainder deferred, see tasks) → `BACKLOG-CLOSED.md` |
-| 7 | `decompose-fetcher-into-files` | T1 — the 26-file tree, the retrieval→comprehension→sufficiency loop, `install()` | **authored** |
+| 7 | `decompose-fetcher-into-files` | T1 — the file tree, the retrieval→comprehension→sufficiency loop, `install()` | **SHIPPED** 2026-08-05 (phase two closed short at §7.2 by design — see tasks §7.2d) → `BACKLOG-CLOSED.md` |
 | 8 | `lift-the-item-set-and-renderer` | T5/T7: `domain.py`'s 360-line zero-coupling renderer (ledger Row 1), the item set (Row 2) — closes a LIVE ADR-0015 gap | **authored** |
 | 9 | `repay-the-shelf-debt` | T7: ~~`page-tsv`~~, ~~`content-extract`~~, ~~`json-in-html`~~, ~~adopted-then-bypassed primitives~~, ~~`record-mine`~~ — `dom-schema` / `any-browser` open, each blocked on evidence a2web cannot fabricate | **§1-§3, §5-§10 shipped 2026-08-02** |
 | 10 | `reconcile-docs-to-shipped-system` | T6 — last, because #6/#7 re-invalidate parts of it | **authored** |
@@ -534,12 +534,14 @@ pieces of work. Six tracks, with the dependency edges that matter:
   T6 DOCS TELL A DIFFERENT STORY     (both independent of T1/T2)
 ```
 
-**T1 · Decompose `fetcher/`** — the entry immediately below is the umbrella.
-Subsumes: *no "install a fetch result" type* (`install.py` is a node in the
-tree), *five escalation decisions live outside the "single policy function"*
-(the loop is what re-homes them), and *the sufficiency question has no name*
-(2026-07-31, prior scan — answered by `sufficiency/` being a directory).
-Structurally closes *listing sufficiency is OFF*. Blocked on nothing.
+**T1 · Decompose `fetcher/` — SHIPPED 2026-08-05**, umbrella and all three
+subsumed findings closed (`BACKLOG-CLOSED.md`; the subsumed rows are annotated
+in place in the 36-findings index below, so its count stays true). Phase two
+stopped after the frozen-preamble lift on a recorded decision rather than
+exhaustion — the reasoning and the reopen condition are in that change's
+`tasks.md` §7.2d. Read the closed entry before citing its tree: five designed
+files did not ship, two of them real gaps that landed late, and its "nothing
+over 300" line budget was not met.
 
 **T2 · The response contract — SHIPPED 2026-08-01**, umbrella and all three
 subsumed findings closed (`BACKLOG-CLOSED.md`). **T1 phase two is unblocked**:
@@ -939,143 +941,6 @@ empty. Joined 2026-08-02 by four more, each with its measurement in
 declined, because the generic unit is a backend-neutral `analyze_param` spanning
 a2web and a2kay.
 
-## 2026-07-31 — decompose `fetcher.py` into single-purpose files (L, structure — T1 UMBRELLA)
-
-**Source:** structural scan + design session, 2026-07-31. Line budgets from the
-AST census; the tree is the applied form of the decomposition criterion below.
-
-`fetcher.py` is 2771 lines. The v0.23 "structural refactor" reorganized its
-interior into named phases and **the growth curve did not bend** (913 → 1610 →
-1711 → 1728 → 2547 → 2771). Interior reorganization is not the fix.
-
-### The criterion
-
-**One file, one purpose.** Exceptions, and only these two: an **aggregation
-point** (a composition root or entrypoint whose purpose IS to assemble), and a
-**utils leaf** (shared mechanism with no domain decision in it).
-
-Applied to `fetcher.py`, four of its phases fail the criterion outright —
-`_phase_tier_loop` carries 5 jobs, `_phase_extract_answer` 6, `_phase_extract`
-3, and the three escalators share a duplicated tail.
-
-### The tree
-
-```
-src/a2web/fetcher/
-├── __init__.py            fetch() — AGGREGATION                    ~60
-├── pipeline.py            the ordered chain, nothing else          ~50
-├── context.py             FetchContext                              281
-├── telemetry.py           UTILS                                      58
-│
-├── retrieval/             "get bytes for this URL"
-│   ├── cache.py           TTL policy, read, write                    41
-│   ├── conditional.py     the 304 path                              ~35   ← out of tier_walk
-│   ├── cookies.py         resolve + staleness                        90
-│   ├── proxy_lease.py     lease/report protocol                     ~45   ← out of tier_walk
-│   ├── tier_walk.py       the walk itself                          ~180
-│   ├── install.py         TierInstall + the one chokepoint          ~80   NEW
-│   └── escalate/
-│       ├── archive.py · browser.py · paid.py                       ~75 ea
-│       └── _tail.py       shared install + re-gate — UTILS LEAF     ~35
-│
-├── comprehension/         "what did we get"
-│   ├── prerendered.py     the handler-payload path                  ~70   ← out of ladder
-│   ├── json_synth.py      JSON body → content                       ~60   ← out of ladder
-│   ├── ladder.py          trafilatura → escalation rungs           ~140
-│   ├── gate.py            evaluate / regate                          132
-│   └── menu.py            candidates → prompt + wire                 191
-│
-├── sufficiency/           "is this ALL of it?"     ← has no name today
-│   └── completeness.py    assess · oracle · scroll decision          138
-│
-├── answer/                "what did the caller ask"
-│   ├── digest.py          {{n}} build + rehydrate (ADR-0014)          52
-│   ├── prompt_call.py     the LLM call + degrade                     ~90   ← out of extract
-│   ├── obstacle.py        the re-render decision                     ~60   ← out of extract
-│   └── links.py           records→NextLink, LLM validation            95
-│
-└── verdict/               "what do we tell the caller"
-    ├── promotions.py      empty · small-page                         ~50
-    └── terminal.py        classify + hints (actions/ owns the        ~45
-                           pure half already)
-```
-
-26 files, largest 281 (`context.py`), then 191. Nothing over 300.
-
-### The load-bearing part is the loop, not the tree
-
-`retrieval → comprehension → sufficiency` **is a loop**, and the code does not
-model it as one. Today escalation hand-calls comprehension from inside
-retrieval, which is why:
-
-- H1 exists at all — escalators re-enter at *comprehension* and skip sufficiency
-  entirely (`_run_extraction_escalation` 4 call sites vs
-  `_phase_listing_completeness` 2)
-- `_phase_listing_render:2716-2722` re-implements assess-and-set inline, because
-  there is no loop head to return to
-- `_phase_extract_answer` is re-entrant 3× and not idempotent — *answer* is
-  being used as the loop body
-- the single paid budget is resolved by call order across four competitors
-
-**Have escalation return a retry signal instead of calling forward.** Then there
-is exactly one path from retrieval through comprehension to sufficiency, and a
-stage cannot be skipped because nothing calls it directly. That also dissolves
-the `retrieval → comprehension` import cycle that blocks a naive file split
-(anti-seam A2 in the scan) — **the cycle WAS the loop, un-named.**
-
-`install.py` is the second load-bearing piece: six transport fields (`body`,
-`content_type`, `final_url`, `tier_used`, `pre_rendered_payload`, `status_code`)
-are each written by six functions across three groups.
-`_install_rendered_fields` already unified the *content* half after it caused a
-live bug and explicitly excluded the transport half (`:1279-1281`). One
-`install(ctx, TierInstall)` is what lets `tier_walk` and `escalate` be siblings
-rather than one 576-line file.
-
-### Rejected: a Stage protocol with declared reads/writes
-
-Considered and dropped. A `Stage` protocol carrying `READS`/`WRITES` field sets
-would make the five prose-only ordering constraints (`:1955`, `:2315`, `:2337`,
-`:2344`) checkable at build time, and would make H1 *unexpressible*. It was
-rejected as a framework where a criterion was asked for — it spends magic budget
-the Constitution does not want spent, for a guarantee the loop restructure
-already delivers structurally.
-
-**What that costs, stated plainly:** the residual ordering hazards — the paid
-budget resolved by call order, `fc.record_count` never resetting
-(`:1725-1732`, no `else: None`), `_install_gate_archive` not setting
-`status_code` — go back to being conventions. They become **one architecture
-test**, not a framework. Cheaper, and the project already has that habit. If
-that test proves hard to write, reopen this decision rather than living with the
-convention.
-
-### Sequencing
-
-**Phase one — the tree + the loop.** Does NOT need `context.py` sliced;
-`FetchContext` stays whole. Closes H1 structurally.
-
-**Phase two — slice `context.py` per node.** **Blocked on T2**: 41 of its 69
-fields are read externally by `fetcher_response.py`, so the response contract
-must absorb those reads first. Attempting both phases at once turns a
-decomposition into a rewrite.
-
-### Anti-seams — verified, do not cut these
-
-- `_phase_tier_loop` / `_dispatch_action`: the `:1247` escalation-win check is
-  correct **only because** `_install_won_tier` at `:1254` has not run yet.
-- `_phase_empty_promotion` / `_phase_complete_small_page_promotion` /
-  `_apply_terminal` are one mutually-exclusive chain expressed by early returns,
-  with `small_page_promoted()` reading a field written 460 lines away. They go
-  into `verdict/` together or not at all.
-- `_phase_extract`'s pre-rendered branch: `:1299-1323` documents that it once
-  returned *before* the ladder and starved four consumers for months. Splitting
-  it into `prerendered.py` must preserve the ladder call, not just the branch.
-- `FetchContext`: 69 fields, ~19 test modules import it. Phase two only.
-
-**Open question for the proposal:** `escalate/_tail.py` is the one file placed by
-judgement rather than census — it is the shared ~35-line install-and-re-gate tail
-(`_escalate_browser:2136-2151` ≈ `_escalate_paid:2236-2253`). It qualifies as a
-utils leaf under the criterion; confirm that reading before writing it.
-
 ## 2026-07-31 — the remaining 36 findings (evidence in `docs/findings/`)
 
 Full evidence — measurements, `file:line` citations, verification notes — lives in
@@ -1085,7 +950,7 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 | finding | tier |
 |---|---|
 | [listing sufficiency is OFF on the population it exists for](docs/findings/2026-07-31-structural-scan.md#listing-sufficiency-is-off-on-the-population-it-exists-for-m-correctness--live) | M, correctness — LIVE |
-| [no "install a fetch result" type; six fields written six ways](docs/findings/2026-07-31-structural-scan.md#no-install-a-fetch-result-type-six-fields-written-six-ways-m-structure) | M, structure |
+| [no "install a fetch result" type; six fields written six ways](docs/findings/2026-07-31-structural-scan.md#no-install-a-fetch-result-type-six-fields-written-six-ways-m-structure) — **CLOSED 2026-08-05** by T1 (`install.py`, guarded both halves) | M, structure — CLOSED |
 | [`domain.py` is 69% an undocumented renderer](docs/findings/2026-07-31-structural-scan.md#domainpy-is-69-an-undocumented-renderer-m-structure) | M, structure |
 | [`routers.py` is one function with a hole in it](docs/findings/2026-07-31-structural-scan.md#routerspy-is-one-function-with-a-hole-in-it-s-structure) | S, structure |
 | [the Registry half of Strategy+Registry isolates nothing](docs/findings/2026-07-31-structural-scan.md#the-registry-half-of-strategyregistry-isolates-nothing-s-structure) | S, structure |
@@ -1096,7 +961,7 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 | [cross-handler duplication: seven shapes, partial adoption](docs/findings/2026-07-31-structural-scan.md#cross-handler-duplication-seven-shapes-partial-adoption-m-structure) | M, structure |
 | [45 of 86 prompt rules have neither code nor test](docs/findings/2026-07-31-structural-scan.md#45-of-86-prompt-rules-have-neither-code-nor-test-l-verification) | L, verification |
 | [`extractor.py` holds ~200 lines its siblings are named for](docs/findings/2026-07-31-structural-scan.md#extractorpy-holds-200-lines-its-siblings-are-named-for-m-structure) | M, structure |
-| [five escalation decisions live outside the "single policy function"](docs/findings/2026-07-31-structural-scan.md#five-escalation-decisions-live-outside-the-single-policy-function-m-structure) | M, structure |
+| [five escalation decisions live outside the "single policy function"](docs/findings/2026-07-31-structural-scan.md#five-escalation-decisions-live-outside-the-single-policy-function-m-structure) — **CLOSED 2026-08-05** by T1 (`escalate/seam.py` + `_dispatch_action`) | M, structure — CLOSED |
 | [`endpoint-auth` spec yields an UNAUTHENTICATED endpoint if followed](docs/findings/2026-07-31-structural-scan.md#endpoint-auth-spec-yields-an-unauthenticated-endpoint-if-followed-s-security) | S, SECURITY |
 | [`_MAX_RECORDS` × `DEFAULT_TOLERANCE` dead zone](docs/findings/2026-07-31-structural-scan.md#_max_records--default_tolerance-dead-zone-s-correctness--adr-0009-live) — **STAYS OPEN**: `_MAX_RECORDS` was not found anywhere in `src/`, so the interaction the finding describes could not be reproduced and the entry is unverified. Do not close it on the strength of the finding alone. | S, correctness — ADR-0009 LIVE, unverified |
 | [22 constants can be doubled with zero test failures](docs/findings/2026-07-31-structural-scan.md#22-constants-can-be-doubled-with-zero-test-failures-m-verification) | M, verification |
@@ -1106,7 +971,7 @@ Tracks and dependency order are in the TRACKS entry above. One line each:
 | [naming rot: `_prescribe_browser_on_wall`](docs/findings/2026-07-31-structural-scan.md#naming-rot-_prescribe_browser_on_wall-xs-cosmetic) | XS, cosmetic |
 | [invariants with no code implementer](docs/findings/2026-07-31-structural-scan.md#invariants-with-no-code-implementer-m-l-structure) | M-L, structure |
 | [the corpus cannot see the envelope](docs/findings/2026-07-31-structural-scan.md#the-corpus-cannot-see-the-envelope-l-verification--highest-leverage) | L, verification — HIGHEST LEVERAGE |
-| [the sufficiency question has no name](docs/findings/2026-07-31-structural-scan.md#the-sufficiency-question-has-no-name-m-structure--answered-by-t1) | M, structure — ANSWERED by T1 |
+| [the sufficiency question has no name](docs/findings/2026-07-31-structural-scan.md#the-sufficiency-question-has-no-name-m-structure--answered-by-t1) — **CLOSED 2026-08-05**: it has one, `fetcher/sufficiency/` | M, structure — CLOSED |
 
 ## 2026-07-28 — retire the twitter handler? (S, decision — REVISIT, do not act yet)
 

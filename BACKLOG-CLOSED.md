@@ -9,7 +9,202 @@ Nothing here is actionable. If an entry looks live again, move it back rather
 than re-deriving it.
 
 ---
-## 2026-08-02 — T7: five "adopted, then hand-rolled anyway" findings (M, structure)
+## 2026-07-31 — decompose `fetcher.py` into single-purpose files (L, structure — T1 UMBRELLA) — CLOSED 2026-08-05
+
+**Closed by `openspec/changes/decompose-fetcher-into-files`.** The original
+entry is preserved below unedited; what follows is what actually shipped against
+it, including where it did not.
+
+**Shipped.** The 26-file tree became 32 files under `src/a2web/fetcher/`. The
+loop landed as `retrieval/escalate/seam.py` — `escalate(fc, rung)` is the only
+thing that dispatches a rung and always runs comprehension → sufficiency →
+re-gate on what landed, so H1 ("escalators re-enter at comprehension and skip
+sufficiency") is unexpressible rather than merely fixed. `install.py` landed and
+is guarded twice: the transport half by
+`tests/architecture/test_transport_install_chokepoint.py`, the content half by
+`test_content_install_chokepoint.py` (2026-08-05 — the half the live `links` bug
+actually happened in had been carrying an unbacked "only place" claim).
+
+**The `Stage` protocol stayed rejected, and the bet it made paid.** The entry
+said the residual ordering hazards would become "one architecture test, not a
+framework", and that if that test proved hard to write the decision should be
+reopened. It was not hard: `test_fetcher_phase_ordering.py` and
+`test_fetcher_residual_ordering.py`.
+
+**Did NOT ship as designed, recorded so the tree is not read as the plan.**
+Five designed files never appeared. Two were real gaps and landed 2026-08-05
+(`retrieval/conditional.py`, `retrieval/proxy_lease.py`) — until then
+`_phase_tier_loop` was still 219 lines carrying the five jobs the census counted,
+i.e. the change's own headline example was unfixed. Three others were
+deliberately not built: `prerendered.py` and `json_synth.py` became
+`comprehension/extract.py` instead, and `escalate/_tail.py` — flagged in the
+entry as "placed by judgement rather than census, confirm that reading before
+writing it" — was confirmed WRONG on reading. Task 1.1 found the two escalators'
+tails differ in a load-bearing way (paid observes its own success, browser does
+not, and `is_confirmed_empty` depends on that asymmetry), so a shared tail would
+have merged two things that must not merge. It became `seam.py`, which dispatches
+rather than deduplicates. **The census would have made that mistake; reading
+prevented it** — which is the entry's own instruction working.
+
+**The line budget was not met and the number should not be repeated.** The entry
+claims "nothing over 300". Measured 2026-08-05: `__init__.py` 504 (65 imports +
+a 190-line `__all__` re-export block over one 152-line `fetch()` — the
+deliberate back-compat surface), `context.py` 462, `tier_walk.py` 316.
+
+**Phase two is closed short, deliberately.** §7.2 lifted the 19 request-frozen
+fields into `FetchInputs` + `FetchResources` (`FetchContext` 79 members → 62),
+which bought a language-enforced property. The per-node split of the remainder
+was declined: those fields are written mid-pipeline by definition, so no bundle
+can be frozen, and the split would touch ~350 reference sites for naming alone.
+Reasoning and the reopen condition are in that change's `tasks.md` §7.2d.
+
+**Subsumed findings, closed with it:** *no "install a fetch result" type* (→
+`install.py` + two guards), *five escalation decisions live outside the "single
+policy function"* (→ `seam.py` + `_dispatch_action`), *the sufficiency question
+has no name* (→ `sufficiency/`). Their rows in the 36-findings index are
+annotated in place rather than deleted, so that entry's count stays true.
+
+---
+
+## 2026-07-31 — decompose `fetcher.py` into single-purpose files (L, structure — T1 UMBRELLA)
+
+**Source:** structural scan + design session, 2026-07-31. Line budgets from the
+AST census; the tree is the applied form of the decomposition criterion below.
+
+`fetcher.py` is 2771 lines. The v0.23 "structural refactor" reorganized its
+interior into named phases and **the growth curve did not bend** (913 → 1610 →
+1711 → 1728 → 2547 → 2771). Interior reorganization is not the fix.
+
+### The criterion
+
+**One file, one purpose.** Exceptions, and only these two: an **aggregation
+point** (a composition root or entrypoint whose purpose IS to assemble), and a
+**utils leaf** (shared mechanism with no domain decision in it).
+
+Applied to `fetcher.py`, four of its phases fail the criterion outright —
+`_phase_tier_loop` carries 5 jobs, `_phase_extract_answer` 6, `_phase_extract`
+3, and the three escalators share a duplicated tail.
+
+### The tree
+
+```
+src/a2web/fetcher/
+├── __init__.py            fetch() — AGGREGATION                    ~60
+├── pipeline.py            the ordered chain, nothing else          ~50
+├── context.py             FetchContext                              281
+├── telemetry.py           UTILS                                      58
+│
+├── retrieval/             "get bytes for this URL"
+│   ├── cache.py           TTL policy, read, write                    41
+│   ├── conditional.py     the 304 path                              ~35   ← out of tier_walk
+│   ├── cookies.py         resolve + staleness                        90
+│   ├── proxy_lease.py     lease/report protocol                     ~45   ← out of tier_walk
+│   ├── tier_walk.py       the walk itself                          ~180
+│   ├── install.py         TierInstall + the one chokepoint          ~80   NEW
+│   └── escalate/
+│       ├── archive.py · browser.py · paid.py                       ~75 ea
+│       └── _tail.py       shared install + re-gate — UTILS LEAF     ~35
+│
+├── comprehension/         "what did we get"
+│   ├── prerendered.py     the handler-payload path                  ~70   ← out of ladder
+│   ├── json_synth.py      JSON body → content                       ~60   ← out of ladder
+│   ├── ladder.py          trafilatura → escalation rungs           ~140
+│   ├── gate.py            evaluate / regate                          132
+│   └── menu.py            candidates → prompt + wire                 191
+│
+├── sufficiency/           "is this ALL of it?"     ← has no name today
+│   └── completeness.py    assess · oracle · scroll decision          138
+│
+├── answer/                "what did the caller ask"
+│   ├── digest.py          {{n}} build + rehydrate (ADR-0014)          52
+│   ├── prompt_call.py     the LLM call + degrade                     ~90   ← out of extract
+│   ├── obstacle.py        the re-render decision                     ~60   ← out of extract
+│   └── links.py           records→NextLink, LLM validation            95
+│
+└── verdict/               "what do we tell the caller"
+    ├── promotions.py      empty · small-page                         ~50
+    └── terminal.py        classify + hints (actions/ owns the        ~45
+                           pure half already)
+```
+
+26 files, largest 281 (`context.py`), then 191. Nothing over 300.
+
+### The load-bearing part is the loop, not the tree
+
+`retrieval → comprehension → sufficiency` **is a loop**, and the code does not
+model it as one. Today escalation hand-calls comprehension from inside
+retrieval, which is why:
+
+- H1 exists at all — escalators re-enter at *comprehension* and skip sufficiency
+  entirely (`_run_extraction_escalation` 4 call sites vs
+  `_phase_listing_completeness` 2)
+- `_phase_listing_render:2716-2722` re-implements assess-and-set inline, because
+  there is no loop head to return to
+- `_phase_extract_answer` is re-entrant 3× and not idempotent — *answer* is
+  being used as the loop body
+- the single paid budget is resolved by call order across four competitors
+
+**Have escalation return a retry signal instead of calling forward.** Then there
+is exactly one path from retrieval through comprehension to sufficiency, and a
+stage cannot be skipped because nothing calls it directly. That also dissolves
+the `retrieval → comprehension` import cycle that blocks a naive file split
+(anti-seam A2 in the scan) — **the cycle WAS the loop, un-named.**
+
+`install.py` is the second load-bearing piece: six transport fields (`body`,
+`content_type`, `final_url`, `tier_used`, `pre_rendered_payload`, `status_code`)
+are each written by six functions across three groups.
+`_install_rendered_fields` already unified the *content* half after it caused a
+live bug and explicitly excluded the transport half (`:1279-1281`). One
+`install(ctx, TierInstall)` is what lets `tier_walk` and `escalate` be siblings
+rather than one 576-line file.
+
+### Rejected: a Stage protocol with declared reads/writes
+
+Considered and dropped. A `Stage` protocol carrying `READS`/`WRITES` field sets
+would make the five prose-only ordering constraints (`:1955`, `:2315`, `:2337`,
+`:2344`) checkable at build time, and would make H1 *unexpressible*. It was
+rejected as a framework where a criterion was asked for — it spends magic budget
+the Constitution does not want spent, for a guarantee the loop restructure
+already delivers structurally.
+
+**What that costs, stated plainly:** the residual ordering hazards — the paid
+budget resolved by call order, `fc.record_count` never resetting
+(`:1725-1732`, no `else: None`), `_install_gate_archive` not setting
+`status_code` — go back to being conventions. They become **one architecture
+test**, not a framework. Cheaper, and the project already has that habit. If
+that test proves hard to write, reopen this decision rather than living with the
+convention.
+
+### Sequencing
+
+**Phase one — the tree + the loop.** Does NOT need `context.py` sliced;
+`FetchContext` stays whole. Closes H1 structurally.
+
+**Phase two — slice `context.py` per node.** **Blocked on T2**: 41 of its 69
+fields are read externally by `fetcher_response.py`, so the response contract
+must absorb those reads first. Attempting both phases at once turns a
+decomposition into a rewrite.
+
+### Anti-seams — verified, do not cut these
+
+- `_phase_tier_loop` / `_dispatch_action`: the `:1247` escalation-win check is
+  correct **only because** `_install_won_tier` at `:1254` has not run yet.
+- `_phase_empty_promotion` / `_phase_complete_small_page_promotion` /
+  `_apply_terminal` are one mutually-exclusive chain expressed by early returns,
+  with `small_page_promoted()` reading a field written 460 lines away. They go
+  into `verdict/` together or not at all.
+- `_phase_extract`'s pre-rendered branch: `:1299-1323` documents that it once
+  returned *before* the ladder and starved four consumers for months. Splitting
+  it into `prerendered.py` must preserve the ladder call, not just the branch.
+- `FetchContext`: 69 fields, ~19 test modules import it. Phase two only.
+
+**Open question for the proposal:** `escalate/_tail.py` is the one file placed by
+judgement rather than census — it is the shared ~35-line install-and-re-gate tail
+(`_escalate_browser:2136-2151` ≈ `_escalate_paid:2236-2253`). It qualifies as a
+utils leaf under the criterion; confirm that reading before writing it.
+
+
+ five "adopted, then hand-rolled anyway" findings (M, structure)
 
 Closed by `repay-the-shelf-debt` §6, §7, §8. The change is not finished —
 `record-mine`, `dom-schema` and `any-browser` stay open in `BACKLOG.md` — but

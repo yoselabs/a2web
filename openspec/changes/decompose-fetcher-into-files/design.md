@@ -81,6 +81,14 @@ src/a2web/fetcher/
 
 26 files, largest 281, then 191.
 
+> **Shipped shape differs — measured 2026-08-05.** 32 files; `__init__.py` 504
+> (65 imports + a 190-line `__all__` re-export block over one 152-line
+> `fetch()`), `context.py` 462, `tier_walk.py` 316. Five designed files did not
+> ship: three correctly (`prerendered.py`/`json_synth.py` → `comprehension/extract.py`;
+> `_tail.py` → `seam.py`, per task 1.1), two as real gaps that landed late
+> (`conditional.py`, `proxy_lease.py`). Cite `tasks.md` §7.5, not this budget.
+
+
 ### D3 — The load-bearing part is the loop, not the tree
 
 This is the decision that matters. The tree without it is cosmetics.
