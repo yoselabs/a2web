@@ -20,5 +20,5 @@
 
 ## 5. Close-out
 
-- [ ] 5.1 `bd update a2web-y5m --set-metadata branch=<branch> --set-metadata commit=<sha>` once implemented.
-- [ ] 5.2 Run `/opsx:sync` or `/opsx:archive` per project convention once tests are green, to fold the `ask-response` spec delta into `openspec/specs/ask-response/spec.md`.
+- [x] 5.1 `bd update a2web-y5m --set-metadata branch=<branch> --set-metadata commit=<sha>` once implemented.
+- [x] 5.2 Run `/opsx:sync` or `/opsx:archive` per project convention once tests are green, to fold the `ask-response` spec delta into `openspec/specs/ask-response/spec.md`.
