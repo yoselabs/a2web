@@ -72,6 +72,21 @@ async def test_thin_200_attaches_body_to_ask_envelope(monkeypatch: pytest.Monkey
 
 
 @pytest.mark.asyncio
+async def test_thin_200_with_include_content_carries_body_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When the caller opts into `include_content=True`, `content_md` already
+    carries the body — `thin_content` must not duplicate it (a2web-y5m)."""
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
+    monkeypatch.setitem(REGISTRY, "raw", _html_tier("raw", body=_EMPTY_RESULTS_HTML))
+    monkeypatch.setitem(REGISTRY, "jina", _html_tier("jina", body=_EMPTY_RESULTS_HTML))
+
+    fr = await fetch("https://shop.example/sr?q=zzzqqxnonexistent", state=make_default_state(), ask="what did I find?", debug=True)
+    ar = build_ask_response(fr, include_content=True, debug=False)
+
+    assert ar.content_md
+    assert ar.thin_content is None
+
+
+@pytest.mark.asyncio
 async def test_thin_downstream_of_wall_stays_walled(monkeypatch: pytest.MonkeyPatch) -> None:
     """A thin body that lands AFTER positive wall evidence (an anti-bot render
     that came back thin) stays a wall → critical `try_user_browser`."""

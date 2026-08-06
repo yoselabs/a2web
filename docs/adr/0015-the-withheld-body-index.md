@@ -34,6 +34,10 @@ Per the ADR-0009 / ADR-0012 / ADR-0014 precedent: a single project's product inv
 - Field family reorganizes: `ask_here` → `also_here` (query-grammar strings); `next_links` + `try_url` → `other_pages` (kind-tagged). `NextUrl`/`NextUrlBoundary` → `OtherPage`/`OtherPageBoundary` with a `kind` field. `FetchResponse` (the `fetch_raw` page envelope) keeps its own `next_links` — the fold is scoped to the `query` envelope.
 - `EXTRACT_ROUTER_V1` bumped to version 5: emits `also_here` in query grammar + a unified `other_pages` shape, preserving the ADR-0014 "LINKS · HARD RULE" clause and `{{{{n}}}}` marker discipline.
 
+## Consequences (addendum, 2026-08-06)
+
+`thin_content` (the `content_thin`/`empty_confirmed` body-attach on `query`, see the `ask-response` capability) is this ADR's index-forcing mechanism for the thin/empty outcomes specifically — its whole job is to guarantee the body reaches the wire when `query` would otherwise withhold it. That guarantee is already satisfied whenever the caller passed `include_content=True`: `content_md` carries the identical body. `thin_content` is therefore a **fallback**, populated only when `content_md` is absent — not an independent guarantee that duplicates it. This was under-specified until `fix-thin-content-duplication` (a2web-y5m): the re-evaluation trigger below anticipated the *global default* flipping, not a *per-call* opt-in colliding with the forced index, which is a narrower case of the same rationale weakening.
+
 ## Re-evaluation triggers
 
 - If the body-withholding default flips (`include_content=True` by default), the index's rationale weakens — revisit.

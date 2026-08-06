@@ -97,6 +97,13 @@ async def test_corroborated_empty_promotes_to_ok(monkeypatch: pytest.MonkeyPatch
     assert ar.answer and "no results" in ar.answer.lower()
     assert ar.thin_content is not None  # body attached to confirm
 
+    ar_opted_in = build_ask_response(fr, include_content=True, debug=False)
+    assert ar_opted_in.status == FetchStatus.ok
+    assert ar_opted_in.confidence == Confidence.low
+    assert ar_opted_in.answer and "no results" in ar_opted_in.answer.lower()
+    assert ar_opted_in.content_md  # body already on the wire via content_md
+    assert ar_opted_in.thin_content is None  # no longer duplicated (a2web-y5m)
+
 
 @pytest.mark.asyncio
 async def test_no_browser_corroboration_is_not_promoted(monkeypatch: pytest.MonkeyPatch) -> None:

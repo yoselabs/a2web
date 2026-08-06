@@ -990,16 +990,23 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     # thin/empty attach (thin-not-wall + empty-vs-wall / ADR-0015): a retrieved thin
     # 200 carries a `content_thin` (ambiguous) or `content_empty` (corroborated
     # empty, promoted to ok) hint. Hand the tiny retrieved body to the blind caller
-    # so it can confirm empty-vs-wall itself, regardless of `include_content`.
-    # `fr.content_md` is already the (wrapped) sub-floor body; wire-only, never cached.
+    # so it can confirm empty-vs-wall itself. `fr.content_md` is already the
+    # (wrapped) sub-floor body; wire-only, never cached.
     # Read the CARRIED decision, not the hint it produced. This was
     # `any(h.code == "content_empty" ...)` under a local name that shadowed
     # `actions.empty.is_confirmed_empty` — the real predicate — so the code read
     # as though it were calling it. `thin_content` still keys on the
     # `content_thin` hint, which is genuinely a hint-presence question (was the
     # thin body flagged?), not a re-derived decision.
+    # `thin_content` is a FALLBACK, not an independent guarantee: it only needs
+    # to force the body onto the wire when `content_md` would otherwise be
+    # withheld (the `include_content=False` default). When the caller already
+    # opted into `content_md`, that job is already done, so populating both
+    # would duplicate the identical body under two keys.
     empty_confirmed = fr.empty_confirmed
-    thin_content = fr.content_md if (empty_confirmed or has_hint(op_hints, "content_thin")) else None
+    thin_content = (
+        fr.content_md if not include_content and (empty_confirmed or has_hint(op_hints, "content_thin")) else None
+    )
 
     # A promoted empty ran NO LLM extraction (the thin body was never distilled —
     # ADR-0017), so synthesize an honest "no results" answer that only asserts the
