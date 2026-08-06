@@ -43,6 +43,7 @@ _OLD_THREAD = "https://old.reddit.com/r/science/comments/abc123/why_pushups/?lim
         ("https://www.reddit.com/r/science/comments/abc123/why_pushups/c0comment/", "thread", _OLD_THREAD),
     ],
 )
+@pytest.mark.protects("adr:0010")
 def test_normalize_thread_shapes(url: str, channel: str, expected: str) -> None:
     got_channel, got_url = rh.normalize(url)
     assert got_channel == channel

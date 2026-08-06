@@ -74,6 +74,7 @@ def _install_empty_browser(monkeypatch: pytest.MonkeyPatch, *, subresource_block
 
 
 @pytest.mark.asyncio
+@pytest.mark.protects("adr:0017")
 async def test_corroborated_empty_promotes_to_ok(monkeypatch: pytest.MonkeyPatch) -> None:
     """raw retrieves the empty body and the browser render corroborates it on a
     search URL, no wall evidence → promoted ok with a synthetic 'no results'."""

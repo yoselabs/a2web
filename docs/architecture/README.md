@@ -5,6 +5,24 @@ matters has a test that fails CI on violation. ADR-0001
 (`docs/adr/0001-structural-prevention-over-vigilance.md`) captures the
 reasoning; this README is the operator manual.
 
+## Module reference
+
+`AGENTS.md`'s Architecture section is a short pointer; the module-by-module
+detail (what moved from a2kit, the non-obvious rationale, dated
+corrections) lives in these files, grouped by pipeline area so an agent
+working on one area loads one small file, not the whole tree:
+
+- `composition-and-entrypoints.md` — `settings.py`, `server.py`, `cli.py`, `components.py`, the a2kit→FastMCP replacement table, shelf `async-scope`.
+- `wire-and-errors.md` — `wire.py`, `error_wire.py`.
+- `api-surface.md` — `routers.py`, `models.py`, `fetcher_response.py`.
+- `fetcher-pipeline.md` — the `fetcher/` package, `tiers/`, `handlers/`, `domain.py`, `actions/`.
+- `resources-and-events.md` — `events/`, `llm_resource.py`, `cookie_jar.py`, `llm_eval/`, `cache.py`.
+- `packages-and-plugins.md` — `packages/` (block_detector, proxy_routing, escalation, structured_render, llm_extract/wobble) and the `_manifests/` plugin framework.
+
+Incident narrative that used to sit inline in `AGENTS.md` (dated "this said
+X until Y" corrections, "this failed N times" postmortems) moved to
+`docs/findings/2026-08-06-claude-md-decomposition-history.md`.
+
 ## The fitness-function stack
 
 Two tools, each handling what the other can't:
@@ -42,7 +60,7 @@ Two tools, each handling what the other can't:
    `test_architecture_registry_is_complete.py` — the registry sat at 10 of 34
    guards precisely because this step did not exist, and a partial registry is
    read as the enforced set.
-6. **Update CLAUDE.md.** Replace the prose "Never X" rule with a one-liner
+6. **Update AGENTS.md.** Replace the prose "Never X" rule with a one-liner
    pointer: `Never X — enforced by tests/architecture/test_X.py`.
 
 ## Grandfathering an existing violation
@@ -61,7 +79,7 @@ visible and counted.
 
 ## Removing a rule
 
-Delete the test file (archon) or constraint (Tach). Update CLAUDE.md to
+Delete the test file (archon) or constraint (Tach). Update AGENTS.md to
 reflect the new posture. Don't soften a rule — either it's load-bearing
 and fails CI, or it isn't and shouldn't pretend to be.
 
@@ -97,8 +115,8 @@ COMPLETENESS is now mechanized: `test_architecture_registry_is_complete.py`
 fails when a guard file is absent from this document. Summaries below are each
 guard's own docstring first line.
 
-- `tests/architecture/test_claude_md_citations_resolve.py` — Every path `CLAUDE.md` cites as current actually exists.
-- `tests/architecture/test_claude_md_inventory_counts.py` — Every count `CLAUDE.md` states matches the tree, and every handler / tier manifest is named, not merely counted.
+- `tests/architecture/test_claude_md_citations_resolve.py` — Every path `AGENTS.md` cites as current actually exists.
+- `tests/architecture/test_claude_md_inventory_counts.py` — Every count `AGENTS.md` states matches the tree, and every handler / tier manifest is named, not merely counted.
 - `tests/architecture/test_bless_curators_agree.py` — The replay-bless and live-capture contract curators emit the same key set, so `make eval-refresh` cannot silently delete assertions the replay bless guarantees.
 - `tests/architecture/test_cold_start_laziness.py` — Cold start: a cheap `query` must construct neither a browser nor an LLM.
 - `tests/architecture/test_content_guidance_no_site.py` — Architectural invariant: content guidance is per-KIND, never per-SITE.
@@ -128,6 +146,7 @@ guard's own docstring first line.
 - `tests/architecture/test_spike_scripts_are_runnable_or_archived.py` — A spike script either still runs, or says out loud that it doesn't.
 - `tests/architecture/test_tach_covers_every_package.py` — Every package is inside the boundary rule, and every rule has a package.
 - `tests/architecture/test_terminal_hint_coherence.py` — Architectural invariant: terminal outcome ↔ operator-hint coherence.
+- `tests/architecture/test_tests_cite_resolvable_requirements.py` — A `protects` marker names a real thing, or the suite refuses to say so quietly.
 - `tests/architecture/test_trafilatura_funnel.py` — Architectural invariant: HTML extraction is funneled through `content_extract`.
 - `tests/architecture/test_transport_discipline.py` — Nothing under `tiers/` or `handlers/` hand-rolls an HTTP client; `zyte`/`firecrawl` are named exceptions with compensating controls (`docs/architecture/transport-discipline.md`).
 - `tests/architecture/test_transport_install_chokepoint.py` — The transport half of a retrieval result (`body`, `content_type`, `final_url`, `tier_used`, `status_code`, `pre_rendered_payload`) is written by `install()` and nowhere else.

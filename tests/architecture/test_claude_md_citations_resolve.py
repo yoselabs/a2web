@@ -1,6 +1,6 @@
-"""Every path `CLAUDE.md` cites as current actually exists.
+"""Every path `AGENTS.md` cites as current actually exists.
 
-`CLAUDE.md` is the first file every agent reads and the map they navigate the
+`AGENTS.md` is the first file every agent reads and the map they navigate the
 codebase by. On 2026-07-27 it cited five things that do not exist:
 
   * `src/a2web/_plugin.py` — promoted to the shelf as `plugin_surface`
@@ -9,7 +9,7 @@ codebase by. On 2026-07-27 it cited five things that do not exist:
   * `packages/llm_cost_guard.py` — promoted to the shelf as `anyllm.cost`
   * `ndjson_log` — a retired package still listed as current
 
-The second one is why this guard is not cosmetic. `CLAUDE.md` named a deleted
+The second one is why this guard is not cosmetic. `AGENTS.md` named a deleted
 test file as the enforcer of the packages-boundary invariant, so an agent
 checking whether that invariant was covered got a confident answer pointing at
 nothing — while the real mechanism (`tach.toml`) had a coverage hole that let
@@ -27,7 +27,7 @@ immediately after it:
 
 Chosen over an allowlist inside this test because the justification belongs
 beside the sentence it justifies, not in a different file that rots the same
-way. Chosen in HTML-comment form because `CLAUDE.md` is read both rendered and
+way. Chosen in HTML-comment form because `AGENTS.md` is read both rendered and
 raw, and this disappears in the first without lying in the second. Same
 reasoning as the `# SPIKE-ARCHIVED:` convention: an explicit, reviewable
 sentence beats silent rot, and the escape hatch has to cost one edit at the
@@ -47,7 +47,7 @@ import re
 
 from ._walk import REPO_ROOT, SRC_ROOT
 
-_CLAUDE_MD = REPO_ROOT / "CLAUDE.md"
+_AGENTS_MD = REPO_ROOT / "AGENTS.md"
 
 #: A backticked PATH citation: at least one slash, ending in a source-ish
 #: suffix. The trailing group captures whatever immediately follows the closing
@@ -70,14 +70,14 @@ _CITATION_WITH_FUNC = re.compile(r"`([a-zA-Z0-9_\-.]+(?:/[a-zA-Z0-9_\-.]+)+\.py)
 
 #: A trailing-slash directory citation (`openspec/changes/sunset-a2kit-dependency/`).
 #: Also invisible to `_CITATION`, which demands a file extension — which is how
-#: two CLAUDE.md citations kept pointing at changes that had moved under
+#: two AGENTS.md citations kept pointing at changes that had moved under
 #: `archive/`.
 _CITATION_DIR = re.compile(r"`([a-zA-Z0-9_\-.]+(?:/[a-zA-Z0-9_\-.]+)*/)`(.{0,14})")
 
 #: The opt-out. Must sit immediately after the citation it applies to.
 _GONE_MARKER = "<!-- gone -->"
 
-#: Roots a citation may be written relative to. `CLAUDE.md` uses repo-relative
+#: Roots a citation may be written relative to. `AGENTS.md` uses repo-relative
 #: paths (`tests/architecture/_walk.py`) and `src/a2web`-relative shorthand
 #: (`wobble/_policies.py`, `actions/playbook.py`) interchangeably. Demanding one
 #: form would rewrite the file's voice to suit a test.
@@ -118,7 +118,7 @@ _MIN_CITATIONS = 25
 #: class — otherwise the guard's window becomes the new definition of the
 #: problem.
 _DOCS = (
-    _CLAUDE_MD,
+    _AGENTS_MD,
     REPO_ROOT / "docs" / "architecture" / "README.md",
     REPO_ROOT / "docs" / "architecture" / "verification-provenance.md",
 )
@@ -148,10 +148,10 @@ def _citations_in(doc: pathlib.Path) -> list[tuple[str, bool]]:
 
 
 def _citations() -> list[tuple[str, bool]]:
-    """Every cited path in CLAUDE.md, paired with whether it opted out."""
-    found = _citations_in(_CLAUDE_MD)
+    """Every cited path in AGENTS.md, paired with whether it opted out."""
+    found = _citations_in(_AGENTS_MD)
     assert len(found) >= _MIN_CITATIONS, (
-        f"extracted {len(found)} path citation(s) from CLAUDE.md, expected at least "
+        f"extracted {len(found)} path citation(s) from AGENTS.md, expected at least "
         f"{_MIN_CITATIONS}. The file's markup changed and this guard is no longer "
         "reading it — fix the pattern, do not lower the floor."
     )
@@ -165,7 +165,7 @@ def test_the_extraction_is_not_vacuous() -> None:
 
 def test_every_current_citation_resolves() -> None:
     missing = sorted({path for path, is_historical in _citations() if not is_historical and not _resolves(path)})
-    assert not missing, _stale_message("CLAUDE.md", missing)
+    assert not missing, _stale_message("AGENTS.md", missing)
 
 
 #: Floor for the widened walk. Measured population on 2026-08-01 was 109 across
@@ -195,7 +195,7 @@ def test_the_widened_walk_is_not_vacuous() -> None:
 
 
 def test_every_navigational_doc_cites_only_live_paths() -> None:
-    """The specs and ADRs, held to the same bar as CLAUDE.md.
+    """The specs and ADRs, held to the same bar as AGENTS.md.
 
     An `openspec/specs/` requirement naming a module that no longer exists is
     worse than the same mistake in prose: the spec is what a change is validated
@@ -270,7 +270,7 @@ def test_function_citations_resolve() -> None:
 def _is_intentionally_untracked(path: str) -> bool:
     """True for a path `.gitignore` says the repo does not carry.
 
-    `eval/runs/` is cited by CLAUDE.md and is *supposed* to be absent — the same
+    `eval/runs/` is cited by AGENTS.md and is *supposed* to be absent — the same
     sentence calls it "gitignored, regenerable". Demanding it exist would force
     a generated directory to be committed to satisfy a test.
 

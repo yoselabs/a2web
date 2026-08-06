@@ -99,6 +99,7 @@ async def test_a_clean_ok_fetch_is_cached() -> None:
     [Verdict.anti_bot, Verdict.block_page_detected, Verdict.paywall, Verdict.length_floor, Verdict.not_found, Verdict.rate_limited],
     ids=lambda v: v.value,
 )
+@pytest.mark.protects("spec:cache", "Requirement: Block pages never cached")
 async def test_no_failing_verdict_reaches_the_cache(verdict: Verdict) -> None:
     """**The invariant itself.** A wall extracts to prose perfectly well, so
     nothing downstream of the cache can tell a stored block page from a stored

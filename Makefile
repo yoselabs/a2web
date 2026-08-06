@@ -1,4 +1,4 @@
-.PHONY: recon lint fix test test-browser test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail eval-capture eval-replay eval-refresh bless-wire handler-probe install-global
+.PHONY: recon recon-check lint fix test test-browser test-cov check build bootstrap coverage-diff security ty arch bench eval eval-baseline eval-detail eval-capture eval-replay eval-refresh bless-wire handler-probe install-global
 
 check: lint ty test-cov arch
 
@@ -167,9 +167,21 @@ handler-probe:
 	uv run python -m a2web.handler_probe
 
 # Spec <-> test reconciliation. READ-ONLY report, deliberately NOT a gate and
-# NOT in `make check` — today it reports 4 of 398 requirements traceable to a
-# test, which would fail every run and teach nothing. It exists to answer
-# "which tests do I change for this requirement?", a question the suite cannot
-# currently answer. See Projects/164-test-suite-strategy in K.
+# NOT in `make check` — the loose heuristic below (directory alignment / ADR
+# mentions / quoted headings) still reports most of 398 requirements as
+# unlocated, which would fail every run and teach nothing. It exists to
+# answer "which tests do I change for this requirement?", a question the
+# suite cannot otherwise answer. The `protects`-marker mechanism below IS a
+# gate — see `recon-check`. See Projects/164-test-suite-strategy in K.
 recon:
 	uv run python scripts/spec_test_reconcile.py
+
+# Same join, machine-checkable: fails if a `protects` marker doesn't resolve,
+# or if the traceable-requirement count drops below the committed floor
+# (scripts/spec_test_reconcile.py::TRACEABLE_REQUIREMENTS_FLOOR). This IS a
+# gate, unlike `recon` above — it checks the new marker mechanism only, not
+# the loose heuristic. `tests/architecture/test_tests_cite_resolvable_requirements.py`
+# runs the same check in-process as part of `make arch`; this target is for a
+# fast manual/CI check without going through pytest.
+recon-check:
+	uv run python scripts/spec_test_reconcile.py --check

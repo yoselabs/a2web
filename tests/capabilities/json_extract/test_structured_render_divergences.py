@@ -13,6 +13,8 @@ other, and both were wrong in different places.
 
 from __future__ import annotations
 
+import pytest
+
 from a2web.packages.structured_render import (
     _ENTITY_VALUE_CAP,
     _TABLE_CELL_CAP,
@@ -27,6 +29,7 @@ from a2web.packages.structured_render import (
 # --------------------------------------------------------------------- #
 
 
+@pytest.mark.protects("adr:0002")
 def test_table_columns_are_the_union_of_every_row_not_a_sample() -> None:
     """THE regression, and the one that cost real data.
 
