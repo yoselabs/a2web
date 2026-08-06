@@ -90,11 +90,15 @@ _ROOTS = (
     SRC_ROOT / "_manifests",
 )
 
-#: Floor on extracted citations. Population is 43 path-shaped citations, of
-#: which 1 is marked historical. This fails loudly if the file's markup changes
-#: out from under the pattern, rather than silently checking nothing and
-#: reporting green.
-_MIN_CITATIONS = 25
+#: Floor on extracted citations. Was 25 (population 43, on the pre-2026-08-06
+#: prose-heavy AGENTS.md/CLAUDE.md). Lowered to 18 when AGENTS.md was rewritten
+#: into the terse, fragment-bullet style CLAUDE.md.example prescribes — real
+#: population dropped to 22 because rules now share one bullet line instead of
+#: citing their own test path each, not because the guard stopped reading the
+#: file. Still comfortably non-zero: this fails loudly if the file's markup
+#: changes out from under the pattern, rather than silently checking nothing
+#: and reporting green.
+_MIN_CITATIONS = 18
 
 
 #: Every document agents navigate by. `verification-provenance.md` is here
