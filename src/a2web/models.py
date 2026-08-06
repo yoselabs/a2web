@@ -476,6 +476,18 @@ class FetchResponse(BaseModel):
     # into a bare thin failure.
     empty_confirmed: bool = Field(default=False, exclude=True)
 
+    # Internal signal (never on the wire — `exclude=True`): the fetch verdict was
+    # `ok` and an `ask` was supplied, but extraction produced no answer (a parse
+    # failure, a bad LLM key/model, or no backend configured at all —
+    # `never-silently-miss-at-extraction-granularity`). `build_ask_response`
+    # reads it to (a) force `confidence = low` even when the extractor never ran
+    # far enough to set its own `obstacle` signal, and (b) attach the fetched
+    # body as `thin_content` so a caller is not left with nothing after a
+    # successful fetch. Found by the 2026-08-07 call-trace audit: 42 real calls
+    # shipped `confidence: high` over an empty answer, 35 of them discarding a
+    # median 8.8KB body that was already in hand.
+    ask_unanswered: bool = Field(default=False, exclude=True)
+
     # reddit-via-zyte content-expectations: loaded vs authoritative-oracle
     # comment counts for a comment-bearing page. Both None (omitted from the
     # wire) unless a handler measured them. When `comments_total` exceeds

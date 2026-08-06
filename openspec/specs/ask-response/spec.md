@@ -289,7 +289,7 @@ The one required field (`answer`) SHALL always appear when present on the model.
 
 ### Requirement: confidence reflects the extractor obstacle signal on ask
 
-On the `ask` path, `confidence` MUST NOT be derived solely from `(verdict, content length)`. When the extractor reports an `obstacle`, the response SHALL downgrade confidence: an `obstacle` in `{empty, blocked, paywalled, error}` caps `confidence` at `low`. The downgrade is one-directional — an `obstacle` may only lower confidence, never raise it. Because `obstacle` is produced after the base response is built (in the answer-extraction phase), this reconciliation is applied where `obstacle` reaches the wire (the ask-path projection), and applies only to `ask` (the `fetch_raw` envelope has no `obstacle`).
+On the `ask` path, `confidence` MUST NOT be derived solely from `(verdict, content length)`. Two independent signals downgrade it, and either alone is sufficient: (1) when the extractor reports an `obstacle`, an `obstacle` in `{empty, blocked, paywalled, error}` caps `confidence` at `low`; (2) when the fetch verdict is `ok` but extraction produced no answer at all (`ask_unanswered`), `confidence` is capped at `low` regardless of `obstacle` — a provider error or an unconfigured LLM backend never produces `obstacle` in the first place (extraction never got far enough to build a router payload), so signal (1) alone would leave these unguarded. Both downgrades are one-directional — they may only lower confidence, never raise it. Because both are produced after the base response is built, this reconciliation is applied where they reach the wire (the ask-path projection), and applies only to `ask` (the `fetch_raw` envelope has neither `obstacle` nor an answer to be unanswered).
 
 #### Scenario: Empty obstacle caps a would-be high confidence
 
@@ -301,9 +301,14 @@ On the `ask` path, `confidence` MUST NOT be derived solely from `(verdict, conte
 - **WHEN** an `ask` fetch reports `obstacle: "blocked"`
 - **THEN** the wire `confidence` is `low`
 
+#### Scenario: An empty answer with no obstacle to cap on is still capped
+
+- **WHEN** an `ask` fetch returns `verdict == ok` over more than 2000 characters of rendered content but extraction produced no answer via a provider error or an unconfigured LLM backend (so the extractor never produced `obstacle` at all)
+- **THEN** the wire `confidence` is `low`
+
 #### Scenario: Healthy page keeps its computed confidence
 
-- **WHEN** an `ask` fetch returns `verdict == ok` over rich content and the extractor omits `obstacle` (healthy page)
+- **WHEN** an `ask` fetch returns `verdict == ok` over rich content, the extractor omits `obstacle`, and extraction produced a real answer
 - **THEN** `confidence` is unchanged from its `(verdict, content length)` derivation
 
 #### Scenario: fetch_raw is unaffected
@@ -527,7 +532,7 @@ The `AskResponse` envelope SHALL carry a single `other_pages` field (replacing b
 
 ### Requirement: thin_content is attached on a thin_unverified failure
 
-`AskResponse` SHALL carry a conditional `thin_content: str | None` field, populated when the fetch terminates on the `thin_unverified` OR `empty_unverified` outcome (a retrieved HTTP 200 that rendered thin with no hard-wall evidence), AND when a corroborated empty is promoted to `ok` (see "Corroborated empty answer is synthetic and honest"). It holds the retrieved sub-floor body verbatim (wrapped per the existing untrusted-content rule). It SHALL be absent from the wire on every other outcome (omit-empty). `thin_content` is a **fallback**, not an independent guarantee: it SHALL be populated only when `content_md` is absent from the wire for the same response (i.e. `include_content=False`, the default). When the caller passed `include_content=True`, `content_md` already carries the identical body, so `thin_content` SHALL be omitted regardless of the `thin_unverified` / `empty_unverified` / promoted-empty outcome. The attached body is wire-only and never enters the cache.
+`AskResponse` SHALL carry a conditional `thin_content: str | None` field, populated when the fetch terminates on the `thin_unverified` OR `empty_unverified` outcome (a retrieved HTTP 200 that rendered thin with no hard-wall evidence), when a corroborated empty is promoted to `ok` (see "Corroborated empty answer is synthetic and honest"), OR when the fetch verdict was `ok` and extraction still produced no answer (`ask_unanswered` — a parse failure, a provider error, or no LLM backend configured; see "never-silently-miss at extraction granularity"). It holds the retrieved body verbatim (wrapped per the existing untrusted-content rule). It SHALL be absent from the wire on every other outcome (omit-empty). `thin_content` is a **fallback**, not an independent guarantee: it SHALL be populated only when `content_md` is absent from the wire for the same response (i.e. `include_content=False`, the default). When the caller passed `include_content=True`, `content_md` already carries the identical body, so `thin_content` SHALL be omitted regardless of which of these outcomes triggered it. The attached body is wire-only and never enters the cache.
 
 #### Scenario: thin_unverified failure attaches the body when content is withheld
 
@@ -543,6 +548,11 @@ The `AskResponse` envelope SHALL carry a single `other_pages` field (replacing b
 
 - **WHEN** a `query` fetch is promoted to `ok` as a corroborated empty and `include_content` is `False`
 - **THEN** the wire payload contains `thin_content` with the retrieved body alongside the synthetic answer
+
+#### Scenario: an empty extraction attaches the already-fetched body
+
+- **WHEN** a `query` fetch verdict is `ok` (real content retrieved) but extraction produced no answer, and `include_content` is `False`
+- **THEN** the wire payload contains `thin_content` with the fetched body, `confidence: low`, and an `extraction_empty` or `llm_error` operator hint naming the cause — the caller is not left with nothing after a successful fetch
 
 #### Scenario: thin_content is omitted when content_md already carries the body
 

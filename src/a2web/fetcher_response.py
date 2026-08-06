@@ -857,6 +857,7 @@ def build_response(fc: ResponseContext) -> FetchResponse:
         structured_grounded=fc.structured_grounded,
         small_page_confirmed=fc.small_page_confirmed,
         empty_confirmed=fc.empty_confirmed,
+        ask_unanswered=ask_unanswered,
         comments_loaded=fc.comments_loaded,
         comments_total=fc.comments_total,
         items_loaded=fc.items_loaded,
@@ -970,6 +971,17 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     retrieval_incomplete = fr.retrieval_incomplete
     if obstacle in _CONFIDENCE_CAPPING_OBSTACLES:
         confidence = Confidence.low
+    # never-report-confidence-on-an-empty-answer: `obstacle` is the EXTRACTOR's
+    # own self-report, so it is only set when extraction ran far enough to
+    # produce `routing` at all. A provider error or an off-contract model never
+    # gets that far — `routing` stays `None`, `obstacle` stays `None`, and the
+    # cap above never fires, so `_confidence_for`'s length-only estimate (likely
+    # `high` — the empty-answer pages in the 2026-08-07 audit ran a median
+    # 8.8KB) ships unchallenged over an answer that does not exist. `ask_unanswered`
+    # is `fr`'s own carried fact, not re-derived here, so this catches every
+    # cause of an empty answer regardless of which one the extractor could see.
+    if fr.ask_unanswered:
+        confidence = Confidence.low
     # Structured-grounded carve-out (structured-grounded-completeness): a thin
     # page promoted to ok by the structured-answer exemption answers from
     # structured data by construction. A non-empty answer there makes the
@@ -1005,7 +1017,9 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
     # would duplicate the identical body under two keys.
     empty_confirmed = fr.empty_confirmed
     thin_content = (
-        fr.content_md if not include_content and (empty_confirmed or has_hint(op_hints, "content_thin")) else None
+        fr.content_md
+        if not include_content and (empty_confirmed or fr.ask_unanswered or has_hint(op_hints, "content_thin"))
+        else None
     )
 
     # A promoted empty ran NO LLM extraction (the thin body was never distilled —
