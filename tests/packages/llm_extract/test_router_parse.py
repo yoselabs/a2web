@@ -328,3 +328,33 @@ def test_trailing_prose_after_object_is_recovered() -> None:
     answer, payload = _routing(text)
     assert payload is not None
     assert answer.startswith("Rust's borrow checker")
+
+
+def test_next_links_fence_embedded_inside_answer_is_stripped() -> None:
+    """a2web-7bj.1 (DHL-session audit): the legacy `next_links` fence convention,
+    written by the model INSIDE the `answer` JSON string itself, not trailing
+    after a separate JSON object (that shape is `test_trailing_next_links_
+    fence_is_recovered` — this is the other one). The router JSON parses cleanly
+    on the first try here; `strip_fenced_blocks(result.answer)` is what has to
+    catch it. Verbatim shape from the captured gumruk.dhl.com.tr call: `answer`
+    ending `"...disposal here.\n\n```next_links\n[]\n```"` shipped unstripped on
+    the deployed build — confirmed already fixed on `main` by `bc52b4c`
+    (2026-07-27), which the 2026-07-31 session predates; this pins it down.
+    """
+    text = json.dumps(
+        {
+            "answer": (
+                "Status: The shipment is in temporary storage.\n\n"
+                "Ardiye (storage fees): Payment info provided.\n\n"
+                "Tasfiye (clearance): No specific details here.\n\n"
+                "```next_links\n[]\n```"
+            ),
+            "structural_form": "article",
+            "shape": "prose",
+        }
+    )
+    answer, payload = _routing(text)
+    assert payload is not None
+    assert answer.startswith("Status: The shipment is in temporary storage.")
+    assert "```" not in answer
+    assert "next_links" not in answer
