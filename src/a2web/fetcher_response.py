@@ -33,7 +33,9 @@ from .hints import (
     listing_partial_hint,
     llm_error_hint,
     retrieval_incomplete_hint,
+    served_url_differs_hint,
 )
+from .link_digest import registrable_domain
 from .log import log_warning
 from .models import (
     NEXT_LINKS_CAP,
@@ -829,6 +831,29 @@ def build_response(fc: ResponseContext) -> FetchResponse:
     # after-tier RewriteUrl); empty otherwise, so the serializer drops it.
     deviated_url = fc.final_url if fc.final_url != fc.inputs.requested_url else ""
 
+    # requested-identity-vs-served-content (a2web-axb, audit §4a): a redirect
+    # or a tier mixup can land on a page from a DIFFERENT site than the one
+    # requested — a hepsiburada product URL serving sikayetvar.com content, a
+    # trendyol request serving a hepsiburada title. `registrable_domain` is the
+    # same eTLD+1 approximation ADR-0014's off-domain link flag already uses,
+    # deliberately conservative (over-flags exotic multi-part TLDs, never
+    # under-flags). A same-site path/query redirect (the common case —
+    # canonicalization, a captcha-host rewrite back to origin) does NOT trip
+    # this; only a cross-domain landing does. Confidence is capped rather than
+    # failed outright: a cross-domain landing is sometimes correct (a
+    # shortlink resolving as intended) and a2web cannot tell that apart from a
+    # mixup — only flag that the identity assumption may not hold.
+    served_url_differs = (
+        bool(fc.inputs.requested_url)
+        and bool(fc.final_url)
+        and registrable_domain(fc.inputs.requested_url) != registrable_domain(fc.final_url)
+    )
+    confidence = _confidence_for(final_verdict, fc.content_md)
+    if served_url_differs:
+        if confidence == Confidence.high:
+            confidence = Confidence.medium
+        op_hints.append(served_url_differs_hint(requested_url=fc.inputs.requested_url, served_url=fc.final_url))
+
     # narrative / diagnostics_summary stay populated for internal callers (the
     # eval harness reads them); the serializer drops them on a successful wire.
     # Timing / cache / tokens are debug-only — the serializer drops them when
@@ -837,7 +862,7 @@ def build_response(fc: ResponseContext) -> FetchResponse:
         url=deviated_url,
         status=status,
         tier=fc.tier_used,
-        confidence=_confidence_for(final_verdict, fc.content_md),
+        confidence=confidence,
         title=fc.title,
         byline=fc.byline,
         published=fc.published,

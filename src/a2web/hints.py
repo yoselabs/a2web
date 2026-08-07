@@ -87,6 +87,7 @@ HINT_CODES: frozenset[str] = frozenset(
         "reddit_forbidden_try_archive",
         "retrieval_incomplete",
         "section_unretrieved",
+        "served_url_differs",
         "try_user_browser",
     }
 )
@@ -630,6 +631,31 @@ def captcha_redirect_hint() -> OperatorHint:
         code="captcha_redirect",
         message="Search engine returned a captcha page; consider DDG/Brave directly.",
         fix="https://duckduckgo.com/html/?q=<your-query>",
+    )
+
+
+def served_url_differs_hint(*, requested_url: str, served_url: str) -> OperatorHint:
+    """The served page landed on a different registrable domain than requested.
+
+    Source: `docs/findings/2026-08-07-a2web-call-trace-audit.md` §4a — a
+    hepsiburada product URL served sikayetvar.com content; a trendyol request
+    served a hepsiburada title. `warning`, not `critical`: a cross-domain
+    landing is sometimes the correct outcome (a shortlink, an intentional
+    site-to-site redirect) and a2web cannot tell those apart from a mixup —
+    only that the caller's identity assumption ("this is hepsiburada content")
+    may not hold. The confidence cap this hint travels with (`build_response`)
+    does the enforcement; this hint carries the evidence so the caller can
+    judge whether the redirect was expected.
+    """
+    return OperatorHint(
+        code="served_url_differs",
+        message=(
+            f"Requested {requested_url!r} but the content served came from a different "
+            f"site ({served_url!r}). Confidence was capped because this may be a redirect "
+            "swap or content mixup rather than the requested page."
+        ),
+        fix="Verify the served content is actually about the requested subject before answering from it.",
+        severity="warning",
     )
 
 

@@ -125,6 +125,25 @@ The empty-field omission and TSV-rendering logic SHALL be implemented once as a 
 - **WHEN** `fetch_raw` completes and the fetch was redirected or the host was rewritten
 - **THEN** the wire payload contains `url` with the final fetched URL
 
+### Requirement: a cross-domain landing caps confidence and is flagged
+
+`FetchResponse` SHALL compare the requested URL's registrable domain against the final fetched URL's registrable domain. When they differ (a redirect or tier mixup landed on a different site than the one requested), `confidence` SHALL NOT be `high` — a `high` computed confidence SHALL be capped to `medium` — and `operator_hints` SHALL include a `served_url_differs` hint. A same-site redirect (matching registrable domain) SHALL NOT trigger the cap or the hint. The cap SHALL only ever lower confidence, never raise it.
+
+#### Scenario: cross-domain landing caps high confidence
+
+- **WHEN** `fetch_raw` completes on a page whose final URL's registrable domain differs from the requested URL's, with a computed confidence of `high`
+- **THEN** the envelope's `confidence` is `medium` and `operator_hints` includes a `served_url_differs` entry
+
+#### Scenario: same-site redirect is not flagged
+
+- **WHEN** `fetch_raw` completes on a page whose final URL shares the requested URL's registrable domain (a canonicalization redirect or captcha-host rewrite back to origin)
+- **THEN** `confidence` is unaffected and no `served_url_differs` hint is present
+
+#### Scenario: the cap never raises confidence
+
+- **WHEN** a cross-domain landing's computed confidence is already `medium` or `low`
+- **THEN** `confidence` stays at that computed value — the cap only ever lowers `high`
+
 ### Requirement: retrieval_incomplete envelope field
 `FetchResponse` (and the projected `AskResponse`) SHALL carry a `retrieval_incomplete` boolean that is true when the requested URL's content was not retrieved due to a wall. The field SHALL be present on the wire whenever true and MAY be omitted when false (absence means retrieval was complete).
 

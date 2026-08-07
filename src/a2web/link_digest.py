@@ -136,7 +136,7 @@ def build_digest(links: list[Link], *, page_url: str, limit: int | None = None) 
     is a hard ceiling, never surfaced to the model as a target; relevance is the
     model's job (ADR-0012). ``None`` means no cap.
     """
-    base_reg = _registrable_domain(page_url)
+    base_reg = registrable_domain(page_url)
     # Preserve first-seen order for stable handles; merge labels per target.
     order: list[str] = []
     labels_by_target: dict[str, list[str]] = {}
@@ -164,7 +164,7 @@ def build_digest(links: list[Link], *, page_url: str, limit: int | None = None) 
     for handle, target_key in enumerate(order, start=1):
         href = href_by_target[target_key]
         is_contact = target_key in contact_targets
-        off_domain = (not is_contact) and _registrable_domain(href) != base_reg
+        off_domain = (not is_contact) and registrable_domain(href) != base_reg
         entries.append(
             LinkAffordance(
                 handle=handle,
@@ -220,7 +220,7 @@ def _self_key(page_url: str) -> str:
     return key
 
 
-def _registrable_domain(url: str) -> str:
+def registrable_domain(url: str) -> str:
     """Best-effort eTLD+1 without a PSL dependency (design D11 caution flag).
 
     Strips a leading ``www.`` and keeps the last two labels. Conservative: it
@@ -247,4 +247,4 @@ def _render_affordance(entry: LinkAffordance) -> str:
     return f"{{{{{entry.handle}}}}} {label} · {path}"
 
 
-__all__ = ["LinkAffordance", "LinkDigest", "build_digest"]
+__all__ = ["LinkAffordance", "LinkDigest", "build_digest", "registrable_domain"]
