@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 from any_browser import BackendCookie, RenderOutcome
 from content_extract import ExtractedContent, extract_markdown
 
-from ..hints import browser_internal_error_hint, browser_unavailable_hint
+from ..hints import browser_internal_error_hint, browser_unavailable_hint, try_user_browser_hint
 from ..models import Heading, Link, Verdict
 from ..packages.block_detector import LENGTH_FLOOR
 
@@ -67,6 +67,35 @@ async def _extract(html: str, url: str) -> ExtractedContent:
     default-flag parse costs nothing and keeps the body readable.
     """
     return await extract_markdown(html, url)
+
+
+# Chromium net-error codes that read as an edge/WAF RST or refusal, not a
+# driver defect (a2web-7bj.2 — DHL-session audit): the connection reached the
+# target's network edge and was reset/refused/emptied AT the protocol level,
+# which is the shape a WAF or reverse-proxy bot-defense produces, not a
+# Playwright/Firefox crash. Deliberately does NOT include generic driver
+# failures ("Target page, context or browser has been closed", "Execution
+# context was destroyed", a bare timeout string) — those stay on the
+# `browser_internal_error` path since attributing them to the target would be
+# the same misdirection in the other direction.
+_WALL_SHAPED_NET_ERRORS = frozenset(
+    {
+        "ERR_HTTP2_PROTOCOL_ERROR",
+        "ERR_HTTP2_SERVER_REFUSED_STREAM",
+        "ERR_QUIC_PROTOCOL_ERROR",
+        "ERR_CONNECTION_RESET",
+        "ERR_CONNECTION_CLOSED",
+        "ERR_CONNECTION_REFUSED",
+        "ERR_EMPTY_RESPONSE",
+    }
+)
+
+
+def _is_wall_shaped_network_error(detail: str | None) -> bool:
+    """True when `detail` names a net-error that reads as an edge block, not a driver bug."""
+    if not detail:
+        return False
+    return any(code in detail for code in _WALL_SHAPED_NET_ERRORS)
 
 
 def _upstream_error_verdict(status: int) -> Verdict:
@@ -170,6 +199,11 @@ class BrowserTier:
         if page.outcome is RenderOutcome.error:
             # Don't swallow the cause: surface it as a structured hint so the
             # agent/operator sees *why* the browser tier produced nothing.
+            # `_is_wall_shaped_network_error` routes a net-level RST/refusal to
+            # the critical `try_user_browser` escalation instead of
+            # `browser_internal_error` — misclassifying an edge/WAF block as a
+            # driver defect sends the caller down a dead end (a2web-7bj.2).
+            wall_shaped = _is_wall_shaped_network_error(page.detail)
             return TierResult(
                 body=b"",
                 content_type="text/html",
@@ -178,7 +212,7 @@ class BrowserTier:
                 from_browser=True,
                 js_executed=page.js_executed,
                 browser_wall_ms=page.wall_ms,
-                operator_hint=browser_internal_error_hint(page.detail),
+                operator_hint=(try_user_browser_hint(page.final_url or url) if wall_shaped else browser_internal_error_hint(page.detail)),
                 verdict=Verdict.connection_error,
             )
 

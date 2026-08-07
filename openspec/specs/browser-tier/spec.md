@@ -174,7 +174,7 @@ The browser tier SHALL capture stderr emitted by a Playwright-family driver subp
 
 ### Requirement: Browser tier surfaces internal driver errors as an OperatorHint
 
-When `BrowserTier.fetch` catches an internal exception on the navigation path (network reset, driver error, or other non-timeout failure during `page.goto` / content capture), the tier SHALL NOT discard the exception. It SHALL attach an `OperatorHint` to the returned `TierResult.operator_hint` with a stable `code == "browser_internal_error"`, a `message` that is a single-line summary of the exception type and text (never a multi-line stack dump), and a non-null actionable `fix`. The verdict SHALL remain `Verdict.connection_error` (the existing path). The orchestrator's existing tier-hint surfacing SHALL carry the hint onto the response `operator_hints`.
+When `BrowserTier.fetch` catches an internal exception on the navigation path (network reset, driver error, or other non-timeout failure during `page.goto` / content capture), the tier SHALL NOT discard the exception. UNLESS the exception's detail names a wall-shaped net-error (see "Browser tier escalates a wall-shaped net-error instead of blaming the driver"), it SHALL attach an `OperatorHint` to the returned `TierResult.operator_hint` with a stable `code == "browser_internal_error"`, a `message` that is a single-line summary of the exception type and text (never a multi-line stack dump), and a non-null actionable `fix`. The verdict SHALL remain `Verdict.connection_error` (the existing path). The orchestrator's existing tier-hint surfacing SHALL carry the hint onto the response `operator_hints`.
 
 #### Scenario: Navigation exception produces a structured hint instead of silent loss
 
@@ -190,6 +190,20 @@ When `BrowserTier.fetch` catches an internal exception on the navigation path (n
 
 - **WHEN** the caught exception's string representation spans multiple lines
 - **THEN** the `OperatorHint.message` is a single trimmed line (the multi-line detail belongs in the captured-stderr log events, not the wire hint)
+
+### Requirement: Browser tier escalates a wall-shaped net-error instead of blaming the driver
+
+When `BrowserTier.fetch` receives `RenderOutcome.error` and the outcome's `detail` names a net-error code that reads as an edge/WAF-level RST or refusal (`ERR_HTTP2_PROTOCOL_ERROR`, `ERR_HTTP2_SERVER_REFUSED_STREAM`, `ERR_QUIC_PROTOCOL_ERROR`, `ERR_CONNECTION_RESET`, `ERR_CONNECTION_CLOSED`, `ERR_CONNECTION_REFUSED`, or `ERR_EMPTY_RESPONSE`), the tier SHALL attach the critical `try_user_browser` operator hint instead of `browser_internal_error`. A `detail` naming none of these codes SHALL continue to produce `browser_internal_error`. The verdict SHALL remain `Verdict.connection_error` in both cases (a2web-7bj.2 — misclassifying an edge block as a driver defect sent the caller down a dead end instead of the ADR-0009 escalation).
+
+#### Scenario: An HTTP/2 protocol error escalates to try_user_browser
+
+- **WHEN** `RenderOutcome.error`'s `detail` contains `ERR_HTTP2_PROTOCOL_ERROR`
+- **THEN** the result's `operator_hint` has `code == "try_user_browser"` and `severity == "critical"`
+
+#### Scenario: A driver-only failure still yields browser_internal_error
+
+- **WHEN** `RenderOutcome.error`'s `detail` names no wall-shaped net-error (e.g. "Target page, context or browser has been closed")
+- **THEN** the result's `operator_hint` has `code == "browser_internal_error"`
 
 ### Requirement: Browser tier has an opt-in real-browser smoke check
 

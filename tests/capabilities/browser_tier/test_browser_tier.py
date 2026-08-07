@@ -142,6 +142,41 @@ async def test_error_outcome_yields_internal_error_hint() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.protects("spec:browser-tier", "Requirement: Browser tier escalates a wall-shaped net-error instead of blaming the driver")
+async def test_http2_protocol_error_yields_critical_try_user_browser() -> None:
+    """a2web-7bj.2 (DHL-session audit): an HTTP/2 RST reads as an edge/WAF block,
+    not a Playwright/Firefox driver defect — the critical wall escalation, not
+    'retry, blame the driver'."""
+    detail = "page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://gumruk.dhl.com.tr/"
+    backend = _StubBackend(RenderedPage(outcome=RenderOutcome.error, detail=detail, js_executed=True))
+    tier = REGISTRY["browser"]
+    result = await tier.fetch("https://gumruk.dhl.com.tr/", state=_make_state(), backend=backend)
+
+    assert result.verdict == Verdict.connection_error
+    hint = result.operator_hint
+    assert hint is not None
+    assert hint.code == "try_user_browser"
+    assert hint.severity == "critical"
+
+
+@pytest.mark.asyncio
+@pytest.mark.protects("spec:browser-tier", "Requirement: Browser tier escalates a wall-shaped net-error instead of blaming the driver")
+async def test_a_driver_only_failure_still_yields_internal_error_hint() -> None:
+    """A genuine driver-internal failure (no net-error signature) must stay on the
+    `browser_internal_error` path — the narrowing must not become a blanket
+    reclassification of every `RenderOutcome.error`."""
+    detail = "Target page, context or browser has been closed"
+    backend = _StubBackend(RenderedPage(outcome=RenderOutcome.error, detail=detail, js_executed=True))
+    tier = REGISTRY["browser"]
+    result = await tier.fetch("https://example.com/", state=_make_state(), backend=backend)
+
+    assert result.verdict == Verdict.connection_error
+    hint = result.operator_hint
+    assert hint is not None
+    assert hint.code == "browser_internal_error"
+
+
+@pytest.mark.asyncio
 async def test_no_backend_injected_yields_unavailable() -> None:
     tier = REGISTRY["browser"]
     result = await tier.fetch("https://example.com/", state=_make_state(), backend=None)
