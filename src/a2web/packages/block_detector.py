@@ -211,6 +211,26 @@ _ALIBABA_BAXIA_MARKER = re.compile(
     re.IGNORECASE,
 )
 
+# Web-server default/placeholder virtual-host pages (nginx-on-Ubuntu install
+# gate — a2web-7bj.5): the exact "If you see this page, the nginx web server
+# is successfully installed…" welcome page, Apache's default/Ubuntu default
+# page, and IIS's default site. These are a THIRD category next to wall and
+# thin — not an anti-bot block (nobody is blocking us) and not merely short
+# content (the boilerplate itself can run past LENGTH_FLOOR), but a
+# recognizable "this is not the page you asked for" fingerprint: the origin
+# never routed the request to a real vhost. Matched length-independently, like
+# the other vendor fingerprints — the boilerplate text is distinctive enough
+# that a false positive on a legitimate article is not a realistic risk.
+_DEFAULT_VHOST_MARKER = re.compile(
+    r"Welcome to nginx!"
+    r"|If you see this page, the nginx web server is successfully installed"
+    r"|Apache2 (Ubuntu )?Default Page"
+    r"|<title>\s*Apache Tomcat.{0,20}\s*</title>"
+    r"|This is the default (welcome )?page for this (web ?server|site)"
+    r"|IIS Windows Server",
+    re.IGNORECASE,
+)
+
 # Search-engine captcha markers — second-line defense for captcha redirects
 # that escape the upfront `rewrite_captcha_host` pre-routing in `domain.py`
 # (e.g. an inbound Google redirect we don't recognize that lands on
@@ -336,6 +356,13 @@ def evaluate(
         # `domain.rewrite_captcha_host`. Gate phase maps the subsystem
         # to an operator_hint pointing the caller at DDG.
         return BlockResult(BlockVerdict.block_page_detected, subsystem="captcha_redirect")
+    if _DEFAULT_VHOST_MARKER.search(raw_html):
+        # A web-server default/placeholder page, not the requested resource
+        # (a2web-7bj.5) — the origin (or an archive snapshot of it) never
+        # routed to a real vhost. No escalation: a browser render of the SAME
+        # default page tells us nothing new; the gate phase attaches its own
+        # honest hint instead of the generic thin/wall framing.
+        return BlockResult(BlockVerdict.block_page_detected, subsystem="default_vhost_page")
 
     if len(content_md) < LENGTH_FLOOR:
         if _CF_INTERSTITIAL_MARKER.search(raw_html):

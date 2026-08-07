@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from a2web.packages.block_detector import LENGTH_FLOOR, BlockVerdict, evaluate, looks_like_unrendered_spa
 
 
@@ -59,6 +61,39 @@ def test_bing_captcha_intermediate_flags_captcha_redirect() -> None:
     result = _eval(body)
     assert result.verdict == BlockVerdict.block_page_detected
     assert result.subsystem == "captcha_redirect"
+
+
+# --------------------------------------------------------------------- #
+# a2web-7bj.5 — web-server default/placeholder vhost pages
+# --------------------------------------------------------------------- #
+
+
+@pytest.mark.protects(
+    "spec:quality-gate", "Requirement: A web-server default/placeholder vhost page is fingerprinted as non-content, not thin"
+)
+def test_nginx_welcome_page_flags_default_vhost() -> None:
+    """The exact nginx-on-Ubuntu install-gate welcome page (a2web-7bj.5:
+    surfaced by the DHL-session archive-tier snapshot) is fingerprinted as a
+    non-content default vhost page, not laundered into thin_fallthrough."""
+    body = """
+    <html><head><title>Welcome to nginx!</title></head>
+    <body>
+    <h1>Welcome to nginx!</h1>
+    <p>If you see this page, the nginx web server is successfully installed and
+    working. Further configuration is required.</p>
+    </body></html>
+    """
+    result = _eval(body)
+    assert result.verdict == BlockVerdict.block_page_detected
+    assert result.subsystem == "default_vhost_page"
+    assert result.escalation is None  # a browser render of the same page tells us nothing new
+
+
+def test_apache_default_page_flags_default_vhost() -> None:
+    body = "<html><head><title>Apache2 Ubuntu Default Page: It works</title></head><body>It works!</body></html>"
+    result = _eval(body)
+    assert result.verdict == BlockVerdict.block_page_detected
+    assert result.subsystem == "default_vhost_page"
 
 
 def test_normal_long_article_does_not_trigger_captcha_marker() -> None:

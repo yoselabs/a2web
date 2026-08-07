@@ -359,3 +359,17 @@ it tests.
 > phrase is not, and making it length-independent would put every article about
 > anti-bot systems at risk of a false wall.
 
+### Requirement: A web-server default/placeholder vhost page is fingerprinted as non-content, not thin
+
+The gate SHALL recognize a web-server default/placeholder virtual-host page — the nginx-on-install welcome page ("Welcome to nginx!" / "If you see this page, the nginx web server is successfully installed"), Apache's default/Ubuntu-default page, and IIS's default site — length-independently, matching `_DEFAULT_VHOST_MARKER` in `evaluate()`. A match SHALL return `verdict == BlockVerdict.block_page_detected` with `subsystem == "default_vhost_page"` and no `escalation` (a browser render of the same default page produces no new evidence). The escalation loop SHALL attach the dedicated `default_vhost_page_hint(url)` (`code == "default_vhost_page"`) stating plainly that the retrieved body is a placeholder, not the requested resource — never the generic `content_thin` framing this fingerprint exists to avoid (a2web-7bj.5: a DHL tracking URL fell through to the archive tier, which served a snapshot of nginx's own install-gate page, and it was classified `length_floor:thin_fallthrough` — "thin" understates a body that is not the requested page at all).
+
+#### Scenario: nginx welcome page is fingerprinted, not classified thin
+
+- **WHEN** the gate evaluates a body containing "Welcome to nginx!" and "If you see this page, the nginx web server is successfully installed"
+- **THEN** `verdict == BlockVerdict.block_page_detected`, `subsystem == "default_vhost_page"`, and `escalation is None`
+
+#### Scenario: The escalation loop attaches an honest non-content hint
+
+- **WHEN** the gate's `subsystem == "default_vhost_page"`
+- **THEN** the response's `operator_hints` carries `default_vhost_page_hint(url)` (`code == "default_vhost_page"`) stating the body is a placeholder, not `content_thin`
+

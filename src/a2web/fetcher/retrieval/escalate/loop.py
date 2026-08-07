@@ -20,6 +20,7 @@ from ....decision_log import ObservationKind
 from ....events import StageEnded, StageStarted
 from ....hints import (
     captcha_redirect_hint,
+    default_vhost_page_hint,
 )
 from ....models import Diagnostic, Verdict
 from ....state import AppState
@@ -111,6 +112,12 @@ async def _phase_gate_and_escalate(fc: FetchContext, *, state: AppState) -> None
     # actionable operator hint instead of just an opaque `block_page_detected`.
     if gate_result.subsystem == "captcha_redirect":
         fc.operator_hints.append(captcha_redirect_hint())
+
+    # a2web-7bj.5: a web-server default/placeholder page — an honest, verified
+    # "this is not the resource you requested" instead of the generic thin/wall
+    # framing the block_page_detected verdict alone would carry downstream.
+    if gate_result.subsystem == "default_vhost_page":
+        fc.operator_hints.append(default_vhost_page_hint(fc.final_url))
 
     # Planner-driven escalation. Consult `decide_next` over the decision log and
     # dispatch its action through the single unified executor, repeating until it

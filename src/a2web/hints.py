@@ -75,6 +75,7 @@ HINT_CODES: frozenset[str] = frozenset(
         "content_not_found",
         "content_thin",
         "cookies_stale",
+        "default_vhost_page",
         "extraction_empty",
         "fetch_deadline_exceeded",
         "index_lost",
@@ -632,6 +633,28 @@ def captcha_redirect_hint() -> OperatorHint:
         code="captcha_redirect",
         message="Search engine returned a captcha page; consider DDG/Brave directly.",
         fix="https://duckduckgo.com/html/?q=<your-query>",
+    )
+
+
+def default_vhost_page_hint(url: str) -> OperatorHint:
+    """The retrieved body is a web-server default/placeholder page (a2web-7bj.5).
+
+    Not a wall (nobody blocked the request) and not merely thin (the
+    boilerplate can run past the length floor) — a distinct, verified fact:
+    the origin (or a stale archive snapshot of it) never routed to a real
+    vhost for this URL, so "thin" would understate it. `severity: info` — a
+    confirmed fingerprint match, not a guess — but a live retry can still be
+    worth it (the origin may be configured correctly now even if an archive
+    snapshot caught it mid-misconfiguration).
+    """
+    return OperatorHint(
+        code="default_vhost_page",
+        message=(
+            f"The retrieved body is a web-server default/placeholder page ({url}), not "
+            "the requested resource — the origin (or a stale snapshot of it) never routed "
+            "this URL to a real virtual host."
+        ),
+        fix="Do not treat this as content. A live re-fetch of the origin may succeed if it is now configured; otherwise report the gap.",
     )
 
 
