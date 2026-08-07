@@ -144,6 +144,25 @@ The empty-field omission and TSV-rendering logic SHALL be implemented once as a 
 - **WHEN** a cross-domain landing's computed confidence is already `medium` or `low`
 - **THEN** `confidence` stays at that computed value — the cap only ever lowers `high`
 
+### Requirement: A failed browser rung caps confidence
+
+`FetchResponse` SHALL check whether `operator_hints` carries evidence that a browser rung was dispatched on this fetch and failed to run (`browser_internal_error` or `browser_unavailable`). When present, `confidence` SHALL NOT be `high` — a `high` computed confidence SHALL be capped to `medium`, following the same downgrade-only precedent as the cross-domain-landing cap. No new hint is added; the browser-failure hint already on `operator_hints` is the explanation. A fetch whose content was retrieved WITHOUT any browser rung failing SHALL be unaffected (a2web-7bj.7 — a DHL tracking answer shipped `confidence: high` on the negative claim "this page does not provide the current status" in the same envelope as `browser_internal_error` AND `browser_unavailable`; the page may well have had the status behind the render that failed, so a confident absence claim next to a failed retrieval rung is a silent miss wearing a different hat).
+
+#### Scenario: A failed browser rung caps high confidence to medium
+
+- **WHEN** a fetch's `operator_hints` carries a `browser_internal_error` or `browser_unavailable` hint and computed confidence is `high`
+- **THEN** the envelope's `confidence` is `medium`
+
+#### Scenario: No browser-rung failure leaves confidence unaffected
+
+- **WHEN** a fetch's `operator_hints` carries no `browser_internal_error` or `browser_unavailable` hint
+- **THEN** confidence is the plain `_confidence_for` computation, uncapped by this rule
+
+#### Scenario: The cap never raises confidence
+
+- **WHEN** a failed browser rung's fetch already computed `medium` or `low` confidence
+- **THEN** confidence stays at that computed value
+
 ### Requirement: retrieval_incomplete envelope field
 `FetchResponse` (and the projected `AskResponse`) SHALL carry a `retrieval_incomplete` boolean that is true when the requested URL's content was not retrieved due to a wall. The field SHALL be present on the wire whenever true and MAY be omitted when false (absence means retrieval was complete).
 

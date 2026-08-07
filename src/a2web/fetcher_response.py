@@ -908,6 +908,19 @@ def build_response(fc: ResponseContext) -> FetchResponse:
             confidence = Confidence.medium
         op_hints.append(served_url_differs_hint(requested_url=fc.inputs.requested_url, served_url=fc.final_url))
 
+    # a2web-7bj.7: a browser rung DID run on this fetch and failed
+    # (browser_internal_error / browser_unavailable) — evidence that a render
+    # was attempted and never completed. Confidence in whatever content DID
+    # land (verdict ok, length-based `high`) cannot claim `high` when the page
+    # may have had more behind the render that failed — an absence/negative
+    # claim read as complete is the ADR-0009 harm wearing a different hat.
+    # `served_url_differs`'s existing high→medium cap is the precedent: downgrade
+    # only, never bump, and the hint that explains WHY is already on `op_hints`
+    # (no new hint needed).
+    failed_browser_rung = has_hint(op_hints, "browser_internal_error") or has_hint(op_hints, "browser_unavailable")
+    if failed_browser_rung and confidence == Confidence.high:
+        confidence = Confidence.medium
+
     # narrative / diagnostics_summary stay populated for internal callers (the
     # eval harness reads them); the serializer drops them on a successful wire.
     # Timing / cache / tokens are debug-only — the serializer drops them when
