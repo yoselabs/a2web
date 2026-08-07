@@ -22,19 +22,24 @@ The primary extraction tool SHALL be named `query` (renamed from `ask`) and SHAL
 - **WHEN** any `query` invocation completes
 - **THEN** the serialized wire payload contains no `fit_md` and no `is_user_authored` key
 
-### Requirement: content_md is opt-in on ask
+### Requirement: content_md is opt-in on ask, except when the withheld-body index forces it
 
-`AskResponse` SHALL omit `content_md` and `headings` by default. The `ask` tool SHALL accept an `include_content: bool` parameter defaulting to `False`. When `include_content` is `False`, `content_md` and `headings` SHALL be absent from the wire payload. When `include_content` is `True`, `content_md` (wrapped per the existing untrusted-content rule) and `headings` SHALL be populated.
+`AskResponse` SHALL omit `content_md` and `headings` by default. The `ask` tool SHALL accept an `include_content: bool` parameter defaulting to `False`. When `include_content` is `False`, `headings` SHALL be absent from the wire payload, and `content_md` SHALL be absent UNLESS the withheld-body index (ADR-0015) forces it onto the wire regardless — a `thin_unverified`/`empty_unverified` failure, a corroborated empty promoted to `ok`, or a successful fetch whose extraction produced no answer (`ask_unanswered`). When `include_content` is `True`, `content_md` (wrapped per the existing untrusted-content rule) and `headings` SHALL be populated. There is exactly one field carrying the body — `content_md` — populated for either of these two independent reasons, never a second field duplicating it.
 
-#### Scenario: default ask omits page content
+#### Scenario: default ask omits page content on an ordinary success
 
-- **WHEN** `ask` is called without `include_content`
+- **WHEN** `ask` is called without `include_content` against a page that answers cleanly
 - **THEN** the wire payload contains no `content_md` and no `headings` key
 
 #### Scenario: include_content=True returns grounding content
 
 - **WHEN** `ask` is called with `include_content=True` against a fixture page
 - **THEN** the wire payload contains `content_md` with the wrapped page markdown and `headings` with the extracted heading list
+
+#### Scenario: the withheld-body index forces content_md despite include_content=False
+
+- **WHEN** `ask` is called without `include_content` and the fetch terminates `thin_unverified`, `empty_unverified`, is promoted as a corroborated empty, or extraction produced no answer (`ask_unanswered`)
+- **THEN** the wire payload contains `content_md` with the retrieved body anyway, and `headings` stays absent (the forced attach carries the body only, not the structural index)
 
 ### Requirement: empty optional fields are omitted from the wire
 
@@ -530,72 +535,38 @@ The `AskResponse` envelope SHALL carry a single `other_pages` field (replacing b
 - **WHEN** an entry would join two distinct asks with `and`
 - **THEN** it is emitted as two separate `also_here` entries
 
-### Requirement: thin_content is attached on a thin_unverified failure
+### Requirement: content_thin and content_empty hints name content_md
 
-`AskResponse` SHALL carry a conditional `thin_content: str | None` field, populated when the fetch terminates on the `thin_unverified` OR `empty_unverified` outcome (a retrieved HTTP 200 that rendered thin with no hard-wall evidence), when a corroborated empty is promoted to `ok` (see "Corroborated empty answer is synthetic and honest"), OR when the fetch verdict was `ok` and extraction still produced no answer (`ask_unanswered` — a parse failure, a provider error, or no LLM backend configured; see "never-silently-miss at extraction granularity"). It holds the retrieved body verbatim (wrapped per the existing untrusted-content rule). It SHALL be absent from the wire on every other outcome (omit-empty). `thin_content` is a **fallback**, not an independent guarantee: it SHALL be populated only when `content_md` is absent from the wire for the same response (i.e. `include_content=False`, the default). When the caller passed `include_content=True`, `content_md` already carries the identical body, so `thin_content` SHALL be omitted regardless of which of these outcomes triggered it. The attached body is wire-only and never enters the cache.
-
-#### Scenario: thin_unverified failure attaches the body when content is withheld
-
-- **WHEN** a `query` fetch terminates on `thin_unverified` (an ambiguous thin 200) and `include_content` is `False` (the default)
-- **THEN** the wire payload contains `thin_content` with the retrieved sub-floor body and a `content_thin` warning hint, without requiring `include_content=True`
-
-#### Scenario: empty_unverified failure attaches the body when content is withheld
-
-- **WHEN** a `query` fetch terminates on `empty_unverified` (a thin 200 with an empty-result marker but incomplete corroboration) and `include_content` is `False`
-- **THEN** the wire payload contains `thin_content` with the retrieved body and a `content_thin` warning hint
-
-#### Scenario: promoted-ok empty attaches the body when content is withheld
-
-- **WHEN** a `query` fetch is promoted to `ok` as a corroborated empty and `include_content` is `False`
-- **THEN** the wire payload contains `thin_content` with the retrieved body alongside the synthetic answer
-
-#### Scenario: an empty extraction attaches the already-fetched body
-
-- **WHEN** a `query` fetch verdict is `ok` (real content retrieved) but extraction produced no answer, and `include_content` is `False`
-- **THEN** the wire payload contains `thin_content` with the fetched body, `confidence: low`, and an `extraction_empty` or `llm_error` operator hint naming the cause — the caller is not left with nothing after a successful fetch
-
-#### Scenario: thin_content is omitted when content_md already carries the body
-
-- **WHEN** a `query` fetch terminates on `thin_unverified`, `empty_unverified`, or a promoted-empty `ok` outcome, and the caller passed `include_content=True`
-- **THEN** the wire payload contains `content_md` with the body and no `thin_content` key — the body appears exactly once
-
-#### Scenario: thin_content is absent on success and on other failures
-
-- **WHEN** a `query` fetch ends `ok` with real content, or fails on `wall`/`gone_confirmed`
-- **THEN** the wire payload contains no `thin_content` key
-
-### Requirement: content_thin and content_empty hints name a field the shipping envelope actually carries
-
-The `content_thin` and `content_empty` operator hints SHALL reference, by name, the specific field on the response envelope where the retrieved body actually rides — never a field the shipping envelope omits. On `FetchResponse` (`fetch_raw`), the body is always in `content_md`, so the hint SHALL name `content_md`. On `AskResponse` (`query`/`ask`), the hint SHALL name `thin_content` when the body is riding that fallback field (`include_content=False`), and `content_md` when the caller opted into `include_content=True` (where `thin_content` is never populated).
+The `content_thin` and `content_empty` operator hints SHALL reference, by name, the specific field on the response envelope where the retrieved body actually rides. On both `FetchResponse` (`fetch_raw`) and `AskResponse` (`query`/`ask`), the body always rides `content_md` — unconditionally on `FetchResponse`, and on `AskResponse` either because the caller opted into `include_content=True` or because the withheld-body index forced it there despite `include_content=False` (see "content_md is opt-in on ask, except when the withheld-body index forces it"). The hints SHALL therefore always name `content_md`.
 
 #### Scenario: fetch_raw hint names content_md
 
 - **WHEN** a `fetch_raw` call terminates thin or corroborated-empty
-- **THEN** the `content_thin`/`content_empty` hint's message and fix name `content_md`, the only field that carries the body on that envelope
+- **THEN** the `content_thin`/`content_empty` hint's message and fix name `content_md`
 
-#### Scenario: ask hint names thin_content when content is withheld
+#### Scenario: ask hint names content_md when content is withheld by default
 
-- **WHEN** a `query`/`ask` call terminates thin or corroborated-empty with `include_content=False` (the default), so the body rides `thin_content`
-- **THEN** the `content_thin`/`content_empty` hint's message and fix name `thin_content`, not `content_md`
+- **WHEN** a `query`/`ask` call terminates thin or corroborated-empty with `include_content=False` (the default), so `content_md` is forced onto the wire despite the default
+- **THEN** the `content_thin`/`content_empty` hint's message and fix name `content_md`
 
 #### Scenario: ask hint names content_md when the caller opted into full content
 
-- **WHEN** a `query`/`ask` call terminates thin or corroborated-empty with `include_content=True`, so `content_md` carries the body directly and `thin_content` is omitted
-- **THEN** the `content_thin`/`content_empty` hint's message and fix name `content_md`, not the omitted `thin_content`
+- **WHEN** a `query`/`ask` call terminates thin or corroborated-empty with `include_content=True`
+- **THEN** the `content_thin`/`content_empty` hint's message and fix name `content_md`
 
 ### Requirement: Corroborated empty answer is synthetic and honest
 
-When a fetch is promoted to `ok` as a corroborated empty (`is_confirmed_empty` held), the `query` `AskResponse` SHALL carry a synthetic `answer` stating that the page reports no results for the request (never fabricated result content), at `confidence: low`, with a `content_empty` operator hint at `severity: info`, and the retrieved body attached as `thin_content` when `content_md` is not already on the wire (per "thin_content is attached on a thin_unverified failure"). The response SHALL NOT set `retrieval_incomplete` and SHALL NOT carry `try_user_browser`. The answer's honesty is bounded: it asserts only "the page shows no results", disclosing that this is a distilled reading of a thin page the caller can verify via the attached body (`thin_content` when withheld, `content_md` directly when opted in).
+When a fetch is promoted to `ok` as a corroborated empty (`is_confirmed_empty` held), the `query` `AskResponse` SHALL carry a synthetic `answer` stating that the page reports no results for the request (never fabricated result content), at `confidence: low`, with a `content_empty` operator hint at `severity: info`, and the retrieved body forced onto `content_md` when it is not already there from `include_content=True` (per "content_md is opt-in on ask, except when the withheld-body index forces it"). The response SHALL NOT set `retrieval_incomplete` and SHALL NOT carry `try_user_browser`. The answer's honesty is bounded: it asserts only "the page shows no results", disclosing that this is a distilled reading of a thin page the caller can verify via the attached `content_md`.
 
 #### Scenario: A promoted empty answers "no results" at low confidence
 
 - **WHEN** a search-shaped `query` is promoted to `ok` as a corroborated empty with `include_content=False`
-- **THEN** `answer` states the page reports no results, `confidence == low`, a `content_empty` info hint is present, `thin_content` carries the body, and `retrieval_incomplete` is absent
+- **THEN** `answer` states the page reports no results, `confidence == low`, a `content_empty` info hint is present, `content_md` carries the body (forced despite `include_content=False`), and `retrieval_incomplete` is absent
 
 #### Scenario: A promoted empty with include_content=True carries the body once
 
 - **WHEN** a search-shaped `query` is promoted to `ok` as a corroborated empty with `include_content=True`
-- **THEN** `answer` states the page reports no results, `confidence == low`, a `content_empty` info hint is present, `content_md` carries the body, and no `thin_content` key is present
+- **THEN** `answer` states the page reports no results, `confidence == low`, a `content_empty` info hint is present, and `content_md` carries the body exactly once
 
 #### Scenario: A promoted empty never fabricates results
 

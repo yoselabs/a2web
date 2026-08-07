@@ -20,7 +20,7 @@ planner's browser escalation. That is the stronger corroborator here anyway: a
 real anti-detect browser rendered the page AND watched every subresource (the
 `has_subresource_block_evidence` guard), so a walled-API fake-empty cannot slip
 through. The residual (an IP-reputation wall that fake-empties our HTTP AND browser
-egress identically) is narrow and the attached `thin_content` is its mitigation.
+egress identically) is narrow and the forced-attached `content_md` is its mitigation.
 """
 
 from __future__ import annotations

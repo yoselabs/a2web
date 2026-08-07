@@ -74,26 +74,26 @@ def test_the_fetched_body_is_attached_when_extraction_came_back_empty() -> None:
 
     `include_content=False` is the default — the caller did not ask for the
     full page — but that default must not also mean "and the answer is empty,
-    so here is nothing at all". `thin_content` is the existing fallback
-    channel (shared with `empty_confirmed`); this extends its trigger.
+    so here is nothing at all". `content_md` is forced onto the wire despite
+    the default (a2web-brn — previously a separate `thin_content` fallback
+    field; merged since both carried the identical body).
     """
     body = "x" * 8788
     ask = build_ask_response(_fr_unanswered(ask_unanswered=True, content_md=body), include_content=False, debug=False)
-    assert ask.thin_content == body, "a successfully fetched body was discarded on an empty extraction"
-    assert ask.content_md == "", "content_md must stay empty when the caller did not opt into include_content"
+    assert ask.content_md == body, "a successfully fetched body was discarded on an empty extraction"
 
 
 def test_the_body_is_not_duplicated_when_the_caller_already_opted_in() -> None:
-    """`thin_content` is a fallback, not a second copy — see its own docstring in fetcher_response.py."""
+    """Forcing the body when `ask_unanswered` and opting in via `include_content=True`
+    both resolve to the same single `content_md` — never two copies under two keys."""
     body = "x" * 8788
     ask = build_ask_response(_fr_unanswered(ask_unanswered=True, content_md=body), include_content=True, debug=False)
     assert ask.content_md == body
-    assert ask.thin_content is None, "the body must not ship under two keys when include_content=True already carries it"
 
 
-def test_a_healthy_answer_gets_no_thin_content_fallback() -> None:
+def test_a_healthy_answer_gets_no_forced_content() -> None:
     fr = _fr_unanswered(ask_unanswered=False)
     fr.extracted_answer = "A real answer."
     fr.status = FetchStatus.ok
     ask = build_ask_response(fr, include_content=False, debug=False)
-    assert ask.thin_content is None
+    assert ask.content_md == ""

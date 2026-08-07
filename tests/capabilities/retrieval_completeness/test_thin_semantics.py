@@ -58,8 +58,9 @@ async def test_thin_200_is_thin_unverified_not_walled(monkeypatch: pytest.Monkey
 
 @pytest.mark.asyncio
 async def test_thin_200_attaches_body_to_ask_envelope(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The retrieved thin body rides `thin_content` on the ask envelope so the
-    blind caller can read it (ADR-0015) — even without include_content."""
+    """The retrieved thin body is forced onto `content_md` on the ask envelope so
+    the blind caller can read it (ADR-0015) — even without include_content
+    (a2web-brn — previously a separate `thin_content` field)."""
     monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
     monkeypatch.setitem(REGISTRY, "raw", _html_tier("raw", body=_EMPTY_RESULTS_HTML))
     monkeypatch.setitem(REGISTRY, "jina", _html_tier("jina", body=_EMPTY_RESULTS_HTML))
@@ -67,14 +68,14 @@ async def test_thin_200_attaches_body_to_ask_envelope(monkeypatch: pytest.Monkey
     fr = await fetch("https://shop.example/sr?q=zzzqqxnonexistent", state=make_default_state(), ask="what did I find?", debug=True)
     ar = build_ask_response(fr, include_content=False, debug=False)
 
-    assert ar.thin_content is not None
-    assert "bulunamadi" in ar.thin_content.lower() or "no products matched" in ar.thin_content.lower()
+    assert ar.content_md
+    assert "bulunamadi" in ar.content_md.lower() or "no products matched" in ar.content_md.lower()
 
 
 @pytest.mark.asyncio
 async def test_thin_200_with_include_content_carries_body_once(monkeypatch: pytest.MonkeyPatch) -> None:
-    """When the caller opts into `include_content=True`, `content_md` already
-    carries the body — `thin_content` must not duplicate it (a2web-y5m)."""
+    """Forcing the body on a thin outcome and opting in via `include_content=True`
+    both resolve to the same single `content_md` — never two copies."""
     monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
     monkeypatch.setitem(REGISTRY, "raw", _html_tier("raw", body=_EMPTY_RESULTS_HTML))
     monkeypatch.setitem(REGISTRY, "jina", _html_tier("jina", body=_EMPTY_RESULTS_HTML))
@@ -83,7 +84,6 @@ async def test_thin_200_with_include_content_carries_body_once(monkeypatch: pyte
     ar = build_ask_response(fr, include_content=True, debug=False)
 
     assert ar.content_md
-    assert ar.thin_content is None
 
 
 @pytest.mark.asyncio

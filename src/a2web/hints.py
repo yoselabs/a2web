@@ -226,7 +226,7 @@ def content_not_found_hint(url: str, *, verified: bool) -> OperatorHint:
     )
 
 
-def content_thin_hint(url: str, *, body_field: str = "content_md") -> OperatorHint:
+def content_thin_hint(url: str) -> OperatorHint:
     """The thin-but-retrieved signal for a corroborated-thin HTTP 200 — honest, WARNING.
 
     a2web fetched an HTTP 200 that rendered under the extraction length floor even
@@ -237,16 +237,9 @@ def content_thin_hint(url: str, *, body_field: str = "content_md") -> OperatorHi
     NOT assert which — the discriminator is not reliably in the body text. So this
     carries neither the critical `try_user_browser` klaxon (crying wolf on every
     empty storefront search) nor a false "this is empty" verdict. The retrieved
-    body is tiny and rides the envelope; the caller — which can read it — decides.
-    `warning`, never `critical`.
-
-    `body_field` names the actual wire field the body will ship on. This hint is
-    created at the terminal-classification phase (`_apply_terminal`), before it is
-    known whether the destination envelope is `FetchResponse` (`content_md`,
-    unconditional — the default) or `AskResponse` (`thin_content`, only when
-    `content_md` would otherwise be withheld). `build_ask_response` retargets the
-    hint once that is known (a2web-7bj.3 — the hint previously named `thin_content`
-    unconditionally, a field `FetchResponse` never carries).
+    body is tiny and rides the envelope (`content_md` — `FetchResponse` always,
+    `AskResponse` forced onto it despite `include_content=False`, ADR-0015); the
+    caller — which can read it — decides. `warning`, never `critical`.
     """
     return OperatorHint(
         code="content_thin",
@@ -254,10 +247,10 @@ def content_thin_hint(url: str, *, body_field: str = "content_md") -> OperatorHi
             f"This URL was retrieved (HTTP 200) but rendered thin ({url}) — even a headless browser "
             "returned very little content. This is AMBIGUOUS: it could be an empty result set (e.g. a "
             "search with no matches) or a minimal page, OR content behind a wall a2web could not "
-            f"fingerprint. The retrieved body is attached as `{body_field}` — read it to decide which."
+            "fingerprint. The retrieved body is attached as `content_md` — read it to decide which."
         ),
         fix=(
-            f"Read the attached `{body_field}` — it often settles it (e.g. a visible 'no results', "
+            "Read the attached `content_md` — it often settles it (e.g. a visible 'no results', "
             "or a visible block/challenge notice). If it reads walled or empty-but-you-need-more, "
             "open the URL in your own real-browser tool."
         ),
@@ -265,7 +258,7 @@ def content_thin_hint(url: str, *, body_field: str = "content_md") -> OperatorHi
     )
 
 
-def content_empty_hint(url: str, *, body_field: str = "content_md") -> OperatorHint:
+def content_empty_hint(url: str) -> OperatorHint:
     """The corroborated-empty signal — a search that genuinely returned no results, INFO.
 
     Distinct from `content_thin` (the ambiguous case): here the empty reading is
@@ -273,44 +266,20 @@ def content_empty_hint(url: str, *, body_field: str = "content_md") -> OperatorH
     independent egress paths (incl. a foreign-egress tier), and NO wall evidence
     (hard-wall gate OR a challenged subresource OR a 4xx anywhere) is in the log.
     So "no results" IS the complete, correct answer, not a miss — `info`, and the
-    fetch is `ok`, never `retrieval_incomplete`. The thin body still rides the
-    envelope so the caller can confirm the emptiness itself.
-
-    See `content_thin_hint` for what `body_field` means and why it defaults to
-    `content_md` (a2web-7bj.3).
+    fetch is `ok`, never `retrieval_incomplete`. The thin body still rides
+    `content_md` so the caller can confirm the emptiness itself.
     """
     return OperatorHint(
         code="content_empty",
         message=(
             f"This URL was retrieved and reports NO results ({url}) — corroborated across "
             "independent fetch paths with no wall evidence, so this is a genuine empty result set, "
-            f"not a block. 'No results' is the complete answer; the retrieved body is attached as `{body_field}` "
-            "to confirm."
+            "not a block. 'No results' is the complete answer; the retrieved body is attached as "
+            "`content_md` to confirm."
         ),
         fix="Treat this as an authoritative empty result. If you expected matches, re-check the query or the source URL.",
         severity="info",
     )
-
-
-_BODY_FIELD_HINT_FACTORIES = {"content_thin": content_thin_hint, "content_empty": content_empty_hint}
-
-
-def retarget_body_field_hints(hints: list[OperatorHint], *, url: str, body_field: str) -> list[OperatorHint]:
-    """Correct a thin/empty hint's promised field once the real carrier is known.
-
-    `content_thin_hint`/`content_empty_hint` are created at the terminal-
-    classification phase, before it is known whether this fetch will surface as a
-    `FetchResponse` (`content_md`, the default both hints assume) or project into
-    an `AskResponse` where the body instead rides `thin_content`. Rebuild — not
-    mutate — since `OperatorHint` carries no other per-envelope state (a2web-7bj.3).
-
-    Lives here, not at the call site, because rebuilding by `.code` is exactly the
-    bare-string dispatch `test_no_dispatch_site_compares_a_bare_code_string`
-    reserves for this module.
-    """
-    if body_field == "content_md":
-        return hints  # already correct — the default the hints were created with
-    return [_BODY_FIELD_HINT_FACTORIES[h.code](url, body_field=body_field) if h.code in _BODY_FIELD_HINT_FACTORIES else h for h in hints]
 
 
 def comments_partial_hint(*, loaded: int, total: int) -> OperatorHint:

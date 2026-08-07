@@ -356,7 +356,7 @@ evidence forbids it, so an ambiguous case errs toward `failed`.
 - **WHEN** a fetch returns a thin body but a `subresource_blocks` observation or a
   hard-wall marker is present
 - **THEN** the page is NOT promoted; it stays `status: failed` with an agnostic
-  `content_thin` WARNING and the body attached as `thin_content`
+  `content_thin` WARNING and the body forced onto `content_md`
 
 ### Requirement: A bare length-floor page is not re-rendered redundantly
 

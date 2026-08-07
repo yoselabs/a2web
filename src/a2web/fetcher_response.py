@@ -32,7 +32,6 @@ from .hints import (
     listing_more_hint,
     listing_partial_hint,
     llm_error_hint,
-    retarget_body_field_hints,
     retrieval_incomplete_hint,
     served_url_differs_hint,
 )
@@ -315,8 +314,8 @@ _INCOMPLETE_OBSTACLES = frozenset({"empty", "blocked"})
 
 
 # The synthetic answer for a corroborated empty result — asserts ONLY the absence
-# (never fabricated items/counts). The attached `thin_content` lets the caller verify.
-_EMPTY_RESULT_ANSWER = "The page reports no results for this request. The retrieved body is attached as thin_content to confirm."
+# (never fabricated items/counts). The forced-attached `content_md` lets the caller verify.
+_EMPTY_RESULT_ANSWER = "The page reports no results for this request. The retrieved body is attached as content_md to confirm."
 
 
 def _confidence_for(verdict: Verdict, content_md: str) -> Confidence:
@@ -1027,30 +1026,21 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
 
     # thin/empty attach (thin-not-wall + empty-vs-wall / ADR-0015): a retrieved thin
     # 200 carries a `content_thin` (ambiguous) or `content_empty` (corroborated
-    # empty, promoted to ok) hint. Hand the tiny retrieved body to the blind caller
-    # so it can confirm empty-vs-wall itself. `fr.content_md` is already the
-    # (wrapped) sub-floor body; wire-only, never cached.
-    # Read the CARRIED decision, not the hint it produced. This was
+    # empty, promoted to ok) hint, or extraction ran and produced no answer
+    # (`ask_unanswered`). Force `fr.content_md` (already the wrapped body) onto the
+    # wire despite `include_content=False` so the blind caller is not left with
+    # nothing. Read the CARRIED decision, not the hint it produced — this was once
     # `any(h.code == "content_empty" ...)` under a local name that shadowed
-    # `actions.empty.is_confirmed_empty` — the real predicate — so the code read
-    # as though it were calling it. `thin_content` still keys on the
-    # `content_thin` hint, which is genuinely a hint-presence question (was the
-    # thin body flagged?), not a re-derived decision.
-    # `thin_content` is a FALLBACK, not an independent guarantee: it only needs
-    # to force the body onto the wire when `content_md` would otherwise be
-    # withheld (the `include_content=False` default). When the caller already
-    # opted into `content_md`, that job is already done, so populating both
-    # would duplicate the identical body under two keys.
+    # `actions.empty.is_confirmed_empty`, the real predicate.
+    #
+    # Forces straight onto `content_md` rather than a separate field: every forced
+    # case already carries its own explanatory hint (`content_thin`/`content_empty`/
+    # `extraction_empty`/`llm_error`), so a second field naming "why" would only
+    # duplicate information the caller already has — either from the hint, or from
+    # its own `include_content` request param (a2web-brn — this superseded
+    # `thin_content`, which carried the identical body under a different key).
     empty_confirmed = fr.empty_confirmed
-    thin_content = (
-        fr.content_md
-        if not include_content and (empty_confirmed or fr.ask_unanswered or has_hint(op_hints, "content_thin"))
-        else None
-    )
-    # a2web-7bj.3: content_thin/content_empty hints assume `content_md` (the
-    # `FetchResponse` default). Retarget to `thin_content` here, once it is known
-    # the body actually rides that field on this `AskResponse` instead.
-    op_hints = retarget_body_field_hints(op_hints, url=fr.url, body_field="thin_content" if thin_content is not None else "content_md")
+    force_attach = not include_content and (empty_confirmed or fr.ask_unanswered or has_hint(op_hints, "content_thin"))
 
     # A promoted empty ran NO LLM extraction (the thin body was never distilled —
     # ADR-0017), so synthesize an honest "no results" answer that only asserts the
@@ -1087,9 +1077,8 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         items_total=fr.items_total,
         meta=_curate_ask_meta(fr.meta),
         extraction=_debug_extraction(fr.extraction, debug=debug),
-        content_md=fr.content_md if include_content else "",
+        content_md=fr.content_md if (include_content or force_attach) else "",
         headings=list(fr.headings) if include_content else [],
-        thin_content=thin_content,
         narrative="" if is_ok else fr.narrative,
         diagnostics_summary="" if is_ok else fr.diagnostics_summary,
         started_at=fr.started_at if debug else None,

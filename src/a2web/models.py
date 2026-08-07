@@ -481,8 +481,8 @@ class FetchResponse(BaseModel):
     # failure, a bad LLM key/model, or no backend configured at all —
     # `never-silently-miss-at-extraction-granularity`). `build_ask_response`
     # reads it to (a) force `confidence = low` even when the extractor never ran
-    # far enough to set its own `obstacle` signal, and (b) attach the fetched
-    # body as `thin_content` so a caller is not left with nothing after a
+    # far enough to set its own `obstacle` signal, and (b) force the fetched
+    # body onto `content_md` so a caller is not left with nothing after a
     # successful fetch. Found by the 2026-08-07 call-trace audit: 42 real calls
     # shipped `confidence: high` over an empty answer, 35 of them discarding a
     # median 8.8KB body that was already in hand.
@@ -731,16 +731,17 @@ class AskResponse(BaseModel):
     items_loaded: int | None = None
     items_total: int | None = None
 
+    # `include_content=True` populates this unconditionally. `include_content=False`
+    # (the default) withholds it UNLESS the withheld-body index (ADR-0015) must
+    # force it onto the wire anyway — a `thin_unverified`/`empty_unverified`
+    # failure, a corroborated empty promoted to `ok`, or a successful fetch whose
+    # extraction produced no answer (`ask_unanswered`). Every forced-attach case
+    # carries its own explanatory operator hint (`content_thin`/`content_empty`/
+    # `extraction_empty`/`llm_error`), so the caller can always tell "why", and a2web
+    # never has two fields carrying the identical body under different names
+    # (a2web-brn — `thin_content` was removed for exactly that redundancy).
     content_md: str = ""
     headings: list[Heading] = Field(default_factory=list)
-
-    # thin-but-retrieved index (thin-not-wall / ADR-0015): the retrieved sub-floor
-    # body of a `thin_unverified` failure (an empty result set or minimal page).
-    # Populated ONLY on that outcome and INDEPENDENT of `include_content` — the
-    # body is tiny and load-bearing, so the blind caller can resolve
-    # empty-vs-wall itself. Absent (None → dropped by `_prune_wire`) otherwise.
-    # Wire-only; a thin/block page never enters the cache.
-    thin_content: str | None = None
 
     narrative: str = ""
     diagnostics_summary: str = ""

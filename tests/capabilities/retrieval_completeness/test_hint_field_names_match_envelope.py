@@ -1,16 +1,15 @@
 """A hint must never name a field the envelope it ships on does not carry (a2web-7bj.3).
 
-`content_thin_hint`/`content_empty_hint` are created at the terminal-classification
-phase — before it is known whether this fetch will surface as a `FetchResponse`
-(body always in `content_md`) or project into an `AskResponse` (body in
-`thin_content` whenever `content_md` would otherwise be withheld, `content_md`
-directly otherwise). The DHL-session audit caught the hint unconditionally naming
-`thin_content` — a field `FetchResponse` never has, and one `AskResponse` doesn't
-populate when `include_content=True`. `build_ask_response` now retargets the hint
-to the field that is actually populated on the envelope it is about to ship on.
+Originally fixed by retargeting `content_thin`/`content_empty` hints between two
+field names (`content_md` on `FetchResponse`, `thin_content` on `AskResponse`).
+a2web-brn then removed `thin_content` entirely — the body is always `content_md`
+now, forced onto the wire on `AskResponse` when the withheld-body index (ADR-0015)
+requires it, so the retargeting problem this test originally guarded no longer has
+two field names to retarget between. What's left worth guarding: the hint text
+names `content_md` on every envelope shape and every `include_content` setting.
 
 Uses the same live-pipeline harness as `test_thin_semantics.py` — a hint built off
-a synthetic `FetchContext` would not prove the retargeting actually runs.
+a synthetic `FetchContext` would not prove the wiring actually runs end to end.
 """
 
 from __future__ import annotations
@@ -45,9 +44,8 @@ def _html_tier(name: str, *, body: bytes, verdict: Verdict = Verdict.ok, status_
     return _T()
 
 
-def _referenced_field(text: str) -> str | None:
-    m = re.search(r"`(content_md|thin_content)`", text)
-    return m.group(1) if m else None
+def _names_content_md(text: str) -> bool:
+    return re.search(r"`content_md`", text) is not None
 
 
 @pytest.mark.asyncio
@@ -60,16 +58,14 @@ async def test_fetch_raw_envelope_hint_names_content_md(monkeypatch: pytest.Monk
     fr = await fetch("https://shop.example/sr?q=zzzqqxnonexistent", state=make_default_state(), debug=True)
 
     hint = next(h for h in fr.operator_hints if h.code == "content_thin")
-    assert _referenced_field(hint.message) == "content_md"
-    assert _referenced_field(hint.fix) == "content_md"
+    assert _names_content_md(hint.message)
+    assert _names_content_md(hint.fix)
 
 
 @pytest.mark.asyncio
-@pytest.mark.protects(
-    "spec:ask-response", "Requirement: content_thin and content_empty hints name a field the shipping envelope actually carries"
-)
-async def test_ask_envelope_withholding_content_names_thin_content(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`ask`'s default `include_content=False` — the body actually rides `thin_content`."""
+@pytest.mark.protects("spec:ask-response", "Requirement: content_thin and content_empty hints name content_md")
+async def test_ask_envelope_withholding_content_still_names_content_md(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`ask`'s default `include_content=False` — the body is forced onto `content_md` anyway."""
     monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
     monkeypatch.setitem(REGISTRY, "raw", _html_tier("raw", body=_EMPTY_RESULTS_HTML))
     monkeypatch.setitem(REGISTRY, "jina", _html_tier("jina", body=_EMPTY_RESULTS_HTML))
@@ -77,20 +73,16 @@ async def test_ask_envelope_withholding_content_names_thin_content(monkeypatch: 
     fr = await fetch("https://shop.example/sr?q=zzzqqxnonexistent", state=make_default_state(), ask="what did I find?", debug=True)
     ar = build_ask_response(fr, include_content=False, debug=False)
 
-    assert ar.thin_content is not None
+    assert ar.content_md
     hint = next(h for h in ar.operator_hints if h.code == "content_thin")
-    assert _referenced_field(hint.message) == "thin_content"
-    assert _referenced_field(hint.fix) == "thin_content"
+    assert _names_content_md(hint.message)
+    assert _names_content_md(hint.fix)
 
 
 @pytest.mark.asyncio
-@pytest.mark.protects(
-    "spec:ask-response", "Requirement: content_thin and content_empty hints name a field the shipping envelope actually carries"
-)
+@pytest.mark.protects("spec:ask-response", "Requirement: content_thin and content_empty hints name content_md")
 async def test_ask_envelope_with_include_content_names_content_md(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`include_content=True` — `content_md` carries the body directly; `thin_content`
-    is never populated (would duplicate it, a2web-y5m), so the hint must still point
-    at `content_md`, not the field that stayed empty."""
+    """`include_content=True` — same field, same hint text."""
     monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", ("raw", "jina"))
     monkeypatch.setitem(REGISTRY, "raw", _html_tier("raw", body=_EMPTY_RESULTS_HTML))
     monkeypatch.setitem(REGISTRY, "jina", _html_tier("jina", body=_EMPTY_RESULTS_HTML))
@@ -99,7 +91,6 @@ async def test_ask_envelope_with_include_content_names_content_md(monkeypatch: p
     ar = build_ask_response(fr, include_content=True, debug=False)
 
     assert ar.content_md
-    assert ar.thin_content is None
     hint = next(h for h in ar.operator_hints if h.code == "content_thin")
-    assert _referenced_field(hint.message) == "content_md"
-    assert _referenced_field(hint.fix) == "content_md"
+    assert _names_content_md(hint.message)
+    assert _names_content_md(hint.fix)
