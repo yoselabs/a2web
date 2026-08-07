@@ -160,6 +160,59 @@ async def test_fast_rung_thin_escalates_to_robust(monkeypatch: pytest.MonkeyPatc
     assert "browser" in steps and "browser_robust" in steps  # both rungs in the log
 
 
+class _HandshakeFailedRobustTier:
+    """Robust CDP rung whose binary is confirmed present but the CDP handshake
+    itself fails — the exact `any_browser` zendriver diagnostic shape from
+    a2web-7bj.4."""
+
+    name = "browser_robust"
+
+    async def fetch(self, url: str, *, state: AppState, **kwargs: object) -> TierResult:
+        from a2web.hints import browser_unavailable_hint
+
+        del url, state, kwargs
+        return TierResult(
+            body=b"",
+            content_type="text/html",
+            status_code=0,
+            final_url="https://anubis.example/",
+            from_browser=True,
+            operator_hint=browser_unavailable_hint(
+                "browser launch failed: could not find a valid browser binary "
+                "(binary OK: Google Chrome for Testing 148.0.7778.96; "
+                "failure is in the CDP handshake, not the binary)",
+                rung="browser_robust",
+            ),
+            verdict=Verdict.connection_error,
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.protects(
+    "spec:browser-tier", "Requirement: browser_unavailable and browser_internal_error hints are attributed to their rung"
+)
+async def test_fast_rung_navigated_robust_rung_failed_to_launch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """a2web-7bj.4: the fast rung actually ran (still-blocked, not a failure) while
+    the robust rung failed to launch — the two hints in the envelope must be
+    attributable to their own rung, and the robust hint (binary confirmed OK)
+    must NOT carry the install-instructions blob, which would be provably wrong
+    remediation for a CDP-handshake failure."""
+    counter: dict[str, int] = {}
+    monkeypatch.setitem(REGISTRY, "raw", _AnubisRawTier())
+    monkeypatch.setitem(REGISTRY, "browser", _StillBlockedBrowserTier("browser", counter))
+    monkeypatch.setitem(REGISTRY, "browser_robust", _HandshakeFailedRobustTier())
+    monkeypatch.setattr("a2web.fetcher.retrieval.tier_walk.TIER_ORDER", TIER_ORDER)
+
+    result = await fetch("https://anubis.example/", state=_make_state())
+
+    unavailable_hints = [h for h in result.operator_hints if h.code == "browser_unavailable"]
+    assert len(unavailable_hints) == 1
+    hint = unavailable_hints[0]
+    assert hint.message.startswith("[browser_robust]")
+    assert "uv sync" not in hint.fix  # install blob is wrong remediation — binary is confirmed OK
+    assert "CDP handshake" in hint.fix
+
+
 @pytest.mark.asyncio
 async def test_browser_dispatch_capped_at_two_rungs(monkeypatch: pytest.MonkeyPatch) -> None:
     """Both rungs blocked: fast then robust fire once each, then no third dispatch."""

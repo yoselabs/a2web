@@ -129,7 +129,7 @@ def _host_is_js_heavy(url: str, state: AppState | None) -> bool:
     return host in js_heavy_hosts(settings)
 
 
-def _unavailable_result(url: str, message: str) -> TierResult:
+def _unavailable_result(url: str, message: str, *, rung: str) -> TierResult:
     from . import TierResult  # local - circular with package init
 
     return TierResult(
@@ -138,7 +138,7 @@ def _unavailable_result(url: str, message: str) -> TierResult:
         status_code=0,
         final_url=url,
         from_browser=True,
-        operator_hint=browser_unavailable_hint(message),
+        operator_hint=browser_unavailable_hint(message, rung=rung),
         verdict=Verdict.connection_error,
     )
 
@@ -171,9 +171,9 @@ class BrowserTier:
         from . import Rendered, TierResult  # local - circular with package init
 
         if not state.settings.browser_enabled:
-            return _unavailable_result(url, "browser tier disabled (A2WEB_BROWSER_ENABLED=false)")
+            return _unavailable_result(url, "browser tier disabled (A2WEB_BROWSER_ENABLED=false)", rung=self.name)
         if backend is None:
-            return _unavailable_result(url, "browser tier not provisioned (no backend injected)")
+            return _unavailable_result(url, "browser tier not provisioned (no backend injected)", rung=self.name)
 
         cookies = [_cookie_to_backend(c) for c in cookies_full] if cookies_full else []
         budget_s = float(state.settings.browser_page_budget_s)
@@ -184,7 +184,7 @@ class BrowserTier:
         page: RenderedPage = await backend.render(url, cookies=cookies, budget_s=budget_s, js_heavy=js_heavy, scroll_to_stable=scroll)
 
         if page.outcome is RenderOutcome.unavailable:
-            return _unavailable_result(url, page.detail or "browser engine unavailable")
+            return _unavailable_result(url, page.detail or "browser engine unavailable", rung=self.name)
         if page.outcome is RenderOutcome.timeout:
             return TierResult(
                 body=b"",
@@ -212,7 +212,11 @@ class BrowserTier:
                 from_browser=True,
                 js_executed=page.js_executed,
                 browser_wall_ms=page.wall_ms,
-                operator_hint=(try_user_browser_hint(page.final_url or url) if wall_shaped else browser_internal_error_hint(page.detail)),
+                operator_hint=(
+                    try_user_browser_hint(page.final_url or url)
+                    if wall_shaped
+                    else browser_internal_error_hint(page.detail, rung=self.name)
+                ),
                 verdict=Verdict.connection_error,
             )
 

@@ -722,23 +722,47 @@ BROWSER_INTERNAL_FIX = (
     "A2WEB_BROWSER_ENABLED=false to skip the browser tier."
 )
 
+#: `any_browser`'s zendriver launch-diagnostics append this exact phrase when the
+#: probed binary itself ran clean (`--version` exited 0) — the failure is in the
+#: CDP handshake or runtime environment (HOME/user-data-dir writability, sandbox/
+#: seccomp, IPC), not a missing or broken binary. When present, the install
+#: instructions in `BROWSER_UNAVAILABLE_FIX` are provably wrong remediation
+#: (a2web-7bj.4 — a hint told the caller to reinstall a binary its own
+#: parenthetical had just confirmed was fine).
+_BINARY_CONFIRMED_OK_MARKER = "failure is in the CDP handshake, not the binary"
 
-def browser_unavailable_hint(message: str) -> OperatorHint:
-    """The browser rung could not start at all (no binary, failed launch)."""
-    return OperatorHint(code="browser_unavailable", message=message, fix=BROWSER_UNAVAILABLE_FIX)
+BROWSER_HANDSHAKE_FIX = (
+    "the browser binary is present and runs cleanly — the failure is in the CDP "
+    "handshake or runtime environment (HOME/user-data-dir writability, sandbox/seccomp, "
+    "IPC). Retry; if it persists, check container sandbox permissions and free /dev/shm "
+    "space rather than reinstalling the browser."
+)
 
 
-def browser_internal_error_hint(detail: str | None) -> OperatorHint:
+def browser_unavailable_hint(message: str, *, rung: str = "browser") -> OperatorHint:
+    """The browser rung could not start at all (no binary, failed launch).
+
+    `rung` names which browser rung produced this (`browser` fast / `browser_robust`
+    CDP) — the playbook can dispatch both in the same request (a thin fast render
+    re-fires the robust rung), so an unattributed hint reads as a self-contradiction
+    when the two disagree on what happened (a2web-7bj.4). The install-instructions
+    fix is gated on the failure actually being consistent with a missing/broken
+    binary; `any_browser`'s own diagnostics already rule that out for a confirmed-OK
+    binary, so that case gets handshake remediation instead.
+    """
+    fix = BROWSER_HANDSHAKE_FIX if _BINARY_CONFIRMED_OK_MARKER in message else BROWSER_UNAVAILABLE_FIX
+    return OperatorHint(code="browser_unavailable", message=f"[{rung}] {message}", fix=fix)
+
+
+def browser_internal_error_hint(detail: str | None, *, rung: str = "browser") -> OperatorHint:
     """The browser started and the DRIVER failed — not the target site.
 
     The distinction is the whole point: attributing a driver crash to the page
-    would send the caller chasing a wall that is not there.
+    would send the caller chasing a wall that is not there. `rung` disambiguates
+    which of the two browser rungs produced it (a2web-7bj.4).
     """
-    return OperatorHint(
-        code="browser_internal_error",
-        message=detail or "browser internal error",
-        fix=BROWSER_INTERNAL_FIX,
-    )
+    message = detail or "browser internal error"
+    return OperatorHint(code="browser_internal_error", message=f"[{rung}] {message}", fix=BROWSER_INTERNAL_FIX)
 
 
 def reddit_forbidden_hint(message: str) -> OperatorHint:

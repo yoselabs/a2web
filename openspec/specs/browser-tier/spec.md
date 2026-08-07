@@ -75,6 +75,22 @@ When the selected backend cannot be built — the `[browser]` extras are absent,
 - **WHEN** `settings.browser_backend` names an engine whose manifest returns `Unavailable` (Camoufox is gated today)
 - **THEN** the registry drops it and selection raises `ResourceUnavailable` rather than crashing on a version-skewed driver
 
+### Requirement: browser_unavailable and browser_internal_error hints are attributed to their rung
+
+Because the fast (`browser`) and robust (`browser_robust`) rungs can each independently fail within the SAME fetch (the fast→robust ladder), `browser_unavailable_hint(...)` and `browser_internal_error_hint(...)` SHALL prefix their `message` with `[browser]` or `[browser_robust]` naming the rung that produced them. An envelope carrying hints from both rungs SHALL let the caller tell which rung said what rather than reading as a single self-contradictory account (a2web-7bj.4).
+
+`browser_unavailable_hint(...)`'s `fix` SHALL name the install-instructions remedy (`BROWSER_UNAVAILABLE_FIX`) only when the failure is consistent with a missing or broken binary. When the underlying engine's own launch diagnostics have already confirmed the binary runs cleanly and attribute the failure to the CDP handshake or runtime environment instead, the `fix` SHALL name handshake/runtime remediation instead of the install blob — telling an operator to reinstall a binary the diagnostic just confirmed is present is provably wrong.
+
+#### Scenario: A confirmed-OK binary gets handshake remediation, not install instructions
+
+- **WHEN** the robust rung's `RenderOutcome.unavailable` detail confirms the binary ran (`--version` exited 0) and names the CDP handshake as the failure point
+- **THEN** the resulting `browser_unavailable` hint's `fix` does not tell the operator to install/reinstall the browser, and its `message` is prefixed `[browser_robust]`
+
+#### Scenario: Fast rung navigated, robust rung failed to launch — both hints stay attributable
+
+- **WHEN** the fast `browser` rung renders (even a still-blocked page, not a failure) and the robust `browser_robust` rung then fails with a confirmed-binary-OK unavailable outcome
+- **THEN** the response's `operator_hints` carries the `browser_unavailable` hint prefixed `[browser_robust]`, and it does not carry the install-instructions fix text
+
 ### Requirement: Browser tier is in REGISTRY but not in TIER_ORDER
 
 The system SHALL register two browser-class tiers in `REGISTRY` — `"browser"` (the fast Chromium rung) and `"browser_robust"` (the robust CDP rung) — and SHALL NOT include either in `TIER_ORDER`. Default fetches SHALL never invoke a browser tier; both are dispatched out-of-band by the orchestrator. `"browser"` is dispatched when the gate sets `suggested_tier == "browser"`; `"browser_robust"` is dispatched only when the gate *still* wants browser after the fast rung already ran (a fast render that came back thin/blocked). Each rung SHALL be capped at one dispatch per fetch.

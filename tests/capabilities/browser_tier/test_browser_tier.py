@@ -136,7 +136,7 @@ async def test_error_outcome_yields_internal_error_hint() -> None:
     hint = result.operator_hint
     assert hint is not None
     assert hint.code == "browser_internal_error"
-    assert hint.message.startswith("RuntimeError")
+    assert hint.message.startswith("[browser] RuntimeError")
     assert "ERR_NAME_NOT_RESOLVED" in hint.message
     assert hint.fix is not None
 
