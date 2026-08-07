@@ -32,6 +32,7 @@ from .hints import (
     listing_more_hint,
     listing_partial_hint,
     llm_error_hint,
+    retarget_body_field_hints,
     retrieval_incomplete_hint,
     served_url_differs_hint,
 )
@@ -1046,6 +1047,10 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         if not include_content and (empty_confirmed or fr.ask_unanswered or has_hint(op_hints, "content_thin"))
         else None
     )
+    # a2web-7bj.3: content_thin/content_empty hints assume `content_md` (the
+    # `FetchResponse` default). Retarget to `thin_content` here, once it is known
+    # the body actually rides that field on this `AskResponse` instead.
+    op_hints = retarget_body_field_hints(op_hints, url=fr.url, body_field="thin_content" if thin_content is not None else "content_md")
 
     # A promoted empty ran NO LLM extraction (the thin body was never distilled —
     # ADR-0017), so synthesize an honest "no results" answer that only asserts the

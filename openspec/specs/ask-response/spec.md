@@ -564,6 +564,25 @@ The `AskResponse` envelope SHALL carry a single `other_pages` field (replacing b
 - **WHEN** a `query` fetch ends `ok` with real content, or fails on `wall`/`gone_confirmed`
 - **THEN** the wire payload contains no `thin_content` key
 
+### Requirement: content_thin and content_empty hints name a field the shipping envelope actually carries
+
+The `content_thin` and `content_empty` operator hints SHALL reference, by name, the specific field on the response envelope where the retrieved body actually rides — never a field the shipping envelope omits. On `FetchResponse` (`fetch_raw`), the body is always in `content_md`, so the hint SHALL name `content_md`. On `AskResponse` (`query`/`ask`), the hint SHALL name `thin_content` when the body is riding that fallback field (`include_content=False`), and `content_md` when the caller opted into `include_content=True` (where `thin_content` is never populated).
+
+#### Scenario: fetch_raw hint names content_md
+
+- **WHEN** a `fetch_raw` call terminates thin or corroborated-empty
+- **THEN** the `content_thin`/`content_empty` hint's message and fix name `content_md`, the only field that carries the body on that envelope
+
+#### Scenario: ask hint names thin_content when content is withheld
+
+- **WHEN** a `query`/`ask` call terminates thin or corroborated-empty with `include_content=False` (the default), so the body rides `thin_content`
+- **THEN** the `content_thin`/`content_empty` hint's message and fix name `thin_content`, not `content_md`
+
+#### Scenario: ask hint names content_md when the caller opted into full content
+
+- **WHEN** a `query`/`ask` call terminates thin or corroborated-empty with `include_content=True`, so `content_md` carries the body directly and `thin_content` is omitted
+- **THEN** the `content_thin`/`content_empty` hint's message and fix name `content_md`, not the omitted `thin_content`
+
 ### Requirement: Corroborated empty answer is synthetic and honest
 
 When a fetch is promoted to `ok` as a corroborated empty (`is_confirmed_empty` held), the `query` `AskResponse` SHALL carry a synthetic `answer` stating that the page reports no results for the request (never fabricated result content), at `confidence: low`, with a `content_empty` operator hint at `severity: info`, and the retrieved body attached as `thin_content` when `content_md` is not already on the wire (per "thin_content is attached on a thin_unverified failure"). The response SHALL NOT set `retrieval_incomplete` and SHALL NOT carry `try_user_browser`. The answer's honesty is bounded: it asserts only "the page shows no results", disclosing that this is a distilled reading of a thin page the caller can verify via the attached body (`thin_content` when withheld, `content_md` directly when opted in).
