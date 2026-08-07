@@ -529,6 +529,57 @@ _NEXT_LINK_KIND_TO_OTHER_PAGE: dict[str, OtherPageKind] = {
 }
 
 
+#: Reasons `links.py`'s catalog/record classifier hardcodes when it has no
+#: page-specific justification to offer (`_heading_link_kind` /
+#: `_records_to_next_links`). Not garbage — a correct label — but generic
+#: enough that a duplicate row carrying a page-specific `reason` is strictly
+#: more informative and should win the merge (a2web-7bj.6).
+_GENERIC_OTHER_PAGE_REASONS = frozenset({"discussed page", "item page", "discussion thread"})
+
+#: Deliberate kind precedence for the duplicate-URL merge tie-break
+#: (a2web-7bj.6): `structural` is the stronger claim — a deterministic
+#: continuation of the SAME page/listing (pagination, page-order) — while
+#: `drilldown` only says "a different page, relevance depends on the
+#: question". When both a structural and a drilldown row name the same URL,
+#: the structural claim is not weaker information the drilldown row could
+#: have carried; it wins.
+_OTHER_PAGE_KIND_PRECEDENCE: dict[OtherPageKind, int] = {"structural": 0, "drilldown": 1}
+
+
+def _dedupe_other_pages(rows: list[OtherPage]) -> list[OtherPage]:
+    """Merge `rows` to one entry per URL — never a silent drop of either side's claim.
+
+    `_compose_other_pages` merges THREE producers (handler continuation, LLM
+    structural, LLM drilldown) that do not know about each other, so the same
+    URL can arrive twice with a different `kind` — observed on a DHL tracking
+    page, where `login.html` and the DHL commerce host each appeared once as
+    `structural` and again as `drilldown` (a2web-7bj.6). Dropping one side
+    arbitrarily would violate the "ADD to an index, never silently replace or
+    relabel a producer's claim" invariant, so the merge is an explicit rule
+    instead: the more specific `reason` wins over a generic catalog-classifier
+    label (`_GENERIC_OTHER_PAGE_REASONS`); a tie (both generic or both
+    specific) is broken by `_OTHER_PAGE_KIND_PRECEDENCE`. First-seen order is
+    preserved for the surviving row.
+    """
+    best: dict[str, OtherPage] = {}
+    order: list[str] = []
+    for row in rows:
+        existing = best.get(row.url)
+        if existing is None:
+            best[row.url] = row
+            order.append(row.url)
+            continue
+        existing_generic = existing.reason in _GENERIC_OTHER_PAGE_REASONS
+        row_generic = row.reason in _GENERIC_OTHER_PAGE_REASONS
+        if existing_generic and not row_generic:
+            best[row.url] = row
+        elif existing_generic == row_generic:
+            if _OTHER_PAGE_KIND_PRECEDENCE.get(row.kind, 99) < _OTHER_PAGE_KIND_PRECEDENCE.get(existing.kind, 99):
+                best[row.url] = row
+        # else: existing already carries the more specific reason — keep it.
+    return [best[url] for url in order]
+
+
 def _compose_other_pages(fr: FetchResponse, routing: RouterPayload | None) -> list[OtherPage]:
     """Merge handler continuation + LLM drilldowns into the unified `other_pages`.
 
@@ -537,7 +588,10 @@ def _compose_other_pages(fr: FetchResponse, routing: RouterPayload | None) -> li
     `_NEXT_LINK_KIND_TO_OTHER_PAGE`); the former `try_url`
     (question-conditioned) ride `routing.other_pages`, already kind-tagged.
     Structural entries lead in page-order; drilldowns follow in priority order.
-    Capped consistently with the pre-merge `next_links` cap.
+    Deduped by URL across the three producers (`_dedupe_other_pages`) before
+    the cap applies, so a URL two producers independently named costs the
+    caller one wire row, not two (a2web-7bj.6). Capped consistently with the
+    pre-merge `next_links` cap.
 
     **Corrected 2026-08-01.** This relabelled every handler link
     `kind="structural"` regardless of what the handler assigned. Measured: 7 of
@@ -560,7 +614,7 @@ def _compose_other_pages(fr: FetchResponse, routing: RouterPayload | None) -> li
     llm = list(routing.other_pages) if routing is not None else []
     llm_structural = [p for p in llm if p.kind == "structural"]
     llm_drill = [p for p in llm if p.kind == "drilldown"]
-    merged = structural + llm_structural + llm_drill
+    merged = _dedupe_other_pages(structural + llm_structural + llm_drill)
     return merged[:NEXT_LINKS_CAP]
 
 

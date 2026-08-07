@@ -521,6 +521,25 @@ The `AskResponse` envelope SHALL carry a single `other_pages` field (replacing b
 - **WHEN** an `other_pages` entry is emitted
 - **THEN** its `url` is traceable to the fetched page (rehydrated `{{n}}` handle or literally present) and an off-domain target carries `off_domain=true`
 
+### Requirement: other_pages is deduped by URL across its producers
+
+`other_pages` is merged from three producers that do not know about each other — handler continuation (`fr.next_links`), the LLM router's `structural` entries, and the LLM router's `drilldown` entries — so the same URL SHALL NOT ship twice under different `kind`s. The merge SHALL dedupe by `url` with an explicit, deterministic rule rather than dropping either producer's claim arbitrarily (never silently replace or relabel a producer's index entry): a page-specific `reason` SHALL win over a generic catalog-classifier label (`"discussed page"`, `"item page"`, `"discussion thread"` — the hardcoded fallbacks in the record/link classifier); a tie (both generic, or both specific) SHALL be broken by kind precedence, `structural` over `drilldown` (a deterministic same-page continuation is the stronger claim). The surviving row keeps its original position among first-seen URLs.
+
+#### Scenario: A page-specific reason wins over a generic one for the same URL
+
+- **WHEN** the same URL is emitted once with a generic reason (`"discussed page"`) and once with a page-specific reason
+- **THEN** `other_pages` carries exactly one row for that URL, with the page-specific reason
+
+#### Scenario: A same-kind or same-specificity tie prefers structural
+
+- **WHEN** the same URL is emitted once as `kind=drilldown` and once as `kind=structural`, with reasons of equal specificity
+- **THEN** the surviving row is `kind=structural`
+
+#### Scenario: The DHL-session duplicate shape collapses to one row per URL
+
+- **WHEN** a handler-derived entry and an LLM-router entry both name the same URL (a2web-7bj.6 — `login.html` and a commerce host each appeared once as `structural` and once as `drilldown`)
+- **THEN** `other_pages` carries each URL exactly once, not twice under different kinds
+
 ### Requirement: Follow-up suggestions render as queries
 
 `also_here` entries SHALL be emitted as **queries**, defined by deletion: the verb frame and the already-known page entity SHALL be dropped; the target noun(s) and the single discriminating operator SHALL be kept. Permitted operators are free-prior only — `,` (list), `vs` (contrast), `/` (alternatives), quotes (exact), `-` (exclude) — plus CAPS on at most one load-bearing token. A trailing `?` SHALL appear only for a DECIDE (judge/determine-which) entry, not a FIND (retrieve) entry. An entry that would require `and` SHALL be split into two entries.
