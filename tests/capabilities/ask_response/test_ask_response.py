@@ -279,7 +279,8 @@ async def test_ask_other_pages_tsv_carries_the_handlers_own_kind(monkeypatch: py
 
 
 # --------------------------------------------------------------------- #
-# 2.4 — narrative / diagnostics_summary are failure-only
+# 2.4 — narrative is failure-only; diagnostics_summary is failure-AND-debug
+# (a2web-7bj.12, ADR-0019)
 # --------------------------------------------------------------------- #
 
 
@@ -297,7 +298,35 @@ async def test_ask_failure_carries_narrative(monkeypatch: pytest.MonkeyPatch) ->
     data = await _ask_wire(monkeypatch, body=body, url="https://blocked.example/page", query="q?")
     assert data["status"] == "failed"
     assert data["narrative"]
-    assert data["diagnostics_summary"]
+    assert "diagnostics_summary" not in data
+
+
+@pytest.mark.asyncio
+async def test_ask_failure_without_debug_omits_diagnostics_summary(monkeypatch: pytest.MonkeyPatch) -> None:
+    """a2web-7bj.12: a redundant re-serialization of narrative's own inputs —
+    dropped for a non-debug caller even on failure."""
+    body = (_FIX / "cloudflare_block.html").read_bytes()
+    data = await _ask_wire(monkeypatch, body=body, url="https://blocked.example/page", query="q?")
+    assert "diagnostics_summary" not in data
+    assert "debug" not in data
+
+
+@pytest.mark.asyncio
+async def test_ask_failure_with_debug_carries_diagnostics_summary(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = (_FIX / "cloudflare_block.html").read_bytes()
+    data = await _ask_wire(monkeypatch, body=body, url="https://blocked.example/page", query="q?", debug=True)
+    assert data["status"] == "failed"
+    assert "diagnostics_summary" not in data, "must regroup into `debug`, not stay top-level"
+    assert data["debug"]["diagnostics_summary"]
+
+
+@pytest.mark.asyncio
+async def test_ask_success_with_debug_still_omits_diagnostics_summary(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The gate is failure-AND-debug — debug alone must not resurrect it on success."""
+    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?", debug=True)
+    assert "status" not in data
+    debug = data.get("debug", {})
+    assert "diagnostics_summary" not in debug
 
 
 # --------------------------------------------------------------------- #

@@ -615,3 +615,67 @@ says nothing about whether the surface was right when captured.
      "title": "How adaptive web fetching saves agent tokens"
    }
 ```
+
+## `diagnostics-summary-debug-gate` — `list_tools`
+
+```diff
+--- list_tools.json (before)
++++ list_tools.json (after)
+@@ -88,7 +88,7 @@
+       "properties": {
+         "debug": {
+           "default": false,
+-          "description": "Return the full `diagnostics` trace plus timing/cache metadata. Default False — `diagnostics_summary` is populated on failures regardless.",
++          "description": "Return the full `diagnostics` trace plus timing/cache metadata, and, on a failed fetch, `diagnostics_summary` (a log-shaped one-line restatement of `narrative`). Default False.",
+           "type": "boolean"
+         },
+         "include_content": {
+```
+
+## `diagnostics-summary-debug-gate` — `call/query_failure`
+
+```diff
+--- call/query_failure.json (before)
++++ call/query_failure.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"diagnostics_summary\":\"tier=raw verdict=block_page_detected total_ms=0 extras=cf_iuam\",\"_operator_hints_format\":\"tsv\"}",
++      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"_operator_hints_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+@@ -9,7 +9,6 @@
+   "structured_content": {
+     "answer": null,
+     "confidence": "low",
+-    "diagnostics_summary": "tier=raw verdict=block_page_detected total_ms=0 extras=cf_iuam",
+     "narrative": "raw → block_page_detected:cf_iuam (0ms).",
+     "operator_hints": [
+       {
+```
+
+## `diagnostics-summary-debug-gate` — `call/query_heterogeneous_hints`
+
+```diff
+--- call/query_heterogeneous_hints.json (before)
++++ call/query_heterogeneous_hints.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ncookies_stale\\tBrowser cookies last refreshed 99h ago; threshold is 24h. Some sites may treat this session as logged-out.\\tRun `a2web cookies refresh`\\t\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"diagnostics_summary\":\"tier=raw verdict=block_page_detected total_ms=0 extras=cf_iuam\",\"_operator_hints_format\":\"tsv\"}",
++      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ncookies_stale\\tBrowser cookies last refreshed 99h ago; threshold is 24h. Some sites may treat this session as logged-out.\\tRun `a2web cookies refresh`\\t\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"_operator_hints_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+@@ -9,7 +9,6 @@
+   "structured_content": {
+     "answer": null,
+     "confidence": "low",
+-    "diagnostics_summary": "tier=raw verdict=block_page_detected total_ms=0 extras=cf_iuam",
+     "narrative": "raw → block_page_detected:cf_iuam (0ms).",
+     "operator_hints": [
+       {
+```

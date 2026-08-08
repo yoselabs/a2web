@@ -106,8 +106,9 @@ def register_web_tools(mcp: FastMCP, components: Components) -> None:
             pydantic.Field(
                 description=(
                     "Return the full `diagnostics` trace plus timing/cache "
-                    "metadata. Default False — `diagnostics_summary` is "
-                    "populated on failures regardless."
+                    "metadata, and, on a failed fetch, `diagnostics_summary` "
+                    "(a log-shaped one-line restatement of `narrative`). "
+                    "Default False."
                 ),
             ),
         ] = False,

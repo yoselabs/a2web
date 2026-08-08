@@ -417,9 +417,14 @@ class FetchResponse(BaseModel):
     - Deviation-only: `status` (dropped when `ok`), `tier` (dropped when
       `raw`), `url` (dropped when it equals the requested URL — absence means
       the fetch landed exactly where the caller asked).
-    - Failure-only: `narrative`, `diagnostics_summary` — dropped on success.
+    - Failure-only: `narrative` — dropped on success.
     - Debug-only: `started_at`, `total_ms`, `cache`, `tokens`, `diagnostics`
       regroup into a nested `debug` object, present only under `debug=True`.
+    - Failure-AND-debug-only: `diagnostics_summary` — a redundant key=value
+      re-serialization of `narrative`'s exact same inputs, built for
+      log/grep tooling rather than an agent-facing channel (ADR-0019,
+      a2web-7bj.8/.12). Regrouped into the nested `debug` object, present
+      only when the fetch failed AND the caller passed `debug=True`.
     - Omitted when empty: `title`, `byline`, `published`, `meta`, `links`,
       `headings`, `operator_hints`, `next_links`, `extraction`,
       `extracted_answer` (and `content_md` on a failed fetch).
@@ -441,6 +446,16 @@ class FetchResponse(BaseModel):
     narrative: str = ""
     diagnostics_summary: str = ""
     diagnostics: list[Diagnostic] = Field(default_factory=list)
+
+    # Internal signal (never on the wire — `exclude=True`): whether THIS fetch
+    # was made with `debug=True`. `diagnostics_summary` is always populated
+    # on the model (internal callers — the eval harness — read it
+    # unconditionally, e.g. `llm_eval/systems.py`), but the WIRE view drops it
+    # unless both this flag AND `status != ok` hold (ADR-0019). Kept as a real
+    # field rather than inferred from `started_at is not None` etc. so the
+    # serializer's gate cannot silently break if those fields' own gating
+    # changes independently.
+    wire_debug: bool = Field(default=False, exclude=True)
     meta: dict[str, str] = Field(default_factory=dict)
     links: list[Link] = Field(default_factory=list)
     headings: list[Heading] = Field(default_factory=list)
@@ -545,8 +560,18 @@ class FetchResponse(BaseModel):
             tsv["links"] = encode_rows(self.links)
         if self.next_links:
             tsv["next_links"] = encode_rows(self.next_links)
+        data = handler(self)
+        # a2web-7bj.12 (ADR-0019): `diagnostics_summary` is always populated on
+        # the model (internal callers read it unconditionally), but joins the
+        # debug group on the WIRE — present only on a genuine failure AND when
+        # the caller asked for `debug=True`. `wire_debug` (never itself on the
+        # wire) is the explicit signal; inferring "debug requested" from
+        # another field's emptiness would break the moment that field's own
+        # gating changes independently.
+        if not (self.wire_debug and data.get("status") != FetchStatus.ok.value):
+            data["diagnostics_summary"] = ""
         return _prune_wire(
-            handler(self),
+            data,
             required=_FETCH_REQUIRED_FIELDS,
             tsv=tsv,
             deviation=_WIRE_DEVIATION,
@@ -590,16 +615,22 @@ _ASK_REQUIRED_FIELDS = frozenset({"confidence", "answer"})
 _FETCH_REQUIRED_FIELDS = frozenset({"confidence"})
 
 # Fields dropped from the wire on a successful fetch (`status == ok`) — they
-# only carry signal when something went wrong.
-_FAILURE_ONLY_FIELDS = frozenset({"narrative", "diagnostics_summary"})
+# only carry signal when something went wrong. `diagnostics_summary` is NOT
+# here — a2web-7bj.12 (ADR-0019) additionally requires `debug=True`, so its
+# gating is applied explicitly in `_omit_empty`/`_envelope_discipline` before
+# `_prune_wire` ever sees it (both models set it to `""` there unless the
+# fetch failed AND debug was requested).
+_FAILURE_ONLY_FIELDS = frozenset({"narrative"})
 
 # Deviation-only fields: dropped when the value equals the boring default.
 # `status` absent → ok; `tier` absent → plain raw fetch.
 _WIRE_DEVIATION = {"status": FetchStatus.ok.value, "tier": "raw"}
 
 # Debug-tier fields regrouped into a nested `debug` object on the wire.
-_ASK_DEBUG_FIELDS = frozenset({"started_at", "total_ms", "cache", "diagnostics", "extraction"})
-_FETCH_DEBUG_FIELDS = frozenset({"started_at", "total_ms", "cache", "tokens", "diagnostics", "extraction", "content_candidates"})
+_ASK_DEBUG_FIELDS = frozenset({"started_at", "total_ms", "cache", "diagnostics", "extraction", "diagnostics_summary"})
+_FETCH_DEBUG_FIELDS = frozenset(
+    {"started_at", "total_ms", "cache", "tokens", "diagnostics", "extraction", "content_candidates", "diagnostics_summary"}
+)
 
 
 # The three former per-field TSV helpers (`_next_links_tsv`,
@@ -691,11 +722,14 @@ class AskResponse(BaseModel):
       `published`, `operator_hints`, `other_pages`, `meta`).
     - Opt-in grounding: `content_md` + `headings` appear only when the caller
       passed `include_content=True`.
-    - Failure-only: `narrative` + `diagnostics_summary` appear only when
-      `status != ok`.
+    - Failure-only: `narrative` appears only when `status != ok`.
     - Debug-only: `started_at`, `total_ms`, `cache`, `diagnostics`,
       `extraction` regroup into a nested `debug` object, present only when the
       caller passed `debug=True`.
+    - Failure-AND-debug-only: `diagnostics_summary` — a redundant key=value
+      re-serialization of `narrative`'s exact same inputs (ADR-0019,
+      a2web-7bj.8/.12). Regroups into the nested `debug` object, present only
+      when `status != ok` AND the caller passed `debug=True`.
 
     The builder (`build_ask_response`) decides which fields to populate; the
     serializer below drops empties, applies the deviation rules, and regroups
@@ -746,6 +780,11 @@ class AskResponse(BaseModel):
     narrative: str = ""
     diagnostics_summary: str = ""
 
+    # Internal signal (never on the wire — `exclude=True`): whether THIS `ask`
+    # call was made with `debug=True`. See `FetchResponse.wire_debug` — same
+    # reason, same ADR-0019 gate, applied in `_envelope_discipline`.
+    wire_debug: bool = Field(default=False, exclude=True)
+
     started_at: datetime | None = None
     total_ms: int | None = None
     cache: CacheState | None = None
@@ -795,8 +834,13 @@ class AskResponse(BaseModel):
         tsv: dict[str, str] = {}
         if self.other_pages:
             tsv["other_pages"] = encode_rows(self.other_pages)
+        data = handler(self)
+        # a2web-7bj.12 (ADR-0019) — see `FetchResponse._omit_empty`'s matching
+        # gate for the full rationale.
+        if not (self.wire_debug and data.get("status") != FetchStatus.ok.value):
+            data["diagnostics_summary"] = ""
         return _prune_wire(
-            handler(self),
+            data,
             required=_ASK_REQUIRED_FIELDS,
             tsv=tsv,
             deviation=_WIRE_DEVIATION,

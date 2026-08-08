@@ -81,28 +81,40 @@ This requirement governs only the shallow `og:*`/`twitter:*`/`jsonld[0].*` scala
 - **WHEN** `ask` completes against a fixture whose raw metadata carries only non-allowlisted keys
 - **THEN** the `ask` wire payload contains no `meta` key
 
-### Requirement: narrative and diagnostics_summary are failure-only on ask
+### Requirement: narrative is failure-only on ask
 
-`AskResponse` SHALL include `narrative` and `diagnostics_summary` only when `status != ok`. On a successful `ask` they SHALL be absent from the wire payload.
+`AskResponse` SHALL include `narrative` only when `status != ok`. On a successful `ask` it SHALL be absent from the wire payload.
 
 #### Scenario: successful ask omits narrative
 
 - **WHEN** `ask` completes with `status == ok`
-- **THEN** the wire payload contains no `narrative` and no `diagnostics_summary` key
+- **THEN** the wire payload contains no `narrative` key
 
 #### Scenario: failed ask carries the failure explanation
 
 - **WHEN** `ask` completes with `status == failed`
-- **THEN** the wire payload contains `narrative` and `diagnostics_summary` describing the failure
+- **THEN** the wire payload contains `narrative` describing the failure
 
 ### Requirement: debug observability is a single debug sub-object on ask
 
-`AskResponse` SHALL expose all debug-tier observability through a single `debug` sub-object, not as scattered top-level keys. The `debug` object SHALL carry `started_at`, `total_ms`, `cache`, `diagnostics`, `tokens`, and `extraction`. The `debug` key SHALL appear on the wire only when the tool is called with `debug=True`; with `debug=False` it SHALL be absent. No `started_at`, `total_ms`, `cache`, `diagnostics`, `tokens`, or `extraction` key SHALL appear at the top level of the envelope.
+`AskResponse` SHALL expose all debug-tier observability through a single `debug` sub-object, not as scattered top-level keys. The `debug` object SHALL carry `started_at`, `total_ms`, `cache`, `diagnostics`, and `extraction`, plus — only on a failed ask — `diagnostics_summary`. The `debug` key SHALL appear on the wire only when the tool is called with `debug=True`; with `debug=False` it SHALL be absent. No `started_at`, `total_ms`, `cache`, `diagnostics`, `extraction`, or `diagnostics_summary` key SHALL appear at the top level of the envelope.
+
+`diagnostics_summary` is stricter than its debug-only siblings, mirroring `FetchResponse` (a2web-7bj.12, ADR-0019): present in `debug` only when the ask ALSO failed (`status != ok`) — never on a successful ask, regardless of `debug`. A redundant key=value re-serialization of `narrative`'s exact same inputs, built for log/grep tooling; joining the debug group removes it from the default (non-debug) wire entirely.
 
 #### Scenario: default ask omits the debug sub-object
 
 - **WHEN** `ask` is called with `debug=False`
-- **THEN** the wire payload contains no `debug` key, and no `started_at`, `total_ms`, `cache`, `diagnostics`, `tokens`, or `extraction` key at the top level
+- **THEN** the wire payload contains no `debug` key, and no `started_at`, `total_ms`, `cache`, `diagnostics`, `extraction`, or `diagnostics_summary` key at the top level
+
+#### Scenario: a failed ask with debug carries diagnostics_summary under debug
+
+- **WHEN** `ask` completes with `status == failed` and `debug=True`
+- **THEN** the `debug` object contains `diagnostics_summary` describing the failure
+
+#### Scenario: a successful ask with debug still omits diagnostics_summary
+
+- **WHEN** `ask` completes with `status == ok` and `debug=True`
+- **THEN** the `debug` object contains no `diagnostics_summary` key
 
 #### Scenario: debug ask nests the full trace under debug
 

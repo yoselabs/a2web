@@ -922,9 +922,12 @@ def build_response(fc: ResponseContext) -> FetchResponse:
         confidence = Confidence.medium
 
     # narrative / diagnostics_summary stay populated for internal callers (the
-    # eval harness reads them); the serializer drops them on a successful wire.
-    # Timing / cache / tokens are debug-only — the serializer drops them when
-    # absent, so leaving them None here is the gate.
+    # eval harness reads `.diagnostics_summary` directly off a debug=True
+    # response — see `llm_eval/systems.py`/`extraction.py`); the serializer
+    # drops `narrative` on a successful wire and additionally requires
+    # `wire_debug` before `diagnostics_summary` reaches the wire at all
+    # (a2web-7bj.12, ADR-0019). Timing / cache / tokens are debug-only — the
+    # serializer drops them when absent, so leaving them None here is the gate.
     response = FetchResponse(
         url=deviated_url,
         status=status,
@@ -939,6 +942,7 @@ def build_response(fc: ResponseContext) -> FetchResponse:
         cache=fc.cache_state if fc.inputs.debug else None,
         narrative=narrative,
         diagnostics_summary=diagnostics_summary,
+        wire_debug=fc.inputs.debug,
         diagnostics=fc.diagnostics,
         meta=fc.meta_dict,
         links=fc.links,
@@ -1147,7 +1151,12 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
         content_md=fr.content_md if (include_content or force_attach) else "",
         headings=list(fr.headings) if include_content else [],
         narrative="" if is_ok else fr.narrative,
-        diagnostics_summary="" if is_ok else fr.diagnostics_summary,
+        # a2web-7bj.12 (ADR-0019): the is_ok/debug gate for diagnostics_summary
+        # now lives in AskResponse._envelope_discipline (it needs BOTH
+        # conditions, unlike narrative's is_ok-only gate) — pass the full
+        # internal value through and let `wire_debug` below drive the wire.
+        diagnostics_summary=fr.diagnostics_summary,
+        wire_debug=debug,
         started_at=fr.started_at if debug else None,
         total_ms=fr.total_ms if debug else None,
         cache=fr.cache if debug else None,

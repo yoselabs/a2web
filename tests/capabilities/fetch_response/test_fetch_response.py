@@ -70,7 +70,25 @@ async def test_fetch_raw_failure_carries_status_and_narrative(monkeypatch: pytes
     data = await _fetch_raw_wire(monkeypatch, body=body, url="https://blocked.example/page")
     assert data["status"] == "failed"
     assert data["narrative"]
-    assert data["diagnostics_summary"]
+    assert "diagnostics_summary" not in data
+
+
+@pytest.mark.asyncio
+async def test_fetch_raw_failure_with_debug_carries_diagnostics_summary(monkeypatch: pytest.MonkeyPatch) -> None:
+    """a2web-7bj.12 (ADR-0019): diagnostics_summary is failure-AND-debug-only —
+    a redundant key=value re-serialization of narrative's own inputs."""
+    body = (_FIX / "cloudflare_block.html").read_bytes()
+    data = await _fetch_raw_wire(monkeypatch, body=body, url="https://blocked.example/page", debug=True)
+    assert data["status"] == "failed"
+    assert "diagnostics_summary" not in data, "must regroup into `debug`, not stay top-level"
+    assert data["debug"]["diagnostics_summary"]
+
+
+@pytest.mark.asyncio
+async def test_fetch_raw_success_with_debug_still_omits_diagnostics_summary(monkeypatch: pytest.MonkeyPatch) -> None:
+    data = await _fetch_raw_wire(monkeypatch, body=_MINIMAL_HTML, url="https://example.org/raw", debug=True)
+    assert "status" not in data
+    assert "diagnostics_summary" not in data.get("debug", {})
 
 
 # --------------------------------------------------------------------- #

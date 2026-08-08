@@ -36,23 +36,40 @@ The `FetchResponse` serializer SHALL omit optional fields whose value is `None`,
 - **WHEN** `fetch_raw` completes with a failed fetch
 - **THEN** the wire payload contains `status` with the value `failed`
 
-### Requirement: narrative and diagnostics_summary are failure-only on FetchResponse
+### Requirement: narrative is failure-only on FetchResponse
 
-`FetchResponse` SHALL include `narrative` and `diagnostics_summary` only when `status != ok`. On a successful `fetch_raw` they SHALL be absent from the wire payload.
+`FetchResponse` SHALL include `narrative` only when `status != ok`. On a successful `fetch_raw` it SHALL be absent from the wire payload.
 
 #### Scenario: successful fetch_raw omits narrative
 
 - **WHEN** `fetch_raw` completes successfully
-- **THEN** the wire payload contains no `narrative` and no `diagnostics_summary` key
+- **THEN** the wire payload contains no `narrative` key
 
 #### Scenario: failed fetch_raw carries the failure explanation
 
 - **WHEN** `fetch_raw` completes with a failed fetch
-- **THEN** the wire payload contains `narrative` and `diagnostics_summary` describing the failure
+- **THEN** the wire payload contains `narrative` describing the failure
 
-### Requirement: timing, cache, diagnostics, and tokens are debug-only on FetchResponse
+### Requirement: timing, cache, diagnostics, tokens, and diagnostics_summary are debug-only on FetchResponse
 
-`FetchResponse` SHALL expose all debug-tier observability through a single `debug` sub-object, not as scattered top-level keys. The `debug` object SHALL carry `started_at`, `total_ms`, `cache`, `diagnostics`, `tokens`, and `content_candidates`. The `content_candidates` entry SHALL be the list of extraction-input candidates the page produced — each rendered as `{source, content_md}` — exposing exactly the menu the server-side extractor was fed. The `debug` key SHALL appear on the wire only when `fetch_raw` (or `ask`) is called with `debug=True`; with `debug=False` it SHALL be absent. No `started_at`, `total_ms`, `cache`, `diagnostics`, `tokens`, or `content_candidates` key SHALL appear at the top level of the envelope. `content_candidates` SHALL remain a flat attribute on the model for internal callers; only the wire serializer regroups it under `debug`.
+`FetchResponse` SHALL expose all debug-tier observability through a single `debug` sub-object, not as scattered top-level keys. The `debug` object SHALL carry `started_at`, `total_ms`, `cache`, `diagnostics`, `tokens`, `content_candidates`, and — only on a failed fetch — `diagnostics_summary`. The `content_candidates` entry SHALL be the list of extraction-input candidates the page produced — each rendered as `{source, content_md}` — exposing exactly the menu the server-side extractor was fed. The `debug` key SHALL appear on the wire only when `fetch_raw` (or `ask`) is called with `debug=True`; with `debug=False` it SHALL be absent. No `started_at`, `total_ms`, `cache`, `diagnostics`, `tokens`, `content_candidates`, or `diagnostics_summary` key SHALL appear at the top level of the envelope. `content_candidates` SHALL remain a flat attribute on the model for internal callers; only the wire serializer regroups it under `debug`.
+
+`diagnostics_summary` is stricter than its debug-only siblings: it SHALL be present in the `debug` object only when the fetch ALSO failed (`status != ok`) — never on a successful fetch, regardless of `debug`. It is a redundant key=value re-serialization of `narrative`'s exact same inputs (tier, verdict, gate subsystem, total_ms), built for log/grep tooling rather than an agent-facing channel; joining the debug group removes it from the default (non-debug) wire entirely (a2web-7bj.12, ADR-0019). The model attribute (`FetchResponse.diagnostics_summary`) SHALL remain always-populated for internal callers regardless of `debug` or `status` — only the wire serializer applies this gate.
+
+#### Scenario: a failed fetch without debug omits diagnostics_summary
+
+- **WHEN** `fetch_raw` completes with a failed fetch and `debug=False`
+- **THEN** the wire payload contains no `diagnostics_summary` key, at the top level or under `debug`
+
+#### Scenario: a failed fetch with debug carries diagnostics_summary under debug
+
+- **WHEN** `fetch_raw` completes with a failed fetch and `debug=True`
+- **THEN** the `debug` object contains `diagnostics_summary` describing the failure
+
+#### Scenario: a successful fetch with debug still omits diagnostics_summary
+
+- **WHEN** `fetch_raw` completes successfully and `debug=True`
+- **THEN** the `debug` object contains no `diagnostics_summary` key
 
 #### Scenario: default fetch_raw omits the debug sub-object
 

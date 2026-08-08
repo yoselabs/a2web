@@ -1,9 +1,16 @@
-"""All five ADR-0009 signals reach the wire on a walled fetch — plus severity.
+"""The ADR-0009 loud-floor signals reach the wire on a walled fetch — plus severity.
 
 The invariant: *a walled/failed fetch MUST carry `status: failed` +
 `retrieval_incomplete: true` + populated `diagnostics` + `narrative` + a
-critical `try_user_browser` operator hint.* Five signals, and the caller must
-never be able to mistake a miss for a complete answer.
+critical `try_user_browser` operator hint.* The caller must never be able to
+mistake a miss for a complete answer.
+
+`diagnostics_summary` is deliberately NOT part of this default-wire floor
+(a2web-7bj.12, ADR-0019): it is a redundant key=value re-serialization of
+`narrative`'s exact same inputs, built for log/grep tooling — demoted to
+failure-AND-debug-only. Removing it from the default wire does not weaken
+ADR-0009's loudness guarantee, since `narrative` + the critical hint + `status`
++ `retrieval_incomplete` all stay unconditionally present.
 
 Until 2026-08-01 that invariant was checked by three `assert`s sitting inline in
 `test_wire_query_failure`, a GOLDEN test. Two problems with that:
@@ -41,15 +48,11 @@ async def test_all_five_adr0009_signals_are_present(monkeypatch: pytest.MonkeyPa
     assert payload["is_error"] is False, "a wall is data, not a transport error"
     assert sc["status"] == "failed"
     assert sc["retrieval_incomplete"] is True
-    # `diagnostics_summary`, not `diagnostics`. The invariant is usually written
-    # as "populated `diagnostics`", but the full list is DEBUG-GATED — the
-    # serializer regroups it under `debug` and it is absent from a default
-    # response. What a normal caller actually receives on a wall is the
-    # failure-only summary; asserting the debug field here would have been
-    # asserting something the default wire never carries.
-    assert sc.get("diagnostics_summary"), "the failure-only diagnostics summary must be populated"
-    assert "verdict=" in sc["diagnostics_summary"], "the summary must name what actually happened"
     assert sc.get("narrative"), "the caller needs the prose story of what was tried"
+    # a2web-7bj.12 (ADR-0019): diagnostics_summary is failure-AND-debug-only —
+    # a default (non-debug) caller must NOT see it, even on a wall. Its
+    # debug=True counterpart is `test_the_full_diagnostics_list_arrives_under_debug`.
+    assert "diagnostics_summary" not in sc, "diagnostics_summary must not leak onto a default (non-debug) wire"
 
     hints = sc.get("operator_hints") or []
     wall = next((h for h in hints if h.get("code") == "try_user_browser"), None)
@@ -74,6 +77,10 @@ async def test_the_full_diagnostics_list_arrives_under_debug(monkeypatch: pytest
     sc = payload["structured_content"]
     debug = sc.get("debug") or {}
     assert debug.get("diagnostics"), f"debug=True must carry the full diagnostics list (keys: {sorted(debug)})"
+    # a2web-7bj.12 (ADR-0019): diagnostics_summary regroups into the SAME
+    # nested `debug` object, on a wall, once debug=True is requested.
+    assert debug.get("diagnostics_summary"), f"debug=True + a wall must carry diagnostics_summary (keys: {sorted(debug)})"
+    assert "verdict=" in debug["diagnostics_summary"], "the summary must name what actually happened"
 
 
 @pytest.mark.asyncio

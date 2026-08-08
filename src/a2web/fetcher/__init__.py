@@ -294,7 +294,10 @@ async def fetch(
         await _record_uptake(fc, state)
 
     # v0.3 envelope diet: apply opt-in gates AT THE WIRE BOUNDARY.
-    # `diagnostics_summary` is always populated and carries verdict + timing.
+    # `diagnostics_summary` stays always populated HERE (on `response` itself)
+    # so internal callers — the eval harness — keep reading it unconditionally;
+    # its own debug+failure wire gate lives in `FetchResponse._omit_empty` /
+    # `AskResponse._envelope_discipline` (a2web-7bj.12, ADR-0019), not here.
     # v0.6 link-role filter: even when links are included, default to
     # role=primary only — kills nav/footer/aside payload bloat.
     if not fc.inputs.include_links:
