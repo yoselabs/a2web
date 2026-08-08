@@ -84,6 +84,7 @@ HINT_CODES: frozenset[str] = frozenset(
         "llm_error",
         "llm_unavailable",
         "paid_auth_error",
+        "query_title_mismatch",
         "reddit_deleted_try_archive",
         "reddit_forbidden_try_archive",
         "retrieval_incomplete",
@@ -679,6 +680,37 @@ def served_url_differs_hint(*, requested_url: str, served_url: str) -> OperatorH
             "swap or content mixup rather than the requested page."
         ),
         fix="Verify the served content is actually about the requested subject before answering from it.",
+        severity="warning",
+    )
+
+
+def query_title_mismatch_hint(*, query: str, sample_titles: list[str]) -> OperatorHint:
+    """A same-domain listing's served items share no term with the query.
+
+    Source: `docs/findings/2026-08-07-a2web-call-trace-audit.md` §4a2 — a
+    hepsiburada `"pindstrup"` search returned shade cloth; a kaspi
+    `"AMT M-1"` search returned unrelated computer/auto parts. Unlike
+    `served_url_differs`, there is no URL-level signal: the fetch landed on
+    the right site, but the site's own search (or a2web's DOM record miner)
+    returned a different product family than the query names. `warning`, not
+    `critical` — for the same reason as `served_url_differs`: a genuine
+    paraphrase or a locale-spelling difference can legitimately produce zero
+    token overlap on an otherwise-correct result, and a2web cannot tell that
+    apart from a mixup. The confidence cap this hint travels with
+    (`build_response`) does the enforcement; this hint carries the evidence.
+    """
+    shown = ", ".join(repr(t) for t in sample_titles)
+    return OperatorHint(
+        code="query_title_mismatch",
+        message=(
+            f"Query {query!r} shares no term with any of the served listing's item titles "
+            f"(e.g. {shown}). Confidence was capped because the results may be a different "
+            "product/category than what was asked for."
+        ),
+        fix=(
+            "Verify the listing is actually relevant to the query before trusting a ranked pick from "
+            "it — a re-worded search or a different page may be needed."
+        ),
         severity="warning",
     )
 

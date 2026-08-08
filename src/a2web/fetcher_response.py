@@ -11,7 +11,9 @@ full payload so the log writer sees the complete diagnostics + links.
 
 from __future__ import annotations
 
+import re
 import time
+import unicodedata
 from datetime import datetime
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
@@ -32,6 +34,7 @@ from .hints import (
     listing_more_hint,
     listing_partial_hint,
     llm_error_hint,
+    query_title_mismatch_hint,
     retrieval_incomplete_hint,
     served_url_differs_hint,
 )
@@ -697,6 +700,106 @@ def _index_loss_hint(
     return [index_lost_hint()]
 
 
+#: A small, fixed, ENGLISH-only operator-word set stripped from the QUERY
+#: side of the query-title-mismatch check (`flag-query-title-mismatch`,
+#: a2web-byy). Not a locale-maintenance list: `query`'s tool description
+#: (`routers.py`) shows the caller-facing convention is English regardless of
+#: the fetched page's own language ("battery vs mains life", "RTX 4090
+#: price, stock") — the SERVED side needs no stopword list at all, only this
+#: constant, on the query, for the "operator, not identity" words. Drafted
+#: against the audit's own quoted queries and the tool description's
+#: examples, not a general English vocabulary — extend only against an
+#: observed false positive/negative, not preemptively.
+_QUERY_OPERATOR_WORDS = frozenset(
+    {
+        "price",
+        "prices",
+        "stock",
+        "instock",
+        "availability",
+        "available",
+        "review",
+        "reviews",
+        "rating",
+        "ratings",
+        "vs",
+        "versus",
+        "compare",
+        "comparison",
+        "best",
+        "top",
+        "cheapest",
+        "cheap",
+        "list",
+        "spec",
+        "specs",
+        "specification",
+        "specifications",
+        "delivery",
+        "warranty",
+        "color",
+        "colour",
+        "colors",
+        "colours",
+        "size",
+        "sizes",
+        "alternatives",
+        "alternative",
+    }
+)
+
+#: Below this, a token is a function word / noise in most scripts, not a
+#: product-identity signal — dropped on both the query and served sides
+#: without needing a per-locale stopword list for the SERVED side.
+_MISMATCH_TOKEN_FLOOR = 3
+
+
+def _normalize_tokens(text: str) -> set[str]:
+    """Casefold + Unicode NFKD + strip combining marks, split on
+    non-alphanumeric, drop tokens under `_MISMATCH_TOKEN_FLOOR` chars.
+
+    Locale-agnostic on purpose (`flag-query-title-mismatch` D4): NFKD
+    decomposes Turkish/Cyrillic diacritics generically, so a brand/model
+    token (`"RTX"`, `"pindstrup"`) that appears verbatim in a served item
+    title normalizes the same way on both sides without a stemming
+    dependency (none exists in this repo today).
+    """
+    decomposed = unicodedata.normalize("NFKD", text.casefold())
+    stripped = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return {tok for tok in re.split(r"[^a-z0-9]+", stripped) if len(tok) >= _MISMATCH_TOKEN_FLOOR}
+
+
+def _query_shares_no_term_with(query: str, served_titles: list[str]) -> bool:
+    """True iff `query` (after stripping operator words) has substantive
+    terms AND none of them appear in ANY of `served_titles`.
+
+    All-or-nothing across the served set (`flag-query-title-mismatch` D2): a
+    marketplace legitimately returns some off-target results alongside
+    relevant ones, so this only fires when EVERY served title misses —
+    the audit's actual failure cases (a search returning a wholly different
+    category) are total misses, not partial ones.
+
+    A query with nothing left after stripping operator words returns False
+    (no signal, never a mismatch) — `flag-query-title-mismatch` D3: a bare
+    `"price, stock"` query has no product-identity term to compare at all,
+    and treating an empty remainder as "shares nothing" would flag every
+    such query regardless of whether the page is correct. Likewise, an EMPTY
+    `served_titles` returns False — no titles to compare against is absence
+    of data, not evidence of a mismatch (the call site in `build_response`
+    also guards on this, but the function is correct standalone rather than
+    relying on the caller's guard).
+    """
+    if not served_titles:
+        return False
+    query_terms = _normalize_tokens(query) - _QUERY_OPERATOR_WORDS
+    if not query_terms:
+        return False
+    for title in served_titles:
+        if query_terms & _normalize_tokens(title):
+            return False
+    return True
+
+
 # --------------------------------------------------------------------- #
 # Top-level builder
 # --------------------------------------------------------------------- #
@@ -941,6 +1044,26 @@ def build_response(fc: ResponseContext) -> FetchResponse:
         if confidence == Confidence.high:
             confidence = Confidence.medium
         op_hints.append(served_url_differs_hint(requested_url=fc.inputs.requested_url, served_url=fc.final_url))
+
+    # query-title-mismatch (a2web-byy, audit §4a2): same-domain but wrong
+    # product/entity — the site's OWN search returned a different category
+    # than what was asked (hepsiburada "pindstrup" -> shade cloth; kaspi
+    # "AMT M-1" -> unrelated computer/auto parts). No URL-level signal exists
+    # for this (unlike `served_url_differs` above); it needs the caller's
+    # query compared against what the listing actually served. Compared
+    # against served ITEM titles, not `fc.title` — a search-results page's
+    # own `<title>` conventionally echoes the query term regardless of
+    # result relevance, which would show zero mismatch in exactly the cases
+    # this exists to catch. Scoped to listings only: a single-entity page has
+    # no item titles to compare against (see `_query_shares_no_term_with`'s
+    # docstring for the full design rationale, `flag-query-title-mismatch`).
+    is_listing_page = fc.routing is not None and fc.routing.structural_form == "listing"
+    if is_listing_page and fc.record_set is not None and fc.inputs.ask:
+        item_titles = [r.heading_text for r in fc.record_set.records if r.heading_text]
+        if item_titles and _query_shares_no_term_with(fc.inputs.ask, item_titles):
+            if confidence == Confidence.high:
+                confidence = Confidence.medium
+            op_hints.append(query_title_mismatch_hint(query=fc.inputs.ask, sample_titles=item_titles[:5]))
 
     # a2web-7bj.7: a browser rung DID run on this fetch and failed
     # (browser_internal_error / browser_unavailable) — evidence that a render
