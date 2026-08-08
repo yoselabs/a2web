@@ -155,6 +155,9 @@ _SURVIVES_RECOMPREHENSION = {
     # the handler knows the site, the miner is guessing from shape.
     "next_links_handler": "intended — producer-claim precedence, CLAUDE.md `Never`",
     "record_set": "intended — same rule; the JSON fallback fills only when the structural path found nothing",
+    "record_commerce_rows": "intended — written in the same conditional as `record_set` "
+    "(type-listing-commerce-fields), same precedence rule: stays empty/stale unless the JSON "
+    "fallback branch actually fires",
     # NOT intended, both filed in bd issue a2web-s9d rather than fixed here (a clearing
     # branch is a behaviour change, and this change ships one).
     "record_count": "OPEN — a re-comprehension that finds no records leaves the old count, which "

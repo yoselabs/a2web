@@ -13,7 +13,7 @@ import re
 
 from json_in_html import JsonPayload
 
-from a2web.packages.structured_render import json_to_markdown_rows
+from a2web.packages.structured_render import json_to_markdown_rows, listing_rows
 from tests.fixtures import FIXTURES_DIR
 
 
@@ -129,6 +129,73 @@ def test_link_text_sanitized() -> None:
     # the url survives intact and the link parses (closing ) of the link is the url's)
     assert "https://x.test/z-pm-CCC" in md
     assert re.search(r"\[[^\]\n]+\]\(https://x\.test/z-pm-CCC\)", md)
+
+
+def test_normalized_rows_carry_price_and_currency_as_separate_fields() -> None:
+    """`type-listing-commerce-fields`: the wire's `ListingOption` wants price
+    and currency apart, even though the synthetic markdown still joins them
+    (the combined-token behavior is covered by `test_product_itemlist_lifts_price_and_url`)."""
+    rows = listing_rows(_ld_payload(_hepsiburada_itemlist()))
+    assert rows, "fixture must yield rows"
+    lifted = [r for r in rows if r.get("price") is not None]
+    assert lifted
+    for row in lifted:
+        assert row["price"] == "3690" or row["price"].isdigit() or row["price"].replace(".", "", 1).isdigit()
+        assert " " not in row["price"], "price must not carry the currency inline"
+    assert any(row.get("currency") == "TRY" for row in lifted)
+
+
+def test_availability_and_seller_lifted_when_present() -> None:
+    data = {
+        "@type": "ItemList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "item": {
+                    "name": "In-stock item",
+                    "offers": {
+                        "price": 100,
+                        "priceCurrency": "TRY",
+                        "url": "https://x.test/p-pm-AAA",
+                        "availability": "https://schema.org/InStock",
+                        "seller": {"@type": "Organization", "name": "Acme Store"},
+                    },
+                },
+            },
+            {
+                "@type": "ListItem",
+                "item": {
+                    "name": "No stock info",
+                    "offers": {"price": 50, "priceCurrency": "TRY", "url": "https://x.test/q-pm-BBB"},
+                },
+            },
+        ],
+    }
+    rows = listing_rows(_ld_payload(data))
+    assert len(rows) == 2
+    stocked, bare = rows
+    assert stocked["stock"] == "InStock"
+    assert stocked["seller"] == "Acme Store"
+    # honest gap: no availability/seller declared at this level -> absent, not fabricated
+    assert "stock" not in bare
+    assert "seller" not in bare
+
+
+def test_bare_string_seller_lifted() -> None:
+    data = {
+        "@type": "ItemList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "item": {
+                    "name": "Plain seller item",
+                    "offers": {"price": 20, "priceCurrency": "TRY", "url": "https://x.test/r-pm-CCC", "seller": "Some Seller"},
+                },
+            },
+        ],
+    }
+    rows = listing_rows(_ld_payload(data))
+    assert rows[0]["seller"] == "Some Seller"
 
 
 def test_empty_itemlist_yields_no_rows() -> None:

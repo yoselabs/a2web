@@ -98,3 +98,21 @@ def test_short_details_are_not_padded_or_altered() -> None:
     options = _records_to_options(_record_set(count=_OPTIONS_CAP, text="cheap"))
     assert all("…" not in (o.detail or "") for o in options), "a short detail was truncated"
     assert sum(len(o.detail or "") for o in options) < _OPTIONS_DETAIL_BUDGET
+
+
+def test_typed_commerce_fields_stay_small_against_a_full_shelf() -> None:
+    """type-listing-commerce-fields: a full 50-entry shelf where every option
+    also carries all five typed fields must not meaningfully add to the
+    existing `detail` budget — they're short scalars (a price, a 3-letter
+    currency, a rating), not a second free-text payload."""
+    row = {"price": "1999", "currency": "TRY", "rating": "4.5", "stock": "InStock", "seller": "Acme Store"}
+    rows = tuple(row for _ in range(_OPTIONS_CAP))
+    options = _records_to_options(_record_set(count=_OPTIONS_CAP), rows)
+
+    def _typed_len(o: object) -> int:
+        return len(o.price or "") + len(o.currency or "") + len(o.rating or "") + len(o.stock or "") + len(o.seller or "")  # type: ignore[attr-defined]
+
+    typed_total = sum(_typed_len(o) for o in options)
+    # Generous ceiling: ~40 bytes/option x 50 options — the point is this stays
+    # a small fraction of `_OPTIONS_DETAIL_BUDGET` (4000), not an exact figure.
+    assert typed_total < _OPTIONS_DETAIL_BUDGET // 2, f"typed fields alone cost {typed_total} chars — no longer a small scalar addition"

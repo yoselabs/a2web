@@ -40,7 +40,7 @@ async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None
     candidates: list[ContentCandidate] = []
     if fc.content_md:
         candidates.append(ContentCandidate(source="trafilatura", content_md=fc.content_md))
-    json_candidates, json_record_set, declared_entity = await _escalate_via_json(fc, raw_html=raw_html)
+    json_candidates, json_record_set, json_commerce_rows, declared_entity = await _escalate_via_json(fc, raw_html=raw_html)
     candidates.extend(json_candidates)
     # UNCONDITIONAL, including back to None — deliberately NOT the keep-first
     # rule used for `next_links_handler` below, and the difference matters.
@@ -89,6 +89,7 @@ async def _run_extraction_escalation(fc: FetchContext, *, raw_html: str) -> None
         if fc.record_set is None:
             fc.record_set = json_record_set
             fc.record_count = len(json_record_set.records)
+            fc.record_commerce_rows = json_commerce_rows
         if not fc.next_links_handler:
             fc.next_links_handler = _records_to_next_links(json_record_set, page_url=fc.final_url or "")
 
@@ -120,7 +121,9 @@ def _is_prose_metadata_ld(payload: JsonPayload) -> bool:
     return False
 
 
-async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[ContentCandidate], RecordSet | None, DeclaredEntity | None]:
+async def _escalate_via_json(
+    fc: FetchContext, *, raw_html: str
+) -> tuple[list[ContentCandidate], RecordSet | None, tuple[dict, ...], DeclaredEntity | None]:
     """Menu source — embedded JSON (incl. JSON-LD).
 
     Returns one `ContentCandidate` per *renderable* payload, in rank order —
@@ -131,12 +134,17 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[C
     first (top-ranked) candidate, so the wire `content_md` stays legacy-stable;
     the full set reaches the extractor via the menu. Pure function — emits log
     telemetry, does NOT mutate `fc.content_md`.
+
+    The third element (`type-listing-commerce-fields`) is the normalized row
+    dicts behind `json_record_set.records`, position-aligned, empty when
+    `json_record_set` is `None`.
     """
     t_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000)
     await a2web_log.info(StageStarted(t_ms=t_ms, step="json_synth"))
     payloads = extract_json_payloads(raw_html)
     candidates: list[ContentCandidate] = []
     json_record_set: RecordSet | None = None
+    json_commerce_rows: tuple[dict, ...] = ()
     seen: set[str] = set()
     # The page's own declaration about its subject. Captured HERE, on the raw
     # HTML, because this is the only place in the pipeline that holds it —
@@ -167,7 +175,9 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[C
             # contract (`test_menu_assembly_is_pure`), and the caller is what
             # decides precedence.
             if json_record_set is None:
-                json_record_set = _rows_to_record_set(listing_rows(payload), base_url=fc.final_url or "")
+                built = _rows_to_record_set(listing_rows(payload), base_url=fc.final_url or "")
+                if built is not None:
+                    json_record_set, json_commerce_rows = built
     dur_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000) - t_ms
     outcome = "no_payloads" if not payloads else ("no_synth" if not candidates else "collected")
     await a2web_log.info(
@@ -192,10 +202,26 @@ async def _escalate_via_json(fc: FetchContext, *, raw_html: str) -> tuple[list[C
             fields=kept,
             omitted=len(all_fields) - len(kept),
         )
-    return candidates, json_record_set, declared_entity
+    return candidates, json_record_set, json_commerce_rows, declared_entity
 
 
-def _rows_to_record_set(rows: list[dict], *, base_url: str) -> RecordSet | None:
+def _record_detail_text(row: dict, *, title: str) -> str:
+    """The free-text `extras` tail for a record's `text`/`detail` — price and
+    currency rejoined (D3, `type-listing-commerce-fields`: the JSON-LD source
+    dict now carries them as separate scalars, but this free-text rendering
+    is a fallback surface, not the typed one, so it stays human-joined)."""
+    price = row.get("price")
+    extras: list[str] = []
+    if price not in (None, ""):
+        currency = row.get("currency")
+        extras.append(f"{price} {currency}" if currency else str(price))
+    rating = row.get("rating")
+    if rating not in (None, ""):
+        extras.append(str(rating))
+    return title if not extras else f"{title} — {' '.join(extras)}"
+
+
+def _rows_to_record_set(rows: list[dict], *, base_url: str) -> tuple[RecordSet, tuple[dict, ...]] | None:
     """Build a flat `RecordSet` from JSON-LD / framework-state listing rows.
 
     Converging on `RecordSet` rather than deriving `other_pages` and `options`
@@ -211,8 +237,18 @@ def _rows_to_record_set(rows: list[dict], *, base_url: str) -> RecordSet | None:
     `max_depth=0` — a JSON-LD `ItemList` is flat by construction, never a
     threaded discussion, so `is_threaded` is False and the catalog-only
     `_records_to_next_links` path applies.
+
+    Returns the `RecordSet` alongside the surviving rows' own normalized dicts,
+    position-aligned 1:1 with `RecordSet.records` (`type-listing-commerce-fields`
+    D2) — `record_mine.Record` is shelf-owned and frozen, so typed commerce
+    fields (price/currency/rating/stock/seller) can't live on the record
+    itself; the caller threads this parallel tuple onto `FetchContext` so
+    `_records_to_options` can populate `ListingOption`'s typed fields without
+    re-parsing `Record.text`. Built in the same loop as `records` specifically
+    so the two can never drift out of alignment.
     """
     records: list[Record] = []
+    kept_rows: list[dict] = []
     for row in rows:
         name = row.get("name") or row.get("headline") or row.get("title")
         url = row.get("url")
@@ -222,8 +258,7 @@ def _rows_to_record_set(rows: list[dict], *, base_url: str) -> RecordSet | None:
         link = (title, urljoin(base_url, str(url))) if url else None
         # `detail` mirrors what `_rows_to_md_records` renders, so the option
         # shelf carries the same price/rating signal the markdown shows.
-        extras = [str(row[k]) for k in ("price", "rating") if row.get(k) not in (None, "")]
-        text = title if not extras else f"{title} — {' '.join(extras)}"
+        text = _record_detail_text(row, title=title)
         records.append(
             Record(
                 text=text,
@@ -234,9 +269,11 @@ def _rows_to_record_set(rows: list[dict], *, base_url: str) -> RecordSet | None:
                 markdown=f"- {text}",
             )
         )
+        kept_rows.append(row)
     if not records:
         return None
-    return RecordSet(records=tuple(records), container="json-ld", child_signature="itemListElement", max_depth=0)
+    record_set = RecordSet(records=tuple(records), container="json-ld", child_signature="itemListElement", max_depth=0)
+    return record_set, tuple(kept_rows)
 
 
 async def _escalate_via_records(fc: FetchContext, *, raw_html: str) -> ContentCandidate | None:

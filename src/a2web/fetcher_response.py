@@ -141,6 +141,7 @@ class ResponseContext(Protocol):
     links: list[Link]
     meta_dict: dict[str, str]
     record_set: RecordSet | None
+    record_commerce_rows: tuple[dict, ...]
     declared_entity: DeclaredEntity | None
     structured_grounded: bool
 
@@ -432,7 +433,18 @@ def _normalize_detail(text: str, *, cap: int = _OPTION_DETAIL_CAP) -> str:
     return collapsed
 
 
-def _records_to_options(record_set: RecordSet | None) -> list[ListingOption]:
+def _option_field(row: dict, key: str) -> str | None:
+    """A `ListingOption` typed field from a normalized commerce row —
+    `str(value)` when present and non-empty, else `None` (never `""`, so
+    `ListingOption`'s own omit-on-`None` serializer is the single place that
+    decides presence)."""
+    value = row.get(key)
+    if value is None or value == "":
+        return None
+    return str(value)
+
+
+def _records_to_options(record_set: RecordSet | None, commerce_rows: tuple[dict, ...] = ()) -> list[ListingOption]:
     """Project the parsed record set into the neutral, page-order option shelf.
 
     Title from the record heading (text-lead fallback), url from the heading
@@ -442,13 +454,23 @@ def _records_to_options(record_set: RecordSet | None) -> list[ListingOption]:
     `_OPTIONS_DETAIL_BUDGET` characters of `detail` across all of them — a count
     cap alone let 50 entries carry 12K of text into an envelope whose whole
     purpose is to be cheaper than the body it stands in for.
+
+    `commerce_rows` (`type-listing-commerce-fields`) is `fc.record_commerce_rows`
+    — the normalized JSON-LD row behind each record, position-aligned with
+    `record_set.records`, empty whenever `record_set` came from the DOM path
+    (that path has no commerce concept; see `ListingOption`'s docstring). Only
+    consulted when its length matches `record_set.records` — the two are
+    always written together by the same producer, so a mismatch means this is
+    stale relative to `record_set` (e.g. from a different fc) and is treated
+    as absent rather than risking a misaligned pairing.
     """
     if record_set is None:
         return []
     options: list[ListingOption] = []
     shown = record_set.records[:_OPTIONS_CAP]
+    rows = commerce_rows[:_OPTIONS_CAP] if len(commerce_rows) == len(record_set.records) else ()
     detail_cap = _detail_cap_for(len(shown))
-    for record in shown:
+    for i, record in enumerate(shown):
         detail = _normalize_detail(record.text, cap=detail_cap)
         # The record text usually leads with the title; strip that duplicated
         # prefix so `detail` carries the distinguishing signal (price / rating)
@@ -461,7 +483,19 @@ def _records_to_options(record_set: RecordSet | None) -> list[ListingOption]:
         if not title and not detail:
             continue
         url = record.heading_link[1] if record.heading_link else None
-        options.append(ListingOption(title=title, url=url, detail=detail))
+        row = rows[i] if i < len(rows) else {}
+        options.append(
+            ListingOption(
+                title=title,
+                url=url,
+                detail=detail,
+                price=_option_field(row, "price"),
+                currency=_option_field(row, "currency"),
+                rating=_option_field(row, "rating"),
+                stock=_option_field(row, "stock"),
+                seller=_option_field(row, "seller"),
+            )
+        )
     return options
 
 
@@ -968,7 +1002,7 @@ def build_response(fc: ResponseContext) -> FetchResponse:
     )
     # rank-don't-skip carrier — a PrivateAttr, set after construction (off the
     # fetch_raw wire + schema; lifted onto AskResponse by build_ask_response).
-    response._options = _records_to_options(fc.record_set)
+    response._options = _records_to_options(fc.record_set, fc.record_commerce_rows)
     response._routing_outcome = fc.routing_outcome
     # CARRIED from the ladder, never re-derived here — `fetcher_response` must
     # not reconstruct a fact from the artifact that produced it, and this module

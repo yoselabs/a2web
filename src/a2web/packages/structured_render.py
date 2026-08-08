@@ -480,12 +480,29 @@ def _capped(text: str) -> str:
     return text[: _ENTITY_VALUE_CAP - 1].rstrip() + "…"
 
 
+def _availability_tail(value: object) -> str | None:
+    """The trailing token of a schema.org `ItemAvailability` value.
+
+    `offers.availability` is conventionally a URL (`https://schema.org/InStock`)
+    but some emitters give the bare token (`InStock`) — both read the same
+    tail. Not a value a2web ever assigns a meaning to beyond passthrough (D3
+    of `type-listing-commerce-fields`: report what the page said, verbatim)."""
+    if not isinstance(value, str) or not value:
+        return None
+    return value.rsplit("/", 1)[-1]
+
+
 def _normalize_commerce_row(row: dict) -> dict:
     """Promote nested schema.org commerce fields to top-level scalars so the
-    synth renderer can surface them: `offers.price` + `offers.priceCurrency`
-    → a combined `price` token (e.g. `3690 TRY`), `offers.url` → `url`, and
-    `aggregateRating.ratingValue` → `rating`. Flat-shaped rows (top-level
-    scalar `price`/`url`) and non-commerce rows pass through unchanged."""
+    synth renderer can surface them: `offers.price` and `offers.priceCurrency`
+    → separate `price` / `currency` scalars (joined back into one display
+    token only at markdown-render time, per `type-listing-commerce-fields`
+    D3 — the wire's `ListingOption` wants them apart, the synthetic markdown
+    still wants them together), `offers.url` → `url`,
+    `aggregateRating.ratingValue` → `rating`, `offers.availability` → `stock`,
+    and `offers.seller.name` (or a bare-string `offers.seller`) → `seller`.
+    Flat-shaped rows (top-level scalar `price`/`url`/etc.) and non-commerce
+    rows pass through unchanged."""
     if not isinstance(row, dict):
         return row
     out = dict(row)
@@ -493,11 +510,25 @@ def _normalize_commerce_row(row: dict) -> dict:
     if isinstance(offers, dict):
         price = offers.get("price")
         if price is not None and out.get("price") is None:
+            out["price"] = str(price)
             currency = offers.get("priceCurrency")
-            out["price"] = f"{price} {currency}" if currency else str(price)
+            if currency and out.get("currency") is None:
+                out["currency"] = str(currency)
         url = offers.get("url")
         if url and not out.get("url"):
             out["url"] = url
+        if out.get("stock") is None:
+            stock = _availability_tail(offers.get("availability"))
+            if stock:
+                out["stock"] = stock
+        if out.get("seller") is None:
+            seller = offers.get("seller")
+            if isinstance(seller, dict):
+                name = seller.get("name")
+                if name:
+                    out["seller"] = str(name)
+            elif isinstance(seller, str) and seller:
+                out["seller"] = seller
     rating = row.get("aggregateRating")
     if isinstance(rating, dict):
         rv = rating.get("ratingValue")
@@ -552,7 +583,8 @@ def _rows_to_md_records(rows: list[dict], *, title: str) -> str:
         extras: list[str] = []
         price = row.get("price")
         if price is not None and str(price) != "":
-            extras.append(str(price))
+            currency = row.get("currency")
+            extras.append(f"{price} {currency}" if currency else str(price))
         rating = row.get("rating")
         if rating is not None and str(rating) != "":
             extras.append(f"⭐ {rating}")

@@ -335,13 +335,42 @@ class ListingOption(BaseModel):
     ranked `answer` was drawn from, kept so a lower-ranked or unrated item (a
     premium/niche option) stays visible rather than deleted. `title` is the
     record's heading (or a text lead); `url` its identifying link (absent on a
-    text-led row); `detail` its own text carrying price / rating as extracted.
-    a2web does NOT reorder these — any ranking lives only in `answer`.
+    text-led row); `detail` its own free text carrying whatever didn't fit a
+    typed field below, as extracted. a2web does NOT reorder these — any
+    ranking lives only in `answer`.
+
+    `price` / `currency` / `rating` / `stock` / `seller`
+    (`type-listing-commerce-fields`) are independently optional and
+    **JSON-LD-sourced only** — read verbatim from the page's own
+    `offers`/`aggregateRating` declaration when the option's record came from
+    the JSON-LD/framework-state listing path. A `None` field here means one
+    of two things a caller cannot distinguish from this field alone: the
+    source declaration didn't carry it at the listing level, OR this
+    option's record came from the generic structural (DOM) record detector
+    instead, which carries no typed fields at all (it has no commerce
+    concept, and wins precedence over JSON-LD when both parse the same page —
+    see `test_dom_records_keep_precedence_when_both_exist`). Neither case is
+    a2web guessing or backfilling from another fetch; `detail` remains the
+    exhaustive fallback either way, so no information is lost, only some of
+    it stays untyped.
     """
 
     title: str
     url: str | None = None
     detail: str = ""
+    price: str | None = None
+    currency: str | None = None
+    rating: str | None = None
+    stock: str | None = None
+    seller: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_commerce_fields(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        data = dict(handler(self))
+        for key in ("price", "currency", "rating", "stock", "seller"):
+            if data.get(key) is None:
+                data.pop(key, None)
+        return data
 
 
 class RefinementAxis(BaseModel):

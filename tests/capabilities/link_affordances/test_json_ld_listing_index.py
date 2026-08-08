@@ -89,6 +89,7 @@ class _FakeFc:
     content_candidates: list[ContentCandidate] = field(default_factory=list)
     record_set: RecordSet | None = None
     record_count: int | None = None
+    record_commerce_rows: tuple[dict, ...] = ()
     # Mirrors `FetchContext`: the ladder installs the page's own declared
     # subject entity here (ADR-0018 / declared_entity_v4).
     declared_entity: object | None = None
@@ -145,7 +146,7 @@ async def test_dom_records_keep_precedence_when_both_exist() -> None:
     combined = ld_only + _dom_page().split("<h1>Catalog</h1>", 1)[1]
 
     probe = _FakeFc()
-    _, json_set, _declared = await _escalate_via_json(probe, raw_html=combined)  # type: ignore[arg-type]
+    _, json_set, _commerce_rows, _declared = await _escalate_via_json(probe, raw_html=combined)  # type: ignore[arg-type]
     assert json_set is not None, "non-vacuous: the JSON-LD half must have parsed"
 
     fc = _FakeFc()
@@ -153,6 +154,32 @@ async def test_dom_records_keep_precedence_when_both_exist() -> None:
 
     assert fc.record_set is not None
     assert fc.record_set.container != "json-ld", "the DOM record set must win"
+    # type-listing-commerce-fields: the DOM path has no commerce concept, and
+    # `record_commerce_rows` must not carry over stale JSON-LD data onto it.
+    assert fc.record_commerce_rows == ()
+    options = _records_to_options(fc.record_set, fc.record_commerce_rows)
+    assert options, "non-vacuous: options must still be populated (from the DOM set)"
+    assert all(o.price is None for o in options)
+
+
+async def test_json_ld_sourced_options_carry_typed_commerce_fields() -> None:
+    """type-listing-commerce-fields: JSON-LD-only page (no mineable DOM region,
+    same shape as `test_json_ld_listing_populates_the_option_shelf`) — options
+    carry typed `price`/`currency`/`rating` alongside the existing `detail`."""
+    fc = _FakeFc()
+    await _run_extraction_escalation(fc, raw_html=_ld_json_page())  # type: ignore[arg-type]
+
+    assert fc.record_set is not None
+    assert fc.record_set.container == "json-ld"
+    options = _records_to_options(fc.record_set, fc.record_commerce_rows)
+    assert [o.title for o in options] == [name for name, _, _, _ in _ITEMS]
+    for opt, (_, _, price, rating) in zip(options, _ITEMS, strict=True):
+        assert opt.price == price
+        assert opt.currency == "TRY"
+        if rating:
+            assert opt.rating == rating
+        else:
+            assert opt.rating is None
 
 
 def test_a_single_product_is_not_a_listing() -> None:

@@ -308,6 +308,18 @@ class FetchContext:
     # projection can surface the option shelf, instead of keeping only the count
     # and discarding the structured records. None on a non-listing page.
     record_set: RecordSet | None = None
+    # `type-listing-commerce-fields`: the normalized commerce dict behind each
+    # JSON-LD/framework-state `record_set.records[i]`, position-aligned — set
+    # ONLY by the JSON-LD path, alongside `record_set`, never by the DOM-region
+    # miner (which has no commerce concept). `record_mine.Record` is shelf-owned
+    # and frozen, so typed price/currency/rating/stock/seller can't live on the
+    # record itself; this carries them the rest of the way to `ListingOption`
+    # without a fragile re-parse of `Record.text`. Read only when
+    # `record_set.container == "json-ld"` — that guard is what tells
+    # `_records_to_options` this tuple actually corresponds to `record_set`,
+    # since the DOM miner can still win the precedence race and leave this
+    # tuple stale/empty relative to the record_set it's paired against.
+    record_commerce_rows: tuple[dict, ...] = ()
     # What the PAGE declared itself to be, parsed from its own JSON-LD during
     # the comprehension ladder. Carried rather than re-derived at projection
     # time: `fetcher_response` must never reconstruct a decision from the

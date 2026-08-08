@@ -88,6 +88,108 @@ def test_projection_normalizes_detail_whitespace() -> None:
 
 
 # --------------------------------------------------------------------- #
+# _records_to_options — typed commerce fields (type-listing-commerce-fields)
+# --------------------------------------------------------------------- #
+
+
+def test_typed_fields_populate_from_commerce_rows() -> None:
+    rs = _rs(
+        (
+            _record(text="Cortex RJ45 — 329 TRY", heading="Cortex RJ45", url="https://x/cortex"),
+            _record(text="Wozlo RJ45 — 428 TRY", heading="Wozlo RJ45", url="https://x/wozlo"),
+        )
+    )
+    rows = (
+        {"price": "329", "currency": "TRY", "rating": "4.6", "stock": "InStock", "seller": "Acme"},
+        {"price": "428", "currency": "TRY"},
+    )
+    opts = _records_to_options(rs, rows)
+    assert opts[0].price == "329"
+    assert opts[0].currency == "TRY"
+    assert opts[0].rating == "4.6"
+    assert opts[0].stock == "InStock"
+    assert opts[0].seller == "Acme"
+    # row 2 has no stock/seller in its source dict — absent, not fabricated
+    assert opts[1].price == "428"
+    assert opts[1].stock is None
+    assert opts[1].seller is None
+
+
+def test_typed_fields_pair_with_the_correct_row_not_just_present(  # row-identity guard, design.md Risks
+) -> None:
+    """A price must land on ITS OWN row, not merely on *some* row — guards the
+    position-keyed carry (`fc.record_commerce_rows`) against silently pairing
+    row N's price with row M's title if a future edit makes the two lists
+    diverge (e.g. one gets filtered and the other doesn't)."""
+    rs = _rs(
+        (
+            _record(text="Alpha", heading="Alpha Widget", url="https://x/alpha"),
+            _record(text="Beta", heading="Beta Widget", url="https://x/beta"),
+            _record(text="Gamma", heading="Gamma Widget", url="https://x/gamma"),
+        )
+    )
+    rows = (
+        {"price": "111"},
+        {"price": "222"},
+        {"price": "333"},
+    )
+    opts = _records_to_options(rs, rows)
+    by_title = {o.title: o.price for o in opts}
+    assert by_title == {"Alpha Widget": "111", "Beta Widget": "222", "Gamma Widget": "333"}
+
+
+def test_commerce_rows_absent_when_dom_sourced() -> None:
+    """No `commerce_rows` argument (the DOM-mined call shape) -> every typed
+    field stays None; `detail` is the only carrier, unchanged from prior
+    behavior."""
+    rs = _rs((_record(text="4.6 (77) 329 TL", heading="Cortex RJ45", url="https://x/cortex"),))
+    opts = _records_to_options(rs)
+    assert opts[0].price is None
+    assert opts[0].currency is None
+    assert opts[0].rating is None
+    assert opts[0].stock is None
+    assert opts[0].seller is None
+    assert opts[0].detail == "4.6 (77) 329 TL"
+
+
+def test_commerce_rows_length_mismatch_is_treated_as_absent() -> None:
+    """A `commerce_rows` tuple whose length doesn't match `record_set.records`
+    cannot be trusted to pair by position — treated as absent rather than
+    risking a misaligned field (design.md Risks)."""
+    rs = _rs(
+        (
+            _record(text="A", heading="A", url="https://x/a"),
+            _record(text="B", heading="B", url="https://x/b"),
+        )
+    )
+    opts = _records_to_options(rs, ({"price": "1"},))  # only one row for two records
+    assert opts[0].price is None
+    assert opts[1].price is None
+
+
+def test_typed_fields_omitted_from_the_wire_when_unset() -> None:
+    """`ListingOption`'s own serializer drops unset typed fields — the wire
+    entry for a DOM-sourced option carries no `price`/`currency`/etc. keys at
+    all, not `null` values."""
+    rs = _rs((_record(text="4.6 (77) 329 TL", heading="Cortex RJ45", url="https://x/cortex"),))
+    opts = _records_to_options(rs)
+    dumped = opts[0].model_dump(mode="json")
+    for key in ("price", "currency", "rating", "stock", "seller"):
+        assert key not in dumped
+
+
+def test_typed_fields_present_on_the_wire_when_set() -> None:
+    rs = _rs((_record(text="X", heading="X", url="https://x/1"),))
+    opts = _records_to_options(rs, ({"price": "50", "currency": "TRY"},))
+    dumped = opts[0].model_dump(mode="json")
+    assert dumped["price"] == "50"
+    assert dumped["currency"] == "TRY"
+    assert "rating" not in dumped
+    assert "stock" not in dumped
+    assert "seller" not in dumped
+
+
+# --------------------------------------------------------------------- #
 # Wire — through the MCP transport
 # --------------------------------------------------------------------- #
 

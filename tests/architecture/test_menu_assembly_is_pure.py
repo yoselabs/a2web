@@ -53,6 +53,7 @@ class _FakeFc:
     # set here when the DOM miner found none (ADR-0015 listing index).
     record_set: object | None = None
     record_count: int | None = None
+    record_commerce_rows: tuple = ()
     # Mirrors `FetchContext`: the ladder installs the page's own declared
     # subject entity here (ADR-0018 / declared_entity_v4).
     declared_entity: object | None = None

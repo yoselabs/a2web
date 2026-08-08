@@ -57,7 +57,16 @@ _CONTEXT = _ROOT / "src" / "a2web" / "fetcher" / "context.py"
 #: `decompose-fetcher-into-files` phase two has to keep together when it slices
 #: `context.py` per node. If you are raising this, check whether the new read
 #: could be a value passed in instead.
-_MEMBER_CEILING = 39
+#:
+#: Raised 39 -> 40 by `type-listing-commerce-fields`: `record_commerce_rows`
+#: carries the normalized commerce dict behind each JSON-LD `record_set`
+#: entry — there is no existing member to piggyback on (the data does not
+#: exist anywhere else in the slice; that absence is the reason this change
+#: exists). It is written alongside `record_set` by the same producer, under
+#: the same precedence rule, and consumed at the same `_records_to_options`
+#: call site, so it travels with `record_set` rather than growing the slice
+#: in an unrelated direction.
+_MEMBER_CEILING = 40
 
 #: Below this, the walk is broken rather than the code being wonderful.
 _MEMBER_FLOOR = 30
