@@ -31,6 +31,20 @@ The system SHALL provide `async find_published(html: str, url: str) -> date | No
 - **WHEN** `find_published` is awaited on a fixture with no date markers
 - **THEN** the returned value is `None`
 
+### Requirement: A bare Jan-1 published date is treated as no date
+
+`_phase_extract` SHALL discard a `published` date extracted via `content_extract`/trafilatura when it falls exactly on January 1st (month=1, day=1), reporting `None` instead. Trafilatura's date field carries no time component, so "Jan-1 with no time" collapses to this one testable fact — and it is the recurring shape of a copyright-footer or schema-boilerplate artifact (e.g. a `© 2000-2026` notice or a CMS default), not a genuine first-published date (a2web-7bj.9 — a live DHL tracking page shipped `published: "2018-01-01"`, a DHL TR customs page shipped `published: "2000-01-01"`, neither page plausibly first-published on that literal date). A confidently wrong `published` is worse than an absent one: an agent caller has no way to distinguish a real date from a footer artifact, and a sentinel year silently mis-sorts anything that ranks by recency. Any other date, including a non-January-1 date, SHALL pass through unmodified.
+
+#### Scenario: A Jan-1 extracted date is dropped
+
+- **WHEN** extraction yields `published` of `2000-01-01` (or any other year, month=1, day=1)
+- **THEN** the fetch context's `published` is `None`
+
+#### Scenario: A non-Jan-1 extracted date passes through
+
+- **WHEN** extraction yields `published` of `2026-03-15`
+- **THEN** the fetch context's `published` is `2026-03-15`, unmodified
+
 ### Requirement: OpenGraph + Twitter + JSON-LD metadata
 
 The system SHALL provide `parse_metadata(html: str) -> dict[str, str]`, consumed from the shelf `content_extract` package as a pure synchronous function. It SHALL extract `og:*`, `twitter:*` meta tags and the first JSON-LD block (`<script type="application/ld+json">`), flattened with dot-keys: `og.type`, `og.image`, `twitter.card`, `jsonld[0].author`, `jsonld[0].datePublished`, etc. Missing fields SHALL be omitted from the dict (no `None` values).

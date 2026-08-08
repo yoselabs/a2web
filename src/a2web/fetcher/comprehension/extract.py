@@ -28,6 +28,22 @@ from ..retrieval.install import _install_rendered_fields
 from ..sufficiency.completeness import _phase_listing_completeness
 
 
+def _is_sentinel_date(d: date) -> bool:
+    """True for a bare Jan-1 date (a2web-7bj.9).
+
+    `content_extract`/trafilatura's `published` never carries a time
+    component (`_parse_date` truncates to `YYYY-MM-DD`), so "Jan-1 with no
+    time" collapses to one testable fact: month/day == 1/1. Observed twice in
+    the same live session — 2018-01-01 on dhl.com, 2000-01-01 on
+    gumruk.dhl.com.tr — both copyright-footer/schema-boilerplate artifacts,
+    not genuine first-published dates. A page genuinely first published on
+    Jan 1 is rare enough that treating the ambiguous case as "no reliable
+    date" (never shipping it) is safer than shipping a sentinel that silently
+    mis-sorts anything ranking by recency.
+    """
+    return d.month == 1 and d.day == 1
+
+
 @_dc(slots=True)
 class _ExtractResult:
     """Domain-typed wrapper over `content_extract.ExtractedContent` (shelf)."""
@@ -138,7 +154,7 @@ async def _phase_extract(fc: FetchContext) -> None:
     fc.content_md = extract_result.content_md
     fc.title = extract_result.title
     fc.byline = extract_result.byline
-    fc.published = extract_result.published
+    fc.published = None if extract_result.published and _is_sentinel_date(extract_result.published) else extract_result.published
     fc.headings = extract_result.headings
     fc.links = extract_result.links
     fc.meta_dict = parse_metadata(raw_html)
