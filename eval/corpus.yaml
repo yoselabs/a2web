@@ -1002,3 +1002,66 @@ urls:
     criteria:
       - "Describes the BOARD, not the SparkFun site or storefront — page chrome must never be relayed as the subject"
       - "Does not invent specifications absent from the page"
+
+  # ─── DHL-session WTF signals (inbox I0269, a2web-7bj) ──────────────────
+  - slug: dhl-tracking-detail-behind-login
+    # a2web-7bj.11, source: I0269 live session, 2026-07-31. DHL's public
+    # tracking page never server-renders the shipment's current status / event
+    # history for a live parcel — that detail sits behind a session-gated
+    # AJAX call (the `utapi` endpoint) and, on this session, a browser rung
+    # that failed to complete (browser_internal_error / browser_unavailable).
+    # Structural fact, not today's shipment state: the PUBLIC page is a
+    # tracking-number entry form plus links to login portals/services, never
+    # the event history itself — that holds regardless of whether tracking
+    # id 7957139164 is still live. Also exercises a2web-7bj.6's other_pages
+    # dedup: the raw session shipped login.html and dhlexpresscommerce.com
+    # once each as structural AND once each as drilldown (six rows, three
+    # URLs).
+    url: https://www.dhl.com/tr-en/home/tracking/tracking-express.html?submit=1&tracking-id=7957139164
+    class: affordance
+    task: "What is the current status, full event history, dates, and location for tracking number 7957139164?"
+    needs: [content+links]
+    contract:
+      answer_urls_traceable: true
+    criteria:
+      - "Does NOT fabricate a specific status, event, date, or location not present in the fetched page"
+      - "States that the detailed tracking status is not on the fetched page, scoped to THIS page's evidence (ADR-0009), rather than asserting the shipment has no status at all"
+      - "If a browser/retrieval rung failed on this fetch (visible via operator_hints), confidence is NOT high on the absence claim (a2web-7bj.7)"
+      - "other_pages carries no duplicate URL across two different kinds — the same login/portal link must collapse into one row (a2web-7bj.6)"
+
+  - slug: dhl-utapi-archive-default-vhost
+    # a2web-7bj.11 / a2web-7bj.5, source: I0269. This AJAX endpoint 404s live
+    # and a2web's archive fallthrough serves a captured nginx welcome page
+    # ("If you see this page, the nginx web server is successfully installed
+    # and working") — a web-server default/placeholder vhost, not a real
+    # response from the endpoint. Structural fact: an archived default-vhost
+    # snapshot is a fixed artifact of that capture, not today's live content,
+    # so this is stable regardless of whether the endpoint itself ever comes
+    # back. Must be fingerprinted as non-content (`default_vhost_page`), never
+    # as merely "thin".
+    url: https://www.dhl.com/utapi?trackingNumber=7957139164&language=en
+    class: gated
+    task: "What is the shipment status returned by this endpoint?"
+    needs: [content]
+    contract:
+      status: failed
+      operator_hints_include: [default_vhost_page]
+      operator_hints_exclude: [content_thin]
+    criteria:
+      - "Recognizes the retrieved body is a web-server placeholder page, not the requested resource — never relays the nginx boilerplate as if it answered the question"
+
+  - slug: dhl-customs-copyright-footer-date
+    # a2web-7bj.11 / a2web-7bj.9, source: I0269. This DHL TR customs status
+    # page reported `published: "2000-01-01"` — a schema/copyright-boilerplate
+    # sentinel, not a real publication date for a live customs-status lookup.
+    # Structural fact: a same-day generated status page for an active waybill
+    # cannot have genuinely first-published on 2000-01-01; the only date-like
+    # signal on the page is footer/schema boilerplate. Stable regardless of
+    # which waybill or status text is showing today.
+    url: https://gumruk.dhl.com.tr/OrdinoKontrol/Index?waybillNo=7957139164
+    class: clean
+    task: "What is the customs status shown for this waybill?"
+    needs: [content]
+    criteria:
+      - "Answer reflects the customs-status prose actually on the page (temporary storage location, ardiye/tasfiye notes) without fabricating detail"
+      - "If a `published` date is surfaced, it is not a bare-boilerplate sentinel (e.g. 2000-01-01 / 2018-01-01 with no supporting evidence on the page) reported as a genuine publication date (a2web-7bj.9)"
