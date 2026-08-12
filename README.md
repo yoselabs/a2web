@@ -317,6 +317,11 @@ ones:
 | `A2WEB_JINA_KEY` | Jina reader — raises the keyless free-tier limits. |
 | `A2WEB_GITHUB_TOKEN` | GitHub handler token — raises the API rate limit 60 → 5000 req/hr. Set this if you fetch GitHub issues/PRs at any volume. |
 | `A2WEB_REDDIT_TIER_POLICY` | `robustness` (default: Reddit → Zyte → RSS) or `privacy` (RSS-only; no third party ever sees the URL). |
+| **Failure-feedback reporting (opt-in, off by default)** | |
+| `A2WEB_FEEDBACK_ENABLED` | `true` to report a condensed event (hint code, severity, tier context, a2web version — never raw URL/query/content) whenever a fetch resolves a warning/critical `OperatorHint`. Unset → a2web sends nothing to any endpoint, ever. Requires `A2WEB_FEEDBACK_ENDPOINT` and `A2WEB_FEEDBACK_API_KEY` to also be set — no shipped default endpoint. |
+| `A2WEB_FEEDBACK_ENDPOINT` | OTLP/HTTP logs endpoint to report to (e.g. your own OTel Collector). |
+| `A2WEB_FEEDBACK_API_KEY` | Sent as the `X-Api-Key` header (not `Authorization: Bearer`) — match your gateway's expected auth scheme. |
+| `A2WEB_FEEDBACK_INCLUDE_CONTENT` | `true` to include the raw URL and query text in reports. Default `false` — reports carry only the hint code/severity/context. |
 | **Storage + surface** | |
 | `A2WEB_CACHE_DIR` | sqlite HTTP-cache dir. Defaults to `/data` in the image; back it with a volume so the cache survives restarts. |
 | `A2WEB_EXPOSE_COOKIES_TOOL` | Leave **unset** on a server (the cookie mirror is local-only). Set `true` only for a local `serve`. |

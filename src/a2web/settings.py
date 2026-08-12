@@ -76,6 +76,7 @@ _SECRET_FIELDS: frozenset[str] = frozenset(
         "google_client_secret",
         "google_jwt_signing_key",
         "oauth_encryption_key",
+        "feedback_api_key",
     }
 )
 
@@ -308,6 +309,26 @@ class AppSettings(BaseSettings):
     ] = "none"
     cookie_profile: str = "Default"
     cookie_stale_after_hours: int = 24
+
+    # Opt-in failure-feedback reporting (add-a2web-feedback-channel). Default OFF:
+    # a2web sends nothing to any endpoint unless the operator explicitly enables
+    # this AND supplies both an endpoint and a key. When on, a best-effort report
+    # (hint code, severity, tier/handler context, a2web version — never raw
+    # URL/query/content unless separately opted up) goes out once per fetch that
+    # resolves an OperatorHint at warning/critical severity. Delivery is
+    # fire-and-forget from the fetch pipeline (`fetcher/pipeline.py:_record_feedback`),
+    # never a logging sink — OperatorHints are not emitted as log records today.
+    # Auth is `X-Api-Key` (Traefik/forwardAuth boundary on the gateway), not
+    # `Authorization: Bearer`.
+    #
+    # No shipped default endpoint: a specific operator's self-hosted gateway URL
+    # is a personal identifier and `tests/architecture/test_no_personal_strings.py`
+    # forbids one in the shipping tree. Every deployment that wants this on
+    # points it at its own (or a shared) gateway explicitly via env.
+    feedback_enabled: bool = False
+    feedback_endpoint: str = ""
+    feedback_api_key: str = ""
+    feedback_include_content: bool = False
 
     # Google OAuth on the HTTP MCP endpoint (env-only; a2kit `docs/patterns/mcp-auth.md`).
     # Unset → the endpoint stays open (ship behind Tailscale/LAN). Auth engages

@@ -10,7 +10,9 @@ from __future__ import annotations
 import time
 
 import aiosqlite
+import httpx
 
+from .. import __version__
 from .. import log as a2web_log
 from ..decision_log import ObservationKind
 from ..events import StageEnded
@@ -126,3 +128,76 @@ async def _record_uptake(fc: FetchContext, state: AppState) -> None:
             await a2web_log.info("other_pages_suggested", url=fc.inputs.requested_url, count=stored)
     except (aiosqlite.Error, OSError) as exc:  # telemetry is best-effort — never break the fetch
         log_warning("uptake_write_failed", error=str(exc))
+
+
+#: Hint severities that qualify for a feedback report. `info` hints are routine
+#: (e.g. an authoritative empty result) — reporting those would flood the
+#: gateway with noise carrying no operator value.
+_REPORTABLE_SEVERITIES = frozenset({"warning", "critical"})
+
+
+async def _record_feedback(fc: FetchContext, state: AppState) -> None:
+    """Opt-in failure-feedback reporting (add-a2web-feedback-channel).
+
+    Best-effort, mirrors `_record_uptake`: a fetch that resolved a warning/critical
+    `OperatorHint` gets a condensed report POSTed to the configured gateway. No-op
+    (no client built, no network touched) unless `feedback_enabled` is set — the
+    default. Never raises: a dead gateway must never fail or delay the fetch it's
+    reporting on.
+
+    `OperatorHint`s are never emitted as log records (verified against every
+    `fc.operator_hints.append(...)` call site) — this reads `fc.operator_hints`
+    directly rather than attaching as a `logging.Handler`, since there is nothing
+    on the `a2web` logger for a handler to observe.
+    """
+    settings = state.settings
+    if not settings.feedback_enabled or not settings.feedback_api_key or not settings.feedback_endpoint:
+        return
+    reportable = [h for h in fc.operator_hints if h.severity in _REPORTABLE_SEVERITIES]
+    if not reportable:
+        return
+
+    last_observation = fc.observations[-1] if fc.observations else None
+    resource_attrs: list[dict[str, object]] = [
+        {"key": "service.name", "value": {"stringValue": "a2web-feedback"}},
+        {"key": "service.version", "value": {"stringValue": __version__}},
+    ]
+    log_records = []
+    for hint in reportable:
+        attributes: list[dict[str, object]] = [
+            {"key": "hint_code", "value": {"stringValue": hint.code}},
+            {"key": "severity", "value": {"stringValue": hint.severity}},
+        ]
+        if last_observation is not None:
+            attributes.append({"key": "tier", "value": {"stringValue": last_observation.source}})
+            attributes.append({"key": "verdict", "value": {"stringValue": str(last_observation.verdict)}})
+        if settings.feedback_include_content:
+            attributes.append({"key": "url", "value": {"stringValue": fc.final_url or fc.url}})
+            if fc.inputs.ask:
+                attributes.append({"key": "query", "value": {"stringValue": fc.inputs.ask}})
+        log_records.append(
+            {
+                "timeUnixNano": str(time.time_ns()),
+                "severityText": hint.severity.upper(),
+                "body": {"stringValue": hint.message},
+                "attributes": attributes,
+            }
+        )
+
+    payload = {
+        "resourceLogs": [
+            {
+                "resource": {"attributes": resource_attrs},
+                "scopeLogs": [{"scope": {"name": "a2web.feedback"}, "logRecords": log_records}],
+            }
+        ]
+    }
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(
+                settings.feedback_endpoint,
+                json=payload,
+                headers={"X-Api-Key": settings.feedback_api_key},
+            )
+    except (httpx.HTTPError, OSError) as exc:  # telemetry is best-effort — never break the fetch
+        log_warning("feedback_report_failed", error=str(exc))

@@ -41,9 +41,7 @@ _DENIED: tuple[str, ...] = (
 
 #: Text-ish files worth scanning. Binary and lockfiles are excluded by extension
 #: rather than by sniffing, so the walk stays cheap and predictable.
-_SUFFIXES: frozenset[str] = frozenset(
-    {".py", ".md", ".toml", ".yaml", ".yml", ".json", ".jsonl", ".sh", ".cfg", ".txt", ""}
-)
+_SUFFIXES: frozenset[str] = frozenset({".py", ".md", ".toml", ".yaml", ".yml", ".json", ".jsonl", ".sh", ".cfg", ".txt", ""})
 
 #: Path prefixes excluded from the scan, each for a reason stated in the module
 #: docstring. Note what is NOT here: `.venv`, caches, and build output need no

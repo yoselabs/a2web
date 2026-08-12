@@ -931,9 +931,7 @@ def build_response(fc: ResponseContext) -> FetchResponse:
     )
 
     wrapped_md = (
-        _wrap_content_md(fc.content_md, source=fc.final_url, fetched_at=fc.inputs.started_at)
-        if fc.inputs.wrap_content
-        else fc.content_md
+        _wrap_content_md(fc.content_md, source=fc.final_url, fetched_at=fc.inputs.started_at) if fc.inputs.wrap_content else fc.content_md
     )
     tokens = TokenCounts(full=len(wrapped_md)) if fc.inputs.debug and final_verdict == Verdict.ok and fc.content_md else None
     op_hints: list[OperatorHint] = list(fc.operator_hints)

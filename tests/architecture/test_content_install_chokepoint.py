@@ -106,9 +106,7 @@ def test_only_the_two_provenances_write_the_content_half() -> None:
 
     known = set(_FULL_WRITERS) | set(_PARTIAL_WRITERS)
     violations = [
-        f"{name} writes {sorted(_content_writes(node))}"
-        for name, node in functions.items()
-        if name not in known and _content_writes(node)
+        f"{name} writes {sorted(_content_writes(node))}" for name, node in functions.items() if name not in known and _content_writes(node)
     ]
 
     assert not violations, (

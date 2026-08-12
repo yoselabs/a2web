@@ -188,9 +188,7 @@ class _HandshakeFailedRobustTier:
 
 
 @pytest.mark.asyncio
-@pytest.mark.protects(
-    "spec:browser-tier", "Requirement: browser_unavailable and browser_internal_error hints are attributed to their rung"
-)
+@pytest.mark.protects("spec:browser-tier", "Requirement: browser_unavailable and browser_internal_error hints are attributed to their rung")
 async def test_fast_rung_navigated_robust_rung_failed_to_launch(monkeypatch: pytest.MonkeyPatch) -> None:
     """a2web-7bj.4: the fast rung actually ran (still-blocked, not a failure) while
     the robust rung failed to launch — the two hints in the envelope must be

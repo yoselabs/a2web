@@ -71,8 +71,8 @@ class _Rt:
 
 
 @dataclass
-    #: §7.2 lifted `ask` into the frozen `FetchInputs`; the double carries the
-    #: REAL type rather than a shim, so it cannot drift from what the code reads.
+#: §7.2 lifted `ask` into the frozen `FetchInputs`; the double carries the
+#: REAL type rather than a shim, so it cannot drift from what the code reads.
 class _Fc:
     inputs: FetchInputs
     routing: object
@@ -80,7 +80,6 @@ class _Fc:
     tier_used: str = "raw"
     body: bytes = _SHELL_HTML  # SPA-shell markers by default → render-worthy
     content_md: str = "thin shell content"  # below the ceiling by default
-
 
 
 def _inputs(ask: str | None) -> FetchInputs:

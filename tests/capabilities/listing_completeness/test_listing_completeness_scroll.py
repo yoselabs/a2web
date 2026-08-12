@@ -60,15 +60,14 @@ def test_zyte_request_browser_scroll_adds_bounded_actions() -> None:
 # --------------------------------------------------------------------- #
 
 
-
 def _inputs(*, ask: str | None) -> FetchInputs:
     """`ask` is the only preamble field this module varies, in its real type."""
     return FetchInputs(started_at=datetime.now(UTC), start_perf=0.0, profile_hash="x", bypass_cache=True, ask=ask)
 
 
 @dataclass
-    #: §7.2 lifted `ask` into the frozen `FetchInputs`; the double carries the
-    #: REAL type rather than a shim, so it cannot drift from what the code reads.
+#: §7.2 lifted `ask` into the frozen `FetchInputs`; the double carries the
+#: REAL type rather than a shim, so it cannot drift from what the code reads.
 class _Fc:
     inputs: FetchInputs = field(default_factory=lambda: _inputs(ask="q"))
     items_total: int | None = 40

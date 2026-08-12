@@ -133,7 +133,7 @@ from .context import (
     _remaining_budget,
     _within_budget,
 )
-from .pipeline import _record_deadline, _record_uptake, _run_phases, _run_pipeline
+from .pipeline import _record_deadline, _record_feedback, _record_uptake, _run_phases, _run_pipeline
 from .retrieval.cache import _phase_cache_check, _phase_cache_write, _ttl_for
 from .retrieval.cookies import _phase_cookies_staleness, _phase_resolve_cookies
 from .retrieval.escalate.archive import (
@@ -293,6 +293,12 @@ async def fetch(
     if ask is not None and state.sqlite is not None:
         await _record_uptake(fc, state)
 
+    # Opt-in failure-feedback reporting (add-a2web-feedback-channel). Applies to
+    # every fetch (query or fetch_raw), not just the ask path — a wall/timeout on
+    # a raw fetch is exactly the kind of signal worth reporting. No-ops instantly
+    # when A2WEB_FEEDBACK_ENABLED is unset (the default).
+    await _record_feedback(fc, state)
+
     # v0.3 envelope diet: apply opt-in gates AT THE WIRE BOUNDARY.
     # `diagnostics_summary` stays always populated HERE (on `response` itself)
     # so internal callers — the eval harness — keep reading it unconditionally;
@@ -432,6 +438,7 @@ __all__ = [
     "_planner_caps",
     "_record_deadline",
     "_record_discussion_link",
+    "_record_feedback",
     "_record_uptake",
     "_records_to_next_links",
     "_regate_after_escalation",
