@@ -186,6 +186,7 @@ class Extractor:
         max_content_chars: int | None = None,
         request_routing: bool = False,
         link_digest: str | None = None,
+        gate_digest: str | None = None,
     ) -> ExtractionResult:
         """Run the template over (content, ask). Returns ExtractionResult.
 
@@ -258,6 +259,8 @@ class Extractor:
             tail_suffix += _next_links_suffix(handler_candidates)
         if link_digest:
             tail_suffix += _link_digest_suffix(link_digest)
+        if gate_digest:
+            tail_suffix += _gate_digest_suffix(gate_digest)
         if tail_suffix:
             from .prompts import PromptParts
 
@@ -437,6 +440,18 @@ def _link_digest_suffix(link_digest: str) -> str:
     return "\n\n---\n\n" + link_digest + "\n"
 
 
+def _gate_digest_suffix(gate_digest: str) -> str:
+    """Append the page's detected gated sections so `blocked_gate` can reference them by handle.
+
+    Mirrors `_link_digest_suffix`: a closed list of `{{n}} <label> (<count>)`
+    lines, one per disclosure control the server detected in the raw markup
+    whose panel was not retrieved (ADR-0020). The model selects AT MOST ONE —
+    whichever, if any, blocks the answer to the question it was asked — never a
+    label absent from the list.
+    """
+    return "\n\n---\n\n" + gate_digest + "\n"
+
+
 def _next_link_from_entry(entry: dict[str, Any]) -> LlmNextLink | None:
     """Per-item filter for the next_links JSON array.
 
@@ -594,6 +609,13 @@ def _build_router_payload(parsed: dict[str, Any], *, model: str = "unknown") -> 
     total_seen_raw = parsed.get("item_total_seen")
     item_total_seen = total_seen_raw if isinstance(total_seen_raw, int) and not isinstance(total_seen_raw, bool) else None
 
+    # ADR-0020: which detected gate (if any) blocks the answer, by `{{n}}`
+    # handle into the caller-supplied gated-sections digest. Same int-and-not-
+    # bool guard as `item_total_seen`; resolved against the closed set at the
+    # domain seam (`fetcher/answer/digest.py`), never here.
+    blocked_gate_raw = parsed.get("blocked_gate")
+    blocked_gate = blocked_gate_raw if isinstance(blocked_gate_raw, int) and not isinstance(blocked_gate_raw, bool) else None
+
     payload = RouterPayload(
         answer=answer,
         structural_form=structural_form,
@@ -603,6 +625,7 @@ def _build_router_payload(parsed: dict[str, Any], *, model: str = "unknown") -> 
         other_pages=tuple(other_pages),
         refinement_axes=tuple(axes),
         item_total_seen=item_total_seen,
+        blocked_gate=blocked_gate,
     )
     return _RoutingResult(answer=answer, payload=payload)
 

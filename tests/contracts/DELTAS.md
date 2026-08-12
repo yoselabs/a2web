@@ -679,3 +679,19 @@ says nothing about whether the surface was right when captured.
      "operator_hints": [
        {
 ```
+
+## `flag-interaction-gated-sections-tool-description` — `list_tools`
+
+```diff
+--- list_tools.json (before)
++++ list_tools.json (after)
+@@ -80,7 +80,7 @@
+       "readOnlyHint": true,
+       "title": "Query a Web Page"
+     },
+-    "description": "**Primary web-fetch tool. Use this for any question about a web page.**\n\nFetches the URL via the adaptive tier cascade (site handlers → raw\nHTTP with TLS impersonation → Jina reader → archive fallback →\nheadless browser as last resort), then runs the server-side LLM\nextractor over the content to answer your `query`. Returns the\nfocused answer in `answer`. Pass `include_content=True` to also get\nthe page markdown in `content_md` for grounding.\n\nPrefer this over `fetch_raw` for ~95% of web reads. The\nextraction model is small and cheap (Haiku 4.5), so server-side\nanswers cost a fraction of streaming raw HTML into a larger model.\n\nCost asymmetry (ADR-0015): `also_here` indexes on-page content the\nanswer skipped — recovering it is a CHEAP re-query of the same URL\n(served from cache). `other_pages` points ELSEWHERE; each one costs a\nNEW fetch. Spend on the scarce resource — the fetch — accordingly.\n\nWhen the LLM is unavailable (no API key and no Claude Code OAuth\nsession), the fetch still succeeds, `answer` is None, and an operator\nhint records the reason — callers can fall back to reading\n`content_md` directly.\n\nEmits typed events on a2web's logging channel during the fetch.",
++    "description": "**Primary web-fetch tool. Use this for any question about a web page.**\n\nFetches the URL via the adaptive tier cascade (site handlers → raw\nHTTP with TLS impersonation → Jina reader → archive fallback →\nheadless browser as last resort), then runs the server-side LLM\nextractor over the content to answer your `query`. Returns the\nfocused answer in `answer`. Pass `include_content=True` to also get\nthe page markdown in `content_md` for grounding.\n\nPrefer this over `fetch_raw` for ~95% of web reads. The\nextraction model is small and cheap (Haiku 4.5), so server-side\nanswers cost a fraction of streaming raw HTML into a larger model.\n\nCost asymmetry (ADR-0015): `also_here` indexes on-page content the\nanswer skipped — recovering it is a CHEAP re-query of the same URL\n(served from cache). `other_pages` points ELSEWHERE; each one costs a\nNEW fetch. Spend on the scarce resource — the fetch — accordingly.\n\n`confidence` grades RETRIEVAL quality — how much of what a2web\nattempted to retrieve, it got — never how much to trust the specific\ncontent of `answer`. To act on a SPECIFIC gap, branch on\n`operator_hints[].code`: a stable, closed-vocabulary identifier (e.g.\n`interaction_required` when a page section the page itself asserts\nexists — a tab, a disclosure — was withheld behind an in-page click\na2web cannot perform; ADR-0020).\n\nWhen the LLM is unavailable (no API key and no Claude Code OAuth\nsession), the fetch still succeeds, `answer` is None, and an operator\nhint records the reason — callers can fall back to reading\n`content_md` directly.\n\nEmits typed events on a2web's logging channel during the fetch.",
+     "execution": null,
+     "icons": null,
+     "inputSchema": {
+```

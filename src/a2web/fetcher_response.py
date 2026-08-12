@@ -31,6 +31,7 @@ from .hints import (
     extraction_empty_hint,
     has_hint,
     index_lost_hint,
+    interaction_required_hint,
     listing_more_hint,
     listing_partial_hint,
     llm_error_hint,
@@ -67,6 +68,7 @@ if TYPE_CHECKING:
 
     from .decision_log import Observation
     from .fetcher.context import ContentCandidate, FetchInputs, GateOutcomeProjection
+    from .gated_sections import GatedSection
     from .models import DeclaredEntity, Diagnostic, Heading, Link
     from .packages.llm_extract import RouterPayload as RouterBoundary
 
@@ -157,6 +159,7 @@ class ResponseContext(Protocol):
     items_more: bool
     comments_loaded: int | None
     comments_total: int | None
+    blocked_gated_section: GatedSection | None
 
     # -- answer ----------------------------------------------------------
     extracted_answer: str | None
@@ -1075,6 +1078,28 @@ def build_response(fc: ResponseContext) -> FetchResponse:
     failed_browser_rung = has_hint(op_hints, "browser_internal_error") or has_hint(op_hints, "browser_unavailable")
     if failed_browser_rung and confidence == Confidence.high:
         confidence = Confidence.medium
+
+    # ADR-0020 (grounded absence): the extractor named a detected gated section
+    # (a tab/`<details>` control whose panel the page's own markup states
+    # exists, but was not retrieved — `_phase_gated_sections`) as blocking the
+    # answer to THIS question (`blocked_gate` handle, resolved closed-set at
+    # the answer seam). Cap confidence and emit the evidence hint; do NOT set
+    # `retrieval_incomplete` — that flag is contractually bound to
+    # `status: failed` (ADR-0009) and the rest of the page retrieved fine — and
+    # do NOT drop to `confidence: low`, which is reserved for a non-ok verdict /
+    # page-level obstacle / no answer, all states where a retry is the right
+    # move. Here it explicitly is not: the hint itself says re-querying this
+    # URL is futile. `None` (no blocking gate) is the common case and this
+    # block is then a no-op, exactly like the two caps above it.
+    if fc.blocked_gated_section is not None:
+        if confidence == Confidence.high:
+            confidence = Confidence.medium
+        op_hints.append(
+            interaction_required_hint(
+                label=fc.blocked_gated_section.label,
+                stated_count=fc.blocked_gated_section.stated_count,
+            )
+        )
 
     # narrative / diagnostics_summary stay populated for internal callers (the
     # eval harness reads `.diagnostics_summary` directly off a debug=True

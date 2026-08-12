@@ -34,6 +34,7 @@ from ..actions.terminal import TerminalOutcome
 from ..cache import CacheRow, SqliteResource
 from ..cookie_jar import Cookie, CookieJarResource
 from ..decision_log import Observation, ObservationKind, resolve_verdict
+from ..gated_sections import GatedSection
 from ..hints import (
     OperatorHint,
 )
@@ -339,6 +340,21 @@ class FetchContext:
     # is set (record count) while `items_total` stays None; `build_response`
     # appends a `listing_more` hint instead of the quantified `listing_partial`.
     items_more: bool = False
+
+    # ADR-0020 (grounded absence): disclosure controls (tabs, `<details>`)
+    # `_phase_gated_sections` detected in the raw HTML whose panel was not
+    # retrieved — the CLOSED set the extractor may reference by handle
+    # (`gated_sections.py`). Recall-oriented; detection alone never reaches the
+    # wire. Empty tuple on a page with no such controls, or on a tier whose
+    # retrieved body carries no markup to inspect (declared reduced recall).
+    gated_sections: tuple[GatedSection, ...] = ()
+    # The ONE detected gate the extractor judged blocks the caller's question,
+    # resolved from the model's returned handle against `gated_sections` at the
+    # answer seam (`fetcher/answer/digest.py`) — closed-set, exactly like
+    # `other_pages` handle rehydration; an unknown handle resolves to `None`
+    # rather than being guessed. `None` when no gate blocks the answer, which is
+    # the common case and costs nothing on the wire.
+    blocked_gated_section: GatedSection | None = None
 
     def observe(
         self,

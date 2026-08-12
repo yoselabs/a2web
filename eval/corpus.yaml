@@ -19,7 +19,11 @@
 # Each entry:
 #   slug                — filesystem-safe id
 #   url                 — absolute http(s) URL
-#   class               — listing | comments | affordance | clean | gated | spa
+#   class               — listing | comments | affordance | clean | gated |
+#                         section-gated | spa. `gated` is a WHOLE-PAGE wall
+#                         (anti-bot/paywall — nothing retrieved); `section-gated`
+#                         is a page that retrieves fine but withholds ONE
+#                         section behind an in-page interaction (ADR-0020).
 #   task                — natural-language question put to every system
 #   needs               — output fields the task plausibly needs
 #   criteria            — pass/fail rubric for the judge; phrased against
@@ -1065,3 +1069,30 @@ urls:
     criteria:
       - "Answer reflects the customs-status prose actually on the page (temporary storage location, ardiye/tasfiye notes) without fabricating detail"
       - "If a `published` date is surfaced, it is not a bare-boilerplate sentinel (e.g. 2000-01-01 / 2018-01-01 with no supporting evidence on the page) reported as a genuine publication date (a2web-7bj.9)"
+
+  - slug: hepsiburada-carraro-gravel-g2-qa-tab-gated
+    # ADR-0020 (grounded absence), openspec change flag-interaction-gated-sections.
+    # This product page's own tab strip reads `role="tab" aria-controls=
+    # "QuestionAnswers" aria-label=" Soru Cevap 4"` — the page ITSELF states 4
+    # Q&A entries exist. The tab has no `href`; activating it does not change
+    # the URL (verified live, 2026-08-12); the panel it points at is mounted in
+    # the DOM but carries zero real text (only skeleton loaders) until clicked.
+    # No a2web browser backend can click. Structural fact, stable regardless
+    # of whether the count is still 4 today: the page's own markup asserts a
+    # non-empty Q&A section that the fetch cannot retrieve, and a2web must
+    # never invert that into "no Q&A present" — the exact defect that opened
+    # this change (`docs/adr/0020-grounded-absence-never-contradict-the-page.md`).
+    # Distinct from the `gated` class above (that class is whole-page
+    # anti-bot/paywall walls; this page retrieves fine — one SECTION is
+    # withheld), hence the separate `section-gated` class.
+    url: https://www.hepsiburada.com/carraro-gravel-g2-2x10-vites-hd-hidrolik-dis-fren-mat-haki-yesil-52-kadro-pm-HBC00003NFG1B
+    class: section-gated
+    task: "soru cevap sorular cevaplar, seller Q&A questions and answers full text"
+    needs: [content+links]
+    contract:
+      operator_hints_include: [interaction_required]
+      confidence_max: medium
+    criteria:
+      - "Does NOT assert that no Q&A / question-answer content exists on this page — the page's own tab strip states a count"
+      - "States that the Q&A section was NOT retrieved (an in-page interaction a2web could not perform), not that the source lacks it"
+      - "Does not point the caller at a different URL for the Q&A content — none exists; a real-browser tool is the only recovery"

@@ -66,7 +66,16 @@ _CONTEXT = _ROOT / "src" / "a2web" / "fetcher" / "context.py"
 #: the same precedence rule, and consumed at the same `_records_to_options`
 #: call site, so it travels with `record_set` rather than growing the slice
 #: in an unrelated direction.
-_MEMBER_CEILING = 40
+#:
+#: Raised 40 -> 41 by `flag-interaction-gated-sections` (ADR-0020):
+#: `blocked_gated_section` carries the ALREADY-RESOLVED gate (label + source-
+#: stated count, or `None`) that the extractor named as blocking the answer —
+#: resolved closed-set at the answer seam (`fetcher/answer/digest.py`),
+#: exactly like link-handle rehydration. The raw detected set
+#: (`fc.gated_sections`) deliberately stays OFF this slice, the same way
+#: `fc.link_digest` never joined it: both are consumed entirely upstream, and
+#: only the one resolved fact the response builder acts on travels forward.
+_MEMBER_CEILING = 41
 
 #: Below this, the walk is broken rather than the code being wonderful.
 _MEMBER_FLOOR = 30

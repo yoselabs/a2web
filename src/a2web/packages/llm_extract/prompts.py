@@ -185,6 +185,16 @@ EXTRACT_CACHEABLE_V1 = PromptTemplate(
 # eval/findings_2026-07-11-also-here-underfires.md). Listing carve-out + thin-page
 # escape unchanged. `cache_prefix_template` untouched (v0.19 invariant holds).
 #
+# v0.26 (flag-interaction-gated-sections, ADR-0020) — bumped to version=8 in
+# place (same `name`). Added `blocked_gate`: a `{{{{n}}}}` handle into an
+# OPTIONAL caller-supplied `## gated sections` digest, naming the one detected
+# disclosure control (if any) that blocks the answer — mirrors the `other_pages`
+# link-handle mechanism exactly (closed set, never a fabricated label). Fixes a
+# real defect: the extractor reported "no Q&A present" over a page whose own
+# tab strip stated a count of 4, because the Q&A body loaded only on click and
+# was never in its input — the model had no field to say "withheld", only
+# "absent". `cache_prefix_template` untouched (v0.19 invariant holds).
+#
 # The "answer" field in the response IS the answer to the user's question —
 # same as `EXTRACT_CACHEABLE_V1`'s output, just wrapped in a JSON envelope
 # alongside the router-shape block. The extractor parses out `answer` and
@@ -315,6 +325,19 @@ _ROUTER_SCHEMA_DOC = """Return a single JSON object with these fields:
   the content) — an existing sort or filter is itself an axis the agent can change. Context
   decides count: 2-4 axes. OMIT on non-listings and non-selection questions.
 
+  blocked_gate (optional, int) — ONLY when a '## gated sections' list is provided below:
+  the {{n}} handle of the ONE listed section, if any, that BLOCKS your answer to the
+  QUESTION asked. A gated section is a control on the page (a tab, a disclosure) whose
+  content the page's own markup states exists but was NOT given to you — its count, if
+  shown, is the page's own count, not yours to dispute. Emit a handle ONLY when the
+  content that section would hold is what the question actually needs and nothing you
+  were given answers it. Most fetches carry no '## gated sections' list at all, and most
+  that do are NOT blocked by what it names — OMIT this field in both cases; do not pad
+  toward emitting one. NEVER invent a handle not in the list. When you DO emit one, your
+  `answer` must say the section was NOT retrieved (never that the source lacks it), relay
+  its stated count if the list shows one, and must NOT claim the site has none of that
+  content — that is exactly the false-absence ADR-0020 exists to prevent.
+
 Envelope discipline: when a field is empty / null / does-not-apply, OMIT the key
 ENTIRELY. Do not emit `null` or `[]` — absence carries the meaning.
 
@@ -361,11 +384,19 @@ Example (truncated, price-sorted product listing):
       {"dimension": "brand", "how": "narrow to one brand to compare like-for-like"}
     ]
   }
+
+Example (product page; the asked-about section is gated, not absent):
+  {
+    "answer": "<what the page DOES state; the requested section was not retrieved, not absent>",
+    "structural_form": "product",
+    "shape": "key-value",
+    "blocked_gate": 1
+  }
 """
 
 EXTRACT_ROUTER_V1 = PromptTemplate(
     name="extract_router_v1",
-    version=7,
+    version=8,
     system=(
         "Provide a concise response based only on the page content the user "
         "shares. In your response:\n"

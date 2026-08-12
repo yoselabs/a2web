@@ -133,7 +133,7 @@ change):
 - **A new `confidence` level ("high confidence that retrieval is incomplete").**
   A value from a different axis smuggled into an ordinal enum. Five sites
   compare `== Confidence.high`; the downgrade-only ("caps never raise")
-  invariant is stated three times in `fetch-response/spec.md` and becomes
+  invariant is stated three times in `openspec/specs/fetch-response/spec.md` and becomes
   unstateable.
 - **A general `query_unanswered` boolean.** Deferred, not rejected. A flag is
   only as good as its negative: set from one detector, `false` would ship on

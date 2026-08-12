@@ -185,6 +185,14 @@ def register_web_tools(mcp: FastMCP, components: Components) -> None:
         (served from cache). `other_pages` points ELSEWHERE; each one costs a
         NEW fetch. Spend on the scarce resource — the fetch — accordingly.
 
+        `confidence` grades RETRIEVAL quality — how much of what a2web
+        attempted to retrieve, it got — never how much to trust the specific
+        content of `answer`. To act on a SPECIFIC gap, branch on
+        `operator_hints[].code`: a stable, closed-vocabulary identifier (e.g.
+        `interaction_required` when a page section the page itself asserts
+        exists — a tab, a disclosure — was withheld behind an in-page click
+        a2web cannot perform; ADR-0020).
+
         When the LLM is unavailable (no API key and no Claude Code OAuth
         session), the fetch still succeeds, `answer` is None, and an operator
         hint records the reason — callers can fall back to reading

@@ -23,3 +23,4 @@ Architecture Decision Records for a2web. Each records a decision with context, r
 | [0017](0017-effort-and-confidence-proportional-to-evidence.md) | Effort ∝ existence prior; confidence ∝ corroboration; severity encodes confidence | Accepted |
 | [0018](0018-the-generic-layer-is-a-floor-never-a-ceiling.md) | The generic layer is a floor, never a ceiling (product tenet) | Accepted |
 | [0019](0019-failure-envelope-field-tiers.md) | Failure-envelope field tiers: what an agent acts on vs operator debug noise | Accepted (decision only) |
+| [0020](0020-grounded-absence-never-contradict-the-page.md) | Grounded absence: never surface an absence the page contradicts (product tenet) | Accepted |

@@ -72,6 +72,20 @@ class FetchStatus(StrEnum):
 
 
 class Confidence(StrEnum):
+    """How much of what a2web ATTEMPTED to retrieve, it got, and from where.
+
+    This grades RETRIEVAL quality, never answer trustworthiness — it is
+    computed from `(verdict, len(content_md))` and a handful of downgrade-only
+    caps (a cross-domain landing, a query/title mismatch, a failed browser
+    rung, a blocked in-page section), never from whether the extracted answer
+    itself is correct. `high` means the ladder terminated cleanly with a
+    substantial body; `low` means a non-ok verdict, a page-level extractor
+    obstacle, or no answer at all — states where retrying by another route is
+    the right move. A caller who needs to distrust a SPECIFIC claim reads
+    `operator_hints[].code` (the stable, agent-branchable identifier), not
+    this field.
+    """
+
     high = "high"
     medium = "medium"
     low = "low"

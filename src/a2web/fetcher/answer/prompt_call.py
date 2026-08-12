@@ -12,7 +12,7 @@ from ...hints import (
 from ...link_digest import strip_handles
 from ...models import Diagnostic, ExtractionMeta, Verdict
 from ...state import AppState, ResourceUnavailable
-from ..answer.digest import _build_link_digest, _rehydrate_routing_handles
+from ..answer.digest import _build_gate_digest, _build_link_digest, _rehydrate_routing_handles, _resolve_blocked_gate
 from ..answer.links import _to_llm_next_link, _validate_llm_next_links_against_markdown
 from ..answer.obstacle import _phase_listing_render, _phase_obstacle_render
 from ..comprehension.menu import assemble_menu
@@ -101,6 +101,13 @@ async def _phase_extract_answer(
     fc.link_digest = _build_link_digest(fc)
     digest_text = fc.link_digest.render() if fc.link_digest else None
 
+    # ADR-0020: feed the extractor the click-gated sections `_phase_gated_sections`
+    # detected in the raw HTML, so `blocked_gate` can reference one by handle
+    # instead of the model having nothing but "not in what I was given" to work
+    # with. `None` on the common page with no detected gate — no prompt cost.
+    gate_digest_obj = _build_gate_digest(fc)
+    gate_digest_text = gate_digest_obj.render() if gate_digest_obj else None
+
     # One unavailability path: resolving the resource (not provisioned) and
     # awaiting the injected provider inside extract() (no provider configured)
     # both raise ResourceUnavailable. Graceful degrade — the fetch succeeded,
@@ -115,6 +122,7 @@ async def _phase_extract_answer(
             max_content_chars=fc.inputs.max_content_chars,
             request_routing=fc.inputs.include_routing,
             link_digest=digest_text,
+            gate_digest=gate_digest_text,
         )
     except ResourceUnavailable as exc:
         fc.operator_hints.append(llm_unavailable_hint(reason=exc.reason, key_env=state.settings.llm_api_key_env))
@@ -190,6 +198,10 @@ async def _phase_extract_answer(
     # the closed digest set (unknown handles dropped, never guessed).
     fc.routing = _rehydrate_routing_handles(result.routing, fc.link_digest)
     fc.routing_outcome = result.routing_outcome
+    # ADR-0020: resolve `blocked_gate` against the closed detected set — the
+    # ONLY seam that decides which gate (if any) reaches the envelope. An
+    # unknown handle resolves to `None` rather than a fabricated section.
+    fc.blocked_gated_section = _resolve_blocked_gate(fc.routing, gate_digest_obj)
     # LLM-side partialness detection (superset of the regex oracle) now that the
     # model's `item_total_seen` is available — closes the noun-list language gap.
     _apply_llm_listing_oracle(fc)

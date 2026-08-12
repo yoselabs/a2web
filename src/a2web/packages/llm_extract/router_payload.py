@@ -97,6 +97,15 @@ class RouterPayload:
     # not). Used at the domain seam as an oracle fallback for LLM-side
     # partialness detection. None when the page advertised no readable total.
     item_total_seen: int | None = None
+    # ADR-0020 (grounded absence): a `{{n}}` handle into the CALLER-supplied
+    # gated-sections digest (`gated_sections.py`), naming the ONE detected
+    # disclosure control that blocks the answer to THIS question — closed-set,
+    # exactly like `other_pages` handle rehydration. `None` when no gate blocks
+    # the answer (the common case: most fetches carry no digest at all, and
+    # most that do are not blocked by what it names). The domain seam resolves
+    # the handle against the closed set; an unknown handle resolves to nothing
+    # rather than being guessed into a fabricated section.
+    blocked_gate: int | None = None
 
 
 __all__ = ["OtherPageBoundary", "RefinementAxisBoundary", "RouterPayload"]

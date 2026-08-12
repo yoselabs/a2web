@@ -14,6 +14,7 @@ from ...comprehension.gate import _regate_after_escalation
 from ...comprehension.ladder import _run_extraction_escalation
 from ...context import FetchContext
 from ...sufficiency.completeness import _phase_listing_completeness
+from ...sufficiency.gated_sections import _phase_gated_sections
 
 # Imported as MODULES, not names. `from .browser import _escalate_browser`
 # freezes the reference at import time, so a test that fakes the rung would
@@ -55,6 +56,7 @@ async def _comprehend(fc: FetchContext) -> None:
     if raw_html:
         await _run_extraction_escalation(fc, raw_html=raw_html)
         _phase_listing_completeness(fc, raw_html=raw_html)
+        _phase_gated_sections(fc, raw_html=raw_html)
     _regate_after_escalation(fc)
 
 

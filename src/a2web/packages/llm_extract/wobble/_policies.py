@@ -47,6 +47,10 @@ EXTRACTOR_ROUTING_POLICY: dict[str, WobblePolicy] = {
     # on every non-listing page, which is most pages.
     "refinement_axes": WobblePolicy(WobbleTolerance.OPTIONAL, default=()),
     "item_total_seen": WobblePolicy(WobbleTolerance.OPTIONAL, default=None),
+    # prompt: "blocked_gate (optional) ... ONLY when a '## gated sections' list
+    # is provided below". Absent whenever no digest was fed (most fetches) and
+    # on most that were fed one but nothing blocks the answer (ADR-0020).
+    "blocked_gate": WobblePolicy(WobbleTolerance.OPTIONAL, default=None),
 }
 
 # Bench output-clarity axis. Score is load-bearing; reasoning is decorative —

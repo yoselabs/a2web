@@ -371,6 +371,7 @@ class LlmExtractorResource:
         max_content_chars: int | None = None,
         request_routing: bool = False,
         link_digest: str | None = None,
+        gate_digest: str | None = None,
     ) -> ExtractionResult:
         """Run extraction. Raises `ResourceUnavailable` when no LLM provider
         is configured — the orchestrator catches it and degrades to raw.
@@ -393,6 +394,7 @@ class LlmExtractorResource:
             max_content_chars=max_content_chars,
             request_routing=request_routing,
             link_digest=link_digest,
+            gate_digest=gate_digest,
         )
 
     async def close(self) -> None:

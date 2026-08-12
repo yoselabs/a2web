@@ -66,6 +66,7 @@ Remote container over HTTP is canonical. `Dockerfile`'s `INSTALL_BROWSER` defaul
 - Never tolerate an unfetched URL — a failed fetch ships `status: failed` + `retrieval_incomplete` + a critical `try_user_browser` hint (`docs/adr/0009-never-silently-miss-a-url.md`).
 - Never manufacture a selection — relay content, never rank/filter/crown by a2web's own criterion (`docs/adr/0012-shape-and-relay-never-manufacture-a-selection.md`).
 - Never surface a URL not on the page — every emitted URL traces to a `{{n}}` digest handle or literal page content, never pattern-guessed (`docs/adr/0014-grounded-urls-only-off-domain-flagged.md`).
+- Never surface an absence the page contradicts — a section, count, or label the page's own markup asserts exists is reported as unretrieved, never as absent at source (`docs/adr/0020-grounded-absence-never-contradict-the-page.md`).
 - Never withhold the body without leaving the index — `also_here` + `other_pages` cover what `query` didn't surface (`docs/adr/0015-the-withheld-body-index.md`).
 - Never assert a wall on evidence-free thinness, never promote an unverified empty to `ok` — ambiguous cases err toward the wall side; a promoted empty is wire-only, never cached.
 - Never bill the metered Anthropic API in dev/eval/bench — subscription providers only (`docs/adr/0016-never-metered-api-in-dev-loop.md`).

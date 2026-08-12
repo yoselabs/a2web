@@ -26,6 +26,7 @@ from ..comprehension.ladder import _run_extraction_escalation
 from ..context import FetchContext
 from ..retrieval.install import _install_rendered_fields
 from ..sufficiency.completeness import _phase_listing_completeness
+from ..sufficiency.gated_sections import _phase_gated_sections
 
 
 def _is_sentinel_date(d: date) -> bool:
@@ -114,6 +115,7 @@ async def _phase_extract(fc: FetchContext) -> None:
         # listing DOM.
         await _run_extraction_escalation(fc, raw_html=raw_html)
         _phase_listing_completeness(fc, raw_html=raw_html)
+        _phase_gated_sections(fc, raw_html=raw_html)
         return
 
     # JSON response body (json-endpoint-direct-routing): the raw tier now wins on
@@ -160,6 +162,7 @@ async def _phase_extract(fc: FetchContext) -> None:
     fc.meta_dict = parse_metadata(raw_html)
     await _run_extraction_escalation(fc, raw_html=raw_html)
     _phase_listing_completeness(fc, raw_html=raw_html)
+    _phase_gated_sections(fc, raw_html=raw_html)
     extract_dur_ms = int((time.perf_counter() - fc.inputs.start_perf) * 1000) - extract_dur_start
     fc.diagnostics.append(
         Diagnostic(

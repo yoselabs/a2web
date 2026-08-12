@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from ...gated_sections import GatedSection, GatedSectionDigest
 from ...link_digest import LinkDigest, build_digest
 from ...log import log_warning
 from ...packages.llm_extract import OtherPageBoundary, RouterPayload
@@ -70,3 +71,41 @@ def _rehydrate_routing_handles(routing: RouterPayload | None, digest: LinkDigest
         elif entry.url:
             resolved.append(entry)
     return replace(routing, other_pages=tuple(resolved))
+
+
+def _build_gate_digest(fc: FetchContext) -> GatedSectionDigest | None:
+    """Build the gated-sections digest when the page carries any detected gate.
+
+    No pre-LLM gate beyond that (unlike `_build_link_digest`'s json_synth/
+    record_synth check): `fc.gated_sections` is itself already sparse — a page
+    with no click-gated tab/details control costs nothing (empty tuple, no
+    digest, no prompt suffix). ADR-0020's design deliberately keeps detection
+    recall-oriented; the model, not a second server-side gate, judges
+    relevance.
+    """
+    if not fc.gated_sections:
+        return None
+    return GatedSectionDigest(entries=fc.gated_sections)
+
+
+def _resolve_blocked_gate(routing: RouterPayload | None, digest: GatedSectionDigest | None) -> GatedSection | None:
+    """Resolve the model's `blocked_gate` handle against the closed detected set.
+
+    Closed-set, exactly like link-handle rehydration: a handle absent from the
+    digest (or a digest that was never fed, e.g. `request_routing=False`)
+    resolves to `None` rather than a guessed section. `None` is also the
+    correct result on the ordinary path where the model emitted no
+    `blocked_gate` at all — the by-far-common case.
+    """
+    if routing is None or routing.blocked_gate is None or digest is None:
+        return None
+    resolved = digest.resolve(routing.blocked_gate)
+    if resolved is None:
+        log_warning(
+            "llm_wobble",
+            boundary="blocked_gate_handle",
+            field="handle",
+            tolerance="skip",
+            handle=routing.blocked_gate,
+        )
+    return resolved

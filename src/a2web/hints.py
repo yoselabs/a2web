@@ -79,6 +79,7 @@ HINT_CODES: frozenset[str] = frozenset(
         "extraction_empty",
         "fetch_deadline_exceeded",
         "index_lost",
+        "interaction_required",
         "listing_more",
         "listing_partial",
         "llm_error",
@@ -397,6 +398,49 @@ def section_unretrieved_hint(sections: list[str]) -> OperatorHint:
             "meaning the source has none — treat them as unknown."
         ),
         fix=("Usually an API rate limit; retry later, or set a credential (e.g. A2WEB_GITHUB_TOKEN) to raise the quota."),
+        severity="warning",
+    )
+
+
+def interaction_required_hint(*, label: str, stated_count: int | None) -> OperatorHint:
+    """A page section that BLOCKS the answer sits behind an in-page interaction
+    a2web cannot perform (ADR-0020, grounded absence).
+
+    Same observable as `section_unretrieved` — a section was not retrieved,
+    the page is otherwise fine — but the honest FIX is the opposite. GitHub's
+    sub-fetch failure is transient: retry, or raise a rate limit with a
+    credential. This is permanent and structural: the section has no href, an
+    in-page click does not change the URL (verified live, 2026-08-12), and no
+    a2web browser backend can click — `RenderedPage` exposes `scroll_to_stable`
+    and nothing more. `section_unretrieved`'s fix text ("usually an API rate
+    limit; retry later") would be actively wrong guidance here — the
+    `extraction_empty`/`llm_error` precedent is the same split for the same
+    reason: two codes for one observable because the honest fix differs
+    completely.
+
+    `warning`, not `critical` — nothing here suggests a WALL (the rest of the
+    page retrieved fine), and the `try_user_browser` klaxon must keep meaning
+    exactly one thing. Not `retrieval_incomplete` either — that flag is
+    contractually bound to `status: failed` (ADR-0009), and failing an
+    otherwise-successful fetch over one blocked section is the worse trade.
+
+    States plainly that no other URL exists and that re-querying is futile —
+    the whole point is to close the loop a bare incompleteness signal leaves
+    open (a caller re-querying the same URL forever).
+    """
+    named = f"{label} ({stated_count})" if stated_count is not None else label
+    return OperatorHint(
+        code="interaction_required",
+        message=(
+            f"The section you asked about — {named!r} — exists on this page but was NOT "
+            "retrieved: it loads only after an in-page click and has NO separate URL. "
+            "Do not read this as the source having none. Re-querying this URL will return "
+            "the same result."
+        ),
+        fix=(
+            "Open the URL in a real-browser tool, interact with that section, and read it — "
+            "or tell the user this section could not be retrieved."
+        ),
         severity="warning",
     )
 
