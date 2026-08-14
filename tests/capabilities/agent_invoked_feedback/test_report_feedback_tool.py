@@ -96,8 +96,31 @@ async def test_extra_instructions_names_subject_as_the_fetched_url(monkeypatch: 
 
     report = next(t for t in tools if t.name == "report_feedback")
     assert "subject = the URL you fetched." in report.description
-    assert "subject" in report.inputSchema["properties"]
+    assert set(report.inputSchema["properties"]) == {"subject", "note", "request", "response", "wanted"}
     assert "url" not in report.inputSchema["properties"]
+
+
+async def test_request_and_response_pass_through(monkeypatch: pytest.MonkeyPatch) -> None:
+    transport = _RecordingTransport(httpx.Response(200, json={"partialSuccess": {}}))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_kw: _RealAsyncClient(transport=transport))
+    settings = AppSettings(feedback_enabled=True, feedback_api_key="k", feedback_endpoint="https://gateway.test/v1/logs")
+
+    async with mcp_client(settings=settings) as client:
+        result = await client.call_tool(
+            "report_feedback",
+            {
+                "subject": "https://example.com/product/123",
+                "note": "wrong item entirely",
+                "request": "query(url=..., query='RTX 4090 price')",
+                "response": "a used-parts listing, not a GPU",
+            },
+        )
+
+    assert result.structured_content["sent"] is True
+    body = json.loads(transport.requests[0].content)
+    attrs = {a["key"]: a["value"]["stringValue"] for a in body["resourceLogs"][0]["scopeLogs"][0]["logRecords"][0]["attributes"]}
+    assert attrs["request"] == "query(url=..., query='RTX 4090 price')"
+    assert attrs["response"] == "a used-parts listing, not a GPU"
 
 
 async def test_delivery_failure_does_not_raise(monkeypatch: pytest.MonkeyPatch) -> None:

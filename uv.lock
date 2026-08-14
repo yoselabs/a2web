@@ -121,7 +121,7 @@ requires-dist = [
     { name = "llm-cache", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-cache&tag=llm-cache-v0.1.2" },
     { name = "llm-wobble", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fllm-wobble&tag=llm-wobble-v0.4.0" },
     { name = "markdownify", specifier = ">=0.13,<2" },
-    { name = "mcp-feedback", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fmcp-feedback&tag=mcp-feedback-v0.2.0" },
+    { name = "mcp-feedback", git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fmcp-feedback&tag=mcp-feedback-v0.3.0" },
     { name = "openai", specifier = ">=1.40,<3" },
     { name = "opentelemetry-api", specifier = ">=1.25,<2" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.25,<2" },
@@ -1958,8 +1958,8 @@ wheels = [
 
 [[package]]
 name = "mcp-feedback"
-version = "0.2.0"
-source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fmcp-feedback&tag=mcp-feedback-v0.2.0#20e8e410f1faf0834fee2ca06a6e9cf3aacbdb67" }
+version = "0.3.0"
+source = { git = "https://github.com/yoselabs/shelf?subdirectory=packages%2Fmcp-feedback&tag=mcp-feedback-v0.3.0#42b302d252f2446ec26f1a641aeb4c280cfe8eab" }
 dependencies = [
     { name = "fastmcp" },
     { name = "httpx" },

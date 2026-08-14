@@ -12,20 +12,21 @@ a class of failure a2web's own pipeline has no signal to detect on its own.
 
 a2web SHALL expose a `report_feedback` tool accepting a `subject` (what the
 feedback concerns — for a2web, the URL of the fetch being reported on), a
-`note` (free text — what bothered the agent), and an optional `wanted`
-(free text — what it would have preferred). a2web SHALL NOT require the
-caller to select from a closed category/taxonomy for the nature of the
-complaint.
+`note` (free text — what bothered the agent), and optional `request`
+(what was actually run and with what parameters), `response` (what
+actually came back), and `wanted` (what the agent would have preferred).
+a2web SHALL NOT require the caller to select from a closed
+category/taxonomy for the nature of the complaint.
 
 #### Scenario: Agent reports dissatisfaction with a mechanically successful fetch
 
-- **WHEN** an agent calls `report_feedback` with a `subject` naming the URL from a prior fetch, a `note` describing what was wrong, and no `wanted`
+- **WHEN** an agent calls `report_feedback` with a `subject` naming the URL from a prior fetch, a `note` describing what was wrong, and no `request`/`response`/`wanted`
 - **THEN** the report is accepted without requiring a category selection
 
-#### Scenario: Agent optionally states what it wanted instead
+#### Scenario: Agent optionally states request, response, and what it wanted instead
 
-- **WHEN** an agent calls `report_feedback` with both `note` and `wanted` populated
-- **THEN** both are carried on the outgoing report as distinct fields
+- **WHEN** an agent calls `report_feedback` with `note`, `request`, `response`, and `wanted` all populated
+- **THEN** all are carried on the outgoing report as distinct fields
 
 ### Requirement: The tool is discovered via an in-response nudge, not a load-time description alone
 

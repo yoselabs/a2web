@@ -17,7 +17,9 @@ already validated against a2web's own prior drift data.
 - **BREAKING**: `report_feedback`'s `url: str` parameter is replaced by
   `subject: str` (same slot, renamed — callers pass the URL they fetched,
   same as before, but the field itself is no longer fetch-specific by
-  name). `note`/`wanted` are unchanged.
+  name). `note`/`wanted` are unchanged; two new optional fields,
+  `request`/`response`, were added on the shelf side (v0.3.0) to carry
+  what was actually run and what actually came back.
 - `src/a2web/feedback_transport.py`'s `record_agent_feedback`/
   `FeedbackReportResult`/`post_feedback_logs` (the agent-invoked half) are
   deleted; `register_feedback_tools` in `routers.py` now calls the shelf
@@ -46,10 +48,12 @@ already validated against a2web's own prior drift data.
 
 ## Impact
 
-- `pyproject.toml`: new pinned dependency `mcp-feedback = { git =
+- `pyproject.toml`: pinned dependency `mcp-feedback = { git =
   "https://github.com/yoselabs/shelf", subdirectory =
-  "packages/mcp-feedback", tag = "mcp-feedback-v0.1.0" }` (tag TBD until
-  the shelf package ships).
+  "packages/mcp-feedback", tag = "mcp-feedback-v0.3.0" }` (shipped as
+  v0.1.0, then re-tagged v0.2.0 after dropping `Context`/`session_id` —
+  see design D4 — and v0.3.0 after adding optional `request`/`response`
+  fields).
 - `src/a2web/feedback_transport.py`: `record_agent_feedback`,
   `FeedbackReportResult`, and the agent-feedback-specific parts of
   `post_feedback_logs` are deleted. `_record_feedback`'s own transport use

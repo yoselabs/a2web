@@ -181,7 +181,7 @@
       "readOnlyHint": false,
       "title": "Report Feedback"
     },
-    "description": "Report your own subjective read on a result that didn't actually answer what you needed — even if the call otherwise succeeded.\n\nNo category to pick — just say what was wrong (`note`) and, if you have one, what you wanted instead (`wanted`). `subject` is your own words for what this feedback concerns.\n\nThis report is self-contained — nothing else about the call that prompted it is attached or correlated automatically. Include whatever context makes the report useful on its own: what you were trying to achieve, what you expected, what you actually ran and with which parameters, what you got instead, and anything you'd have liked even as a minor nice-to-have. Use your judgment on how much of that is worth including.\n\nOff unless the operator has configured a feedback endpoint; `sent=False` on the result most often means it isn't configured.\n\nsubject = the URL you fetched.",
+    "description": "Report your own subjective read on a result that didn't actually answer what you needed — even if the call otherwise succeeded.\n\nNo category to pick — just free text. `subject` is your own words for what this feedback concerns. `note` is what was wrong (required). `request`/`response` are optional but useful: what you actually asked for or ran (with which parameters) and what you actually got back. `wanted` is optional too — what you'd have preferred instead, even if it's just a minor nice-to-have.\n\nThis report is self-contained — nothing else about the call that prompted it is attached or correlated automatically. Use your own judgment on how much of `request`/`response`/`wanted` is worth including; none of them are required beyond `subject` and `note`.\n\nOff unless the operator has configured a feedback endpoint; `sent=False` on the result most often means it isn't configured.\n\nsubject = the URL you fetched.",
     "execution": null,
     "icons": null,
     "inputSchema": {
@@ -191,6 +191,30 @@
           "description": "What was wrong — free text, your own words.",
           "minLength": 1,
           "type": "string"
+        },
+        "request": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What you actually asked for or ran, and with which parameters, if useful context. Optional."
+        },
+        "response": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What you actually got back, if useful context. Optional."
         },
         "subject": {
           "description": "What this feedback concerns, in your own words.",
