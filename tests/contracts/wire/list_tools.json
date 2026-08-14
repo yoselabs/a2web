@@ -172,5 +172,70 @@
       "type": "object"
     },
     "title": "Query a Web Page"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Report Feedback"
+    },
+    "description": "Report your own subjective read on a result that didn't actually answer what you needed — even if the call otherwise succeeded.\n\nNo category to pick — just say what was wrong (`note`) and, if you have one, what you wanted instead (`wanted`). `subject` is your own words for what this feedback concerns.\n\nThis report is self-contained — nothing else about the call that prompted it is attached or correlated automatically. Include whatever context makes the report useful on its own: what you were trying to achieve, what you expected, what you actually ran and with which parameters, what you got instead, and anything you'd have liked even as a minor nice-to-have. Use your judgment on how much of that is worth including.\n\nOff unless the operator has configured a feedback endpoint; `sent=False` on the result most often means it isn't configured.\n\nsubject = the URL you fetched.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "note": {
+          "description": "What was wrong — free text, your own words.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "subject": {
+          "description": "What this feedback concerns, in your own words.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "wanted": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What you would have preferred instead, if you have something specific in mind. Optional."
+        }
+      },
+      "required": [
+        "subject",
+        "note"
+      ],
+      "type": "object"
+    },
+    "meta": {
+      "fastmcp": {
+        "tags": [
+          "write"
+        ]
+      }
+    },
+    "name": "report_feedback",
+    "outputSchema": {
+      "description": "`report_feedback`'s return value.\n\n`sent` reflects whether a send was ATTEMPTED (feedback reporting is\nconfigured) — never whether it was actually delivered, which is\ninvisible by design (best-effort, swallowed on failure). `sent=False`\nmost often means the operator hasn't configured an endpoint/key.",
+      "properties": {
+        "sent": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "sent"
+      ],
+      "type": "object"
+    },
+    "title": "Report Feedback"
   }
 ]

@@ -149,10 +149,12 @@ async def test_wire_list_tools() -> None:
 
     names = sorted(t.name for t in tools)
     # Anti-vacuity + a documentation correction. The advertised surface is
-    # exactly two tools: `expose_cookies_tool` defaults false, so `build_app()`
-    # selects `_A2WebServer`, which drops `CookiesRouter` entirely. `refresh`
-    # is NOT on the wire and never has been in the installed configuration.
-    assert names == ["fetch_raw", "query"], f"advertised surface changed: {names}"
+    # exactly three tools: `expose_cookies_tool` defaults false, so
+    # `build_app()` selects `_A2WebServer`, which drops `CookiesRouter`
+    # entirely. `refresh` is NOT on the wire and never has been in the
+    # installed configuration. `report_feedback` (add-agent-invoked-feedback-tool)
+    # is always registered — it has no local-only dependency to gate on.
+    assert names == ["fetch_raw", "query", "report_feedback"], f"advertised surface changed: {names}"
 
     payload = [json.loads(t.model_dump_json(exclude_none=False)) for t in sorted(tools, key=lambda t: t.name)]
     # Anti-vacuity: descriptions are the agent's entire basis for tool

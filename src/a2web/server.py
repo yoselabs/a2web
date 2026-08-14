@@ -39,7 +39,7 @@ from . import log as a2web_log
 from ._manifests.sinks import Sink
 from .components import Components, build_components
 from .error_wire import TypedErrorEnvelopeMiddleware
-from .routers import register_cookies_tools, register_web_tools
+from .routers import register_cookies_tools, register_feedback_tools, register_web_tools
 from .settings import AppSettings, get_settings
 from .wire import EnvelopeContentMiddleware
 
@@ -94,6 +94,7 @@ def build_mcp_server(
     mcp = FastMCP(name="a2web", **fastmcp_kwargs)
 
     register_web_tools(mcp, parts)
+    register_feedback_tools(mcp, parts)
     # The local-only cookies tool: a2web served as a network MCP server has no
     # local browser to mirror cookies from, so the tool is absent rather than
     # present-and-failing.

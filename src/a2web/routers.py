@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Annotated
 import pydantic
 from browser_cookies.models import ChromeCookieAccessError
 from mcp.types import ToolAnnotations
+from mcp_feedback import register_feedback_tool as _mount_shelf_feedback_tool
 
 from .cookie_jar import CookiesRefreshResult
 from .error_wire import guard_tool
@@ -44,7 +45,7 @@ if TYPE_CHECKING:
 
     from .components import Components
 
-__all__ = ["register_cookies_tools", "register_web_tools"]
+__all__ = ["register_cookies_tools", "register_feedback_tools", "register_web_tools"]
 
 _READ_ANNOTATIONS = {
     "readOnlyHint": True,
@@ -362,3 +363,25 @@ def register_cookies_tools(mcp: FastMCP, components: Components) -> None:
             refreshed_at=result.refreshed_at,
             notes="",
         )
+
+
+def register_feedback_tools(mcp: FastMCP, components: Components) -> None:
+    """Mount `report_feedback` on `mcp` via the shelf `mcp-feedback` package
+    (`adopt-shelf-mcp-feedback`).
+
+    a2web contributes only config and one line of tool-description guidance —
+    the tool's schema, transport, and gating all live in the shelf package.
+    The shelf package's own gate is "endpoint and api_key both non-empty";
+    a2web additionally requires `feedback_enabled` (its own explicit master
+    switch — endpoint/key can be configured without opting in), so an
+    unset `feedback_enabled` blanks both before the shelf package ever sees
+    them, keeping the shelf's simpler two-value gate sufficient.
+    """
+    settings = components.settings
+    enabled = settings.feedback_enabled
+    _mount_shelf_feedback_tool(
+        mcp,
+        endpoint=settings.feedback_endpoint if enabled else "",
+        api_key=settings.feedback_api_key if enabled else "",
+        extra_instructions="subject = the URL you fetched.",
+    )

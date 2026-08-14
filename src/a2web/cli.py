@@ -70,11 +70,13 @@ _TOOL_GROUPS: dict[str, tuple[str, str]] = {
     "query": ("web", "query"),
     "fetch_raw": ("web", "fetch_raw"),
     "cookies_refresh": ("cookies", "refresh"),
+    "report_feedback": ("feedback", "report"),
 }
 
 _GROUP_HELP: dict[str, str] = {
     "web": "Fetch and query web pages.",
     "cookies": "Manage the local browser-cookie mirror.",
+    "feedback": "Report your own feedback on a fetch (add-agent-invoked-feedback-tool).",
 }
 
 

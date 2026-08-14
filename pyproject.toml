@@ -133,6 +133,13 @@ dependencies = [
     "async-scope>=0.1,<1",
     "settings-base>=0.1,<1",
     "plugin-surface>=0.1,<1",
+    # mcp-feedback: the fixed-schema, agent-invoked report_feedback(subject, note,
+    # wanted) tool — generalized from a2web's own archived add-agent-invoked-
+    # feedback-tool change (adopt-shelf-mcp-feedback). a2web supplies only
+    # feedback_endpoint/feedback_api_key and one line of tool-description guidance
+    # ("subject = the URL you fetched"); the schema/transport/gating are the
+    # shelf's, shared with any other FastMCP project that mounts it.
+    "mcp-feedback>=0.1,<1",
     # The typed LLM-JSON funnel (promoted from packages/llm_extract/wobble/
     # 2026-07-26). a2web keeps only its product policy tables (_policies.py) and
     # a thin logger-injecting binding; the machinery is the shelf's.
@@ -282,6 +289,7 @@ timefmt = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/
 async-scope = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/async-scope", tag = "async-scope-v0.1.0" }
 settings-base = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/settings-base", tag = "settings-base-v0.1.0" }
 plugin-surface = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/plugin-surface", tag = "plugin-surface-v0.1.0" }
+mcp-feedback = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/mcp-feedback", tag = "mcp-feedback-v0.2.0" }
 llm-wobble = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/llm-wobble", tag = "llm-wobble-v0.4.0" }
 llm-cache = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/llm-cache", tag = "llm-cache-v0.1.2" }
 any-browser = { git = "https://github.com/yoselabs/shelf", subdirectory = "packages/any-browser", tag = "any-browser-v0.1.0" }

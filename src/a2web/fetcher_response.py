@@ -36,6 +36,7 @@ from .hints import (
     listing_partial_hint,
     llm_error_hint,
     query_title_mismatch_hint,
+    report_feedback_available_hint,
     retrieval_incomplete_hint,
     served_url_differs_hint,
 )
@@ -331,6 +332,42 @@ def _confidence_for(verdict: Verdict, content_md: str) -> Confidence:
     if len(content_md) > 2000:
         return Confidence.high
     return Confidence.medium
+
+
+#: Severities that already carry enough caller attention to append the
+#: report_feedback nudge onto their own `fix` at zero extra envelope cost.
+_NUDGE_HOST_SEVERITIES = frozenset({"warning", "critical"})
+
+#: Substring marking a `fix` that already carries the nudge. `build_response`
+#: (fetch_raw path) and `build_ask_response` (query path, which re-derives its
+#: own confidence/hints from `build_response`'s already-nudged output) both
+#: call `_with_feedback_nudge` on their own finalized state — this makes the
+#: call idempotent instead of appending the sentence twice on the shared list.
+_NUDGE_MARKER = "report_feedback("
+
+
+def _with_feedback_nudge(op_hints: list[OperatorHint], confidence: Confidence) -> list[OperatorHint]:
+    """Append a `report_feedback` nudge (add-agent-invoked-feedback-tool design D1).
+
+    Cheapest-first: if a warning/critical hint already fired, its `fix` gains
+    one more sentence and nothing new is added to the envelope. Otherwise,
+    only when `confidence == low` (already an atypical response by
+    `Confidence`'s own definition — a downgrade cap already fired somewhere
+    upstream), one new info-severity hint is synthesized. A mechanically
+    clean, high-confidence response is untouched — the confidently-wrong
+    failure mode has no trigger here by design; see design.md D1.
+    """
+    if any(_NUDGE_MARKER in (h.fix or "") for h in op_hints):
+        return op_hints
+    for i, hint in enumerate(op_hints):
+        if hint.severity in _NUDGE_HOST_SEVERITIES:
+            nudge = f" If this doesn't answer what you needed, call {_NUDGE_MARKER}subject=..., note=...) to report it."
+            updated = op_hints.copy()
+            updated[i] = hint.model_copy(update={"fix": (hint.fix or "") + nudge})
+            return updated
+    if confidence == Confidence.low:
+        return [*op_hints, report_feedback_available_hint()]
+    return op_hints
 
 
 def _wrap_content_md(content_md: str, *, source: str, fetched_at: datetime) -> str:
@@ -1101,6 +1138,10 @@ def build_response(fc: ResponseContext) -> FetchResponse:
             )
         )
 
+    # add-agent-invoked-feedback-tool D1: nudge toward report_feedback, at
+    # zero envelope cost when a hint already fired, bounded cost otherwise.
+    op_hints = _with_feedback_nudge(op_hints, confidence)
+
     # narrative / diagnostics_summary stay populated for internal callers (the
     # eval harness reads `.diagnostics_summary` directly off a debug=True
     # response — see `llm_eval/systems.py`/`extraction.py`); the serializer
@@ -1310,6 +1351,7 @@ def build_ask_response(fr: FetchResponse, *, include_content: bool, debug: bool)
             options=options,
         )
     )
+    op_hints = _with_feedback_nudge(op_hints, confidence)
 
     return AskResponse(
         url=fr.url,

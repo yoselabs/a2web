@@ -88,6 +88,7 @@ HINT_CODES: frozenset[str] = frozenset(
         "query_title_mismatch",
         "reddit_deleted_try_archive",
         "reddit_forbidden_try_archive",
+        "report_feedback_available",
         "retrieval_incomplete",
         "section_unretrieved",
         "served_url_differs",
@@ -625,6 +626,22 @@ def content_guidance_hint(guidance: str) -> OperatorHint:
     an empty `fix` rather than emitting a dead `""`.
     """
     return OperatorHint(code="content_guidance", message=guidance)
+
+
+def report_feedback_available_hint() -> OperatorHint:
+    """Nudge toward the `report_feedback` tool (add-agent-invoked-feedback-tool).
+
+    Only synthesized as a standalone hint when a fetch resolved at
+    `confidence: low` with no other `OperatorHint` already present — the
+    more common case (a warning/critical hint already fired) appends this
+    same nudge to that hint's own `fix` instead, at zero extra envelope
+    cost. `info` severity: this is an available next step, not a problem.
+    """
+    return OperatorHint(
+        code="report_feedback_available",
+        message="This result may not be what you needed.",
+        fix="If this doesn't answer what you needed, call report_feedback(subject=..., note=...) to report it.",
+    )
 
 
 def index_lost_hint() -> OperatorHint:

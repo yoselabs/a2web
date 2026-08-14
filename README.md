@@ -97,6 +97,7 @@ rather than a silent empty answer.
 |---|---|---|
 | `query` | read | The one you'll reach for. Fetches the URL through the cascade, then a small fast model extracts a focused answer to your `query` server-side. Returns a lean answer envelope, not the page. |
 | `fetch_raw` | read | Fallback. Same cascade, no LLM. Returns the page itself: `content_md`, headings, links. Use it when you want the raw page or plan to extract yourself. |
+| `report_feedback` | write | Report your own subjective read on a fetch that didn't answer what you needed, even if it came back `status: ok` — a2web's own pipeline only catches mechanical failures on its own. Free text (`note`, optional `wanted`), no category to pick. Off by default — same `A2WEB_FEEDBACK_*` config as the automatic reports below. |
 | `refresh` (cookies) | write | Refreshes the local browser-cookie mirror so fetches arrive logged-in. Local-only, off by default — set `A2WEB_EXPOSE_COOKIES_TOOL=true` to expose it (see Cookies). The one moment a Keychain prompt may fire. |
 
 ### CLI
@@ -318,10 +319,10 @@ ones:
 | `A2WEB_GITHUB_TOKEN` | GitHub handler token — raises the API rate limit 60 → 5000 req/hr. Set this if you fetch GitHub issues/PRs at any volume. |
 | `A2WEB_REDDIT_TIER_POLICY` | `robustness` (default: Reddit → Zyte → RSS) or `privacy` (RSS-only; no third party ever sees the URL). |
 | **Failure-feedback reporting (opt-in, off by default)** | |
-| `A2WEB_FEEDBACK_ENABLED` | `true` to report a condensed event (hint code, severity, tier context, a2web version — never raw URL/query/content) whenever a fetch resolves a warning/critical `OperatorHint`. Unset → a2web sends nothing to any endpoint, ever. Requires `A2WEB_FEEDBACK_ENDPOINT` and `A2WEB_FEEDBACK_API_KEY` to also be set — no shipped default endpoint. |
+| `A2WEB_FEEDBACK_ENABLED` | `true` to report a diagnostic event whenever a fetch resolves a warning/critical `OperatorHint`: hint code/severity/fix, the full tier-escalation chain (every attempt, not just the last), the fetch's terminal status/content-type/cache-state, what was expected (`query` wants an extracted answer, `fetch_raw` wants raw content) vs. the actual result status/confidence the caller received, and a2web version. Unset → a2web sends nothing to any endpoint, ever. Requires `A2WEB_FEEDBACK_ENDPOINT` and `A2WEB_FEEDBACK_API_KEY` to also be set — no shipped default endpoint. |
 | `A2WEB_FEEDBACK_ENDPOINT` | OTLP/HTTP logs endpoint to report to (e.g. your own OTel Collector). |
 | `A2WEB_FEEDBACK_API_KEY` | Sent as the `X-Api-Key` header (not `Authorization: Bearer`) — match your gateway's expected auth scheme. |
-| `A2WEB_FEEDBACK_INCLUDE_CONTENT` | `true` to include the raw URL and query text in reports. Default `false` — reports carry only the hint code/severity/context. |
+| `A2WEB_FEEDBACK_INCLUDE_CONTENT` | `true` to include the raw requested/final URL and query text in reports, as `requested_url`/`final_url`/`requested_query` fields — the narrative message text also stops being redacted locally, but treat the dedicated fields as the authoritative source: a receiving gateway may still redact the narrative text on its own policy regardless of this flag (a2web has no control over that once the report leaves the process). Default `false`, and every known fetch URL is replaced with `[url-redacted]` in the narrative text when off. |
 | **Storage + surface** | |
 | `A2WEB_CACHE_DIR` | sqlite HTTP-cache dir. Defaults to `/data` in the image; back it with a volume so the cache survives restarts. |
 | `A2WEB_EXPOSE_COOKIES_TOOL` | Leave **unset** on a server (the cookie mirror is local-only). Set `true` only for a local `serve`. |

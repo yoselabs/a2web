@@ -695,3 +695,242 @@ says nothing about whether the surface was right when captured.
      "icons": null,
      "inputSchema": {
 ```
+
+## `add-agent-invoked-feedback-tool-nudge` — `call/query_failure`
+
+```diff
+--- call/query_failure.json (before)
++++ call/query_failure.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"_operator_hints_format\":\"tsv\"}",
++      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(url=..., note=...) to report it.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"_operator_hints_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+@@ -13,7 +13,7 @@
+     "operator_hints": [
+       {
+         "code": "try_user_browser",
+-        "fix": "Open the URL in a real-browser tool and read the page, or report the gap to the user.",
++        "fix": "Open the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(url=..., note=...) to report it.",
+         "message": "This URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.",
+         "severity": "critical"
+       }
+```
+
+## `add-agent-invoked-feedback-tool-nudge` — `call/query_heterogeneous_hints`
+
+```diff
+--- call/query_heterogeneous_hints.json (before)
++++ call/query_heterogeneous_hints.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ncookies_stale\\tBrowser cookies last refreshed 99h ago; threshold is 24h. Some sites may treat this session as logged-out.\\tRun `a2web cookies refresh`\\t\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"_operator_hints_format\":\"tsv\"}",
++      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ncookies_stale\\tBrowser cookies last refreshed 99h ago; threshold is 24h. Some sites may treat this session as logged-out.\\tRun `a2web cookies refresh`\\t\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(url=..., note=...) to report it.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"_operator_hints_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+@@ -18,7 +18,7 @@
+       },
+       {
+         "code": "try_user_browser",
+-        "fix": "Open the URL in a real-browser tool and read the page, or report the gap to the user.",
++        "fix": "Open the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(url=..., note=...) to report it.",
+         "message": "This URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.",
+         "severity": "critical"
+       }
+```
+
+## `add-agent-invoked-feedback-tool-new-tool` — `list_tools`
+
+```diff
+--- list_tools.json (before)
++++ list_tools.json (after)
+@@ -172,5 +172,69 @@
+       "type": "object"
+     },
+     "title": "Query a Web Page"
++  },
++  {
++    "annotations": {
++      "destructiveHint": false,
++      "idempotentHint": false,
++      "openWorldHint": false,
++      "readOnlyHint": false,
++      "title": "Report Feedback on a Fetch"
++    },
++    "description": "Report your own subjective read on a fetch that didn't actually answer what you needed —\neven if it came back `status: ok`.\n\na2web's own pipeline catches mechanical failures (walls, timeouts, thin content) on its\nown and reports them automatically; it has no way to know when a mechanically clean fetch\nstill didn't give you what you were actually looking for. This is that channel.\n\nNo category to pick — just say what was wrong (`note`) and, if you have one, what you\nwanted instead (`wanted`). Off by default; `sent=False` on the result most often means\nthe operator hasn't enabled feedback reporting.",
++    "execution": null,
++    "icons": null,
++    "inputSchema": {
++      "additionalProperties": false,
++      "properties": {
++        "note": {
++          "description": "What bothered you about the result — free text, your own words.",
++          "minLength": 1,
++          "type": "string"
++        },
++        "url": {
++          "description": "The URL of the fetch this feedback is about.",
++          "type": "string"
++        },
++        "wanted": {
++          "anyOf": [
++            {
++              "type": "string"
++            },
++            {
++              "type": "null"
++            }
++          ],
++          "default": null,
++          "description": "What you would have preferred instead, if you have something specific in mind. Optional."
++        }
++      },
++      "required": [
++        "url",
++        "note"
++      ],
++      "type": "object"
++    },
++    "meta": {
++      "fastmcp": {
++        "tags": [
++          "write"
++        ]
++      }
++    },
++    "name": "report_feedback",
++    "outputSchema": {
++      "description": "Tool-return envelope for `report_feedback`.\n\n`sent` reflects whether a send was ATTEMPTED (feedback reporting is\nenabled and configured) — never whether it was actually delivered,\nwhich is invisible by design (best-effort, swallowed on failure, same\nas `feedback-telemetry`'s mechanical reports). `sent=False` most often\nmeans the operator hasn't opted into feedback reporting at all.",
++      "properties": {
++        "sent": {
++          "type": "boolean"
++        }
++      },
++      "required": [
++        "sent"
++      ],
++      "type": "object"
++    },
++    "title": "Report Feedback on a Fetch"
+   }
+ ]
+```
+
+## `adopt-shelf-mcp-feedback-subject-rename` — `list_tools`
+
+```diff
+--- list_tools.json (before)
++++ list_tools.json (after)
+@@ -179,21 +179,22 @@
+       "idempotentHint": false,
+       "openWorldHint": false,
+       "readOnlyHint": false,
+-      "title": "Report Feedback on a Fetch"
+-    },
+-    "description": "Report your own subjective read on a fetch that didn't actually answer what you needed —\neven if it came back `status: ok`.\n\na2web's own pipeline catches mechanical failures (walls, timeouts, thin content) on its\nown and reports them automatically; it has no way to know when a mechanically clean fetch\nstill didn't give you what you were actually looking for. This is that channel.\n\nNo category to pick — just say what was wrong (`note`) and, if you have one, what you\nwanted instead (`wanted`). Off by default; `sent=False` on the result most often means\nthe operator hasn't enabled feedback reporting.",
++      "title": "Report Feedback"
++    },
++    "description": "Report your own subjective read on a result that didn't actually answer what you needed — even if the call otherwise succeeded.\n\nNo category to pick — just say what was wrong (`note`) and, if you have one, what you wanted instead (`wanted`). `subject` is your own words for what this feedback concerns.\n\nThis report is self-contained — nothing else about the call that prompted it is attached or correlated automatically. Include whatever context makes the report useful on its own: what you were trying to achieve, what you expected, what you actually ran and with which parameters, what you got instead, and anything you'd have liked even as a minor nice-to-have. Use your judgment on how much of that is worth including.\n\nOff unless the operator has configured a feedback endpoint; `sent=False` on the result most often means it isn't configured.\n\nsubject = the URL you fetched.",
+     "execution": null,
+     "icons": null,
+     "inputSchema": {
+       "additionalProperties": false,
+       "properties": {
+         "note": {
+-          "description": "What bothered you about the result — free text, your own words.",
++          "description": "What was wrong — free text, your own words.",
+           "minLength": 1,
+           "type": "string"
+         },
+-        "url": {
+-          "description": "The URL of the fetch this feedback is about.",
++        "subject": {
++          "description": "What this feedback concerns, in your own words.",
++          "minLength": 1,
+           "type": "string"
+         },
+         "wanted": {
+@@ -210,7 +211,7 @@
+         }
+       },
+       "required": [
+-        "url",
++        "subject",
+         "note"
+       ],
+       "type": "object"
+@@ -224,7 +225,7 @@
+     },
+     "name": "report_feedback",
+     "outputSchema": {
+-      "description": "Tool-return envelope for `report_feedback`.\n\n`sent` reflects whether a send was ATTEMPTED (feedback reporting is\nenabled and configured) — never whether it was actually delivered,\nwhich is invisible by design (best-effort, swallowed on failure, same\nas `feedback-telemetry`'s mechanical reports). `sent=False` most often\nmeans the operator hasn't opted into feedback reporting at all.",
++      "description": "`report_feedback`'s return value.\n\n`sent` reflects whether a send was ATTEMPTED (feedback reporting is\nconfigured) — never whether it was actually delivered, which is\ninvisible by design (best-effort, swallowed on failure). `sent=False`\nmost often means the operator hasn't configured an endpoint/key.",
+       "properties": {
+         "sent": {
+           "type": "boolean"
+@@ -235,6 +236,6 @@
+       ],
+       "type": "object"
+     },
+-    "title": "Report Feedback on a Fetch"
++    "title": "Report Feedback"
+   }
+ ]
+```
+
+## `adopt-shelf-mcp-feedback-subject-rename` — `call/query_failure`
+
+```diff
+--- call/query_failure.json (before)
++++ call/query_failure.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(url=..., note=...) to report it.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"_operator_hints_format\":\"tsv\"}",
++      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(subject=..., note=...) to report it.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"_operator_hints_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+@@ -13,7 +13,7 @@
+     "operator_hints": [
+       {
+         "code": "try_user_browser",
+-        "fix": "Open the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(url=..., note=...) to report it.",
++        "fix": "Open the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(subject=..., note=...) to report it.",
+         "message": "This URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.",
+         "severity": "critical"
+       }
+```
+
+## `adopt-shelf-mcp-feedback-subject-rename` — `call/query_heterogeneous_hints`
+
+```diff
+--- call/query_heterogeneous_hints.json (before)
++++ call/query_heterogeneous_hints.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ncookies_stale\\tBrowser cookies last refreshed 99h ago; threshold is 24h. Some sites may treat this session as logged-out.\\tRun `a2web cookies refresh`\\t\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(url=..., note=...) to report it.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"_operator_hints_format\":\"tsv\"}",
++      "text": "{\"status\":\"failed\",\"confidence\":\"low\",\"answer\":null,\"title\":\"Just a moment...\",\"operator_hints\":\"code\\tmessage\\tfix\\tseverity\\ncookies_stale\\tBrowser cookies last refreshed 99h ago; threshold is 24h. Some sites may treat this session as logged-out.\\tRun `a2web cookies refresh`\\t\\ntry_user_browser\\tThis URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.\\tOpen the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(subject=..., note=...) to report it.\\tcritical\\n\",\"retrieval_incomplete\":true,\"narrative\":\"raw → block_page_detected:cf_iuam (0ms).\",\"_operator_hints_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+@@ -18,7 +18,7 @@
+       },
+       {
+         "code": "try_user_browser",
+-        "fix": "Open the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(url=..., note=...) to report it.",
++        "fix": "Open the URL in a real-browser tool and read the page, or report the gap to the user. If this doesn't answer what you needed, call report_feedback(subject=..., note=...) to report it.",
+         "message": "This URL was NOT retrieved — it is behind an anti-bot / paywall wall (https://blocked.example/page). You do NOT have this content; do not answer as if you do. You MUST either open it in a real browser tool (a logged-in browser can pass this wall) OR explicitly tell the user this source could not be retrieved and what is missing.",
+         "severity": "critical"
+       }
+```

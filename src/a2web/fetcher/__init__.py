@@ -293,11 +293,14 @@ async def fetch(
     if ask is not None and state.sqlite is not None:
         await _record_uptake(fc, state)
 
-    # Opt-in failure-feedback reporting (add-a2web-feedback-channel). Applies to
-    # every fetch (query or fetch_raw), not just the ask path — a wall/timeout on
-    # a raw fetch is exactly the kind of signal worth reporting. No-ops instantly
-    # when A2WEB_FEEDBACK_ENABLED is unset (the default).
-    await _record_feedback(fc, state)
+    # Opt-in failure-feedback reporting (add-a2web-feedback-channel,
+    # unify-otel-telemetry-seam). Applies to every fetch (query or fetch_raw),
+    # not just the ask path — a wall/timeout on a raw fetch is exactly the kind
+    # of signal worth reporting. No-ops instantly when A2WEB_FEEDBACK_ENABLED is
+    # unset (the default). `response` is already built above — passed through so
+    # the report's result_status/result_confidence are exactly what the caller
+    # received, not a second computation of the outcome.
+    await _record_feedback(fc, state, response=response)
 
     # v0.3 envelope diet: apply opt-in gates AT THE WIRE BOUNDARY.
     # `diagnostics_summary` stays always populated HERE (on `response` itself)
