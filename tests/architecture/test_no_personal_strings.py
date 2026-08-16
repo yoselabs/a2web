@@ -9,7 +9,7 @@ them; they arrive as a side effect of writing about something else.
 So this is a floor, not a review step. It scans the shipping tree on every
 `make check` and fails on reappearance.
 
-**Scope is narrow on purpose.** Two exclusions carry their reasons:
+**Scope is narrow on purpose.** Three exclusions carry their reasons:
 
   * `openspec/changes/**` — planning documents and the archived historical
     record. Rewriting shipped history to look tidier is the opposite of an honest
@@ -22,6 +22,19 @@ So this is a floor, not a review step. It scans the shipping tree on every
     *identifiers* (`iorlas`, a private FQDN, `/Users/`) rather than of names: a
     bare first name or surname cannot be distinguished from page content, so
     banning one would force exactly that corruption.
+  * `.beads/**` — the issue tracker's own passive JSONL export, same
+    reasoning as `openspec/changes/**`: an issue documenting a design
+    decision has to be able to name the actual value it discusses (e.g. the
+    shipped gateway hostname from `default-on-feedback`).
+
+**One deliberate exception, not a quiet bypass.** `default-on-feedback`
+ships a real default for `feedback_endpoint`/`feedback_api_key` in
+`settings.py` — a shared, public, write-only, ingest-only credential,
+intentionally public by the operator's own design, not an accidental leak
+this guard exists to catch. `_ALLOWED_OCCURRENCES` below names the exact
+(file, term) pair permitted, with the reason inline; nothing else in the
+denylist gets a pass, and this pair only covers that one shipped default,
+not a general "iorlas is fine now" carve-out.
 """
 
 from __future__ import annotations
@@ -39,6 +52,18 @@ _DENIED: tuple[str, ...] = (
     "/Users/",
 )
 
+#: (relative path, denied term) pairs explicitly permitted — see the module
+#: docstring's "One deliberate exception" section. Every entry must name a
+#: SPECIFIC file, never a whole prefix, so this cannot silently grow into a
+#: general exemption.
+_ALLOWED_OCCURRENCES: frozenset[tuple[str, str]] = frozenset(
+    {
+        # The shipped, shared feedback gateway default (default-on-feedback) —
+        # intentionally public, not a leak. See settings.py's own comment.
+        ("src/a2web/settings.py", "iorlas"),
+    }
+)
+
 #: Text-ish files worth scanning. Binary and lockfiles are excluded by extension
 #: rather than by sniffing, so the walk stays cheap and predictable.
 _SUFFIXES: frozenset[str] = frozenset({".py", ".md", ".toml", ".yaml", ".yml", ".json", ".jsonl", ".sh", ".cfg", ".txt", ""})
@@ -52,6 +77,7 @@ _SKIP_PREFIXES: tuple[str, ...] = (
     "openspec/changes/",  # planning + the archived historical record — see docstring
     "benchmarks/",  # frozen run artifacts over real pages
     "eval/corpus/",  # frozen page captures
+    ".beads/",  # issue tracker's own passive export — see docstring
 )
 
 #: The walk must find at least this many files. Well below the current population
@@ -107,7 +133,7 @@ def test_no_personal_identifiers_in_the_shipping_tree() -> None:
         if rel == Path(__file__).relative_to(REPO_ROOT):
             continue  # this file necessarily contains the denylist
         for term in _DENIED:
-            if term in text:
+            if term in text and (str(rel), term) not in _ALLOWED_OCCURRENCES:
                 line = next((i for i, ln in enumerate(text.splitlines(), 1) if term in ln), 0)
                 offenders.append(f"{rel}:{line}: contains {term!r}")
 
@@ -118,6 +144,20 @@ def test_no_personal_identifiers_in_the_shipping_tree() -> None:
         "If the match is genuine page content inside a frozen fixture, exclude that "
         "fixture directory instead of editing the capture."
     )
+
+
+def test_allowed_occurrences_are_not_stale() -> None:
+    """Every entry in `_ALLOWED_OCCURRENCES` must still be needed.
+
+    An exception nobody re-checks rots into an unexplained general pass —
+    this fails loudly the moment the file changes and no longer needs it,
+    rather than letting the carve-out silently outlive its reason.
+    """
+    for rel, term in _ALLOWED_OCCURRENCES:
+        path = REPO_ROOT / rel
+        assert path.is_file(), f"_ALLOWED_OCCURRENCES names {rel!r}, which no longer exists — remove the stale entry"
+        text = path.read_text(encoding="utf-8")
+        assert term in text, f"_ALLOWED_OCCURRENCES permits {term!r} in {rel!r}, but it is no longer there — remove the stale entry"
 
 
 def test_the_denylist_actually_matches_something() -> None:

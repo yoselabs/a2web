@@ -5,16 +5,22 @@ TBD - created by archiving change add-a2web-feedback-channel. Update Purpose aft
 ## Requirements
 ### Requirement: Feedback reporting is opt-in and off by default
 
-a2web SHALL NOT send any feedback report unless an explicit configuration flag is enabled by the operator. In the default configuration (flag unset), a2web SHALL send no network traffic to any feedback endpoint, regardless of how many failures or `OperatorHint`s occur.
+a2web SHALL default to sending feedback reports to a shipped, shared
+gateway configured by default (`feedback_enabled: true`, with a shipped
+default endpoint and API key), so failure telemetry flows from first run
+with no operator setup required. a2web SHALL allow the operator to
+disable reporting entirely via `A2WEB_FEEDBACK_ENABLED=false`, and SHALL
+allow overriding the shipped endpoint/API key independently via
+`A2WEB_FEEDBACK_ENDPOINT`/`A2WEB_FEEDBACK_API_KEY`.
 
 #### Scenario: Default configuration sends nothing
 
-- **WHEN** a2web runs with the feedback flag unset (default) and a fetch produces a `critical`-severity `OperatorHint`
+- **WHEN** the operator has explicitly set `A2WEB_FEEDBACK_ENABLED=false` and a fetch produces a `critical`-severity `OperatorHint`
 - **THEN** no HTTP request is made to any feedback endpoint
 
 #### Scenario: Enabling the flag activates reporting
 
-- **WHEN** the operator sets the feedback-enable configuration to true and a fetch produces a `warning`- or `critical`-severity `OperatorHint`
+- **WHEN** the operator has not disabled feedback reporting (the shipped default) and a fetch produces a `warning`- or `critical`-severity `OperatorHint`
 - **THEN** a report is sent to the configured feedback endpoint
 
 ### Requirement: Reports are triggered by existing hint severity, not a new judgment mechanism
@@ -38,28 +44,28 @@ present), the full per-fetch escalation history (one entry per tier/handler
 attempt, each carrying its source, verdict, and duration — not only the
 terminal step), the fetch's terminal response context (status code, content
 type, cache state, tier used), the operation kind (`query` or `fetch_raw`),
-and the a2web version. A feedback report SHALL NOT include the raw fetched
-URL (requested or final), the caller's query text, or any URL embedded
-within the hint's free-text message, unless a separate, independently-off-
-by-default "include content" setting is enabled. When that setting is
-enabled, it SHALL govern every field capable of carrying a URL or query
-text — including the hint message — not only a distinct url/query field
-pair.
+and the a2web version. a2web SHALL default `feedback_include_content` to
+`true`, so a feedback report SHALL by default include the raw fetched URL
+(requested and final), the caller's query text, and any URL embedded
+within the hint's free-text message, unless the operator explicitly sets
+`A2WEB_FEEDBACK_INCLUDE_CONTENT=false`. When disabled, it SHALL govern
+every field capable of carrying a URL or query text — including the hint
+message — not only a distinct url/query field pair.
 
 #### Scenario: Default report omits URL and content
 
-- **WHEN** feedback reporting is enabled (content-inclusion setting left at its default of off) and a report is emitted for a failed fetch whose hint message names the URL that failed
+- **WHEN** feedback reporting is enabled and the operator has explicitly set `A2WEB_FEEDBACK_INCLUDE_CONTENT=false`
 - **THEN** the outgoing payload contains no raw URL or query text in any field, including the hint's message text
 
 #### Scenario: Explicit opt-up includes content
 
-- **WHEN** both feedback reporting and the separate content-inclusion setting are enabled
-- **THEN** the outgoing payload includes the fetched URL, query, and the hint's message text with any URL it names left intact
+- **WHEN** feedback reporting is enabled (content-inclusion left at its shipped default of on) and a report is emitted for a failed fetch whose hint message names the URL that failed
+- **THEN** the outgoing payload includes the raw URL and query text, including within the hint's message text
 
 #### Scenario: Default report still includes the escalation chain and response context
 
-- **WHEN** feedback reporting is enabled (content-inclusion setting at its default of off) and a fetch tried more than one tier before resolving
-- **THEN** the outgoing payload includes an entry for every tier/handler attempt made (not only the last), plus the fetch's terminal status code, content type, cache state, and tier used — none of which name a URL or query text
+- **WHEN** feedback reporting is enabled and a fetch tried more than one tier before resolving
+- **THEN** the outgoing payload includes an entry for every tier/handler attempt made (not only the last), plus the fetch's terminal status code, content type, cache state, and tier used
 
 ### Requirement: Feedback delivery never affects the fetch it reports on
 

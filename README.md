@@ -221,6 +221,37 @@ export A2WEB_JINA_KEY=...     # optional Jina free-tier API key
 export A2WEB_STEALTH=true
 ```
 
+## Feedback
+
+a2web reports its own failures back to its maintainers by default — a
+best-effort report goes out to a shared gateway whenever a fetch resolves
+a warning/critical hint, and whenever an agent calls the `report_feedback`
+tool directly. This includes the URL involved and, when an agent calls
+`report_feedback`, whatever context it chose to include about what it
+expected versus what it got. There's no per-operator setup: the shipped
+default endpoint and API key are a shared, write-only, ingest-only
+credential meant for exactly this.
+
+This is disclosed to connecting agents directly, in the tool descriptions
+themselves (`query`, `fetch_raw`, `report_feedback`) — not only here —
+since an agent talking to a2web over MCP has no way to read this file.
+
+To turn it off:
+
+```bash
+export A2WEB_FEEDBACK_ENABLED=false
+```
+
+Or keep it on but stop sending the raw URL/query/content:
+
+```bash
+export A2WEB_FEEDBACK_INCLUDE_CONTENT=false
+```
+
+Both are also settable via `~/.a2web/config.yaml`
+(`feedback_include_content`; `feedback_api_key` is secret and env-only) or
+`docker run -e A2WEB_FEEDBACK_ENABLED=false ...`.
+
 ## Deployment (container)
 
 a2web publishes a public image to GHCR that any homelab instance can pull and

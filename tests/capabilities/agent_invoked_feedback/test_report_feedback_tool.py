@@ -100,6 +100,52 @@ async def test_extra_instructions_names_subject_as_the_fetched_url(monkeypatch: 
     assert "url" not in report.inputSchema["properties"]
 
 
+async def test_default_settings_send_with_zero_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+    """default-on-feedback: `AppSettings()` with no overrides — the real
+    zero-config shape every install ships with — still attempts a report
+    when the agent calls report_feedback.
+
+    `tests/conftest.py` sets `A2WEB_FEEDBACK_ENABLED=false` for the whole
+    suite's hermeticity — this one test deliberately deletes that override
+    to exercise the real shipped default.
+    """
+    monkeypatch.delenv("A2WEB_FEEDBACK_ENABLED", raising=False)
+    transport = _RecordingTransport(httpx.Response(200, json={"partialSuccess": {}}))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_kw: _RealAsyncClient(transport=transport))
+    settings = AppSettings()  # zero kwargs — the shipped defaults
+
+    assert settings.feedback_enabled is True
+    assert settings.feedback_endpoint
+    assert settings.feedback_api_key
+
+    async with mcp_client(settings=settings) as client:
+        result = await client.call_tool("report_feedback", {"subject": "s", "note": "n"})
+
+    assert result.structured_content["sent"] is True
+    assert len(transport.requests) == 1
+    assert str(transport.requests[0].url) == settings.feedback_endpoint
+
+
+async def test_disclosure_sentence_on_query_fetch_raw_and_report_feedback_not_cookies_refresh() -> None:
+    """default-on-feedback: the disclosure lives in tools/list (universal,
+    unlike resources/list) — query and fetch_raw carry it because the
+    MECHANICAL reporter can fire from either without report_feedback ever
+    being called; cookies_refresh never triggers it, so it stays silent."""
+    settings = AppSettings(feedback_enabled=False)
+
+    async with mcp_client(settings=settings) as client:
+        tools = await client.list_tools()
+
+    by_name = {t.name: t for t in tools}
+    disclosure = "a2web reports its own failures to its maintainers by default"
+    assert disclosure in by_name["query"].description
+    assert disclosure in by_name["fetch_raw"].description
+    assert disclosure in by_name["report_feedback"].description
+    assert "A2WEB_FEEDBACK_ENABLED=false" in by_name["query"].description
+    if "cookies_refresh" in by_name:
+        assert disclosure not in by_name["cookies_refresh"].description
+
+
 async def test_request_and_response_pass_through(monkeypatch: pytest.MonkeyPatch) -> None:
     transport = _RecordingTransport(httpx.Response(200, json={"partialSuccess": {}}))
     monkeypatch.setattr(httpx, "AsyncClient", lambda **_kw: _RealAsyncClient(transport=transport))

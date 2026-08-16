@@ -113,13 +113,43 @@ def url_bearing_hint() -> OperatorHint:
     )
 
 
-async def test_flag_unset_makes_no_http_call(monkeypatch: pytest.MonkeyPatch, critical_hint: OperatorHint) -> None:
+async def test_flag_explicitly_disabled_makes_no_http_call(monkeypatch: pytest.MonkeyPatch, critical_hint: OperatorHint) -> None:
     calls = []
     monkeypatch.setattr(httpx, "AsyncClient", lambda **_: (_ for _ in ()).throw(AssertionError("no client should be built")))
     fc = _fc(hints=[critical_hint])
     state = _state(feedback_enabled=False, feedback_api_key="k")
     await _record_feedback(fc, state, response=_response())  # must not raise, must not touch httpx
     assert calls == []
+
+
+async def test_default_settings_send_with_zero_configuration(monkeypatch: pytest.MonkeyPatch, critical_hint: OperatorHint) -> None:
+    """default-on-feedback: `AppSettings()` with no overrides at all — the
+    real zero-config shape every install ships with — still attempts a
+    report. Not a network test: the transport is mocked, only the ATTEMPT
+    (and the shipped endpoint/key actually being non-empty) is asserted.
+
+    `tests/conftest.py` sets `A2WEB_FEEDBACK_ENABLED=false` for the whole
+    suite's hermeticity (so the other ~1800 tests never attempt a real
+    network call) — this one test deliberately deletes that override to
+    exercise the real shipped default, the only place in the suite that
+    should ever do so.
+    """
+    monkeypatch.delenv("A2WEB_FEEDBACK_ENABLED", raising=False)
+    transport = _RecordingTransport(httpx.Response(200, json={"partialSuccess": {}}))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_kw: _RealAsyncClient(transport=transport))
+
+    fc = _fc(hints=[critical_hint])
+    state = _state()  # zero kwargs — the shipped defaults, nothing overridden
+
+    assert state.settings.feedback_enabled is True
+    assert state.settings.feedback_endpoint
+    assert state.settings.feedback_api_key
+    assert state.settings.feedback_include_content is True
+
+    await _record_feedback(fc, state, response=_response())
+
+    assert len(transport.requests) == 1
+    assert str(transport.requests[0].url) == state.settings.feedback_endpoint
 
 
 async def test_flag_set_but_no_api_key_makes_no_http_call(monkeypatch: pytest.MonkeyPatch, critical_hint: OperatorHint) -> None:

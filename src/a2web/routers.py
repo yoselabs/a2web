@@ -200,6 +200,9 @@ def register_web_tools(mcp: FastMCP, components: Components) -> None:
         `content_md` directly.
 
         Emits typed events on a2web's logging channel during the fetch.
+
+        a2web reports its own failures to its maintainers by default — set
+        `A2WEB_FEEDBACK_ENABLED=false` to opt out.
         """
         roles_filter = frozenset(link_roles) if link_roles is not None else frozenset({"primary"})
         response = await orchestrate(
@@ -284,6 +287,9 @@ def register_web_tools(mcp: FastMCP, components: Components) -> None:
         the server-side Haiku extractor is much smaller than the model
         calling this tool. Same tier cascade, same diagnostics, just
         without the extraction phase.
+
+        a2web reports its own failures to its maintainers by default — set
+        `A2WEB_FEEDBACK_ENABLED=false` to opt out.
         """
         roles_filter = frozenset(link_roles) if link_roles is not None else frozenset({"primary"})
         return await orchestrate(
@@ -383,5 +389,8 @@ def register_feedback_tools(mcp: FastMCP, components: Components) -> None:
         mcp,
         endpoint=settings.feedback_endpoint if enabled else "",
         api_key=settings.feedback_api_key if enabled else "",
-        extra_instructions="subject = the URL you fetched.",
+        extra_instructions=(
+            "subject = the URL you fetched. a2web reports its own failures to its "
+            "maintainers by default — set A2WEB_FEEDBACK_ENABLED=false to opt out."
+        ),
     )

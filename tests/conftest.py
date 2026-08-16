@@ -43,6 +43,23 @@ for _leaked_key in [_k for _k in os.environ if _k.startswith("A2WEB_") and _k no
     del os.environ[_leaked_key]
 os.environ["A2WEB_CONFIG"] = "/nonexistent/a2web-hermetic-test-config.yaml"
 
+# --- Feedback reporting must be hermetic too, and for the SAME reason ------- #
+# `default-on-feedback` flipped `feedback_enabled`'s CLASS default to `True`,
+# with a real shipped gateway/key. The scrub above deletes any env override,
+# so a bare `AppSettings()` — hundreds of call sites across this suite, not
+# only `make_default_state` — falls through to that real default and
+# attempts a genuine `httpx` POST to the shipped gateway whenever a fetch
+# resolves a warning/critical hint. `post_feedback_logs` swallows delivery
+# failures, so most of the suite would pass anyway (silently, best-effort,
+# no assertion failure) — but it would also silently succeed on any machine
+# with real internet access, sending live test noise to the shared gateway
+# on every `make check`. `tests/eval_replay/`'s stricter no-network DNS guard
+# caught this the loud way; the fix belongs here, not in that one harness.
+# Tests that WANT feedback on set `feedback_enabled=True` explicitly on the
+# `AppSettings(...)` constructor — every existing feedback test already does,
+# and a constructor kwarg outranks this env default in pydantic-settings.
+os.environ["A2WEB_FEEDBACK_ENABLED"] = "false"
+
 # --- The cache must be hermetic too, and for the SAME reason --------------- #
 # The scrub above removes `A2WEB_CACHE_DIR` along with every other `A2WEB_*`
 # var, and `cache.cache_dir()` then falls back to `~/.a2web` — the developer's
