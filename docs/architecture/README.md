@@ -122,6 +122,7 @@ guard's own docstring first line.
 - `tests/architecture/test_content_guidance_no_site.py` — Architectural invariant: content guidance is per-KIND, never per-SITE.
 - `tests/architecture/test_documented_env_is_real.py` — Configuration the README documents must actually work.
 - `tests/architecture/test_eval_not_imported_by_a2web.py` — Architectural invariant: the shipped `a2web` package never imports the.
+- `tests/architecture/test_every_fetch_status_has_a_producer.py` — Every declared `FetchStatus` member is emitted by some code path; a comparison is not a producer.
 - `tests/architecture/test_every_hint_code_has_a_factory.py` — Every declared hint code is built by a factory, and every factory lives in one place.
 - `tests/architecture/test_fetch_context_request_is_frozen.py` — The caller's 13 request parameters and 5 injected resources are inputs, not pipeline state: nothing in `src/` assigns them after construction. Pinned BEFORE `decompose-fetcher-into-files` §7.2 lifts them, so the guard proves the lift is possible rather than merely recording that it happened.
 - `tests/architecture/test_fetcher_phase_ordering.py` — The four fetcher orderings that are correct only because of where they sit; written before `decompose-fetcher-into-files` cuts anything, so the move cannot cross one silently.

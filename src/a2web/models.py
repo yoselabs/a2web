@@ -68,7 +68,6 @@ class Verdict(StrEnum):
 class FetchStatus(StrEnum):
     ok = "ok"
     failed = "failed"
-    partial = "partial"
 
 
 class Confidence(StrEnum):
