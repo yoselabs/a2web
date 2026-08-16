@@ -8,6 +8,8 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.49.0] — 2026-08-16
+
 ### Security
 
 - **A deployment configured with unprefixed `GOOGLE_*` env vars served an

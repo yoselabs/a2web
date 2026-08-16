@@ -12,7 +12,7 @@ The primary tool, `query`, goes a step past fetching. It runs a small fast model
 
 ## Status
 
-v0.48. Cascade and extraction are feature-complete. See [`CHANGELOG.md`](./CHANGELOG.md) for what shipped. Deferred work is tracked in `bd` (beads); run `bd ready` for what's workable.
+v0.49. Cascade and extraction are feature-complete. See [`CHANGELOG.md`](./CHANGELOG.md) for what shipped. Deferred work is tracked in `bd` (beads); run `bd ready` for what's workable.
 
 ## Install
 
@@ -22,7 +22,7 @@ the repo by tag, or pull the published container image — see
 to run it as a service.
 
 ```bash
-uv tool install 'a2web @ git+https://github.com/yoselabs/a2web@v0.48.1'
+uv tool install 'a2web @ git+https://github.com/yoselabs/a2web@v0.49.0'
 a2web --help
 ```
 
@@ -37,7 +37,7 @@ server deployment stays small:
 | `[paid]` | `firecrawl-py` | the env-gated Firecrawl paid tier. |
 
 ```bash
-uv tool install 'a2web[browser,cookies,claude-code] @ git+https://github.com/yoselabs/a2web@v0.48.1'
+uv tool install 'a2web[browser,cookies,claude-code] @ git+https://github.com/yoselabs/a2web@v0.49.0'
 ```
 
 From a clone, `make install-global` does the same with every extra.
