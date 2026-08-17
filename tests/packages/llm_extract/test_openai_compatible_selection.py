@@ -99,6 +99,21 @@ def test_explicit_pin_selects_openai(monkeypatch: pytest.MonkeyPatch) -> None:
     assert picked.name == ProviderName.OPENAI_COMPATIBLE
 
 
+def test_default_model_survives_the_timeout_wrap(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regression: `select_provider()` always wraps its result in `TimeoutProvider`
+    (`llm_timeout_s` defaults to 180 in `AppSettings`), and that wrapper used to
+    forward only `.name`/`.available()` — not `.default_model`. A caller reading
+    `getattr(provider, "default_model", "")` off the REAL returned provider (not a
+    bare adapter) always missed and silently fell back to the Anthropic default,
+    even with `OPENAI_MODEL` correctly configured."""
+    monkeypatch.setenv(_KEY_ENV, "k")
+    monkeypatch.setenv("OPENAI_MODEL", "openrouter/openai/gpt-4.1-mini")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
+    picked = select_provider(AppSettings(llm_provider=ProviderName.OPENAI_COMPATIBLE))
+    assert picked is not None
+    assert getattr(picked, "default_model", "") == "openrouter/openai/gpt-4.1-mini"
+
+
 def test_pin_openai_without_model_yields_none(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keyed but no resolvable model (unknown host, no OPENAI_MODEL) → the
     backend drops from the order → pin resolves to nothing, never a modelless

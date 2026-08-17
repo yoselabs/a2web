@@ -124,6 +124,53 @@ approach it. Filed on its own merits, explicitly decoupled from the empty-answer
   indistinguishable on the wire, which is exactly what made #0 diagnosable only from
   inside the container.
 
+### 9. `TimeoutProvider` dropped `default_model` — the configured `OPENAI_MODEL` never reached the gateway
+
+`select_provider()` always wraps its return value in `TimeoutProvider` in production
+(`llm_timeout_s` defaults to `180.0`, `settings.py`). `TimeoutProvider` forwarded `.name`
+and `.available()` to `self.inner` but had no `default_model` property and no
+`__getattr__` — so `_build()`'s `getattr(provider, "default_model", "") or s.llm_model`
+(`llm_resource.py`) always missed the getattr and silently fell through to `s.llm_model`,
+the hardcoded Anthropic default `claude-haiku-4-5-20251001`.
+
+Confirmed live: a homelab deploy with `OPENAI_MODEL=openrouter/openai/gpt-4.1-mini` and
+`A2WEB_LLM_PROVIDER=openai-compatible` set correctly still sent
+`model="claude-haiku-4-5-20251001"` to the configured litellm gateway on every `query`
+call. The gateway tried to route that id straight to Anthropic (no `x-api-key` present)
+and had no fallback entry for a bare `claude-*` id either, so every call died with
+`llm_error` and an empty answer — indistinguishable at the wire from footgun #0's
+symptom, but a completely different root cause.
+
+This is a second, independent leak of the class of bug in **footgun #1** ("Default
+model is metered Anthropic"): #1 was a provider-*order* leak (an unconfigured
+`OPENAI_MODEL` letting the Anthropic default win); this one is a wrapper-*attribute*
+leak that fires even when the order and the config are both already correct — the
+wrapper built around the winning provider just couldn't see its own `default_model`.
+
+Root cause, precisely: `TimeoutProvider` re-implemented the "wrap a provider
+transparently" pattern from scratch instead of reusing it. `anyllm`'s own
+`_GuardedProvider` (used by `with_cost_guard`, wraps the exact same provider duck-type)
+already solves this with `__getattr__`, explicitly commented as forwarding
+`default_model` — but `select_provider()` doesn't compose `with_cost_guard` into its
+chain today, so that existing correct wrapper was never in the path; only a2web's own
+`TimeoutProvider` had the gap.
+
+Impact: every extraction call through a correctly-configured `openai-compatible`
+gateway silently sent the wrong model — no error, no log, no visible signal that the
+configured `OPENAI_MODEL` was ignored. This class of bug (a wrapper opaque to an
+attribute its caller depends on) is exactly the kind that model-independent symptoms
+(footgun #0's "reproduced across three models") should make a reviewer suspicious of a
+code path that never reaches the configured model at all.
+
+- **Fixed:** `TimeoutProvider` now has `__getattr__`, forwarding any attribute not
+  found through normal lookup to the wrapped provider — matching `_GuardedProvider`'s
+  pattern rather than hand-listing individual fields, so the next attribute a provider
+  carries doesn't reproduce this same gap. Regression tests:
+  `tests/packages/llm_extract/test_openai_compatible_selection.py::test_default_model_survives_the_timeout_wrap`
+  (asserts on `select_provider()`'s real wrapped return value) and
+  `tests/capabilities/app_composition/test_resources.py::test_llm_resource_build_resolves_openai_model_through_the_real_wrap`
+  (asserts `_build()` resolves the right model end-to-end through that same real path).
+
 ## Minor friction
 
 ### 3. Zyte key: no deploy-time env matrix

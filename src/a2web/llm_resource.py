@@ -280,6 +280,20 @@ class TimeoutProvider:
         except TimeoutError as exc:
             raise LLMTimeout(self.seconds) from exc
 
+    def __getattr__(self, item: str) -> Any:
+        # Forward unknown attributes (default_model, etc.) to the wrapped
+        # provider — mirrors anyllm.cost._GuardedProvider. Only consulted
+        # when normal lookup (dataclass fields, name, available, complete)
+        # already failed, so those never risk being shadowed. Guarded
+        # against recursion before `inner` is assigned during __init__:
+        # slots=True means there is no __dict__ to probe, so read the slot
+        # directly rather than via self.inner (which would re-enter here).
+        try:
+            inner = object.__getattribute__(self, "inner")
+        except AttributeError:
+            raise AttributeError(item) from None
+        return getattr(inner, item)
+
 
 def with_timeout(provider: _P, settings: AppSettings) -> _P:
     """Wrap `provider` so each completion is bounded. `llm_timeout_s <= 0` disables.

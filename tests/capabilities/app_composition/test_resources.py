@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 from any_browser import PlaywrightBackend, camoufox_launcher
+from async_scope import lazy
 
 from a2web.cache import SqliteResource
 from a2web.llm_resource import LlmExtractorResource
@@ -151,6 +152,26 @@ async def test_build_selected_provider_raises_without_provider(monkeypatch: pyte
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(ResourceUnavailable):
         build_selected_provider(AppSettings(llm_provider="anthropic-api"))
+
+
+@pytest.mark.asyncio
+async def test_llm_resource_build_resolves_openai_model_through_the_real_wrap(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regression: `_build()` must read `default_model` off `select_provider()`'s
+    REAL return value (the `TimeoutProvider`-wrapped provider `build_selected_provider`
+    produces in production), not a bare adapter. Before the `TimeoutProvider.__getattr__`
+    fix, this always resolved to `s.llm_model` (the Anthropic default) instead of the
+    configured `OPENAI_MODEL` — silently, with no error."""
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("OPENAI_MODEL", "openrouter/openai/gpt-4.1-mini")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
+    settings = AppSettings(llm_provider="openai-compatible")
+
+    provider = build_selected_provider(settings)
+    resource = LlmExtractorResource(settings, SqliteResource(db_path=None), lazy(provider))
+    extractor = await resource._ensure()
+
+    assert extractor.model.model == "openrouter/openai/gpt-4.1-mini"
+    assert extractor.model.model != settings.llm_model
 
 
 @pytest.mark.asyncio
