@@ -8,6 +8,21 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.49.1] — 2026-08-17
+
+### Fixed
+
+- **`TimeoutProvider` silently dropped the configured `OPENAI_MODEL`, sending the
+  Anthropic default to whatever gateway `OPENAI_BASE_URL` pointed at.**
+  `select_provider()` always wraps its return value in `TimeoutProvider` in
+  production (`llm_timeout_s` defaults to 180s), but the wrapper only forwarded
+  `.name`/`.available()` to the inner provider — reading `.default_model` back
+  off it always missed and fell through to the hardcoded Anthropic model id,
+  even with `OPENAI_MODEL` and `A2WEB_LLM_PROVIDER=openai-compatible` both set
+  correctly. `TimeoutProvider` now has `__getattr__` passthrough (mirroring
+  `anyllm`'s own `_GuardedProvider`), so any provider attribute — not just this
+  one — survives the wrap. See `LESSONS_LEARNED.md` footgun #9.
+
 ## [0.49.0] — 2026-08-16
 
 ### Security
