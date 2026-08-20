@@ -8,6 +8,42 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.50.0] — 2026-08-20
+
+### Added
+
+- **Typed commerce fields on listing options** (`type-listing-commerce-fields`,
+  a2web-gvy) — `ListingOption` (the `options` shelf on a listing `ask`) gains
+  independently-optional `price` / `currency` / `rating` / `stock` / `seller`
+  fields, sourced only from a page's own JSON-LD/framework-state `offers`/
+  `aggregateRating` declaration — never fabricated, never backfilled from a
+  second fetch. `_normalize_commerce_row` now also lifts `offers.availability`
+  and `offers.seller`, fields it already had in hand but never read. `detail`
+  remains the free-text fallback; options parsed by the generic structural
+  (DOM) record detector carry no typed fields at all (that path has no
+  commerce concept, and wins precedence over JSON-LD when both parse the same
+  page, unchanged from prior behavior). Addresses the 2026-08-07 call-trace
+  audit's #1 finding: 885 calls (31% of the corpus) were product-page
+  drilldowns immediately following a listing fetch, re-deriving price/stock
+  that a2web had already parsed but returned only as unstructured prose.
+
+- **Query-title-mismatch detection on listings** (`flag-query-title-mismatch`,
+  a2web-byy) — the second half of the requested-identity-vs-served-content
+  check (a2web-axb shipped the cross-domain half in v0.49). When a listing
+  fetch's caller `ask` shares no substantive term with ANY of the served
+  item titles (`record_set.records[].heading_text`, not the page's own
+  `<title>` — a search-results title conventionally echoes the query
+  regardless of result relevance), `confidence` is capped `high` → `medium`
+  and a new `query_title_mismatch` operator hint names the mismatch. Addresses
+  the audit's §4a2: a hepsiburada `"pindstrup"` search returning shade cloth,
+  a kaspi `"AMT M-1"` search returning unrelated computer/auto parts — both
+  shipped `confidence: high` with nothing telling the caller the results
+  don't match what was asked. Scoped to exact zero-overlap only (a coverage
+  threshold would reintroduce the false-positive-tuning risk this shape is
+  otherwise prone to); the harder confusable-model-variant shape on a single
+  product page (Lenovo 15AKP10 asked, 15IRX10 served) has no listing item
+  titles to compare against and stays open, its own future change if pursued.
+
 ## [0.49.1] — 2026-08-17
 
 ### Fixed
