@@ -1015,3 +1015,55 @@ says nothing about whether the surface was right when captured.
      "icons": null,
      "inputSchema": {
 ```
+
+## `ask-primary-image-surfaced` — `call/query_success_rich`
+
+```diff
+--- call/query_success_rich.json (before)
++++ call/query_success_rich.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"other_pages\":\"url\\treason\\tkind\\tanchor\\nhttps://example.org/related\\trelated read\\tdrilldown\\tRelated\\n\",\"_other_pages_format\":\"tsv\"}",
++      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"meta\":{\"image\":\"https://example.org/cover.jpg\"},\"other_pages\":\"url\\treason\\tkind\\tanchor\\nhttps://example.org/related\\trelated read\\tdrilldown\\tRelated\\n\",\"_other_pages_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+@@ -10,6 +10,9 @@
+     "answer": "The page is about adaptive web fetching.",
+     "byline": "Jane Doe",
+     "confidence": "high",
++    "meta": {
++      "image": "https://example.org/cover.jpg"
++    },
+     "other_pages": "url\treason\tkind\tanchor\nhttps://example.org/related\trelated read\tdrilldown\tRelated\n",
+     "published": "2026-04-01",
+     "title": "How adaptive web fetching saves agent tokens"
+```
+
+## `ask-primary-image-surfaced` — `call/query_adversarial_cells`
+
+```diff
+--- call/query_adversarial_cells.json (before)
++++ call/query_adversarial_cells.json (after)
+@@ -1,7 +1,7 @@
+ {
+   "content": [
+     {
+-      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"other_pages\":\"url\\treason\\tkind\\tanchor\\nhttps://example.org/p/hd600\\tthe page calls this one \\\"the reference\\\" for the price band\\tdrilldown\\tHD 600\\nhttps://example.org/p/driver\\tsee C:\\\\\\\\drivers\\\\\\\\readme.txt on the vendor page\\tdrilldown\\tDriver spec\\nhttps://example.org/p/spec\\trow 1:\\\\tmax SPL\\\\nrow 2:\\\\timpedance\\tdrilldown\\tSpec table\\n\",\"_other_pages_format\":\"tsv\"}",
++      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"meta\":{\"image\":\"https://example.org/cover.jpg\"},\"other_pages\":\"url\\treason\\tkind\\tanchor\\nhttps://example.org/p/hd600\\tthe page calls this one \\\"the reference\\\" for the price band\\tdrilldown\\tHD 600\\nhttps://example.org/p/driver\\tsee C:\\\\\\\\drivers\\\\\\\\readme.txt on the vendor page\\tdrilldown\\tDriver spec\\nhttps://example.org/p/spec\\trow 1:\\\\tmax SPL\\\\nrow 2:\\\\timpedance\\tdrilldown\\tSpec table\\n\",\"_other_pages_format\":\"tsv\"}",
+       "type": "text"
+     }
+   ],
+@@ -10,6 +10,9 @@
+     "answer": "The page is about adaptive web fetching.",
+     "byline": "Jane Doe",
+     "confidence": "high",
++    "meta": {
++      "image": "https://example.org/cover.jpg"
++    },
+     "other_pages": "url\treason\tkind\tanchor\nhttps://example.org/p/hd600\tthe page calls this one \"the reference\" for the price band\tdrilldown\tHD 600\nhttps://example.org/p/driver\tsee C:\\\\drivers\\\\readme.txt on the vendor page\tdrilldown\tDriver spec\nhttps://example.org/p/spec\trow 1:\\tmax SPL\\nrow 2:\\timpedance\tdrilldown\tSpec table\n",
+     "published": "2026-04-01",
+     "title": "How adaptive web fetching saves agent tokens"
+```

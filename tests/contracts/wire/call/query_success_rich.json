@@ -1,7 +1,7 @@
 {
   "content": [
     {
-      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"other_pages\":\"url\\treason\\tkind\\tanchor\\nhttps://example.org/related\\trelated read\\tdrilldown\\tRelated\\n\",\"_other_pages_format\":\"tsv\"}",
+      "text": "{\"confidence\":\"high\",\"answer\":\"The page is about adaptive web fetching.\",\"title\":\"How adaptive web fetching saves agent tokens\",\"byline\":\"Jane Doe\",\"published\":\"2026-04-01\",\"meta\":{\"image\":\"https://example.org/cover.jpg\"},\"other_pages\":\"url\\treason\\tkind\\tanchor\\nhttps://example.org/related\\trelated read\\tdrilldown\\tRelated\\n\",\"_other_pages_format\":\"tsv\"}",
       "type": "text"
     }
   ],
@@ -10,6 +10,9 @@
     "answer": "The page is about adaptive web fetching.",
     "byline": "Jane Doe",
     "confidence": "high",
+    "meta": {
+      "image": "https://example.org/cover.jpg"
+    },
     "other_pages": "url\treason\tkind\tanchor\nhttps://example.org/related\trelated read\tdrilldown\tRelated\n",
     "published": "2026-04-01",
     "title": "How adaptive web fetching saves agent tokens"

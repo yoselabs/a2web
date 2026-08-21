@@ -448,20 +448,47 @@ async def test_ask_meta_curates_to_allowlist(monkeypatch: pytest.MonkeyPatch) ->
     data = await _ask_wire(monkeypatch, body=_RICH_META_HTML, url="https://example.org/post", query="q?")
     assert data["meta"] == {
         "og.description": "A post with curated-worthy metadata.",
+        "image": "https://example.org/cover.jpg",
     }
     assert "og.title" not in data["meta"]  # duplicates the promoted `title` field
     assert "og.site_name" not in data["meta"]  # duplicates the domain in the URL
-    assert "og.image" not in data["meta"]
+    assert "og.image" not in data["meta"]  # normalized to `image` instead
     assert "og.image:width" not in data["meta"]
     assert "twitter.card" not in data["meta"]
     assert "twitter.label1" not in data["meta"]
 
 
 @pytest.mark.asyncio
+async def test_ask_meta_image_falls_back_to_twitter_when_no_og_image(monkeypatch: pytest.MonkeyPatch) -> None:
+    html = (
+        b"<html><head>"
+        b'<meta name="twitter:image" content="https://example.org/twitter-card.jpg">'
+        b"</head><body><main>" + b"<p>Adaptive web fetching keeps the calling agent's context small.</p>" * 30 + b"</main></body></html>"
+    )
+    data = await _ask_wire(monkeypatch, body=html, url="https://example.org/post", query="q?")
+    assert data["meta"]["image"] == "https://example.org/twitter-card.jpg"
+
+
+@pytest.mark.asyncio
+async def test_ask_meta_image_absent_when_page_has_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    # og:description is present (so `meta` itself is non-empty) but no
+    # og:image/twitter:image/jsonld image key exists anywhere on the page —
+    # `image` SHALL be correctly absent rather than guessed.
+    html = (
+        b"<html><head>"
+        b'<meta property="og:description" content="No image on this one.">'
+        b"</head><body><main>" + b"<p>Adaptive web fetching keeps the calling agent's context small.</p>" * 30 + b"</main></body></html>"
+    )
+    data = await _ask_wire(monkeypatch, body=html, url="https://example.org/post", query="q?")
+    assert data["meta"] == {"og.description": "No image on this one."}
+    assert "image" not in data["meta"]
+
+
+@pytest.mark.asyncio
 async def test_ask_meta_omitted_when_curation_leaves_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
-    # blog.html carries only non-allowlisted keys (og.type/title/image/url,
-    # twitter.card/site) — curation leaves an empty dict, which is omitted.
-    data = await _ask_wire(monkeypatch, url="https://example.org/post", query="q?")
+    # _MINIMAL_HTML carries no og/twitter/jsonld metadata at all — curation
+    # leaves an empty dict, which is omitted.
+    data = await _ask_wire(monkeypatch, body=_MINIMAL_HTML, url="https://example.org/post", query="q?")
     assert "meta" not in data
 
 

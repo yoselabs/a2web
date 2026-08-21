@@ -272,9 +272,22 @@ def _project_routing(boundary: RouterBoundary | None) -> RouterPayload | None:
 # `FetchResponse.meta` stays the full uncurated dict for debug/inspection.
 _ASK_META_ALLOWLIST = ("og.description",)
 
+# The page's own primary image, in fallback order (a2web-qgo). Each key is a
+# raw literal from `parse_metadata` — the value is relayed verbatim, never
+# resolved or guessed (ADR-0014). Only the first one present wins and it is
+# exposed under a single normalized `image` key — a2web picks the page's own
+# designated image, never ranks a set of candidates (ADR-0012).
+_IMAGE_META_KEYS = ("og.image", "twitter.image", "jsonld[0].image")
+
 
 def _curate_ask_meta(meta: dict[str, str]) -> dict[str, str]:
-    return {k: v for k, v in meta.items() if k in _ASK_META_ALLOWLIST}
+    curated = {k: v for k, v in meta.items() if k in _ASK_META_ALLOWLIST}
+    for key in _IMAGE_META_KEYS:
+        value = meta.get(key)
+        if value:
+            curated["image"] = value
+            break
+    return curated
 
 
 # ── `retrieval_incomplete` is decided in TWO NAMED PHASES ────────────────────
