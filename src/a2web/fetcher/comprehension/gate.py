@@ -33,6 +33,33 @@ _THIN_BROWSER_MAX_BODY: int = 1_024
 # Hosts known to be JS-heavy CSR apps. When the browser tier returns a thin
 # 200 OK from one of these, the gate downgrades to length_floor so escalation
 # continues (operator can extend via AppSettings.js_heavy_hosts_extra).
+#
+# `hepsiburada.com` is deliberately absent (a2web-cid) — not an oversight and
+# not something to add on symmetry with trendyol.com/aliexpress.com alone.
+# Evidence, both from before this seed existed:
+#   - The 2026-05-19 harsh-test session that seeded this set (see
+#     `openspec/changes/archive/2026-05-19-harsh-test-session-fixes/design.md`)
+#     explicitly classified "Hepsiburada / Amazon.com.tr" as SSR e-commerce,
+#     raw-tier win, in the same breath that classified Trendyol / Yandex
+#     Market as CSR, partial-or-failed — i.e. hepsiburada was tested and
+#     excluded, not overlooked. `_JS_HEAVY_HOSTS_SEED` was seeded from exactly
+#     that split.
+#   - `tests/fixtures/hepsiburada_listing.html` and the frozen regression case
+#     `eval/corpus/regression/hepsiburada-listing-price` both show hepsiburada
+#     product/listing pages ship their product data as `application/ld+json`
+#     inside the raw HTML — the raw tier's own body carries the answer, so a
+#     JS render recovers nothing raw doesn't already have.
+# This branch (`tier == "browser"`) only fires once a fetch has already
+# reached the browser tier and come back thin; it never governs whether raw
+# escalates to browser in the first place (that's the generic block_detector
+# verdict on the raw tier's own content, in `packages/block_detector.py`).
+# One live counter-signal exists — `eval/findings_2026-06-27.md` found the
+# hepsiburada *search* page (`/ara?q=...`, not a product page) needed the
+# `zendriver` browser backend to read at all — but that page's fast-tier
+# response was already empty (md_len=0), so it already trips the generic
+# `LENGTH_FLOOR` (packages/block_detector.py) without needing host membership
+# here. If a future thin-but-`ok` (500-1023 char) browser shell shows up on
+# hepsiburada, that is new evidence and reopens this decision.
 _JS_HEAVY_HOSTS_SEED: frozenset[str] = frozenset(
     {
         "x.com",
