@@ -8,6 +8,29 @@ All notable changes to **a2web** are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.51.0] — 2026-08-22
+
+### Added
+
+- **Primary image on `ask` meta** (a2web-qgo) — `_curate_ask_meta` resolves one
+  grounded image (`og:image`, then `twitter:image`, then `jsonld[0].image`,
+  first non-empty wins) into a normalized `meta.image` key. Raw
+  `og.image`/`twitter.image`/`jsonld` keys stay off the allowlist (ADR-0014:
+  relay only what's literally on the page); the fallback picks the page's own
+  single designated image rather than ranking a set (ADR-0012). Generic and
+  always-on, not product-page-only.
+- **MCP `initialize` instructions** — the a2web MCP server now declares a
+  short `instructions` string at connection time, directing the calling agent
+  to try every available browser tool — not just the first — before treating
+  a `severity: critical` operator hint's URL as unreachable. Delivered once at
+  connection, ahead of any tool-result context, rather than relying solely on
+  per-fetch hint text.
+
+### Tests
+
+- Direct unit coverage for `eval/corpus.py`'s `CorpusError` guards
+  (a2web-2yd).
+
 ## [0.50.0] — 2026-08-20
 
 ### Added
