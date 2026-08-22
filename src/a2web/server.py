@@ -48,6 +48,14 @@ if TYPE_CHECKING:
 
 __all__ = ["build_google_provider", "build_mcp_server", "main", "serve_http_main"]
 
+# Sent once at MCP `initialize`, not buried in a tool result — see
+# openspec/changes/add-mcp-server-instructions/design.md for why this exists
+# and why it deliberately doesn't restate any hint's own `fix` text.
+_SERVER_INSTRUCTIONS = (
+    'a2web severity:"critical" hint: try every available browser tool '
+    "(not just the first) before treating the URL as unreachable."
+)
+
 
 def _configure_logging(settings: AppSettings) -> None:
     """Install a2web's logging surface and the manifest sinks.
@@ -91,6 +99,7 @@ def build_mcp_server(
             await parts.aclose()
 
     fastmcp_kwargs.setdefault("lifespan", _lifespan)
+    fastmcp_kwargs.setdefault("instructions", _SERVER_INSTRUCTIONS)
     mcp = FastMCP(name="a2web", **fastmcp_kwargs)
 
     register_web_tools(mcp, parts)

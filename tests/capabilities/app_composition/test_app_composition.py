@@ -61,3 +61,11 @@ async def test_cookies_tool_exposed_when_toggled_on() -> None:
 def test_main_entrypoint_exists_and_callable() -> None:
     """`a2web.server.main` is the script entrypoint."""
     assert callable(main)
+
+
+def test_server_declares_connection_time_instructions() -> None:
+    """MCP `initialize` carries a critical-hint compliance rule — see
+    openspec/changes/add-mcp-server-instructions."""
+    server = build_mcp_server(settings=AppSettings())
+    assert server.instructions
+    assert "browser tool" in server.instructions
